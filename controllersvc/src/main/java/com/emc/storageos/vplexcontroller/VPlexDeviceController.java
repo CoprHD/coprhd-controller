@@ -10737,30 +10737,52 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         BlockSnapshotSession snapSession = getDataObject(BlockSnapshotSession.class, snapSessionURI, _dbClient);
         try {
             // Generate the Workflow.
-            Workflow workflow = _workflowService.getNewWorkflow(this,
-                    RESTORE_SNAP_SESSION_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_SNAP_SESSION_WF_NAME, false, opId);
             _log.info("Created restore snapshot session workflow with operation id {}", opId);
-
-            // Get some info from the snapshot we need to do the native
-            // restore of the backend volume.
-            URI parentVolumeURI = snapSession.getParent().getURI();
-            Volume parentVolume = getDataObject(Volume.class, parentVolumeURI, _dbClient);
-            StorageSystem parentSystem = getDataObject(StorageSystem.class, parentVolume.getStorageController(), _dbClient);
 
             // Get the VPLEX system.
             StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
 
-            // Get the VPLEX volume to be restored.
-            Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
-            URI vplexVolumeURI = vplexVolume.getId();
+            // Get the VPLEX volume(s) to be restored.
+            List<Volume> vplexVolumes = new ArrayList<Volume>();
+            if (!snapSession.hasConsistencyGroup()) {
+                // If the snap session is not in a CG, the only VPLEX
+                // volume to restore is the VPLEX volume using the
+                // snap session parent.
+                URI parentVolumeURI = snapSession.getParent().getURI();
+                URIQueryResultList queryResults = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeByAssociatedVolumesConstraint(parentVolumeURI.toString()),
+                        queryResults);
+                vplexVolumes.add(_dbClient.queryObject(Volume.class, queryResults.iterator().next()));
+            } else {
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
+                List<Volume> allVplexVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
+                // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
+                // that are RP source volumes.
+                for (Volume vplexVolume : allVplexVolumesInCG) {
+                    String personality = vplexVolume.getPersonality();
+                    if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
+                        vplexVolumes.add(vplexVolume);
+                    }
+                }
+            }
+
+            // Determine the backend storage system containing the native snapshot session.
+            Volume firstVplexVolume = vplexVolumes.get(0);
+            Volume firstSnapSessionParentVolume = VPlexUtil.getVPLEXBackendVolume(firstVplexVolume, true, _dbClient);
+            StorageSystem snapSessionSystem = getDataObject(StorageSystem.class, firstSnapSessionParentVolume.getStorageController(),
+                    _dbClient);
 
             // The workflow depends on if the VPLEX volume is local or distributed.
             String waitFor = null;
-            boolean isLocal = vplexVolume.getAssociatedVolumes().size() == 1;
+            boolean isLocal = firstVplexVolume.getAssociatedVolumes().size() == 1;
             if (isLocal) {
-                // Create a step to invalidate the read cache for the VPLEX volume.
-                waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                        vplexVolumeURI, null, null);
+                for (Volume vplexVolume : vplexVolumes) {
+                    // Create a step to invalidate the read cache for the VPLEX volume.
+                    waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
+                            vplexVolume.getId(), null, null);
+                }
 
                 // Now create a workflow step to natively restore the backend
                 // volume. We execute this after the invalidate cache. We
@@ -10768,60 +10790,66 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // but what if the invalidate cache fails, but the restore succeeds,
                 // the cache now has invalid data and a cache read hit could return
                 // invalid data.
-                createWorkflowStepForRestoreNativeSnapshotSession(workflow, parentSystem,
+                createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
                         snapSessionURI, waitFor, null);
             } else {
-                // For distributed volumes we take snapshots of and restore the
-                // source backend volume. Before we can do the restore, we need
-                // to detach the HA mirror of the distributed volume. So,
-                // determine the HA backend volume and create a workflow step
-                // to detach it from the source.
-                Volume haVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, false, _dbClient);
-                URI haVolumeURI = haVolume.getId();
-                String detachStepId = workflow.createStepId();
-                Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
-                        vplexURI, vplexVolumeURI, haVolumeURI, vplexVolume.getConsistencyGroup(), detachStepId);
-                waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem, vplexVolume,
-                        haVolumeURI, detachStepId, null, restoreVolumeRollbackMethod);
+                for (Volume vplexVolume : vplexVolumes) {
+                    // For distributed volumes we take snaps of and restore the
+                    // source backend volume. Before we can do the restore, we need
+                    // to detach the HA mirror of the distributed volume. So,
+                    // determine the HA backend volume and create a workflow step
+                    // to detach it from the source.
+                    URI vplexVolumeURI = vplexVolume.getId();
+                    Volume haVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, false, _dbClient);
+                    URI haVolumeURI = haVolume.getId();
+                    String detachStepId = workflow.createStepId();
+                    Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
+                            vplexURI, vplexVolumeURI, haVolumeURI, vplexVolume.getConsistencyGroup(), detachStepId);
+                    waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem, vplexVolume,
+                            haVolumeURI, detachStepId, null, restoreVolumeRollbackMethod);
 
-                // We now create a step to invalidate the cache for the
-                // VPLEX volume. Note that if this step fails we need to
-                // rollback and reattach the HA mirror.
-                waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                        vplexVolumeURI, waitFor, rollbackMethodNullMethod());
+                    // We now create a step to invalidate the cache for the
+                    // VPLEX volume. Note that if this step fails we need to
+                    // rollback and reattach the HA mirror.
+                    createWorkflowStepForInvalidateCache(workflow, vplexSystem,
+                            vplexVolumeURI, waitFor, rollbackMethodNullMethod());
 
-                // Create a workflow step to natively restore the backend volume.
-                // We could execute this in parallel with the cache invalidate
-                // for a little better efficiency, but what if the invalidate cache
-                // fails, but the restore succeeds, the cache now has invalid data
-                // and a cache read hit could return invalid data. If this step fails,
-                // then again, we need to be sure and rollback and reattach the HA
-                // mirror. There is nothing to rollback for the cache invalidate step.
-                // It just means there will be no read cache hits on the volume for
-                // a while until the cache is repopulated.
-                waitFor = createWorkflowStepForRestoreNativeSnapshotSession(workflow, parentSystem,
-                        snapSessionURI, waitFor, rollbackMethodNullMethod());
+                    // Now create a workflow step to reattach the mirror to initiate
+                    // a rebuild of the HA mirror for the distributed volume. Note that
+                    // these steps will not run until after the native restore, which
+                    // only gets executed once, not for every VPLEX volume.
+                    waitFor = createWorkflowStepForAttachMirror(workflow, vplexSystem, vplexVolume,
+                            haVolumeURI, detachStepId, RESTORE_SNAP_SESSION_STEP, rollbackMethodNullMethod());
 
-                // Now create a workflow step to reattach the mirror to initiate
-                // a rebuild of the HA mirror for the distributed volume. Note that
-                // these steps will not run until after the native restore, which
-                // only gets executed once, not for every VPLEX volume.
-                waitFor = createWorkflowStepForAttachMirror(workflow, vplexSystem, vplexVolume,
-                        haVolumeURI, detachStepId, waitFor, rollbackMethodNullMethod());
+                    // Create a step to wait for rebuild of the HA volume to
+                    // complete. This should not do any rollback if the step
+                    // fails because at this point the restore is really
+                    // complete.
+                    createWorkflowStepForWaitOnRebuild(workflow, vplexSystem, vplexVolumeURI, waitFor);
+                }
 
-                // Create a step to wait for rebuild of the HA volume to
-                // complete. This should not do any rollback if the step
-                // fails because at this point the restore is really
-                // complete.
-                createWorkflowStepForWaitOnRebuild(workflow, vplexSystem, vplexVolumeURI, waitFor);
+                // Create a workflow step to native restore the backend volume
+                // from the passed snap session. This step is executed after the
+                // cache has been invalidated for each VPLEX volume. Note that
+                // if the snap session is associated with a CG, then block controller
+                // will restore all backend volumes in the CG. We could execute this
+                // in parallel with the invalidate for a little better efficiency,
+                // but what if the invalidate cache fails, but the restore succeeds,
+                // the cache now has invalid data and a cache read hit could return
+                // invalid data. If this step fails, then again, we need to be sure
+                // and rollback and reattach the HA mirror. There is nothing to
+                // rollback for the cache invalidate step. It just means there will
+                // be no read cache hits on the volume for a while until the cache
+                // is repopulated.
+                createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
+                        snapSessionURI, INVALIDATE_CACHE_STEP, rollbackMethodNullMethod());
             }
 
             // Execute the workflow.
             _log.info("Executing workflow plan");
             TaskCompleter completer = new BlockSnapshotSessionRestoreWorkflowCompleter(snapSessionURI, Boolean.TRUE, opId);
             String successMsg = String.format(
-                    "Restore VPLEX volume from snapshot session %s of backend volume %s "
-                            + "completed successfully", snapSessionURI, parentVolumeURI);
+                    "Restore VPLEX volume(s) from snapshot session %s" + "completed successfully", snapSessionURI);
             workflow.executePlan(completer, successMsg);
             _log.info("Workflow plan executing");
         } catch (Exception e) {

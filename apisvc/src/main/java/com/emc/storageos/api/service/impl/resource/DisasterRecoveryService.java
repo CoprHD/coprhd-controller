@@ -1521,14 +1521,15 @@ public class DisasterRecoveryService {
     
     private class FailbackLeaderSelectorListener extends LeaderSelectorListenerImpl {
 
+        private static final int FAILBACK_DETECT_INTERNVAL_SECONDS = 60;
         private ScheduledExecutorService service;
 
         @Override
         protected void startLeadership() throws Exception {
-            log.info("This node is selected failback detector");
+            log.info("This node is selected as failback detector");
 
             service = Executors.newScheduledThreadPool(1);
-            service.scheduleAtFixedRate(failbackDetectMonitor, 0, 60, TimeUnit.SECONDS);
+            service.scheduleAtFixedRate(failbackDetectMonitor, 0, FAILBACK_DETECT_INTERNVAL_SECONDS, TimeUnit.SECONDS);
         }
 
         @Override

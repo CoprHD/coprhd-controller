@@ -5017,7 +5017,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         String waitFor = null;
         List<URI> addVolumesList = new ArrayList<URI>();
-        List<URI> removeVolList = new ArrayList<URI>();
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
@@ -5026,7 +5025,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (removeVolumeList!= null && !removeVolumeList.isEmpty()) {
                 Map<URI, List<URI>> removeVolsMap = new HashMap<URI, List<URI>>();
-                removeVolList = removeVolumeList;
                 for (URI voluri : removeVolumeList) {
                     Volume vol = _dbClient.queryObject(Volume.class, voluri);
                     URI cguri = vol.getConsistencyGroup();
@@ -5090,7 +5088,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, cguri, addVolumesList, opId);
 
             }
-            completer = new ApplicationTaskCompleter(application, addVolumesList, removeVolList, cgs, opId);
+            completer = new ApplicationTaskCompleter(application, addVolumesList, removeVolumeList, cgs, opId);
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);
             String successMessage = String.format(
@@ -5589,4 +5587,5 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
     }
+
 }

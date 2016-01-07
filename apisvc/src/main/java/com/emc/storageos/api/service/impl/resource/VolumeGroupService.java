@@ -811,7 +811,7 @@ public class VolumeGroupService extends TaskResourceService {
                     continue;
                 }
 
-                if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
+                if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup()) && !isVPlexVolume(vol, dbClient)) {
                     removeVolumeCGs.add(vol.getConsistencyGroup());
                 }
 
@@ -936,4 +936,19 @@ public class VolumeGroupService extends TaskResourceService {
         return errorMsg;
     }
 
+    /**
+     * Check if the volume is a vplex volume
+     * @param volume The volume to be checked
+     * @return true or false
+     */
+    static private boolean isVPlexVolume(Volume volume, DbClient dbClient) {
+        boolean result = false;
+        URI storageUri = volume.getStorageController();
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageUri);
+        String systemType = storage.getSystemType();
+        if (systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
+            result = true;
+        }
+        return result;
+    }
 }

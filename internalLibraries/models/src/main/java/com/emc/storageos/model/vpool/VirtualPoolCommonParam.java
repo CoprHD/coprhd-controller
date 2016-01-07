@@ -57,8 +57,14 @@ public class VirtualPoolCommonParam {
 
     @XmlElementWrapper(name = "protocols", required = true)
     /**
-     * The set of supported protocols for the virtual pool. Valid values are
-     * FC, ISCSI, FCoE, NFS, NFSV4, CIFS
+     * The set of supported protocols for the virtual pool. 
+     * Valid values:
+     *  FC
+     *  ISCSI
+     *  FCoE
+     *  NFS
+     *  NFSV4
+     *  CIFS
      * 
      */
     @XmlElement(name = "protocol", required = true)
@@ -105,7 +111,10 @@ public class VirtualPoolCommonParam {
 
     /**
      * The provisioning type for the virtual pool.
-     * 
+     * Valid values:
+     *  NONE
+     *  Thin
+     *  Thick
      */
     @XmlElement(name = "provisioning_type", required = true)
     public String getProvisionType() {
@@ -118,7 +127,14 @@ public class VirtualPoolCommonParam {
 
     /**
      * The supported system type for the virtual pool.
-     * 
+     * Valid values:
+     *  NONE
+     *  vnxblock
+     *  vmax
+     *  openstack
+     *  vnxfile
+     *  isilon
+     *  netapp
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {

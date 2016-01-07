@@ -109,7 +109,9 @@ public class VolumeExportIngestParam {
     /**
      * The ingestion method for VPLEX volumes.
      * Defaults to "Full" if not specificed.
-     * 
+     * Valid values:
+     *  Full
+     *  VirtualVolumesOnly
      */
     @XmlElement(required = false)
     public String getVplexIngestionMethod() {

@@ -110,7 +110,8 @@ public class ComputeSystemCreate {
 
     /**
      * Specifies the type of the compute system.
-     * 
+     * Valid value:
+     * ucs
      */
     @XmlElement(name = "system_type", required = true)
     @JsonProperty("system_type")

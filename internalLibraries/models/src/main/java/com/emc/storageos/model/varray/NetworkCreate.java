@@ -47,7 +47,11 @@ public class NetworkCreate {
     }
 
     /**
-     * Transport type of the network. Valid values: FC, IP, Ethernet
+     * Transport type of the network. 
+     * Valid values: 
+     *  FC
+     *  IP
+     *  Ethernet
      * 
      */
     @XmlElement(required = true, name = "transport_type")

@@ -39,7 +39,14 @@ public abstract class HostParam {
     }
 
     /**
-     * The host type.Valid value: Windows, HPUX, Linux, Esx and Other
+     * The host type.
+     * Valid values:
+     *   Windows
+     *   HPUX
+     *   Linux
+     *   Esx
+     *   SUNVCS
+     *   Other
      * 
      */
     // @EnumType(Host.HostType.class)

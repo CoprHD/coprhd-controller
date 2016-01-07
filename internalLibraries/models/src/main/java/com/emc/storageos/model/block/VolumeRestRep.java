@@ -143,7 +143,10 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         /**
          * How this volume is used with respect to replication
-         * 
+         * Valid values:
+         *  SOURCE
+         *  TARGET
+         *  METADATA
          */
         @XmlElement(name = "personality")
         public String getPersonality() {
@@ -266,7 +269,10 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         /**
          * How this volume is used with respect to replication
-         * 
+         * Valid values:
+         *  SOURCE
+         *  TARGET
+         *  METADATA
          */
         @XmlElement(name = "personality")
         public String getPersonality() {

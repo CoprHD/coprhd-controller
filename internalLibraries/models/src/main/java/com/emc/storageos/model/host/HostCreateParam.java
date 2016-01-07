@@ -22,7 +22,13 @@ public class HostCreateParam extends HostParam {
 
     /**
      * The host type.
-     * 
+     * Valid values:
+     *   Windows
+     *   HPUX
+     *   Linux
+     *   Esx
+     *   SUNVCS
+     *   Other
      */
     @Override
     @XmlElement(required = true)

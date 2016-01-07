@@ -83,7 +83,10 @@ public class QuotaDirectoryCreateParam {
     /**
      * Security style for the quota directory.
      * Default is "UNIX".
-     * 
+     * Valid values:
+     *   UNIX
+     *   NIFS
+     *   Mixed
      */
     @XmlElement(name = "security_style")
     public String getSecurityStyle() {

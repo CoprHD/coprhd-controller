@@ -42,7 +42,12 @@ public class ManagedResourcesCapacity {
         private double resourceCapacity;
 
         /**
-         * The type of the resources. Valid values VOLUME, FILESHARE, POOL, BUCKET
+         * The type of the resources. 
+         * Valid values:
+         *  VOLUME
+         *  FILESHARE
+         *  POOL
+         *  BUCKET
          * 
          */
         @XmlElement

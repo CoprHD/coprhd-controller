@@ -48,7 +48,9 @@ public class VirtualArrayConnectivityRestRep {
 
     /**
      * The connection type.
-     * 
+     * Valid values:
+     *  vplex
+     *  rp
      * 
      * @return The connection type
      */

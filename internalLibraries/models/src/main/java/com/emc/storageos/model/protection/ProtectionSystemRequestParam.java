@@ -116,7 +116,9 @@ public class ProtectionSystemRequestParam {
 
     /**
      * The registration mode for the Protection System
-     * 
+     * Valid values:
+     *  REGISTERED
+     *  UNREGISTERED
      */
     @XmlElement(name = "registration_mode")
     public String getRegistrationMode() {

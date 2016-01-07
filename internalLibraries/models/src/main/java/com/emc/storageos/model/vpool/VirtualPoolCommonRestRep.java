@@ -31,7 +31,11 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
     private List<RelatedResourceRep> invalidMatchedStoragePools;
 
     /**
-     * Virtual pool storage resource type. Valid block, file, object
+     * Virtual pool storage resource type.
+     * Valid values:
+     *  block
+     *  file
+     *  object
      * 
      */
     @XmlElement
@@ -72,8 +76,14 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
 
     @XmlElementWrapper(name = "protocols")
     /**
-     * The set of supported protocols for the virtual pool.Valid values are
-     * FC, ISCSI, FCoE, NFS, NFSV4, CIFS
+     * The set of supported protocols for the virtual pool.
+     * Valid values:
+     *  FC
+     *  ISCSI
+     *  FCoE
+     *  NFS
+     *  NFSV4
+     *  CIFS
      * 
      */
     @XmlElement(name = "protocol")
@@ -89,8 +99,14 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
     }
 
     /**
-     * The supported system type for the virtual pool. Valid ones are vnxblock, vmax, vnxfile, isilon, netapp
-     * 
+     * The supported system type for the virtual pool. 
+     * Valid values:
+     *  NONE
+     *  vnxblock
+     *  vmax
+     *  vnxfile
+     *  isilon
+     *  netapp
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {

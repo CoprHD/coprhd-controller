@@ -35,8 +35,14 @@ public class VirtualPoolAttributesParam {
 
     @XmlElementWrapper(name = "protocols")
     /**
-     * The protocols for a virtual pool. Valid values are
-     * FC, ISCSI, FCoE, NFS, NFSV4, CIFS
+     * The protocols for a virtual pool.
+     * Valid values:
+     *  FC
+     *  ISCSI
+     *  FCoE
+     *  NFS
+     *  NFSV4
+     *  CIFS
      * 
      */
     @XmlElement(name = "protocol")
@@ -138,8 +144,11 @@ public class VirtualPoolAttributesParam {
     }
 
     /**
-     * The provisioning type for the virtual pool. Valid values are
-     * NONE, Thin, Thick
+     * The provisioning type for the virtual pool. 
+     * Valid values:
+     *  NONE
+     *  Thin
+     *  Thick
      * 
      */
     @XmlElement(name = "provisioning_type", required = false)
@@ -166,8 +175,13 @@ public class VirtualPoolAttributesParam {
     }
 
     /**
-     * The system type for the virtual pool. Valid values are
-     * vnxblock, vmax, vnxfile, isilon, netapp
+     * The system type for the virtual pool.
+     * Valid values:
+     *  vnxblock
+     *  vmax
+     *  vnxfile
+     *  isilon
+     *  netapp
      * 
      */
     @XmlElement(name = "system_type")
@@ -198,7 +212,15 @@ public class VirtualPoolAttributesParam {
      * RAID 6 extends RAID 5 by adding an additional parity block; 
      * thus it uses block level striping with two parity blocks.
      * RAID 10 is a stripe of mirrors, i.e. a RAID 0 combination of RAID 1 drives.
-     * 
+     * Valid values:
+     *  RAID0
+     *  RAID1
+     *  RAID2
+     *  RAID3
+     *  RAID4
+     *  RAID5
+     *  RAID6
+     *  RAID10
      */
     @XmlElement(name = "raid_level")
     public Set<String> getRaidLevels() {
@@ -230,8 +252,14 @@ public class VirtualPoolAttributesParam {
 
     /**
      * The supported drive type. When specified, only storage pools that are
-     * comprised of the specified drive type are matched. Valid values are
-     * FC, ISCSI, FCoE, NFS, NFSV4, CIFS
+     * comprised of the specified drive type are matched.
+     * Valid values:
+     *  FC
+     *  ISCSI
+     *  FCoE
+     *  NFS
+     *  NFSV4
+     *  CIFS
      * 
      */
     @XmlElement(name = "drive_type")

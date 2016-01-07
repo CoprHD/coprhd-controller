@@ -121,7 +121,13 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
 	
 	
 	/**
-     * Supported copy mode. Valid values: SYNCHRONOUS, ASYNCHRONOUS, UNKNOWN, ADAPTIVECOPY, ALL
+     * Supported copy mode. 
+     * Valid values: 
+     * SYNCHRONOUS
+     * ASYNCHRONOUS
+     * UNKNOWN
+     * ADAPTIVECOPY
+     * ALL
      *
      */
 	@XmlElement(name = "supported_copy_mode")
@@ -134,7 +140,12 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
 	}
 	
 	/**
-     * The connectivity status. Valid values: UP, DOWN, PARTITIONED, UNKNOWN
+     * The connectivity status. 
+     * Valid values: 
+     *  UP
+     *  DOWN
+     *  PARTITIONED
+     *  UNKNOWN
      *
      */
     @XmlElement(name = "connectivity_status")
@@ -147,7 +158,10 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
 	}
 	
 	/**
-     * The Copy state. Valid values: CONSISTENT, IN_CONSISTENT
+     * The Copy state. 
+     * Valid values:
+     *  CONSISTENT
+     *  IN_CONSISTENT
      *
      */
     @XmlElement(name = "copy_state")

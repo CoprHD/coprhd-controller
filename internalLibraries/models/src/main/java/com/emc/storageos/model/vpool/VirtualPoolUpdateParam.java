@@ -107,7 +107,14 @@ public class VirtualPoolUpdateParam {
     }
 
     /**
-     * The new supported system type for the virtual pool.Valid ones are vnxblock, vmax, vnxfile, isilon, netapp
+     * The new supported system type for the virtual pool.
+     * Valid values:
+     *  NONE
+     *  vnxblock
+     *  vmax
+     *  vnxfile
+     *  isilon
+     *  netapp
      * 
      */
     @XmlElement(name = "system_type")
@@ -121,7 +128,10 @@ public class VirtualPoolUpdateParam {
 
     /**
      * The new provisioning type for the virtual pool,
-     * 
+     * Valid values:
+     *  NONCE
+     *  Thin
+     *  Thick
      */
     @XmlElement(name = "provisioning_type", required = false)
     public String getProvisionType() {

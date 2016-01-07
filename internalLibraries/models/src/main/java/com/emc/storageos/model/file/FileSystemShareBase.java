@@ -76,7 +76,9 @@ public class FileSystemShareBase {
     /**
      * Permission type for the file share. Default is
      * "allow".
-     * 
+     * Valid values:
+     *   allow
+     *   deny
      */
     @XmlElement(name = "permission_type")
     public String getPermissionType() {
@@ -90,7 +92,10 @@ public class FileSystemShareBase {
     /**
      * Permission type for the file share. Default is
      * "change".
-     * 
+     * Valid values:
+     *   read
+     *   change
+     *   full
      */
     @XmlElement(name = "permission")
     public String getPermission() {

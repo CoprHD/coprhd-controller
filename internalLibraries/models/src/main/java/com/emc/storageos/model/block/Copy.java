@@ -129,7 +129,10 @@ public class Copy implements Serializable {
 
     /**
      * User provided SRDF copy mode for the synchronization.
-     * Valid values: SYNCHRONOUS, ASYNCHRONOUS, ADAPTIVECOPY
+     * Valid values: 
+     * SYNCHRONOUS
+     * ASYNCHRONOUS
+     * ADAPTIVECOPY
      * @return
      */
     @XmlElement(name = "copyMode", required = false)

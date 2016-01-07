@@ -169,7 +169,11 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * Indicates whether the network and its endpoints can be used for provisioning
-     * operation. Only registered networks can be used for provisioning operations. Valid: UNREGISTERED, REGISTERED, UNKNOWN
+     * operation. Only registered networks can be used for provisioning operations. 
+     * Valid values: 
+     *  UNREGISTERED
+     *  REGISTERED
+     *  UNKNOWN
      * 
      */
     @XmlElement(name = "registration_status")
@@ -182,7 +186,11 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     }
 
     /**
-     * Transport type for the network. Valid values are IP, FC, and Ethernet.
+     * Transport type for the network. 
+     * Valid values:
+     *   IP
+     *   FC
+     *   Ethernet.
      * 
      */
     @XmlElement(name = "transport_type")
@@ -196,7 +204,8 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * A list of networks that are routed to this network
-     * 
+     * Valid value:
+     *  FC
      * @return A list of networks that are routed to this network
      */
     @XmlElementWrapper(name = "routed_networks")

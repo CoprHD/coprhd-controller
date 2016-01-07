@@ -73,7 +73,17 @@ public class MigrationRestRep extends DataObjectRestRep {
 
     /**
      * The status of the migration.
-     *
+     * Valid values:
+     * in_progress
+     * complete
+     * paused
+     * cancelled
+     * committed
+     * ready
+     * error
+     * partially-committed
+     * partially-cancelled
+     * queued
      * @return The migration status.
      */
     @XmlElement(name = "status")

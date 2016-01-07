@@ -18,7 +18,23 @@ public class StorageSystemProviderRequestParam {
 
     /**
      * Type of the storage system. 
-     * Valid values isilon,vnxblock, vnxfile, vmax, netapp, vplex, mds, brocade, rp, srdf, host, vcenter, hds, rpvplex, openstack, scaleio
+     * Valid values:
+     *  isilon
+     *  vnxblock
+     *  vnxfile
+     *  vmax
+     *  netapp
+     *  vplex
+     *  mds
+     *  brocade
+     *  rp
+     *  srdf
+     *  host
+     *  vcenter
+     *  hds
+     *  rpvplex
+     *  openstack
+     *  scaleio
      * 
      */
 

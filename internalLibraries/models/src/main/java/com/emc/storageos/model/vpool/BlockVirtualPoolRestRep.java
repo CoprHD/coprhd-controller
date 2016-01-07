@@ -47,9 +47,14 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     }
 
     /**
-     * The supported disk drive type for the virtual pool. NONE, SSD, FC, SAS, SATA
-     * 
-     * 
+     * The supported disk drive type for the virtual pool. 
+     * Valid values:
+     *  NONE
+     *  SSD
+     *  FC
+     *  SAS
+     *  SATA
+     *  
      * @return The drive type.
      */
     @XmlElement(name = "drive_type")
@@ -141,7 +146,15 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
      * RAID 6 extends RAID 5 by adding an additional parity block; 
      * thus it uses block level striping with two parity blocks.
      * RAID 10 is a stripe of mirrors, i.e. a RAID 0 combination of RAID 1 drives.
-     * 
+     * Valid values:
+     *  RAID0
+     *  RAID1
+     *  RAID2
+     *  RAID3
+     *  RAID4
+     *  RAID5
+     *  RAID6
+     *  RAID10
      * 
      * @return the supported RAID levels.
      */

@@ -50,7 +50,12 @@ public class DbRepairStatus implements Serializable {
     }
 
     /**
-     * The status of db repair. Valid values NOT_STARTED, IN_PROGRESS, SUCCESS, FAILED
+     * The status of db repair.
+     * Valid values:
+     *  NOT_STARTED
+     *  IN_PROGRESS
+     *  SUCCESS
+     *  FAILED
      */
     @XmlElement(name = "status")
     public Status getStatus() {

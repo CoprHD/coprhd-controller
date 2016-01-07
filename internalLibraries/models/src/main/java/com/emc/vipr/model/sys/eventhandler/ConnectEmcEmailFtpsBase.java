@@ -13,8 +13,10 @@ public class ConnectEmcEmailFtpsBase {
     protected final static String NO = "No";
 
     /**
-     * Optional, Encrypt ConnectEMC Service data using RSA BSAFE. Valid YES, NO
-     * 
+     * Optional, Encrypt ConnectEMC Service data using RSA BSAFE.
+     * Valid values:
+     *  YES
+     *  NO
      */
     @XmlElement(name = "bsafe_encryption_ind")
     public String getSafeEncryption() {

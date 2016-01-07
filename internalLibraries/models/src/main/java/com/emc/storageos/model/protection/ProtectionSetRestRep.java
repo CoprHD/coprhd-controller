@@ -88,7 +88,12 @@ public class ProtectionSetRestRep extends DataObjectRestRep {
 
     /**
      * Current Protection Status for this Protection Set.
-     * 
+     * Valid values:
+     *  ENABLED
+     *  DISABLED
+     *  DELETED
+     *  MIXED
+     *  PAUSED
      */
     @XmlElement(name = "protection_status")
     public String getProtectionStatus() {

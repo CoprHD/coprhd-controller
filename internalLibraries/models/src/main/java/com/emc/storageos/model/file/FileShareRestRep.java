@@ -140,6 +140,9 @@ public class FileShareRestRep extends FileObjectRestRep {
     @XmlElementWrapper(name = "protocols")
     /**
      * Set of valid protocols.
+     * Valid values:
+     *   CIFS
+     *   NFS
      */
     @XmlElement(name = "protocol")
     public Set<String> getProtocols() {

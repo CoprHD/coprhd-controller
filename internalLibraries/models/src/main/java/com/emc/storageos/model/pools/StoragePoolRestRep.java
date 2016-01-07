@@ -74,7 +74,12 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      */
     @XmlElementWrapper(name = "copy_types")
     /**
-     * The type of replication. Valid values: ASYNC, SYNC, UNSYNC_UNASSOC, UNSYNC_ASSOC
+     * The type of replication. 
+     * Valid values: 
+     * ASYNC
+     * SYNC
+     * UNSYNC_UNASSOC
+     * UNSYNC_ASSOC
      *
      */
     @XmlElement(name = "copy_type")
@@ -153,7 +158,9 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The operational status of the pool
-     * 
+     * Valid values:
+     *   NOT_READY
+     *   READY
      * 
      */
     @XmlElement(name = "operational_status")
@@ -168,7 +175,9 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * Whether or not this pool is registered with ViPR. A pool must be
      * registered before it can be managed by ViPR.
-     * 
+     * Valid values:
+     *   REGISTERED
+     *   UNREGISTERED
      */
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {
@@ -288,7 +297,10 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The Long term retention policy is available on this pool
-     * 
+     * Valid values:
+     *  block
+     *  file
+     *  object
      */
     @XmlElement(name = "long_term_retention")
     public Boolean getLongTermRetention() {
@@ -321,7 +333,14 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The supported RAID levels for this pool
-     * 
+     * Valid values:
+     *  RAID1
+     *  RAID2
+     *  RAID3
+     *  RAID4
+     *  RAID5
+     *  RAID6
+     *  RAID10
      */
     @XmlElementWrapper(name = "raid_levels")
     /**
@@ -370,7 +389,10 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      * allocates a portion of its assigned capacity when it is created
      * and grows as needed. A thick volume allocates all of its
      * assigned capacity when created.
-     * 
+     * Valid values:
+     *  THICK_ONLY
+     *  THIN_ONLY
+     *  THIN_AND_THICK
      */
     @XmlElement(name = "supported_resource_types")
     public String getSupportedResourceTypes() {
@@ -483,7 +505,10 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * Whether or not this storage pool is compatible with ViPR
-     * 
+     * Valid values
+     *  COMPATIBLE
+     *  INCOMPATIBLE
+     *  UNKNOWN
      */
     @XmlElement(name = "compatibility_status")
     public String getCompatibilityStatus() {
@@ -496,7 +521,9 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * Whether or not this storage pool is visible in discovery
-     * 
+     * Valid values:
+     *  VISIBLE
+     *  NOTINVISIBLE
      */
     @XmlElement(name = "discovery_status")
     public String getDiscoveryStatus() {

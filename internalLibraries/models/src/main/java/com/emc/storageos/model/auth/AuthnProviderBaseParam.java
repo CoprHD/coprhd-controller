@@ -16,7 +16,9 @@ public abstract class AuthnProviderBaseParam {
 
     /**
      * The kind of provider. Active Directory(ad) or generic LDAPv3 (ldap)
-     * 
+     * Valid values
+     * ad
+     * ldap
      */
     private String mode;
 
@@ -73,7 +75,9 @@ public abstract class AuthnProviderBaseParam {
     /**
      * In conjunction with the search_base, the search_scope indicates how many
      * levels below the base the search can continue.
-     * 
+     * Valid values:
+     * ONELEVEL
+     * SUBTREE
      */
     private String searchScope;
 

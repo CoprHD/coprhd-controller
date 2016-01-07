@@ -176,7 +176,9 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * How the port connects its storage controller to its network
-     * 
+     * Valid values:
+     *  backend
+     *  frontend
      */
     @XmlElement(name = "port_type")
     public String getPortType() {
@@ -229,7 +231,9 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * The protocol that this port uses to transport disk commands
      * and responses across its network
-     * 
+     * Valid values:
+     *  FC
+     *  IP
      * 
      */
     @XmlElement(name = "transport_type")
@@ -271,7 +275,10 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The operational status of the port
-     * 
+     * Valid values:
+     *  OK
+     *  NOT_OK
+     *  UNKNOWN
      */
     @XmlElement(name = "operational_status")
     public String getOperationalStatus() {
@@ -284,7 +291,10 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * Whether or not this storage port is compatible with ViPR
-     * 
+     * Valid values:
+     *  COMPATIBLE
+     *  INCOMPATIBLE
+     *  UNKNOWN
      */
     @XmlElement(name = "compatibility_status")
     public String getCompatibilityStatus() {
@@ -374,7 +384,9 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * Whether or not this storage pool is visible in discovery
-     * 
+     * Valid values:
+     *  VISIBLE
+     *  NOTVISIBLE
      */
     @XmlElement(name = "discovery_status")
     public String getDiscoveryStatus() {

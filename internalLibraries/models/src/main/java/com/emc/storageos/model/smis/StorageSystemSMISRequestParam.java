@@ -30,7 +30,16 @@ public class StorageSystemSMISRequestParam {
 
     /**
      * Type of the storage system. 
-     * Valid values isilon,vnxblock, vnxfile, vmax, netapp, vplex, mds, brocade, rp
+     * Valid values:
+     *  isilon
+     *  vnxblock
+     *  vnxfile
+     *  vmax
+     *  netapp
+     *  vplex
+     *  mds
+     *  brocade
+     *  rp
      * 
      * 
      */

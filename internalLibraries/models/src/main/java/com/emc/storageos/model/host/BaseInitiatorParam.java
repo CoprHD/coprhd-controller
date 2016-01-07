@@ -29,7 +29,9 @@ public class BaseInitiatorParam {
 
     /**
      * The protocols supported by the initiator which should be FC or iSCSI
-     * 
+     * Valid values:
+     *   FC
+     *   iSCSI
      */
     // @EnumType(HostInterface.Protocol.class)
     @XmlElement()

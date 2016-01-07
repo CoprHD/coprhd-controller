@@ -34,7 +34,9 @@ public class SnapshotExportParam {
 
     /**
      * Protocol
-     * 
+     * Valid values:
+     * FC
+     * iSCSI
      */
     @XmlElement(required = true)
     public String getProtocol() {

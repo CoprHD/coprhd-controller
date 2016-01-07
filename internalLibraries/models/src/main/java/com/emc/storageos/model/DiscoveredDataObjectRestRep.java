@@ -51,7 +51,14 @@ public abstract class DiscoveredDataObjectRestRep extends DataObjectRestRep {
      * <li>NETAPP
      * <li>SYMMETRIX
      * </ul>
-     * Valid values: Network, NetworkSystem, StoragePool, StoragePort, StorageSystem, StorageTier:VMAX, StorageTier: VNX
+     * Valid values: 
+     * Network
+     * NetworkSystem
+     * StoragePool
+     * StoragePort
+     * StorageSystem
+     * StorageTier:VMAX
+     * StorageTier: VNX
      * 
      */
     @XmlElement(name = "native_guid")

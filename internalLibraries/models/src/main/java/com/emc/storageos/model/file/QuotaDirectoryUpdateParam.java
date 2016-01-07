@@ -58,7 +58,10 @@ public class QuotaDirectoryUpdateParam {
     /**
      * Security style for the Quota directory. Default is
      * "UNIX".
-     * 
+     *  Valid values:
+     *   UNIX
+     *   NIFS
+     *   Mixed
      */
     @XmlElement(name = "security_style")
     public String getSecurityStyle() {

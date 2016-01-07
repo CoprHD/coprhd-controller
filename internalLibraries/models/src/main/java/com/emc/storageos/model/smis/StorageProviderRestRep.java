@@ -42,7 +42,9 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * Status of the connection.
-     * 
+     * Valid values:
+     *  CONNECTED
+     *  NOTCONNECTED
      */
     @XmlElement(name = "connection_status")
     public String getConnectionStatus() {
@@ -190,7 +192,12 @@ public class StorageProviderRestRep extends DataObjectRestRep {
     }
 
     /**
-     * Status of the provider scan job. Values can be: CREATED, IN_PROGRESS, COMPLETE, ERROR
+     * Status of the provider scan job. 
+     * Valid values:
+     *  CREATED
+     *  IN_PROGRESS
+     *  COMPLETE
+     *  ERROR
      * 
      */
     @XmlElement(name = "job_scan_status")
@@ -256,7 +263,9 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * Registration status of the provider
-     * 
+     * Valid values:
+     *  REGISTERED
+     *  UNREGISTERED
      */
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {
@@ -270,7 +279,10 @@ public class StorageProviderRestRep extends DataObjectRestRep {
     /**
      * Whether or not the provider software is compatible with
      * ViPR.
-     * 
+     * Valid values:
+     *  COMPATIBLE
+     *  INCOMPATIBLE
+     *  UNKNOWN
      */
     @XmlElement(name = "compatibility_status")
     public String getCompatibilityStatus() {

@@ -119,6 +119,10 @@ public class ExportGroupRestRep extends DataObjectRestRep {
 
     /**
      * Type of the block export.
+     * Valid Values:
+     * Host
+     * Cluster
+     * Initiator
      * 
      */
     @XmlElement(name = "type")

@@ -44,7 +44,13 @@ public class StorageSystemRequestParam {
 
     /**
      * Type of the storage system allowed on POST
-     * Possible values: isilon,vnxfile,netapp,vnxe,netappc,ecs
+     * Valid values: 
+     *  isilon
+     *  vnxfile
+     *  netapp
+     *  vnxe
+     *  netappc
+     *  ecs
      * 
      */
     @XmlElement(required = true, name = "system_type")

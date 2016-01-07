@@ -59,7 +59,9 @@ public abstract class HostInterfaceRestRep extends DataObjectRestRep {
     /**
      * The host interface registration status.
      * Only registered hosts can be used for provisioning operations.
-     * 
+     * Valid values:
+     *   UNREGISTERED
+     *   REGISTERED
      */
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {

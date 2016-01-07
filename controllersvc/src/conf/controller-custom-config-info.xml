@@ -57,6 +57,7 @@
                 <ref bean="vplexVmaxMaskingViewMaximumVolumes"/>
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
+                <ref bean="nasFilerNamesSpacePath"/>
             </list>
         </property>
     </bean>
@@ -1037,6 +1038,28 @@
             </map>
         </property>
     </bean>
+    
+    <bean id="nasFilerNamesSpacePath" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="NasFilerNamesSpacePath"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="String"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="fsroot,projdir"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="fsroot" value="fsystem"/>
+                <entry key="projdir" value="vipr"/>
+            </map>
+        </property>
+        <!--property name="constraints">
+            <list>
+                <ref bean="hdsHostModeOptionillegalCharsConstraint"/>
+            </list>
+        </property-->
+    </bean>    
     
     <!-- We can optionally have a similar property for initiatorPortIqn which would be the same -->
     <!-- except that for the "sample" and the display name -->

@@ -18,6 +18,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
@@ -55,6 +56,8 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 
 /**
  * Isilon specific file controller implementation.
@@ -64,6 +67,10 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
     private static final String IFS_ROOT = "/ifs";
     private static final String VIPR_DIR = "vipr";
+    
+    final static private String FSROOT_SCOPEVALUE="fsroot";
+    final static private String PROJDIR_SCOPEVALUE="projdir";
+    final static private String NTFSACL_SCOPEVALUE="ntfsaclSupport";
 
     private static final String QUOTA = "quota";
 
@@ -72,6 +79,9 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
     private IsilonApiFactory _factory;
     private HashMap<String, String> configinfo;
+    
+    private String fsRoot;
+    private String projDir;
 
     private DbClient _dbClient;
 
@@ -150,9 +160,9 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
      * @return String
      */
     private String getSnapshotPath(String fsMountPath, String name) {
-        String prefix = IFS_ROOT + "/" + VIPR_DIR;
+        String prefix=getFsRoot() + "/"+getPrjDir();
         return String.format("%1$s/.snapshot/%2$s/%3$s%4$s",
-                IFS_ROOT, name, VIPR_DIR, fsMountPath.substring(prefix.length()));
+                getFsRoot(), name, getPrjDir(), fsMountPath.substring(prefix.length()));
     }
 
     /**
@@ -775,7 +785,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 }
             } else if (Boolean.valueOf(usePhysicalNASForProvisioning)) {
                 if (projName != null && tenantOrg != null) {
-                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
+                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", getFsRoot(),getPrjDir(),
                             args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
                             args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
                 } else {
@@ -2133,5 +2143,61 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     		isilonExport.setReadOnlyClients(clients);
     		break;
     	}
+    }
+    
+    public CustomConfigHandler getCustomConfigHandler() {
+        return customConfigHandler;
+    }
+
+    /**
+     * Gets the root File System path value set 
+     * in the Configuration Service View
+     * by default will return '/ifs' if fsvalue 
+     * is set will return '/<fsvalue>'.
+     * @return
+     */
+    
+    private String getFsRoot(){
+            
+        
+        String fsRoot= IFS_ROOT;
+        
+        try{
+            String tempFsRoot=customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.NAS_FILER_NAME_SPACE_PATH, FSROOT_SCOPEVALUE, null);
+            
+            if( tempFsRoot!=null && !tempFsRoot.isEmpty()){
+                fsRoot= "/"+tempFsRoot;
+            }
+        }catch(Exception e){
+            _log.debug(e.getMessage());
+        }
+        return fsRoot;
+    }
+    
+    /**
+     * Gets the project directory name value set 
+     * in the Configuration Service View
+     * by default will return 'vipr'. 
+     * 
+     * @return
+     */
+    
+    private String getPrjDir(){
+        
+        String projDir=VIPR_DIR;
+        
+        try{
+            String tempProjDir = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.NAS_FILER_NAME_SPACE_PATH, PROJDIR_SCOPEVALUE, null);
+            
+            if(tempProjDir != null && tempProjDir.isEmpty())
+            {
+                projDir=tempProjDir;
+            }
+            
+        }catch(Exception e){
+            _log.debug(e.getMessage());
+        }
+        return projDir;
+        
     }
 }

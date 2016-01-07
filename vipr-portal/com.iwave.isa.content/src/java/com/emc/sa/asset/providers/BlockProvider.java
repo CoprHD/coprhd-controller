@@ -202,7 +202,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("sourceBlockVolume")
-    @AssetDependencies({ "project", "blockVirtualPool", "consistencyGroup" })
+    @AssetDependencies({ "projectFilter", "blockVirtualPoolFilter", "consistencyGroupFilter" })
     public List<AssetOption> getApplicationSourceVolumes(AssetOptionsContext ctx, URI project, URI vpool, URI cg) {
         List<AssetOption> options = Lists.newArrayList();
         options.add(new AssetOption(project.toString(), project.toString()));

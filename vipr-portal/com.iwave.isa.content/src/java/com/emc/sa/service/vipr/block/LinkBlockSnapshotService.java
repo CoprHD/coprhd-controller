@@ -44,13 +44,15 @@ public class LinkBlockSnapshotService extends ViPRService {
 
     @Override
     public void precheck() {
-        if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-            
-            // ADD can not have both selected existing linked snaps and new at the same time, throw error.
-            
-            // If trying to create a new Snapshot Session and the optional linkedSnapshotName 
-            // is populated, make sure that linkedSnapshotCount > 0.                      
+        if (ConsistencyUtils.isVolumeStorageType(storageType)) {                                    
             if (linkedSnapshotName != null && !linkedSnapshotName.isEmpty()) {
+                // Can not relink an existing snapshot and link a new snapshot at the same time
+                if (existingLinkedSnapshotIds != null && !existingLinkedSnapshotIds.isEmpty()) {
+                    ExecutionUtils.fail("failTask.LinkBlockSnapshot.linkNewAndExistingSnapshot.precheck", new Object[] {}, new Object[] {});
+                }
+                
+                // If trying to create a new Snapshot Session and the optional linkedSnapshotName 
+                // is populated, make sure that linkedSnapshotCount > 0.                      
                 if (linkedSnapshotCount == null || linkedSnapshotCount.intValue() <= 0) {
                     ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCount.precheck", new Object[] {}, new Object[] {});
                 }

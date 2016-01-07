@@ -90,11 +90,11 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
                 if (target.hasConsistencyGroup()) {
                     executorStrategy = new SuspendGroupSyncStrategy(helper);
                 } else {
-                    if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
-                        executorStrategy = new SuspendStorageActiveStrategy(helper);
-                    }else{
-                        executorStrategy = new SuspendStorageSyncsStrategy(helper);
-                    }
+                	if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
+                		executorStrategy = new SuspendStorageActiveStrategy(helper);
+                	} else {
+                		executorStrategy = new SuspendStorageSyncsStrategy(helper);
+                	}
                 }
                 break;
             case SUSPEND_CONS_EXEMPT:

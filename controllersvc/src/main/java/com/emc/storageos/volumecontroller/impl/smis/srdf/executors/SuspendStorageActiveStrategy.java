@@ -13,9 +13,6 @@ import javax.wbem.WBEMException;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 
-/**
- * Created by bibbyi1 on 4/8/2015.
- */
 public class SuspendStorageActiveStrategy implements ExecutorStrategy {
 
     private SmisCommandHelper helper;

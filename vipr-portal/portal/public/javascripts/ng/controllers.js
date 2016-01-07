@@ -1085,3 +1085,16 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         $scope.error = data;
     }
 });
+
+angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
+    angular.element("#backup-time").ready(function (event) {
+        $scope.$apply(function() {
+            $scope.time = new Date().getTime();
+            $scope.startTime_time = getTime($scope.time);
+        });
+    });
+
+    function getTime(millis) {
+        return millis ? formatDate(millis, "HH:mm") : "";
+    }
+});

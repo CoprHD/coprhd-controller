@@ -2420,7 +2420,7 @@ configProperties.password.state=state
 
 configProperties.backup.scheduled=Scheduled Backup
 configProperties.backup.manual=Manual Backup
-configProperties.backup.server=External Backup
+configProperties.backup.server=External Server
 configProperties.backup.setToZero=WARNING: Setting to zero will not create any backup files, please be cautious.
 
 #Upgrade

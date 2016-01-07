@@ -62,13 +62,7 @@
     }
 
     function setBackupSchedulerInterval() {
-        var num = $backup_interval_num.val();
-        if(num.substring(0, '0'.length) === '0') {
-            var originNum = parseInt($backup_interval.val());
-            $backup_interval_num.val(originNum);
-            return;
-        }
-        var value = num + $selector_interval.val();
+        var value = $backup_interval_num.val() + $selector_interval.val();
         $backup_interval.val(value);
         checkForm();
     }
@@ -99,15 +93,10 @@
 <div id="${id}ControlGroup" class="form-group">
     <label class="control-label col-sm-3" for="${id}">${label}:</label>
 
-    <div class="col-sm-6 controls">
-        <div class="row col-gap-sm">
+    <div class="col-sm-6 controls" ng-controller="ConfigBackupCtrl">
+        <div class="row col-gap-sm" id="backup-time">
             <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
-            <div class="col-md-6">
-                <select id="${id}_hour" class="form-control" onchange="setBackupSchedulerTime()"></select>
-            </div>
-            <div class="col-md-6">
-                <select id="${id}_min" class="form-control" onchange="setBackupSchedulerTime()"></select>
-            </div>
+                <time-picker ng-model="startTime_time"></time-picker>
             <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
         </div>
     </div>
@@ -161,3 +150,9 @@ disabled:unstable;
 #{ConfigProperties.property property:page.externalLocationUsername, disabled:unstable/}
 #{ConfigProperties.property property:page.externalLocationPassword, disabled:unstable/}
 #{/ConfigProperties.propertySet}
+
+<style type="text/css">
+    #backup-time .timepicker input[readonly]{
+        background-color: #fff;
+    }
+</style>

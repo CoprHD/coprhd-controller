@@ -458,9 +458,9 @@ public class BackupService {
     @Path("restore/status")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public BackupRestoreStatus queryRestoreStatus(@QueryParam("backupname") String backupName) {
-        log.info("Query restore status backupName={}", backupName);
-        BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName);
+    public BackupRestoreStatus queryRestoreStatus(@QueryParam("backupname") String backupName, @QueryParam("isLocal") boolean isLocal) {
+        log.info("Query restore status backupName={} isLocal={}", backupName, isLocal);
+        BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName, isLocal);
 
         log.info("done");
         return status;

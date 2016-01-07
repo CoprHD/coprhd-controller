@@ -108,7 +108,7 @@ public final class DownloadExecutor implements  Runnable {
     public void setDownloadStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long downloadSize) {
         log.info("Set download status backupName={} status={} backupSize={} downloadSize={}",
                 new Object[] {backupName, status, backupSize, downloadSize});
-        restoreStatus = backupOps.queryBackupRestoreStatus(backupName);
+        restoreStatus = backupOps.queryBackupRestoreStatus(backupName, false);
         restoreStatus.setBackupName(backupName);
         restoreStatus.setStatus(status);
 
@@ -120,16 +120,16 @@ public final class DownloadExecutor implements  Runnable {
             restoreStatus.setDownoadSize(downloadSize);
         }
 
-        backupOps.persistBackupRestoreStatus(restoreStatus);
+        backupOps.persistBackupRestoreStatus(restoreStatus, false);
     }
 
     public void updateDownloadSize(long size) {
         log.info("Increase download size ={}", size);
-        restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName);
+        restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
 
         long newSize = restoreStatus.getDownoadSize() + size;
         restoreStatus.setDownoadSize(newSize);
-        backupOps.persistBackupRestoreStatus(restoreStatus);
+        backupOps.persistBackupRestoreStatus(restoreStatus, false);
     }
 
     @Override
@@ -213,7 +213,7 @@ public final class DownloadExecutor implements  Runnable {
     }
 
     private void postDownload(BackupRestoreStatus.Status status) {
-        restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName);
+        restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
         restoreStatus.increaseNodeCompleted();
         int completedNodes = restoreStatus.getNodeCompleted();
 
@@ -224,7 +224,7 @@ public final class DownloadExecutor implements  Runnable {
             }
         }
 
-        backupOps.persistBackupRestoreStatus(restoreStatus);
+        backupOps.persistBackupRestoreStatus(restoreStatus, false);
     }
 
     private boolean isMyBackupFile(ZipEntry backupEntry) throws UnknownHostException {

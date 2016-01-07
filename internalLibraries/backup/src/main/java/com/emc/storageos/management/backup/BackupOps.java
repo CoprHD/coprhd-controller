@@ -306,23 +306,23 @@ public class BackupOps {
     /**
      * Query restore status from ZK
     */
-    public BackupRestoreStatus queryBackupRestoreStatus(String backupName) {
+    public BackupRestoreStatus queryBackupRestoreStatus(String backupName, boolean isLocal) {
         Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
-                getBackupConfigKind(backupName), Constants.GLOBAL_ID);
+                      getBackupConfigKind(backupName, isLocal), backupName);
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
 
         BackupRestoreStatus restoreStatus = new BackupRestoreStatus(allItems);
         return restoreStatus;
     }
 
-    private String getBackupConfigKind(String backupName) {
-        return BackupConstants.BACKUP_RESTORE_STATUS+"/"+backupName;
+    private String getBackupConfigKind(String backupName, boolean isLocal) {
+        return isLocal ? BackupConstants.LOCAL_RESTORE_KIND_PREFIX : BackupConstants.REMOTE_RESTORE_KIND_PREFIX;
     }
 
     /**
      * Persist upload status to ZK
      */
-    public void persistBackupRestoreStatus(BackupRestoreStatus status) {
+    public void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal) {
         log.info("Persist backup restore status {}", status);
         Map<String, String> allItems = (status != null) ? status.toMap(): null;
 
@@ -332,8 +332,8 @@ public class BackupOps {
 
         ConfigurationImpl config = new ConfigurationImpl();
         String backupName = status.getBackupName();
-        config.setKind(getBackupConfigKind(backupName));
-        config.setId(Constants.GLOBAL_ID);
+        config.setKind(getBackupConfigKind(backupName, isLocal));
+        config.setId(backupName);
 
         for (Map.Entry<String, String> entry : allItems.entrySet()) {
             config.setConfig(entry.getKey(), entry.getValue());

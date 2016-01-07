@@ -3900,7 +3900,7 @@ public class BlockService extends TaskResourceService {
 
         if (VirtualPoolChangeAnalyzer.isSupportedReplicationModeChange(currentVpool, newVpool,
                 notSuppReasonBuff)) {
-            _log.info("New VPool specifies an replication mode change");
+            _log.info("New VPool specifies a replication mode change");
             return;
         }
 
@@ -5101,9 +5101,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     *
+     * 
      * @param consistencyGroup
-     *
+     * 
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,

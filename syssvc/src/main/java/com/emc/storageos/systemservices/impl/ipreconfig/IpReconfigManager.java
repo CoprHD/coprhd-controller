@@ -113,7 +113,11 @@ public class IpReconfigManager implements Runnable {
      * Load local ovfenv properties
      */
     private void loadLocalOvfProps() {
+        log.info("Loading local ovfenv properties");
         Map<String, String> ovfprops = getOvfProps();
+
+        //TODO: change to multiple site format
+
         currentIpinfo = new ClusterIpInfo();
         currentIpinfo.loadFromPropertyMap(ovfprops);
 
@@ -127,6 +131,7 @@ public class IpReconfigManager implements Runnable {
     }
 
     private void loadClusterIpProps() {
+        log.info("Loading network properties of current vdc");
         Map<String, String> ipProps = getIpProps();
         currentIpinfo = new ClusterIpInfo();
         currentIpinfo.loadFromPropertyMap(ipProps);

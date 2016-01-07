@@ -54,6 +54,7 @@ public class SiteConfigParam {
         this.vdcConfigVersion = vdcConfigVersion;
     }
 
+    @XmlElement(name = "vdc_configVersion")
     public long getVdcConfigVersion() {
         return vdcConfigVersion;
     }

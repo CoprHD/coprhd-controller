@@ -230,7 +230,7 @@ public class VdcManager extends AbstractManager {
                 continue;
             }
             
-            // Step 6 : check backward compatibile upgrade flag
+            // Step 6 : check backward compatible upgrade flag
             try {
                 if (backCompatPreYoda && !isGeoConfig()) {
                     log.info("Check if pre-yoda upgrade is done");
@@ -343,7 +343,8 @@ public class VdcManager extends AbstractManager {
     }
 
     private boolean isGeoUpgradeFromPreYoda() {
-        return localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",") && StringUtils.isEmpty(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
+        String vdcIds = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+        return !StringUtils.isEmpty(vdcIds) && vdcIds.contains(",") && StringUtils.isEmpty(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
     }
     
     private boolean isGeoConfig() {

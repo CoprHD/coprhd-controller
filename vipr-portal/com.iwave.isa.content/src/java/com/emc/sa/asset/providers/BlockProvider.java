@@ -893,7 +893,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     @Asset("blockSnapshotOrConsistencyGroup")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType", "blockSnapshotType", "consistencyGroupByProjectAndType" })
-    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String storageType, String snapshotType, URI consistencyGroupId) {
+    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String storageType, String snapshotType, URI consistencyGroupId) {        
         if (NONE_TYPE.equals(storageType)) {                
             return new ArrayList<AssetOption>();
         } else {
@@ -908,10 +908,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
                 return getConsistencyGroupSnapshots(ctx, consistencyGroupId);          
             } else if (SESSION_SNAPSHOT_TYPE_VALUE.equals(snapshotType)) {
-                debug("getting blockSnapshotSessions (project=%s)", project);
+                info("getting blockSnapshotSessions (project=%s)", project);               
                 return getVolumeSnapshotSessionOptionsForProject(ctx, project);
             } else {
-                debug("getting blockSnapshots (project=%s)", project);
+                info("getting blockSnapshots (project=%s)", project);                
                 return getVolumeSnapshotOptionsForProject(ctx, project);
             }    
         }

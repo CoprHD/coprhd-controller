@@ -38,7 +38,7 @@ public class BlockVolumesDataTable extends DataTable {
     }
 
     public static List<Volume> fetch(URI projectId, URI applicationId) {
-        if (projectId == null) {
+        if (projectId == null && applicationId ==null) {
             return Collections.EMPTY_LIST;
         }
 

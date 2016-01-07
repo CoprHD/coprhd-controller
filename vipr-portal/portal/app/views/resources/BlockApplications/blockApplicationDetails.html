@@ -6,9 +6,16 @@
   #{breadcrumb.item active:true}${application?.name}#{/breadcrumb.item}
 #{/breadcrumb.container}
 <script type="text/javascript">
-
+function renderLink(o, val) {
+	var data = o.aData;
+	var url = #{jsAction @resources.BlockVolumes.volume(':id') /};
+    var href = url(data);
+    
+    return "<a href='"+href+"'>" + val + "</a>";
+}
 function updateVolumes(oSettings) {
     var count = $('#volumeApplication table').dataTable({ bRetrieve: true }).fnGetData().length;
+    
     if (count != '0') {
     	$('#volumesCountBadge').text(count);
     }

@@ -60,7 +60,7 @@ public class BlockApplications extends ResourceController {
     
     public static class VolumeApplicationDataTable extends BlockVolumesDataTable {
         public VolumeApplicationDataTable() {
-        	alterColumn("consistencygroup").hidden();
+            
         }
     }
 }

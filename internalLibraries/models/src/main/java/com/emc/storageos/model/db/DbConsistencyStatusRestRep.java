@@ -8,6 +8,7 @@ import java.util.Date;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 
 /**
  * This class is used by REST API to represent the db consistency status
@@ -104,6 +105,7 @@ public class DbConsistencyStatusRestRep{
         return sb.toString();
     }
 
+    @XmlType(name = "dbConsistencyStatus_Status")
     public enum Status {
         NOT_STARTED,
         IN_PROGRESS,

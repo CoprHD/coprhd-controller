@@ -70,12 +70,13 @@ public class LazyLoadTests extends DbsvcTestBase {
     @BeforeClass
     public static void setup() throws IOException {
 
-        _dbVersionInfo = new DbVersionInfo();
-        _dbVersionInfo.setSchemaVersion("1.1");
-        _dataDir = new File("./dbtest");
+        sourceVersion = new DbVersionInfo();
+        sourceVersion.setSchemaVersion("1.1");
+        _dataDir = new File(dataDir);
         if (_dataDir.exists() && _dataDir.isDirectory()) {
             cleanDirectory(_dataDir);
         }
+        _dataDir.mkdir();
 
         DataObjectScanner scanner = new DataObjectScanner();
         scanner.setPackages("com.emc.storageos.db.modelclient.model");
@@ -87,7 +88,7 @@ public class LazyLoadTests extends DbsvcTestBase {
         // of the dbsvc background tasks, but we don't need them for this test
         setMigrationStatus(MigrationStatus.FAILED);
 
-        startDb(_dbVersionInfo.getSchemaVersion(), null, scanner);
+        startDb(sourceVersion.getSchemaVersion(), sourceVersion.getSchemaVersion(), null, scanner);
     }
 
     @Before
@@ -95,7 +96,7 @@ public class LazyLoadTests extends DbsvcTestBase {
 
         DbClientImplUnitTester dbClient = new DbClientImplUnitTester();
         dbClient.setCoordinatorClient(_coordinator);
-        dbClient.setDbVersionInfo(_dbVersionInfo);
+        dbClient.setDbVersionInfo(sourceVersion);
         dbClient.setBypassMigrationLock(true);
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);

@@ -5,24 +5,40 @@
 
 package com.emc.storageos.coordinator.client.service.impl;
 
-import com.emc.storageos.coordinator.client.model.*;
-import com.emc.storageos.coordinator.client.service.*;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.common.impl.ServiceImpl;
-import com.emc.storageos.coordinator.common.impl.ZkConnection;
-import com.emc.storageos.coordinator.common.impl.ZkPath;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
-import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.storageos.model.property.PropertyInfoRestRep;
-import com.emc.storageos.services.util.NamedThreadPoolExecutor;
-import com.emc.storageos.services.util.PlatformUtils;
-import com.emc.storageos.services.util.Strings;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
-import com.emc.vipr.model.sys.ClusterInfo;
+import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
+import static com.emc.storageos.coordinator.client.model.Constants.DB_CONFIG;
+import static com.emc.storageos.coordinator.client.model.Constants.GLOBAL_ID;
+import static com.emc.storageos.coordinator.client.model.Constants.KEY_CERTIFICATE_PAIR_CONFIG_KIND;
+import static com.emc.storageos.coordinator.client.model.Constants.MIGRATION_STATUS;
+import static com.emc.storageos.coordinator.client.model.Constants.NODE_DUALINETADDR_CONFIG;
+import static com.emc.storageos.coordinator.client.model.Constants.SCHEMA_VERSION;
+import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
+import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY;
+import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY_ID;
+import static com.emc.storageos.coordinator.mapper.PropertyInfoMapper.decodeFromString;
+
+import java.io.IOException;
+import java.lang.reflect.Proxy;
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
+import java.util.regex.Pattern;
+
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.api.DeleteBuilder;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
@@ -41,26 +57,58 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.lang.reflect.Proxy;
-import java.net.URI;
-import java.net.UnknownHostException;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.regex.Pattern;
-
-import static com.emc.storageos.coordinator.client.model.Constants.*;
-import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_INFO;
-import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.*;
-import static com.emc.storageos.coordinator.mapper.PropertyInfoMapper.decodeFromString;
+import com.emc.storageos.coordinator.client.model.ConfigVersion;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.CoordinatorClassInfo;
+import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
+import com.emc.storageos.coordinator.client.model.DbVersionInfo;
+import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.model.PowerOffState;
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SiteError;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
+import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
+import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
+import com.emc.storageos.coordinator.client.service.DistributedQueue;
+import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
+import com.emc.storageos.coordinator.client.service.LicenseInfo;
+import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.client.service.WorkPool;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.common.impl.ServiceImpl;
+import com.emc.storageos.coordinator.common.impl.ZkConnection;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
+import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.services.util.NamedThreadPoolExecutor;
+import com.emc.storageos.services.util.PlatformUtils;
+import com.emc.storageos.services.util.Strings;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.vipr.model.sys.ClusterInfo;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 
 /**
  * Default coordinator client implementation
  */
 public class CoordinatorClientImpl implements CoordinatorClient {
+    private static final Logger log = LoggerFactory.getLogger(CoordinatorClientImpl.class);
+    
     private static final String CONN_POOL_NAME = "ConnectionStateWorkerPool";
     private static final String NODE_POOL_NAME = "NodeChangeWorkerPool";
-    private static final Logger log = LoggerFactory.getLogger(CoordinatorClientImpl.class);
+    private static final int ATOMIC_INTEGER_RETRY_INTERVAL_MS = 1000;
+    private static final int ATOMIC_INTEGER_RETRY_TIME = 5;
+    private static final String ATOMIC_INTEGER_ZK_PATH_FORMAT = "%s/%s/%s";
 
     private final ConcurrentMap<String, Object> _proxyCache = new ConcurrentHashMap<String, Object>();
 
@@ -85,8 +133,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private NodeCacheWatcher nodeWatcher = new NodeCacheWatcher();
 
+    private String siteId;
     private DistributedAroundHook ownerLockAroundHook;
-
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
      * called
@@ -147,11 +195,101 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         ovfProperties = ovfProps;
     }
 
+    private boolean isSiteSpecificSectionInited() throws Exception {
+        String sitePath = getSitePrefix();
+        try {
+            Stat stat = getZkConnection().curator().checkExists().forPath(sitePath);
+            return stat != null;
+        } catch (Exception e) {
+            log.error("Failed to access the path {}. Error {}", sitePath, e);
+            throw e;
+        }
+    }
+
+    private void createSiteSpecificSection() throws Exception {
+        addSite(siteId);
+        setActiveSite(siteId);
+    }
+
+    @Override
+    /**
+     * Create a znode "/site/<uuid>" for specific site. This znode should have the following sub zones
+     *  - config : site specific configurations
+     *  - service: service beacons of this site
+     *  - mutex: locks for nodes in this ste
+     */
+    public void addSite(String siteId) throws Exception {
+        String sitePath = getSitePrefix(siteId);
+        ZkConnection zkConnection = getZkConnection();
+        try {
+            //create /sites/${siteID} path
+            EnsurePath ensurePath = new EnsurePath(sitePath);
+            log.info("create ZK path {}", sitePath);
+            ensurePath.ensure(zkConnection.curator().getZookeeperClient());
+        }catch(Exception e) {
+            log.error("Failed to set site info of {}. Error {}", sitePath, e);
+            throw e;
+        }
+    }
+
+    @Override
+    public void setActiveSite(String siteId) throws Exception {
+        Configuration localVdcConfig = queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
+                Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        if (localVdcConfig == null) {
+            log.info("initializing local VDC pointer to vdc1");
+            ConfigurationImpl localVdcConfigImpl = new ConfigurationImpl();
+            localVdcConfigImpl.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
+            localVdcConfigImpl.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
+            localVdcConfigImpl.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID);
+            persistServiceConfiguration(localVdcConfigImpl);
+            localVdcConfig = localVdcConfigImpl;
+        }
+        String localVdcShortId = localVdcConfig.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
+        ConfigurationImpl config = new ConfigurationImpl();
+        config.setKind(Constants.CONFIG_DR_ACTIVE_KIND);
+        config.setId(localVdcShortId);
+        config.setConfig(Constants.CONFIG_DR_ACTIVE_SITEID, siteId);
+        persistServiceConfiguration(config);
+    }
+
+    /**
+     * Check and initialize site specific section for current site. If site specific section is empty,
+     * we always assume current site is active site
+     *
+     * @throws Exception
+     */
+    public void checkAndCreateSiteSpecificSection() throws Exception {
+        if (isSiteSpecificSectionInited()) {
+            log.info("Site specific section for {} initialized", siteId);
+            return;
+        }
+
+        log.info("The site specific section for {} has NOT been initialized", siteId);
+        InterProcessLock lock = getLock(ZkPath.SITES.name());
+        try {
+            lock.acquire();
+            if (!isSiteSpecificSectionInited())
+                createSiteSpecificSection();
+        }catch (Exception e) {
+            log.error("Failed to acquire the lock for {}. Error {}", ZkPath.SITES, e);
+            throw e;
+        } finally {
+            try {
+                lock.release();
+            }catch (Exception e) {
+                log.error("Failed to release the lock for {}. Error {}", ZkPath.SITES, e);
+            }
+        }
+    }
+
     @Override
     public void start() throws IOException {
         if (_zkConnection.curator().isStarted()) {
             return;
         }
+
+        siteId = _zkConnection.getSiteId();
 
         _zkConnection.curator().getConnectionStateListenable()
                 .addListener(new org.apache.curator.framework.state.ConnectionStateListener() {
@@ -187,8 +325,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                     }
                 });
         _zkConnection.connect();
+
         try {
-            EnsurePath path = new EnsurePath(ZkPath.SERVICE.toString());
+            checkAndCreateSiteSpecificSection();
+
+            String servicePath = getServicePath();
+            EnsurePath path = new EnsurePath(servicePath);
             path.ensure(_zkConnection.curator().getZookeeperClient());
         } catch (Exception e) {
             // if startup fails, shut down our thread pool so whoever called us will exit cleanly if
@@ -358,10 +500,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public void persistServiceConfiguration(Configuration... configs) throws CoordinatorException {
+        persistServiceConfiguration(null, configs);
+    }
+    
+    @Override
+    public void persistServiceConfiguration(String siteId, Configuration... configs) throws CoordinatorException {
         try {
             for (Configuration config : configs) {
-                String configParentPath = String.format("%1$s/%2$s", ZkPath.CONFIG,
-                        config.getKind());
+                String configParentPath = getKindPath(siteId, config.getKind());
 
                 EnsurePath path = new EnsurePath(configParentPath);
                 path.ensure(_zkConnection.curator().getZookeeperClient());
@@ -375,15 +521,25 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 }
             }
         } catch (final Exception e) {
+            log.info("Failed to persist service configuration e=",e);
             throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
         }
     }
 
     @Override
     public void removeServiceConfiguration(Configuration... configs) throws CoordinatorException {
+        removeServiceConfiguration(null, configs);
+    }
+
+    @Override
+    public void removeServiceConfiguration(String siteId, Configuration... configs) throws CoordinatorException {
         for (int i = 0; i < configs.length; i++) {
             Configuration config = configs[i];
-            String servicePath = String.format("%1$s/%2$s/%3$s", ZkPath.CONFIG, config.getKind(),
+            String prefix = "";
+            if (siteId != null) {
+                prefix= getSitePrefix(siteId);
+            }
+            String servicePath = String.format("%1$s%2$s/%3$s/%4$s", prefix, ZkPath.CONFIG, config.getKind(),
                     config.getId());
             try {
                 _zkConnection.curator().delete().forPath(servicePath);
@@ -395,10 +551,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             }
         }
     }
-
+    
     @Override
     public List<Configuration> queryAllConfiguration(String kind) throws CoordinatorException {
-        String serviceParentPath = String.format("%1$s/%2$s", ZkPath.CONFIG, kind);
+        return queryAllConfiguration(null, kind);
+    }
+    
+    @Override
+    public List<Configuration> queryAllConfiguration(String siteId, String kind) throws CoordinatorException {
+        String serviceParentPath = getKindPath(siteId, kind);
         List<String> configPaths;
         try {
             configPaths = _zkConnection.curator().getChildren().forPath(serviceParentPath);
@@ -411,7 +572,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
         List<Configuration> configs = new ArrayList<Configuration>(configPaths.size());
         for (String configPath : configPaths) {
-            Configuration config = queryConfiguration(kind, configPath);
+            Configuration config = queryConfiguration(siteId, kind, configPath);
             if (config != null) {
                 configs.add(config);
             }
@@ -419,9 +580,65 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return configs;
     }
 
+    private String getSitePrefix() {
+        return getSitePrefix(this.siteId);
+    }
+
+    private String getSitePrefix(String siteId) {
+        StringBuilder builder = new StringBuilder(ZkPath.SITES.toString());
+        builder.append("/");
+        builder.append(siteId);
+        return builder.toString();
+    }
+
+    
+    private String getServicePath(String siteId) {
+        StringBuilder builder = new StringBuilder();
+        if (siteId != null) {
+            String sitePrefix= getSitePrefix(siteId);
+            builder.append(sitePrefix);
+        }
+        builder.append(ZkPath.SERVICE.toString());
+        return builder.toString();
+    }
+
+    private String getServicePath() {
+        return getServicePath(this.siteId);
+    }
+
+    private String getKindPath(String siteId, String kind) {
+        StringBuilder builder = new StringBuilder();
+        if (isSiteSpecific(kind) && siteId == null) {
+            siteId = getSiteId();
+        }
+        if (siteId != null) {
+            String sitePrefix = getSitePrefix(siteId);
+            builder.append(sitePrefix);
+        }
+        builder.append(ZkPath.CONFIG);
+        builder.append("/");
+        builder.append(kind);
+
+        return builder.toString();
+    }
+    
+    private boolean isSiteSpecific(String kind) {
+        if (kind.equals(SiteInfo.CONFIG_KIND)
+            || kind.equals(SiteError.CONFIG_KIND)
+            || kind.equals(PowerOffState.CONFIG_KIND)) {
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public Configuration queryConfiguration(String kind, String id) throws CoordinatorException {
-        String servicePath = String.format("%1$s/%2$s/%3$s", ZkPath.CONFIG, kind, id);
+        return queryConfiguration(null, kind, id);
+    }
+    
+    @Override
+    public Configuration queryConfiguration(String siteId, String kind, String id) throws CoordinatorException {
+        String servicePath = String.format("%s/%s", getKindPath(siteId, kind), id);
         try {
             byte[] data = _zkConnection.curator().getData().forPath(servicePath);
             return ConfigurationImpl.parse(data);
@@ -433,6 +650,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             throw CoordinatorException.fatals.unableToFindConfigurationForKind(kind, id, e);
         }
     }
+
 
     @Override
     public void setConnectionListener(ConnectionStateListener listener) {
@@ -479,20 +697,25 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return clazz.cast(proxy);
     }
 
+
+    private List<String> lookupServicePath(String serviceRoot) throws CoordinatorException {
+        return lookupServicePath(siteId, serviceRoot);
+    }
+    
     /**
      * Helper to retrieve zk service node children
      * Note that it could return an empty list if there's no ZNode under the specified path
      * 
+     * @param siteId 
      * @param serviceRoot
      *            path under /service
      * @return child node ids under /service/<serviceRoot>
      * @throws CoordinatorException
      */
-    private List<String> lookupServicePath(String serviceRoot) throws CoordinatorException {
+    private List<String> lookupServicePath(String siteId, String serviceRoot) throws CoordinatorException {
         List<String> services = null;
-        String fullPath = null;
+        String fullPath = String.format("%1$s/%2$s", getServicePath(siteId), serviceRoot);
         try {
-            fullPath = String.format("%1$s/%2$s", ZkPath.SERVICE.toString(), serviceRoot);
             services = _zkConnection.curator().getChildren().forPath(fullPath);
         } catch (KeeperException.NoNodeException e) {
             throw CoordinatorException.retryables.cannotFindNode(fullPath, e);
@@ -506,26 +729,26 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
         return services;
     }
-
+    
     /**
      * Convenience method for retrieving zk node data for a given service matching id at
-     * /service/<serviceRoot>/<id>
-     * 
+     * /sites/<siteId>/service/<serviceRoot>/<id>
+     *
+     * @param siteId
+     *            site uuid. Use current site if it is null
      * @param serviceRoot
      *            service path (includes name and version)
      * @param id
      *            service UUID
      * @return zk node content if node exists. null if no node with given id / path exists
      */
-    private byte[] getServiceData(String serviceRoot, String id) {
+    private byte[] getServiceData(String siteId, String serviceRoot, String id) {
         byte[] data = null;
         try {
             data = _zkConnection
                     .curator()
                     .getData()
-                    .forPath(
-                            String.format("%1$s/%2$s/%3$s", ZkPath.SERVICE.toString(), serviceRoot,
-                                    id));
+                    .forPath(String.format("%1$s/%2$s/%3$s", getServicePath(siteId), serviceRoot, id));
             return data;
         } catch (Exception e) {
             log.warn("e=", e);
@@ -534,14 +757,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public List<Service> locateAllServices(String name, String version, String tag,
+    public List<Service> locateAllServices(String siteId, String name, String version, String tag,
             String endpointKey) throws CoordinatorException {
         String serviceRoot = String.format("%1$s/%2$s", name, version);
-        List<String> servicePaths = lookupServicePath(serviceRoot);
+        List<String> servicePaths = lookupServicePath(siteId, serviceRoot);
 
         if (servicePaths.isEmpty()) {
             throw CoordinatorException.retryables.cannotLocateService(String.format("%1$s/%2$s",
-                    ZkPath.SERVICE.toString(), serviceRoot));
+                    getServicePath(siteId), serviceRoot));
         }
         // poor man's load balancing
         Collections.shuffle(servicePaths);
@@ -549,7 +772,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         List<Service> filtered = new ArrayList<Service>(servicePaths.size());
         for (int i = 0; i < servicePaths.size(); i++) {
             String spath = servicePaths.get(i);
-            byte[] data = getServiceData(serviceRoot, spath);
+            byte[] data = getServiceData(siteId, serviceRoot, spath);
             if (data == null) {
                 continue;
             }
@@ -563,12 +786,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
             if (endpointKey == null) {
                 // default endpoint
-                ((ServiceImpl) service).setEndpoint(getInetAddessLookupMap().expandURI(
-                        service.getEndpoint()));
+                URI endpoint = expandEndpointURI(service.getEndpoint(), siteId);
+                ((ServiceImpl) service).setEndpoint(endpoint);
             } else {
                 // swap the ip for the entry with the endpointkey in the map
-                ((ServiceImpl) service).setEndpoint(endpointKey, getInetAddessLookupMap()
-                        .expandURI(service.getEndpoint(endpointKey)));
+                URI endpoint = expandEndpointURI(service.getEndpoint(endpointKey), siteId);
+                ((ServiceImpl) service).setEndpoint(endpointKey, endpoint);
             }
             log.debug("locateAllServices->service endpoint: " + service.getEndpoint());
             filtered.add(service);
@@ -576,6 +799,26 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return Collections.unmodifiableList(filtered);
     }
 
+    /**
+     * Replace node id in endpoint URI to real Ip address. Do it for local site only 
+     * since we don't have node address map on other site
+     * 
+     * @param endpoint
+     * @return
+     */
+    private URI expandEndpointURI(URI endpoint, String siteId) {
+        if (getSiteId().equals(siteId)) {
+            return getInetAddessLookupMap().expandURI(endpoint);
+        }
+        return endpoint;
+    }
+    
+    @Override
+    public List<Service> locateAllServices(String name, String version, String tag,
+            String endpointKey) throws CoordinatorException {
+        return locateAllServices(siteId, name, version, tag, endpointKey);
+    }
+    
     @Override
     public List<Service> locateAllSvcsAllVers(String name) throws CoordinatorException {
         List<String> svcVerPaths = lookupServicePath(name);
@@ -586,7 +829,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             List<String> servicePaths = lookupServicePath(serviceRoot);
 
             for (String spath : servicePaths) {
-                byte[] data = getServiceData(serviceRoot, spath);
+                byte[] data = getServiceData(this.siteId, serviceRoot, spath);
                 if (data == null) {
                     continue;
                 }
@@ -648,7 +891,17 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public InterProcessLock getLock(String name) throws CoordinatorException {
-        EnsurePath path = new EnsurePath(ZkPath.MUTEX.toString());
+        return getLock(ZkPath.MUTEX.toString(), name);
+    }
+
+    @Override
+    public InterProcessLock getSiteLocalLock(String name) throws CoordinatorException {
+        String sitePrefix = String.format("%s/%s%s", ZkPath.SITES, getSiteId(), ZkPath.MUTEX);
+        return getLock(sitePrefix, name);
+    }
+
+    private InterProcessLock getLock(String parentPath, String name) throws CoordinatorException {
+        EnsurePath path = new EnsurePath(parentPath);
         try {
             path.ensure(_zkConnection.curator().getZookeeperClient());
         } catch (InterruptedException e) {
@@ -657,7 +910,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         } catch (Exception e) {
             throw CoordinatorException.fatals.unableToGetLock(name, e);
         }
-        String lockPath = ZKPaths.makePath(ZkPath.MUTEX.toString(), name);
+        String lockPath = ZKPaths.makePath(parentPath, name);
         return new InterProcessMutex(_zkConnection.curator(), lockPath);
     }
 
@@ -734,6 +987,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 throw CoordinatorException.fatals.unableToDecodeDataFromCoordinator(e);
             }
         }
+
+        // add site specific properties
+        PropertyInfoExt siteScopePropInfo = getTargetInfo(PropertyInfoExt.class, getSiteId(), PropertyInfoExt.TARGET_PROPERTY);
+        if (siteScopePropInfo != null) {
+            info.getProperties().putAll(siteScopePropInfo.getProperties());
+        }
+
         // add the ovf properties
         info.getProperties().putAll((Map) ovfProperties);
         return info;
@@ -829,38 +1089,45 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return new LeaderSelector(_zkConnection.curator(), leaderFullPath.toString(), listener);
     }
 
-    /**
-     * Get target info
-     * 
-     * @param clazz
-     * @param <T>
-     * @return
-     * @throws Exception
-     */
     @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz)
-            throws Exception {
-        final T info = clazz.newInstance();
+            throws CoordinatorException {
+        return getTargetInfo(null, clazz);
+    }
+
+    @Override
+    public <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz)
+            throws CoordinatorException {
+        T info;
+        try {
+            info = clazz.newInstance();
+        } catch (Exception e) {
+            log.error("Failed to create instance according class {}, {}", clazz, e);
+            throw CoordinatorException.fatals.unableToCreateInstanceOfTargetInfo(clazz.getName(), e);
+        }
         final CoordinatorClassInfo coordinatorInfo = info.getCoordinatorClassInfo();
         String id = coordinatorInfo.id;
         String kind = coordinatorInfo.kind;
 
-        return getTargetInfo(clazz, id, kind);
+        return getTargetInfo(siteId, clazz, id, kind);
+    }
+    
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id,
+            String kind) throws CoordinatorException {
+        
+        return getTargetInfo(null, clazz, id, kind);
     }
 
-    /**
-     * Get target info
-     * 
-     * @param clazz
-     * @param id
-     * @param kind
-     * @return
-     * @throws Exception
-     */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id,
-            String kind) throws Exception {
-        final T info = clazz.newInstance();
-        final Configuration config = queryConfiguration(kind, id);
+    private <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz, String id,
+            String kind) throws CoordinatorException {
+        T info;
+        try {
+            info = clazz.newInstance();
+        } catch (Exception e) {
+            log.error("Failed to create instance according class {}, {}", clazz, e);
+            throw CoordinatorException.fatals.unableToCreateInstanceOfTargetInfo(clazz.getName(), e);
+        }
+        final Configuration config = queryConfiguration(siteId, kind, id);
         if (config != null && config.getConfig(TARGET_INFO) != null) {
             final String infoStr = config.getConfig(TARGET_INFO);
             log.debug("getTargetInfo({}): info={}", clazz.getName(), Strings.repr(infoStr));
@@ -873,6 +1140,36 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return null;
     }
 
+    /**
+     * Update target info to ZK
+     * 
+     * @param info
+     * @throws CoordinatorException
+     */
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
+        setTargetInfo(null, info);
+    }
+    
+    /**
+     * Update target info(for specific site) to ZK
+     * 
+     * @param info
+     * @throws CoordinatorException
+     */
+    public void setTargetInfo(String siteId, final CoordinatorSerializable info) throws CoordinatorException {
+        final CoordinatorClassInfo coordinatorInfo = info.getCoordinatorClassInfo();
+        String id = coordinatorInfo.id;
+        String kind = coordinatorInfo.kind;
+        
+        ConfigurationImpl cfg = new ConfigurationImpl();
+        cfg.setId(id);
+        cfg.setKind(kind);
+        cfg.setConfig(TARGET_INFO, info.encodeAsString());
+        persistServiceConfiguration(siteId, cfg);
+        log.info("Target info set: {} for site {}", info, siteId);
+    }
+    
+    
     /**
      * Get node info from session scope.
      * 
@@ -913,7 +1210,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> T queryRuntimeState(String key, Class<T> clazz) throws CoordinatorException {
-        String path = ZkPath.STATE + "/" + key;
+        String path = String.format("%s/%s",ZkPath.STATE, key);
 
         try {
             byte[] data = _zkConnection.curator().getData().forPath(path);
@@ -931,7 +1228,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> void persistRuntimeState(String key, T state) throws CoordinatorException {
-        String path = ZkPath.STATE + "/" + key;
+        String path = String.format("%s/%s",ZkPath.STATE, key);
 
         try {
             int lastSlash = path.lastIndexOf('/');
@@ -964,6 +1261,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 }
             }
         } catch (Exception e) {
+            log.info("Failed to persist runtime state e=",e);
             throw CoordinatorException.fatals.unableToPersistTheState(e);
         }
     }
@@ -983,6 +1281,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     @Override
     public ClusterInfo.ClusterState getControlNodesState() {
+        return getControlNodesState(this.siteId, getNodeCount());
+    }
+
+    @Override
+    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
         try {
             // get target repository and configVersion
             final RepositoryInfo targetRepository = getTargetInfo(RepositoryInfo.class);
@@ -991,18 +1294,18 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
             // get control nodes' repository and configVersion info
             final Map<Service, RepositoryInfo> controlNodesInfo = getAllNodeInfos(
-                    RepositoryInfo.class, CONTROL_NODE_SYSSVC_ID_PATTERN);
+                    RepositoryInfo.class, CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             final Map<Service, ConfigVersion> controlNodesConfigVersions = getAllNodeInfos(
-                    ConfigVersion.class, CONTROL_NODE_SYSSVC_ID_PATTERN);
+                    ConfigVersion.class, CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
 
             return getControlNodesState(targetRepository, controlNodesInfo, targetProperty,
-                    controlNodesConfigVersions, targetPowerOffState);
+                    controlNodesConfigVersions, targetPowerOffState, nodeCount);
         } catch (Exception e) {
             log.info("Fail to get the control node information ", e);
             return null;
         }
     }
-
+    
     /**
      * Get all control nodes' state
      * 
@@ -1022,14 +1325,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             final Map<Service, RepositoryInfo> infos,
             final PropertyInfoRestRep targetPropertiesGiven,
             final Map<Service, ConfigVersion> configVersions,
-            final PowerOffState targetPowerOffState) {
+            final PowerOffState targetPowerOffState, 
+            int nodeCount) {
         if (targetGiven == null || targetPropertiesGiven == null || targetPowerOffState == null) {
             // only for first time target initializing
             return ClusterInfo.ClusterState.INITIALIZING;
         }
 
-        if (infos == null || infos.size() != getNodeCount() || configVersions == null
-                || configVersions.size() != getNodeCount()) {
+        if (infos == null || infos.size() != nodeCount || configVersions == null
+                || configVersions.size() != nodeCount) {
             return ClusterInfo.ClusterState.DEGRADED;
         }
 
@@ -1103,7 +1407,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     @Override
     public String getCurrentDbSchemaVersion() {
-        Configuration config = queryConfiguration(DB_CONFIG, GLOBAL_ID);
+        Configuration config = queryConfiguration(siteId, DB_CONFIG, GLOBAL_ID);
         if (config == null) {
             return null;
         }
@@ -1122,7 +1426,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public MigrationStatus getMigrationStatus() {
         log.debug("getMigrationStatus: target version: \"{}\"", getTargetDbSchemaVersion());
         // TODO support geodbsvc
-        Configuration config = queryConfiguration(getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()),
+        Configuration config = queryConfiguration(siteId, getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()),
                 GLOBAL_ID);
         if (config == null || config.getConfig(MIGRATION_STATUS) == null) {
             log.debug("config is null");
@@ -1161,8 +1465,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     public <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
             Pattern nodeIdFilter) throws Exception {
+        return getAllNodeInfos(clazz, nodeIdFilter, this.siteId);
+    }
+    
+    private <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
+            Pattern nodeIdFilter, String siteId) throws Exception {
         final Map<Service, T> infos = new HashMap<Service, T>();
-        List<Service> allSysSvcs = locateAllServices(sysSvcName, sysSvcVersion, (String) null, null);
+        List<Service> allSysSvcs = locateAllServices(siteId, sysSvcName, sysSvcVersion, (String) null, null);
         for (Service svc : allSysSvcs) {
             if (nodeIdFilter.matcher(svc.getId()).matches()) {
                 try {
@@ -1178,7 +1487,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
         return infos;
     }
-
+    
     /**
      * Common method to compare current version with target's current version
      * 
@@ -1449,7 +1758,17 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
     }
 
-    /**
+    @Override
+	public String getSiteId() {
+		return siteId;
+	}
+	
+	@Override
+	public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty) {
+	    return new DistributedDoubleBarrier(_zkConnection.curator(), barrierPath, memberQty);
+	}
+
+	/**
      * Set an instance of {@link DistributedAroundHook} that exposes the ability to wrap arbitrary code
      * with before and after hooks that lock and unlock the owner locks "globalLock", respectively.
      *
@@ -1468,5 +1787,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public DistributedAroundHook getDistributedOwnerLockAroundHook() {
         return ownerLockAroundHook;
+    }
+    
+    @Override
+    public void deletePath(String path) {
+        try {
+            DeleteBuilder deleteOp = _zkConnection.curator().delete();
+            deleteOp.deletingChildrenIfNeeded();
+            deleteOp.forPath(path);
+        } catch (Exception ex) {
+            CoordinatorException.fatals.unableToDeletePath(path, ex);
+        }
     }
 }

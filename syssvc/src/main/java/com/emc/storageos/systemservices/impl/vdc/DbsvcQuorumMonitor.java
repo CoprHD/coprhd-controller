@@ -24,6 +24,11 @@ import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
+/**
+ * A thread scheduled in syssvc of the active site to monitor the db quorum availability of each standby site.
+ * If a STANDBY_SYNCED site has lost db quorum for more than STANDBY_DEGRADED_THRESHOLD, it will be degraded.
+ * If a STANDBY_DEGRADED site has all db instances running, it will be rejoined.
+ */
 public class DbsvcQuorumMonitor implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(DbsvcQuorumMonitor.class);
 
@@ -70,29 +75,33 @@ public class DbsvcQuorumMonitor implements Runnable {
 
         // degrade all standby sites in a single batch
         if (!sitesToDegrade.isEmpty()) {
-            InterProcessLock lock;
-            try {
-                lock = drUtil.getDROperationLock();
-            } catch (APIException e) {
-                log.warn("There are ongoing dr operations. Try again later.");
-                return;
-            }
+            degradeSites(sitesToDegrade);
+        }
+    }
 
+    private void degradeSites(List<Site> sitesToDegrade) {
+        InterProcessLock lock;
+        try {
+            lock = drUtil.getDROperationLock();
+        } catch (APIException e) {
+            log.warn("There are ongoing dr operations. Try again later.");
+            return;
+        }
+
+        try {
+            for (Site standbySite : sitesToDegrade) {
+                standbySite.setState(SiteState.STANDBY_DEGRADING);
+                coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
+                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_DEGRADE_STANDBY);
+            }
+            drUtil.updateVdcTargetVersion(coordinatorClient.getSiteId(), SiteInfo.DR_OP_DEGRADE_STANDBY);
+        } catch (Exception e) {
+            log.error("Failed to initiate degrade standby operation. Try again later", e);
+        } finally {
             try {
-                for (Site standbySite : sitesToDegrade) {
-                    standbySite.setState(SiteState.STANDBY_DEGRADING);
-                    coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
-                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_DEGRADE_STANDBY);
-                }
-                drUtil.updateVdcTargetVersion(coordinatorClient.getSiteId(), SiteInfo.DR_OP_DEGRADE_STANDBY);
+                lock.release();
             } catch (Exception e) {
-                log.error("Failed to initiate degrade standby operation. Try again later", e);
-            } finally {
-                try {
-                    lock.release();
-                } catch (Exception e) {
-                    log.error("Failed to release the dr operation lock", e);
-                }
+                log.error("Failed to release the dr operation lock", e);
             }
         }
     }

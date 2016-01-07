@@ -6,31 +6,28 @@
 package com.emc.storageos.db.client.model;
 
 import java.beans.Transient;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 
 @Cf("ExportPathParams")
 public class ExportPathParams extends DataObject {
-    Integer maxPaths;
-    Integer minPaths;
-    Integer pathsPerInitiator;
-    Integer maxInitiatorsPerPort;
+    private Integer maxPaths;
+    private Integer minPaths;
+    private Integer pathsPerInitiator;
+    private Integer maxInitiatorsPerPort;
     // storage ports to be used for port allocation if supplied
-    StringSet storagePorts;
+    private StringSet storagePorts;
     // Default exportGroupType is Host. Expressed in ExportGroup.ExportGroupType
-    String exportGroupType;
+    private String exportGroupType;
     // If explicitly created is true, a user specifically create an ExportPathParam record.
     // If explicitly created is false, the entry was created as a side effect of an export operation.
-    Boolean explicitlyCreated;
+    private Boolean explicitlyCreated;
     
     /*
      * If allowFewerPorts is true, may allocate fewer than the calculated port requirement
      * for a Network. This is used for RP situations where we're zoning all Initiators to all Ports.
      */
-    Boolean allowFewerPorts = false;
+    private Boolean allowFewerPorts = false;
     
     // Return the default params if asked.
     // MaxPaths will be set to 4.

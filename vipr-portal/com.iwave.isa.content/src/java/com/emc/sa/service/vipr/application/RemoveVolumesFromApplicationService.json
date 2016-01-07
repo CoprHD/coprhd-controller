@@ -7,7 +7,7 @@
       type:"assetType.vipr.application"
     },
     
-    volumes:{
+    volume:{
       type:"assetType.vipr.applicationBlockVolume",
       select: "many"
     }

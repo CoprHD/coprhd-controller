@@ -463,7 +463,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-count', '-ct',
                                dest='count',
                                help='Number of target volumes')
-    create_parser.add_argument('-target_name', '-tgn',
+    create_parser.add_argument('-targetname', '-tgn',
                                help='This option specifies the target name',
                                dest='target_name',
                                metavar='<target_name>')

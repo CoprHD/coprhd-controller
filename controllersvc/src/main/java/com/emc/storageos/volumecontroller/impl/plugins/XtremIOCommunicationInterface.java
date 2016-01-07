@@ -212,12 +212,13 @@ public class XtremIOCommunicationInterface extends
     private void updateStorageSystemAndPools(XtremIOSystem system, StorageSystem systemInDB, List<StoragePool> pools) {
         StoragePool xioSystemPool = null;
         if (null != systemInDB) {
-            // systemInDB.set
+            String firmwareVersion = system.getVersion();
+            systemInDB.setFirmwareVersion(firmwareVersion);
             String minimumSupported = VersionChecker
                     .getMinimumSupportedVersion(StorageSystem.Type.xtremio).replace("-", ".");
             _logger.info("Minimum Supported Version {}", minimumSupported);
             String compatibility = (VersionChecker.verifyVersionDetails(minimumSupported,
-                    system.getVersion()) < 0) ? StorageSystem.CompatibilityStatus.INCOMPATIBLE
+                    firmwareVersion) < 0) ? StorageSystem.CompatibilityStatus.INCOMPATIBLE
                     .name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
             systemInDB.setCompatibilityStatus(compatibility);
             systemInDB.setReachableStatus(true);

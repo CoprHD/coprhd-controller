@@ -668,6 +668,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(api(ctx).blockVpools().getAll());
     }
 
+    @Asset("blockVirtualPoolFilter")
+    public List<AssetOption> getBlockVirtualPoolFilters(AssetOptionsContext ctx) {
+        List<AssetOption> options = createBaseResourceOptions(api(ctx).blockVpools().getAll());
+        options.add(0, new AssetOption("All", "All"));
+        return options;
+    }
+
     /**
      * Returns the virtual pools for a given virtualArray (initially added for the Create Volume service)
      *

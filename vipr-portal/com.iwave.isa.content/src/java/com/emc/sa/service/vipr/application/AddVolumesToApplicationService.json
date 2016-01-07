@@ -8,19 +8,19 @@
     },
   
     project:{
-      type:"assetType.vipr.project",
+      type:"assetType.vipr.projectFilter",
       lockable: true,
       required: "false"
     },
     
     virtualPool:{
-     type:"assetType.vipr.blockVirtualPool",
+     type:"assetType.vipr.blockVirtualPoolFilter",
      lockable: true,
      required: "false"
     },
     
     consistencyGroup:{
-     type:"assetType.vipr.consistencyGroup",
+     type:"assetType.vipr.consistencyGroupFilter",
      required:false
     },
     

@@ -89,6 +89,10 @@ public interface BackupConstants {
 
     //constants for restore
     int DOWNLOAD_BUFFER_SIZE=KILOBYTE*4; //4k
+
+    // The directory to persist downloaded backup files from FTP server
+    String RESTORE_DIR= "/data/restore";
+
     String BACKUP_RESTORE_STATUS = "RestoreStatus";
     String RESTORE_LOCK="restore";
     String BACKUP_LOCK = "backup";

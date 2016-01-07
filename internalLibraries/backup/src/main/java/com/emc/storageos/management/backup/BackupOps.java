@@ -255,7 +255,7 @@ public class BackupOps {
         int dotIndex=remoteBackupFilename.lastIndexOf(".");
         String backupFolder=remoteBackupFilename.substring(0, dotIndex);
 
-        return new File("/tmp", backupFolder);
+        return new File(BackupConstants.RESTORE_DIR, backupFolder);
     }
 
     /**

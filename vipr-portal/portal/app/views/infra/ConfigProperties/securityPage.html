@@ -1,6 +1,6 @@
-#{set isPrimarysite:controllers.infra.DisasterRecovery.isPrimarySite() /}
+#{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 
-#{if isPrimarysite }
+#{if isActiveSite }
 #{ConfigProperties.property property:page.firewallEnabled, disabled:unstable/}
 #{ConfigProperties.property property:page.sslCertificate, disabled:unstable/}
 #{ConfigProperties.property property:page.authLoginAttempts, disabled:unstable/}

@@ -152,12 +152,12 @@ public class ConfigProperties extends Controller {
     }
 
     private static List<PropertyPage> loadPropertyPages() {
-        boolean isPrimarySite = DisasterRecoveryUtils.isPrimarySite();
+        boolean isActiveSite = DisasterRecoveryUtils.isActiveSite();
         Map<String, Property> properties = loadProperties();
         Map<String, PropertyPage> pages = Maps.newLinkedHashMap();
         Map<String, PropertyPage> excludePages = Maps.newLinkedHashMap();
 
-        if (isPrimarySite) {
+        if (isActiveSite) {
             addPage(pages, new NetworkPropertyPage(properties));
             if (PlatformUtils.isAppliance()) { //This done to maintain the current tab order
                 addPage(pages, new SecurityPropertyPage(properties));

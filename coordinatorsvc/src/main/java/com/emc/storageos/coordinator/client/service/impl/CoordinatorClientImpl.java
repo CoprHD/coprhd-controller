@@ -1806,4 +1806,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public DistributedBarrier getDistributedBarrier(String barrierPath) {
         return new DistributedBarrier(_zkConnection.curator(), barrierPath); 
     }
+
+    @Override
+    public boolean nodeExists(String path) {
+        try {
+            return this._zkConnection.curator().checkExists().forPath(path) != null;
+        } catch (Exception e) {
+            throw CoordinatorException.fatals.unableToCheckNodeExists(path, e);
+        }
+    }
 }

@@ -677,4 +677,11 @@ public interface CoordinatorClient {
      * @param path full path on zk tree
      */
     void deletePath(String path);
+    
+    /**
+     * check whether specified ZK node exists
+     * @param path
+     * @return true if node exists
+     */
+    boolean nodeExists(String path);
 }

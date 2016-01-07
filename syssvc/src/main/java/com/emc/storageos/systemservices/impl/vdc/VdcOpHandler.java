@@ -522,7 +522,6 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
-            log.info("");
             
             coordinator.stopCoordinatorSvcMonitor();
             
@@ -538,7 +537,9 @@ public abstract class VdcOpHandler {
                 localRepository.stop("sa");
                 localRepository.stop("controller");
                 
-                updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
+                updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED);
+                updateSwitchoverSiteState(drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()), SiteState.STANDBY_SWITCHING_OVER,
+                        Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER);
                 
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
                         getSingleBarrierPath(site.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART));
@@ -557,7 +558,7 @@ public abstract class VdcOpHandler {
                 refreshCoordinator();
                 proccessSingleNodeSiteCase();
                 
-                updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_STANDBY_SITE);
+                updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE);
             } else {
                 flushVdcConfigToLocal();
             }
@@ -584,6 +585,13 @@ public abstract class VdcOpHandler {
         }
         
         private void notifyOldActiveSiteReboot(Site oldActiveSite, Site site) throws Exception {
+            String restartBarrierPath = getSingleBarrierPath(oldActiveSite.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART);
+            
+            if (!coordinator.getCoordinatorClient().nodeExists(restartBarrierPath)) {
+                log.info("Old active site restart barrier {} has been removed, no action needed", restartBarrierPath);
+                return;
+            }
+            
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_STANDBY_RESTART_OLD_ACTIVE,
                     SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
             barrier.enter();
@@ -591,7 +599,7 @@ public abstract class VdcOpHandler {
             if ("vipr1".equalsIgnoreCase(InetAddress.getLocalHost().getHostName())) {
                 log.info("This is virp1, notify remote old active site to reboot");
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
-                        getSingleBarrierPath(oldActiveSite.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART));
+                        restartBarrierPath);
                 restartBarrier.removeBarrier();
             }
             
@@ -617,6 +625,11 @@ public abstract class VdcOpHandler {
         }
         
         private void updateSwitchoverSiteState(Site site, SiteState siteState, String barrierName) throws Exception {
+            if (site.getState().equals(siteState)) {
+                log.info("Site state has been changed to {}, no actions needed.", siteState);
+                return;
+            }
+            
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
             
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(barrierName, SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);

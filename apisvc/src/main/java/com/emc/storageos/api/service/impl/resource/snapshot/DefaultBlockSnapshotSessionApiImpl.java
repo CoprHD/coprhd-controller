@@ -396,39 +396,28 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public Map<URI, BlockSnapshot> prepareSnapshotsForSession(BlockObject sourceObj, int sourceCount, int newTargetCount,
-            String newTargetsName) {
-        Map<URI, BlockSnapshot> snapshotMap = new HashMap<>();
-        for (int i = 1; i <= newTargetCount; i++) {
-            // Create distinct snapset and instance labels for each snapshot
-            String snapsetLabel = newTargetsName;
-            if (newTargetCount > 1) {
-                snapsetLabel = String.format("%s-%s", newTargetsName, i);
-            }
-            String snapshotLabel = (sourceCount > 0 ? String.format("%s-%s", snapsetLabel, sourceCount) : snapsetLabel);
+    public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sourceCount, int newTargetCount,
+                                                                    String newTargetsName) {
+        List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
 
-            BlockSnapshot snapshot = new BlockSnapshot();
-            snapshot.setId(URIUtil.createId(BlockSnapshot.class));
-            URI cgUri = sourceObj.getConsistencyGroup();
-            if (cgUri != null) {
-                snapshot.setConsistencyGroup(cgUri);
+        for (int i = 0; i < newTargetCount; i++) {
+            int count = 0;
+            Map<URI, BlockSnapshot> targetMap = new HashMap<>();
+            for (BlockObject sourceObj : sourceObjList) {
+                // Generate label here
+                String snapsetLabel = String.format("%s-%s", newTargetsName, i + 1);
+                String label = snapsetLabel;
+                if (sourceObjList.size() > 1) {
+                    label = String.format("%s-%s", label, ++count);
+                }
+
+                BlockSnapshot blockSnapshot = prepareSnapshotForSession(sourceObj, snapsetLabel, label);
+                targetMap.put(blockSnapshot.getId(), blockSnapshot);
             }
-            snapshot.setSourceNativeId(sourceObj.getNativeId());
-            snapshot.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
-            snapshot.setLabel(snapshotLabel);
-            snapshot.setStorageController(sourceObj.getStorageController());
-            snapshot.setVirtualArray(sourceObj.getVirtualArray());
-            snapshot.setProtocol(new StringSet());
-            snapshot.getProtocol().addAll(sourceObj.getProtocol());
-            Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
-            snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
-            snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
-                    snapsetLabel, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
-            snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
-            snapshotMap.put(snapshot.getId(), snapshot);
+            snapSessionSnapshots.add(targetMap);
         }
-        _dbClient.createObject(snapshotMap.values());
-        return snapshotMap;
+
+        return snapSessionSnapshots;
     }
 
     /**
@@ -467,7 +456,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            List<URI> snapshotURIs, String copyMode, String taskId) {
+                                                      List<List<URI>> snapshotURIs, String copyMode, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }
 

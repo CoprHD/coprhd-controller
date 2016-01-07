@@ -241,6 +241,10 @@ public class DisasterRecovery extends ViprResourceController {
         return DisasterRecoveryUtils.isActiveSite();
     }
 
+    public static String getLocalSiteName() {
+        return DisasterRecoveryUtils.getLocalSiteName();
+    }
+
     public static void checkFailoverProgress(String uuid) {
         SiteRestRep siteRest = DisasterRecoveryUtils.getSite(uuid);
         renderJSON(siteRest);
@@ -253,8 +257,8 @@ public class DisasterRecovery extends ViprResourceController {
         if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
             SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
             isError = true;
-            if(disasterSiteError.getCreationTime() != null) {
-                DateTime creationTime = new DateTime (disasterSiteError.getCreationTime().getTime());
+            if (disasterSiteError.getCreationTime() != null) {
+                DateTime creationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
                 renderArgs.put("creationTime", creationTime);
             }
             render(isError, uuid, disasterSiteError);
@@ -262,16 +266,16 @@ public class DisasterRecovery extends ViprResourceController {
         else {
             SiteDetailRestRep disasterSiteTime = DisasterRecoveryUtils.getSiteTime(id);
             isError = false;
-            if(disasterSiteTime.getCreationTime() != null) {
+            if (disasterSiteTime.getCreationTime() != null) {
                 DateTime creationTime = new DateTime(disasterSiteTime.getCreationTime().getTime());
                 renderArgs.put("creationTime", creationTime);
             }
-            if(disasterSiteTime.getPausedTime() != null) {
-                DateTime pausedTime = new DateTime (disasterSiteTime.getPausedTime().getTime());
+            if (disasterSiteTime.getPausedTime() != null) {
+                DateTime pausedTime = new DateTime(disasterSiteTime.getPausedTime().getTime());
                 renderArgs.put("pausedTime", pausedTime);
             }
-            if(disasterSiteTime.getlastUpdateTime() != null) {
-                DateTime lastUpdateTime = new DateTime (disasterSiteTime.getlastUpdateTime().getTime());
+            if (disasterSiteTime.getlastUpdateTime() != null) {
+                DateTime lastUpdateTime = new DateTime(disasterSiteTime.getlastUpdateTime().getTime());
                 renderArgs.put("lastUpdateTime", lastUpdateTime);
             }
 

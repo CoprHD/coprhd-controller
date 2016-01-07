@@ -400,7 +400,7 @@ public class DisasterRecoveryService {
 
         try {
             isActiveSite.setIsActive(drUtil.isActiveSite());
-            isActiveSite.setSiteName(drUtil.getLocalSite().getName());
+            isActiveSite.setLocalSiteName(drUtil.getLocalSite().getName());
             return isActiveSite;
         } catch (Exception e) {
             log.error("Can't get site is Active or Standby");

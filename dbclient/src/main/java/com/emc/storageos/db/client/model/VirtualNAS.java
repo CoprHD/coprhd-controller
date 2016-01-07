@@ -6,7 +6,6 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
@@ -22,7 +21,7 @@ import com.emc.storageos.model.valid.EnumType;
 public class VirtualNAS extends NASServer {
 
     // Project name associated with VNAS
-    private URI project;
+    private StringSet projects;
 
     // Base directory Path for the VNAS applicable in AccessZones & vFiler device types
     private String baseDirPath;
@@ -30,14 +29,29 @@ public class VirtualNAS extends NASServer {
     // place holder for the Parent NAS server the Data Mover
     private URI parentNasUri;
 
-    @Name("project")
-    public URI getProject() {
-        return project;
+    @Name("projects")
+    public StringSet getProjects() {
+        if (projects == null) {
+            projects = new StringSet();
+        }
+        return projects;
     }
 
-    public void setProject(URI project) {
-        this.project = project;
-        setChanged("project");
+    public void setProjects(StringSet projects) {
+        this.projects = projects;
+        setChanged("projects");
+    }
+
+    public void addProject(String projectURI) {
+        StringSet existingProjects = getProjects();
+        existingProjects.add(projectURI);
+        setProjects(existingProjects);
+    }
+
+    public void removeProject(String projectURI) {
+        StringSet existingProjects = getProjects();
+        existingProjects.remove(projectURI);
+        setProjects(existingProjects);
     }
 
     @Name("baseDirPath")
@@ -105,9 +119,9 @@ public class VirtualNAS extends NASServer {
     /**
      * Check whether VNAS is assigned to a project or not
      * 
-     * @return true if VNAS is not assigned to project else false
+     * @return true if VNAS is not assigned to project(s), false otherwise
      */
     public boolean isNotAssignedToProject() {
-        return NullColumnValueGetter.isNullURI(project);
+        return (projects == null || projects.isEmpty());
     }
 }

@@ -168,7 +168,7 @@ public class SystemsMapper {
             to.setParentNASURI(toNamedRelatedResource(pNAS, pNAS.getNasName()));
         }
 
-        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
+        to.setAssociatedProjects(from.getProjects());
 
         to.setProtocols(from.getProtocols());
         to.setRegistrationStatus(from.getRegistrationStatus());

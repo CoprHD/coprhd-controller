@@ -7,6 +7,8 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +35,7 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
 
     // The URIs of the BlockSnapshot instances representing the target volumes
     // to be linked to the session
-    private final List<URI> _snapshotURIs;
+    private final List<List<URI>> _snapshotURIs;
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionLinkTargetsWorkflowCompleter.class);
@@ -46,7 +48,7 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
      *            targets volume to be linked to the session.
      * @param taskId The unique task identifier.
      */
-    public BlockSnapshotSessionLinkTargetsWorkflowCompleter(URI snapSessionURI, List<URI> snapshotURIs, String taskId) {
+    public BlockSnapshotSessionLinkTargetsWorkflowCompleter(URI snapSessionURI, List<List<URI>> snapshotURIs, String taskId) {
         super(snapSessionURI, taskId);
         _snapshotURIs = snapshotURIs;
     }
@@ -59,7 +61,15 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
         URI snapSessionURI = getId();
         try {
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-            BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+
+            BlockObject sourceObj = null;
+            if (snapSession.hasConsistencyGroup()) {
+                List<Volume> volumesPartOfCG =
+                        ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), dbClient);
+                sourceObj = volumesPartOfCG.get(0);
+            } else {
+                sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+            }
 
             // Record the results.
             recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGET,
@@ -71,17 +81,19 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
                     // For those BlockSnapshot instances representing linked targets that
                     // were not successfully created and linked to the array snapshot
                     // represented by the BlockSnapshotSession instance, mark them inactive.
-                    for (URI snapshotURI : _snapshotURIs) {
-                        // Successfully linked targets will be in the list of linked
-                        // targets for the session.
-                        StringSet linkedTargets = snapSession.getLinkedTargets();
-                        if ((linkedTargets == null) || (!linkedTargets.contains(snapshotURI.toString()))) {
-                            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                            // If rollback was successful the snapshot would already have been
-                            // marked inactive, so be sure to check for null.
-                            if ((snapshot != null) && (!snapshot.getInactive())) {
-                                snapshot.setInactive(true);
-                                dbClient.updateObject(snapshot);
+                    for (List<URI> snapshotURIs : _snapshotURIs) {
+                        for (URI snapshotURI : snapshotURIs) {
+                            // Successfully linked targets will be in the list of linked
+                            // targets for the session.
+                            StringSet linkedTargets = snapSession.getLinkedTargets();
+                            if ((linkedTargets == null) || (!linkedTargets.contains(snapshotURI.toString()))) {
+                                BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                                // If rollback was successful the snapshot would already have been
+                                // marked inactive, so be sure to check for null.
+                                if ((snapshot != null) && (!snapshot.getInactive())) {
+                                    snapshot.setInactive(true);
+                                    dbClient.updateObject(snapshot);
+                                }
                             }
                         }
                     }

@@ -5684,8 +5684,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * {@inheritDoc}
      */
     @Override
-    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
-            String copyMode, String opId) throws InternalException {
+    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<List<URI>> snapshotURIs,
+                                                      String copyMode, String opId) throws InternalException {
         TaskCompleter completer = new BlockSnapshotSessionLinkTargetsWorkflowCompleter(snapSessionURI, snapshotURIs, opId);
         try {
             // Get a new workflow to execute the linking of the target volumes
@@ -5694,13 +5694,25 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _log.info("Created new workflow to create and link new targets for snapshot session {} with operation id {}",
                     snapSessionURI, opId);
 
-            for (URI snapshotURI : snapshotURIs) {
-                workflow.createStep(
-                        LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
-                        String.format("Linking target for snapshot session %s", snapSessionURI),
-                        null, systemURI, getDeviceType(systemURI), getClass(),
-                        linkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURI, copyMode, Boolean.FALSE),
-                        rollbackLinkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURI), null);
+            if (checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer)) {
+                String waitFor = null;
+                for (List<URI> snapshotURI : snapshotURIs) {
+                    waitFor = workflow.createStep(
+                            LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
+                            String.format("Linking target for snapshot session %s", snapSessionURI),
+                            waitFor, systemURI, getDeviceType(systemURI), getClass(),
+                            linkBlockSnapshotSessionTargetGroupMethod(systemURI, snapSessionURI, snapshotURI, copyMode, Boolean.FALSE),
+                            null, null);
+                }
+            } else {
+                for (List<URI> snapshotURI : snapshotURIs) {
+                    workflow.createStep(
+                            LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
+                            String.format("Linking target for snapshot session %s", snapSessionURI),
+                            null, systemURI, getDeviceType(systemURI), getClass(),
+                            linkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURI.get(0), copyMode, Boolean.FALSE),
+                            rollbackLinkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURI.get(0)), null);
+                }
             }
             workflow.executePlan(completer, "Create and link new target volumes for block snapshot session successful");
         } catch (Exception e) {

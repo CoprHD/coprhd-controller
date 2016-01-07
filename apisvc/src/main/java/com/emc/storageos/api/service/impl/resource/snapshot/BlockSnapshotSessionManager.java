@@ -315,15 +315,21 @@ public class BlockSnapshotSessionManager {
      * 
      * @return A TaskResourceRep.
      */
-    public TaskResourceRep linkTargetVolumesToSnapshotSession(URI snapSessionURI, SnapshotSessionLinkTargetsParam param) {
+    public TaskList linkTargetVolumesToSnapshotSession(URI snapSessionURI, SnapshotSessionLinkTargetsParam param) {
         s_logger.info("START link new targets for snapshot session {}", snapSessionURI);
 
         // Get the snapshot session.
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         // Get the snapshot session source object.
-        BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
-                _uriInfo, true, _dbClient);
+        BlockObject snapSessionSourceObj = null;
+        if (snapSession.hasConsistencyGroup()) {
+            List<Volume> volumesPartOfCG = ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), _dbClient);
+            snapSessionSourceObj = volumesPartOfCG.get(0);
+        } else {
+            snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
+                    _uriInfo, true, _dbClient);
+        }
 
         // Get the project for the snapshot session source object.
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
@@ -339,30 +345,41 @@ public class BlockSnapshotSessionManager {
         // Get the platform specific block snapshot session implementation.
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
 
+        List<BlockObject> snapSessionSourceObjList = snapSessionApiImpl.getAllSourceObjectsForSnapshotSessionRequest(snapSessionSourceObj);
+
         // Validate that the requested new targets can be linked to the snapshot session.
         snapSessionApiImpl.validateLinkNewTargetsRequest(snapSessionSourceObj, project, newLinkedTargetsCount, newTargetsName,
                 newTargetsCopyMode);
 
         // Prepare the BlockSnapshot instances to represent the new linked targets.
-        Map<URI, BlockSnapshot> snapshotMap = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObj, 0, newLinkedTargetsCount,
+        List<Map<URI, BlockSnapshot>> snapshots = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObjList, 0, newLinkedTargetsCount,
                 newTargetsName);
 
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
+
+        TaskList response = new TaskList();
+        List<DataObject> preparedObjects = new ArrayList<>();
 
         // Create a task for the snapshot session.
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGETS);
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSessionURI, taskId, op);
         snapSession.getOpStatus().put(taskId, op);
-        TaskResourceRep response = toTask(snapSession, taskId);
+        response.getTaskList().add(toTask(snapSession, taskId));
+
+
+        List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
+        for (Map<URI, BlockSnapshot> snapshotMap : snapshots) {
+            preparedObjects.addAll(snapshotMap.values());
+            Set<URI> uris = snapshotMap.keySet();
+            snapSessionSnapshotURIs.add(Lists.newArrayList(uris));
+        }
 
         // Create and link new targets to the snapshot session.
         try {
-            List<URI> snapshotURIs = new ArrayList<URI>();
-            snapshotURIs.addAll(snapshotMap.keySet());
             snapSessionApiImpl.linkNewTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession,
-                    snapshotURIs, newTargetsCopyMode, taskId);
+                    snapSessionSnapshotURIs, newTargetsCopyMode, taskId);
         } catch (Exception e) {
             String errorMsg = format("Failed to link new targets for snapshot session %s: %s", snapSessionURI, e.getMessage());
             ServiceCoded sc = null;
@@ -371,7 +388,7 @@ public class BlockSnapshotSessionManager {
             } else {
                 sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
             }
-            cleanupFailure(Arrays.asList(response), snapshotMap.values(), errorMsg, taskId, sc);
+            cleanupFailure(response.getTaskList(), preparedObjects, errorMsg, taskId, sc);
             throw e;
         }
 

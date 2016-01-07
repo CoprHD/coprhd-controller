@@ -102,7 +102,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            List<URI> snapshotURIs, String copyMode, String taskId) {
+                                                      List<List<URI>> snapshotURIs, String copyMode, String taskId) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.linkNewTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, snapshotURIs, copyMode, taskId);
     }
@@ -207,21 +207,24 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      * {@inheritDoc}
      */
     @Override
-    public Map<URI, BlockSnapshot> prepareSnapshotsForSession(BlockObject sourceObj, int sessionCount, int newTargetCount,
-            String newTargetsName) {
+    public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sessionCount, int newTargetCount,
+                                                                    String newTargetsName) {
         // Important: that the only difference between these snapshots and snapshots created with the
         // create snapshot APIs is that the parent and project NamedURIs for those snapshots use the
         // snapshot label rather than the source label. This is an inconsistency between non-RP snaps
         // and other snaps and should probably be fixed.
+        BlockObject sourceObj = sourceObjList.get(0);
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
-        Map<URI, BlockSnapshot> snapshotMap = snapSessionImpl.prepareSnapshotsForSession(sourceObj, sessionCount, newTargetCount,
+        List<Map<URI, BlockSnapshot>> snapshotMap = snapSessionImpl.prepareSnapshotsForSession(sourceObjList, sessionCount, newTargetCount,
                 newTargetsName);
-        for (BlockSnapshot snapshot : snapshotMap.values()) {
-            // This is a native snapshot so do not set the consistency group, otherwise
-            // the SMIS code/array will get confused trying to look for a consistency
-            // group that only exists in RecoverPoint.
-            snapshot.setConsistencyGroup(null);
-            _dbClient.updateObject(snapshot);
+        for (Map<URI, BlockSnapshot> map : snapshotMap) {
+            for (BlockSnapshot snapshot : map.values()) {
+                // This is a native snapshot so do not set the consistency group, otherwise
+                // the SMIS code/array will get confused trying to look for a consistency
+                // group that only exists in RecoverPoint.
+                snapshot.setConsistencyGroup(null);
+                _dbClient.updateObject(snapshot);
+            }
         }
         return snapshotMap;
     }

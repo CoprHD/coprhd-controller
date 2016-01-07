@@ -76,7 +76,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/link-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep linkTargetVolumes(@PathParam("id") URI id, SnapshotSessionLinkTargetsParam param) {
+    public TaskList linkTargetVolumes(@PathParam("id") URI id, SnapshotSessionLinkTargetsParam param) {
         return getSnapshotSessionManager().linkTargetVolumesToSnapshotSession(id, param);
     }
 

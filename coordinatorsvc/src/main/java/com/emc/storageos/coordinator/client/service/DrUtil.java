@@ -79,10 +79,10 @@ public class DrUtil {
      *
      * @return ping in milliseconds
      */
-    public int checkPing(String siteUuid) {
+    public double checkPing(String siteUuid) {
         Site site = getSiteFromLocalVdc(siteUuid);
         String host = site.getVip();
-        int ping = testPing(host,80);
+        double ping = testPing(host,80);
         return ping;
     }
 
@@ -92,7 +92,7 @@ public class DrUtil {
      * @param
      * @return delay if the specified host responded, -1 if failed
      */
-    static int testPing(String hostAddress, int port) {
+    static double testPing(String hostAddress, int port) {
         InetAddress inetAddress = null;
         InetSocketAddress socketAddress = null;
         SocketChannel sc = null;
@@ -102,15 +102,13 @@ public class DrUtil {
         try {
             inetAddress = InetAddress.getByName(hostAddress);
         } catch (UnknownHostException e) {
-            System.out.println("Problem, unknown host:");
-            e.printStackTrace();
+            log.error("Problem, unknown host:",e);
         }
 
         try {
             socketAddress = new InetSocketAddress(inetAddress, port);
         } catch (IllegalArgumentException e) {
-            System.out.println("Problem, port may be invalid:");
-            e.printStackTrace();
+            log.error("Problem, port may be invalid:",e);
         }
 
         // Open the channel, set it to non-blocking, initiate connect
@@ -121,23 +119,25 @@ public class DrUtil {
             if (sc.connect(socketAddress)) {
                 stop = System.nanoTime();
                 timeToRespond = (stop - start);
+                log.info("Start: "+start+", End: "+stop+", Time: "+timeToRespond+", Time(ms): "+timeToRespond/1000000.0+"");
+            } else {
+                log.error("Failed to connect "+hostAddress+" "+port);
             }
         } catch (IOException e) {
-            System.out.println("Problem, connection could not be made:");
-            e.printStackTrace();
+            log.error("Problem, connection could not be made:",e);
         }
 
         try {
             sc.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Error closing socket during latency test",e);
         }
 
         if (timeToRespond > Integer.MAX_VALUE) {
             log.error("maybe throw a PingCalculationException?");
         }
 
-        return (int) timeToRespond/1000000;
+        return timeToRespond/1000000.0;
     }
 
 

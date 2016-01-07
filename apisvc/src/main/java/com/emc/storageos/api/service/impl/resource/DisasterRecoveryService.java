@@ -421,8 +421,8 @@ public class DisasterRecoveryService {
         log.info("Begin to check site network");
 
         try {
-            int ping =drUtil.checkPing(uuid);
-            return Response.ok(ping).build();
+            Double ping =drUtil.checkPing(uuid);
+            return Response.ok(String.format("%.3f", ping)).build();
         } catch (Exception e) {
             log.error("Can't get site network info");
             throw APIException.badRequests.siteIdNotFound();
@@ -1104,7 +1104,7 @@ public class DisasterRecoveryService {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
-
+            standbyDetails.setPing(standby.getPing());
             if (standby.getState().equals(SiteState.STANDBY_PAUSED)) {
                 standbyDetails.setPausedTime(new Date(standby.getLastStateUpdateTime()));
             }

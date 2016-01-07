@@ -28,6 +28,8 @@ public class Site {
     private static final String KEY_CREATIONTIME = "creationTime";
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
     private static final String KEY_SITE_STATE = "state";
+    private static final String KEY_PING = "ping";
+    private static final String KEY_NETWORK_STATE = "networkState";
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
     private static final String KEY_NODECOUNT = "nodeCount";
@@ -45,6 +47,8 @@ public class Site {
     private String standbyShortId;
     private long creationTime;
     private long lastStateUpdateTime;
+    private double ping;
+    private String networkState;
     private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
 
@@ -137,6 +141,22 @@ public class Site {
         this.creationTime = creationTime;
     }
 
+    public double getPing() {
+        return ping;
+    }
+
+    public void setPing(double ping) {
+        this.ping = ping;
+    }
+
+    public String getNetworkState() {
+        return networkState;
+    }
+
+    public void setNetworkState(String networkState) {
+        this.networkState = networkState;
+    }
+
     public long getLastStateUpdateTime() {
         return lastStateUpdateTime;
     }
@@ -197,6 +217,12 @@ public class Site {
         if (lastStateUpdateTime != 0L) {
             config.setConfig(KEY_LASTSTATEUPDATETIME, String.valueOf(lastStateUpdateTime));
         }
+        if (ping != 0D) {
+            config.setConfig(KEY_PING, String.valueOf(ping));
+        }
+        if (networkState != null) {
+            config.setConfig(KEY_NETWORK_STATE, networkState);
+        }
 
         if (state != null) {
             config.setConfig(KEY_SITE_STATE, String.valueOf(state));
@@ -227,6 +253,7 @@ public class Site {
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
             this.standbyShortId = config.getConfig(KEY_STANDBY_SHORTID);
+            this.networkState = config.getConfig(KEY_NETWORK_STATE);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
                 this.creationTime = Long.valueOf(s);
@@ -234,6 +261,10 @@ public class Site {
             s = config.getConfig(KEY_LASTSTATEUPDATETIME);
             if (s != null) {
                 this.lastStateUpdateTime = Long.valueOf(s);
+            }
+            s = config.getConfig(KEY_PING);
+            if (s != null) {
+                this.ping = Double.valueOf(s);
             }
             s = config.getConfig(KEY_SITE_STATE);
             if (s != null) {
@@ -287,6 +318,10 @@ public class Site {
         builder.append(standbyShortId);
         builder.append(", creationTime=");
         builder.append(creationTime);
+        builder.append(", ping=");
+        builder.append(ping);
+        builder.append(", networkState=");
+        builder.append(networkState);
         builder.append("]");
         return builder.toString();
     }

@@ -19,9 +19,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.URI;
+import java.net.*;
+import java.nio.channels.SocketChannel;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1417,6 +1416,11 @@ public class CoordinatorClientExt {
             ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
             exe.scheduleAtFixedRate(coordinatorSvcMonitor, 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
+        if (drUtil.isActiveSite()) {
+            _log.info("Start monitoring local networkMonitor status on active site");
+            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+            exe.scheduleAtFixedRate(networkMonitor, 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+        }
     }
 
     public void stopCoordinatorSvcMonitor() {
@@ -1523,17 +1527,80 @@ public class CoordinatorClientExt {
             }
         }
 
-        private int checkPing() {
+        private void checkPing() {
 
             //Only leader on active site will test ping (no networking info if active down?)
             String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
             String ZOOKEEPER_MODE_LEADER = "leader";
             if (ZOOKEEPER_MODE_LEADER.equals(state)) {
                 //I'm the leader
+                for (Site site : drUtil.listStandbySites()){
+                    String host = site.getVip();
+                    Long ping = testPing(host,80);
+                    site.setPing(ping);
+                    if (ping > 400) {
+                        site.setNetworkState("UNHEALTHY");
+                    }
+                    else if (ping < 0) {
+                        site.setNetworkState("UNAVAILABLE");
+                    }
+                    else {
+                        site.setNetworkState("HEALTHY");
+                    }
+                    _coordinator.persistServiceConfiguration(site.toConfiguration());
+                }
+            }
+        }
 
+        /**
+         * Connect using layer4 (sockets)
+         *
+         * @param
+         * @return delay if the specified host responded, -1 if failed
+         */
+        private long testPing(String hostAddress, int port) {
+            InetAddress inetAddress = null;
+            InetSocketAddress socketAddress = null;
+            SocketChannel sc = null;
+            long timeToRespond = -1;
+            long start, stop;
+
+            try {
+                inetAddress = InetAddress.getByName(hostAddress);
+            } catch (UnknownHostException e) {
+                _log.error("Problem, unknown host:",e);
             }
 
-            return 1337;
+            try {
+                socketAddress = new InetSocketAddress(inetAddress, port);
+            } catch (IllegalArgumentException e) {
+                _log.error("Problem, port may be invalid:",e);
+            }
+
+            // Open the channel, set it to non-blocking, initiate connect
+            try {
+                sc = SocketChannel.open();
+                sc.configureBlocking(true);
+                start = System.nanoTime();
+                if (sc.connect(socketAddress)) {
+                    stop = System.nanoTime();
+                    timeToRespond = (stop - start);
+                }
+            } catch (IOException e) {
+                _log.error("Problem, connection could not be made:",e);
+            }
+
+            try {
+                sc.close();
+            } catch (IOException e) {
+                _log.error("Error closing socket during latency test",e);
+            }
+
+            if (timeToRespond > Integer.MAX_VALUE) {
+                _log.error("maybe throw a PingCalculationException?");
+            }
+
+            return timeToRespond/1000000;
         }
 
     };

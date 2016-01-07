@@ -17,6 +17,7 @@ public class SiteDetailRestRep {
     private Date creationTime;
     private Date pausedTime;
     private Date lastUpdateTime;
+    private double ping;
 
     @XmlElement(name = "creationTime")
     public Date getCreationTime() {
@@ -45,6 +46,15 @@ public class SiteDetailRestRep {
         this.lastUpdateTime = lastUpdateTime;
     }
 
+    @XmlElement(name = "network_ping")
+    public double getPing() {
+        return ping;
+    }
+
+    public void setPing(double ping) {
+        this.ping = ping;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -54,6 +64,8 @@ public class SiteDetailRestRep {
         builder.append(pausedTime);
         builder.append(", lastUpdateTime=");
         builder.append(lastUpdateTime);
+        builder.append(", ping=");
+        builder.append(ping);
         builder.append("]");
         return builder.toString();
     }

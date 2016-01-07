@@ -82,6 +82,8 @@
         <package name="libvpx1"/>
         <package name="systemd-logger"/>
         <package name="virtualbox"/>
+        <package name="virtualbox-guest-tools"/>
+        <package name="virtualbox-guest-kmp-default"/>
         <package name="virtualbox-host-kmp-default"/>
         <package name="xbitmaps"/>
         <!-- storageOS DevKit RPM installs -->

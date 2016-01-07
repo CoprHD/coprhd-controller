@@ -65,6 +65,9 @@ public class ConfigProperties extends Controller {
 
     private static final String DEFAULT_PAGE = "general";
     private static final String OTHER = "Other";
+    private static final String SECURITY_PAGE = "Security";
+    private static final String PERMIT_ROOT_CONSOLE = "system_permit_root_console";
+    private static final String PERMIT_ROOT_SSH = "system_permit_root_ssh";
     private static final int MAX_FLASH = 2048;
 
     public static void properties() {
@@ -186,7 +189,7 @@ public class ConfigProperties extends Controller {
         }
 
         addPage(pages, new BackupPropertyPage(properties));
-        addDefaultPages(pages, properties.values(), excludePages);
+        addDefaultPages(pages, properties.values(), excludePages, isActiveSite);
 
         return Lists.newArrayList(pages.values());
     }
@@ -197,7 +200,7 @@ public class ConfigProperties extends Controller {
     }
 
     private static void addDefaultPages(Map<String, PropertyPage> pages, Collection<Property> properties,
-            Map<String, PropertyPage> excludePages) {
+            Map<String, PropertyPage> excludePages, boolean isActiveSite) {
         for (Property property : properties) {
             String pageName = StringUtils.defaultIfBlank(property.getPageName(), DEFAULT_PAGE);
             PropertyPage page = pages.get(pageName);
@@ -205,7 +208,20 @@ public class ConfigProperties extends Controller {
                 if (page == null) {
                     page = addPage(pages, new DefaultPropertyPage(pageName));
                 }
-                page.getProperties().add(property);
+                if (isActiveSite) {
+                    page.getProperties().add(property);
+                }
+                else {
+                    String propertyName = StringUtils.defaultIfBlank(property.getName(), DEFAULT_PAGE);
+                    if (StringUtils.equals(propertyName, PERMIT_ROOT_CONSOLE) || StringUtils.equals(propertyName, PERMIT_ROOT_SSH)) {
+                        if (!StringUtils.equals(pageName, SECURITY_PAGE)) {
+                            page.getProperties().add(property);
+                        }
+                    }
+                    else {
+                        page.getProperties().add(property);
+                    }
+                }
             }
         }
     }

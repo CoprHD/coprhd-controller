@@ -39,7 +39,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
 
         // Validate the unManagedVolume properties
         validateUnManagedVolume(unManagedVolume, requestContext.getVpool());
-        CheckIfParentRPVolume(unManagedVolume);
+        checkIfParentRPVolume(unManagedVolume);
 
         // Check whether mirror already ingested or not.
         String mirrorNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
@@ -71,7 +71,13 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         return clazz.cast(mirrorObj);
     }
 
-    private void CheckIfParentRPVolume(UnManagedVolume unManagedVolume) {
+    /**
+     * ViPR doesn't support creating mirrors off RP protected volumes. So check if the mirror to be ingested has RP
+     * protected parent. If yes, throw an ingestion exception
+     * 
+     * @param unManagedVolume
+     */
+    private void checkIfParentRPVolume(UnManagedVolume unManagedVolume) {
         String parentNativeGUID = null;
         StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
         if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString())) {

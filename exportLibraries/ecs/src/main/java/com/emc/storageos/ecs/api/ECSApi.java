@@ -367,6 +367,7 @@ public class ECSApi {
     }
     
     /**
+     * Updates the bucket ACL
      * @param bucketName
      * @param payload
      * @throws ECSException

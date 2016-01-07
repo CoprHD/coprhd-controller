@@ -176,7 +176,21 @@ public class ObjectDeviceController implements ObjectController {
 
     @Override
     public void deleteBucketACL(URI storage, URI bucket, String opId) throws InternalException {
-        // TODO Auto-generated method stub
+        ControllerUtils.setThreadLocalLogData(bucket, opId);
+        _log.info("ObjectDeviceController:updateBucketACL Bucket URI : {} ", bucket);
+        Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+        ObjectDeviceInputOutput objectArgs = new ObjectDeviceInputOutput();
+        objectArgs.setName(bucketObj.getName());
+        objectArgs.setNamespace(bucketObj.getNamespace());
+        
+        // Query for existing ACL and setting it for deletion.
+        objectArgs.setBucketAclToDelete(queryExistingBucketAcl(objectArgs,bucket));
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucketACL(storageObj, bucketObj, objectArgs, opId);
+        if (result.getCommandPending()) {
+            return;
+        }
+        bucketObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
         
     }
     

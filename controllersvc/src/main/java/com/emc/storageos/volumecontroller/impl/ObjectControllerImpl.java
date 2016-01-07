@@ -145,7 +145,9 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 
     @Override
     public void deleteBucketACL(URI storage, URI bucket, String opId) throws InternalException {
-        // TODO Auto-generated method stub
+        _log.info("ObjectControllerImpl:deleteBucketACL start");
+        execOb("deleteBucketACL", storage, bucket, opId);
+        _log.debug("ObjectControllerImpl:deleteBucketACL end");
         
     }
 }

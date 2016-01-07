@@ -26,6 +26,7 @@ import com.emc.storageos.ecs.api.ECSBucketACL;
 import com.emc.storageos.ecs.api.ECSException;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.object.BucketACE;
+import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
@@ -241,7 +242,6 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             }
         }
         
-        //suri
         ECSApi objectAPI = getAPI(storageObj);
         try {
             String payload = toJsonString(objectArgs, aclsToProcess);
@@ -250,6 +250,29 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
         } catch (ECSException e) {
             _log.error("ACL Update for Bucket : {} failed.", objectArgs.getName(), e);
+            completeTask(bucket.getId(), taskId, e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+
+        completeTask(bucket.getId(), taskId, "Successfully updated Bucket ACL.");
+        return BiosCommandResult.createSuccessfulResult();
+    }
+    
+    @Override
+    public BiosCommandResult doDeleteBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException {
+        
+        ECSApi objectAPI = getAPI(storageObj);
+        BucketACLUpdateParams param = new BucketACLUpdateParams();
+        BucketACL aclForDeletion = new BucketACL();
+        aclForDeletion.setBucketACL(objectArgs.getBucketAclToDelete());
+        param.setAclToDelete(aclForDeletion);
+        try {
+            String payload = "{\"bucket\":\""+ objectArgs.getName() +"\",\"namespace\":\"" + objectArgs.getNamespace() +"\",\"acl\":{}}\"";
+            objectAPI.updateBucketACL(objectArgs.getName(), payload);
+            updateBucketACLInDB(param, objectArgs, bucket);
+
+        } catch (ECSException e) {
+            _log.error("Delete ACL for Bucket : {} failed.", objectArgs.getName(), e);
             completeTask(bucket.getId(), taskId, e);
             return BiosCommandResult.createErrorResult(e);
         }

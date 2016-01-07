@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -539,6 +540,40 @@ public class BucketService extends TaskResourceService {
             bucketAcl.setBucketACL(bucketAces);
         }
         return bucketAcl;
+    }
+    
+    @DELETE
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/acl")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskResourceRep deleteBucketACL(@PathParam("id") URI id) {
+        
+        _log.info("Request recieved to delete ACL for the Bucket Id: {}", id);
+
+        // Validate the Bucket
+        Bucket bucket = null;
+        ArgValidator.checkFieldUriType(id, Bucket.class, "id");
+        bucket = _dbClient.queryObject(Bucket.class, id);
+        ArgValidator.checkEntity(bucket, id, isIdEmbeddedInURL(id));
+
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
+        ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());
+        
+        String task = UUID.randomUUID().toString();
+        _log.info(String.format(
+                "Delete Bucket ACL --- Bucket id: %1$s, Task: %2$s", id, task));
+
+
+        Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
+                task, ResourceOperationTypeEnum.DELETE_BUCKET_ACL);
+        op.setDescription("Delete Bucket ACL");
+        
+        controller.deleteBucketACL(bucket.getStorageDevice(), id, task);
+        auditOp(OperationTypeEnum.DELETE_BUCKET_ACL, true, AuditLogManager.AUDITOP_BEGIN,
+                bucket.getId().toString(), bucket.getStorageDevice().toString());
+
+        return toTask(bucket, task, op);
+        
     }
 
     @Override

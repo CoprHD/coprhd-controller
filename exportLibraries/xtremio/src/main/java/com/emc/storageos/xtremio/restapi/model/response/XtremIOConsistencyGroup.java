@@ -14,6 +14,10 @@ import com.google.gson.annotations.SerializedName;
 @JsonRootName(value = "xtremio_consistency_group")
 public class XtremIOConsistencyGroup {
 
+	@SerializedName("guid")
+    @JsonProperty(value = "guid")
+    private String guid;
+	
     @SerializedName("name")
     @JsonProperty(value = "name")
     private String name;
@@ -61,5 +65,13 @@ public class XtremIOConsistencyGroup {
     public void setTagList(List<List<Object>> tagList) {
         this.tagList = tagList;
     }
+    
+	public String getGuid() {
+		return guid;
+	}
+
+	public void setGuid(String guid) {
+		this.guid = guid;
+	}
 
 }

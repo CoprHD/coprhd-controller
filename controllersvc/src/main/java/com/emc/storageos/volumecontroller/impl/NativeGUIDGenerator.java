@@ -645,8 +645,8 @@ public class NativeGUIDGenerator {
 
     }
 
-    public static String generateNativeGuidForCG(String systemNativeGuid, String snapShotId) {
-        return String.format("%s+" + CONSISTENCY_GROUP + "+%s", systemNativeGuid, snapShotId);
+    public static String generateNativeGuidForCG(String systemNativeGuid, String cgGuid) {
+        return String.format("%s+" + CONSISTENCY_GROUP + "+%s", systemNativeGuid, cgGuid);
 
     }
     

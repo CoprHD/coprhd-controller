@@ -204,12 +204,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 	hasCGs = true;
                 	if (volume.getConsistencyGroups().size() > 1) {
                 		// volumes that belong to multiple CGs are not supported in ViPR
-                		log.debug("Skipping volume {} as it belongs to multiple CGs and this is not supported", volume.getVolInfo().get(0));                	
+                		log.warn("Skipping volume {} as it belongs to multiple CGs and this is not supported", volume.getVolInfo().get(0));                	
                 		// add all the CGs that this volume belongs to to the list that are unsupported for ingestion
                 		for (List<Object> cg : volume.getConsistencyGroups()) {
                 			Object cgNameToProcess = cg.get(1);
                 			unSupportedCG.add(cgNameToProcess.toString());                		
-                			log.debug("Skipping CG {} as it contains volumes belonging to multiple CGs and this is not supported", cgNameToProcess.toString());
+                			log.warn("Skipping CG {} as it contains volumes belonging to multiple CGs and this is not supported", cgNameToProcess.toString());
                 		}
                 		continue;
                 	} 
@@ -259,15 +259,16 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 		// Check if the current CG is in the list of unsupported CGs                		
                 		if (!unSupportedCG.isEmpty() && unSupportedCG.contains(cgNameToProcess.toString())) {
                 			// leave the for loop and do nothing
+                			log.warn("Skipping CG {} as it contains volumes belonging to multiple CGs and this is not supported", cgNameToProcess.toString());
                 			break;
                 		}
                 		log.info("Unmanaged volume {} belongs to consistency group {} on the array", unManagedVolume.getLabel(), cgNameToProcess);
                 		// Update the unManagedVolume object with CG information
-                		unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());
-                		// determine the native guid for the unmanaged CG
-                		String unManagedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(storageSystem.getNativeGuid(), cgNameToProcess.toString());                		
+                		unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());                		              	
                 		// Get the unmanaged CG details from the array
-                		XtremIOConsistencyGroup xioCG = xtremIOClient.getConsistencyGroupDetails(cgNameToProcess.toString(), xioClusterName);
+                		XtremIOConsistencyGroup xioCG = xtremIOClient.getConsistencyGroupDetails(cgNameToProcess.toString(), xioClusterName);                		
+                		// determine the native guid for the unmanaged CG (storage system id + xio cg guid)
+                		String unManagedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(storageSystem.getNativeGuid(), xioCG.getGuid());  
                 		// determine if the unmanaged CG already exists in the database
                 		UnManagedConsistencyGroup unManagedCG = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient, unManagedCGNativeGuid);
                 		if (null == unManagedCG) {                			

@@ -467,7 +467,7 @@ def create_parser(subcommand_parsers, common_parser):
                                help='This option specifies the target name',
                                dest='target_name',
                                metavar='<target_name>')
-    create_parser.add_argument('-copy_mode', '-cm',
+    create_parser.add_argument('-copymode', '-cm',
                                help='whether to create in copy or nocopy mode' ,
                                dest='copymode',
                                choices=SnapshotSession.COPY_MODE)
@@ -587,12 +587,12 @@ def link_target_parser(subcommand_parsers, common_parser):
                                dest='count',
                                help='Number of target volumes ',
                                required=True)
-    mandatory_args.add_argument('-target_name', '-tgn',
+    mandatory_args.add_argument('-targetname', '-tgn',
                                help='This option specifies the target name',
                                dest='target_name',
                                metavar='<target_name>',
                                required=True)
-    mandatory_args.add_argument('-copy_mode', '-cm',
+    mandatory_args.add_argument('-copymode', '-cm',
                                help='whether to create in copy or nocopy mode' ,
                                dest='copymode',
                                choices=SnapshotSession.COPY_MODE,
@@ -651,7 +651,7 @@ def relink_target_parser(subcommand_parsers, common_parser):
                                 dest='volume',
                                 help='Name of a volume',
                                 required=True)
-    mandatory_args.add_argument('-target_vol_names', '-tgnames',
+    mandatory_args.add_argument('-targetvolumes', '-tgnames',
                                dest='target_names', nargs='+',
                                help='List of target volumes',
                                required=True)
@@ -709,7 +709,7 @@ def unlink_target_parser(subcommand_parsers, common_parser):
                                 dest='volume',
                                 help='Name of a volume',
                                 required=True)
-    mandatory_args.add_argument('-target_vol_names', '-tgnames',
+    mandatory_args.add_argument('-targetvolumes', '-tgnames',
                                dest='target_names', nargs='+',
                                help='List of target volumes in the format <target_name>:delete',
                                required=True)

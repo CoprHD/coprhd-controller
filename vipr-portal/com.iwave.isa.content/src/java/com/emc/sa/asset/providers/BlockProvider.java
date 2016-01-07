@@ -202,7 +202,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("sourceBlockVolume")
-    @AssetDependencies({ "projectFilter", "blockVirtualPoolFilter", "consistencyGroupFilter" })
+    @AssetDependencies({ "project", "blockVirtualPoolFilter", "consistencyGroupFilter" })
     public List<AssetOption> getApplicationSourceVolumes(AssetOptionsContext ctx, URI project, URI vpool, URI cg) {
         ResourceFilter<VolumeRestRep> virtualPoolFilter = vpool != null ? new VirtualPoolFilter(vpool)
                 : new DefaultResourceFilter<VolumeRestRep>();

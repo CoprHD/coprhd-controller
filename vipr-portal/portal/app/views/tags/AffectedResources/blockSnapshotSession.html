@@ -11,7 +11,7 @@
   #{if blockSnapshotSession}
     <dt>&{'affectedResources.blockSnapshotSession.name'}:</dt>
     <dd>
-      <a href="@{resources.BlockSnapshotSessions.snapshotDetails(resourceId)}"
+      <a href="@{resources.BlockSnapshotSessions.snapshotSessionDetails(resourceId)}"
       >#{spaceForNull blockSnapshotSession?.name/}#{if blockSnapshotSession.inactive} (&{'affectedResources.inactive'})#{/if}</a>
     </dd>
 

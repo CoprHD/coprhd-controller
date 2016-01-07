@@ -1833,11 +1833,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 CIMObjectPath settingsStatePath = null;
                 BlockObject sourceObj = null;
                 if (snapSession.hasConsistencyGroup()) {
+                    _log.info("Restoring group snapshot session");
                     List<Volume> volumesPartOfCG = ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), _dbClient);
                     sourceObj = volumesPartOfCG.get(0);
                     String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
                     settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
                 } else {
+                    _log.info("Restoring single volume snapshot session");
                     sourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
                     CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
                     settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);

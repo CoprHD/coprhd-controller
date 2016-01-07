@@ -216,19 +216,35 @@ _gen_prop2() {
     [ -z "${_GENCONFIG_site_active_id}" ] && export _GENCONFIG_site_active_id='site1'
 
     #'vdc_vdc1_site1_node_count')
-    [ -z "${_GENCONFIG_vdc_vdc1_site1_node_count}" ] && export _GENCONFIG_vdc_vdc1_site1_node_count=${_GENCONFIG_node_count}
+    if [ -z "${_GENCONFIG_vdc_vdc1_site1_node_count}" ] ; then
+	if [ -n "${_GENCONFIG_vdc_vdc1_node_count}" ]; then
+	    export _GENCONFIG_vdc_vdc1_site1_node_count=${_GENCONFIG_vdc_vdc1_node_count}
+        else
+	    export _GENCONFIG_vdc_vdc1_site1_node_count=${_GENCONFIG_node_count}
+        fi
+    fi
 
     #'vdc_vdc1_network_'*'_ipaddr')
     for node_index in ${_GENCONFIG_node_indexes}; do
         local var="_GENCONFIG_vdc_vdc1_site1_network_${node_index}_ipaddr"
         if [ -z "${!var}" ]; then
-            local var2="_GENCONFIG_network_${node_index}_ipaddr"
-            eval export ${var}=${!var2}
+            local var2="_GENCONFIG_vdc1_network_${node_index}_ipaddr"
+            if [ -n "${!var2}" ]; then
+                eval export ${var}=${!var2}
+	    else
+                local var3="_GENCONFIG_network_${node_index}_ipaddr"
+		eval export ${var}=${!var3}
+	    fi
         fi
         var="_GENCONFIG_vdc_vdc1_site1_network_${node_index}_ipaddr6"
         if [ -z "${!var}" ]; then
-            local var2="_GENCONFIG_network_${node_index}_ipaddr6"
-            eval export ${var}=${!var2}
+            local var2="_GENCONFIG_vdc_vdc1_network_${node_index}_ipaddr6"
+            if [ -n "${!var2}" ]; then
+                eval export ${var}=${!var2}
+	    else
+                local var3="_GENCONFIG_network_${node_index}_ipaddr6"
+		eval export ${var}=${!var3}
+	    fi
         fi
     done
 
@@ -238,6 +254,7 @@ _gen_prop2() {
     for vdc in ${_GENCONFIG_vdc_ids}; do
         for site in ${_GENCONFIG_site_ids}; do
             local var="_GENCONFIG_vdc_${vdc}_${site}_node_count"
+            [ -z "${!var}" ] && continue
             for node_index in $(seq -s ' ' ${!var}); do
                 local var2="_GENCONFIG_vdc_${vdc}_network_${node_index}_ipaddr6"
                 eval export ${var2}=$(_get_ipv6_uncompressed ${!var2})

@@ -39,7 +39,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -48,7 +47,6 @@ import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -106,6 +104,7 @@ public class SchemaUtil {
     private DbClientContext clientContext;
     private boolean onStandby = false;
     private DrUtil drUtil;
+    private Boolean backCompatPreYoda = false;
 
     @Autowired
     private DbRebuildRunnable dbRebuildRunnable;
@@ -237,6 +236,10 @@ public class SchemaUtil {
 
     public Map<String, ColumnFamily> getCfMap() {
         return isGeoDbsvc() ? _doScanner.getGeoCfMap() : _doScanner.getCfMap();
+    }
+
+    public void setBackCompatPreYoda(Boolean backCompatPreYoda) {
+        this.backCompatPreYoda = backCompatPreYoda;
     }
 
     /**
@@ -436,7 +439,16 @@ public class SchemaUtil {
      * @return true to indicate keyspace strategy option is changed
      */
     private boolean checkStrategyOptionsForGeo(Map<String, String> strategyOptions) {
+        if (onStandby) {
+            _log.info("Only active site updates geo strategy operation. Do nothing on standby site");
+            return false;
+        }
+
         if (!isGeoDbsvc()) {
+            if (backCompatPreYoda) {
+                _log.info("Upgraded from preyoda release. Keep db strategy options unchanged.");
+                return false;
+            }
             // for local db, check if current vdc id is in the list
             if (!strategyOptions.containsKey(_vdcShortId)) {
                 strategyOptions.clear();
@@ -444,11 +456,6 @@ public class SchemaUtil {
                 strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
                 return true;
             }
-            return false;
-        }
-
-        if (onStandby) {
-            _log.info("Only active site updates geo strategy operation. Do nothing on standby site");
             return false;
         }
         

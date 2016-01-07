@@ -80,6 +80,7 @@ import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.LicenseInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.WorkPool;
@@ -259,6 +260,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         site.setHostIPv6AddressMap(ipv6Addresses);
 
         persistServiceConfiguration(site.toConfiguration());
+        
+        new DrUtil(this).setLocalVdcShortId(vdcShortId);
         
         // update Site version in ZK
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);

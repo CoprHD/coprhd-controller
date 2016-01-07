@@ -28,7 +28,7 @@
      required:false
     },
     
-    volumes:{
+    volume:{
       type:"assetType.vipr.sourceBlockVolume",
       select: "many"
     }

@@ -159,7 +159,7 @@ public class ConfigProperties extends Controller {
 
         if (isActiveSite) {
             addPage(pages, new NetworkPropertyPage(properties));
-            if (PlatformUtils.isAppliance()) { //This done to maintain the current tab order
+            if (PlatformUtils.isAppliance()) { // This done to maintain the current tab order
                 addPage(pages, new SecurityPropertyPage(properties));
             }
             addPage(pages, new ControllerPropertyPage(properties));
@@ -201,14 +201,11 @@ public class ConfigProperties extends Controller {
         for (Property property : properties) {
             String pageName = StringUtils.defaultIfBlank(property.getPageName(), DEFAULT_PAGE);
             PropertyPage page = pages.get(pageName);
-            if ((page == null) && (excludePages.get(pageName) == null)) {
-                page = addPage(pages, new DefaultPropertyPage(pageName));
-                page.getProperties().add(property);
-            }
-            else {
-                if (page != null) {
-                    page.getProperties().add(property);
+            if (excludePages.get(pageName) == null) {
+                if (page == null) {
+                    page = addPage(pages, new DefaultPropertyPage(pageName));
                 }
+                page.getProperties().add(property);
             }
         }
     }

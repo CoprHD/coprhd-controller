@@ -46,13 +46,6 @@ public class BlockApplications extends ResourceController {
         render(application);
     }
     
-//    public static void blockApplicationVolumeDetails(String id) {
-//    	renderArgs.put("dataTable", new VolumeApplicationDataTable());
-//    	VolumeGroupRestRep application =  AppSupportUtil.getApplication(id);
-//    	renderArgs.put("application", application);
-//    	render();
-//    }
-    
     public static void applicationVolumeJson(String id) {
     	List<Volume> volumeDetails = Lists.newArrayList();
     	Map<URI, String> virtualArrays = ResourceUtils.mapNames(BourneUtil.getViprClient().varrays().list());

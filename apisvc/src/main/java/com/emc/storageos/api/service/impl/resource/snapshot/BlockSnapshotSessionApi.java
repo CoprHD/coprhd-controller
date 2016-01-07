@@ -86,15 +86,15 @@ public interface BlockSnapshotSessionApi {
      * Prepare ViPR BlockSnapshot instances for the new targets to be created and
      * linked to a block snapshot session.
      * 
-     * @param sourceObj The snapshot session source.
+     * @param sourceObjList The snapshot session source.
      * @param sessionCount The snapshot session count when preparing snapshots for multiple sessions.
      * @param newTargetCount The number of new targets to be created.
      * @param newTargetsName The requested name for the new linked targets.
-     * 
+     *
      * @return A map containing the prepared BlockSnapshot instances, keyed by the snapshot URI.
      */
-    public Map<URI, BlockSnapshot> prepareSnapshotsForSession(BlockObject sourceObj, int sessionCount, int newTargetCount,
-            String newTargetsName);
+    public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sessionCount, int newTargetCount,
+                                                                    String newTargetsName);
 
     /**
      * Creates a new block snapshot session.
@@ -122,15 +122,14 @@ public interface BlockSnapshotSessionApi {
 
     /**
      * Creates a new block snapshot session.
-     * 
-     * @param snapSessionSourceObj A reference to the source object.
+     *  @param snapSessionSourceObj A reference to the source object.
      * @param snapSession A reference to the BlockSnapshotSession instance.
      * @param snapshotURIs The URIs of the BlockSnapshot instances representing the linked targets.
      * @param copyMode The copy mode for linked targets.
      * @param taskId A unique task identifier.
      */
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            List<URI> snapshotURIs, String copyMode, String taskId);
+                                                      List<List<URI>> snapshotURIs, String copyMode, String taskId);
 
     /**
      * Validates a re-link targets to block snapshot session request.

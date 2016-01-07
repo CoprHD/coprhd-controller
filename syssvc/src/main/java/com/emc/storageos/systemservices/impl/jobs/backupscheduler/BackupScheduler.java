@@ -270,7 +270,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         }
 
         String drSiteName = drUtil.getLocalSite().getName().replace(' ', '-');
-        
+
         // Remove all non alphanumeric characters
         drSiteName = drSiteName.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
         

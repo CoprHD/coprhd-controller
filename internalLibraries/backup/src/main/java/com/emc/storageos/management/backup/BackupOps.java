@@ -267,12 +267,12 @@ public class BackupOps {
         InterProcessLock backupLock = null;
         InterProcessLock recoveryLock = null;
         try {
-            recoveryLock = getLock(RecoveryConstants.RECOVERY_LOCK, LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
             backupLock = getLock(BACKUP_LOCK, LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            recoveryLock = getLock(RecoveryConstants.RECOVERY_LOCK, LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
             createBackupWithoutLock(backupTag, force);
         } finally {
-            releaseLock(backupLock);
             releaseLock(recoveryLock);
+            releaseLock(backupLock);
         }
     }
 
@@ -493,7 +493,7 @@ public class BackupOps {
         for (String backupTag : backups) {
             if (!isScheduledBackupTag(backupTag)) {
                 manualBackupNumber++;
-                log.debug("Backup({}) is manual created", backupTag);
+                log.info("Backup({}) is manual created", backupTag);
             }
         }
         return manualBackupNumber;
@@ -508,6 +508,7 @@ public class BackupOps {
         // This pattern need to consider extension, version part could be longer and node count could bigger
         String regex = String.format(BackupConstants.SCHEDULED_BACKUP_TAG_REGEX_PATTERN, ProductName.getName(),
                 BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN.length());
+        log.info("Scheduler backup name pattern regex is {}", regex);
         Pattern backupNamePattern = Pattern.compile(regex);
         return backupNamePattern.matcher(tag).find();
     }
@@ -641,7 +642,11 @@ public class BackupOps {
         }
         if (!acquired) {
             log.error("Unable to acquire lock: {}", name);
+            if (name.equals(RecoveryConstants.RECOVERY_LOCK)) {
+                throw BackupException.fatals.unableToGetRecoveryLock(name);
+            }
             throw BackupException.fatals.unableToGetLock(name);
+
         }
         log.info("Got lock: {}", name);
         return lock;

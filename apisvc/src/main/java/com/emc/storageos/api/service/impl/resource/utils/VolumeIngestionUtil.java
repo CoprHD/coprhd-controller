@@ -427,7 +427,7 @@ public class VolumeIngestionUtil {
     /**
      * Check to see if an unmanaged resource is RP enabled (part of an RP CG) or not
      * 
-     * @param unManagedVolume unmanaged volume 
+     * @param unManagedVolume unmanaged volume
      * @return true if it's part of an RP CG
      */
     public static boolean checkUnManagedResourceIsRecoverPointEnabled(UnManagedVolume unManagedVolume) {
@@ -443,7 +443,7 @@ public class VolumeIngestionUtil {
 
     /**
      * Check to see if an unmanaged resource is exported to anything non-RP.
-     * Note: Being exported to RP doesn't not mean this returns false.  It's a way
+     * Note: Being exported to RP doesn't not mean this returns false. It's a way
      * to check if something is exported to something other than RP, regardless of RP.
      * 
      * @param unManagedVolume unmanaged volume
@@ -465,7 +465,7 @@ public class VolumeIngestionUtil {
      * the volume is "locked-down" in a target operation.
      * 
      * @param unManagedVolume unmanaged volume
-     * @return true if the voume is in an image access mode.  Several modes qualify.
+     * @return true if the voume is in an image access mode. Several modes qualify.
      */
     public static boolean isRPUnManagedVolumeInImageAccessState(UnManagedVolume unManagedVolume) {
         boolean isImageAccessState = false;
@@ -1930,7 +1930,7 @@ public class VolumeIngestionUtil {
     /**
      * Get the export group associated with initiator URIs
      * 
-     * Note: Once it finds an export group associated with any initiator, it returns that export group.  This may not
+     * Note: Once it finds an export group associated with any initiator, it returns that export group. This may not
      * be what the caller wants.
      * 
      * @param project project
@@ -2421,7 +2421,7 @@ public class VolumeIngestionUtil {
                         }
                         for (URI eMaskUri : exportMaskUris) {
                             ExportMask eMask = dbClient.queryObject(ExportMask.class, eMaskUri);
-                            if (eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
+                            if (null != eMask && eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
                                 _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
                                 exportMasks.add(eMask);
                             } else {
@@ -2462,6 +2462,10 @@ public class VolumeIngestionUtil {
                         }
                     }
                     updatedObjects.addAll(exportGroups);
+                    _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
+                            unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
+                    unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
+                    unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
                 }
             } else {
                 _logger.info("No unmanaged export masks found for the unmanaged volume {}", unManagedVolumes.get(0).getNativeGuid());

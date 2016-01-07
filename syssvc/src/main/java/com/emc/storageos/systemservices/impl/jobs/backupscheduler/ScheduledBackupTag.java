@@ -78,7 +78,7 @@ public class ScheduledBackupTag {
                 scheduledTags.add(tag);
             }
         }
-
+        log.info("Scheduled backup tags: {}", scheduledTags);
         return scheduledTags;
     }
 

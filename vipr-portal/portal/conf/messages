@@ -2060,6 +2060,7 @@ vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a 
 
 #Object Specefic
 vpool.maxRetention=Maximum Retention (Days)
+vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
 
 # Block Specific
@@ -2122,6 +2123,17 @@ vpool.rpVplex.source=Source
 vpool.rpVplex.ha=HA
 vpool.activeSite=Active Site
 vpool.activeSite.help=Specifies the VPLEX site for active protection with RecoverPoint.  The link to the other VPLEX site is configured as stand-by.
+vpool.replicationMode=Replication Mode
+vpool.replicationRpo=Min RPO
+vpool.replicationCopies=Replication Copies
+vpool.remoteVirtualArray=Virtual Array
+vpool.remoteVirtualPool=Virtual Pool
+vpool.replicationType=Replication Type
+
+# File Replication
+replicationCopy.virtualArray=Virtual Array
+replicationCopy.virtualPool=Virtual Pool
+replicationCopy.title=Replication Copy
 
 # Recoverpoint
 vpool.rpJournalSize=RecoverPoint Source Journal Size
@@ -2680,7 +2692,9 @@ computeImageServers.tftpBootDir=TFTPBOOT Directory
 computeImageServers.confirmPassword=Comfirm Password
 computeImageServers.computeImageServerStatus=Image Server Status
 computeImageServers.osInstallNetworkAddress=OS Install Network Address
-computeImageServers.osInstallTimeOut=OS Install Timeout
+computeImageServers.osInstallTimeOut=OS Install Timeout in seconds
+computeImageServers.sshTimeout=Timeout in seconds for SSH commands sent to Image Server
+computeImageServers.imageImportTimeout=Image Import Timeout in seconds
 computeImageServers.availableComputeImages=Available Images
 computeImageServers.failedComputeImages=Images Failed to import
 computeImageServers.confirmPassword.not.match=User Password and Confirm Password do not match

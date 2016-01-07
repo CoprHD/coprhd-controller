@@ -205,9 +205,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "projectFilter", "blockVirtualPoolFilter", "consistencyGroupFilter" })
     public List<AssetOption> getApplicationSourceVolumes(AssetOptionsContext ctx, URI project, URI vpool, URI cg) {
         List<AssetOption> options = Lists.newArrayList();
-        options.add(new AssetOption(project.toString(), project.toString()));
-        options.add(new AssetOption(vpool.toString(), vpool.toString()));
-        options.add(new AssetOption(cg.toString(), cg.toString()));
+        String projectValue = project == null ? "null-project" : project.toString();
+        String vpoolValue = project == null ? "null-vpool" : vpool.toString();
+        String cgValue = project == null ? "null-cg" : cg.toString();
+
+        options.add(new AssetOption(projectValue, projectValue));
+        options.add(new AssetOption(vpoolValue, vpoolValue));
+        options.add(new AssetOption(cgValue, cgValue));
         return options;
         // return createVolumeOptions(null, listSourceVolumes(api(ctx), project));
     }

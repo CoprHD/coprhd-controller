@@ -59,6 +59,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -1834,8 +1835,16 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 BlockObject sourceObj = null;
                 if (snapSession.hasConsistencyGroup()) {
                     _log.info("Restoring group snapshot session");
-                    List<Volume> volumesPartOfCG = ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), _dbClient);
-                    sourceObj = volumesPartOfCG.get(0);
+                    // We need a single source volume for the session.
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
+                    List<Volume> allNonVplexCgVolumes = BlockConsistencyGroupUtils.getActiveNonVplexVolumesInCG(cg, _dbClient, null);
+                    for (Volume volume : allNonVplexCgVolumes) {
+                        String personality = volume.getPersonality();
+                        if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
+                            sourceObj = volume;
+                            break;
+                        }
+                    }
                     String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
                     settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
                 } else {

@@ -268,7 +268,7 @@ public class BlockFullCopyManager {
         VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
                 ? ((Volume) fcSourceObj).getCopyTypeVolumeGroup(_dbClient) : null;
         if (volumeGroup != null) {
-            s_logger.info("Volume {} is part of Volume Group, Creating full copy for all volumes in Volume Group.", sourceURI);
+            s_logger.info("Volume {} is part of Application, Creating full copy for all volumes in the Application.", sourceURI);
             // get all volumes
             List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             // group volumes by Array Group

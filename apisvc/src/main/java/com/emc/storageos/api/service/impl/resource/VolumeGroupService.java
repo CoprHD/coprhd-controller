@@ -67,7 +67,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.application.VolumeGroupArrayGroupsList;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
@@ -270,26 +269,6 @@ public class VolumeGroupService extends TaskResourceService {
         List<VolumeGroup> volumeGroups = getVolumeGroupChildren(_dbClient, volumeGroup);
         for (VolumeGroup group : volumeGroups) {
             result.getVolumeGroups().add(toNamedRelatedResource(group));
-        }
-        return result;
-    }
-
-    /**
-     * Get array group names for the application
-     *
-     * @param id Application Id
-     * @return NamedVolumesList
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/array-groups")
-    public VolumeGroupArrayGroupsList getVolumeGroupArrayGroups(@PathParam("id") URI id) {
-        ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
-        VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
-        VolumeGroupArrayGroupsList result = new VolumeGroupArrayGroupsList();
-        List<String> arrayGroups = getVolumeGroupArrayGroups(_dbClient, volumeGroup);
-        for (String arrayGroup : arrayGroups) {
-            result.getArrayGroups().add(arrayGroup);
         }
         return result;
     }
@@ -1143,32 +1122,6 @@ public class VolumeGroupService extends TaskResourceService {
                 ContainmentConstraint.Factory.getVolumesGroupsByVolumeGroupId(volumeGroup.getId()));
         for (VolumeGroup volGroup : volumeGroups) {
             result.add(volGroup);
-        }
-        return result;
-    }
-
-    /**
-     * Get all the array group names for the volumes in the Volume group
-     *
-     * @param volumeGroup
-     * @return The list of array groups in volume group
-     */
-    private static List<String> getVolumeGroupArrayGroups(DbClient dbClient, VolumeGroup volumeGroup) {
-        /**
-         * Get all volumes belonging to Volume Group
-         * get Array group names from all volume.ReplicationGroupInstance
-         * 
-         * TODO Or Get all CGs for these volumes; For each CG, collect the Array Group names ?
-         */
-        List<String> result = new ArrayList<String>();
-        final List<Volume> volumes = CustomQueryUtility
-                .queryActiveResourcesByConstraint(dbClient, Volume.class,
-                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Volume vol : volumes) {
-            // TODO I think it should return all array groups including backend groups. check it
-            if (vol.getReplicationGroupInstance() != null && !result.contains(vol.getReplicationGroupInstance())) {
-                result.add(vol.getReplicationGroupInstance());
-            }
         }
         return result;
     }

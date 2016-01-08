@@ -3234,32 +3234,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                  * Group full-copies by Array Replication Group and create workflow step for each Array Group,
                  * these steps runs in parallel
                  */
-                _log.info("Creating Volume Group full copy. Volume Group {}", volumeGroup.getLabel());
-                // add VolumeGroup to taskCompleter
-                taskCompleter.addVolumeGroupId(volumeGroup.getId());
-
-                isCG = true;    // VolumeGroup Volumes will be in CG
-                List<Volume> allVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-                Map<String, List<Volume>> arrayGroupToVolumes = ControllerUtils.groupVolumesByArrayGroup(allVolumes);
-                for (String arrayGroupName : arrayGroupToVolumes.keySet()) {    // AG - Array Group
-                    List<Volume> arrayGroupVolumes = arrayGroupToVolumes.get(arrayGroupName);
-                    List<URI> fullCopyVolumesAG = getFullCopiesForVolumes(fullCopyVolumes, arrayGroupVolumes);
-                    if (fullCopyVolumesAG.isEmpty()) {
-                        _log.debug("Looks Full copy not requested for array group {}", arrayGroupName);
-                        // This is to support future case where there may be a request for subset of array groups
-                        continue;
-                    }
-                    Volume sourceVolumeAG = arrayGroupVolumes.iterator().next();
-                    // add CG to taskCompleter
-                    if (!NullColumnValueGetter.isNullURI(sourceVolumeAG.getConsistencyGroup())) {
-                        taskCompleter.addConsistencyGroupId(sourceVolumeAG.getConsistencyGroup());
-                    }
-                    storage = sourceVolumeAG.getStorageController();
-                    storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-                    _log.info("Creating full copy for group {}", arrayGroupName);
-                    createCGFullCopy(storage, sourceVolumeAG.getId(), fullCopyVolumesAG, storageSystem, workflow, createInactive,
-                            isCG);
-                }
+                _log.info("Creating full copy for Application {}", volumeGroup.getLabel());
+                createFullCopyForApplicationCGs(workflow, volumeGroup, fullCopyVolumes, createInactive, taskCompleter);
 
             } else if (checkCloneConsistencyGroup(fullCopyVolumes.get(0), _dbClient, taskCompleter)) {
                 // check if the clone is in a CG
@@ -3316,6 +3292,41 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             doFailTask(Volume.class, sourceVolume, taskId, serviceError);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
+        }
+    }
+
+    /**
+     * Create Full Copies for volumes in Volume Group (COPY type),
+     * Query all volumes belonging to that Volume Group,
+     * Group full-copies by Array Replication Group and create workflow step for each Array Group,
+     * these steps runs in parallel
+     */
+    private void createFullCopyForApplicationCGs(Workflow workflow, VolumeGroup volumeGroup,
+            List<URI> fullCopyVolumes, Boolean createInactive, TaskCompleter taskCompleter) {
+        boolean isCG = true;    // VolumeGroup Volumes will be in CG
+        // add VolumeGroup to taskCompleter
+        taskCompleter.addVolumeGroupId(volumeGroup.getId());
+
+        List<Volume> allVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+        Map<String, List<Volume>> arrayGroupToVolumes = ControllerUtils.groupVolumesByArrayGroup(allVolumes);
+        for (String arrayGroupName : arrayGroupToVolumes.keySet()) {    // AG - Array Group
+            List<Volume> arrayGroupVolumes = arrayGroupToVolumes.get(arrayGroupName);
+            List<URI> fullCopyVolumesAG = getFullCopiesForVolumes(fullCopyVolumes, arrayGroupVolumes);
+            if (fullCopyVolumesAG.isEmpty()) {
+                _log.debug("Looks Full copy not requested for array group {}", arrayGroupName);
+                // This is to support future case where there may be a request for subset of array groups
+                continue;
+            }
+            Volume sourceVolumeAG = arrayGroupVolumes.iterator().next();
+            // add CG to taskCompleter
+            if (!NullColumnValueGetter.isNullURI(sourceVolumeAG.getConsistencyGroup())) {
+                taskCompleter.addConsistencyGroupId(sourceVolumeAG.getConsistencyGroup());
+            }
+            URI storage = sourceVolumeAG.getStorageController();
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            _log.info("Creating full copy for group {}", arrayGroupName);
+            createCGFullCopy(storage, sourceVolumeAG.getId(), fullCopyVolumesAG, storageSystem, workflow, createInactive,
+                    isCG);
         }
     }
 
@@ -3554,6 +3565,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             VolumeGroup volumeGroup = (source != null && source.isInVolumeGroup())
                     ? source.getCopyTypeVolumeGroup(_dbClient) : null;
             if (volumeGroup != null) {
+                _log.info("Detaching full copy for Application {}", volumeGroup.getLabel());
                 // add VolumeGroup to taskCompleter
                 taskCompleter.addVolumeGroupId(volumeGroup.getId());
             }
@@ -3572,9 +3584,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
                     List<Volume> arrayGroupFullCopies = arrayGroupToFullCopies.get(arrayGroupName);
                     storageSystem = _dbClient.queryObject(StorageSystem.class, arrayGroupFullCopies.get(0).getStorageController());
-                    _log.info("Detaching full copy for group {}", arrayGroupName);
+                    _log.info("Detaching full copy for full copy group {}", arrayGroupName);
                     // add CG to taskCompleter
-                    BlockConsistencyGroup cg = ConsistencyUtils.getCloneConsistencyGroup(fullCopyVolumes.get(0), _dbClient);
+                    BlockConsistencyGroup cg = ConsistencyUtils.getCloneConsistencyGroup(arrayGroupFullCopies.get(0).getId(), _dbClient);
                     if (cg != null) {
                         taskCompleter.addConsistencyGroupId(cg.getId());
                     }
@@ -3594,7 +3606,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         storage, storageSystem.getSystemType(), getClass(), detachMethod, rollbackMethodNullMethod(), null);
             }
 
-            workflow.executePlan(taskCompleter, "Successfully detached full copy");
+            workflow.executePlan(taskCompleter, "Successfully detached full copies");
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);

@@ -1351,7 +1351,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
-        // TODO block CG create clone if any of its volumes is in COPY type VolumeGroup
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
 
         // Grab the first volume and call the block full copy
         // manager to create the full copies for the volumes
@@ -2064,6 +2065,20 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         return fcSourceURI;
     }
 
+    /**
+     * Check if the given CG volume is part of an application.
+     * If so, throw an error indicating replica operation is supported on CG.
+     *
+     * @param volume the CG volume
+     */
+    private void validateVolumeNotPartOfApplication(Volume volume, String replicaType) {
+        VolumeGroup volumeGroup = volume.getCopyTypeVolumeGroup(_dbClient);
+        if (volumeGroup != null) {
+            throw APIException.badRequests.replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(volumeGroup.getLabel(),
+                    replicaType);
+        }
+    }
+    
     /**
      * Creates tasks against consistency groups associated with a request and adds them to the given task list.
      *

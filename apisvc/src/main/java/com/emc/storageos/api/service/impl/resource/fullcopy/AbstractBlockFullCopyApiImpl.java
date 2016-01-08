@@ -324,7 +324,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
                 ? ((Volume) fcSourceObj).getCopyTypeVolumeGroup(_dbClient) : null;
         if (volumeGroup != null) {
-            s_logger.info("Volume {} is part of Volume Group, detaching all full copies in Volume Group.", fcSourceObj.getId());
+            s_logger.info("Volume {} is part of Application, detaching all full copies in the Application.", fcSourceObj.getId());
             // get all volumes
             List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             // group volumes by Array Group

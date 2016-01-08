@@ -250,7 +250,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String STEP_WAITER = "stepWaiterMethod";
     private static final String RESTORE_SNAP_SESSION_STEP = "restoreSnapshotSessionStep";
     private static final String REMOVE_VOLUMES_FROM_CG_STEP = "removeVolumesFromReplicationGropuStep";
-    private static final String ADD_VOLUME_REPLICATION_GROUP_STEP = "addVolumesToReplicationGroup";
+    private static final String ADD_VOLUME_REPLICATION_GROUP_STEP = "addVolumesToReplicationGroupStep";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";

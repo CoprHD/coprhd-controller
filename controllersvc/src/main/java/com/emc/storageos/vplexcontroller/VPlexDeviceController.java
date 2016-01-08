@@ -10881,12 +10881,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
                 _log.info("Creating workflows for adding volumes to the volume group");
-                // Sort the backend volumes by their storage systems. all volumes in the list should belong to the same CG
                 addVols = addVolList.getVolumes();
                 URI firstVol = addVols.get(0);
                 Volume firstVolume = getDataObject(Volume.class, firstVol, _dbClient);
                 URI cguri = firstVolume.getConsistencyGroup();
                 String replicationGroupName = addVolList.getReplicationGroupName();
+                
+                // Sort the backend volumes by their storage systems. all volumes in the list should belong to the same CG
                 Map<URI, List<URI>> addSrcVolsMap = new HashMap<URI, List<URI>>();
                 Map<URI, List<URI>> addHAVolsMap = new HashMap<URI, List<URI>>();
                 for (URI addVol : addVols) {
@@ -10955,9 +10956,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             waitFor = workflow.createStep(ADD_VOLUME_REPLICATION_GROUP_STEP,
                     String.format("Adding volumes to replication group %s", replicationGroupName),
                     waitFor, storageUri, storage.getSystemType(),
-                    this.getClass(),
+                    BlockDeviceController.class,
                     addVolumeToCGMethod(storageUri, cguri, replicationGroupName, addVolumesList),
-                    rollbackMethodNullMethod(), null);
+                    removeVolumeFromCGMethod(storageUri, cguri, addVolumesList), null);
 
             // call ReplicaDeviceController
             waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, cguri, addVolumesList, opId);

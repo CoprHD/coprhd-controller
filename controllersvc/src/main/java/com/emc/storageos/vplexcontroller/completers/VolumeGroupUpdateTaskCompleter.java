@@ -36,7 +36,7 @@ public class VolumeGroupUpdateTaskCompleter extends TaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
-        log.info("START ApplicationCompleter complete");
+        log.info("START VolumeGroupUpdateTaskCompleter complete.");
         super.setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
         if (addVolumes != null) {

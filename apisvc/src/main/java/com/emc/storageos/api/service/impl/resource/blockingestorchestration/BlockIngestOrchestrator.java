@@ -841,6 +841,9 @@ public abstract class BlockIngestOrchestrator {
                 }
             }
 
+            // if no newly-created object can be found for the parent's native GUID
+            // then that means this is an existing object from the database and should be
+            // added to the collection of objects to be updated rather than created
             if (null == requestContext.findCreatedBlockObject(parent.getNativeGuid())) {
                 updateObjects.add(parent);
             }
@@ -934,8 +937,8 @@ public abstract class BlockIngestOrchestrator {
      * a. Get the replicas of the ROOT UMV
      * b. Find if all replicas Ingested
      * c. If Yes, then update parent Replica Map [Parent --> Child]
-     * 1. For each Replica unmanaged volume, RUN STEP 5.
-     * d. Else Clear Parent Replica and come out.
+     * d. For each Replica unmanaged volume, RUN STEP 5.
+     * e. Else Clear Parent Replica and come out.
      * 
      * @param unmanagedVolume
      * @param blockObject

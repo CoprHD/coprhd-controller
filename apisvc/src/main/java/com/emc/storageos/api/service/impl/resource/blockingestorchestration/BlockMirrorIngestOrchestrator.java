@@ -39,7 +39,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
 
         // Validate the unManagedVolume properties
         validateUnManagedVolume(unManagedVolume, requestContext.getVpool());
-        checkIfParentRPVolume(unManagedVolume);
+        validateParentNotRpProtected(unManagedVolume);
 
         // Check whether mirror already ingested or not.
         String mirrorNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
@@ -77,7 +77,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
      * 
      * @param unManagedVolume
      */
-    private void checkIfParentRPVolume(UnManagedVolume unManagedVolume) {
+    private void validateParentNotRpProtected(UnManagedVolume unManagedVolume) {
         String parentNativeGUID = null;
         StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
         if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString())) {

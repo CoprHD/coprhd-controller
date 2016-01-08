@@ -98,6 +98,7 @@ public class VolumeIngestionUtil {
     private static Logger _logger = LoggerFactory.getLogger(VolumeIngestionUtil.class);
     public static final String UNMANAGEDVOLUME = "UNMANAGEDVOLUME";
     public static final String VOLUME = "VOLUME";
+    public static final String VOLUME_TEXT = "Volume";
     public static final String FALSE = "false";
     public static final String TRUE = "true";
 
@@ -625,11 +626,11 @@ public class VolumeIngestionUtil {
         String pool = PropertySetterUtil.extractValueFromStringSet(VolumeObjectProperties.STORAGE_POOL.toString(),
                 unManagedVolumeInformation);
         if (null == pool) {
-            throw APIException.internalServerErrors.storagePoolError("", "Volume", unManagedVolumeUri);
+            throw APIException.internalServerErrors.storagePoolError("", VOLUME_TEXT, unManagedVolumeUri);
         }
         StoragePool poolObj = dbClient.queryObject(StoragePool.class, URI.create(pool));
         if (null == poolObj) {
-            throw APIException.internalServerErrors.noStoragePool(pool, "Volume", unManagedVolumeUri);
+            throw APIException.internalServerErrors.noStoragePool(pool, VOLUME_TEXT, unManagedVolumeUri);
         }
     }
 
@@ -658,7 +659,7 @@ public class VolumeIngestionUtil {
             }
 
             throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPoolNicer(
-                    spoolName, "Volume", unManagedVolume.getLabel());
+                    spoolName, VOLUME_TEXT, unManagedVolume.getLabel());
         }
         if (!supportedVPoolUris.contains(vpoolUri.toString())) {
             VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolUri);
@@ -677,7 +678,7 @@ public class VolumeIngestionUtil {
                 vpoolsString = Joiner.on(", ").join(supportedVPoolUris);
             }
             throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePoolNicer(
-                    vpoolName, "Volume", unManagedVolume.getLabel(), vpoolsString);
+                    vpoolName, VOLUME_TEXT, unManagedVolume.getLabel(), vpoolsString);
         }
     }
 
@@ -2746,10 +2747,10 @@ public class VolumeIngestionUtil {
      * First checks in the DB and if found, checks in the passed unmanaged volumes which have been ingested
      * and will be marked inactive later.
      * 
-     * @param blockObject
-     * @param ingestedUnManagedVolumes
-     * @param dbClient
-     * @return
+     * @param blockObject the BlockObject to check for a related UnManagedVolume
+     * @param ingestedUnManagedVolumes a List of UnManagedVolumes that have already been ingested
+     * @param dbClient a reference to the database client
+     * @return true if the given BlockObject has an UnManagedVolume associated
      */
     public static boolean hasUnManagedVolume(BlockObject blockObject, List<UnManagedVolume> ingestedUnManagedVolumes,
             DbClient dbClient) {
@@ -2773,17 +2774,17 @@ public class VolumeIngestionUtil {
      * Utility method to check if all the volumes in an unmanaged protection set have been ingested
      * 
      * @param ingestedUnManagedVolumes List of unmanaged volumes which have been ingested
-     * @param umpset
-     * @param dbClient
+     * @param umpset the UnManagedProtectionSet to check
+     * @param dbClient a reference to the database client
      * @return boolean if the all the volumes in the unmanaged protection set have been ingested
      */
     public static boolean validateAllVolumesInCGIngested(List<UnManagedVolume> ingestedUnManagedVolumes,
             UnManagedProtectionSet umpset, DbClient dbClient) {
         if (umpset == null) {
-            _logger.info("INGEST VALIDATION: unmanaged protection set is null");
+            _logger.warn("INGEST VALIDATION: unmanaged protection set is null");
             return false;
         }
-        // Make sure that the none of the managed volumes still have corresponding unmanaged volume still left. This means that there is
+        // Make sure that none of the managed volumes still have a corresponding unmanaged volume. This means that there is
         // some information left to be ingested.
         if (umpset.getManagedVolumeIds() != null && !umpset.getManagedVolumeIds().isEmpty()) {
             List<URI> managedVolumesURIList = new ArrayList<URI>(Collections2.transform(umpset.getManagedVolumeIds(),
@@ -2859,8 +2860,8 @@ public class VolumeIngestionUtil {
     /**
      * Get the unmanaged protection set corresponding to the unmanaged volume
      * 
-     * @param unManagedVolume
-     * @param dbClient
+     * @param unManagedVolume the UnManagedVolume to find an UnManagedProtectionSet for
+     * @param dbClient a reference to the database client
      * @return unmanaged protection set
      */
     public static UnManagedProtectionSet getUnManagedProtectionSetForUnManagedVolume(UnManagedVolume unManagedVolume, DbClient dbClient) {
@@ -2879,8 +2880,8 @@ public class VolumeIngestionUtil {
     /**
      * Get the unmanaged protection set corresponding to the managed volume
      * 
-     * @param managedVolume
-     * @param dbClient
+     * @param managedVolume the Volume object to find an UnManagedProtectionSet for
+     * @param dbClient a reference to the database client
      * @return unmanaged protection set
      */
     public static UnManagedProtectionSet getUnManagedProtectionSetForManagedVolume(BlockObject managedVolume, DbClient dbClient) {
@@ -2900,7 +2901,7 @@ public class VolumeIngestionUtil {
      * Creates a protection set for the given unmanaged protection set
      * 
      * @param umpset Unmanaged protection set for which a protection set has to be created
-     * @param dbClient
+     * @param dbClient a reference to the database client
      * @return newly created protection set
      */
     public static ProtectionSet createProtectionSet(UnManagedProtectionSet umpset, DbClient dbClient) {

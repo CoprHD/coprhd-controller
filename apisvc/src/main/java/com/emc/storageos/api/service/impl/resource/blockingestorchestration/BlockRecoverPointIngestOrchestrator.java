@@ -996,8 +996,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     /**
      * Make the snaps/mirrors/clones of the RP volume to be visible after the RP CG is fully ingested
      * 
-     * @param volumes
-     * @param updatedObjects
+     * @param volumes a List of Volume Objects to check
+     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion 
      */
     private void updateVolumeReplicas(List<Volume> volumes, List<DataObject> updatedObjects) {
         for (Volume volume : volumes) {
@@ -1012,8 +1012,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     /**
      * Clear the flags of the snapshots of the RP volume
      * 
-     * @param volume
-     * @param updatedObjects
+     * @param volumes the Volume Objects to clear flags on
+     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion 
      */
     private void clearSnapshotsFlags(Volume volume, List<DataObject> updatedObjects) {
         URIQueryResultList snapshotURIs = new URIQueryResultList();
@@ -1031,8 +1031,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     /**
      * Clear the flags of the mirrors of the RP volume
      * 
-     * @param volume
-     * @param updatedObjects
+     * @param volumes the Volume Objects to clear flags on
+     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion 
      */
     private void clearMirrorsFlags(Volume volume, List<DataObject> updatedObjects) {
         if (volume.getMirrors() != null) {
@@ -1051,8 +1051,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     /**
      * Clear the flags of the full copies of the RP volume
      * 
-     * @param volume
-     * @param updatedObjects
+     * @param volumes the Volume Objects to clear flags on
+     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion 
      */
     private void clearFullCopiesFlags(Volume volume, List<DataObject> updatedObjects) {
         if (volume.getFullCopies() != null) {
@@ -1071,8 +1071,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     /**
      * Clear the flags of the associated volumes of the RP volume
      * 
-     * @param volume
-     * @param updatedObjects
+     * @param volumes the Volume Objects to clear flags on
+     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion 
      */
     private void clearAssociatedVolumesFlags(Volume volume, List<DataObject> updatedObjects) {
         if (volume.getAssociatedVolumes() != null) {

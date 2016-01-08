@@ -29,6 +29,9 @@ import com.google.common.collect.Sets;
 public class ObjectVirtualPoolForm extends VirtualPoolCommonForm<ObjectVirtualPoolRestRep> {
     @Min(0)
     public Integer maxRetention;
+    
+    @Min(0)
+    public Integer minDataCenters;
 
     @Required
     public Set<String> objectProtocols;
@@ -43,6 +46,7 @@ public class ObjectVirtualPoolForm extends VirtualPoolCommonForm<ObjectVirtualPo
     protected void doLoad(ObjectVirtualPoolRestRep virtualPool) {
         loadCommon(virtualPool);
         maxRetention = virtualPool.getMaxRetention();
+        minDataCenters = virtualPool.getMinDataCenters();
         objectProtocols = Sets.newHashSet(virtualPool.getProtocols());
         
     }
@@ -76,12 +80,14 @@ public class ObjectVirtualPoolForm extends VirtualPoolCommonForm<ObjectVirtualPo
     private ObjectVirtualPoolBuilder apply(ObjectVirtualPoolBuilder builder) {
         applyCommon(builder);
         builder.setMaxRetention(maxRetention);
+        builder.setMinDataCenters(minDataCenters);
         return builder;
     }
 
     private ObjectVirtualPoolUpdateBuilder apply(ObjectVirtualPoolUpdateBuilder builder) {
         applyCommon(builder);
         builder.setMaxRetention(maxRetention);
+        builder.setMinDataCenters(minDataCenters);
         return builder;
     }
 

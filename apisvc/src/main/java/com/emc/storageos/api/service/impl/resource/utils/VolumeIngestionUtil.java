@@ -75,6 +75,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceAndUUIDNameGenerator;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.recoverpoint.responses.GetCopyResponse.GetCopyAccessStateResponse;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.VPlexUtil;
@@ -423,15 +424,62 @@ public class VolumeIngestionUtil {
         return targetUriList;
     }
 
-    public static void checkUnManagedResourceIsRecoverPointEnabled(UnManagedVolume unManagedVolume) {
+    /**
+     * Check to see if an unmanaged resource is RP enabled (part of an RP CG) or not
+     * 
+     * @param unManagedVolume unmanaged volume
+     * @return true if it's part of an RP CG
+     */
+    public static boolean checkUnManagedResourceIsRecoverPointEnabled(UnManagedVolume unManagedVolume) {
         StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         String isRecoverPointEnabled = unManagedVolumeCharacteristics
                 .get(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
         if (null != isRecoverPointEnabled && Boolean.parseBoolean(isRecoverPointEnabled)) {
-            throw IngestionException.exceptions.unmanagedVolumeIsRecoverpointEnabled(unManagedVolume.getLabel());
+            return true;
         }
 
-        return;
+        return false;
+    }
+
+    /**
+     * Check to see if an unmanaged resource is exported to anything non-RP.
+     * Note: Being exported to RP doesn't not mean this returns false. It's a way
+     * to check if something is exported to something other than RP, regardless of RP.
+     * 
+     * @param unManagedVolume unmanaged volume
+     * @return true if object is exported to something non-RP
+     */
+    public static boolean checkUnManagedResourceIsNonRPExported(UnManagedVolume unManagedVolume) {
+        StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
+        String isNonRPExported = unManagedVolumeCharacteristics
+                .get(SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString());
+        if (null != isNonRPExported && Boolean.parseBoolean(isNonRPExported)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if the unmanaged volume under RP control is in an image access state that indicates that
+     * the volume is "locked-down" in a target operation.
+     * 
+     * @param unManagedVolume unmanaged volume
+     * @return true if the voume is in an image access mode. Several modes qualify.
+     */
+    public static boolean isRPUnManagedVolumeInImageAccessState(UnManagedVolume unManagedVolume) {
+        boolean isImageAccessState = false;
+        String rpAccessState = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.RP_ACCESS_STATE.toString(),
+                unManagedVolume.getVolumeInformation());
+        if (GetCopyAccessStateResponse.ENABLING_LOGGED_ACCESS.name().equals(rpAccessState) ||
+                GetCopyAccessStateResponse.ENABLING_VIRTUAL_ACCESS.name().equals(rpAccessState) ||
+                GetCopyAccessStateResponse.LOGGED_ACCESS.name().equals(rpAccessState) ||
+                GetCopyAccessStateResponse.LOGGED_ACCESS_ROLL_COMPLETE.name().equals(rpAccessState) ||
+                GetCopyAccessStateResponse.VIRTUAL_ACCESS.equals(rpAccessState) ||
+                GetCopyAccessStateResponse.VIRTUAL_ACCESS_ROLLING_IMAGE.name().equals(rpAccessState)) {
+            isImageAccessState = true;
+        }
+        return isImageAccessState;
     }
 
     public static boolean checkUnManagedResourceAddedToConsistencyGroup(UnManagedVolume unManagedVolume) {
@@ -1226,7 +1274,7 @@ public class VolumeIngestionUtil {
      */
     private static List<String> getStoragePortNames(Collection<URI> storagePortUris, DbClient dbClient) {
         List<String> storagePortNames = new ArrayList<String>();
-        if (storagePortUris != null & !storagePortUris.isEmpty()) {
+        if (storagePortUris != null && !storagePortUris.isEmpty()) {
             List<StoragePort> storagePorts = dbClient.queryObject(StoragePort.class, storagePortUris);
             for (StoragePort storagePort : storagePorts) {
                 if (storagePort != null) {
@@ -1623,10 +1671,20 @@ public class VolumeIngestionUtil {
             URI vPoolURI, DbClient dbClient) {
         DbModelClientImpl dbModelClient = new DbModelClientImpl(dbClient);
         ExportPathParams pathParams = BlockStorageScheduler.getExportPathParam(block, vPoolURI, dbClient);
-        for (Set<String> hostInitiatorsUri : initiatorUris) {
+        for (Set<String> hostInitiatorUris : initiatorUris) {
             List<Initiator> initiators = CustomQueryUtility.iteratorToList(dbModelClient.find(Initiator.class,
-                    StringSetUtil.stringSetToUriList(hostInitiatorsUri)));
-            if (hasFCInitiators(initiators)) {
+                    StringSetUtil.stringSetToUriList(hostInitiatorUris)));
+
+            // If this an RP initiator, do not validate num path against the vpool; it's a back-end mask with different
+            // pathing rules.
+            boolean avoidNumPathCheck = false;
+            for (Initiator initiator : initiators) {
+                if (initiator.checkInternalFlags(Flag.RECOVERPOINT)) {
+                    avoidNumPathCheck = true;
+                }
+            }
+
+            if (hasFCInitiators(initiators) && !avoidNumPathCheck) {
                 return verifyHostNumPath(pathParams, initiators, zoningMap, dbClient);
             }
         }
@@ -1681,7 +1739,7 @@ public class VolumeIngestionUtil {
             return true;
         }
         String hostName = initiators.get(0).getHostName();
-        URI hostURI = initiators.get(0).getHost();
+        URI hostURI = initiators.get(0).getHost() == null ? URIUtil.NULL_URI : initiators.get(0).getHost();
         _logger.info("Checking numpath for host {}", hostName);
         for (Initiator initiator : initiators) {
             if (initiator.getHostName() != null) {
@@ -1866,6 +1924,46 @@ public class VolumeIngestionUtil {
             }
         }
 
+        return null;
+    }
+
+    /**
+     * Get the export group associated with initiator URIs
+     * 
+     * Note: Once it finds an export group associated with any initiator, it returns that export group. This may not
+     * be what the caller wants.
+     * 
+     * @param project project
+     * @param knownInitiatorUris initiators list
+     * @param vArray virtual array
+     * @param dbClient dbclient
+     * @return export group
+     */
+    public static ExportGroup verifyExportGroupExists(URI project, StringSet knownInitiatorUris, URI vArray, DbClient dbClient) {
+        for (String initiatorIdStr : knownInitiatorUris) {
+            AlternateIdConstraint constraint = AlternateIdConstraint.Factory.
+                    getExportGroupInitiatorConstraint(initiatorIdStr);
+            URIQueryResultList egUris = new URIQueryResultList();
+            dbClient.queryByConstraint(constraint, egUris);
+            List<ExportGroup> queryExportGroups = dbClient.queryObject(ExportGroup.class, egUris);
+            for (ExportGroup exportGroup : queryExportGroups) {
+                if (!exportGroup.getProject().getURI().equals(project)) {
+                    continue;
+                }
+
+                if (!exportGroup.getVirtualArray().equals(vArray)) {
+                    continue;
+                }
+
+                // TODO: This code will likely need to be rethought when we consider multiple masks to RP (VMAX2)
+                if (queryExportGroups.size() > 1) {
+                    _logger.error("More than one export group contains the initiator(s) requested.  Choosing the first one: "
+                            + exportGroup.getId().toString());
+                }
+                return exportGroup;
+            }
+
+        }
         return null;
     }
 
@@ -2323,7 +2421,7 @@ public class VolumeIngestionUtil {
                         }
                         for (URI eMaskUri : exportMaskUris) {
                             ExportMask eMask = dbClient.queryObject(ExportMask.class, eMaskUri);
-                            if (eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
+                            if (null != eMask && eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
                                 _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
                                 exportMasks.add(eMask);
                             } else {
@@ -2364,6 +2462,10 @@ public class VolumeIngestionUtil {
                         }
                     }
                     updatedObjects.addAll(exportGroups);
+                    _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
+                            unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
+                    unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
+                    unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
                 }
             } else {
                 _logger.info("No unmanaged export masks found for the unmanaged volume {}", unManagedVolumes.get(0).getNativeGuid());

@@ -241,7 +241,8 @@ public class ImplicitPoolMatcher {
             CoordinatorClient coordinator, String matcherGroupName) {
         List<StoragePool> filterPools = getMatchedPoolWithStoragePools(vpool, pools,
                 VirtualPool.getProtectionSettings(vpool, dbClient),
-                VirtualPool.getRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator, matcherGroupName);
+                VirtualPool.getRemoteProtectionSettings(vpool, dbClient),
+                VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator, matcherGroupName);
         updateInvalidAndMatchedPoolsForVpool(vpool, filterPools, pools, dbClient);
     }
 
@@ -254,15 +255,17 @@ public class ImplicitPoolMatcher {
             List<StoragePool> pools,
             Map<URI, VpoolProtectionVarraySettings> protectionVarraySettings,
             Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap,
+            Map<URI, VpoolRemoteCopyProtectionSettings> fileRemoteSettingsMap,
             DbClient dbClient,
             CoordinatorClient coordinator, String matcherGroupName) {
         // By default use all vpool matchers.
         if (matcherGroupName == null) {
             matcherGroupName = AttributeMatcher.VPOOL_MATCHERS;
         }
-        _logger.info("Started matching {} pools with {} vpool, matcher group {}", pools.size(), vpool.getId(), matcherGroupName);
+        _logger.info("Started matching pools with {} vpool, matcher group {}", vpool.getId(), matcherGroupName);
         AttributeMapBuilder vpoolMapBuilder = new VirtualPoolAttributeMapBuilder(vpool, protectionVarraySettings,
-                VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap));
+                VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap),
+                VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), fileRemoteSettingsMap));
         Map<String, Object> attributeMap = vpoolMapBuilder.buildMap();
         _logger.info("Implict Pool matching populated attribute map: {}", attributeMap);
         List<StoragePool> filterPools = _matcherFramework.matchAttributes(pools, attributeMap, dbClient, coordinator,

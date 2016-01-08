@@ -514,6 +514,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @param vvolMap map of virtual volume names to virtual volume info objects
      * @param volumeToExportMasksMap map of volumes to a set of associated UnManagedExportMasks
      * @param volumeToStorageViewMap map of volumes to a set of associated VPlexStorageViewInfos
+     * @param recoverpointExportMasks recoverpoint export mask uris
      * @param tracker the performance report tracking object for this discovery process
      * @throws BaseCollectionException
      */
@@ -1345,6 +1346,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @param vvolMap map of virtual volume names to virtual volume info objects
      * @param volumeToExportMasksMap map of volumes to a set of associated UnManagedExportMasks
      * @param volumeToStorageViewMap map of volumes to a set of associated VPlexStorageViewInfos
+     * @param recoverpointExportMasks recoverpoint export mask uris
      * @throws BaseCollectionException
      */
     private void discoverUnmanagedStorageViews(AccessProfile accessProfile, VPlexApiClient client,

@@ -411,7 +411,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
             Set<String> hostIGs = hostIGNamesMap.get(hostname);
 
             boolean isRpBackendMask = false;
-            if (!isRpBackendMask && ExportUtils.checkIfInitiatorsForRP(hostInitiators)) {
+            if (ExportUtils.checkIfInitiatorsForRP(hostInitiators)) {
                 log.info("host {} contains RP initiators, "
                         + "so this mask contains RP protected volumes", hostname);
                 isRpBackendMask = true;
@@ -462,7 +462,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         // we need to mark that so we can do an exported-volume ingestion.  Secondly if any mask associated with this
                         // volume IS associated with RP, we want to mark that volume as RP enabled.
                         if (!isRpBackendMask) {
-                            log.info("unmanaged volume {} is exported to something other than RP.  Marking IS_NONRP_EXPORTED.", hostUnManagedVol.getLabel());
+                            log.info("unmanaged volume {} is exported to something other than RP.  Marking IS_NONRP_EXPORTED.", hostUnManagedVol.forDisplay());
                             hostUnManagedVol.putVolumeCharacterstics(
                                     SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
                                     "true");                            

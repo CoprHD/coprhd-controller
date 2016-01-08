@@ -406,6 +406,7 @@ public enum OperationTypeEnum {
     UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "", "operation to update volume group"),
 
     CREATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyCreated", "VolumeGroupFullCopyCreateFailed", "VolumeGroupFullCopy Created"),
+    DETACH_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyDetached", "VolumeGroupFullCopyDetachFailed", "VolumeGroupFullCopy Detached"),
 
     CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
     RESTORE_SNAPSHOT_SESSION("BlockSnapshotSessionRestored", "BlockSnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),

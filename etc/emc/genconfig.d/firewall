@@ -30,7 +30,7 @@ _get_firewall_props() {
     local OLD_IFS="${IFS}"; IFS="${IFS},"
     for vdc in ${_GENCONFIG_vdc_ids}; do
         [ "$vdc" == "${_GENCONFIG_vdc_myid}" ] && continue
-        if [ -z "${_GENCONFIG_site_ids}" ]; then
+        if [ -n "${_GENCONFIG_vdc_config_hashcode}" ]; then
             local var="_GENCONFIG_vdc_${vdc}_node_count"
             local vdc_node_count=${!var}
             for index in $(seq ${vdc_node_count}); do
@@ -63,7 +63,7 @@ _get_firewall_props() {
     list=''
     for vdc in ${_GENCONFIG_vdc_ids}; do
         [ "$vdc" == "${_GENCONFIG_vdc_myid}" ] && continue
-        if [ -z "${_GENCONFIG_site_ids}" ]; then
+        if [ -n "${_GENCONFIG_vdc_config_hashcode}" ]; then
             local var="_GENCONFIG_vdc_${vdc}_node_count"
             local vdc_node_count=${!var}
             for index in $(seq ${vdc_node_count}); do

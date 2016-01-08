@@ -1044,7 +1044,6 @@ public class VdcConfigHelper {
     
     public void createVdcConfigInZk(VdcConfig vdc) {
         log.info("Update Vdc info to zk {}", vdc.getShortId());
-        CoordinatorClient coordinator = dbClient.getCoordinatorClient();
         
         // Insert vdc info
         ConfigurationImpl vdcConfig = new ConfigurationImpl();

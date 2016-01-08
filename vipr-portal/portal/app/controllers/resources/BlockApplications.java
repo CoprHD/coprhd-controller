@@ -28,7 +28,7 @@ import controllers.Common;
 public class BlockApplications extends ResourceController {
 
     private static ApplicationSupportDataTable blockApplicationsDataTable = new ApplicationSupportDataTable();
-    List<VolumeRestRep> resultVolumes = Lists.newArrayList();
+    
     public static void blockApplications() {
         renderArgs.put("dataTable", blockApplicationsDataTable);
         addReferenceData();

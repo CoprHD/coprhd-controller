@@ -64,7 +64,7 @@ public class BlockVolumes extends ResourceController {
 
     private static BlockVolumesDataTable blockVolumesDataTable = new BlockVolumesDataTable();
 
-    public static void volumes(String projectId, String applicationId) {
+    public static void volumes(String projectId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockVolumesDataTable);
         addReferenceData();
@@ -115,7 +115,7 @@ public class BlockVolumes extends ResourceController {
                 } catch (ViPRHttpException e) {
                     if (e.getHttpCode() == 404) {
                         flash.error(MessagesUtils.get(UNKNOWN, volumeId));
-                        volumes(null, null);
+                        volumes(null);
                     }
                     throw e;
                 }
@@ -314,7 +314,7 @@ public class BlockVolumes extends ResourceController {
             Tasks<VolumeRestRep> tasks = client.blockVolumes().deactivate(ids, type);
             flash.put("info", MessagesUtils.get("resources.volumes.deactivate", tasks.getTasks().size()));
         }
-        volumes(null, null);
+        volumes(null);
     }
 
     @Util

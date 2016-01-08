@@ -47,14 +47,10 @@ public class BlockVolumesDataTable extends DataTable {
         List<Volume> results = Lists.newArrayList();
         Map<URI, String> virtualArrays = ResourceUtils.mapNames(client.varrays().list());
         Map<URI, String> virtualPools = ResourceUtils.mapNames(client.blockVpools().list());
-        if (projectId != null ) {
+        if (projectId != null && applicationId == null) {
              volumes = client.blockVolumes().findByProject(projectId);
              for (VolumeRestRep volume : volumes) {
-                 if(applicationId !=null && volume.getVolumeGroups().toString().contains(applicationId.toString())) {
                      results.add(new Volume(volume, virtualArrays, virtualPools));
-                 } else if (applicationId == null) {
-                	 results.add(new Volume(volume, virtualArrays, virtualPools));
-                 }
              }
         }
         else if(applicationId!=null) {

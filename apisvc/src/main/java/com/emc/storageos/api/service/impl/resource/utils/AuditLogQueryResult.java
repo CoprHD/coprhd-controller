@@ -8,6 +8,7 @@ package com.emc.storageos.api.service.impl.resource.utils;
 import java.io.Writer;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.emc.storageos.security.audit.AuditLogRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,34 +39,41 @@ public class AuditLogQueryResult implements TimeSeriesQueryResult<AuditLog> {
      * the putput writer for serializing audit logs
      */
     private Writer _out;
+    /*
+    * request contain the query parameter to filter out audit logs
+    * */
+    private AuditLogRequest _request;
 
     /**
-     * Create new metering query results with max count
-     * 
+     * Create new auditlog query results with query filters
+     * @param marshaller
+     *            auditlog marshaler
      * @param out
      *            the writer for writing results one by one
-     * @param limit
-     *            the maximum number of records to return, 0 for no limit
+     *@param auditLogRequest
+     *            the request contain the query filters
      */
-    AuditLogQueryResult(AuditLogMarshaller marshaller, Writer out) {
+    AuditLogQueryResult(AuditLogMarshaller marshaller, Writer out, AuditLogRequest auditLogRequest) {
         _out = out;
-
         _marshaller = marshaller;
+        _request = auditLogRequest;
     }
 
     @Override
     public void data(AuditLog data, long insertionTimeMs) {
 
         _logger.debug("AuditLog #{}", _resultsCount.get());
-
-        try {
-            if (!_stopStreaming) {
-                _marshaller.marshal(data, _out);
-                _resultsCount.incrementAndGet();
+        if (!filterOut(data)) {
+            try {
+                if (!_stopStreaming) {
+                    if (_marshaller.marshal(data, _out, _request.getKeyword())) {
+                        _resultsCount.incrementAndGet();
+                    }
+                }
+            } catch (MarshallingExcetion e) {
+                _logger.error("Error during auditlog marshaling", e);
+                _stopStreaming = true;
             }
-        } catch (MarshallingExcetion e) {
-            _logger.error("Error during auditlog marshaling", e);
-            _stopStreaming = true;
         }
     }
 
@@ -77,6 +85,25 @@ public class AuditLogQueryResult implements TimeSeriesQueryResult<AuditLog> {
     @Override
     public void error(Throwable e) {
         _logger.error("Error during query execution", e);
+    }
+
+    private boolean filterOut(AuditLog auditLog){
+        if(_request.getServiceType() != null && _request.getServiceType().length() != 0
+                && !_request.getServiceType().equalsIgnoreCase(auditLog.getServiceType())){
+            _logger.info("{} filter out by service type {}",auditLog.getDescription(),_request.getServiceType());
+            return true;
+        }
+        if(_request.getUser() != null && _request.getUser().length() != 0
+                && (auditLog.getUserId() != null) && !_request.getUser().equalsIgnoreCase(auditLog.getUserId().toString())){
+            _logger.info("{} filter out by user  {}",auditLog.getDescription(),_request.getUser());
+            return true;
+        }
+        if(_request.getResult() != null && _request.getResult().length() != 0
+                && !_request.getResult().equals(auditLog.getOperationalStatus())){
+            _logger.info("{} filter out by result {}",auditLog.getDescription(),_request.getResult());
+            return true;
+        }
+        return false;
     }
 
 }

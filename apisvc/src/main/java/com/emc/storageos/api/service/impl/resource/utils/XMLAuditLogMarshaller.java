@@ -76,21 +76,34 @@ public class XMLAuditLogMarshaller implements AuditLogMarshaller {
 
     @Override
     public void marshal(AuditLog auditlog, Writer writer) throws MarshallingExcetion {
+        marshal(auditlog, writer, null);
+    }
+
+    @Override
+    public boolean marshal(AuditLog auditlog, Writer writer,String keyword) throws MarshallingExcetion {
         BufferedWriter ow = ((BufferedWriter) writer);
         try {
             if (auditlog == null) {
                 _logger.warn("null auditlog dropped");
+                return false;
             } else {
                 Marshaller marshaller = getMarshaller();
 
                 if (marshaller == null) {
                     _logger.error("Unable to create XML marshaller");
+                    return false;
                 } else {
                     AuditLogUtils.resetDesc(auditlog, resb);
 
-                    StringWriter sw = new StringWriter();
-                    marshaller.marshal(auditlog, sw);
-                    ow.write(sw.toString());
+                    if ( keyword == null || keyword.length() == 0 || auditlog.getDescription().contains(keyword)) {
+                        StringWriter sw = new StringWriter();
+                        marshaller.marshal(auditlog, sw);
+                        ow.write(sw.toString());
+                        return true;
+                    }else {
+                        _logger.debug("{} filter out by description keyword {}",auditlog.getDescription(),keyword);
+                        return false;
+                    }
                 }
             }
         } catch (JAXBException e) {

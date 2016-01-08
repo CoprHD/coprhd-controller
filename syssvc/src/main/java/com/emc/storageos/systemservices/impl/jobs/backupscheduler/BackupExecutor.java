@@ -87,8 +87,8 @@ public class BackupExecutor {
                 ScheduledBackupTag.toTimestamp(nowDate),
                 ScheduledBackupTag.toTimestamp(expected));
 
-        // if now is before target time && this is NOT first backup
-        if (nowDate.before(expected) && !this.cfg.retainedBackups.isEmpty()) {
+        // if now is before target time
+        if (nowDate.before(expected)) {
             return false;
         }
 
@@ -99,7 +99,9 @@ public class BackupExecutor {
                 ScheduledBackupTag.toTimestamp(lastBackupDateTime),
                 ScheduledBackupTag.toTimestamp(expected));
 
-        if (lastBackupDateTime != null && curTimeRange.contains(lastBackupDateTime)) {
+        // If current time range already has one backup which was created at or after the expected time,
+        // no need create again. This check could avoid repeated creation while also considered reconfigure scenario.
+        if (lastBackupDateTime != null && curTimeRange.contains(lastBackupDateTime) && !lastBackupDateTime.before(expected)) {
             return false;
         }
 

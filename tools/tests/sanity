@@ -3108,7 +3108,7 @@ recoverpoint_vpool_change_replication_mode_test()
     target_vpool=${2}
 
     echo 'Change Virtual Pool - Update Replication Mode'
-    run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
+    run volume change_cos ${PROJECT}/${base_volume} ${target_vpool}
 }
 
 recoverpoint_add_journal_volume()
@@ -3342,19 +3342,19 @@ recoverpoint_tests()
 
         # RP
         rp_src_vpool='rp_'$rp_type
-	rp_src_vpool_sync=$rp_src_vpool'-sync'
+	rp_src_vpool_sync=${rp_src_vpool}'-sync'
         rpvolume=${RP_VOLUME}
         rpvolumetarget=${rpvolume}'-target-'${rp_tgt_varray}
 
         # RP+VPLEX
         rpvplex_src_vpool='rpvplex_'$rp_type
-        rpvplex_src_vpool_sync=$rpvplex_src_vpool'-sync'
+        rpvplex_src_vpool_sync=${rpvplex_src_vpool}'-sync'
         rpvplexvolume=${RP_VPLEX_VOLUME}
         rpvplexvolumetarget=${rpvplexvolume}'-target-'${rpvplex_tgt_varray}
 
         # MP
         mp_src_vpool='mp_'$rp_type
-        mp_src_vpool_sync=$mp_src_vpool'-sync'
+        mp_src_vpool_sync=${mp_src_vpool}'-sync'
         mpvolume=${RP_METROPOINT_VOLUME}
         mpvolumetarget=${mpvolume}'-target-'${mp_active_tgt_varray}
 

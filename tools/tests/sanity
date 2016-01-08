@@ -2726,15 +2726,15 @@ recoverpoint_ingest_test()
 	fail unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp-sync $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 
         # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
+	#run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+	#volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
         # Recreate unmanaged volumes/protection sets
-	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
-	if [ ${RPVPLEX_TESTS} = "1" ]; then
-	    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-	    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-	fi
-	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+	#run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	#if [ ${RPVPLEX_TESTS} = "1" ]; then
+	#    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	#    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	#fi
+	#run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"

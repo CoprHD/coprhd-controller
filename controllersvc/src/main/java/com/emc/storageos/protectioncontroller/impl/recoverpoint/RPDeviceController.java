@@ -3425,7 +3425,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     if (protectionSet.getProject() == null) {
                         protectionSet.setProject(vol.getProject().getURI());
                     }
-                    vol.setProtectionSet(new NamedURI(protectionSet.getId(), vol.getLabel()));
+                    vol.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
                     vol.setInternalSiteName(volume.getInternalSiteName());
                     if (vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                         vol.setAccessState(Volume.VolumeAccessState.READWRITE.name());

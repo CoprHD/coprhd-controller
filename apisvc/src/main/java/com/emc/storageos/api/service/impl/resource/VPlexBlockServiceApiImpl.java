@@ -3400,7 +3400,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         
         if (systemURI != null) {
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
             VPlexController controller = getController();
             controller.updateVolumeGroup(systemURI, addVols, removeVolIds, volumeGroup.getId(), taskId);
         } else {

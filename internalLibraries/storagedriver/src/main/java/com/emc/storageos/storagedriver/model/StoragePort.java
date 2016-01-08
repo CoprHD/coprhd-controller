@@ -195,4 +195,14 @@ public class StoragePort extends StorageObject {
     public void setCapabilities(List<CapabilityInstance> capabilities) {
         this.capabilities = capabilities;
     }
+
+    public boolean equals(StoragePort port) {
+        if (port != null && storageSystemId.equals(port.getStorageSystemId()) &&
+                getNativeId().equals(port.getNativeId())) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 }

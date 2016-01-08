@@ -243,7 +243,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         BlockStorageDevice storageDevice = _devices.get(deviceType);
         if (storageDevice == null) {
             // we will use external device
-            storageDevice = getDevice(Constants.EXTERNALDEVICE);
+            storageDevice = _devices.get(Constants.EXTERNALDEVICE);
             if (storageDevice == null) {
                 throw DeviceControllerException.exceptions.invalidSystemType(deviceType);
             }

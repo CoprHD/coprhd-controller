@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +69,16 @@ public class MaskingWorkflowEntryPoints implements Controller {
     }
 
     private BlockStorageDevice getDevice(StorageSystem storage) {
-        return _devices.get(storage.getSystemType());
+        String deviceType = storage.getSystemType();
+        BlockStorageDevice storageDevice = _devices.get(deviceType);
+        if (storageDevice == null) {
+            // we will use external device
+            storageDevice = _devices.get(Constants.EXTERNALDEVICE);
+            if (storageDevice == null) {
+                throw DeviceControllerException.exceptions.invalidSystemType(deviceType);
+            }
+        }
+        return storageDevice;
     }
 
     public void setDbClient(DbClient dbc) {

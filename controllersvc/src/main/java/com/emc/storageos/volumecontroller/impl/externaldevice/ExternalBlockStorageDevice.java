@@ -17,6 +17,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +62,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     private Map<String, AbstractStorageDriver> drivers;
     private DbClient dbClient;
     private ControllerLockingService locker;
+    private ExportMaskOperations exportMaskOperationsHelper;
+
     // Initialized drivers map
     private Map<String, BlockStorageDriver> blockDrivers  = new HashMap<>();
 
@@ -74,7 +80,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         this.drivers = drivers;
     }
 
-    private BlockStorageDriver getDriver(String driverType) {
+    public void setExportMaskOperationsHelper(ExportMaskOperations exportMaskOperationsHelper) {
+        this.exportMaskOperationsHelper = exportMaskOperationsHelper;
+    }
+
+    public BlockStorageDriver getDriver(String driverType) {
         // look up driver
         BlockStorageDriver storageDriver = blockDrivers.get(driverType);
         if (storageDriver != null) {
@@ -344,9 +354,19 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             ServiceError serviceError = ExternalDeviceException.errors.deleteConsistencyGroupFailed("doDelteConsistencyGroup", errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }
-
-
     }
+
+    @Override
+    public void doExportGroupCreate(StorageSystem storage,
+                                    ExportMask exportMask, Map<URI, Integer> volumeMap,
+                                    List<Initiator> initiators, List<URI> targets,
+                                    TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} doExportGroupCreate START ...", storage.getSerialNumber());
+        VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), volumeMap, dbClient);
+        exportMaskOperationsHelper.createExportMask(storage, exportMask.getId(), volumeLunArray, targets, initiators, taskCompleter);
+        _log.info("{} doExportGroupCreate END ...", storage.getSerialNumber());
+    }
+
 
     @Override
     public void doConnect(StorageSystem storageSystem) {

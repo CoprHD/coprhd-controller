@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import com.emc.storageos.storagedriver.BlockStorageDriver;
+import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,7 +153,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
         _log.info("Discovery of storage ports for storage system {} .", storageSystem.getNativeId());
 
-        // Create ports
+        // Create ports with network
         for (int i =0; i <= 2; i++ ) {
             StoragePort port = new StoragePort();
             port.setNativeId("port-1234577-" + i+ storageSystem.getNativeId());
@@ -161,6 +163,22 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             port.setDeviceLabel("er-port-1234577" + i+ storageSystem.getNativeId());
             port.setPortName(port.getDeviceLabel());
             port.setNetworkId("er-network77"+ storageSystem.getNativeId());
+            port.setTransportType(StoragePort.TransportType.FC);
+            port.setPortNetworkId("60:FE:FE:FE:FE:FE:FE:1" + i);
+            port.setOperationalStatus(StoragePort.OperationalStatus.OK);
+            storagePorts.add(port);
+        }
+
+        // Create ports without network
+        for (int i =3; i <= 6; i++ ) {
+            StoragePort port = new StoragePort();
+            port.setNativeId("port-1234577-" + i+ storageSystem.getNativeId());
+            port.setStorageSystemId(storageSystem.getNativeId());
+            _log.info("Discovered Port {}, storageSystem {}", port.getNativeId(), port.getStorageSystemId());
+
+            port.setDeviceLabel("er-port-1234577" + i+ storageSystem.getNativeId());
+            port.setPortName(port.getDeviceLabel());
+            //port.setNetworkId("er-network77"+ storageSystem.getNativeId());
             port.setTransportType(StoragePort.TransportType.FC);
             port.setPortNetworkId("60:FE:FE:FE:FE:FE:FE:1" + i);
             port.setOperationalStatus(StoragePort.OperationalStatus.OK);
@@ -309,7 +327,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     }
 
     @Override
-    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, List<StoragePort> recommendedPorts, StorageCapabilities capabilities) {
+    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, List<StoragePort> recommendedPorts,
+                                                List<StoragePort> availablePorts, StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts,
+                                                List<StoragePort> selectedPorts) {
         return null;
     }
 

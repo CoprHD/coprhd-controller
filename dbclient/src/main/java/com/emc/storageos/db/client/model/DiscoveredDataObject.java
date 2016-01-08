@@ -14,6 +14,7 @@ public class DiscoveredDataObject extends DataObject {
     // Indicates if the object is Southbound driver managed.
     private Boolean _isDriverManaged = false;
 
+    // TODO: is this safe? What if StorageDriverManager bean was not loaded at this time? Could we get null here?
     private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
                                               getApplicationContext().getBean("storageDriverManager");
 

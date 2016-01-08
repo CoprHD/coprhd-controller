@@ -1,6 +1,7 @@
 package com.emc.storageos.storagedriver;
 
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.storagedriver.model.ITL;
 import com.emc.storageos.storagedriver.model.Initiator;
@@ -13,6 +14,7 @@ import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import org.apache.commons.lang.mutable.MutableBoolean;
 
 /**
  * BlockStorageDriver interface.
@@ -182,12 +184,17 @@ public interface BlockStorageDriver extends StorageDriver {
      *
      * @param initiators Type: Input.
      * @param volumes    Type: Input.
-     * @param recommendedPorts list of ports to select from for the export. Optional. Type: Input.
+     * @param recommendedPorts list of storage ports recommended for the export. Optional. Type: Input.
+     * @param availablePorts list of ports available for the export. Type: Input.
      * @param capabilities storage capabilities. Type: Input.
+     * @param usedRecommendedPorts true if driver used recommended and only recommended ports for the export, false otherwise. Type: Output.
+     * @param selectedPorts ports selected for the export (if recommended ports have not been used). Type: Output.
      * @return task
      */
     public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, List<StoragePort> recommendedPorts,
-                                                StorageCapabilities capabilities);
+                                                List<StoragePort> availablePorts, StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts,
+                                                List<StoragePort> selectedPorts);
+
 
     /**
      * Unexport volumes from initiators

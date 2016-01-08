@@ -103,6 +103,7 @@ public class NativeGUIDGenerator {
         OBJECT_TYPE_SET.add(VIRTUAL_NAS);
     }
 
+    // TODO: is this safe? What if StorageDriverManager bean was not loaded at this time? Could we get null here?
     private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
             getApplicationContext().getBean("storageDriverManager");
 

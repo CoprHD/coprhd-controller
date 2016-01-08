@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,15 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
 
     public MaskingOrchestrator getOrchestrator(String deviceType) {
-        return _orchestratorMap.get(deviceType);
+        MaskingOrchestrator orchestrator = _orchestratorMap.get(deviceType);
+        if (orchestrator == null) {
+            // we will use orchestrator for external device
+            orchestrator = _orchestratorMap.get(Constants.EXTERNALDEVICE);
+            if (orchestrator == null) {
+                throw DeviceControllerException.exceptions.invalidSystemType(deviceType);
+            }
+        }
+        return orchestrator;
     }
 
     public static ExportWorkflowEntryPoints getInstance() {

@@ -625,7 +625,7 @@ public class VolumeGroupService extends TaskResourceService {
                 throw e;
             }
 
-            updateVolumeAndGroupTasks(dbClient, addVols, removeVols, volumeGroup, taskId);
+            updateVolumeAndGroupTasks(dbClient, addVols, removeVols, volumeGroup.getId(), taskId);
         }
 
         /*
@@ -641,7 +641,7 @@ public class VolumeGroupService extends TaskResourceService {
 
         }
 
-        protected void updateVolumeAndGroupTasks(DbClient dbClient, List<Volume> addVols, List<Volume> removeVols, VolumeGroup volumeGroup,
+        protected void updateVolumeAndGroupTasks(DbClient dbClient, List<Volume> addVols, List<Volume> removeVols, URI volumeGroupId,
                 String taskId) {
             if (addVols != null && !addVols.isEmpty()) {
                 updateVolumeTasks(dbClient, addVols, taskId);
@@ -649,6 +649,7 @@ public class VolumeGroupService extends TaskResourceService {
             if (removeVols != null && !removeVols.isEmpty()) {
                 updateVolumeTasks(dbClient, removeVols, taskId);
             }
+            VolumeGroup volumeGroup = dbClient.queryObject(VolumeGroup.class, volumeGroupId);
             Operation op = volumeGroup.getOpStatus().get(taskId);
             op.ready();
             volumeGroup.getOpStatus().updateTaskStatus(taskId, op);

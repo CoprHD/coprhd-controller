@@ -593,11 +593,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             } else {
                 String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
                 Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
-                client.createConsistencyGroup(consistencyGroup.getLabel(), clusterName);
+                String cgName = replicationGroupName != null ? replicationGroupName : consistencyGroup.getLabel();
+                client.createConsistencyGroup(cgName, clusterName);
                 String cgTagName = XtremIOProvUtils.createTagsForConsistencyGroup(client, cgProject.getLabel(), clusterName);
-                consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), consistencyGroup.getLabel());
+                consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), cgName);
                 consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
-                client.tagObject(cgTagName, XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), consistencyGroup.getLabel(), clusterName);
+                client.tagObject(cgTagName, XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), cgName, clusterName);
                 if (NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
                     consistencyGroup.setStorageController(storage.getId());
                 }
@@ -628,7 +629,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             }
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
-            XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroup.getLabel(), clusterName);
+            String cgName = replicationGroupName != null ? replicationGroupName : consistencyGroup.getLabel();
+
+            XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, cgName, clusterName);
             if (cg == null) {
                 _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
@@ -651,7 +654,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                             continue;
                         }
                     }
-                    client.addVolumeToConsistencyGroup(blockObject.getLabel(), consistencyGroup.getLabel(), clusterName);
+                    client.addVolumeToConsistencyGroup(blockObject.getLabel(), cgName, clusterName);
                     blockObject.setConsistencyGroup(consistencyGroupId);
                     updatedBlockObjects.add(blockObject);                    
                 }

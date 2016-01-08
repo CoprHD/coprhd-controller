@@ -812,6 +812,21 @@ public abstract class VdcOpHandler {
         
     }
     
+
+
+    /**
+     * IP Change handler to update IPs info from ZK to vdcproperty
+     */
+    public static class IPChangeHandler extends VdcOpHandler {
+        public IPChangeHandler() {
+        }
+
+        @Override
+        public void execute() throws Exception {
+            syncFlushVdcConfigToLocal();
+        }
+    }
+
     public CoordinatorClientExt getCoordinator() {
         return coordinator;
     }

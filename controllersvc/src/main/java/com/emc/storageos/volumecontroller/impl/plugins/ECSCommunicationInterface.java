@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.ECSNamespace;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -280,8 +281,8 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
     }
     
     private void discoverECSNamespaces() {
-        
-                
+        ECSNamespace es = new ECSNamespace();
+        es.setNativeGuid("");
         
     }
     

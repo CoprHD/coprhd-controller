@@ -22,31 +22,31 @@ public class ECSNamespace extends AbstractTenantResource {
         NONE
     };
     
-    //name of namespace
+    // name of namespace
     private String _name;
     
-    //id of namespace; 'id' is in super class
+    // id of namespace; 'id' is in super class
     private String _nsId;
     
-    //Flag if mapped to a tenant or not
+    // Flag if mapped to a tenant or not
     private Boolean _mapped;
     
-    //Tenant to which this namepsace is mapped;
+    // Tenant to which this namepsace is mapped;
     private NamedURI _tenant;
     
-    //Discovered ECS ip
+    // Discovered ECS ip
     private String _ecsIp;
     
-    //Allowed ECS replication groups
+    // Allowed ECS replication groups
     private ECS_RepGroup_Type _rgType;
     
-    //Not Allowed ECS replication groups
+    // Not Allowed ECS replication groups
     private List<String> _replicationGroups;
     
-    //native device ID
-    private String _nativeId;
+    // native GUID
+    private String _nativeGuid;
    
-    //get set methods
+    // get set methods
     @Name("name")
     public String getName() {
         return _name;
@@ -112,13 +112,13 @@ public class ECSNamespace extends AbstractTenantResource {
         this._replicationGroups.add(replicationGroups);
     }
 
-    @Name("nativeId")
-    public String geNativeId() {
-        return _nativeId;
+    @Name("nativeGuid")
+    public String geNativeGuid() {
+        return _nativeGuid;
     }
     
-    public void setNativeId(String nativeId) {
-        this._nativeId= nativeId;
+    public void setNativeGuid(String nativeGuid) {
+        this._nativeGuid= nativeGuid;
     }
 
     @Override

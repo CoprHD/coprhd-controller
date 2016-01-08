@@ -49,6 +49,7 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
@@ -1505,11 +1506,12 @@ public class CoordinatorClientExt {
                     checkLocalSiteZKModes();
                 }
 
-                if (!DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state) &&
-                        !DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
+                if (DrUtil.ZOOKEEPER_MODE_LEADER.equals(state) ||
+                        DrUtil.ZOOKEEPER_MODE_FOLLOWER.equals(state)) {
+                    // node is in participant mode, update the local site state to PAUSED if it's SYNCED
+                    checkAndUpdateLocalSiteState();
 
-                    //node is in participant mode, check if active site is back
-
+                    // check if active site is back
                     if (isActiveSiteHealthy()) {
                         _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
                         reconnectZKToActiveSite();
@@ -1520,6 +1522,19 @@ public class CoordinatorClientExt {
             }catch(Exception e){
                 _log.error("Exception while monitoring node state: ",e);
             }
+        }
+
+        private void checkAndUpdateLocalSiteState() {
+            Site localSite = drUtil.getLocalSite();
+
+            if (!localSite.getState().equals(SiteState.STANDBY_SYNCED)) {
+                // nothing to do
+                return;
+            }
+
+            _log.info("Updating local site to STANDBY_PAUSED since active is unreachable");
+            localSite.setState(SiteState.STANDBY_PAUSED);
+            _coordinator.persistServiceConfiguration(localSite.toConfiguration());
         }
 
         /**

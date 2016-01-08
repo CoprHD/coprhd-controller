@@ -48,6 +48,8 @@ public class DrUtil {
     public static final String ZOOKEEPER_MODE_LEADER = "leader";
     public static final String ZOOKEEPER_MODE_OBSERVER = "observer";
     public static final String ZOOKEEPER_MODE_READONLY = "read-only";
+    public static final String ZOOKEEPER_MODE_LEADER = "leader";
+    public static final String ZOOKEEPER_MODE_FOLLOWER = "follower";
 
     private static final String DR_CONFIG_KIND = "disasterRecoveryConfig";
     private static final String DR_CONFIG_ID = "global";

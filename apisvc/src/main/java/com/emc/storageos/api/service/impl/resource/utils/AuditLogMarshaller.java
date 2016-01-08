@@ -22,11 +22,20 @@ public interface AuditLogMarshaller {
     /**
      * output a marshaled AuditLog to the writer
      * 
-     * @param message
+     * @param auditlog
      * @param writer
      * @throws Exception
      */
     public void marshal(AuditLog auditlog, Writer writer) throws MarshallingExcetion;
+    /**
+     * output a marshaled AuditLog with description containing keyword to the writer
+     *
+     * @param auditlog
+     * @param writer
+     * @return True if the Auditlog outputted to the writer,else False
+     * @throws Exception
+     */
+    public boolean marshal(AuditLog auditlog, Writer writer,String keyword) throws MarshallingExcetion;
 
     /**
      * output a tailer if needed to the writer
@@ -41,4 +50,5 @@ public interface AuditLogMarshaller {
      * @param lang (e.g. en_US)
      */
     public void setLang(String lang);
+
 }

@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
-import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.MigrationParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
@@ -16,14 +15,16 @@ import com.emc.vipr.client.exceptions.ServiceErrorException;
 
 public class MigrateBlockVolumes extends WaitForTasks<VolumeRestRep> {
     private final List<URI> volumeIds;
+    private final URI sourceStorageSystem;
     private final URI targetVirtualPoolId;
     private final URI targetStorageSystem;
 
-    public MigrateBlockVolumes(List<URI> volumeIds, URI targetVirtualPoolId, URI targetStorageSystem) {
+    public MigrateBlockVolumes(List<URI> volumeIds, URI sourceStorageSystem, URI targetVirtualPoolId, URI targetStorageSystem) {
         this.volumeIds = volumeIds;
+        this.sourceStorageSystem = sourceStorageSystem;
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.targetStorageSystem = targetStorageSystem;
-        provideDetailArgs(volumeIds, targetVirtualPoolId, targetStorageSystem);
+        provideDetailArgs(volumeIds, sourceStorageSystem, targetVirtualPoolId, targetStorageSystem);
     }
 
     @Override
@@ -33,22 +34,15 @@ public class MigrateBlockVolumes extends WaitForTasks<VolumeRestRep> {
 
         for (URI volume : volumeIds) {
             MigrationParam param = new MigrationParam();
+            param.setSrcStorageSystem(sourceStorageSystem);
+            param.setTgtStorageSystem(targetStorageSystem);
+            param.setVirtualPool(targetVirtualPoolId);
+            param.setVolume(volume);
 
-            List<RelatedResourceRep> haVolumes = getClient().blockVolumes().get(volume).getHaVolumes();
-            if (!haVolumes.isEmpty()) {
-                URI srcStorageSystem = getClient().blockVolumes().get(haVolumes.get(0).getId()).getStorageController();
-                param.setSrcStorageSystem(srcStorageSystem);
-                param.setTgtStorageSystem(targetStorageSystem);
-                param.setVirtualPool(targetVirtualPoolId);
-                param.setVolume(volume);
-
-                try {
-                    tasks.getTasks().add(getClient().blockVolumes().migrate(param));
-                } catch (ServiceErrorException ex) {
-                    logError(ex.getDetailedMessage());
-                }
-            } else {
-                // TODO volume doesn't have HA references
+            try {
+                tasks.getTasks().add(getClient().blockVolumes().migrate(param));
+            } catch (ServiceErrorException ex) {
+                logError(ex.getDetailedMessage());
             }
         }
         return tasks;

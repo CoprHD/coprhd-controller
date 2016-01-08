@@ -468,7 +468,7 @@
         },
         {
           "image": "icon_VPLEX_data_migration.png",
-          "baseService": "VolumeMigration"
+          "baseService": "MobilityGroupMigration"
         }
       ]
     },

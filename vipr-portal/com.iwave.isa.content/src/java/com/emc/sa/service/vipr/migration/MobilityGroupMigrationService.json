@@ -1,6 +1,6 @@
 {
-  baseKey:"VolumeMigration.Migration",
-  serviceId:"VolumeMigration",
+  baseKey:"MobilityGroupMigration.Migration",
+  serviceId:"MobilityGroupMigration",
   fields:{
     mobilityGroup:{
       type:"assetType.vipr.mobilityGroup"

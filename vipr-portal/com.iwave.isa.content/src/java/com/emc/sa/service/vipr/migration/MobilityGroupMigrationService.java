@@ -12,8 +12,8 @@ import com.emc.sa.service.vipr.block.tasks.MigrateBlockVolumes;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 
-@Service("VolumeMigration")
-public class VolumeMigrationService extends ViPRService {
+@Service("MobilityGroupMigration")
+public class MobilityGroupMigrationService extends ViPRService {
 
     @Param(ServiceParams.MOBILITY_GROUP)
     private URI mobilityGroup;

@@ -62,7 +62,7 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
 
             BlockObject sourceObj = null;
             if (snapSession.hasConsistencyGroup()) {
-                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getId());
+                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
                 List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, dbClient);
                 sourceObj = nativeVolumes.get(0);
             } else {

@@ -15,11 +15,9 @@ import org.apache.commons.lang.StringUtils;
 
 import play.mvc.Controller;
 import play.mvc.Util;
-import util.AppSupportUtil;
 import util.ProjectUtils;
 
 import com.emc.sa.util.ResourceType;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 
 import controllers.tenant.TenantSelector;
@@ -28,7 +26,6 @@ import controllers.util.Models;
 public class ResourceController extends Controller {
 
     public static final String ACTIVE_PROJECT_ID = "activeProjectId";
-    public static final String ACTIVE_APP_ID = "activeApplicationId";
 
     protected static void addReferenceData() {
         TenantSelector.addRenderArgs();
@@ -64,7 +61,7 @@ public class ResourceController extends Controller {
         }
         return activeProjectId;
     }
-    
+
     @Util
     private static boolean validateActiveProjectId(String activeProjectId) {
         if (StringUtils.isNotBlank(activeProjectId)) {

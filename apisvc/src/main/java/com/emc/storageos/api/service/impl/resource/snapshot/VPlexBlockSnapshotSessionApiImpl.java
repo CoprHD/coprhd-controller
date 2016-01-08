@@ -21,6 +21,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -28,10 +29,13 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.vplexcontroller.VPlexController;
+
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 /**
  * Block snapshot session implementation for volumes on VPLEX systems.
@@ -416,5 +420,51 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             throw APIException.badRequests.snapshotSessionSourceHasActiveMirrors(
                     sourceVolume.getLabel(), activeMirrorsForSource.size());
         }
+    }
+
+    @Override
+    public List<BlockObject> getAllSourceObjectsForSnapshotSessionRequest(BlockObject sourceObj) {
+        List<BlockObject> sourceObjList = new ArrayList<>();
+        if (URIUtil.isType(sourceObj.getId(), BlockSnapshot.class)) {
+            // For snapshots we ignore group semantics.
+            sourceObjList.add(sourceObj);
+        } else {
+            // Otherwise, if the volume is in a CG, then we create
+            // a snapshot session for each volume in the CG.
+            Volume sourceVolume = (Volume) sourceObj;
+            URI cgURI = sourceVolume.getConsistencyGroup();
+
+            if (!isNullURI(cgURI)) {
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                List<Volume> allVplexVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
+                // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
+                // that are RP source volumes.
+                for (Volume vplexVolume : allVplexVolumesInCG) {
+                    String personality = vplexVolume.getPersonality();
+                    if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
+                        sourceObjList.add(vplexVolume);
+                    }
+                }
+            } else {
+                sourceObjList.add(sourceObj);
+            }
+        }
+
+        return sourceObjList;
+    }
+
+    @Override
+    public BlockObject getActiveSource(BlockConsistencyGroup cg) {
+        List<Volume> allVplexVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
+        // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
+        // that are RP source volumes.
+        for (Volume vplexVolume : allVplexVolumesInCG) {
+            String personality = vplexVolume.getPersonality();
+            if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
+                return vplexVolume;
+            }
+        }
+
+        throw APIException.badRequests.noSourceVolumesInCG(cg.getLabel());
     }
 }

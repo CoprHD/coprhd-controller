@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -14,15 +15,22 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
+
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 /**
  * Block snapshot session implementation for volumes a VMAX3 systems.
@@ -205,5 +213,29 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
         controller.deleteSnapshotSession(storageSystem.getId(), snapSession.getId(), taskId);
+    }
+
+    @Override
+    public List<BlockObject> getAllSourceObjectsForSnapshotSessionRequest(BlockObject sourceObj) {
+        List<BlockObject> sourceObjList = new ArrayList<>();
+        if (URIUtil.isType(sourceObj.getId(), BlockSnapshot.class)) {
+            // For snapshots we ignore group semantics.
+            sourceObjList.add(sourceObj);
+        } else {
+            // Otherwise, if the volume is in a CG, then we create
+            // a snapshot session for each volume in the CG.
+            Volume sourceVolume = (Volume) sourceObj;
+            URI cgURI = sourceVolume.getConsistencyGroup();
+
+            if (!isNullURI(cgURI)) {
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                List<Volume> nativeVolumesInCG = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
+                sourceObjList.addAll(nativeVolumesInCG);
+            } else {
+                sourceObjList.add(sourceObj);
+            }
+        }
+
+        return sourceObjList;
     }
 }

@@ -7,8 +7,9 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,15 +55,14 @@ public class BlockSnapshotSessionUnlinkTargetsWorkflowCompleter extends BlockSna
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
 
             // Get the snapshot session source object.
-            URI snapSessionSourceURI = null;
+            BlockObject sourceObj = null;
             if (snapSession.hasConsistencyGroup()) {
-                List<Volume> volumesPartOfCG =
-                        ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), dbClient);
-                snapSessionSourceURI = volumesPartOfCG.get(0).getId();
+                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getId());
+                List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, dbClient);
+                sourceObj = nativeVolumes.get(0);
             } else {
-                snapSessionSourceURI = snapSession.getParent().getURI();
+                sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
             }
-            BlockObject sourceObj = BlockObject.fetch(dbClient, snapSessionSourceURI);
 
             // Record the results.
             recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGET,

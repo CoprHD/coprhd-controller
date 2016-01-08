@@ -7,8 +7,9 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,9 +65,9 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
 
             BlockObject sourceObj = null;
             if (snapSession.hasConsistencyGroup()) {
-                List<Volume> volumesPartOfCG =
-                        ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), dbClient);
-                sourceObj = volumesPartOfCG.get(0);
+                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getId());
+                List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, dbClient);
+                sourceObj = nativeVolumes.get(0);
             } else {
                 sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
             }

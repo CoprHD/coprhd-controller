@@ -832,15 +832,15 @@ public class VolumeIngestionUtil {
      */
     public static UnManagedVolume getUnManagedVolumeForBlockObject(BlockObject blockObject, DbClient dbClient) {
         String unmanagedVolumeGUID = blockObject.getNativeGuid().replace(VOLUME, UNMANAGEDVOLUME);
-        @SuppressWarnings("deprecation")
-        List<URI> unmanagedVolumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getVolumeInfoNativeIdConstraint(unmanagedVolumeGUID));
-        List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(UnManagedVolume.class, unmanagedVolumeUris);
-        if (unManagedVolumes != null && !unManagedVolumes.isEmpty()) {
-            UnManagedVolume unManagedVolume = unManagedVolumes.get(0);
-            _logger.info("block object {} is UnManagedVolume {}", blockObject.getLabel(), unManagedVolume);
-            return unManagedVolume;
+        URIQueryResultList umvUriList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeInfoNativeIdConstraint(unmanagedVolumeGUID), umvUriList);
+        while (umvUriList.iterator().hasNext()) {
+            URI umvUri = (umvUriList.iterator().next());
+            UnManagedVolume umVolume = dbClient.queryObject(UnManagedVolume.class, umvUri);
+            _logger.info("block object {} is UnManagedVolume {}", blockObject.getLabel(), umVolume.getId());
+            return umVolume;
         }
+
         return null;
     }
 
@@ -2742,6 +2742,34 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Checks to see if there is unmanaged volume corresponding to the passed block object.
+     * First checks in the DB and if found, checks in the passed unmanaged volumes which have been ingested
+     * and will be marked inactive later.
+     * 
+     * @param blockObject
+     * @param ingestedUnManagedVolumes
+     * @param dbClient
+     * @return
+     */
+    public static boolean hasUnManagedVolume(BlockObject blockObject, List<UnManagedVolume> ingestedUnManagedVolumes,
+            DbClient dbClient) {
+        UnManagedVolume umVolume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
+        if (umVolume != null && !umVolume.getInactive()) {
+            // Check in the list of ingested unmanaged volumes. If present, then it will be marked for deletion
+            for (UnManagedVolume umv : ingestedUnManagedVolumes) {
+                if (umv.getId().equals(umVolume.getId())) {
+                    _logger.info("Found the unmanaged volume {} in the list of ingested unmanaged volumes", umVolume.getId()
+                            .toString());
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Utility method to check if all the volumes in an unmanaged protection set have been ingested
      * 
      * @param ingestedUnManagedVolumes List of unmanaged volumes which have been ingested
@@ -2763,30 +2791,11 @@ public class VolumeIngestionUtil {
             Iterator<Volume> managedVolumeIdsIterator = dbClient.queryIterativeObjects(Volume.class, managedVolumesURIList);
             while (managedVolumeIdsIterator.hasNext()) {
                 Volume managedVolume = managedVolumeIdsIterator.next();
-                String unmanagedVolumeGUID = managedVolume.getNativeGuid().replace(VolumeIngestionUtil.VOLUME,
-                        VolumeIngestionUtil.UNMANAGEDVOLUME);
-                URIQueryResultList umvUriList = new URIQueryResultList();
-                dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeInfoNativeIdConstraint(unmanagedVolumeGUID), umvUriList);
-                while (umvUriList.iterator().hasNext()) {
-                    URI umvUri = (umvUriList.iterator().next());
-                    UnManagedVolume umVolume = dbClient.queryObject(UnManagedVolume.class, umvUri);
-                    if (umVolume != null && !umVolume.getInactive()) {
-                        boolean foundInIngestedVolumes = false;
-                        for (UnManagedVolume umv : ingestedUnManagedVolumes) {
-                            if (umv.getId().equals(umVolume.getId())) {
-                                _logger.info("Found the unmanaged RP volume {} in the list of ingested unmanaged volumes", umVolume.getId()
-                                        .toString());
-                                foundInIngestedVolumes = true;
-                                break;
-                            }
-                        }
-                        if (!foundInIngestedVolumes) {
-                            _logger.info(
-                                    "Managed volume {} still has a corresponding unmanaged volume {} left which means that there is still some info to be ingested",
-                                    managedVolume.getId(), umVolume.getId());
-                            return false;
-                        }
-                    }
+                if (hasUnManagedVolume(managedVolume, ingestedUnManagedVolumes, dbClient)) {
+                    _logger.info(
+                            "Managed volume {} still has a corresponding unmanaged volume left which means that there is still some info to be ingested",
+                            managedVolume.getId());
+                    return false;
                 }
             }
         }

@@ -230,7 +230,7 @@ public class VdcManager extends AbstractManager {
                 continue;
             }
             
-            // Step 6 : check backward compatibile upgrade flag
+            // Step 6 : check backward compatible upgrade flag
             try {
                 if (backCompatPreYoda && !isGeoConfig()) {
                     log.info("Check if pre-yoda upgrade is done");
@@ -275,7 +275,7 @@ public class VdcManager extends AbstractManager {
         targetVdcPropInfo = loadVdcConfig();
 
         if (isGeoUpgradeFromPreYoda()) {
-            log.info("Migrate vdc properties from preyoda");
+            log.info("Detect vdc properties from preyoda. Keep local vdc config properties unchanged until all vdc configs are migrated to zk");
             localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
                     String.valueOf(targetSiteInfo.getVdcConfigVersion()));
             localRepository.setVdcPropertyInfo(localVdcPropInfo);
@@ -338,12 +338,12 @@ public class VdcManager extends AbstractManager {
         long localVdcConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null ? 0 :
                 Long.parseLong(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
         long targetVdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
-        log.info("Local vdc version ");
         return localVdcConfigVersion != targetVdcConfigVersion;
     }
 
     private boolean isGeoUpgradeFromPreYoda() {
-        return localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",") && StringUtils.isEmpty(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
+        String vdcIds = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+        return !StringUtils.isEmpty(vdcIds) && vdcIds.contains(",") && StringUtils.isEmpty(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
     }
     
     private boolean isGeoConfig() {
@@ -373,7 +373,11 @@ public class VdcManager extends AbstractManager {
                 log.info("Step3: Setting vdc properties and reboot");
                 targetVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-                reboot();
+                if (backCompatPreYoda) {
+                    log.info("Back compatiblilty to preyoda flag detected. Skip the reboot until all vdcs are upgraded to yoda");
+                } else {
+                    reboot();
+                }
             }
             return;
         }

@@ -30,18 +30,31 @@ _get_firewall_props() {
     local OLD_IFS="${IFS}"; IFS="${IFS},"
     for vdc in ${_GENCONFIG_vdc_ids}; do
         [ "$vdc" == "${_GENCONFIG_vdc_myid}" ] && continue
-        for site in ${_GENCONFIG_site_ids}; do
-	    local var="_GENCONFIG_vdc_${vdc}_${site}_node_count"
+        if [ -z "${_GENCONFIG_site_ids}" ]; then
+            local var="_GENCONFIG_vdc_${vdc}_node_count"
             local vdc_node_count=${!var}
             for index in $(seq ${vdc_node_count}); do
-                var="_GENCONFIG_vdc_${vdc}_${site}_network_${index}_ipaddr"
-                local ipaddr="${!var}"
-                if [ "${ipaddr}" == "0.0.0.0" ]; then
-                   ipaddr=''
-                fi
-                list+=" ${ipaddr}"
+                 var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr"
+                 local ipaddr="${!var}"
+                 if [ "${ipaddr}" == "0.0.0.0" ]; then
+                    ipaddr=''
+                 fi
+                 list+=" ${ipaddr}"
             done
-        done
+        else
+            for site in ${_GENCONFIG_site_ids}; do
+                local var="_GENCONFIG_vdc_${vdc}_${site}_node_count"
+                local vdc_node_count=${!var}
+                for index in $(seq ${vdc_node_count}); do
+                    var="_GENCONFIG_vdc_${vdc}_${site}_network_${index}_ipaddr"
+                    local ipaddr="${!var}"
+                    if [ "${ipaddr}" == "0.0.0.0" ]; then
+                       ipaddr=''
+                    fi
+                    list+=" ${ipaddr}"
+                done
+            done
+        fi
     done
     echo "vdc_nodes_ipaddr=$(echo ${list})"
 
@@ -50,18 +63,31 @@ _get_firewall_props() {
     list=''
     for vdc in ${_GENCONFIG_vdc_ids}; do
         [ "$vdc" == "${_GENCONFIG_vdc_myid}" ] && continue
-        for site in ${_GENCONFIG_site_ids}; do
-            local var="_GENCONFIG_vdc_${vdc}_${site}_node_count"
+        if [ -z "${_GENCONFIG_site_ids}" ]; then
+            local var="_GENCONFIG_vdc_${vdc}_node_count"
             local vdc_node_count=${!var}
             for index in $(seq ${vdc_node_count}); do
-                var="_GENCONFIG_vdc_${vdc}_${site}_network_${index}_ipaddr6"
-                ipaddr6="${!var}"
-                if [ "${ipaddr6}" == "::0" ]; then
-                   ipaddr6=""
-                fi
-                list+=" ${ipaddr6}"
+                 var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr"
+                 local ipaddr="${!var}"
+                 if [ "${ipaddr}" == "0.0.0.0" ]; then
+                    ipaddr=''
+                 fi
+                 list+=" ${ipaddr}"
             done
-        done
+        else
+            for site in ${_GENCONFIG_site_ids}; do
+                local var="_GENCONFIG_vdc_${vdc}_${site}_node_count"
+                local vdc_node_count=${!var}
+                for index in $(seq ${vdc_node_count}); do
+                   var="_GENCONFIG_vdc_${vdc}_${site}_network_${index}_ipaddr6"
+                   ipaddr6="${!var}"
+                   if [ "${ipaddr6}" == "::0" ]; then
+                       ipaddr6=""
+                   fi
+                   list+=" ${ipaddr6}"
+                done
+            done
+        fi
     done
     echo "vdc_nodes_ipaddr6=$(echo ${list})"
 

@@ -27,6 +27,7 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String DR_OP_FAILOVER = "dr_failover";
     public static final String DR_OP_CHANGE_DATA_REVISION = "dr_change_data_revision";
     public static final String IPSEC_OP_ENABLE = "ipsec_enable";
+    public static final String IP_OP_CHANGE = "ip_change";
     public static final String NONE = "noop";
 
     /**

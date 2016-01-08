@@ -6,6 +6,9 @@
 package com.emc.storageos.systemservices.impl.ipreconfig;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -62,6 +65,11 @@ public class IpReconfigManager implements Runnable {
     private ThreadPoolExecutor _pollExecutor;
 
     private IpReconfigListener ipReconfigListener = null;
+
+    private DrUtil drUtil;
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
 
     private Properties ovfProperties;    // local ovfenv properties
 
@@ -766,7 +774,37 @@ public class IpReconfigManager implements Runnable {
             lock.acquire();
             log.info("Got lock for updating local site IPs into ZK ...");
 
-            log.info("Finished updating local site IPs into ZK");
+            Site site = drUtil.getLocalSite();
+            if (localIpinfo.weakEqual(site.getVip(), site.getHostIPv4AddressMap(), site.getHostIPv6AddressMap())) {
+                log.info("local site IPs are consistent with ZK, no need to update.");
+                return;
+            }
+
+            site.setVip(localIpinfo.getIpv4Setting().getNetworkVip());
+            //site.setVip6(localIpinfo.getIpv6Setting().getNetworkVip());
+            Map<String, String> ipv4Addresses = new HashMap<>();
+            Map<String, String> ipv6Addresses = new HashMap<>();
+            int nodeIndex = 1;
+            for (String nodeip : localIpinfo.getIpv4Setting().getNetworkAddrs()) {
+                String nodeId;
+                nodeId = IpReconfigConstants.VDC_NODE_PREFIX + nodeIndex++;
+                ipv4Addresses.put(nodeId, nodeip);
+            }
+            nodeIndex = 1;
+            for (String nodeip : localIpinfo.getIpv6Setting().getNetworkAddrs()) {
+                String nodeId;
+                nodeId = IpReconfigConstants.VDC_NODE_PREFIX + nodeIndex++;
+                ipv6Addresses.put(nodeId, nodeip);
+            }
+            site.setHostIPv4AddressMap(ipv4Addresses);
+            site.setHostIPv6AddressMap(ipv6Addresses);
+
+            _coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+
+            // wake up syssvc to regenerate configurations
+            drUtil.updateVdcTargetVersion(_coordinator.getCoordinatorClient().getSiteId(), SiteInfo.IP_OP_CHANGE);
+
+            log.info("Finished update local site IPs into ZK");
         } catch (Exception e) {
             log.warn("Unexpected exception during updating local site IPs into ZK", e);
         } finally {

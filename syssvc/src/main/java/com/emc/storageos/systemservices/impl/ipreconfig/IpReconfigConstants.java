@@ -20,6 +20,7 @@ public class IpReconfigConstants {
     public static final String CONFIG_IPINFO_KEY = "ipinfo";
     public static final String CONFIG_STATUS_KEY = "status";
     public static final String CONFIG_ERROR_KEY = "error";
+    public static final String VDC_NODE_PREFIX = "node";
     public static final String CONFIG_NODESTATUS_KEY = "node%d_status";
     public static final String CONFIG_EXPIRATION_KEY = "expiration";
     public static final String CONFIG_POST_OPERATION_KEY = "postoperation";

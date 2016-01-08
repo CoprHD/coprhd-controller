@@ -1295,6 +1295,28 @@ public class ControllerUtils {
                 StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG);
     }
 
+    public static String generateReplicationGroupName(StorageSystem storage, URI cgUri, String replicationGroupName, DbClient dbClient) {
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+        if (cg == null || cg.getInactive()) {
+            s_logger.warn(String.format("BlockConsistencyGroup with uri %s does not exist or is inactive", cgUri.toString()));
+        }
+        return generateReplicationGroupName(storage, cg, replicationGroupName);
+    }
+    
+    public static String generateReplicationGroupName(StorageSystem storage, BlockConsistencyGroup cg, String replicationGroupName) {
+        String groupName = replicationGroupName;
+        
+        if (groupName == null && cg != null) {
+            groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+        }
+        if (storage != null && storage.deviceIsType(Type.vnxblock)) {
+            groupName = SmisConstants.VNX_VIRTUAL_RG + groupName;
+            s_logger.info("VNX virtual replication group {}", groupName);
+        }
+
+        return groupName;
+    }
+
     /**
      * This utility method returns the snapsetLabel of the existing snapshots.
      * This is required when we try to create a new snapshot when the existing source volumes have snapshots.

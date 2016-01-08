@@ -211,7 +211,9 @@ public class VolumeGroupService extends TaskResourceService {
     public VolumeGroupRestRep getVolumeGroup(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
         VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
-        return DbObjectMapper.map(volumeGroup);
+        VolumeGroupRestRep resp = DbObjectMapper.map(volumeGroup);
+        resp.setReplicationGroupNames(CopyVolumeGroupUtils.getReplicationGroupNames(volumeGroup, _dbClient));
+        return resp;
     }
 
     /**
@@ -252,6 +254,12 @@ public class VolumeGroupService extends TaskResourceService {
         return result;
     }
 
+    /**
+     * Get the list of child volume groups
+     * 
+     * @param id
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/volume-groups")
@@ -896,6 +904,24 @@ public class VolumeGroupService extends TaskResourceService {
                 throw e;
             }
         }
+        
+        /**
+         * gets the list of replication group names associated with this COPY type volume group
+         * @return list of replication group names or empty list if the volume group is not COPY or no volumes exist in 
+         * the volume group
+         */
+        public static Set<String> getReplicationGroupNames(VolumeGroup group, DbClient dbClient) {
+            
+            Set<String> groupNames = new HashSet<String>();
+            if (group.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())){
+                List<Volume> volumes = getVolumeGroupVolumes(dbClient, group);
+                if (volumes != null && !volumes.isEmpty()) {
+                    BlockServiceApi serviceAPI = getBlockService(dbClient, volumes.iterator().next());
+                    groupNames.addAll(serviceAPI.getReplicationGroupNames(group));
+                }
+            }
+            return groupNames;
+        }
 
         /**
          * Validate the volumes to be added to the volume group.
@@ -1037,7 +1063,7 @@ public class VolumeGroupService extends TaskResourceService {
                     continue;
                 }
 
-                if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
+                if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup()) && !isVPlexVolume(vol, dbClient)) {
                     removeVolumeCGs.add(vol.getConsistencyGroup());
                 }
 
@@ -1052,7 +1078,7 @@ public class VolumeGroupService extends TaskResourceService {
          * @param type The system type
          * @return
          */
-        private String getVolumeType(String type) {
+        private static String getVolumeType(String type) {
             if (BLOCK_TYPES.contains(type)) {
                 return BLOCK;
             } else {
@@ -1072,7 +1098,7 @@ public class VolumeGroupService extends TaskResourceService {
             }
         }
 
-        private BlockServiceApi getBlockService(DbClient dbClient, final Volume volume) {
+        private static BlockServiceApi getBlockService(DbClient dbClient, final Volume volume) {
             URI systemUri = volume.getStorageController();
             StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
             String type = system.getSystemType();
@@ -1247,4 +1273,19 @@ public class VolumeGroupService extends TaskResourceService {
         return errorMsg;
     }
 
+    /**
+     * Check if the volume is a vplex volume
+     * @param volume The volume to be checked
+     * @return true or false
+     */
+    static private boolean isVPlexVolume(Volume volume, DbClient dbClient) {
+        boolean result = false;
+        URI storageUri = volume.getStorageController();
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageUri);
+        String systemType = storage.getSystemType();
+        if (systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
+            result = true;
+        }
+        return result;
+    }
 }

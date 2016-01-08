@@ -4180,13 +4180,27 @@ public class SmisCommandHelper implements SmisConstants {
         return id;
     }
 
-    public String getConsistencyGroupName(BlockObject bo, StorageSystem storageSystem) {
-        if (bo.getConsistencyGroup() == null) {
-            return null;
+    /**
+     * Gets the source consistency group name.
+     * If the given block object is Volume, get the group name from Volume object.
+     * If snapshot, mirror or clone, get the group name from its parent which is Volume.
+     *
+     * @param bo the block object
+     * @return the consistency group name
+     */
+    public String getSourceConsistencyGroupName(BlockObject bo) {
+        Volume volume = null;
+        if (bo instanceof BlockSnapshot) {
+            volume = _dbClient.queryObject(Volume.class, ((BlockSnapshot) bo).getParent().getURI());
+        } else if (bo instanceof BlockMirror) {
+            volume = _dbClient.queryObject(Volume.class, ((BlockMirror) bo).getSource().getURI());
+        } else if (bo instanceof Volume) {
+            volume = (Volume) bo;
+            if (ControllerUtils.isVolumeFullCopy(volume, _dbClient)) {
+                volume = _dbClient.queryObject(Volume.class, volume.getAssociatedSourceVolume());
+            }
         }
-        final BlockConsistencyGroup group =
-                _dbClient.queryObject(BlockConsistencyGroup.class, bo.getConsistencyGroup());
-        return getConsistencyGroupName(group, storageSystem);
+        return (volume == null ? null : volume.getReplicationGroupInstance());
     }
 
     public String getConsistencyGroupName(final BlockConsistencyGroup group,
@@ -6627,7 +6641,7 @@ public class SmisCommandHelper implements SmisConstants {
     public List<CIMObjectPath> getSettingsDefineStateFromSourceGroup(
             StorageSystem storage, BlockSnapshot snapshot) throws WBEMException {
         List<CIMObjectPath> settingsDefineStatePaths = new ArrayList<>();
-        String groupName = getConsistencyGroupName(snapshot, storage);
+        String groupName = getSourceConsistencyGroupName(snapshot);
         CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(storage,
                 groupName);
         String groupInstanceId = groupPath.getKeyValue(CP_INSTANCE_ID)

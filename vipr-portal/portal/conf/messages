@@ -63,6 +63,7 @@ nav.block.consistencygroups=Consistency Groups
 nav.block.exportgroups=Export Groups
 nav.block.snapshots=Block Snapshots
 nav.block.virtualPools=Block Virtual Pools
+nav.block.app=Applications
 nav.file=File
 nav.file.filesystems=File Systems
 nav.file.snapshots=File Snapshots
@@ -660,11 +661,16 @@ application.description=Description
 application.role=Role
 Application.deleteConfirm=Are you sure you want to delete the Application(s).
 ApplicationForm.create.title=Create Application
+
 ApplicationForm.edit.title=Edit Application
 application.create.description=Enter information needed for an Application
 applicationForm.name=Application Name
 applicationForm.description=Description
 applicationForm.roles=Roles
+application.volume=Volumes
+application.clones=Clones
+application.snapshot=Snapshots
+application.mirror=Mirrors
 application.save.success=Saved '%s'
 applications.deleted=Application(s) deleted successfully
 Application.unknown=Unknown Application with ID '%s'
@@ -2995,6 +3001,8 @@ affectedResources.vcenter.image=assets/VCenter.png
 
 affectedResources.computeSystem.image=assets/Host.png
 
+affectedResources.application=Applications
+affectedResources.application.image=assets/Application.png
 resources.hosts=Hosts
 resources.host=Host
 resources.host.image=serviceCatalog/icon_host.png
@@ -3195,6 +3203,16 @@ resources.fullcopy.name=Name
 resources.fullcopy.size=Size
 resources.fullcopy.status=Status
 resources.fullcopy.protocol=Protocol
+
+resources.applications=Applications
+resources.protocol=Protocols
+volumeApplication.name=Name
+volumeApplication.capacity=Size
+volumeApplication.varray=Virtual Array
+volumeApplication.vpool=Virtual Pool
+volumeApplication.protocols=Protocols
+volumeApplication.wwn=WWN
+volumeApplication.consistencygroup=Consistency Group
 
 resources.snapshots=Block Snapshots
 resources.snapshots.none=No Snapshots

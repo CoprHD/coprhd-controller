@@ -1620,17 +1620,17 @@ public class DisasterRecoveryService {
             Site localSite = drUtil.getLocalSite();
             if (localSite.getState().equals(SiteState.ACTIVE_FAILBACK_DEGRADED)) {
                 log.info("Site is already ACTIVE_FAILBACK_DEGRADED");
-                if (coordinator.locateAllServices(localSite.getUuid(), "controllersvc", "1", null, null).size() > 0) {
+                if (!coordinator.locateAllServices(localSite.getUuid(), "controllersvc", "1", null, null).isEmpty()) {
                     log.info("there are some controller service alive, process to degrade");
                     return true;
                 }
                 
-                if (coordinator.locateAllServices(localSite.getUuid(), "sasvc", "1", null, null).size() > 0) {
+                if (!coordinator.locateAllServices(localSite.getUuid(), "sasvc", "1", null, null).isEmpty() ) {
                     log.info("there are some sa service alive, process to degrade");
                     return true;
                 }
                 
-                if (coordinator.locateAllServices(localSite.getUuid(), "vasasvc", "1", null, null).size() > 0) {
+                if (!coordinator.locateAllServices(localSite.getUuid(), "vasasvc", "1", null, null).isEmpty()) {
                     log.info("there are some vasa service alive, process to degrade");
                     return true;
                 }

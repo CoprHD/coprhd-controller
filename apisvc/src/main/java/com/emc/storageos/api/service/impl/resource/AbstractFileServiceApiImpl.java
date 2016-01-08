@@ -193,7 +193,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
 
     @Override
     public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
-            Volume sourceFileShare, List<URI> mirrorFSUris, String taskId)
+            FileShare sourceFileShare, List<URI> mirrorFSUris, String taskId)
             throws ControllerException {
         // TODO Auto-generated method stub
         throw APIException.methodNotAllowed.notSupported();

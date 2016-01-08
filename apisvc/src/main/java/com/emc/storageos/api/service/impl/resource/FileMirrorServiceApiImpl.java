@@ -10,6 +10,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +49,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 /**
  * Block Service subtask (parts of larger operations) Replication implementation.
  */
-public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMirrorSchedular> {
+public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileStorageScheduler> {
 
     private static final Logger _log = LoggerFactory.getLogger(FileMirrorServiceApiImpl.class);
 
@@ -109,7 +110,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
     @Override
     public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
-            Volume sourceFileShare, List<URI> mirrorFSUris, String taskId)
+            FileShare sourceFileShare, List<URI> mirrorFSUris, String taskId)
             throws ControllerException {
         // TODO Auto-generated method stub
         TaskList taskList = new TaskList();

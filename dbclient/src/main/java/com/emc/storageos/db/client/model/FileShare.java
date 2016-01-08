@@ -68,6 +68,47 @@ public class FileShare extends FileObject implements ProjectResource {
     
     private URI virtualNAS;
 
+    //add new field in replication
+    private String _accessState;
+
+    public StringSet getMirrorFileShares() {
+        return _mirrorFileShares;
+    }
+
+    public void setMirrorFileShares(StringSet _mirrorFileShares) {
+        this._mirrorFileShares = _mirrorFileShares;
+    }
+
+    private StringSet _mirrorFileShares;
+    // Basic fileshare personality type (source, target) [determined internally]
+    private String _personalityType;
+    private String _parentFileShare;
+
+
+    public static enum FileAccessState {
+        UNKNOWN("0"),
+        READABLE("1"),
+        WRITEABLE("2"),
+        READWRITE("3");
+
+
+        private final String state;
+
+        FileAccessState(String state) {
+            this.state = state;
+        }
+
+        public String getState() {
+            return state;
+        }
+    }
+
+    public static enum PersonalityTypes {
+        SOURCE, // Source fileShare
+        TARGET, // Target Volume
+    }
+
+
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
     public NamedURI getProject() {

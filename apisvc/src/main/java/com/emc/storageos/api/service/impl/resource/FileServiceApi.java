@@ -93,7 +93,7 @@ public interface FileServiceApi {
      * @throws ControllerException
      */
     public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
-            Volume sourceFileShare, List<URI> mirrorFSUris, String taskId) throws ControllerException;
+            FileShare sourceFileShare, List<URI> mirrorFSUris, String taskId) throws ControllerException;
     
     
     

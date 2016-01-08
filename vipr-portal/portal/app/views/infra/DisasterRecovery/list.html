@@ -11,17 +11,17 @@
 #{/DataTable.crudTable}
 #{DataTable.expandHtml @errorDetails(':id'), table:'disasterRecovery' /}
 
-#{set isPrimarysite:controllers.infra.DisasterRecovery.isPrimarySite() /}
+#{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
 		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
-			#{if isPrimarysite }
+			#{if isActiveSite }
 				<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.pause'}')){return false;}")>{{'disasterRecovery.pauseButton' | t}}</a>
 				<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
 			#{/if}
 			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
-			#{if isPrimarysite }
+			#{if isActiveSite }
 				<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.SwitchoverButton' | t}}</a>
 			#{/if}
 			#{else}

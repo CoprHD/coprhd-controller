@@ -1,6 +1,6 @@
 #{extends 'main.html'/}
 #{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
-#{if iamPrimary }
+#{if iamActiveSite }
 	#{set 'title'}&{'disasterRecovery.switchover'}#{/set}
 #{/if}
 #{else}
@@ -20,7 +20,7 @@
 </div>
 <br/>
 <br/>
-#{if iamPrimary }
+#{if iamActiveSite }
 	#{Form.subheader titleKey:"disasterRecovery.switchover.subtitle" /}
 #{/if}
 #{else}
@@ -32,7 +32,7 @@
 	<br/><br/>
 	<dl>
   		<dt id="loadingStatus"> #{loading/}</dt>
-  		#{if iamPrimary }
+  		#{if iamActiveSite }
 			<dd id="checkFailoverStatus">&{'disasterRecovery.switchover.progress'} </dd>
 		#{/if}
 		#{else}

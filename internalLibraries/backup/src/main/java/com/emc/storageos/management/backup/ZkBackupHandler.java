@@ -295,7 +295,7 @@ public class ZkBackupHandler extends BackupHandler {
     }
 
     private void backupSiteId(File targetDir) throws IOException {
-        FileUtils.copyFile(this.siteIdFile, targetDir);
+        FileUtils.copyFileToDirectory(this.siteIdFile, targetDir);
     }
 
     @Override

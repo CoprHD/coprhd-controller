@@ -1510,7 +1510,7 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Monitor local coordinatorsvc on standby site
+     * Monitor standby network on active site
      */
     private Runnable networkMonitor = new Runnable(){
 
@@ -1536,16 +1536,18 @@ public class CoordinatorClientExt {
                 //I'm the leader
                 for (Site site : drUtil.listStandbySites()){
                     String host = site.getVip();
-                    Long ping = testPing(host,80);
+                    double ping = testPing(host,80);
+                    _log.info("Ping: "+ping);
                     site.setPing(ping);
+
                     if (ping > 400) {
-                        site.setNetworkState("UNHEALTHY");
+                        site.setNetworkState("POOR");
                     }
                     else if (ping < 0) {
-                        site.setNetworkState("UNAVAILABLE");
+                        site.setNetworkState("DISCONNECTED");
                     }
                     else {
-                        site.setNetworkState("HEALTHY");
+                        site.setNetworkState("GOOD");
                     }
                     _coordinator.persistServiceConfiguration(site.toConfiguration());
                 }
@@ -1555,10 +1557,9 @@ public class CoordinatorClientExt {
         /**
          * Connect using layer4 (sockets)
          *
-         * @param
          * @return delay if the specified host responded, -1 if failed
          */
-        private long testPing(String hostAddress, int port) {
+        private double testPing(String hostAddress, int port) {
             InetAddress inetAddress = null;
             InetSocketAddress socketAddress = null;
             SocketChannel sc = null;
@@ -1600,7 +1601,14 @@ public class CoordinatorClientExt {
                 _log.error("maybe throw a PingCalculationException?");
             }
 
-            return timeToRespond/1000000;
+            //The ping failed, return -1
+            if (timeToRespond == -1) {
+                return -1;
+            }
+
+            //the ping suceeded, convert from ns to ms with 3 decimals
+            timeToRespond = timeToRespond/1000;
+            return timeToRespond/1000.0;
         }
 
     };

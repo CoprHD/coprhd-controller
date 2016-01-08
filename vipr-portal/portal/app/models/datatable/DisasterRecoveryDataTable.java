@@ -38,6 +38,7 @@ public class DisasterRecoveryDataTable extends DataTable {
             this.status = standByInfo.getState();
             this.id = standByInfo.getUuid();
             this.description = standByInfo.getDescription();
+            this.networkHealth = standByInfo.getNetworkState();
         }
     }
 }

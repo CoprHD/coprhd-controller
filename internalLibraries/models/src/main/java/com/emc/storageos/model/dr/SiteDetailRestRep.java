@@ -17,7 +17,7 @@ public class SiteDetailRestRep {
     private Date creationTime;
     private Date pausedTime;
     private Date lastUpdateTime;
-    private double ping;
+    private Double ping;
 
     @XmlElement(name = "creationTime")
     public Date getCreationTime() {
@@ -47,11 +47,11 @@ public class SiteDetailRestRep {
     }
 
     @XmlElement(name = "network_ping")
-    public double getPing() {
+    public Double getPing() {
         return ping;
     }
 
-    public void setPing(double ping) {
+    public void setPing(Double ping) {
         this.ping = ping;
     }
 

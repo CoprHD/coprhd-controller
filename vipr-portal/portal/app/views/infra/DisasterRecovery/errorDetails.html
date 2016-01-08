@@ -47,7 +47,9 @@
   		var epocLastTime = '${lastUpdateTime}';
    		$('#lastUpdateTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocLastTime)));
   	</script>
-  #{/if}  
+  #{/if}
+  <dt>&{'disasterRecovery.latency'}</dt>
+  <dd>${latency}</dd>
 </dl>
 #{/else}
 

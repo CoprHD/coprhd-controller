@@ -198,6 +198,8 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * Names of the groups to be included when querying Active Directory
          * for group membership information about a user or group.  
+         * Valid values:
+         *  regular expressions
          */
         @XmlElement(name = "group_whitelist_value")
         public Set<String> getAdd() {
@@ -244,6 +246,8 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * Group object classes to be included when querying LDAP
          * for searching the group.
+         * Valid values:
+         *  LDAP schema objectClasses
          */
         @XmlElement(name = "group_object_class")
         public Set<String> getAdd() {

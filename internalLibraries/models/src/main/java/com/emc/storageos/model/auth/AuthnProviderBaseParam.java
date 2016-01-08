@@ -23,7 +23,9 @@ public abstract class AuthnProviderBaseParam {
     private String mode;
 
     /**
-     * Name of the provider
+     * Name of the provider.
+     * Valid value:
+     *  provider names unique within a virtual data center
      * 
      */
     private String label;
@@ -68,6 +70,9 @@ public abstract class AuthnProviderBaseParam {
 
     /**
      * Key value pair representing the search filter criteria.
+     * Valid value:
+     *  %u whole username string
+     *  %U username portion only of the string containing the domain
      * 
      */
     private String searchFilter;

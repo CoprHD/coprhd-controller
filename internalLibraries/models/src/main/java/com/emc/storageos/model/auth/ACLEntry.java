@@ -13,7 +13,10 @@ public class ACLEntry {
 
     /**
      * List of privileges that make up this entry. Some privileges will apply to different APIs.
-     * Valid values: ALL, BACKUP, USE
+     * Valid values:
+     *  ALL allows all provisioning operations
+     *  BACKUP allows all snapshot related operations
+     *  USE can use a virtual array or pool
      * 
      */
     private List<String> aces;

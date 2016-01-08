@@ -158,7 +158,9 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     /*
      * The kind of provider. Active Directory(ad) or generic LDAPv3 (ldap)
-     * 
+     * Valid values:
+     *  ad
+     *  ldap
      * 
      */
     @XmlElement(name = "mode")
@@ -201,6 +203,9 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
     /**
      * In conjunction with the search_base, the search_scope indicates how many
      * levels below the base the search can continue.
+     * Valid values:
+     *  ONELEVEL
+     *  SUBTREE
      * 
      */
     @XmlElement(name = "search_scope")

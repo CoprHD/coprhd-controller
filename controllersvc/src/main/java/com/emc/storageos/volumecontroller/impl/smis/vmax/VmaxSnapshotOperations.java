@@ -1835,7 +1835,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 if (snapSession.hasConsistencyGroup()) {
                     _log.info("Restoring group snapshot session");
                     // We need a single source volume for the session.
-                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getId());
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
                     List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
                     sourceObj = nativeVolumes.get(0);
                     String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);

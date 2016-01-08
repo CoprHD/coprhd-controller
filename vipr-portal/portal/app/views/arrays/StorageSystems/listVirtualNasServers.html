@@ -35,7 +35,7 @@
 #{DataTable.formAction @dissociateProject(), id:'dissociateProject', table:'vNasServers', fields:formFields,
                        confirm:messages.get('vNasServers.dissociate.Confirm', name)/}
 
-#{Modal.dialog id:'associateToProject'}
+#{Modal.dialog id:'associateToProject', cssClass:'extra-wide'}
   #{Modal.header}
     <h4 class="modal-title">&{'vNasServers.associateToProject'}</h4>
   #{/Modal.header}
@@ -70,16 +70,16 @@
   #{/Modal.body}
 #{/Modal.dialog}
 
-#{Modal.dialog id:'dissociateFromProject'}
+#{Modal.dialog id:'dissociateFromProject', cssClass:'extra-wide'}
   #{Modal.header}
-    <h4 class="modal-title">&{'vNasServers.dissociateToProject'}</h4>
+    <h4 class="modal-title">&{'vNasServers.dissociateFromProject'}</h4>
   #{/Modal.header}
   #{Modal.body}
     <div ng-controller="DissociateProjectCtrl" id="dissociateForm">
        <div class="container-fluid" >
        
            <div class="row">
-                <control-group v-field='projectsToDissociate' labelWidth="1" required >
+                <control-group v-field='project' labelWidth="1" required >
                     <select-many options="projectsToDissociateOptions" onChange="enableButton()"></select-many>
                 </control-group>
            </div>
@@ -87,7 +87,7 @@
            <br>
            #{form @dissociateProject(), id:'dissociateForm',  class:'form form-horizontal', autocomplete:"off"}
              <input type="hidden" name="projectIdsToDissociate" ng-value="projectsToDissociate" />
-             <input type="hidden" name="nasId" />
+             <input type="hidden" name="nasIds" ng-value="nasIds" />
              <input type="hidden" name="storageId" value="${storageId}"/>
              <div class="row">
                #{Modal.buttonBar}
@@ -132,22 +132,24 @@ function showDialogClick() {
 function showDissociateDialog() {
     var checkboxes = document.getElementsByName('selected');
     var projectIds = "";
-    var nasId = "";
+    var nasIds = "";
     
     for (var i=0, n=checkboxes.length;i<n;i++) {
-      if (checkboxes[i].checked) 
-      {
+      if (checkboxes[i].checked) {
       	var project = checkboxes[i].value.split("~~~");
-      	projectIds += "," + project[1];
-      	document.getElementsByName("nasId").value = project[0];
+      	if (project[1].trim().length > 0) {
+      	    projectIds += "," + project[1];
+      	    nasIds = project[0];
+      	}
+      	break;
       }
     }
-    if (projectIds) {
+    if (projectIds.length > 0) {
     	projectIds = projectIds.substring(1);
-    } 
-    var scope = angular.element($('#dissociateForm')).scope();
-	  scope.populateModal(projectIds, nasId);
-	  $('#dissociateFromProject').modal('show');
+        var scope = angular.element($('#dissociateForm')).scope();
+	    scope.populateModal(projectIds, nasIds);
+	    $('#dissociateFromProject').modal('show');
+    }
 }
 
 </script>

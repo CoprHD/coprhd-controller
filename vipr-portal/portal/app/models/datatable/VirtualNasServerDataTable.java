@@ -128,7 +128,12 @@ public class VirtualNasServerDataTable extends DataTable {
             this.storageCapacity = vNasRestRep.getUsedStorageCapacity();
             this.avgPercentagebusy = vNasRestRep.getAvgPercentagebusy();
             this.percentLoad = vNasRestRep.getPercentLoad();
-            this.id = vNasRestRep.getId().toString() + "~~~" + projectListWithIds.substring(0, projectListWithIds.length() - 1);
+
+            if (projectListWithIds.length() > 0) {
+                this.id = vNasRestRep.getId().toString() + "~~~" + projectListWithIds.substring(0, projectListWithIds.length() - 1);
+            } else {
+                this.id = vNasRestRep.getId().toString() + "~~~";
+            }
         }
     }
 

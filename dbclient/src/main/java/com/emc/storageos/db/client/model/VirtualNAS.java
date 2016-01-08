@@ -29,7 +29,7 @@ public class VirtualNAS extends NASServer {
     // place holder for the Parent NAS server the Data Mover
     private URI parentNasUri;
 
-    @Name("projects")
+    @Name("associatedProjects")
     public StringSet getProjects() {
         if (projects == null) {
             projects = new StringSet();
@@ -37,21 +37,21 @@ public class VirtualNAS extends NASServer {
         return projects;
     }
 
-    public void setProjects(StringSet projects) {
+    public void setAssociatedProjects(StringSet projects) {
         this.projects = projects;
-        setChanged("projects");
+        setChanged("associatedProjects");
     }
 
-    public void addProject(String projectURI) {
+    public void associateProject(String projectURI) {
         StringSet existingProjects = getProjects();
         existingProjects.add(projectURI);
-        setProjects(existingProjects);
+        setAssociatedProjects(existingProjects);
     }
 
-    public void removeProject(String projectURI) {
+    public void dissociateProject(String projectURI) {
         StringSet existingProjects = getProjects();
         existingProjects.remove(projectURI);
-        setProjects(existingProjects);
+        setAssociatedProjects(existingProjects);
     }
 
     @Name("baseDirPath")

@@ -419,7 +419,7 @@ angular.module("portalApp").controller({
             	 var projects = value.split(",");
             	 var myNewOptions = [];
             	 for (var j = 0; j < projects.length; j++) {
-                     var project = projects[j].split("~~~");
+                    var project = projects[j].split("~~~");
                     myNewOptions.push({ id: project[0], name: project[1] });
                  }
             	 $scope.projectOptions = myNewOptions;
@@ -449,7 +449,7 @@ angular.module("portalApp").controller({
     		}
             	
             $scope.projectsToDissociateOptions = myNewOptions;
-            $scope.nasId = nasIdString;
+            $scope.nasIds = nasIdString;
     	    $scope.$apply();
        }
     },

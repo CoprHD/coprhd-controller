@@ -14,6 +14,7 @@ import static util.BourneUtil.getViprClient;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -432,37 +433,16 @@ public class StorageSystems extends ViprResourceController {
     }
 
     @FlashException(keep = true, referrer = { "virtualNasServers" })
-    public static void dissociateProject(@As(",") String[] projectIdsToDissociate, String nasId, String storageId) {
+    public static void dissociateProject(@As(",") String[] projectIdsToDissociate, String nasIds, String storageId) {
 
-        /*
-         * String[] projectIdArray = null;
-         * if (projectIds != null && !projectIds.isEmpty()) {
-         * projectIds = projectIds.trim();
-         * projectIdArray = projectIds.split(",");
-         * }
-         * 
-         * List<URI> uris = Lists.newArrayList();
-         * for (String id : ids) {
-         * uris.add(uri(id));
-         * }
-         * Map<URI, Set<String>> projectVNas = Maps.newHashMap();
-         * List<VirtualNASRestRep> vNasServers = getViprClient().virtualNasServers().getByIds(uris);
-         * for (VirtualNASRestRep vnasServer : vNasServers) {
-         * Set<String> associatedProjects = vnasServer.getAssociatedProjects();
-         * if (associatedProjects == null || associatedProjects.isEmpty()) {
-         * continue;
-         * }
-         * }
-         * 
-         * for (String projectId : projectIdArray) {
-         * 
-         * VirtualNasParam vNasParam = new VirtualNasParam();
-         * vNasParam.setVnasServers(projectVNas.get(uri(projectId)));
-         * 
-         * getViprClient().virtualNasServers().unassignVnasServers(uri(projectId), vNasParam);
-         * 
-         * }
-         */
+        for (String projectId : projectIdsToDissociate) {
+            Set<String> vNASSet = new HashSet<String>();
+            vNASSet.add(nasIds);
+            VirtualNasParam vNasParam = new VirtualNasParam();
+            vNasParam.setVnasServers(vNASSet);
+            getViprClient().virtualNasServers().unassignVnasServers(uri(projectId), vNasParam);
+        }
+
         virtualNasServers(storageId);
     }
 

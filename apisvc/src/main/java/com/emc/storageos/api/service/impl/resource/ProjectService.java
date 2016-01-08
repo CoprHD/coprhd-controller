@@ -876,7 +876,7 @@ public class ProjectService extends TaggedResource {
             for (String validNas : validVNasServers) {
                 URI vnasURI = URI.create(validNas);
                 VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
-                vnas.addProject(project.getId().toString());
+                vnas.associateProject(project.getId().toString());
                 _dbClient.persistObject(vnas);
             }
             project.setAssignedVNasServers(validVNasServers);
@@ -917,6 +917,11 @@ public class ProjectService extends TaggedResource {
             Set<String> projectDomains = ProjectUtility.getDomainsOfProject(_permissionsHelper, project);
 
             for (String id : vNasIds) {
+
+                if (project.getAssignedVNasServers().contains(id)) {
+                    continue;
+                }
+
                 URI vnasURI = URI.create(id);
                 VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
                 ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
@@ -1041,7 +1046,7 @@ public class ProjectService extends TaggedResource {
                     VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
                     ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
                     if (vnasServers.contains(vId)) {
-                        vnas.removeProject(id.toString());
+                        vnas.dissociateProject(id.toString());
                         _dbClient.updateObject(vnas);
                         project.getAssignedVNasServers().remove(vId);
                     }

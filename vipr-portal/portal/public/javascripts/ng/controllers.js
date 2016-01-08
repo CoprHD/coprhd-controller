@@ -1089,12 +1089,27 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
 angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     angular.element("#backup-time").ready(function (event) {
         $scope.$apply(function() {
-            $scope.time = new Date().getTime();
-            $scope.startTime_time = getTime($scope.time);
+            $scope.backup_startTime = getLocalTimeFromOffset($schedulerTimeOffset);
         });
+
+    });
+    $scope.$watch('backup_startTime', function() {
+        setOffsetFromLocalTime($scope.backup_startTime);
     });
 
-    function getTime(millis) {
-        return millis ? formatDate(millis, "HH:mm") : "";
+    function getLocalTimeFromOffset(offset) {
+        var chosenHour = parseInt(offset/100);
+        var chosenMin = offset%100;
+        var utcMoment = moment.utc({hour:chosenHour, minute: chosenMin});
+        var localTime = utcMoment.local().format("HH:mm");
+        return localTime;
+    }
+
+    function setOffsetFromLocalTime(localTime) {
+        var localMoment = moment(localTime, "HH:mm");
+        var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
+        var $backup_time = $("#backup_scheduler_time");
+        $backup_time.val(utcOffset);
+        checkForm();
     }
 });

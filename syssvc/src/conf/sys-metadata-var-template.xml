@@ -2350,7 +2350,7 @@
 	</bean>
 	<bean id="backup_scheduler_copies_to_keep" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup Retention Number" />
-		<property name="description" value="Retain maximum number of scheduled backups" />
+		<property name="description" value="Maximum number of scheduled backups" />
 		<property name="type" value="uint32" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Backup" />
@@ -2393,7 +2393,7 @@
 	</bean>
 	<bean id="backup_max_manual_copies" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup Max Copies" />
-		<property name="description" value="Max number of manually created backup copies, keep on system" />
+		<property name="description" value="Maximum number of manually created backup copies, keep on system" />
 		<property name="type" value="uint32" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Backup" />

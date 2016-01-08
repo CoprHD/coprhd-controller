@@ -2364,7 +2364,7 @@
     {
         key : "backup_scheduler_copies_to_keep",
         label : "Backup Retention Number",
-        description : "Retain maximum number of scheduled backups",
+        description : "Maximum number of scheduled backups",
         type : "uint32",
         allowedValues : ( "0", "1", "2", "3", "4", "5" ),
         tag : "Backup",
@@ -2410,7 +2410,7 @@
     {
         key : "backup_max_manual_copies",
         label : "Backup Max Copies",
-        description : "Max number of manually created backup copies, keep on system",
+        description : "Maximum number of manually created backup copies, keep on system",
         type : "uint32",
         allowedValues : ( "0", "1", "2", "3", "4", "5" ),
         tag : "Backup",

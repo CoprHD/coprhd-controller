@@ -2,42 +2,15 @@
 #{get 'moreScripts'/}
 <script type="text/javascript">
     $(document).ready(function () {
+        $schedulerTimeOffset = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
         $copiesToKeep = $("#${util.ConfigProperty.BACKUP_SCHEDULER_COPIES}");
         $copiesToKeep.on('change', function () {
-            checkIsZero(this.value);
+            checkIsZero(this.value, 'scheduler');
         });
         $maxManualCopies = $("#${util.ConfigProperty.BACKUP_MAX_MANUAL_COPIES}");
         $maxManualCopies.on('change', function () {
-            checkIsZero(this.value);
+            checkIsZero(this.value, 'manual');
         });
-
-        $selector_hour = $("#backup_scheduler_time_hour");
-        for (var i = 0; i < 24; i++) {
-            var hour = moment({hour: i});
-            var utcTime = parseInt(moment.utc(hour.toDate()).format("HH"));
-            var localTime = hour.format("HH");
-            var $option = $("<option value=" + utcTime + ">" + localTime + "</option>");
-            var time = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
-            var chosenHour = parseInt(time/100);
-            if (chosenHour === utcTime) {
-                $option.prop("selected", "selected");
-            }
-            $option.appendTo($selector_hour);
-        }
-
-        $selector_min = $("#backup_scheduler_time_min");
-        for (var i = 0; i < 60; i++) {
-            var minute = moment({minute: i});
-            var utcTime = parseInt(moment.utc(minute.toDate()).format("mm"));
-            var localTime = minute.format("mm");
-            var $option = $("<option value=" + utcTime + ">" + localTime + "</option>");
-            var time = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
-            var chosenMin = time%100;
-            if (chosenMin === utcTime) {
-                $option.prop("selected", "selected");
-            }
-            $option.appendTo($selector_min);
-        }
 
         $backup_interval = $("#backup_scheduler_interval");
         $backup_interval_num = $("#backup_scheduler_interval_num");
@@ -54,27 +27,24 @@
         }
     });
 
-    function setBackupSchedulerTime() {
-        var $backup_time = $("#backup_scheduler_time");
-        var offset = parseInt($selector_hour.val()) * 100 + parseInt($selector_min.val());
-        $backup_time.val(offset);
-        checkForm();
-    }
-
     function setBackupSchedulerInterval() {
         var value = $backup_interval_num.val() + $selector_interval.val();
         $backup_interval.val(value);
         checkForm();
     }
 
-    function checkIsZero(value) {
+    function checkIsZero(value, type) {
         if (value === '0') {
-            alert("&{'configProperties.backup.setToZero'}");
+            if (type === 'manual') {
+                alert("&{'configProperties.backup.setToZero.manual'}");
+            } else if (type === 'scheduler') {
+                alert("&{'configProperties.backup.setToZero.scheduler'}");
+            }
         }
-
     }
 </script>
 #{/set}
+<br/>
 #{ConfigProperties.propertySet titleKey:'configProperties.backup.scheduled'}
 #{ConfigProperties.property property:page.schedulerEnabled, disabled:unstable/}
 %{
@@ -96,7 +66,7 @@
     <div class="col-sm-6 controls" ng-controller="ConfigBackupCtrl">
         <div class="row col-gap-sm" id="backup-time">
             <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
-                <time-picker ng-model="startTime_time"></time-picker>
+                <time-picker ng-model="backup_startTime"></time-picker>
             <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
         </div>
     </div>
@@ -124,8 +94,8 @@ disabled:unstable;
         <div class="row col-gap-sm">
             <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
             <div class="col-md-6">
-                <input-text v-field="${id}_num" style="vertical-align: top"
-                            onkeyup="setBackupSchedulerInterval()"></input-text>
+                <input type="text" class="form-control" id="${id}_num" style="vertical-align: top"
+                       onkeyup="setBackupSchedulerInterval()"/>
             </div>
             <div class="col-md-6">
                 <select id="${id}_unit" class="form-control" onchange="setBackupSchedulerInterval()">

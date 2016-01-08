@@ -49,7 +49,7 @@
            </div>
            <div class="row">
                 <control-group v-field='project' labelWidth="1" required >
-                    <select-many options="projectOptions"></select-many>
+                    <select-many options="projectOptions" onChange="enableSubmitFormButton('submitAssociateFormButton')"></select-many>
                 </control-group>
            </div>
            
@@ -79,14 +79,14 @@
        <div class="container-fluid" >
        
            <div class="row">
-                <control-group v-field='projectsToDissociate' labelWidth="1" required >
-                    <select-many options="projectsToDissociateOptions"></select-many>
+                <control-group v-field='project' labelWidth="1" required >
+                    <select-many options="projectsToDissociateOptions" onChange="enableSubmitFormButton('submitDissociateFormButton')"></select-many>
                 </control-group>
            </div>
            
            <br>
            #{form @dissociateProject(), id:'dissociateForm',  class:'form form-horizontal', autocomplete:"off"}
-             <input type="hidden" name="projectIdsToDissociate" ng-value="projectsToDissociate" />
+             <input type="hidden" name="projectIdsToDissociate" ng-value="project" />
              <input type="hidden" name="nasIds" ng-value="nasIds" />
              <input type="hidden" name="storageId" value="${storageId}"/>
              <div class="row">
@@ -107,6 +107,7 @@ function renderLink(o, val) {
 }
 
 function enableSubmitFormButton(buttonId) {
+	
 	var checked = false;
 	var checkboxes = document.getElementsByName('selected');
 	for (var i=0, n=checkboxes.length;i<n;i++) {
@@ -150,8 +151,9 @@ function showDissociateProjectDialog() {
     for (var i=0, n=checkboxes.length;i<n;i++) {
       if (checkboxes[i].checked) {
     	  document.getElementById("submitDissociateFormButton").disabled = false;
+    	  
       	  var project = checkboxes[i].value.split("~~~");
-      	  if (project[1].trim().length > 0) {
+      	  if (project.length > 1 && project[1].trim().length > 0) {
       	      projectIds += "," + project[1];
       	      nasIds = project[0];
       	  }

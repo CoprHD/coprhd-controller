@@ -550,7 +550,7 @@ public class FileStorageScheduler {
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 } else if (!vNAS.isNotAssignedToProject()) {
-                    if (!vNAS.getProjects().contains(project.getId())) {
+                    if (!vNAS.getAssociatedProjects().contains(project.getId())) {
                         _log.info("Removing vNAS {} as it is assigned to project",
                                 vNAS.getNasName());
                         iterator.remove();

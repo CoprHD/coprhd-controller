@@ -21,7 +21,7 @@ import com.emc.storageos.model.valid.EnumType;
 public class VirtualNAS extends NASServer {
 
     // Project name associated with VNAS
-    private StringSet projects;
+    private StringSet associatedProjects;
 
     // Base directory Path for the VNAS applicable in AccessZones & vFiler device types
     private String baseDirPath;
@@ -30,26 +30,26 @@ public class VirtualNAS extends NASServer {
     private URI parentNasUri;
 
     @Name("associatedProjects")
-    public StringSet getProjects() {
-        if (projects == null) {
-            projects = new StringSet();
+    public StringSet getAssociatedProjects() {
+        if (associatedProjects == null) {
+            associatedProjects = new StringSet();
         }
-        return projects;
+        return associatedProjects;
     }
 
     public void setAssociatedProjects(StringSet projects) {
-        this.projects = projects;
+        this.associatedProjects = projects;
         setChanged("associatedProjects");
     }
 
     public void associateProject(String projectURI) {
-        StringSet existingProjects = getProjects();
+        StringSet existingProjects = getAssociatedProjects();
         existingProjects.add(projectURI);
         setAssociatedProjects(existingProjects);
     }
 
     public void dissociateProject(String projectURI) {
-        StringSet existingProjects = getProjects();
+        StringSet existingProjects = getAssociatedProjects();
         existingProjects.remove(projectURI);
         setAssociatedProjects(existingProjects);
     }
@@ -122,6 +122,6 @@ public class VirtualNAS extends NASServer {
      * @return true if VNAS is not assigned to project(s), false otherwise
      */
     public boolean isNotAssignedToProject() {
-        return (projects == null || projects.isEmpty());
+        return (associatedProjects == null || associatedProjects.isEmpty());
     }
 }

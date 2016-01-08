@@ -2972,11 +2972,11 @@ public class VolumeIngestionUtil {
     /**
      * Decorate the RP volumes with the protection set and consistency group info after the RP CG has been fully ingested
      * 
-     * @param rpVolumes
-     * @param pset
-     * @param rpCG
-     * @param updatedObjects
-     * @param dbClient
+     * @param rpVolumes RP Volumes
+     * @param pset protection set
+     * @param rpCG RP consistency group
+     * @param updatedObjects List of objects updated
+     * @param dbClient a reference to the database client
      */
     public static void decorateRPVolumesCGInfo(List<Volume> rpVolumes, ProtectionSet pset, BlockConsistencyGroup rpCG,
             List<DataObject> updatedObjects, DbClient dbClient) {
@@ -2989,12 +2989,12 @@ public class VolumeIngestionUtil {
             // For sources and targets, peg an RP journal volume to be associated with each.
             // This is a bit arbitrary for ingested RP volues as they may have 5 journal volumes for one source volume.
             // We just pick one since we only store one journal volume ID in a Volume object.
-            if (volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString()) ||
-                    volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.TARGET.toString())) {
+            if (Volume.PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality()) ||
+                    Volume.PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())) {
 
                 // Find a journal for that rp copy
                 for (Volume journalVolume : rpVolumes) {
-                    if (journalVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString()) &&
+                    if (Volume.PersonalityTypes.METADATA.toString().equalsIgnoreCase(journalVolume.getPersonality()) &&
                             journalVolume.getRpCopyName() != null &&
                             volume.getRpCopyName() != null &&
                             journalVolume.getRpCopyName().equals(volume.getRpCopyName())) {

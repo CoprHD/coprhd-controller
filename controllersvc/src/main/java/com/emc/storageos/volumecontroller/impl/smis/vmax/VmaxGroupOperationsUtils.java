@@ -171,7 +171,7 @@ public class VmaxGroupOperationsUtils {
             final SmisCommandHelper helper,
             final CIMObjectPathFactory cimPath) throws Exception {
         boolean isSuccess = false;
-        String groupName = helper.getConsistencyGroupName(sourceVolume, storage);
+        String groupName = helper.getSourceConsistencyGroupName(sourceVolume);
         String replicaGroupName = blockObj.getReplicationGroupInstance();
         CIMObjectPath groupSynchronized = cimPath.getGroupSynchronizedPath(storage, groupName, replicaGroupName);
         CIMArgument[] inArgs = null;

@@ -7,6 +7,8 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +20,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Task completer invoked when a workflow restoring a BlockSnapshotSession completes.
@@ -58,8 +59,9 @@ public class BlockSnapshotSessionRestoreWorkflowCompleter extends BlockSnapshotS
                 BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
                 BlockObject sourceObj = null;
                 if (snapSession.hasConsistencyGroup()) {
-                    List<Volume> volumesPartOfCG = ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), dbClient);
-                    sourceObj = volumesPartOfCG.get(0);
+                    BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getId());
+                    List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, dbClient);
+                    sourceObj = nativeVolumes.get(0);
                 } else {
                     sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
                 }

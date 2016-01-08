@@ -1610,7 +1610,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             // Now link the target group to the array snapshots represented by the session.
             CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
 
-            CIMObjectPath sourceGroupPath = _cimPath.getReplicationGroupObjectPath(system, sourceGroupName);
             BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapshotSessionURI);
             String syncAspectPath = snapSession.getSessionInstance();
             CIMObjectPath settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName,
@@ -1836,15 +1835,9 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 if (snapSession.hasConsistencyGroup()) {
                     _log.info("Restoring group snapshot session");
                     // We need a single source volume for the session.
-                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-                    List<Volume> allNonVplexCgVolumes = BlockConsistencyGroupUtils.getActiveNonVplexVolumesInCG(cg, _dbClient, null);
-                    for (Volume volume : allNonVplexCgVolumes) {
-                        String personality = volume.getPersonality();
-                        if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
-                            sourceObj = volume;
-                            break;
-                        }
-                    }
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getId());
+                    List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
+                    sourceObj = nativeVolumes.get(0);
                     String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
                     settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
                 } else {
@@ -1896,18 +1889,16 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 } else {
                     CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
 
-                    URI sourceURI = null;
+                    BlockObject sourceObj = null;
                     if (snapSession.hasConsistencyGroup()) {
-                        List<Volume> volumesPartOfCG =
-                                ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), _dbClient);
-                        sourceURI = volumesPartOfCG.get(0).getId();
+                        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getId());
+                        List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
+                        sourceObj = nativeVolumes.get(0);
                     } else {
-                        sourceURI = snapSession.getParent().getURI();
+                        sourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
                     }
 
-                    BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
                     CIMObjectPath sourcePath = _cimPath.getBlockObjectPath(system, sourceObj);
-
                     CIMObjectPath settingsStatePath = null;
                     if (sourceObj.hasConsistencyGroup()) {
                         String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);

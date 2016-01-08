@@ -19,6 +19,7 @@ import java.util.Set;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,7 +119,6 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             Volume sourceVolume = (Volume) sourceObj;
             URI cgURI = sourceVolume.getConsistencyGroup();
             if (!isNullURI(cgURI)) {
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                 sourceObjList.addAll(getVolumesPartOfCG(cgURI, _dbClient));
             } else {
                 sourceObjList.add(sourceObj);
@@ -287,7 +287,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     @Override
     public BlockSnapshotSession prepareSnapshotSession(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
             String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId) {
-        // Create a single snap session for one volume in the CG
+        // Create a single snap session based on a sample volume in the CG
         BlockObject source = sourceObjList.get(0);
         BlockSnapshotSession snapSession =
                 prepareSnapshotSessionFromSource(source, snapSessionLabel, snapSessionLabel, taskId);
@@ -690,5 +690,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr
                 .getPlatformSpecificImplForSystem(srcSideBackendSystem);
         return snapSessionImpl;
+    }
+
+    @Override
+    public BlockObject getActiveSource(BlockConsistencyGroup cg) {
+        return BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient).get(0);
     }
 }

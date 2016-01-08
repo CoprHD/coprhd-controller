@@ -477,13 +477,13 @@ public interface BlockController extends BlockStorageManagementController {
     /**
      * Creates new array snapshot point in time copies on the array with the passed URI
      * and optionally links 1 or more targets volumes to each snapshots.
-     * 
+     *
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URIs of the BlockSnapshotSession instances.
      * @param sessionSnapshotURIs Map of the BlockSnapshot instances for each session.
      * @param copyMode The copy mode for linked targets.
      * @param opId The unique task identifier.
-     * 
+     *
      * @throws InternalException
      */
     public void createSnapshotSession(URI systemURI, URI snapSessionURI,

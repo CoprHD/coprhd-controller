@@ -351,7 +351,7 @@ public class BlockStorageScheduler {
             portsAllocated.put(network, allocatePortsFromNetwork(
                     system.getId(), network, varray, portsNeeded,
                     portUsageMap.get(netURI), allocator, existingPortsMap.get(netURI),
-                    pathParams.getAllowFewerPorts()));
+                    true));
         }
         return portsAllocated;
     }

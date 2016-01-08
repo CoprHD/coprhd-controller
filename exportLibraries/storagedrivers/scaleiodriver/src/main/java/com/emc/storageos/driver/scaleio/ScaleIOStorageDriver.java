@@ -7,6 +7,7 @@ import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOSDS;
 import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOStoragePool;
 import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOSystem;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.*;
@@ -18,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class ScaleIOStorageDriver extends AbstractStorageDriver {
+public class ScaleIOStorageDriver extends AbstractStorageDriver implements BlockStorageDriver{
 	private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
 	private ScaleIORestHandleFactory handleFactory;
 
@@ -401,7 +402,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 							supportedDriveTypes.add(StoragePool.SupportedDriveTypes.FC);
 							supportedDriveTypes.add(StoragePool.SupportedDriveTypes.SATA);
 							pool.setSupportedDriveTypes(supportedDriveTypes);
-
 							storagePools.add(pool);
 						}
 					}
@@ -449,7 +449,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 								if (ips != null && !ips.isEmpty()) {
 									sdsIP = ips.get(0).getIp();
 								}
-
 								if (sdsId != null) {
 									port = new StoragePort();
 									// String nativeId = URIUtil
@@ -462,7 +461,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 									port.setIpAddress(sdsIP);
 									port.setPortGroup(sdsId);
 									port.setPortType(StoragePort.PortType.frontend);
-
 									storagePorts.add(port);
 								}
 							}

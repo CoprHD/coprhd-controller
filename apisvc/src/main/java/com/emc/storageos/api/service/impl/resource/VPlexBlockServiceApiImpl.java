@@ -3486,7 +3486,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 } else if (!consistencyGroupURI.toString().equals(cgUri.toString())){
                     // The volume is not from the same CG
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(),
-                            "the VPLEX virtual volume is not in a same consistency group as others in the same request");
+                            "the VPLEX virtual volume is not in the same consistency group as others in the same request");
                 }
                 // get the backing volumes
                 StringSet backingVolumes = addVol.getAssociatedVolumes();

@@ -10826,16 +10826,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     @Override
     public void updateVolumeGroup(URI vplexURI, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList, URI volumeGroup,
             String opId) throws InternalException {
-        _log.info("Update volume group {} on VPLEX {}", volumeGroup, vplexURI);
+        _log.info("Update volume group {}", volumeGroup);
         TaskCompleter completer = null;
         List<URI> addVols = null;
-        // Get a new workflow to execute the CG update.
+        // Get a new workflow to execute the volume group update.
         Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_VOLUMEGROUP_WF_NAME,
                 false, opId);
         String waitFor = null;
         try {
             if (removeVolumeList != null && !removeVolumeList.isEmpty()) {
-                _log.info("Creating workflows for removing volumes from the volume group");
+                _log.info("Creating steps for removing volumes from the volume group");
                 // Sort the backend volumes by its system, CG and replicationGroup
                 Map<String, List<URI>> removeVolsMap = new HashMap<String, List<URI>>();
                 for (URI voluri : removeVolumeList) {
@@ -10880,14 +10880,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
             }
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
-                _log.info("Creating workflows for adding volumes to the volume group");
+                _log.info("Creating steps for adding volumes to the volume group");
                 addVols = addVolList.getVolumes();
                 URI firstVol = addVols.get(0);
                 Volume firstVolume = getDataObject(Volume.class, firstVol, _dbClient);
                 URI cguri = firstVolume.getConsistencyGroup();
                 String replicationGroupName = addVolList.getReplicationGroupName();
                 
-                // Sort the backend volumes by their storage systems. all volumes in the list should belong to the same CG
+                // Sort the backend volumes by their storage systems. all volumes in the list should belong to the same VPLEX CG
                 Map<URI, List<URI>> addSrcVolsMap = new HashMap<URI, List<URI>>();
                 Map<URI, List<URI>> addHAVolsMap = new HashMap<URI, List<URI>>();
                 for (URI addVol : addVols) {
@@ -10915,7 +10915,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     "Update volume group successful for %s", volumeGroup.toString());
             workflow.executePlan(completer, successMessage);
         } catch (Exception e) {
-            _log.error("Exception while updating the application", e);
+            _log.error("Exception while updating the volume group", e);
             if (completer != null) {
                 completer.error(_dbClient, DeviceControllerException.exceptions.failedToUpdateVolumesFromAppication(volumeGroup.toString(), e.getMessage()));
             }
@@ -10938,7 +10938,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
     
     /**
-     * Add steps to add volumes to replication group.
+     * Add steps to add backend volumes to replication group.
      * @param workflow
      * @param waitFor
      * @param addVolumes

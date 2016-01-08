@@ -64,7 +64,7 @@
               #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SECURITY_ADMIN']]}
               #{if controllers.infra.DisasterRecovery.isPrimarySite()}
               	#{nav.item 'systemHealthDashboard', href: @SystemHealth.systemHealth()/}
-                #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
+                #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
               	#{nav.item 'backup', href: @Backup.list()/}
                 #{/deadbolt.restrict}
               	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}

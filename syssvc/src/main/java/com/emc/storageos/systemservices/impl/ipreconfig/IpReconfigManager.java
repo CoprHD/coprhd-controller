@@ -21,6 +21,7 @@ import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ipreconfig.*;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.slf4j.Logger;
@@ -40,6 +41,7 @@ public class IpReconfigManager implements Runnable {
     private static Charset UTF_8 = Charset.forName("UTF-8");
     private static final long IPRECONFIG_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours timeout for the procedure
     private static final long POLL_INTERVAL = 10 * 1000; // 10 second polling interval
+    private static final String UPDATE_ZKIP_LOCK = "update_zkip";
 
     // ipreconfig entry in ZK
     Configuration config = null;
@@ -49,6 +51,7 @@ public class IpReconfigManager implements Runnable {
     private Integer localNodeId;                // local node id (1~5)
     private Integer nodeCount;
     private long expiration_time = 0L;         // ipreconfig would fail if not finished at this time
+
 
     @Autowired
     private CoordinatorClientExt _coordinator;
@@ -161,10 +164,13 @@ public class IpReconfigManager implements Runnable {
         config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
         if (config == null) {
             log.info("no ipreconfig request coming in yet.");
+
+            assureIPConsistent();
             return;
         }
 
         if (isRollback()) {
+            assureIPConsistent();
             return;
         }
 
@@ -290,6 +296,7 @@ public class IpReconfigManager implements Runnable {
                     // New IP has taken effect in local node, set total status to "Succeed" when all nodes are "Local_Succeed".
                     target_nodestatus = IpReconfigConstants.NodeStatus.CLUSTER_SUCCEED;
                     if (isReadyForNextStatus(localnode_status, target_nodestatus)) {
+                        assureIPConsistent();
                         setSucceed();
                     }
                     break;
@@ -747,4 +754,29 @@ public class IpReconfigManager implements Runnable {
         return localIpinfo;
     }
 
+    /**
+     * Assure local site IP info is consistent with that in ZK.
+     * (DR/GEO procedures store IP info in ZK even for single site since Yoda.)
+     */
+    void assureIPConsistent() {
+        InterProcessLock lock = null;
+        try {
+            log.info("Assuring local site IPs are consistent with ZK ...");
+            lock = _coordinator.getCoordinatorClient().getLock(UPDATE_ZKIP_LOCK);
+            lock.acquire();
+            log.info("Got lock for updating local site IPs into ZK ...");
+
+            log.info("Finished updating local site IPs into ZK");
+        } catch (Exception e) {
+            log.warn("Unexpected exception during updating local site IPs into ZK", e);
+        } finally {
+            if (lock != null) {
+                try {
+                    lock.release();
+                } catch (Exception e) {
+                    log.warn("Unexpected exception during unlocking update_zkip lock", e);
+                }
+            }
+        }
+    }
 }

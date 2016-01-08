@@ -36,6 +36,16 @@ public class ZkBackupHandler extends BackupHandler {
     private static final String CONNECT_ZK_HOST = "localhost";
     private static final int CONNECT_ZK_PORT = 2181;
     private File zkDir;
+    private File siteIdFile;
+
+    public File getSiteIdFile() {
+        return siteIdFile;
+    }
+
+    public void setSiteIdFile(File siteIdFile) {
+        this.siteIdFile = siteIdFile;
+    }
+
     private List<String> fileTypeList;
 
     /**
@@ -284,6 +294,10 @@ public class ZkBackupHandler extends BackupHandler {
         return fullBackupTag;
     }
 
+    private void backupSiteId(File targetDir) throws IOException {
+        FileUtils.copyFile(this.siteIdFile, targetDir);
+    }
+
     @Override
     public File dumpBackup(final String backupTag, final String fullBackupTag) {
         File targetDir = new File(backupContext.getBackupDir(), backupTag);
@@ -296,6 +310,7 @@ public class ZkBackupHandler extends BackupHandler {
             ValidationUtil.validateFile(targetFolder, FileType.Dir,
                     NotExistEnum.NOT_EXSIT_CREATE);
             backupFolder(targetFolder, zkDir);
+            backupSiteId(targetFolder);
         } catch (IOException ex) {
             throw BackupException.fatals.failedToDumpZkData(fullBackupTag, ex);
         }

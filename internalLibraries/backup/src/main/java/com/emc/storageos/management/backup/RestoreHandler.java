@@ -26,6 +26,7 @@ import static com.emc.storageos.services.util.FileUtils.chown;
 
 public class RestoreHandler {
 
+    private static final String SITE_ID_FILE_NAME = "siteid";
     private static final Logger log = LoggerFactory.getLogger(RestoreHandler.class);
 
     private File rootDir;
@@ -125,6 +126,12 @@ public class RestoreHandler {
             ZipUtil.unpack(backupArchive, viprDataDir.getParentFile());
             tmpDir.renameTo(viprDataDir);
             chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+            String backupType = backupName.split(BackupConstants.BACKUP_NAME_DELIMITER)[1];
+            if (BackupType.zk.name().equalsIgnoreCase(backupType)) {
+                log.info("Replacing site id file ...");
+                File unpackedSiteIdFile = new File(viprDataDir, SITE_ID_FILE_NAME);
+                FileUtils.moveFileToDirectory(unpackedSiteIdFile, rootDir, false);
+            }
         } finally {
             if (tmpDir.exists()) {
                 FileUtils.deleteQuietly(tmpDir);

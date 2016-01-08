@@ -410,9 +410,8 @@ public enum OperationTypeEnum {
             "Re-link targets to BlockSnapshotSession"),
     UNLINK_SNAPSHOT_SESSION_TARGET("UnlinkBlockSnapshotSessionTargets", "UnlinkBlockSnapshotSessionTargetsFailed",
             "Unlink targets from BlockSnapshotSession"),
-    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."), 
     UPDATE_BUCKET_ACL("UPDATE BUCKET ACL", "", "operation to update bucket ACL"),
-    DELETE_BUCKET_ACL("DELETE BUCKET ACL", "", "operation to delete bucket ACL");
+    DELETE_BUCKET_ACL("DELETE BUCKET ACL", "", "operation to delete bucket ACL"),
 
     /* Disaster Recovery Operations */
     ADD_STANDBY("ADD STANDBY", "", "operation to add a new standby to ensemble"),

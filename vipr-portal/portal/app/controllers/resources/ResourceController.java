@@ -34,9 +34,7 @@ public class ResourceController extends Controller {
         TenantSelector.addRenderArgs();
         String tenantId = Models.currentAdminTenant();
         renderArgs.put("projects", getProjects(tenantId));
-        renderArgs.put("application", getApplications());
         getActiveProjectId(); // called here to make sure active project id is init
-        getActiveApplicationId();
     }
 
     @Util
@@ -52,18 +50,6 @@ public class ResourceController extends Controller {
         return projects;
     }
 
-    @Util
-    public static List<NamedRelatedResourceRep> getApplications() {
-        List<NamedRelatedResourceRep> application = AppSupportUtil.getApplications();
-        Collections.sort(application, new Comparator<NamedRelatedResourceRep>() {
-            @Override
-            public int compare(NamedRelatedResourceRep app1, NamedRelatedResourceRep app2)
-            {
-                return app1.getName().compareTo(app2.getName());
-            }
-        });
-        return application;
-    }
     
     @Util
     public static String getActiveProjectId() {
@@ -79,17 +65,6 @@ public class ResourceController extends Controller {
         return activeProjectId;
     }
     
-    @Util
-    public static String getActiveApplicationId() {
-        String activeApplicationId = session.get(ACTIVE_APP_ID);
-        List<NamedRelatedResourceRep> application = AppSupportUtil.getApplications();
-        if(!application.isEmpty()) {
-            activeApplicationId = id(application.get(0)).toString();
-            setActiveApplicationId(activeApplicationId);
-        }
-        return activeApplicationId;
-    }
-
     @Util
     private static boolean validateActiveProjectId(String activeProjectId) {
         if (StringUtils.isNotBlank(activeProjectId)) {
@@ -110,13 +85,6 @@ public class ResourceController extends Controller {
         if (StringUtils.isNotBlank(activeProjectId)
                 && ResourceType.PROJECT.equals(ResourceType.fromResourceId(activeProjectId))) {
             session.put(ACTIVE_PROJECT_ID, activeProjectId);
-        }
-    }
-    
-    @Util
-    public static void setActiveApplicationId(String activeApplicationId) {
-        if (StringUtils.isNotBlank(activeApplicationId)) {
-            session.put(ACTIVE_APP_ID, activeApplicationId);
         }
     }
 

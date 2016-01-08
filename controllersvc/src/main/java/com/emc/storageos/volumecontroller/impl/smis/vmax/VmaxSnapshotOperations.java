@@ -1890,7 +1890,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
                     BlockObject sourceObj = null;
                     if (snapSession.hasConsistencyGroup()) {
-                        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getId());
+                        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
                         List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
                         sourceObj = nativeVolumes.get(0);
                     } else {

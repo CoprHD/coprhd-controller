@@ -435,12 +435,14 @@ public class StorageSystems extends ViprResourceController {
     @FlashException(keep = true, referrer = { "virtualNasServers" })
     public static void dissociateProject(@As(",") String[] projectIdsToDissociate, String nasIds, String storageId) {
 
-        for (String projectId : projectIdsToDissociate) {
-            Set<String> vNASSet = new HashSet<String>();
-            vNASSet.add(nasIds);
-            VirtualNasParam vNasParam = new VirtualNasParam();
-            vNasParam.setVnasServers(vNASSet);
-            getViprClient().virtualNasServers().unassignVnasServers(uri(projectId), vNasParam);
+        if (projectIdsToDissociate != null && projectIdsToDissociate.length > 0) {
+            for (String projectId : projectIdsToDissociate) {
+                Set<String> vNASSet = new HashSet<String>();
+                vNASSet.add(nasIds);
+                VirtualNasParam vNasParam = new VirtualNasParam();
+                vNasParam.setVnasServers(vNASSet);
+                getViprClient().virtualNasServers().unassignVnasServers(uri(projectId), vNasParam);
+            }
         }
 
         virtualNasServers(storageId);

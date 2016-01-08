@@ -23,8 +23,8 @@
  #{if expectedGeoVersion}
   #{DataTable.buttonBar}
    
-    #{Form.button name:'button.associate', class:'info', icon:'plus', action:'showDialogClick()', data:['enabled':'selected']/}
-    #{Form.button name:'button.dissociate', class:'warning', icon:'trash', action:'showDissociateDialog()', data:['enabled':'selected', 'selection':'single']/}
+    #{Form.button name:'button.associate', class:'info', icon:'plus', action:'showAssociateProjectDialog()', data:['enabled':'selected']/}
+    #{Form.button name:'button.dissociate', class:'warning', icon:'trash', action:'showDissociateProjectDialog()', data:['enabled':'selected', 'selection':'single']/}
    
   #{/DataTable.buttonBar}
  #{/if} 
@@ -49,7 +49,7 @@
            </div>
            <div class="row">
                 <control-group v-field='project' labelWidth="1" required >
-                    <select-many options="projectOptions" onChange="enableButton()"></select-many>
+                    <select-many options="projectOptions"></select-many>
                 </control-group>
            </div>
            
@@ -61,7 +61,7 @@
              <input type="hidden" name="storageId" value="${storageId}"/>
              <div class="row">
                #{Modal.buttonBar}
-                 <button type="submit" id="myBtn" style="margin-left:45px;" class="btn btn-primary" disabled><i v-icon=ok-sign></i> &{'button.save'}</button>
+                 <button type="submit" id="submitAssociateFormButton" style="margin-left:45px;" class="btn btn-primary" disabled><i v-icon=ok-sign></i> &{'button.save'}</button>
                #{/Modal.buttonBar}
              </div>
            #{/form}
@@ -79,8 +79,8 @@
        <div class="container-fluid" >
        
            <div class="row">
-                <control-group v-field='project' labelWidth="1" required >
-                    <select-many options="projectsToDissociateOptions" onChange="enableButton()"></select-many>
+                <control-group v-field='projectsToDissociate' labelWidth="1" required >
+                    <select-many options="projectsToDissociateOptions"></select-many>
                 </control-group>
            </div>
            
@@ -91,7 +91,7 @@
              <input type="hidden" name="storageId" value="${storageId}"/>
              <div class="row">
                #{Modal.buttonBar}
-                 <button type="submit" id="myBtn" style="margin-left:45px;" class="btn btn-primary" ><i v-icon=ok-sign></i> &{'button.save'}</button>
+                 <button type="submit" id="submitDissociateFormButton" style="margin-left:45px;" class="btn btn-primary" disabled><i v-icon=ok-sign></i> &{'button.save'}</button>
                #{/Modal.buttonBar}
              </div>
            #{/form}
@@ -106,19 +106,32 @@ function renderLink(o, val) {
     return "";
 }
 
-function enableButton() {
-	document.getElementById("myBtn").disabled = false;
+function enableSubmitFormButton(buttonId) {
+	var checked = false;
+	var checkboxes = document.getElementsByName('selected');
+	for (var i=0, n=checkboxes.length;i<n;i++) {
+        if (checkboxes[i].checked) {
+        	checked = true;
+        	break;
+        }
+      }
+	if(checked) {
+		document.getElementById(buttonId).disabled = false;
+	} else {
+		document.getElementById(buttonId).disabled = true;
+	}
 }
 
-function showDialogClick() {
+function showAssociateProjectDialog() {
       var checkboxes = document.getElementsByName('selected');
       var nasIds = "";
-      document.getElementById("myBtn").disabled = true;
+      document.getElementById("submitAssociateFormButton").disabled = true;
       for (var i=0, n=checkboxes.length;i<n;i++) {
-        if (checkboxes[i].checked) 
-        {
+        if (checkboxes[i].checked) {
+        	
+        	document.getElementById("submitAssociateFormButton").disabled = false;
         	var nasid = checkboxes[i].value.split("~~~");
-           nasIds += "," + nasid[0];
+            nasIds += "," + nasid[0];
         }
       }
       if (nasIds) {
@@ -129,24 +142,25 @@ function showDialogClick() {
 	  $('#associateToProject').modal('show');
 }
 
-function showDissociateDialog() {
+function showDissociateProjectDialog() {
     var checkboxes = document.getElementsByName('selected');
     var projectIds = "";
     var nasIds = "";
-    
+    document.getElementById("submitDissociateFormButton").disabled = true;
     for (var i=0, n=checkboxes.length;i<n;i++) {
       if (checkboxes[i].checked) {
-      	var project = checkboxes[i].value.split("~~~");
-      	if (project[1].trim().length > 0) {
-      	    projectIds += "," + project[1];
-      	    nasIds = project[0];
-      	}
-      	break;
+    	  document.getElementById("submitDissociateFormButton").disabled = false;
+      	  var project = checkboxes[i].value.split("~~~");
+      	  if (project[1].trim().length > 0) {
+      	      projectIds += "," + project[1];
+      	      nasIds = project[0];
+      	  }
+      	  break;
       }
     }
     if (projectIds.length > 0) {
     	projectIds = projectIds.substring(1);
-        var scope = angular.element($('#dissociateForm')).scope();
+	    var scope = angular.element($('#dissociateForm')).scope();
 	    scope.populateModal(projectIds, nasIds);
 	    $('#dissociateFromProject').modal('show');
     }

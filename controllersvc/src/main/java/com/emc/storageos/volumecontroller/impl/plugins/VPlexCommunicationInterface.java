@@ -24,6 +24,8 @@ import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sun.net.util.IPAddressUtil;
+
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -45,12 +47,12 @@ import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -70,6 +72,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexStatsCollector;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
@@ -89,8 +92,6 @@ import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
-
-import sun.net.util.IPAddressUtil;
 
 /**
  * Discovery framework plug-in class for discovering VPlex storage systems.
@@ -121,6 +122,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     // PartitionManager used for batch database persistence.
     private PartitionManager _partitionManager;
 
+    // Statistics collection implementation
+    private VPlexStatsCollector _statsCollector;
+
     /**
      * Public constructor for Spring bean creation.
      */
@@ -144,6 +148,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     @Override
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
+    }
+
+    /**
+     * Setter for statistics collector
+     */
+    public void setStatsCollector(VPlexStatsCollector statsCollector) {
+        _statsCollector = statsCollector;
     }
 
     /**
@@ -559,8 +570,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             Map<String, String> clusterIdToNameMap = client.getClusterIdToNameMap();
             Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
-            Map<String, String> distributedDevicePathToClusterMap =
-                    VPlexControllerUtils.getDistributedDevicePathToClusterMap(vplexUri, _dbClient);
+            Map<String, String> distributedDevicePathToClusterMap = VPlexControllerUtils.getDistributedDevicePathToClusterMap(vplexUri,
+                    _dbClient);
 
             if (null != allVirtualVolumes) {
                 for (String name : allVirtualVolumes.keySet()) {
@@ -687,7 +698,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     if (null != unmanagedVolume && !unmanagedVolume.getInactive()) {
                         allUnmanagedVolumes.add(unmanagedVolume.getId());
                     }
-                    
+
                     tracker.volumeTimeResults.put(name, System.currentTimeMillis() - timer);
                     tracker.totalVolumesDiscovered++;
 
@@ -759,8 +770,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 .getStorageSystemUnManagedVolumeConstraint(vplexUri), results);
 
         List<UnManagedVolume> changedVolumes = new ArrayList<UnManagedVolume>();
-        Iterator<UnManagedVolume> allUnmanagedVolumes = 
-                _dbClient.queryIterativeObjects(UnManagedVolume.class, results, true);
+        Iterator<UnManagedVolume> allUnmanagedVolumes = _dbClient.queryIterativeObjects(UnManagedVolume.class, results, true);
         while (allUnmanagedVolumes.hasNext()) {
             UnManagedVolume unManagedVolume = allUnmanagedVolumes.next();
             String isFullCopyStr = unManagedVolume.getVolumeCharacterstics()
@@ -967,9 +977,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
         // set supported vpool list
         StringSet matchedVPools = new StringSet();
-        String highAvailability = info.getLocality().equals(LOCAL) ?
-                VirtualPool.HighAvailabilityType.vplex_local.name() :
-                VirtualPool.HighAvailabilityType.vplex_distributed.name();
+        String highAvailability = info.getLocality().equals(LOCAL) ? VirtualPool.HighAvailabilityType.vplex_local.name()
+                : VirtualPool.HighAvailabilityType.vplex_distributed.name();
         List<URI> allVpoolUris = _dbClient.queryByType(VirtualPool.class, true);
         List<VirtualPool> allVpools = _dbClient.queryObject(VirtualPool.class, allVpoolUris);
         s_logger.info("finding valid virtual pools for UnManagedVolume {}", volume.getLabel());
@@ -1078,8 +1087,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     boolean hasReplicas = (null != hasReplicasStr && Boolean.parseBoolean(hasReplicasStr));
 
                     if (hasReplicas) {
-                        StringSet fullCopyTargetBvols =
-                                bvol.getVolumeInformation().get(SupportedVolumeInformation.FULL_COPIES.name());
+                        StringSet fullCopyTargetBvols = bvol.getVolumeInformation().get(SupportedVolumeInformation.FULL_COPIES.name());
 
                         if (fullCopyTargetBvols != null && !fullCopyTargetBvols.isEmpty()) {
                             // if this backend volume has FULL_COPIES, add them
@@ -1398,7 +1406,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         s_logger.info("   wwn normalized to " + initiatorNetworkId);
                     } else if (initiatorNetworkId.matches(ISCSI_PATTERN)
                             && (iSCSIUtility.isValidIQNPortName(initiatorNetworkId)
-                            || iSCSIUtility.isValidEUIPortName(initiatorNetworkId))) {
+                                    || iSCSIUtility.isValidEUIPortName(initiatorNetworkId))) {
                         s_logger.info("   iSCSI storage port normalized to " + initiatorNetworkId);
                     } else {
                         s_logger.warn("   this is not a valid FC or iSCSI network id format, skipping");
@@ -1591,8 +1599,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     + Joiner.on("\t").join(onlyAvailableinDB));
 
             List<UnManagedExportMask> unManagedExportMasksToBeDeleted = new ArrayList<UnManagedExportMask>();
-            Iterator<UnManagedExportMask> unManagedExportMasks =
-                    _dbClient.queryIterativeObjects(UnManagedExportMask.class, new ArrayList<URI>(onlyAvailableinDB));
+            Iterator<UnManagedExportMask> unManagedExportMasks = _dbClient.queryIterativeObjects(UnManagedExportMask.class,
+                    new ArrayList<URI>(onlyAvailableinDB));
 
             while (unManagedExportMasks.hasNext()) {
 
@@ -1893,6 +1901,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
+        StringMap stats = _statsCollector.collect(accessProfile);
+        processVPlexStats(stats);
+        dumpStatRecords();
+        injectStats();
     }
 
     /**
@@ -2223,5 +2235,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             return sortedMap;
         }
+    }
+
+    /**
+     * Statistics collected from Vplex will be in the passed in StringMap. This routine will go through the collected stats
+     * and persist the information for the relevant data model objects.
+     *
+     * @param stats [IN] - StringMap of MetricKeys key/values
+     */
+    private void processVPlexStats(StringMap stats) {
+
     }
 }

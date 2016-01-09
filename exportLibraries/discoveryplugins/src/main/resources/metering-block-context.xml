@@ -1188,9 +1188,13 @@
 <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
 		factory-method="getInstance" />
 
+	<bean id="vplexPerpetualCSVFileCollector"
+		  class="com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileCollector"/>
+
 	<bean id="vplex"
 		class="com.emc.storageos.volumecontroller.impl.plugins.VPlexCommunicationInterface">
         <property name="vPlexApiFactory" ref="vplexapifactory" />
+		<property name="statsCollector" ref="vplexPerpetualCSVFileCollector"/>
 	</bean>
 	
 	<bean id="netapp"

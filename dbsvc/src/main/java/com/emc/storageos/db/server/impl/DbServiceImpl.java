@@ -120,6 +120,10 @@ public class DbServiceImpl implements DbService {
         _coordinator = coordinator;
     }
 
+    public CoordinatorClient getCoordinator() {
+        return _coordinator;
+    }
+
     /**
      * Set DB schema utility
      * 

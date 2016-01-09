@@ -11,17 +11,17 @@
 #{/DataTable.crudTable}
 #{DataTable.expandHtml @errorDetails(':id'), table:'disasterRecovery' /}
 
-#{set isPrimarysite:controllers.infra.DisasterRecovery.isPrimarySite() /}
+#{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
 		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
-			#{if isPrimarysite }
+			#{if isActiveSite }
 				<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.pause'}')){return false;}")>{{'disasterRecovery.pauseButton' | t}}</a>
 				<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
 			#{/if}
 			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
-			#{if isPrimarysite }
+			#{if isActiveSite }
 				<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.SwitchoverButton' | t}}</a>
 			#{/if}
 			#{else}
@@ -127,7 +127,7 @@ function standbyStatusIcon(o, val) {
         'STANDBY_FAILING_OVER': 'label-danger',
         'STANDBY_REMOVING': 'label-danger',
         'STANDBY_RESUMING': 'label-info',
-        'ACTIVE_FAILBACK_DEGRADED': 'label-success',
+        'ACTIVE_DEGRADED': 'label-danger',
         'STANDBY_ERROR':  'label-danger'
     }
     var icons = {
@@ -144,7 +144,7 @@ function standbyStatusIcon(o, val) {
         'STANDBY_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_REMOVING': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_RESUMING': 'glyphicon glyphicon-refresh rotate',
-        'ACTIVE_FAILBACK_DEGRADED': 'glyphicon glyphicon-ok',
+        'ACTIVE_DEGRADED': 'glyphicon glyphicon-remove',
         'STANDBY_ERROR':  'glyphicon glyphicon-remove'
     }
 
@@ -162,7 +162,7 @@ function standbyStatusIcon(o, val) {
             'STANDBY_FAILING_OVER': Messages.get("renderFunctions.disasterRecovery.status.standby.failingover"),
             'STANDBY_REMOVING': Messages.get("renderFunctions.disasterRecovery.status.standby.removing"),
             'STANDBY_RESUMING': Messages.get("renderFunctions.disasterRecovery.status.standby.resuming"),
-            'ACTIVE_FAILBACK_DEGRADED': Messages.get("renderFunctions.disasterRecovery.status.standby.failbackDegraded"),
+            'ACTIVE_DEGRADED': Messages.get("renderFunctions.disasterRecovery.status.standby.failbackDegraded"),
             'STANDBY_ERROR':  Messages.get("renderFunctions.disasterRecovery.status.standby.error")
 	};
 

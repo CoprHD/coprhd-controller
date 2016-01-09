@@ -105,7 +105,7 @@ public class SiteConfigRestRep extends SiteRestRep {
     public void setExtraProperties(Map<String, Object> extraProperties) {
         this.extraProperties = extraProperties;
     }
-    
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

@@ -607,4 +607,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         dbClient.updateAndReindexObject(updateCGs);
     }
 
+    @Override
+    public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
+                                                 List<String> initiatorNames, boolean mustHaveAllPorts) {
+        return exportMaskOperationsHelper.findExportMasks(storage, initiatorNames, mustHaveAllPorts);
+    }
+
 }

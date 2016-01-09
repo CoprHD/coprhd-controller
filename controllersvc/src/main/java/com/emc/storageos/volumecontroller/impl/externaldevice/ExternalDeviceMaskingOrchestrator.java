@@ -54,16 +54,16 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
 
     public StorageDriverManager getDriverManager()
     {
-        StorageDriverManager driver = DRIVER_MANAGER.get();
+        StorageDriverManager driverManager = DRIVER_MANAGER.get();
         synchronized (DRIVER_MANAGER)
         {
-            if (driver == null)
+            if (driverManager == null)
             {
-                driver = (StorageDriverManager) ControllerServiceImpl.getBean("STORAGE_DRIVER_MANAGER");
-                DRIVER_MANAGER.compareAndSet(null, driver);
+                driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(STORAGE_DRIVER_MANAGER);
+                DRIVER_MANAGER.compareAndSet(null, driverManager);
             }
         }
-        return driver;
+        return driverManager;
     }
 
 
@@ -77,6 +77,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
             throw DeviceControllerException.exceptions.invalidSystemType(storage.getSystemType());
         }
 
+        _log.info("Started export group processing.");
         // Get new work flow to setup steps for export group creation
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
@@ -123,13 +124,13 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
         Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
         List<URI> hostURIs = new ArrayList<URI>();
         List<String> portNames = new ArrayList<String>();
-
+        _log.info("Started export mask steps generation.");
         /*
          * Populate the port WWN/IQNs (portNames) and the mapping of the
          * WWN/IQNs to Initiator URIs
          */
         processInitiators(exportGroup, initiatorURIs, portNames, portNameToInitiatorURI, hostURIs);
-
+        _log.info("Done with initiator processing.");
         /*
          * We always want to have the full list of initiators for the hosts
          * involved in this export. This will allow the export operation to
@@ -143,6 +144,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
          * whether or there is an existing ExportMasks.
          */
         Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
+        _log.info("Done with matching export masks.");
 
         if (matchingExportMaskURIs == null || matchingExportMaskURIs.isEmpty()) {
 

@@ -24,7 +24,7 @@ import java.util.Set;
 
 public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
-    private static Logger _log = LoggerFactory.getLogger(ExternalDeviceExportOperations.class);
+    private static Logger log = LoggerFactory.getLogger(ExternalDeviceExportOperations.class);
 
     private DbClient dbClient;
 
@@ -40,8 +40,16 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void createExportMask(StorageSystem storage, URI exportMask, VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList, List<Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void createExportMask(StorageSystem storage, URI exportMaskUri, VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList, List<Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        log.info("{} createExportMask START...", storage.getSerialNumber());
+        log.info("Export mask id: {}", exportMaskUri);
+        log.info("createExportMask: assignments: {}", targetURIList);
+        log.info("createExportMask: initiators: {}", initiatorList);
+        log.info("createExportMask: volume-HLU pairs: {}", volumeURIHLUs);
 
+        taskCompleter.ready(dbClient);
+
+        log.info("{} createExportMask END...", storage.getSerialNumber() );
     }
 
     @Override
@@ -69,8 +77,11 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     }
 
+
     @Override
-    public Map<String, Set<URI>> findExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+    public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
+                                                 List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // not supported. There are no common masking concepts. So, return null.
         return null;
     }
 

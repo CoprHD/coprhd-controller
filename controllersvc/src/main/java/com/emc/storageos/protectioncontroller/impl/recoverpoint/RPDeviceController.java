@@ -5732,30 +5732,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /* (non-Javadoc)
      * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI, com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
      */
-    //@Override
-    public void zzzupdateApplication(URI systemURI, ApplicationAddVolumeList addVolList, List<URI> removeVolumesURI, URI applicationId,
-            String taskId) {
-        
-        if (removeVolumesURI != null && !removeVolumesURI.isEmpty()) {
-            // get source and target volumes to be removed from the application
-            List<URI> allRemoveVolumes = RPHelper.getReplicationSetVolumes(removeVolumesURI, _dbClient);
-            removeVolumesURI.clear();
-            removeVolumesURI.addAll(allRemoveVolumes);
-        }
-        
-        if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty()) {
-            // get source and target volumes to be added the application
-            List<URI> allAddVolumes = RPHelper.getReplicationSetVolumes(addVolList.getVolumes(), _dbClient);
-            addVolList.getVolumes().clear();
-            addVolList.getVolumes().addAll(allAddVolumes);
-        }
-        
-        _blockDeviceController.updateApplication(systemURI, addVolList, removeVolumesURI, applicationId, taskId);
-    }
-    
-    /* (non-Javadoc)
-     * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI, com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
-     */
     @Override
     public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolList, List<URI> removeVolumesURI, URI applicationId,
             String taskId) {

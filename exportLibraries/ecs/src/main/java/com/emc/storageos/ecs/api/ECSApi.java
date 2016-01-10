@@ -499,6 +499,7 @@ public class ECSApi {
             _log.info("ECSApi:getNamespaceDetails for {} ECS response is {}", namespaceId, responseString);
             NamespaceDetailsCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
                     NamespaceDetailsCommandResult.class);
+            nsRepGroup.setNamespaceName(ecsNsResult.getName());
 
             if (ecsNsResult.getAllowed_vpools_list().size() != 0) {
                 for (int index = 0; index < ecsNsResult.getAllowed_vpools_list().size(); index++) {

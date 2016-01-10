@@ -92,6 +92,8 @@ public class NativeGUIDGenerator {
     public static final String PHYSICAL_NAS = "PHYSICALNAS";
 
     public static final String VIRTUAL_NAS = "VIRTUALNAS";
+    
+    public static final String NAMESPACE = "NAMESPACE";
 
     static {
         OBJECT_TYPE_SET.add(POOL);
@@ -258,7 +260,8 @@ public class NativeGUIDGenerator {
     }
 
     /**
-     * Generates the native guid format as StorageSystem+SerialNumber+<<TYPE>>+UNIQUE_ID for port, adapter & pool Objects.
+     * Generates the native guid format as StorageSystem+SerialNumber+<<TYPE>>+UNIQUE_ID for port, adapter, pool Objects
+     * & ECS namespace.
      * 
      * @param device : storage system.
      * @param uniqueId : unique name.

@@ -7,45 +7,43 @@ package com.emc.storageos.db.client.model;
 import java.net.URI;
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlTransient;
-
 /**
  * ECS object storage namespace configuration
- *
+ * 
+ * This class extends DiscoveredDataObject and not TenantResource. 
+ * There are different ECS Replication Groups that can be allowed or disallowed with namespace. 
+ * RG can be dynamically changed. Fields are discovered/rediscovered to keep up to date.
+ * Hence its better to derive from DiscoveredDataObject  
  */
 @Cf("ECSNamespace")
-public class ECSNamespace extends AbstractTenantResource {
+public class ECSNamespace extends DiscoveredDataObject {
+    // name of namespace; Its possible to have namespace name and id different
+    private String _name;
     
+    // id of namespace is native id
+    private String _nativeId;
+
+    // Flag if mapped to a tenant or not
+    private Boolean _mapped;
+    
+    // Tenant to which this namepsace is mapped;
+    private NamedURI _tenantOrg;
+    
+    // storage controller where this pool is located
+    private URI _storageDevice;
+    
+    // Type indicating allowed or not-allowed
+    private ECS_RepGroup_Type _rgType;
+    
+    // Allowed or not-allowed ECS replication groups. Its mutually exclusive
+    private List<String> _replicationGroups;      
+
     public enum ECS_RepGroup_Type {
         ALLOWED,
         DISALLOWED,
         NONE
     };
     
-    // name of namespace
-    private String _name;
-    
-    // id of namespace; 'id' is in super class
-    private String _nsId;
-    
-    // Flag if mapped to a tenant or not
-    private Boolean _mapped;
-    
-    // Tenant to which this namepsace is mapped;
-    private NamedURI _tenant;
-    
-    // Discovered ECS ip
-    private String _ecsIp;
-    
-    // Allowed ECS replication groups
-    private ECS_RepGroup_Type _rgType;
-    
-    // Not Allowed ECS replication groups
-    private List<String> _replicationGroups;
-    
-    // native GUID
-    private String _nativeGuid;
-   
     // get set methods
     @Name("name")
     public String getName() {
@@ -56,13 +54,13 @@ public class ECSNamespace extends AbstractTenantResource {
         this._name = name;
     }
 
-    @Name("nsId")
+    @Name("nativeId")
     public String getNsId() {
-        return _nsId;
+        return _nativeId;
     }
     
-    public void setNsId(String nsId) {
-        this._nsId = nsId;
+    public void setNsId(String nativeId) {
+        this._nativeId = nativeId;
     }
 
     @Name("mapped")
@@ -74,24 +72,26 @@ public class ECSNamespace extends AbstractTenantResource {
         this._mapped = mapped;
     }
     
-    @XmlTransient
-    @NamedRelationIndex(cf = "NamedRelation")
-    @Name("tenant")
-    public NamedURI geTenant() {
-        return _tenant;
-    }
-    
-    public void setTenant(NamedURI tenant) {
-        this._tenant = tenant;
+    @NamedRelationIndex(cf = "NamedRelationIndex", type = TenantOrg.class)
+    @Name("tenantOrg")
+    public NamedURI getTenantOrg() {
+        return _tenantOrg;
     }
 
-    @Name("ecsIp")
-    public String getEcsIp() {
-        return _ecsIp;
+    public void setTenantOrg(NamedURI tenantOrg) {
+        _tenantOrg = tenantOrg;
+        setChanged("tenantOrg");
     }
-    
-    public void setEcsIp(String ecsIp) {
-        this._ecsIp = ecsIp;
+
+    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @Name("storageDevice")
+    public URI getStorageDevice() {
+        return _storageDevice;
+    }
+
+    public void setStorageDevice(URI storageDevice) {
+        this._storageDevice = storageDevice;
+        setChanged("storageDevice");
     }
 
     @Name("rgType")
@@ -108,22 +108,7 @@ public class ECSNamespace extends AbstractTenantResource {
         return _replicationGroups;
     }
     
-    public void setReplicationGroups(String replicationGroups) {
-        this._replicationGroups.add(replicationGroups);
-    }
-
-    @Name("nativeGuid")
-    public String geNativeGuid() {
-        return _nativeGuid;
-    }
-    
-    public void setNativeGuid(String nativeGuid) {
-        this._nativeGuid= nativeGuid;
-    }
-
-    @Override
-    public Object[] auditParameters() {
-        // TODO Auto-generated method stub
-        return null;
-    }
+    public void setReplicationGroups(List<String> replicationGroups) {
+        this._replicationGroups = replicationGroups;
+    }    
 }

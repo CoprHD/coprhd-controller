@@ -1551,13 +1551,13 @@ public class DisasterRecoveryService {
                     return;
                 }
                 
+                Site localSite = drUtil.getLocalSite();
                 for (Site site : drUtil.listStandbySites()) {
                     if (drUtil.isSiteUp(site.getUuid())) {
                         log.info("Site {} is up, ignore to check it", site.getUuid());
                         continue;
                     } else {
-                        if (hasActiveSiteInRemote(site)) {
-                            Site localSite = drUtil.getLocalSite();
+                        if (hasActiveSiteInRemote(site, localSite.getUuid())) {
                             localSite.setState(SiteState.ACTIVE_DEGRADED);
                             coordinator.persistServiceConfiguration(localSite.toConfiguration());
                             drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_FAILBACK_DEGRADE);
@@ -1600,7 +1600,7 @@ public class DisasterRecoveryService {
             return false;
         }
         
-        private boolean hasActiveSiteInRemote(Site site) {
+        private boolean hasActiveSiteInRemote(Site site, String localActiveSiteUUID) {
             try {
                 InternalSiteServiceClient client = new InternalSiteServiceClient(site);
                 client.setCoordinatorClient(coordinator);
@@ -1608,7 +1608,7 @@ public class DisasterRecoveryService {
                 SiteList remoteSiteList = client.getSiteList();
                 
                 for (SiteRestRep siteResp : remoteSiteList.getSites()) {
-                    if (SiteState.ACTIVE.toString().equalsIgnoreCase(siteResp.getState())) {
+                    if (SiteState.ACTIVE.toString().equalsIgnoreCase(siteResp.getState()) && !localActiveSiteUUID.equals(siteResp.getUuid())) {
                         log.info("Remote site {} is active site, need to failback", siteResp);
                         return true;
                     }

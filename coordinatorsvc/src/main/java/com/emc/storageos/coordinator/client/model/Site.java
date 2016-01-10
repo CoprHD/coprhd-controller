@@ -24,7 +24,7 @@ public class Site {
     private static final String KEY_NAME = "name";
     private static final String KEY_DESCRIPTION = "description";
     private static final String KEY_VIP = "vip";
-    private static final String KEY_STANDBY_SHORTID = "standbyShortId";
+    private static final String KEY_SITE_SHORTID = "siteShortId";
     private static final String KEY_CREATIONTIME = "creationTime";
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
     private static final String KEY_SITE_STATE = "state";
@@ -42,7 +42,7 @@ public class Site {
     private String description;
     private Map<String, String> hostIPv4AddressMap = new HashMap<>();
     private Map<String, String> hostIPv6AddressMap = new HashMap<>();
-    private String standbyShortId;
+    private String siteShortId;
     private long creationTime;
     private long lastStateUpdateTime;
     private SiteState state = SiteState.ACTIVE;
@@ -121,12 +121,12 @@ public class Site {
         this.description = description;
     }
 
-    public String getStandbyShortId() {
-        return standbyShortId;
+    public String getSiteShortId() {
+        return siteShortId;
     }
 
-    public void setStandbyShortId(String standbyShortId) {
-        this.standbyShortId = standbyShortId;
+    public void setSiteShortId(String shortId) {
+        this.siteShortId = shortId;
     }
     
     public long getCreationTime() {
@@ -190,8 +190,8 @@ public class Site {
         if (vip != null) {
             config.setConfig(KEY_VIP, vip);
         }
-        if (standbyShortId != null) {
-            config.setConfig(KEY_STANDBY_SHORTID, this.standbyShortId);
+        if (siteShortId != null) {
+            config.setConfig(KEY_SITE_SHORTID, this.siteShortId);
         }
         config.setConfig(KEY_CREATIONTIME, String.valueOf(creationTime));
         if (lastStateUpdateTime != 0L) {
@@ -226,7 +226,7 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
-            this.standbyShortId = config.getConfig(KEY_STANDBY_SHORTID);
+            this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
                 this.creationTime = Long.valueOf(s);
@@ -284,10 +284,22 @@ public class Site {
         builder.append(", hostIPv6AddressMap=");
         builder.append(hostIPv6AddressMap);
         builder.append(", standbyShortId=");
-        builder.append(standbyShortId);
+        builder.append(siteShortId);
         builder.append(", creationTime=");
         builder.append(creationTime);
         builder.append("]");
+        return builder.toString();
+    }
+
+    /**
+     * @return human-readable abstract of this site, only contains site name/vip/uuid
+     * The String returned by this method should only be used in display situation (e.g. log or audit log)
+     */
+    public String toBriefString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Site [name=").append(name);
+        builder.append(", vip=").append(vip);
+        builder.append(", uuid=").append(uuid).append("]");
         return builder.toString();
     }
 }

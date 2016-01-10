@@ -112,14 +112,14 @@ _gen_ipsec_conf() {
     fi
 
     # generating ipsec config files
-    # generate common section and connections of primary site
-    local ips_in_primary=$(_get_ips_in_primary)
-    local connections_in_primary=$(_gen_conn_sections "${ips_in_primary}")
+    # generate common section and connections of active site
+    local ips_in_active=$(_get_ips_in_active)
+    local connections_in_active=$(_gen_conn_sections "${ips_in_active}")
     local content=$(cat << EOF
 ${COMMON_SECTION}
 
-# ips in primary site: ${ips_in_primary}
-${connections_in_primary}
+# ips in active site: ${ips_in_active}
+${connections_in_active}
 EOF
 )
 

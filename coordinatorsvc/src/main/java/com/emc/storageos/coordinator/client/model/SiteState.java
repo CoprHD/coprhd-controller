@@ -90,6 +90,26 @@ public enum SiteState {
     },
 
     /**
+     *  Standby site. Db is being excluded from strategy options
+     */
+    STANDBY_DEGRADING {
+        @Override
+        public boolean isDROperationOngoing() {
+            return true;
+        }
+    },
+
+    /**
+     *  Standby site. Db is excluded from strategy options
+     */
+    STANDBY_DEGRADED {
+        @Override
+        public boolean isDROperationOngoing() {
+            return false;
+        }
+    },
+
+    /**
      *  Standby site. Run DR testing
      */
     STANDBY_TESTING {

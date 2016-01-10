@@ -406,9 +406,11 @@ public class SchemaUtil {
         }
 
         Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
+                localSite.getState().equals(SiteState.STANDBY_DEGRADED) ||
+                localSite.getState().equals(SiteState.STANDBY_DEGRADING)) {
             // don't add back the paused site
-            _log.info("local standby site has been paused and removed from strategy options. Do nothing");
+            _log.info("local standby site has been paused/degraded and removed from strategy options. Do nothing");
             return false;
         }
 
@@ -865,7 +867,6 @@ public class SchemaUtil {
             } else {
                 _log.warn("Vdc record is not local for {}", _vdcShortId);
             }
-            checkAndInsertVdcConfig(localVdc);
             return;
         }
 
@@ -905,42 +906,6 @@ public class SchemaUtil {
 
         vdc.setLocal(true);
         dbClient.createObject(vdc);
-
-        checkAndInsertVdcConfig(vdc);
-    }
-    
-    private void checkAndInsertVdcConfig(VirtualDataCenter vdc) {
-        try {
-            drUtil.getLocalSite();
-            _log.info("Find local site config in ZK");
-            return;
-        } catch (RetryableCoordinatorException ex) {
-            _log.info("Cannot find local vdc config in ZK. Create new config");
-        }
-        // create VDC parent ZNode for site config in ZK
-        ConfigurationImpl vdcConfig = new ConfigurationImpl();
-        vdcConfig.setKind(Site.CONFIG_KIND);
-        vdcConfig.setId(vdc.getShortId());
-        _coordinator.persistServiceConfiguration(vdcConfig);
-
-        // insert DR acitve site info to ZK
-        Site site = new Site();
-        site.setUuid(_coordinator.getSiteId());
-        site.setName("Default Active Site");
-        site.setVdcShortId(vdc.getShortId());
-        site.setStandbyShortId("");
-        site.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
-        site.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
-        site.setState(SiteState.ACTIVE);
-        site.setCreationTime(System.currentTimeMillis());
-        site.setVip(_vdcEndpoint);
-        site.setNodeCount(vdc.getHostCount());
-
-        _coordinator.persistServiceConfiguration(site.toConfiguration());
-
-        // update Site version in ZK
-        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
-        _coordinator.setTargetInfo(siteInfo);
     }
     
     /**

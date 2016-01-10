@@ -2,7 +2,6 @@
 #{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
 
 #{DataTable.header titleKey:'disasterRecovery.title'/}
-
 #{DataTable.crudTable id:'disasterRecovery', 
 					dataTable:dataTable,
 					expandable: true,
@@ -12,17 +11,17 @@
 #{/DataTable.crudTable}
 #{DataTable.expandHtml @errorDetails(':id'), table:'disasterRecovery' /}
 
-#{set isPrimarysite:controllers.infra.DisasterRecovery.isPrimarySite() /}
+#{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
 		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
-			#{if isPrimarysite }
+			#{if isActiveSite }
 				<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.pause'}')){return false;}")>{{'disasterRecovery.pauseButton' | t}}</a>
 				<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
 			#{/if}
 			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
-			#{if isPrimarysite }
+			#{if isActiveSite }
 				<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.SwitchoverButton' | t}}</a>
 			#{/if}
 			#{else}
@@ -99,7 +98,7 @@ function renderLink(o, val) {
 function watchLoadStatus(datatable, itemsJson) {
     var fields = ['status','VirtualIP','name'];
     var fieldToWatch = 'status';
-    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING'];
+    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING','STANDBY_SWITCHING_OVER','STANDBY_FAILING_OVER','ACTIVE_SWITCHING_OVER','ACTIVE_FAILING_OVER'];
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
 }
 $(document).ready(function() {

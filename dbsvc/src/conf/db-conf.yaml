@@ -59,7 +59,7 @@ authenticator: org.apache.cassandra.auth.AllowAllAuthenticator
 authorizer: org.apache.cassandra.auth.AllowAllAuthorizer
 
 # authorization backend, implementing IInternodeAuthenticatorAuthority; used to limit node ip access
-internode_authenticator: org.apache.cassandra.auth.AllowAllInternodeAuthenticator
+internode_authenticator: com.emc.storageos.db.server.impl.DrInternodeAuthenticator
 
 # The partitioner is responsible for distributing rows (by key) across
 # nodes in the cluster.  Any IPartitioner may be used, including your
@@ -208,7 +208,7 @@ seed_provider:
           - coordinators: "coordinator://localhost:2181"
             id: "db-standalone"
             seeds: ""
-            siteid: "a6cbcc20-99a8-4461-a3f6-0a8aa4433646"
+            site_id_file: "/data/zk/siteid"
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from

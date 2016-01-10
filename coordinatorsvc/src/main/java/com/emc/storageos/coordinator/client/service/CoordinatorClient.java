@@ -115,14 +115,23 @@ public interface CoordinatorClient {
      */
     public List<Service> locateAllServices(String uuid, String name, String version, String tag, String endpointKey)
             throws CoordinatorException;
-    
+
     /**
-     * Look up all services of all versions with given name
-     * 
+     * Look up all services of all versions with given name from local site
+     *
      * @param name service name
      * @return matching services
      */
-    public List<Service> locateAllSvcsAllVers(String name) throws CoordinatorException;
+    List<Service> locateAllSvcsAllVers(String name) throws CoordinatorException;
+    
+    /**
+     * Look up all services of all versions with given name in a specific site
+     *
+     * @param siteId site uuid
+     * @param name service name
+     * @return matching services
+     */
+    List<Service> locateAllSvcsAllVers(String siteId, String name) throws CoordinatorException;
 
     /**
      * Retrieves/creates a distributed queue with given name. Default implementation provides

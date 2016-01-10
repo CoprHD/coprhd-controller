@@ -400,13 +400,16 @@ public enum OperationTypeEnum {
     DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
 
     /* Disaster Recovery Operations */
-    ADD_STANDBY("ADD STANDBY", "", "operation to add a new standby to ensemble"),
-    REMOVE_STANDBY("REMOVE STANDBY", "", "operation to remove an existing standby from ensemble"),
-    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to pause replication between acitve site and standby site"),
-    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to resume replication between acitve site and standby site"),
+    ADD_STANDBY("ADD STANDBY", "", "operation to initiate adding a new standby to ensemble"),
+    REMOVE_STANDBY("REMOVE STANDBY", "", "operation to initiate removing an existing standby from ensemble"),
+    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to initiate pausing replication between acitve site and standby site"),
+    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between acitve site and standby site"),
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
-    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to switchover from acitve site to a standby site"),
-    FAILOVER("FAILOVER TO A STANDBY", "", "operation to failover to a standby site"),
+    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from acitve site to a standby site"),
+    ACTIVE_SWITCHOVER("ACTIVE BECOME STANDBY AFTER SWITCHOVER", "", "operation that marks switchover on old active site complete"),
+    STANDBY_SWITCHOVER("STANDBY BECOME ACTIVE AFTER SWITCHOVER", "", "operation that marks switchover on new active site complete"),
+    FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failling over to a standby site"),
+    STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information");
 
     private final String _evType;

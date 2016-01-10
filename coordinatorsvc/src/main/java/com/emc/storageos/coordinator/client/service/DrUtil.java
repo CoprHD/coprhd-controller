@@ -9,14 +9,17 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +33,7 @@ import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 /**
@@ -41,11 +45,16 @@ public class DrUtil {
     private static final Logger log = LoggerFactory.getLogger(DrUtil.class);
     
     private static final int COORDINATOR_PORT = 2181;
+    private static final int CONNECTION_TIMEOUT = 30*1000;
     public static final String ZOOKEEPER_MODE_OBSERVER = "observer";
     public static final String ZOOKEEPER_MODE_READONLY = "read-only";
+    public static final String ZOOKEEPER_MODE_LEADER = "leader";
+    public static final String ZOOKEEPER_MODE_FOLLOWER = "follower";
 
     private static final String DR_CONFIG_KIND = "disasterRecoveryConfig";
     private static final String DR_CONFIG_ID = "global";
+    private static final String DR_OPERATION_LOCK = "droperation";
+    private static final int LOCK_WAIT_TIME_SEC = 5; // 5 seconds
 
     public static final String KEY_ADD_STANDBY_TIMEOUT = "add_standby_timeout_millis";
     public static final String KEY_REMOVE_STANDBY_TIMEOUT = "remove_standby_timeout_millis";
@@ -53,6 +62,7 @@ public class DrUtil {
     public static final String KEY_RESUME_STANDBY_TIMEOUT = "resume_standby_timeout_millis";
     public static final String KEY_DATA_SYNC_TIMEOUT = "data_sync_timeout_millis";
     public static final String KEY_SWITCHOVER_TIMEOUT = "switchover_timeout_millis";
+    public static final String KEY_STANDBY_DEGRADE_THRESHOLD = "degrade_standby_threshold_millis";
 
     private CoordinatorClient coordinator;
 
@@ -280,9 +290,9 @@ public class DrUtil {
      * 
      * @return number to indicate servers 
      */
-    public int getNumberOfLiveServices(String siteUuid, String svcName, String svcVersion) {
+    public int getNumberOfLiveServices(String siteUuid, String svcName) {
         try {
-            List<Service> svcs = coordinator.locateAllServices(siteUuid, svcName, svcVersion, null, null);
+            List<Service> svcs = coordinator.locateAllSvcsAllVers(siteUuid, svcName);
             return svcs.size();
         } catch (RetryableCoordinatorException ex) {
             if (ex.getServiceCode() == ServiceCode.COORDINATOR_SVC_NOT_FOUND) {
@@ -333,6 +343,8 @@ public class DrUtil {
      * Update SiteInfo's action and version for specified site id 
      * @param siteId site UUID
      * @param action action to take
+     * @param sourceSiteUUID source site UUID
+     * @param targetSiteUUID target site UUID
      */
     public void updateVdcTargetVersion(String siteId, String action, String sourceSiteUUID, String targetSiteUUID) throws Exception {
         SiteInfo siteInfo;
@@ -350,7 +362,7 @@ public class DrUtil {
         log.info("VDC target version updated to {} for site {}", siteInfo, siteId);
     }
 
-    public void updateVdcTargetVersion(String siteId, String action, long dataRevision) throws Exception {
+    public void updateVdcTargetVersion(String siteId, String action, long dataRevision) {
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action, String.valueOf(dataRevision));
         coordinator.setTargetInfo(siteId, siteInfo);
         log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
@@ -373,7 +385,9 @@ public class DrUtil {
      */
     public String getCassandraDcId(Site site) {
         String dcId = null;
-        if (StringUtils.isEmpty(site.getStandbyShortId()) || site.getVdcShortId().equals(site.getStandbyShortId())) {
+        // Use vdc short id as Cassandra Data cener name for first site in a DR config. 
+        // To keep the backward compatibility with geo
+        if (site.getSiteShortId().equals(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID)) {
             dcId = site.getVdcShortId();
         } else {
             dcId = site.getUuid();
@@ -405,7 +419,8 @@ public class DrUtil {
         Socket sock = null;
         try {
             log.info("get local coordinator mode from {}:{}", nodeId, COORDINATOR_PORT);
-            sock = new Socket(nodeId, COORDINATOR_PORT);
+            sock = new Socket();
+            sock.connect(new InetSocketAddress(nodeId, COORDINATOR_PORT),CONNECTION_TIMEOUT);
             OutputStream output = sock.getOutputStream();
             output.write("mntr".getBytes());
             sock.shutdownOutput();
@@ -434,5 +449,49 @@ public class DrUtil {
     public void removeSiteConfiguration(Site site) {
         coordinator.removeServiceConfiguration(site.toConfiguration());
         log.info("Removed site {} configuration from ZK", site.getUuid());
+    }
+
+    /**
+     * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation, throw Exception otherwise
+     */
+    public InterProcessLock getDROperationLock() {
+        // Try to acquire lock, succeed or throw Exception
+        InterProcessLock lock = coordinator.getLock(DR_OPERATION_LOCK);
+        boolean acquired;
+        try {
+            acquired = lock.acquire(LOCK_WAIT_TIME_SEC, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            try {
+                lock.release();
+            } catch (Exception ex) {
+                log.error("Fail to release DR operation lock", ex);
+            }
+            throw APIException.internalServerErrors.failToAcquireDROperationLock();
+        }
+        if (!acquired) {
+            throw APIException.internalServerErrors.failToAcquireDROperationLock();
+        }
+
+        // Has successfully acquired lock
+        // Check if there's ongoing DR operation, if there is, release lock and throw exception
+        Site ongoingSite = null;
+        List<Site> sites = listSites();
+        for (Site site : sites) {
+            if (site.getState().isDROperationOngoing()) {
+                ongoingSite = site;
+                break;
+            }
+        }
+        if (ongoingSite != null) {
+            try {
+                lock.release();
+            } catch (Exception e) {
+                log.error("Fail to release DR operation lock", e);
+            }
+            throw APIException.internalServerErrors.concurrentDROperationNotAllowed(ongoingSite.getName(), ongoingSite.getState()
+                    .toString());
+        }
+
+        return lock;
     }
 }

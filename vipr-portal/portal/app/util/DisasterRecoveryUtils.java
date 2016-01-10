@@ -33,7 +33,7 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().listAllSites();
     }
 
-    public static SiteActive checkPrimary() {
+    public static SiteActive checkActiveSite() {
         return getViprClient().site().checkIsActive();
     }
 
@@ -92,9 +92,14 @@ public class DisasterRecoveryUtils {
         return null;
     }
 
-    public static boolean isPrimarySite() {
-        SiteActive siteCheck = checkPrimary();
+    public static boolean isActiveSite() {
+        SiteActive siteCheck = checkActiveSite();
         return siteCheck.getIsActive();
+    }
+
+    public static String getLocalSiteName() {
+        SiteActive siteCheck = checkActiveSite();
+        return siteCheck.getLocalSiteName();
     }
 
     public static SiteErrorResponse getSiteError(String uuid) {

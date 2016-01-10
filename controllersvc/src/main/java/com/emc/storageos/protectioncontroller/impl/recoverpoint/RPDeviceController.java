@@ -64,6 +64,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -108,6 +109,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
+import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -121,6 +123,7 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowUtils;
 import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ApplicationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.AuditBlockUtil;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotActivateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotCreateCompleter;
@@ -151,6 +154,10 @@ import com.google.common.base.Joiner;
  */
 public class RPDeviceController implements RPController, BlockOrchestrationInterface, MaskingOrchestrator {
 
+    /**
+     * 
+     */
+    private static final String REPLICATION_GROUP_RPTARGET_SUFFIX = "-RPTARGET";
     private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
     private static final String RPA = "-rpa-";
     // RecoverPoint consistency group name prefix
@@ -241,7 +248,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     private static final String METHOD_REMOVE_PROTECTION_STEP = "removeProtectionStep";
     private static final String METHOD_REMOVE_PROTECTION_ROLLBACK_STEP = "removeProtectionRollback";
-
+    
     private static DbClient _dbClient = null;
     protected CoordinatorClient _coordinator;
     private Map<String, BlockStorageDevice> _devices;
@@ -252,6 +259,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private RPStatisticsHelper _rpStatsHelper;
     private RecordableEventManager _eventManager;
     private ControllerLockingService _locker;
+    
+    @Autowired
+    private BlockDeviceController _blockDeviceController;
 
     @Autowired
     private AuditLogManager _auditMgr;
@@ -2094,20 +2104,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void cleanupProtectionSetVolumes(ProtectionSet protectionSet, List<String> volumeIDs, boolean markProtectionSetForDeletion) {
         if (protectionSet != null) {
-        _log.info("Removing the following volumes from protection set {}: {}", protectionSet.getLabel(), volumeIDs.toString());
-        StringSet psetVolumes = protectionSet.getVolumes();
-        psetVolumes.removeAll(volumeIDs);
-        protectionSet.setVolumes(psetVolumes);
+            _log.info("Removing the following volumes from protection set {}: {}", protectionSet.getLabel(), volumeIDs.toString());
+            StringSet psetVolumes = protectionSet.getVolumes();
+            psetVolumes.removeAll(volumeIDs);
+            protectionSet.setVolumes(psetVolumes);
 
-        if (markProtectionSetForDeletion) {
-            // Mark the protection set for deletion
-            protectionSet.setInactive(true);
+            if (markProtectionSetForDeletion) {
+                // Mark the protection set for deletion
+                protectionSet.setInactive(true);
+            }
+
+            _dbClient.updateObject(protectionSet);
         }
 
-        _dbClient.persistObject(protectionSet);
-    }
-
-        _dbClient.updateObject(protectionSet);
     }
 
     /**
@@ -5717,6 +5726,108 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         } catch (Exception e) {
             stepFailed(stepId, e, "removeProtection operation failed.");
             return false;
+        }
+    }
+    
+    /* (non-Javadoc)
+     * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI, com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
+     */
+    //@Override
+    public void zzzupdateApplication(URI systemURI, ApplicationAddVolumeList addVolList, List<URI> removeVolumesURI, URI applicationId,
+            String taskId) {
+        
+        if (removeVolumesURI != null && !removeVolumesURI.isEmpty()) {
+            // get source and target volumes to be removed from the application
+            List<URI> allRemoveVolumes = RPHelper.getReplicationSetVolumes(removeVolumesURI, _dbClient);
+            removeVolumesURI.clear();
+            removeVolumesURI.addAll(allRemoveVolumes);
+        }
+        
+        if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty()) {
+            // get source and target volumes to be added the application
+            List<URI> allAddVolumes = RPHelper.getReplicationSetVolumes(addVolList.getVolumes(), _dbClient);
+            addVolList.getVolumes().clear();
+            addVolList.getVolumes().addAll(allAddVolumes);
+        }
+        
+        _blockDeviceController.updateApplication(systemURI, addVolList, removeVolumesURI, applicationId, taskId);
+    }
+    
+    /* (non-Javadoc)
+     * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI, com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
+     */
+    @Override
+    public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolList, List<URI> removeVolumesURI, URI applicationId,
+            String taskId) {
+        
+        // get all source and target devices
+        // for remove volumes source and targets can be processed in the same step
+        // for add volumes, split up volumes into source and target
+        // assign a different replication group name for target volumes so they don't end up in the same group as source volumes
+        // create one step for remove volumes and add source volumes and a separate step for add target volumes
+        
+        TaskCompleter completer = null;
+        
+        try {
+            
+            List<URI> allRemoveVolumes = new ArrayList<URI>();
+            if (removeVolumesURI != null && !removeVolumesURI.isEmpty()) {
+                // get source and target volumes to be removed from the application
+                allRemoveVolumes.addAll(RPHelper.getReplicationSetVolumes(removeVolumesURI, _dbClient));
+            }
+            
+            List<URI> allAddVolumes = new ArrayList<URI>();
+            ApplicationAddVolumeList addSourceVols = new ApplicationAddVolumeList();
+            ApplicationAddVolumeList addTargetVols = new ApplicationAddVolumeList();
+            if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty()) {
+                // get source and target volumes to be added the application
+                allAddVolumes.addAll(RPHelper.getReplicationSetVolumes(addVolList.getVolumes(), _dbClient));
+                
+                // split up add volumes list by source and target
+                List<URI> allAddSourceVolumes = new ArrayList<URI>();
+                List<URI> allAddTargetVolumes = new ArrayList<URI>();
+                for (URI volUri : allAddVolumes) {
+                    Volume vol = _dbClient.queryObject(Volume.class, volUri);
+                    if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                        allAddSourceVolumes.add(volUri);
+                    } else if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
+                        allAddTargetVolumes.add(volUri);
+                    }
+                }
+                
+                addSourceVols.setConsistencyGroup(addVolList.getConsistencyGroup());
+                addSourceVols.setReplicationGroupName(addVolList.getReplicationGroupName());
+                addSourceVols.setVolumes(allAddSourceVolumes);
+                
+                addTargetVols.setConsistencyGroup(addVolList.getConsistencyGroup());
+                addTargetVols.setReplicationGroupName(addVolList.getReplicationGroupName()+REPLICATION_GROUP_RPTARGET_SUFFIX);
+                addTargetVols.setVolumes(allAddTargetVolumes);
+            }
+            
+            VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, applicationId);
+            _log.info(String.format("Creating steps for adding and removing RP volumes to the application %s", application.getLabel()));
+            
+            // Get a new workflow to execute the volume group update.
+            Workflow workflow = _workflowService.getNewWorkflow(this, BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false, taskId);
+            
+            // create the completer add the steps and execute the plan.
+            completer = new ApplicationTaskCompleter(applicationId, allAddVolumes, allRemoveVolumes, (new ArrayList<URI>()), taskId);
+            
+            // add steps for add source and remove vols
+            String waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, completer, addSourceVols, removeVolumesURI, null, taskId);
+            
+            // add steps for add target vols
+            _blockDeviceController.addStepsForUpdateApplication(workflow, completer, addTargetVols, null, waitFor, taskId);
+            
+            _log.info("Executing workflow plan {}", BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);
+            String successMessage = String.format("Update application successful for %s", application.getLabel());
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception e) {
+            _log.error("Exception while updating the application", e);
+            if (completer != null) {
+                completer.error(_dbClient, DeviceControllerException.exceptions.failedToUpdateVolumesFromAppication(applicationId.toString(), e.getMessage()));
+            }
+            throw e;
         }
     }
 }

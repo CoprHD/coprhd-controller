@@ -644,6 +644,7 @@
       	<property name="workflowService" ref="workflowService" />
       	<property name="rpStatsHelper" ref="rpStatsHelper" />
         <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />        
+        <property name="blockDeviceController" ref="blockDeviceController" />
     </bean>
 
     <bean id="rpcontroller" class="com.emc.storageos.protectioncontroller.impl.RPControllerImpl">
@@ -655,7 +656,7 @@
             </set>
         </property>
     </bean>
-
+    
     <bean id="vplexDeviceController" class="com.emc.storageos.vplexcontroller.VPlexDeviceController">
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />

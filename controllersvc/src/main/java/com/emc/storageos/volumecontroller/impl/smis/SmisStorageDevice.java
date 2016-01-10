@@ -2026,11 +2026,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 boolean createCG = false;
                 CIMObjectPath cgPath = null;
                 CIMInstance cgPathInstance = null;
-                boolean isVPlex = consistencyGroup.checkForType(Types.VPLEX);
+                boolean isVPlexOrRP = consistencyGroup.checkForType(Types.VPLEX) || consistencyGroup.checkForType(Types.RP);
                 String groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName);
-                // If this is for VPlex, we would create backend consistency group if it does not exist yet.
+                // If this is for VPlex or RP, we would create backend consistency group if it does not exist yet.
                 if (!consistencyGroup.nameExistsForStorageSystem(storage.getId(), groupName)) {
-                    if (isVPlex) {
+                    if (isVPlexOrRP) {
                         createCG = true;
                         _log.info(String.format("No consistency group exists for the storage: %s", storage.getId()));
                     } else {
@@ -2042,7 +2042,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     if (!isSrdfTarget) {
                         StorageSystem storageSystem = findProviderFactory.withGroup(storage, groupName).find();
                         if (storageSystem == null) {
-                            if (isVPlex) {
+                            if (isVPlexOrRP) {
                                 _log.info(String.format("Could not find consistency group with the name: %s", groupName));
                                 createCG = true;
                             } else {
@@ -2215,7 +2215,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             final URI consistencyGroupId, final List<URI> blockObjects,
             final TaskCompleter taskCompleter) throws DeviceControllerException {
         
-        String groupName = null;
+        Set<String> groupNames = new HashSet<String>();
+        String grpName = null;
         
         try {
             // get the group name from one of the block objects; we expect all of them to be the same group
@@ -2223,13 +2224,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             while (itr.hasNext()) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, itr.next());
                 if (blockObject != null && !blockObject.getInactive() && !NullColumnValueGetter.isNullValue(blockObject.getReplicationGroupInstance())) {
-                    groupName = blockObject.getReplicationGroupInstance();
-                    break;
+                    groupNames.add(blockObject.getReplicationGroupInstance());
                 }
             }
             
             // Check if the replication group exists
-            if (groupName != null) {
+            for (String groupName : groupNames) {
+                grpName = groupName;
                 
                 storage = findProviderFactory.withGroup(storage, groupName).find();
     
@@ -2272,15 +2273,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
 
-            // Remove any references to the consistency group
-            for (URI blockObjectURI : blockObjects) {
-                BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
-                if (blockObject != null) {
-                    blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                    blockObject.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
-                }
-                _dbClient.updateObject(blockObject);
-            }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
@@ -2288,7 +2280,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _log.error("Problem while removing volume from CG :{}", consistencyGroupId, e);
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToRemoveMembersToConsistencyGroup((consistencyGroup == null ? "unknown cg" : consistencyGroup.getLabel()),
-                            (groupName == null ? "unknown replication group" : groupName), e.getMessage()));
+                            (grpName == null ? "unknown replication group" : grpName), e.getMessage()));
         }
     }
 

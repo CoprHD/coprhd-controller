@@ -20,11 +20,11 @@ import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
 /**
@@ -100,6 +100,16 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     @Override
     public void deleteSnapshot(URI protectionDevice, URI snapshot, String task) throws InternalException {
         execFS("deleteSnapshot", protectionDevice, snapshot, task);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI, com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
+     */
+    @Override
+    public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolumesNotInCG, List<URI> removeVolumesURI, URI applicationId,
+            String taskId) {
+        execFS("updateApplication", systemURI, addVolumesNotInCG, removeVolumesURI, applicationId, taskId);
+        
     }
 
 }

@@ -156,7 +156,7 @@ class VolumeGroup(object):
         volume_group_uri = self.query_by_name(name)
         return self.delete_by_uri(volume_group_uri)
 
-    def update(self, name, new_name, new_description, add_volumes, cg_id, remove_volumes, parent):
+    def update(self, name, new_name, new_description, add_volumes, cg_id, rg_name, remove_volumes, parent):
         '''
         Makes REST API call and updates volume group name and description
         Parameters:
@@ -181,6 +181,8 @@ class VolumeGroup(object):
             add_vols["volume"] = add_volumes.split(',')
             if(cg_id and len(cg_id) > 0):
                 add_vols["consistency_group"] = cg_id
+            if(rg_name and len(rg_name) > 0):
+                add_vols["replication_group_name"] = rg_name
             request["add_volumes"] = add_vols
         if(remove_volumes and len(remove_volumes) > 0):
             remove_vols = dict()
@@ -484,6 +486,10 @@ def update_parser(subcommand_parsers, common_parser):
                                        metavar='<consistency_group>',
                                        dest='consistency_group',
                                        help='A consistency group for adding volumes to the volume group')
+    update_parser.add_argument('-rg', '-replication_group',
+                                       metavar='<replication_group>',
+                                       dest='replication_group',
+                                       help='A replication group name on the array where volumes will be added to')
     update_parser.add_argument('-pa', '-parent',
                                        metavar='<parent>',
                                        dest='parent',
@@ -526,7 +532,7 @@ def update(args):
     obj = VolumeGroup(args.ip, args.port)
     try:
         obj.update(args.name, args.newname,
-                    args.description, ",".join(add_vols), args.consistency_group, ",".join(rem_vols), args.parent)
+                    args.description, ",".join(add_vols), args.consistency_group, args.replication_group, ",".join(rem_vols), args.parent)
     except SOSError as e:
         raise e
 

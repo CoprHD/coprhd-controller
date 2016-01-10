@@ -651,7 +651,7 @@ public class VolumeGroupService extends TaskResourceService {
                 return;
             }
 
-            BlockServiceApi serviceAPI = getBlockService(dbClient, firstVol);
+            BlockServiceApi serviceAPI = BlockService.getBlockServiceImpl(firstVol, dbClient);
             Operation op = dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(),
                     taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
             try {
@@ -690,7 +690,7 @@ public class VolumeGroupService extends TaskResourceService {
             if (group.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())){
                 List<Volume> volumes = getVolumeGroupVolumes(dbClient, group);
                 if (volumes != null && !volumes.isEmpty()) {
-                    BlockServiceApi serviceAPI = getBlockService(dbClient, volumes.iterator().next());
+                    BlockServiceApi serviceAPI = BlockService.getBlockServiceImpl(volumes.iterator().next(), dbClient);
                     groupNames.addAll(serviceAPI.getReplicationGroupNames(group));
                 }
             }
@@ -871,15 +871,6 @@ public class VolumeGroupService extends TaskResourceService {
                 }
             }
         }
-
-        private static BlockServiceApi getBlockService(DbClient dbClient, final Volume volume) {
-            URI systemUri = volume.getStorageController();
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
-            String type = system.getSystemType();
-            String volType = getVolumeType(type);
-            return getBlockServiceImpl(volType);
-        }
-
     }
 
     /**

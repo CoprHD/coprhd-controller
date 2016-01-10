@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -50,9 +51,11 @@ public class VdcConfigUtil {
     
     private DrUtil drUtil;
     private Boolean backCompatPreYoda = false;
+    private CoordinatorClient coordinator;
     
     public VdcConfigUtil(CoordinatorClient coordinator) {
         drUtil = new DrUtil(coordinator);
+        this.coordinator = coordinator;
     }
 
     public void setBackCompatPreYoda(Boolean backCompatPreYoda) {
@@ -100,6 +103,7 @@ public class VdcConfigUtil {
 
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
         String activeSiteId = drUtil.getActiveSiteId(vdcShortId);
+        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
         
         Collections.sort(sites, new Comparator<Site>() {
             @Override
@@ -112,6 +116,11 @@ public class VdcConfigUtil {
         for (Site site : sites) {
             boolean isActiveSite = site.getUuid().equals(activeSiteId);
 
+            if (SiteInfo.DR_OP_SWITCHOVER.equals(siteInfo.getActionRequired()) && site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
+                log.info("site {} is switchover target site, set it as active", site.getName());
+                isActiveSite = true; 
+            }
+            
             if (shouldExcludeFromConfig(site)) {
                 log.info("Ignore site {} of vdc {}", site.getStandbyShortId(), site.getVdcShortId());
                 continue;

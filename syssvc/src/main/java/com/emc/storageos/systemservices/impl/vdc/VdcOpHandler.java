@@ -636,9 +636,9 @@ public abstract class VdcOpHandler {
                 proccessSingleNodeSiteCase();
                 stopActiveSiteRelatedServices();
                 
-                updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED);
+                updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED, site.getNodeCount());
                 updateSwitchoverSiteState(drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()), SiteState.STANDBY_SWITCHING_OVER,
-                        Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER);
+                        Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER, site.getNodeCount());
                 
                 waitForBarrierRemovedToRestart(site);
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
@@ -656,7 +656,7 @@ public abstract class VdcOpHandler {
                 proccessSingleNodeSiteCase();
                 refreshCoordinator();
                 
-                updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE);
+                updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE, site.getNodeCount());
             } else {
                 isRebootNeeded = false;
                 flushVdcConfigToLocal();
@@ -750,7 +750,7 @@ public abstract class VdcOpHandler {
             throw new IllegalStateException("Timeout reached when wait for old active site finishing operations");
         }
         
-        private void updateSwitchoverSiteState(Site site, SiteState siteState, String barrierName) throws Exception {
+        private void updateSwitchoverSiteState(Site site, SiteState siteState, String barrierName, int memberQty) throws Exception {
             if (site.getState().equals(siteState)) {
                 log.info("Site state has been changed to {}, no actions needed.", siteState);
                 return;
@@ -758,7 +758,7 @@ public abstract class VdcOpHandler {
             
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
             
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(barrierName, SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(barrierName, SWITCHOVER_BARRIER_TIMEOUT, memberQty, false);
             barrier.enter();
             try {
                 log.info("Set state from {} to {}", site.getState(), siteState);

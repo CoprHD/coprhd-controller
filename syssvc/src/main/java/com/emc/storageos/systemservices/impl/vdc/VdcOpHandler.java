@@ -693,12 +693,17 @@ public abstract class VdcOpHandler {
                     if (coordinator.isActiveSiteZKLeaderAlive(oldActiveSite)) {
                         log.info("Old active site ZK leader is still alive, wait for another 10 seconds");
                         Thread.sleep(TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS);
+                    } else {
+                        log.info("ZK leader is gone from old active site, reconfig local ZK to select new leader");
+                        return;
                     }
                 } catch (Exception e) {
                     log.error("Failed to check active size ZK leader state, {}", e);
                 }
             }
-            log.info("ZK leader is gone from old active site, reconfig local ZK to select new leader");
+            
+            log.warn("Timeout reached when wait for old active site's ZK leader down");
+            throw new IllegalStateException("Timeout reached when wait for old active site's ZK leader down");
         }
         
         private void notifyOldActiveSiteReboot(Site oldActiveSite, Site site) throws Exception {
@@ -740,6 +745,9 @@ public abstract class VdcOpHandler {
                     log.error("Failed to check old active site status", e);
                 }
             }
+            
+            log.warn("Timeout reached when wait for old active site finishing operations");
+            throw new IllegalStateException("Timeout reached when wait for old active site finishing operations");
         }
         
         private void updateSwitchoverSiteState(Site site, SiteState siteState, String barrierName) throws Exception {

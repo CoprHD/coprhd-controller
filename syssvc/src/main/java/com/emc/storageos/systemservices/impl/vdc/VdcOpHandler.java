@@ -509,13 +509,15 @@ public abstract class VdcOpHandler {
     public static class DrSwitchoverHandler extends VdcOpHandler {
         
         private static final int TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS = 1000 * 5;
-
+        private static final int MAX_WAIT_TIME_IN_MIN = 5;
+        private boolean isRebootNeeded = true;
+        
         public DrSwitchoverHandler() {
         }
         
         @Override
         public boolean isRebootNeeded() {
-            return true;
+            return isRebootNeeded;
         }
         
         @Override
@@ -523,30 +525,25 @@ public abstract class VdcOpHandler {
             Site site = drUtil.getLocalSite();
             SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
             
-            coordinator.stopCoordinatorSvcMonitor();
-            
             // Update site state
             if (site.getUuid().equals(siteInfo.getSourceSiteUUID())) {
                 log.info("This is switchover acitve site (old acitve)");
+
+                coordinator.stopCoordinatorSvcMonitor();
                 
                 flushVdcConfigToLocal();
                 proccessSingleNodeSiteCase();
-                
-                //stop related service to avoid accepting any provisioning operation
-                localRepository.stop("vasa");
-                localRepository.stop("sa");
-                localRepository.stop("controller");
+                stopActiveSiteRelatedServices();
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED);
                 updateSwitchoverSiteState(drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()), SiteState.STANDBY_SWITCHING_OVER,
                         Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER);
                 
-                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
-                        getSingleBarrierPath(site.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART));
-                restartBarrier.waitOnBarrier();
+                waitForBarrierRemovedToRestart(site);
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");
                 
+                coordinator.stopCoordinatorSvcMonitor();
                 Site oldActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getSourceSiteUUID());
                 log.info("Old active site is {}", oldActiveSite);
                 
@@ -555,13 +552,29 @@ public abstract class VdcOpHandler {
                 waitForOldActiveZKLeaderDown(oldActiveSite);
                 
                 flushVdcConfigToLocal();
-                refreshCoordinator();
                 proccessSingleNodeSiteCase();
+                refreshCoordinator();
                 
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE);
             } else {
+                isRebootNeeded = false;
                 flushVdcConfigToLocal();
+                proccessSingleNodeSiteCase();
+                refreshCoordinator();
             }
+        }
+
+        private void waitForBarrierRemovedToRestart(Site site) throws Exception {
+            String restartBarrierPath = getSingleBarrierPath(site.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART);
+            DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
+                    restartBarrierPath);
+            restartBarrier.waitOnBarrier();
+        }
+
+        private void stopActiveSiteRelatedServices() {
+            localRepository.stop("vasa");
+            localRepository.stop("sa");
+            localRepository.stop("controller");
         }
 
         private void proccessSingleNodeSiteCase() {
@@ -573,15 +586,18 @@ public abstract class VdcOpHandler {
         }
 
         private void waitForOldActiveZKLeaderDown(Site oldActiveSite) throws InterruptedException {
-            while (coordinator.isActiveSiteZKLeaderAlive(oldActiveSite)) {
-                log.info("Old active site ZK leader is still alive, wait for another 10 seconds");
-                Thread.sleep(TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS);
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < MAX_WAIT_TIME_IN_MIN * 60 * 1000) {
+                try {
+                    if (coordinator.isActiveSiteZKLeaderAlive(oldActiveSite)) {
+                        log.info("Old active site ZK leader is still alive, wait for another 10 seconds");
+                        Thread.sleep(TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to check active size ZK leader state, {}", e);
+                }
             }
             log.info("ZK leader is gone from old active site, reconfig local ZK to select new leader");
-        }
-        
-        private String getSingleBarrierPath(String siteID, String barrierName) {
-            return String.format("%s/%s/%s", ZkPath.SITES, siteID, barrierName);
         }
         
         private void notifyOldActiveSiteReboot(Site oldActiveSite, Site site) throws Exception {
@@ -608,7 +624,8 @@ public abstract class VdcOpHandler {
 
         private void waitForOldActiveSiteFinishOperations(String oldActiveSiteUUID) {
             
-            while (true) {
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < MAX_WAIT_TIME_IN_MIN * 60 * 1000) {
                 try {
                     Site oldActiveSite = drUtil.getSiteFromLocalVdc(oldActiveSiteUUID);
                     if (!oldActiveSite.getState().equals(SiteState.STANDBY_SYNCED)) { 
@@ -641,6 +658,10 @@ public abstract class VdcOpHandler {
             } finally {
                 barrier.leave();
             }
+        }
+        
+        private String getSingleBarrierPath(String siteID, String barrierName) {
+            return String.format("%s/%s/%s", ZkPath.SITES, siteID, barrierName);
         }
         
         // See coordinator hack for DR in CoordinatorImpl.java. If single node

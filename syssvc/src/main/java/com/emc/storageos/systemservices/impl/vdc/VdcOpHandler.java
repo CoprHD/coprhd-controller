@@ -6,7 +6,10 @@
 package com.emc.storageos.systemservices.impl.vdc;
 
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -718,7 +721,7 @@ public abstract class VdcOpHandler {
                     SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
             barrier.enter();
             
-            if ("vipr1".equalsIgnoreCase(InetAddress.getLocalHost().getHostName())) {
+            if (isVirtualIPHolder(site)) {
                 log.info("This is virp1, notify remote old active site to reboot");
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
                         restartBarrierPath);
@@ -771,6 +774,16 @@ public abstract class VdcOpHandler {
         
         private String getSingleBarrierPath(String siteID, String barrierName) {
             return String.format("%s/%s/%s", ZkPath.SITES, siteID, barrierName);
+        }
+        
+        private boolean isVirtualIPHolder(Site site) {
+            try {
+                InetAddress vip = InetAddress.getByName(site.getVip());
+                return NetworkInterface.getByInetAddress(vip) != null;
+            } catch (Exception e) {
+                log.error("Error occured when check virtual IP holder",e);
+                return false;
+            } 
         }
         
         // See coordinator hack for DR in CoordinatorImpl.java. If single node

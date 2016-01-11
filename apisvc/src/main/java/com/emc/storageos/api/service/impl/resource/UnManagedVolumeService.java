@@ -335,6 +335,8 @@ public class UnManagedVolumeService extends TaskResourceService {
                 TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
                 taskList.getTaskList().add(task);
                 taskMap.put(unManagedVolume.getId().toString(), taskId);
+
+                requestContext.getVolumeContext().commit();
             }
 
             // update the task status
@@ -381,9 +383,6 @@ public class UnManagedVolumeService extends TaskResourceService {
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
                 }
-
-                VolumeIngestionContext volumeContext = requestContext.getVolumeContext(unManagedVolumeGUID);
-                volumeContext.commit();
             }
 
             _dbClient.createObject(requestContext.getObjectsToBeCreatedMap().values());
@@ -471,6 +470,8 @@ public class UnManagedVolumeService extends TaskResourceService {
 
             TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
             taskMap.put(unManagedVolume.getId().toString(), task);
+
+            requestContext.getVolumeContext().commit();
         }
     }
 

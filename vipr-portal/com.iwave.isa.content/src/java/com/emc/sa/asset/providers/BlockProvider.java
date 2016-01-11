@@ -48,6 +48,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupList;
+import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
@@ -1624,6 +1625,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getApplications(AssetOptionsContext ctx, URI application) {
         final ViPRCoreClient client = api(ctx);
         return createNamedResourceOptions(client.application().listVolumes(application));
+    }
+
+    @Asset("replicationGroup")
+    @AssetDependencies("application")
+    public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupRestRep application = client.application().getApplication(applicationId);
+        return createStringOptions(application.getReplicationGroupNames());
     }
 
     class VirtualPoolFilter extends DefaultResourceFilter<VolumeRestRep> {

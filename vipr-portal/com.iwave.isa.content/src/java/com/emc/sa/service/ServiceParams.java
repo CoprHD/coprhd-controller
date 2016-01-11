@@ -69,6 +69,7 @@ public interface ServiceParams {
     public String READ_ONLY = "readOnly";
     public String APPLICATION = "application";
     public String REPLICATION_GROUP = "replicationGroup";
+    public String NEW_REPLICATION_GROUP = "newReplicationGroup";
 
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
     public String TARGET_VIRTUAL_ARRAY = "targetVirtualArray";

@@ -11,10 +11,13 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.security.geo.GeoClientCacheManager;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import com.sun.jersey.spi.inject.Inject;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 
 import java.net.InetAddress;
 import java.util.Arrays;
@@ -27,15 +30,14 @@ public class IPSecMonitor implements Runnable {
 
     private static final Logger log = LoggerFactory.getLogger(IPSecMonitor.class);
 
-    public static int IPSEC_CHECK_INTERVAL = 10;  // minutes
-    public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
+    public static int IPSEC_CHECK_INTERVAL = 1;  // minutes
+    public static int IPSEC_CHECK_INITIAL_DELAY = 1;  // minutes
 
     public ScheduledExecutorService scheduledExecutorService;
 
     @Autowired
-    GeoClientCacheManager geoClientManager;
+    private ApplicationContext ctx;
 
-    @Autowired
     DbClient dbClient;
 
     public void start() {
@@ -48,7 +50,7 @@ public class IPSecMonitor implements Runnable {
                 TimeUnit.MINUTES);
         log.info("scheduled IPSecMonitor.");
 
-        log.info("The geoclient manager is {}, the dbclient instance is {}", geoClientManager, dbClient);
+        log.info(" the dbclient instance is {}",  dbClient);
     }
 
     public void shutdown() {
@@ -57,8 +59,11 @@ public class IPSecMonitor implements Runnable {
 
     @Override
     public void run() {
-        log.info("The geoclient manager is {}, the dbclient instance is {}", geoClientManager, dbClient);
+
         try {
+            // geo checking
+            log.info("the dbclient instance is {}", ctx.getBean("dbclient"));
+
             log.info("step 1: start checking ipsec connections");
             String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
 

@@ -2,7 +2,7 @@
 #{set navSelected: ['nav.storage', 'nav.block.volumes'] /}
 
   <script type="text/javascript">
-    var route = #{jsAction @volumesJson(':id')/};
+    var route = #{jsAction @volumesJson(':id',':appId')/};
    
     function reloadVolumes() {
       var table = $('#volumes table'); 
@@ -11,7 +11,8 @@
           xhr.abort();
       }
       var projectId = $('#project option:selected').val();
-      table.dataTable().fnReloadAjax(route({id: projectId}));
+      var applicationId = $('#application option:selected').val();
+      table.dataTable().fnReloadAjax(route({id: projectId, appId:applicationId}));
     }
     
     function disableSRDFSource() {
@@ -33,15 +34,17 @@
     
     $(document).ready(function() {
       $('#project').on('change', reloadVolumes);
+      $('#application').on('change' , reloadVolumes);
     });
   </script>
 
-#{Resources.projectsControl projects:projects /}
+#{Resources.applicationControl projects:projects /}
 
 <p id="srdfAlert" class="alert alert-info" style="display:none">&{'resources.volume.disabledSRDF'}</p> 
 
 #{DataTable.header titleKey:'nav.block.volumes' /}  
 #{DataTable.table id:'volumes',
+				  expandable:true,
                   dataTable:dataTable,
                   source:@volumesJson(session.activeProjectId), 
                   cssClass:'editableRows',
@@ -66,3 +69,16 @@
     <input type="hidden" name="type" value="VIPR_ONLY">
   #{/DataTable.formAction}
 #{/DataTable.table}
+#{DataTable.expandHtml @volumeDetails(':id'), table:'volumes' /}
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+function renderLink(o, val) {
+    var data = o.aData;
+    var url = #{jsAction @resources.BlockVolumes.volume(':id') /};
+    var href = url(data);
+    
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+</script>
+#{/set}

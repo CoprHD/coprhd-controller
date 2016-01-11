@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -19,7 +20,6 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
@@ -763,10 +763,10 @@ public class Volume extends BlockObject implements ProjectResource {
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
         return exportGroupURIs.iterator().hasNext();
     }
-    
+
     /**
      * Returns true if the passed volume is in an export group, false otherwise.
-     * 
+     *
      * @param dbClient A reference to a DbClient.
      * @param ignoreRPExports If true, ignore if this volume has been exported to RP
      * @return true if the passed volume is in an export group, false otherwise.
@@ -776,7 +776,7 @@ public class Volume extends BlockObject implements ProjectResource {
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
         if (ignoreRPExports) {
-            
+
             while (exportGroupURIs.iterator().hasNext()) {
                 URI exportGroupURI = exportGroupURIs.iterator().next();
                 if (exportGroupURI != null) {
@@ -786,11 +786,32 @@ public class Volume extends BlockObject implements ProjectResource {
                         break;
                     }
                 }
-            }            
+            }
         } else {
             isExported = exportGroupURIs.iterator().hasNext();
         }
         return isExported;
+    }
+
+    /**
+     * Returns true if the passed volume is in an export group that isn't associated with RP.
+     * 
+     * @param dbClient A reference to a DbClient
+     * 
+     * @return true if the passed volume is in an export group that isn't associated with RP, false otherwise
+     */
+    public boolean isExportedNonRP(DbClient dbClient) {
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
+        Iterator<URI> exportGroupURIIter = exportGroupURIs.iterator();
+        while (exportGroupURIIter.hasNext()) {
+            URI exportGroupURI = exportGroupURIIter.next();
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            if (!exportGroup.checkInternalFlags(Flag.RECOVERPOINT)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -922,20 +943,42 @@ public class Volume extends BlockObject implements ProjectResource {
     public boolean isInCG() {
         return !NullColumnValueGetter.isNullURI(getConsistencyGroup());
     }
-    
+
+    /**
+     * returns the VolumeGroup object that represents the application for this Volume
+     *
+     * @param dbClient
+     *            dbclient for querying
+     * @return a VolumeGroup object or null if this volume isn't associated with an application
+     */
+    public VolumeGroup getApplication(DbClient dbClient) {
+        if (this.getVolumeGroupIds() != null) {
+            for (String volumeGroupId : this.getVolumeGroupIds()) {
+                VolumeGroup volumeGroup = dbClient.queryObject(VolumeGroup.class, URI.create(volumeGroupId));
+                if (volumeGroup.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())) {
+                    return volumeGroup;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Getter for the ids of the volume groups
      *
-     * @return The set of application ids 
+     * @return The set of application ids
      */
     @Name("volumeGroupIds")
     @AlternateId("VolumeGroups")
     public StringSet getVolumeGroupIds() {
+        if (volumeGroupIds == null) {
+            volumeGroupIds = new StringSet();
+        }
         return volumeGroupIds;
     }
 
     /**
-     * Setter for the volume group ids 
+     * Setter for the volume group ids
      */
     public void setVolumeGroupIds(StringSet applicationIds) {
         this.volumeGroupIds = applicationIds;

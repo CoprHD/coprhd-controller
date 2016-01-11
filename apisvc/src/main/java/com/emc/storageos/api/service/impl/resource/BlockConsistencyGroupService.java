@@ -446,21 +446,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
         }
 
-        // Maintain pre-2.2 functionality for VPLEX CGs created prior to
-        // release 2.2, which does not allow snapping a consistency group.
-        URI cgStorageControllerURI = consistencyGroup.getStorageController();
-        if (!NullColumnValueGetter.isNullURI(cgStorageControllerURI)) {
-            // No snapshots for VPLEX consistency groups.
-            StorageSystem cgStorageController = _dbClient.queryObject(
-                    StorageSystem.class, cgStorageControllerURI);
-            if (DiscoveredDataObject.Type.vplex.name().equals(cgStorageController
-                    .getSystemType()) && (!consistencyGroup.checkForType(Types.LOCAL)
-                    || BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty())) {
-                _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
-                throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
-            }
-        }
-
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 

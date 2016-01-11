@@ -6,7 +6,7 @@ CERT_OPTIONS_1=options
 # You can specialize this file for each language.
 # For example, for French create a messages.fr file
 #
-application.name=EMC ViPR
+application.name=EMC ViPR Controller
 # Validation messages
 #   Most of these are exact copies from the play framework and are here to make
 #   it easier to find and change validation messages for the entire application.
@@ -45,7 +45,7 @@ nav.viewOrders=My Orders
 nav.allOrders=All Orders
 nav.pendingOrders=Scheduled Orders
 nav.user=User Mode
-nav.catalog=Service Catalog
+nav.catalog=Catalog
 nav.viewCatalog=View Catalog
 nav.editCatalog=Edit Catalog
 nav.approvals=Approvals
@@ -54,7 +54,7 @@ nav.preferences=Preferences
 nav.password=Change Password
 nav.logout=Logout
 nav.storage=Resources
-nav.virtualStorage=Virtual Assets
+nav.virtualStorage=Virtual
 nav.object=Object
 nav.settings=Settings
 nav.block=Block
@@ -63,6 +63,7 @@ nav.block.consistencygroups=Consistency Groups
 nav.block.exportgroups=Export Groups
 nav.block.snapshots=Block Snapshots
 nav.block.virtualPools=Block Virtual Pools
+nav.block.app=Applications
 nav.file=File
 nav.file.filesystems=File Systems
 nav.file.snapshots=File Snapshots
@@ -73,7 +74,7 @@ nav.computeVirtualPools=Compute Virtual Pools
 nav.system=System
 nav.tenant=Tenant
 nav.tenants=Tenants
-nav.assets=Physical Assets
+nav.assets=Physical
 nav.security=Security
 nav.status=About
 nav.upgrade=Upgrade
@@ -96,7 +97,7 @@ nav.vdcRoles=VDC Role Assignments
 nav.certificates=Trusted Certificates
 nav.help=Help
 nav.object.virtualPools=Object Virtual Pools
-nav.tenantsettings=Tenant Settings
+nav.tenantsettings=Tenants
 nav.project=Tenant Groups
 nav.consistencygroups=Consistency Groups
 nav.tasks=Tasks
@@ -137,8 +138,10 @@ nav.computeImageServers=Compute Image Servers
 nav.sites=Sites
 nav.userGroups=User Groups
 nav.object.buckets=Buckets
+nav.app=Applications
 nav.disasterRecovery=Disaster Recovery
 nav.ipsec=IPsec
+
 # Override messages in the Secure plugin
 secure.title=
 secure.username=Username:
@@ -308,6 +311,7 @@ AutoManualType.manual=Manual
 
 AuthSourceType.ad=Active Directory
 AuthSourceType.ldap=LDAP
+AuthSourceType.keystone=Keystone
 
 SearchScope.ONELEVEL=One Level
 SearchScope.SUBTREE=Subtree
@@ -649,6 +653,27 @@ VCenters.detachStorageModal=Detach Storage
 VCenters.detachStorageModal.help=Detach any storage from the selected vCenter(s) before deactivating.
 VCenters.detachStorageConfirm=Are you sure you want to detach storage from the selected vCenter(s)?
 VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s).
+
+#Application Support
+Application.list.title=Applications
+application.name=Application	
+application.description=Description	
+application.role=Role
+Application.deleteConfirm=Are you sure you want to delete the Application(s).
+ApplicationForm.create.title=Create Application
+
+ApplicationForm.edit.title=Edit Application
+application.create.description=Enter information needed for an Application
+applicationForm.name=Application Name
+applicationForm.description=Description
+applicationForm.roles=Roles
+application.volume=Volumes
+application.clones=Clones
+application.snapshot=Snapshots
+application.mirror=Mirrors
+application.save.success=Saved '%s'
+applications.deleted=Application(s) deleted successfully
+Application.unknown=Unknown Application with ID '%s'
 
 # Custom Config
 CustomConfigs.list.title=Controller Configurations
@@ -2059,6 +2084,7 @@ vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a 
 
 #Object Specefic
 vpool.maxRetention=Maximum Retention (Days)
+vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
 
 # Block Specific
@@ -2121,6 +2147,17 @@ vpool.rpVplex.source=Source
 vpool.rpVplex.ha=HA
 vpool.activeSite=Active Site
 vpool.activeSite.help=Specifies the VPLEX site for active protection with RecoverPoint.  The link to the other VPLEX site is configured as stand-by.
+vpool.replicationMode=Replication Mode
+vpool.replicationRpo=Min RPO
+vpool.replicationCopies=Replication Copies
+vpool.remoteVirtualArray=Virtual Array
+vpool.remoteVirtualPool=Virtual Pool
+vpool.replicationType=Replication Type
+
+# File Replication
+replicationCopy.virtualArray=Virtual Array
+replicationCopy.virtualPool=Virtual Pool
+replicationCopy.title=Replication Copy
 
 # Recoverpoint
 vpool.rpJournalSize=RecoverPoint Source Journal Size
@@ -2675,7 +2712,9 @@ computeImageServers.tftpBootDir=TFTPBOOT Directory
 computeImageServers.confirmPassword=Comfirm Password
 computeImageServers.computeImageServerStatus=Image Server Status
 computeImageServers.osInstallNetworkAddress=OS Install Network Address
-computeImageServers.osInstallTimeOut=OS Install Timeout
+computeImageServers.osInstallTimeOut=OS Install Timeout in seconds
+computeImageServers.sshTimeout=Timeout in seconds for SSH commands sent to Image Server
+computeImageServers.imageImportTimeout=Image Import Timeout in seconds
 computeImageServers.availableComputeImages=Available Images
 computeImageServers.failedComputeImages=Images Failed to import
 computeImageServers.confirmPassword.not.match=User Password and Confirm Password do not match
@@ -2792,7 +2831,7 @@ setup.no.proxy.password=Proxy User Password Not Set
 
 successfully.saved=Successfully Saved.
 
-dashboard.welcome=Welcome to EMC ViPR
+dashboard.welcome=Welcome to EMC ViPR Controller
 dashboard.welcomeMessage=To get started, browse the <a href="%s">Service Catalog</a> to order storage.
 dashboard.clusterState=state
 
@@ -2962,6 +3001,8 @@ affectedResources.vcenter.image=assets/VCenter.png
 
 affectedResources.computeSystem.image=assets/Host.png
 
+affectedResources.application=Applications
+affectedResources.application.image=assets/Application.png
 resources.hosts=Hosts
 resources.host=Host
 resources.host.image=serviceCatalog/icon_host.png
@@ -3163,6 +3204,16 @@ resources.fullcopy.size=Size
 resources.fullcopy.status=Status
 resources.fullcopy.protocol=Protocol
 
+resources.applications=Applications
+resources.protocol=Protocols
+volumeApplication.name=Name
+volumeApplication.capacity=Size
+volumeApplication.varray=Virtual Array
+volumeApplication.vpool=Virtual Pool
+volumeApplication.protocols=Protocols
+volumeApplication.wwn=WWN
+volumeApplication.consistencygroup=Consistency Group
+
 resources.snapshots=Block Snapshots
 resources.snapshots.none=No Snapshots
 resources.snapshot.unknown=Unknown Snapshot with ID '%s'
@@ -3249,7 +3300,7 @@ resources.filesystem.share.acl.deleted=Task initiated to delete selected ACEs.
 resources.filesystem.share.acl.deleteConfirm=Are you sure you want delete these access control setting(s)?
 resources.filesystem.share.acl.added=Task created to add Access Control Entry, You may need to refresh this view to see new  changes.
 resources.filesystem.share.acl.invalid.settings=Please Enter valid access control setting(s)
-resources.filesystem.share.acl.invalid.name=Name cannot be empty or cannot contain a backslash ('/') character.
+resources.filesystem.share.acl.invalid.name=Name cannot be empty or cannot contain a backslash ('\\') character.
 resources.filesystem.share.acl.add=Add Access Control Entry
 resources.filesystem.share.mountpoint=Mount Point
 resources.filesystem.share.description=Description

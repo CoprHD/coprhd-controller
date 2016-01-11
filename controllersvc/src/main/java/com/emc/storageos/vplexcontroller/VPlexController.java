@@ -12,6 +12,7 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.ControllerException;
 
 public interface VPlexController extends Controller {
@@ -305,4 +306,31 @@ public interface VPlexController extends Controller {
      * @throws InternalException
      */
     public void resyncSnapshot(URI vplexURI, URI snapshotURI, String opId) throws InternalException;
+    /**
+     * Restores a VPLEX volume by restoring a native array snapshot of the source
+     * backend volume for the VPLEX volume and invalidating the read cache for
+     * the VPLEX volume. Presumes that I/O for exported volumes has been
+     * quiesced at the host and that host write buffers/cache have been cleared.
+     * 
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param snapSessionURI The URI of a BlockSnapshotSession instance.
+     * @param opId The unique task identifier.
+     * 
+     * @throws InternalException When an error occurs configuring the snapshot session restore workflow.
+     */
+    public abstract void restoreSnapshotSession(URI vplexURI, URI snapSessionURI, String opId)
+            throws InternalException;
+    
+    /**
+     * Add/remove volumes to/from volume group
+     * @param vplexURI
+     * @param addVolList
+     * @param removeVolumeList
+     * @param volumeGroup
+     * @param opId
+     * @throws internalException
+     */
+    public abstract void updateVolumeGroup(URI vplexURI, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList,
+            URI volumeGroup, String opId) throws InternalException;
+
 }

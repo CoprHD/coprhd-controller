@@ -65,6 +65,8 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeElementHBA;
 import com.emc.storageos.db.client.model.ComputeFabricUplinkPort;
 import com.emc.storageos.db.client.model.ComputeFabricUplinkPortChannel;
+import com.emc.storageos.db.client.model.ComputeImageServer;
+import com.emc.storageos.db.client.model.ComputeImageServer.ComputeImageServerStatus;
 import com.emc.storageos.db.client.model.ComputeLanBoot;
 import com.emc.storageos.db.client.model.ComputeLanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeSanBoot;
@@ -84,6 +86,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.google.common.collect.Lists;
 
 public class UcsDiscoveryWorker {
 
@@ -94,6 +97,7 @@ public class UcsDiscoveryWorker {
     private static final String VNIC_COUNT = "vnicCount";
     private static final String BLADE_REMOVED = "removed";
     private static final String BLADE_CFG_FAILURE = "config-failure";
+    private static final String BLADE_AVAILABLE = "available";
 
     private UCSMService ucsmService;
     private DbClient _dbClient;
@@ -199,7 +203,8 @@ public class UcsDiscoveryWorker {
         cs.setLastDiscoveryRunTime(Calendar.getInstance().getTimeInMillis());
         cs.setSuccessDiscoveryTime(Calendar.getInstance().getTimeInMillis());
         cs.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.name());
-        _dbClient.persistObject(cs);
+        associateComputeImageServer(cs);
+        _dbClient.updateObject(cs);
     }
 
     private void verifyVersion(ComputeSystem cs, String version) {
@@ -2029,17 +2034,21 @@ public class UcsDiscoveryWorker {
     }
 
     private Boolean isBladeAvailable(ComputeBlade blade) {
-
-        if (BLADE_REMOVED.equalsIgnoreCase(blade.getOperState())) {
-            return false;
+        boolean availability = true;
+        String bladeAvailability = blade.getAvailability();
+        if (BLADE_AVAILABLE.equalsIgnoreCase(bladeAvailability)) {
+            availability = true;
+        } else {
+            availability = false;
         }
-
+        if (BLADE_REMOVED.equalsIgnoreCase(blade.getOperState())) {
+            availability = false;
+        }
         // CTRL-8728 check for the blade operstate as config-failure
         if (BLADE_CFG_FAILURE.equalsIgnoreCase(blade.getOperState())) {
-            return false;
+            availability = false;
         }
-
-        return true;
+        return availability;
     }
 
     private Number parseNumber(String number) {
@@ -2056,6 +2065,40 @@ public class UcsDiscoveryWorker {
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getComputeSystemComputeElemetsConstraint(cs.getId()), uris);
         HostToComputeElementMatcher.matchComputeElementsToHostsByUuid(uris, _dbClient);
+    }
+
+    /**
+     * This method ensures that if the computeSystem does not have an imageServer
+     * associated then it assigns an imageServer (if there is only one valid/available imageServer,
+     * if there are more than one imageServer then the user has to manually associate the imageServer)
+     * @param cs
+     */
+    private void associateComputeImageServer(ComputeSystem cs) {
+        if (NullColumnValueGetter.isNullURI(cs.getComputeImageServer())) {
+            List<URI> imageServerURIList = _dbClient.queryByType(
+                    ComputeImageServer.class, true);
+            ArrayList<URI> tempList = Lists.newArrayList(imageServerURIList
+                    .iterator());
+
+            if (tempList.size() == 1) {
+                Iterator<ComputeImageServer> imageServerItr = _dbClient
+                        .queryIterativeObjects(ComputeImageServer.class,
+                                tempList);
+                while (imageServerItr.hasNext()) {
+                    ComputeImageServer imageSvr = imageServerItr
+                            .next();
+                    if (imageSvr != null
+                            && imageSvr.getComputeImageServerStatus().equals(
+                                    ComputeImageServerStatus.AVAILABLE
+                                            .toString())) {
+                        _log.info(
+                                "Automatically associating compute System {} with available image Server {}.",
+                                cs.getLabel(), imageSvr.getLabel());
+                        cs.setComputeImageServer(imageSvr.getId());
+                    }
+                }
+            }
+        }
     }
 
 }

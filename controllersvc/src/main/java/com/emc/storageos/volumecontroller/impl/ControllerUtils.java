@@ -616,6 +616,12 @@ public class ControllerUtils {
                     policyName = policy.getPolicyName();
                 }
             }
+        } else if (URIUtil.isType(uri, BlockMirror.class)) {
+            BlockMirror mirror = dbClient.queryObject(BlockMirror.class, uri);
+            if (!NullColumnValueGetter.isNullURI(mirror.getAutoTieringPolicyUri())) {
+                AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class, mirror.getAutoTieringPolicyUri());
+                policyName = policy.getPolicyName();
+            }
         }
 
         return policyName;
@@ -1266,6 +1272,28 @@ public class ControllerUtils {
                 StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG);
     }
 
+    public static String generateReplicationGroupName(StorageSystem storage, URI cgUri, String replicationGroupName, DbClient dbClient) {
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+        if (cg == null || cg.getInactive()) {
+            s_logger.warn(String.format("BlockConsistencyGroup with uri %s does not exist or is inactive", cgUri.toString()));
+        }
+        return generateReplicationGroupName(storage, cg, replicationGroupName);
+    }
+    
+    public static String generateReplicationGroupName(StorageSystem storage, BlockConsistencyGroup cg, String replicationGroupName) {
+        String groupName = replicationGroupName;
+        
+        if (groupName == null && cg != null) {
+            groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+        }
+        if (storage != null && storage.deviceIsType(Type.vnxblock)) {
+            groupName = SmisConstants.VNX_VIRTUAL_RG + groupName;
+            s_logger.info("VNX virtual replication group {}", groupName);
+        }
+
+        return groupName;
+    }
+
     /**
      * This utility method returns the snapsetLabel of the existing snapshots.
      * This is required when we try to create a new snapshot when the existing source volumes have snapshots.
@@ -1345,5 +1373,16 @@ public class ControllerUtils {
 
         s_logger.info("totalVolumeCount {} volume size {}", totalVolumeCount, volumes.size());
         return totalVolumeCount == volumes.size();
+    }
+
+    /**
+     * Check back end cg created on array or not for the given volume
+     * 
+     * @param volume
+     * @return
+     */
+    public static boolean checkCGCreatedOnBackEndArray(Volume volume) {
+
+        return (volume != null && StringUtils.isNotBlank(volume.getReplicationGroupInstance()));
     }
 }

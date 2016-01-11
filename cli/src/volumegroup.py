@@ -13,6 +13,7 @@ import common
 from common import SOSError
 import json
 import tag
+from volume import Volume
 
 
 class VolumeGroup(object):
@@ -25,6 +26,7 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_LIST = '/volume-groups/block'
     URI_VOLUME_GROUP = '/volume-groups/block/{0}'
     URI_VOLUME_GROUP_VOLUMES = '/volume-groups/block/{0}/volumes'
+    URI_VOLUME_GROUP_CHILDREN = '/volume-groups/block/{0}/volume-groups'
     URI_DEACTIVATE = URI_VOLUME_GROUP + '/deactivate'
     URI_TAG_VOLUME_GROUP = URI_VOLUME_GROUP + "/tags"
 
@@ -36,7 +38,7 @@ class VolumeGroup(object):
         self.__ipAddr = ipAddr
         self.__port = port
         
-    def create(self, name, description, roles):
+    def create(self, name, description, roles, parent):
         '''
         Makes REST API call to create volume group
         Parameters:
@@ -50,6 +52,7 @@ class VolumeGroup(object):
         request["name"] = name
         request["description"] = description
         request["roles"] = roles.split(',')
+        request["parent"] = parent
 
         body = json.dumps(request)
 
@@ -153,7 +156,7 @@ class VolumeGroup(object):
         volume_group_uri = self.query_by_name(name)
         return self.delete_by_uri(volume_group_uri)
 
-    def update(self, name, new_name, new_description, add_volumes, cg_id, remove_volumes):
+    def update(self, name, new_name, new_description, add_volumes, cg_id, remove_volumes, parent):
         '''
         Makes REST API call and updates volume group name and description
         Parameters:
@@ -171,6 +174,8 @@ class VolumeGroup(object):
             request["name"] = new_name
         if(new_description and len(new_description) > 0):
             request["description"] = new_description
+        if(parent and len(parent) > 0):
+            request["parent"] = parent
         if(add_volumes and len(add_volumes) > 0):
             add_vols = dict()
             add_vols["volume"] = add_volumes.split(',')
@@ -218,6 +223,18 @@ class VolumeGroup(object):
      
         
         return o
+    
+    #Routine for children volume groups for a volume group 
+    def volume_group_children_show(self, name ,xml=False):
+        
+        volume_group_uri = self.query_by_name(name)
+        
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
+                        VolumeGroup.URI_VOLUME_GROUP_CHILDREN.format(volume_group_uri), None)
+        o = common.json_decode(s)
+     
+        
+        return o
 
 
 #SHOW resource parser
@@ -227,7 +244,7 @@ def show_volume_group_volume_parser(subcommand_parsers, common_parser):
                         description='ViPR Project Show CLI usage.',
                                                 parents=[common_parser],
                                                 conflict_handler='resolve',
-                                                help='Show volume group details')
+                                                help='Show volume group volumes')
     volume_group_volume_parser.add_argument('-xml',
                              dest='xml',
                              action='store_true',
@@ -251,6 +268,35 @@ def volume_group_volume_show(args):
     except SOSError as e:
         raise e
 
+def show_volume_group_children_parser(subcommand_parsers, common_parser):
+    volume_group_volume_parser = subcommand_parsers.add_parser('show-children',
+                        description='ViPR Project Show CLI usage.',
+                                                parents=[common_parser],
+                                                conflict_handler='resolve',
+                                                help='Show volume group child volume groups')
+    volume_group_volume_parser.add_argument('-xml',
+                             dest='xml',
+                             action='store_true',
+                             help='XML response')
+    mandatory_args = volume_group_volume_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    volume_group_volume_parser.set_defaults(func=volume_group_children_show)
+
+def volume_group_children_show(args):
+    obj = VolumeGroup(args.ip, args.port)
+    try:
+        res = obj.volume_group_children_show(args.name, args.xml)
+        if(res):
+            if (args.xml == True):
+                return common.format_xml(res)
+            return common.format_json_object(res)
+    except SOSError as e:
+        raise e
+
 
 def create_parser(subcommand_parsers, common_parser):
     # create command parser
@@ -258,7 +304,7 @@ def create_parser(subcommand_parsers, common_parser):
                     description='ViPR VolumeGroup Create CLI usage.',
                     parents=[common_parser],
                     conflict_handler='resolve',
-                    help='Create an volume group')
+                    help='Create a volume group')
     mandatory_args = create_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-n', '-name',
                                 metavar='<name>',
@@ -274,13 +320,17 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<description>',
                                dest='description',
                                help='description for volume group')
+    create_parser.add_argument('-pa', '-parent',
+                               metavar='<parent>',
+                               dest='parent',
+                               help='parent volume group for volume group')
     create_parser.set_defaults(func=create)
 
 
 def create(args):
     obj = VolumeGroup(args.ip, args.port)
     try:
-        obj.create(args.name, args.description, args.roles)
+        obj.create(args.name, args.description, args.roles, args.parent)
     except SOSError as e:
         if (e.err_code in [SOSError.NOT_FOUND_ERR,
                             SOSError.ENTRY_ALREADY_EXISTS_ERR]):
@@ -296,7 +346,7 @@ def delete_parser(subcommand_parsers, common_parser):
                 description='ViPR VolumeGroup Delete CLI usage.',
                                                   parents=[common_parser],
                                                   conflict_handler='resolve',
-                                                  help='Delete an volume group')
+                                                  help='Delete a volume group')
     mandatory_args = delete_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-n', '-name',
                                 metavar='<name>',
@@ -406,7 +456,7 @@ def update_parser(subcommand_parsers, common_parser):
                         description='ViPR update volume group CLI usage',
                         parents=[common_parser],
                         conflict_handler='resolve',
-                        help='Show volume group details')
+                        help='Update volume group properties')
     mandatory_args = update_parser.add_argument_group(
                                             'mandatory arguments')
     mandatory_args.add_argument('-n', '-name',
@@ -414,7 +464,7 @@ def update_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of existing volume group',
                                 required=True)
-    update_parser.add_argument('-np', '-newname',
+    update_parser.add_argument('-nn', '-newname',
                                        metavar='<newname>',
                                        dest='newname',
                                        help='New name of volume group')
@@ -423,32 +473,60 @@ def update_parser(subcommand_parsers, common_parser):
                                        dest='description',
                                        help='New description of volume group')
     update_parser.add_argument('-r', '-remove_volumes',
-                                       metavar='<remove_volumes>',
+                                       metavar='<tenant/project/volume_label | volume_uid,...>',
                                        dest='remove_volumes',
                                        help='A list of volumes to remove from the volume group')
     update_parser.add_argument('-a', '-add_volumes',
-                                       metavar='<add_volumes>',
+                                       metavar='<tenant/project/volume_label | volume_uid,...>',
                                        dest='add_volumes',
                                        help='A list of volumes to add to the volume group')
     update_parser.add_argument('-cg', '-consistency_group',
                                        metavar='<consistency_group>',
                                        dest='consistency_group',
                                        help='A consistency group for adding volumes to the volume group')
+    update_parser.add_argument('-pa', '-parent',
+                                       metavar='<parent>',
+                                       dest='parent',
+                                       help='A parent volume group for the volume group')
 
     update_parser.set_defaults(func=update)
 
 
 def update(args):
 
-    if(args.newname is None and args.description is None and args.add_volumes is None and args.remove_volumes is None):
+    if(args.newname is None and args.description is None and args.add_volumes is None and args.remove_volumes is None and args.parent is None):
         raise SOSError(SOSError.CMD_LINE_ERR,
             "viprcli volume group update: error: at least one of " +
             "the arguments -np/-newname -d/-description -a/-add_volumes " +
             " -r/-remove_volumes is required")
+     
+    add_vols = []
+    if(args.add_volumes and len(args.add_volumes) > 0):
+        for item in args.add_volumes.split(','):
+            if (common.is_uri(item)):
+                add_vols.append(item)
+            else:
+                vol = Volume(args.ip, args.port)
+                volid = vol.show(item,  False, False)['id']
+                add_vols.append(volid)
+                    
+    rem_vols = []
+    if(args.remove_volumes and len(args.remove_volumes) > 0):
+        for item in args.remove_volumes.split(','):
+            if (common.is_uri(item)):
+                rem_vols.append(item)
+            else:
+                vol = Volume(args.ip, args.port)
+                try:
+                    volid = vol.show(item,  False, False)['id']
+                    rem_vols.append(volid)
+                except:
+                    continue
+                    
     obj = VolumeGroup(args.ip, args.port)
     try:
         obj.update(args.name, args.newname,
-                    args.description, args.add_volumes, args.consistency_group, args.remove_volumes)
+                    args.description, ",".join(add_vols), args.consistency_group, ",".join(rem_vols), args.parent)
     except SOSError as e:
         raise e
 
@@ -515,4 +593,8 @@ def volume_group_parser(parent_subparser, common_parser):
     # volume group tag parser
     tag_parser(subcommand_parsers, common_parser)
     
+    # list volumes parser
     show_volume_group_volume_parser(subcommand_parsers, common_parser)
+    
+    # list child volume groups parser
+    show_volume_group_children_parser(subcommand_parsers, common_parser)

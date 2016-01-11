@@ -438,4 +438,28 @@ public interface DeviceControllerExceptions {
     
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException failedToUpdateVolumesFromAppication(String application, String error);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException createBlockSnapshotSessionFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException linkBlockSnapshotSessionTargetsFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException relinkBlockSnapshotSessionTargetsFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException unlinkBlockSnapshotSessionTargetsFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException restoreBlockSnapshotSessionFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException deleteBlockSnapshotSessionFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException createTargetForSnapshotSessionFailed(final String snapSessionId);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException couldNotFindSyncObjectToUnlinkTarget(final String deviceId);
 }

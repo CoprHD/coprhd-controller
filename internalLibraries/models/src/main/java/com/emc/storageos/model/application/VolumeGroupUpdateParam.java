@@ -22,6 +22,7 @@ import com.emc.storageos.model.valid.Length;
 public class VolumeGroupUpdateParam {
     private String name;
     private String description;
+    private String parent;
     
     public static class VolumeGroupVolumeList {
         private List<URI> volumes;
@@ -140,6 +141,21 @@ public class VolumeGroupUpdateParam {
     
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    /**
+     * @return the parent
+     */
+    @XmlElement
+    public String getParent() {
+        return parent;
+    }
+
+    /**
+     * @param parent the parent to set
+     */
+    public void setParent(String parent) {
+        this.parent = parent;
     }
     
 }

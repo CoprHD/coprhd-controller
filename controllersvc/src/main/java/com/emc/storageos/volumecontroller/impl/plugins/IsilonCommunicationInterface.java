@@ -17,6 +17,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -923,19 +924,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         List<StoragePool> existingPools = new ArrayList<StoragePool>();
 
         URI storageSystemId = storageSystem.getId();
-        Set<String> validSyncLicenceStatus = new HashSet<String>();
-    	validSyncLicenceStatus.add(SYNC_LICENCE_ACTIVATED);
-    	validSyncLicenceStatus.add(SYNC_LICENCE_EVALUATION);
-    	
         try {
             _log.info("discoverPools for storage system {} - start", storageSystemId);
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
-            boolean syncServiceEnabled = isilonApi.isSyncIQEnabled(storageSystem.getFirmwareVersion());
-            boolean syncLicenceValid = validSyncLicenceStatus.contains(isilonApi.getReplicationLicenseInfo());
+            boolean syncLicenceValid = validSyncIQLicence(isilonApi, storageSystem);
+            
             //Set file replication type for Isilon storage system!!!
-            if (syncLicenceValid && syncServiceEnabled) {
+            if (syncLicenceValid) {
             	StringSet supportReplicationTypes = new StringSet();
             	supportReplicationTypes.add(SupportedFileReplicationTypes.REMOTE.name());
             	supportReplicationTypes.add(SupportedFileReplicationTypes.LOCAL.name());
@@ -1006,7 +1003,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 // Add the Copy type ASYNC, if the Isilon is enabled with SyncIQ service!!
                 StringSet copyTypesSupported = new StringSet();
                 copyTypesSupported.add(CopyTypes.ASYNC.name());
-                if (syncLicenceValid && syncServiceEnabled) {
+                if (syncLicenceValid ) {
                     storagePool.setSupportedCopyTypes(copyTypesSupported);
                 } else {
                 	if (storagePool.getSupportedCopyTypes() != null && 
@@ -1153,6 +1150,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
     }
 
+    private boolean validSyncIQLicence(IsilonApi isilonApi, StorageSystem system)
+    		throws IsilonException, JSONException {
+    	Set<String> validSyncLicenceStatus = new HashSet<String>();
+     	validSyncLicenceStatus.add(SYNC_LICENCE_ACTIVATED);
+     	validSyncLicenceStatus.add(SYNC_LICENCE_EVALUATION);
+     	
+    	if (validSyncLicenceStatus.contains(isilonApi.getReplicationLicenseInfo())) {
+    		return true;
+    	}
+    	return false;
+    }
     /**
      * get the NAS Server object
      * 

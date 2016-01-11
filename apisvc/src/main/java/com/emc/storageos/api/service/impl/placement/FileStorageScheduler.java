@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,30 +32,11 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NamedURI;
 
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.NasCifsServer;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StorageHADomain;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
@@ -122,7 +105,7 @@ public class FileStorageScheduler implements Scheduler {
      */
     public List<FileRecommendation> placeFileShare(VirtualArray vArray,
             VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities,
-            Project project) {
+            Project project, Map<String, Object> optionalAttributes) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.",
                 capabilities.getResourceCount(), capabilities.getSize());
@@ -131,7 +114,7 @@ public class FileStorageScheduler implements Scheduler {
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
         List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray,
-                vPool, capabilities);
+                vPool, capabilities, optionalAttributes);
 
         // Holds the invalid virtual nas servers from both
         // assigned and un-assigned list.
@@ -253,6 +236,15 @@ public class FileStorageScheduler implements Scheduler {
         }
 
         return fileRecommendations;
+    }
+
+    public List<FileRecommendation>  getRecommendationsForMirrors(VirtualArray vArray, VirtualPool vPool,
+                                             VirtualPoolCapabilityValuesWrapper capabilities, Project project, Map<String, Object> optionalAttributes) {
+        List<FileRecommendation> mirrorRecommendations = null;
+        mirrorRecommendations = placeFileShare(vArray, vPool, capabilities, project,  optionalAttributes);
+
+        return mirrorRecommendations;
+
     }
 
     /**
@@ -983,7 +975,7 @@ public class FileStorageScheduler implements Scheduler {
     @Override
     public List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
             VirtualPoolCapabilityValuesWrapper capabilities) {
-        return placeFileShare(vArray, vPool, capabilities, project);
+        return placeFileShare(vArray, vPool, capabilities, project, null);
     }
 
     /**
@@ -1006,6 +998,8 @@ public class FileStorageScheduler implements Scheduler {
 
         List<FileShare> preparedFileSystems = new ArrayList<>();
         Iterator<Recommendation> recommendationsIter = recommendations.iterator();
+        int fileCount = recommendations.size();
+        int volumeCounter = 1;
         while (recommendationsIter.hasNext()) {
             FileRecommendation recommendation = (FileRecommendation) recommendationsIter.next();
             // If id is already set in recommendation, do not prepare the fileSystem (fileSystem already exists)
@@ -1028,8 +1022,25 @@ public class FileStorageScheduler implements Scheduler {
 
             } else if (recommendation.getFileType().toString().equals(
                     FileRecommendation.FileType.FILE_SYSTEM_LOCAL_MIRROR.toString())) {
-                // prepare the local mirror file share
-                // TBD
+
+                // prepare local mirror based on source volume and storage pool recommendation
+                FileRecommendation fileRecommendation = (FileRecommendation) recommendation;
+                URI fsId = fileRecommendation.getId();
+                FileShare fileShare = _dbClient.queryObject(FileShare.class, fsId);
+
+                String mirrorLabel = fileShare.getLabel();
+
+                if (fileCount > 1) {
+                    mirrorLabel = ControllerUtils.getMirrorLabel(mirrorLabel, volumeCounter++);
+                }
+
+                // Prepare a single mirror based on source volume and storage pool recommendation
+                MirrorFileShare mirror = initializeMirrorFileShare(fileShare, vpool, recommendation.getSourceStoragePool(),
+                        mirrorLabel, _dbClient);
+
+                // set mirror id in recommendation
+                recommendation.setId(mirror.getId());
+                preparedFileSystems.add(mirror);
             }
 
         }
@@ -1084,7 +1095,7 @@ public class FileStorageScheduler implements Scheduler {
     /**
      * Convenience method to return a file from a task list with a pre-labeled fileshare.
      * 
-     * @param dbClient dbclient
+     *
      * @param taskList task list
      * @param label base label
      * @return file object
@@ -1098,6 +1109,54 @@ public class FileStorageScheduler implements Scheduler {
             }
         }
         return null;
+    }
+
+    public static MirrorFileShare initializeMirrorFileShare(FileShare fileShare, VirtualPool vpool,
+                                                            URI recommendedPoolURI, String fileShareLabel,
+                                                            DbClient dbClient) {
+        MirrorFileShare mirrorFileShare = new MirrorFileShare();
+        mirrorFileShare.setSource(new NamedURI(fileShare.getId(), fileShare.getLabel()));
+        mirrorFileShare.setId(URIUtil.createId(MirrorFileShare.class));
+
+        mirrorFileShare.setLabel(fileShareLabel);
+
+        mirrorFileShare.setStorageDevice(fileShare.getStorageDevice());
+        mirrorFileShare.setVirtualPool(fileShare.getVirtualPool());
+        mirrorFileShare.setVirtualArray(fileShare.getVirtualArray());
+
+        mirrorFileShare.setProtocol(new StringSet());
+        mirrorFileShare.getProtocol().addAll(fileShare.getProtocol());
+        mirrorFileShare.setCapacity(fileShare.getCapacity());
+
+        mirrorFileShare.setProject(new NamedURI(fileShare.getProject().getURI(), mirrorFileShare.getLabel()));
+        mirrorFileShare.setTenant(new NamedURI(fileShare.getTenant().getURI(), mirrorFileShare.getLabel()));
+        mirrorFileShare.setPool(recommendedPoolURI);
+
+        mirrorFileShare.setSyncState(SynchronizationState.UNKNOWN.toString());
+        mirrorFileShare.setSyncType(MirrorFileShare.MIRROR_SYNC_TYPE);
+        mirrorFileShare.setThinlyProvisioned(fileShare.getThinlyProvisioned());
+
+        dbClient.createObject(mirrorFileShare);
+        addMirrorToFileShare(fileShare, mirrorFileShare, dbClient);
+        return mirrorFileShare;
+    }
+
+    /**
+     * Adds a Mirror structure to a Volume's mirror set.
+     *
+     * @param fileShare
+     * @param mirror
+     */
+    private static void addMirrorToFileShare(FileShare fileShare, MirrorFileShare mirror, DbClient dbClient) {
+        StringSet mirrors = fileShare.getMirrorFileShares();
+        if (mirrors == null) {
+            mirrors = new StringSet();
+        }
+        mirrors.add(mirror.getId().toString());
+
+        fileShare.setMirrorFileShares(mirrors);
+        // Persist changes
+        dbClient.updateObject(fileShare);
     }
 
 }

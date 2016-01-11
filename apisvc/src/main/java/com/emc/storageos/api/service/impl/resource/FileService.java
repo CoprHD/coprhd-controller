@@ -2737,10 +2737,9 @@ public class FileService extends TaskResourceService {
         boolean rmEmpty = false;
         boolean rmSet = false;
         boolean nativeEmpty = false;
-        boolean nativeSet = false;
-
 
         // Process the list of copies to ensure either all are set or all are empty
+        boolean nativeSet = false;
         for (Copy copy : param.getCopies()) {
             URI copyID = copy.getCopyID();
             if (URIUtil.isValid(copyID)) {
@@ -2811,11 +2810,9 @@ public class FileService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
                 sourceFileShare.getUsedCapacity());
 
-        FileServiceApi serviceApi = getFileServiceApis(storageSystem.getSystemType());
-            //serviceApi = getFileServiceImpl();
+        FileServiceApi fileServiceApi = getFileServiceApis("mirror");
 
-
-        return serviceApi.startNativeContinuousCopies(storageSystem, sourceFileShare,
+        return fileServiceApi.startNativeContinuousCopies(storageSystem, sourceFileShare,
                 sourceVPool, capabilities, copy, taskId);
     }
 
@@ -2996,7 +2993,7 @@ public class FileService extends TaskResourceService {
         // Mutually exclusive logic that selects an implementation of the file service
         if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
             return getFileServiceApis("mirror");
-        } 
+        }
 
         return getFileServiceApis("default");
     }

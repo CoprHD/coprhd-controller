@@ -138,7 +138,7 @@ public class AuditService extends ResourceService {
             validateDataTimePair(startTime,endTime);
         }
         validateResultValue(result);
-        String audit_result = (result.equalsIgnoreCase("S") ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_SUCCESS);
+        String audit_result = (result.equalsIgnoreCase("S") ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE);
 
         AuditLogRequest auditLogRequest = new AuditLogRequest.Builder().serviceType(svcType)
                 .user(user).result(audit_result).keyword(keyword).lang(language).timeBucket(timeBucket)

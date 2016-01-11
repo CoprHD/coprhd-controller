@@ -86,7 +86,7 @@ public class AuditLogQueryResult implements TimeSeriesQueryResult<AuditLog> {
     public void error(Throwable e) {
         _logger.error("Error during query execution", e);
     }
-    
+
     public void outputCount() { _logger.info("Query Result Size  = {}", _resultsCount.get()); }
 
     private boolean filterOut(AuditLog auditLog){

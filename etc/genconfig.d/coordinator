@@ -24,6 +24,10 @@ _get_coordinator_var_normal() {
     local cursite_begin_index="0"
     local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_node_count"
     local primary_cnt="${!var}"
+    if [ -z "${primary_cnt}" ]; then
+       var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+       primary_cnt="${!var}"
+    fi
     if [ -n "${_GENCONFIG_site_ids}" ] && [[ "${_GENCONFIG_site_ids}" == *,*  ]] && [ "${primary_cnt}" == "1" ]; then
         # DR dual coordinator hack for 1+0. See CoordinatorImpl.java for
         # more description

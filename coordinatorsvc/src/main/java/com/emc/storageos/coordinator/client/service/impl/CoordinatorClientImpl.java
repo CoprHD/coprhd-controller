@@ -80,6 +80,7 @@ import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.LicenseInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.WorkPool;
@@ -219,6 +220,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private void createSiteSpecificSection() throws Exception {
+
         // create VDC parent ZNode for site config in ZK
         ConfigurationImpl vdcConfig = new ConfigurationImpl();
         vdcConfig.setKind(Site.CONFIG_KIND);
@@ -253,10 +255,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             }
         }
 
+
         site.setHostIPv4AddressMap(ipv4Addresses);
         site.setHostIPv6AddressMap(ipv6Addresses);
 
         persistServiceConfiguration(site.toConfiguration());
+        
+        new DrUtil(this).setLocalVdcShortId(vdcShortId);
         
         // update Site version in ZK
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
@@ -309,7 +314,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 createSiteSpecificSection();
             }
         }catch (Exception e) {
-            log.error("Failed to acquire the lock for {}. Error {}", ZkPath.SITES, e);
+            log.error("Failed to initialize site specific area for {}.", ZkPath.SITES, e);
             throw e;
         } finally {
             try {
@@ -382,7 +387,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             }
             throw CoordinatorException.fatals.errorConnectingCoordinatorService(e);
         }
-        
     }
 
     @Override

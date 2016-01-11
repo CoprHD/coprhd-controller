@@ -592,6 +592,7 @@ public class DbServiceImpl implements DbService {
         if (backCompatPreYoda) {
             _log.info("Pre-yoda back compatible flag detected. Initialize local keystore/truststore for Cassandra native encryption");
             initKeystoreAndTruststore();
+            _schemaUtil.setBackCompatPreYoda(true);
         }
         System.setProperty("cassandra.config", _config);
         System.setProperty("cassandra.config.loader", CassandraConfigLoader.class.getName());

@@ -46,7 +46,7 @@ public class SiteAddParam {
         this.vip = vip;
     }
 
-    @XmlElement(name = "description")
+    @XmlElement(name = "description", required = false)
     public String getDescription() {
         return description;
     }

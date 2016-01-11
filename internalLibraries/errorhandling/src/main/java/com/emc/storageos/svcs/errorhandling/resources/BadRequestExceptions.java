@@ -2692,7 +2692,6 @@ public interface BadRequestExceptions {
     public BadRequestException canNotCanceldbConsistencyCheck();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-<<<<<<< HEAD
     public BadRequestException volumeGroupWithChildrenCantBeDeleted(final String volumeGroupName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2724,7 +2723,6 @@ public interface BadRequestExceptions {
             replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-=======
     public BadRequestException vpoolChangeInvalidProtectionSystemOrCg(final String invalidVolumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2733,7 +2731,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vpoolChangeNotAllowedCGsMustBeTheSame();
 
->>>>>>> master
     public BadRequestException invalidSnapshotSessionSource(final String sourceId);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

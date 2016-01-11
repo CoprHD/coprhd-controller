@@ -15,6 +15,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
@@ -196,6 +198,7 @@ public abstract class TaskLockingCompleter extends TaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         updateConsistencyGroupTasks(dbClient, status, coded);
+        updateVolumeGroupTasks(dbClient, status, coded);
         if (isNotifyWorkflow()) {
             // If there is a workflow, update the step to complete.
             updateWorkflowStatus(status, coded);
@@ -211,6 +214,20 @@ public abstract class TaskLockingCompleter extends TaskCompleter {
                     break;
                 case ready:
                     setReadyOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId);
+                    break;
+            }
+        }
+    }
+
+    private void updateVolumeGroupTasks(DbClient dbClient, Operation.Status status, ServiceCoded coded) {
+        for (URI volumeGroupId : getVolumeGroupIds()) {
+            _logger.info("Updating volume group task: {}", volumeGroupId);
+            switch (status) {
+                case error:
+                    setErrorOnDataObject(dbClient, VolumeGroup.class, volumeGroupId, coded);
+                    break;
+                case ready:
+                    setReadyOnDataObject(dbClient, VolumeGroup.class, volumeGroupId);
                     break;
             }
         }

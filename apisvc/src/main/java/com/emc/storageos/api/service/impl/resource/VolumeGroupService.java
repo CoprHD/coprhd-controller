@@ -12,6 +12,7 @@ import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Facto
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -34,6 +35,10 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.TaskMapper;
+import com.emc.storageos.api.service.impl.placement.PlacementManager;
+import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -41,6 +46,9 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
@@ -49,6 +57,9 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -62,6 +73,9 @@ import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
+import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -102,8 +116,20 @@ public class VolumeGroupService extends TaskResourceService {
 
     static final Logger log = LoggerFactory.getLogger(VolumeGroupService.class);
 
+    // A reference to the placement manager.
+    private PlacementManager _placementManager;
+
     // Block service implementations
     private static Map<String, BlockServiceApi> _blockServiceApis;
+
+    /**
+     * Setter for the placement manager.
+     *
+     * @param placementManager A reference to the placement manager.
+     */
+    public void setPlacementManager(PlacementManager placementManager) {
+        _placementManager = placementManager;
+    }
 
     public void setBlockServiceApis(final Map<String, BlockServiceApi> serviceInterfaces) {
         _blockServiceApis = serviceInterfaces;
@@ -202,7 +228,7 @@ public class VolumeGroupService extends TaskResourceService {
         List<URI> ids = _dbClient.queryByType(VolumeGroup.class, true);
         Iterator<VolumeGroup> iter = _dbClient.queryIterativeObjects(VolumeGroup.class, ids);
         while (iter.hasNext()) {
-            volumeGroupList.getVolumeGroupss().add(toNamedRelatedResource(iter.next()));
+            volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(iter.next()));
         }
         return volumeGroupList;
     }
@@ -218,7 +244,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/volumes")
     public NamedVolumesList getVolumes(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
-        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, id);
+        VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
         NamedVolumesList result = new NamedVolumesList();
         List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
         for (Volume volume: volumes) {
@@ -349,10 +375,189 @@ public class VolumeGroupService extends TaskResourceService {
         for (VolumeGroupUtils util : utils) {
             util.updateVolumesInVolumeGroup(_dbClient, param, volumeGroup, taskId, taskList);
         }
-        auditOp(OperationTypeEnum.UPDATE_VOLUME_GROUP, true, null, volumeGroup.getId().toString(),
+        auditOp(OperationTypeEnum.UPDATE_VOLUME_GROUP, true, AuditLogManager.AUDITOP_BEGIN, volumeGroup.getId().toString(),
                 volumeGroup.getLabel());
         return taskList;
     }
+
+    /**
+     * Creates a volume group fullcopy
+     *
+     *
+     * @prereq none
+     *
+     * @param volumeGroupId the URI of the Volume Group
+     *            - Volume group URI
+     * @param param VolumeFullCopyCreateParam
+     *
+     * @brief Create volume group fullcopy
+     * @return TaskList
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/full-copies")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
+    public TaskList createVolumeGroupFullCopy(@PathParam("id") final URI volumeGroupId,
+            final VolumeFullCopyCreateParam param) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // validate replica operation for volume group
+        validateCopyOperationForVolumeGroup(volumeGroup, "full copy");
+
+        // get all volumes
+        List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+
+        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
+        for (VolumeGroupUtils util : utils) {
+            // TODO XtremIO array does not support clone.
+            // If volume group has mix of storage arrays, entire Clone creation workflow will fail (rolled back)
+            // In such cases and not to have partial clone, we may need to restrict user at API level.
+            // may be use Copy-VolumeGroupUtils to validate such things.
+        }
+
+        auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY, true, AuditLogManager.AUDITOP_BEGIN, volumeGroup.getId().toString(),
+                param.getName(), param.getCount());
+
+        return getFullCopyManager().createFullCopy(volumes.get(0).getId(), param);
+    }
+
+    /**
+     * List full copies for a volume group
+     *
+     * @prereq none
+     *
+     * @param cgURI The URI of the volume group.
+     *
+     * @brief List full copies for a volume group
+     *
+     * @return The list of full copies for the volume group
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/full-copies")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public NamedVolumesList getVolumeGroupFullCopies(@PathParam("id") final URI volumeGroupId) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // validate replica operation for volume group
+        validateCopyOperationForVolumeGroup(volumeGroup, "full copy");
+
+        // get all volumes
+        List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+
+        // Cycle over the volumes in the volume group and
+        // get the full copies for each volume in the group.
+        NamedVolumesList fullCopyList = new NamedVolumesList();
+        for (Volume volume : volumes) {
+            NamedVolumesList volumeFullCopies = getFullCopyManager().getFullCopiesForSource(volume.getId());
+            fullCopyList.getVolumes().addAll(volumeFullCopies.getVolumes());
+        }
+
+        return fullCopyList;
+    }
+
+    /**
+     * Get the specified volume group full copy.
+     *
+     * @prereq none
+     *
+     * @param cgURI The URI of the volume group.
+     * @param fullCopyURI The URI of the full copy.
+     *
+     * @brief Get the specified volume group full copy.
+     *
+     * @return The full copy volume.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/full-copies/{fcid}")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public VolumeRestRep getVolumeGroupFullCopy(@PathParam("id") final URI volumeGroupId,
+            @PathParam("fcid") URI fullCopyURI) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // validate replica operation for volume group
+        validateCopyOperationForVolumeGroup(volumeGroup, "full copy");
+
+        // get all volumes
+        List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+
+        Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
+                fullCopyURI, uriInfo, false, _dbClient);
+        verifyReplicaForCopyRequest(fullCopyVolume, volumes);
+
+        // Get and return the full copy.
+        return getFullCopyManager().getFullCopy(fullCopyURI);
+    }
+
+    /**
+     * Detach the specified Volume group full copy.
+     *
+     * @prereq Create Volume group full copy as active.
+     *
+     * @param volumeGroupId The URI of the Volume group.
+     * @param fullCopyURI The URI of the full copy.
+     *
+     * @brief Detach Volume group full copy.
+     *
+     * @return TaskList
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/full-copies/{fcid}/detach")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList detachVolumeGroupFullCopy(@PathParam("id") final URI volumeGroupId,
+            @PathParam("fcid") URI fullCopyURI) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // validate replica operation for volume group
+        validateCopyOperationForVolumeGroup(volumeGroup, "full copy");
+
+        // get all volumes
+        List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+
+        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
+        for (VolumeGroupUtils util : utils) {
+            //
+        }
+
+        // Get the full copy.
+        Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
+                fullCopyURI, uriInfo, false, _dbClient);
+        URI fcSourceURI = fullCopyVolume.getAssociatedSourceVolume();
+        if (!NullColumnValueGetter.isNullURI(fcSourceURI)) {
+            verifyReplicaForCopyRequest(fullCopyVolume, volumes);
+        }
+
+        auditOp(OperationTypeEnum.DETACH_VOLUME_GROUP_FULL_COPY, true, AuditLogManager.AUDITOP_BEGIN, volumeGroup.getId().toString(),
+                fullCopyVolume.getLabel());
+
+        // Detach the full copy. Note that it will take into account the
+        // fact that the volume is in a VolumeGroup
+        // and all volumes in that VolumeGroup will be detached.
+        return getFullCopyManager().detachFullCopy(fcSourceURI, fullCopyURI);
+    }
+
+    /**
+     * allow replica operation only for COPY type VolumeGroup.
+     * 
+     * @param volumeGroup
+     * @param replicaType
+     */
+    private void validateCopyOperationForVolumeGroup(VolumeGroup volumeGroup, String replicaType) {
+        if (!volumeGroup.getRoles().contains(VolumeGroupRole.COPY.name())) {
+            throw APIException.badRequests.replicaOperationNotAllowedForNonCopyTypeVolumeGroup(volumeGroup.getLabel(), replicaType);
+        }
+    }
+
 
     private List<VolumeGroupUtils> getVolumeGroupUtils(VolumeGroup volumeGroup) {
         List<VolumeGroupUtils> utilsList = new ArrayList<VolumeGroupUtils>();
@@ -885,6 +1090,7 @@ public class VolumeGroupService extends TaskResourceService {
                 .queryActiveResourcesByConstraint(dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
         for (Volume vol : volumes) {
+            // TODO return only visible volumes. i.e skip backend or internal volumes?
             if (!vol.getInactive()) {
                 result.add(vol);
             }
@@ -912,7 +1118,65 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
+     * Creates and returns an instance of the block full copy manager to handle
+     * a full copy request.
+     *
+     * @return BlockFullCopyManager
+     */
+    private BlockFullCopyManager getFullCopyManager() {
+        BlockFullCopyManager fcManager = new BlockFullCopyManager(_dbClient,
+                _permissionsHelper, _auditMgr, _coordinator, _placementManager, sc, uriInfo,
+                _request, null);
+        return fcManager;
+    }
+
+    /**
+     * Verifies that the passed replica URI and ensure that it
+     * represents a replica for a volume in the passed list of
+     * volumes, which are the volumes for a specific volume
+     * group.
+     *
+     * @param replica the replica (Clone/Snapshot/Mirror)
+     * @param volumeGroupVolumes the volume group's volumes
+     * @return The URI of the replica's source.
+     */
+    private URI verifyReplicaForCopyRequest(BlockObject replica, List<Volume> volumeGroupVolumes) {
+        URI sourceURI = null;
+        String replicaType = null;
+        if (replica instanceof BlockSnapshot) {
+            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
+            replicaType = "Snapshot";
+        } else if (replica instanceof BlockMirror) {
+            sourceURI = ((BlockMirror) replica).getSource().getURI();
+            replicaType = "Continuous copy";
+        } else if (replica instanceof Volume) {
+            sourceURI = ((Volume) replica).getAssociatedSourceVolume();
+            replicaType = "Full copy";
+        }
+
+        if (NullColumnValueGetter.isNullURI(sourceURI)) {
+            throw APIException.badRequests
+                    .replicaOperationNotAllowedNotAReplica(replicaType, replica.getLabel());
+        }
+
+        // Verify the source is in the volume group.
+        boolean sourceInVolumeGroup = false;
+        for (Volume volume : volumeGroupVolumes) {
+            if (volume.getId().equals(sourceURI)) {
+                sourceInVolumeGroup = true;
+                break;
+            }
+        }
+        if (!sourceInVolumeGroup) {
+            throw APIException.badRequests
+                    .replicaOperationNotAllowedSourceNotInVolumeGroup(replicaType, replica.getLabel());
+        }
+        return sourceURI;
+    }
+
+    /**
      * Check if the application has any pending task
+     * 
      * @param application
      */
     private void checkForApplicationPendingTasks(VolumeGroup volumeGroup) {

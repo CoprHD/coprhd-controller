@@ -11,9 +11,11 @@ import static com.google.common.collect.Collections2.transform;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -26,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -41,6 +44,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -299,6 +303,46 @@ public class BlockServiceUtils {
             }
         }
         return activeMirrorURIs;
+    }
+
+    /**
+     * Get volume group's volumes.
+     * skip internal volumes
+     *
+     * @param volumeGroup
+     * @return The list of volumes in volume group
+     */
+    public static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
+        List<Volume> result = new ArrayList<Volume>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+        for (Volume vol : volumes) {
+            // return only visible volumes. i.e skip backend or internal volumes
+            // TODO check with others
+            if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                result.add(vol);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Group volumes by array group.
+     *
+     * @param volumes the volumes
+     * @return the map of array group to volumes
+     */
+    public static Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes) {
+        Map<String, List<Volume>> arrayGroupToVolumes = new HashMap<String, List<Volume>>();
+        for (Volume volume : volumes) {
+            String repGroupName = volume.getReplicationGroupInstance();
+            if (arrayGroupToVolumes.get(repGroupName) == null) {
+                arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());
+            }
+            arrayGroupToVolumes.get(repGroupName).add(volume);
+        }
+        return arrayGroupToVolumes;
     }
 
     /**

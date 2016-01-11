@@ -54,6 +54,7 @@ public class DiscoveryUtils {
     private static final Logger _log = LoggerFactory.getLogger(DiscoveryUtils.class);
     public static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
     public static final String UNMANAGED_VOLUME = "UnManagedVolume";
+    public static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
 
     /**
      * get Matched Virtual Pools For Pool.
@@ -675,6 +676,64 @@ public class DiscoveryUtils {
         }
     }
 
+    /**
+     * Compares the set of unmanaged consistency groups for the current discovery operation
+     * to the set of unmanaged consistency groups already in the database from a previous
+     * discovery operation.  Removes existing database entries if the object was not present
+     * in the current discovery operation.
+     * 
+     * @param storageSystem - storage system containing the CGs
+     * @param currentUnManagedCGs - current list of unmanaged CGs
+     * @param dbClient - database client
+     * @param partitionManager - partition manager
+     */
+    public static void performUnManagedConsistencyGroupsBookKeeping(StorageSystem storageSystem, Set<URI> currentUnManagedCGs,
+            	DbClient dbClient, PartitionManager partitionManager) {
+
+        _log.info(" -- Processing {} discovered UnManaged Consistency Group Objects from -- {}",
+        		currentUnManagedCGs.size(), storageSystem.getLabel());        
+        // no consistency groups discovered 
+        if (currentUnManagedCGs.isEmpty()) {
+            return;
+        }
+        
+        // Get all available existing unmanaged CG URIs for this array from DB
+        URIQueryResultList allAvailableUnManagedCGsInDB = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageSystemUnManagedCGConstraint(storageSystem.getId()),              
+                allAvailableUnManagedCGsInDB);
+                
+        Set<URI> unManagedCGsInDBSet = new HashSet<URI>();
+        Iterator<URI> allAvailableUnManagedCGsItr = allAvailableUnManagedCGsInDB.iterator();
+        while (allAvailableUnManagedCGsItr.hasNext()) {
+        	unManagedCGsInDBSet.add(allAvailableUnManagedCGsItr.next());
+        }
+                
+        SetView<URI> onlyAvailableinDB = Sets.difference(unManagedCGsInDBSet, currentUnManagedCGs);
+
+        _log.info("Diff :" + Joiner.on("\t").join(onlyAvailableinDB));
+        if (!onlyAvailableinDB.isEmpty()) {
+            List<UnManagedConsistencyGroup> unManagedCGTobeDeleted = new ArrayList<UnManagedConsistencyGroup>();
+            Iterator<UnManagedConsistencyGroup> unManagedCGs = dbClient.queryIterativeObjects(UnManagedConsistencyGroup.class,
+                    new ArrayList<URI>(onlyAvailableinDB));
+
+            while (unManagedCGs.hasNext()) {
+            	UnManagedConsistencyGroup cg = unManagedCGs.next();
+                if (null == cg || cg.getInactive()) {
+                    continue;
+                }
+
+                _log.info("Setting UnManagedConsistencyGroup {} inactive", cg.getId());
+                cg.setStorageSystemUri(NullColumnValueGetter.getNullURI());
+                cg.setInactive(true);
+                unManagedCGTobeDeleted.add(cg);
+            }
+            if (!unManagedCGTobeDeleted.isEmpty()) {
+                partitionManager.updateAndReIndexInBatches(unManagedCGTobeDeleted, 1000,
+                        dbClient, UNMANAGED_CONSISTENCY_GROUP);
+            }
+        }
+    }
+    
     public static void markInActiveUnManagedExportMask(URI storageSystemUri,
             Set<URI> discoveredUnManagedExportMasks, DbClient dbClient, PartitionManager partitionManager) {
 

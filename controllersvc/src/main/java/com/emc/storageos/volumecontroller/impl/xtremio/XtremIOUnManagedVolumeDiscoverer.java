@@ -71,6 +71,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
     List<UnManagedVolume> unManagedVolumesToCreate = null;
     List<UnManagedVolume> unManagedVolumesToUpdate = null;
     Set<URI> allCurrentUnManagedVolumeUris = new HashSet<URI>();
+    private Set<URI> allCurrentUnManagedCgURIs = new HashSet<URI>();
         
     private List<UnManagedConsistencyGroup> unManagedCGToUpdate = null;
 
@@ -275,6 +276,9 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 			// unmanaged CG does not exist in the database, create it
                 			unManagedCG = createUnManagedCG(unManagedCGNativeGuid, xioCG, storageSystem.getId(), dbClient);
                 			log.info("Created unmanaged consistency group: {}", unManagedCG.toString());
+                		} else {
+                			// clean out the list of unmanaged volumes, the list should be re-populated by the current discovery operation
+                			unManagedCG.getUnManagedVolumesMap().clear();
                 		}
                 		log.info("Adding unmanaged volume {} to unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
                 		// set the uri of the unmanaged CG in the unmanaged volume object
@@ -283,6 +287,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 		unManagedCG.getUnManagedVolumesMap().put(unManagedVolume.getNativeGuid(), unManagedVolume.getId().toString());                		
                 		// add the unmanaged CG to the list of unmanaged CGs to be updated in the database once all volumes have been processed
                 		unManagedCGToUpdate.add(unManagedCG);
+                		// add the unmanaged CG to the current set of CGs being discovered on the array.  This is for book keeping later.
+                		allCurrentUnManagedCgURIs.add(unManagedCG.getId());
                 	}                	
                 }           
 
@@ -340,6 +346,9 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         // Process those active unmanaged volume objects available in database but not in newly discovered items, to mark them inactive.
         DiscoveryUtils.markInActiveUnManagedVolumes(storageSystem, allCurrentUnManagedVolumeUris, dbClient, partitionManager);
+        
+        // Process those active unmanaged consistency group objects available in database but not in newly discovered items, to mark them inactive.
+        DiscoveryUtils.performUnManagedConsistencyGroupsBookKeeping(storageSystem, allCurrentUnManagedCgURIs, dbClient, partitionManager);
 
         // Next discover the unmanaged export masks
         discoverUnmanagedExportMasks(storageSystem.getId(), igUnmanagedVolumesMap, igKnownVolumesMap, xtremIOClient, xioClusterName,

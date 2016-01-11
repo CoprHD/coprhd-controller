@@ -80,5 +80,6 @@ public interface BackupConstants {
 
     public static final File[] EMPTY_ARRAY = {};
 
-    public static final String SITE_ID_FILE = "/data/zk/siteid";
+    public static final String SITE_ID_FILE_PATH = "/data/zk/siteid";
+    public static final String SITE_ID_FILE_NAME = "siteid";
 }

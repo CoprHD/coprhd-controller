@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,11 +18,14 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
@@ -236,5 +240,35 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
     public void verifyActiveMirrors(Volume sourceVolume) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceVolume.getStorageController());
         snapSessionImpl.verifyActiveMirrors(sourceVolume);
+    }
+
+    @Override
+    public List<BlockObject> getAllSourceObjectsForSnapshotSessionRequest(BlockObject sourceObj) {
+        List<BlockObject> sourceObjList = new ArrayList<>();
+        if (URIUtil.isType(sourceObj.getId(), BlockSnapshot.class)) {
+            // For snapshots we ignore group semantics.
+            sourceObjList.add(sourceObj);
+        } else {
+            BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
+            List<BlockObject> allBackendSrcVolumes = snapSessionImpl.getAllSourceObjectsForSnapshotSessionRequest(sourceObj);
+
+            for (BlockObject backendSrcVolume : allBackendSrcVolumes) {
+                if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(((Volume)backendSrcVolume).getPersonality())) {
+                    sourceObjList.add(backendSrcVolume);
+                }
+            }
+        }
+        return sourceObjList;
+    }
+
+    @Override
+    public BlockObject getActiveSource(BlockConsistencyGroup cg) {
+        List<StorageSystem> vPlexStorageSystems = BlockConsistencyGroupUtils.getVPlexStorageSystems(cg, _dbClient);
+
+        if (vPlexStorageSystems != null && !vPlexStorageSystems.isEmpty()) {
+            return BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, Volume.PersonalityTypes.SOURCE).get(0);
+        }
+
+        return BlockConsistencyGroupUtils.getActiveNonVplexVolumesInCG(cg, _dbClient, Volume.PersonalityTypes.SOURCE).get(0);
     }
 }

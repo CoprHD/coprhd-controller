@@ -1461,15 +1461,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
     public TaskList createConsistencyGroupSnapshotSession(@PathParam("id") URI consistencyGroupId,
             SnapshotSessionCreateParam param) {
-        // Verify the consistency group in the requests and get the
-        // volumes in the consistency group.
-        List<Volume> cgVolumes = verifyCGForFullCopyRequest(consistencyGroupId);
 
         // Grab the first volume and call the block snapshot session
         // manager to create the snapshot sessions for the volumes
         // in the CG. Note that it will take into account the
         // fact that the volume is in a CG.
-        return getSnapshotSessionManager().createSnapshotSession(cgVolumes.get(0).getId(), param, getFullCopyManager());
+        BlockConsistencyGroup cg = queryObject(BlockConsistencyGroup.class, consistencyGroupId, true);
+        return getSnapshotSessionManager().createSnapshotSession(cg, param, getFullCopyManager());
     }
 
     /**

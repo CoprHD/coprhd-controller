@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -429,25 +430,24 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // For snapshots we ignore group semantics.
             sourceObjList.add(sourceObj);
         } else {
-            // Otherwise, if the volume is in a CG, then we create
-            // a snapshot session for each volume in the CG.
+            /*
+             * 1) Acquire the backend volume for this VPLEX volume
+             * 2) Determine the BlockSnapshotSessionApi impl for said backend volume, e.g. VMAX3
+             * 3) Call same method on this impl
+             * 4) Acquire VPLEX volumes for each returned volume
+             */
             Volume sourceVolume = (Volume) sourceObj;
-            URI cgURI = sourceVolume.getConsistencyGroup();
+            Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(sourceVolume, true, _dbClient);
+            BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(backendVolume.getStorageController());
 
-            if (!isNullURI(cgURI)) {
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-                List<Volume> allVplexVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
-                // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
-                // that are RP source volumes.
-                for (Volume vplexVolume : allVplexVolumesInCG) {
-                    String personality = vplexVolume.getPersonality();
-                    if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
-                        sourceObjList.add(vplexVolume);
-                    }
-                }
-            } else {
-                sourceObjList.add(sourceObj);
+            List<BlockObject> allBackendSrcVolumes = snapSessionImpl.getAllSourceObjectsForSnapshotSessionRequest(sourceVolume);
+
+            Map<URI, Volume> vplexVolumes = new HashMap<>();
+            for (BlockObject backendSrcVolume : allBackendSrcVolumes) {
+                Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, (Volume) backendSrcVolume);
+                vplexVolumes.put(vplexVolume.getId(), vplexVolume);
             }
+            sourceObjList.addAll(vplexVolumes.values());
         }
 
         return sourceObjList;

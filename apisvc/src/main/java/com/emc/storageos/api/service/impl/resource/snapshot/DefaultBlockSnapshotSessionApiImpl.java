@@ -103,12 +103,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         _blockSnapshotSessionMgr = blockSnapshotSessionMgr;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public List<BlockObject> getAllSourceObjectsForSnapshotSessionRequest(BlockObject sourceObj) {
-
         List<BlockObject> sourceObjList = new ArrayList<>();
         if (URIUtil.isType(sourceObj.getId(), BlockSnapshot.class)) {
             // For snapshots we ignore group semantics.
@@ -119,7 +115,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             Volume sourceVolume = (Volume) sourceObj;
             URI cgURI = sourceVolume.getConsistencyGroup();
             if (!isNullURI(cgURI)) {
-                sourceObjList.addAll(getVolumesPartOfCG(cgURI, _dbClient));
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                List<Volume> nativeVolumesInCG = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
+                sourceObjList.addAll(nativeVolumesInCG);
             } else {
                 sourceObjList.add(sourceObj);
             }

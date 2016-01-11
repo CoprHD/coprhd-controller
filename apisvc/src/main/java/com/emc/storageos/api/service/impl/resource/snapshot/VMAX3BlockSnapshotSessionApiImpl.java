@@ -214,28 +214,4 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
         controller.deleteSnapshotSession(storageSystem.getId(), snapSession.getId(), taskId);
     }
-
-    @Override
-    public List<BlockObject> getAllSourceObjectsForSnapshotSessionRequest(BlockObject sourceObj) {
-        List<BlockObject> sourceObjList = new ArrayList<>();
-        if (URIUtil.isType(sourceObj.getId(), BlockSnapshot.class)) {
-            // For snapshots we ignore group semantics.
-            sourceObjList.add(sourceObj);
-        } else {
-            // Otherwise, if the volume is in a CG, then we create
-            // a snapshot session for each volume in the CG.
-            Volume sourceVolume = (Volume) sourceObj;
-            URI cgURI = sourceVolume.getConsistencyGroup();
-
-            if (!isNullURI(cgURI)) {
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-                List<Volume> nativeVolumesInCG = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
-                sourceObjList.addAll(nativeVolumesInCG);
-            } else {
-                sourceObjList.add(sourceObj);
-            }
-        }
-
-        return sourceObjList;
-    }
 }

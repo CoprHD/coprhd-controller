@@ -243,7 +243,7 @@ public class DisasterRecoveryServiceTest {
                 .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), newAdded.getUuid());
 
         // mock checking and validating methods
-        doNothing().when(drService).precheckForStandbyAttach(any(SiteConfigRestRep.class));
+        doNothing().when(drService).precheckForStandbyAdd(any(SiteConfigRestRep.class));
         doNothing().when(drService).validateAddParam(any(SiteAddParam.class), any(List.class));
 
         // assemble parameters, add standby
@@ -371,7 +371,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         doReturn(primarySite).when(drUtil).getLocalSite();
         
-        drService.precheckForStandbyAttach(standby);
+        drService.precheckForStandbyAdd(standby);
     }
     
     @Test
@@ -578,7 +578,7 @@ public class DisasterRecoveryServiceTest {
     public void testPrecheckForStandbyAttach_FreshInstall() throws Exception {
         try {
             standby.setFreshInstallation(false);
-            drService.precheckForStandbyAttach(standby);
+            drService.precheckForStandbyAdd(standby);
             fail();
         } catch (Exception e) {
             // ignore expected exception
@@ -589,7 +589,7 @@ public class DisasterRecoveryServiceTest {
     public void testPrecheckForStandbyAttach_DBSchema() throws Exception {
         try {
             standby.setDbSchemaVersion("2.3");
-            drService.precheckForStandbyAttach(standby);
+            drService.precheckForStandbyAdd(standby);
             fail();
         } catch (Exception e) {
             // ignore expected exception
@@ -620,7 +620,7 @@ public class DisasterRecoveryServiceTest {
         doReturn("vipr-2.4.0.0.150").when(coordinator).getCurrentDbSchemaVersion();
         try {
             standby.setSoftwareVersion("vipr-2.3.0.0.100");
-            drService.precheckForStandbyAttach(standby);
+            drService.precheckForStandbyAdd(standby);
             fail();
         } catch (Exception e) {
             // ignore expected exception
@@ -634,7 +634,7 @@ public class DisasterRecoveryServiceTest {
             config.setConfig(Constants.CONFIG_DR_ACTIVE_SITEID, "654321");
             doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_ACTIVE_KIND, Constants.CONFIG_DR_ACTIVE_ID);
             doReturn("123456").when(coordinator).getSiteId();
-            drService.precheckForStandbyAttach(standby);
+            drService.precheckForStandbyAdd(standby);
             fail();
         } catch (Exception e) {
             // ignore expected exception
@@ -648,7 +648,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_ACTIVE_KIND, Constants.CONFIG_DR_ACTIVE_ID);
         doReturn(primarySite).when(drUtil).getLocalSite();
         
-        drService.precheckForStandbyAttach(standby);
+        drService.precheckForStandbyAdd(standby);
     }
     
     @Test
@@ -657,7 +657,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         doReturn(primarySite).when(drUtil).getLocalSite();
         
-        drService.precheckForStandbyAttach(standby);
+        drService.precheckForStandbyAdd(standby);
     }
     
     @Test

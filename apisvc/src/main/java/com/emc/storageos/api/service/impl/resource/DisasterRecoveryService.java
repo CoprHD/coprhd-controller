@@ -166,10 +166,11 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public SiteRestRep addStandby(SiteAddParam param) {
-        log.info("Retrieving standby site config from: {}", param.getVip());
+        log.info("Adding standby site: {}", param.getVip());
+
+        precheckForGeo();
 
         List<Site> existingSites = drUtil.listStandbySites();
-
         // parameter validation and precheck
         validateAddParam(param, existingSites);
         // check the version before using the ViPR client, otherwise there might be compatibility issues.
@@ -186,7 +187,7 @@ public class DisasterRecoveryService {
         }
 
         String siteId = standbyConfig.getUuid();
-        precheckForStandbyAttach(standbyConfig);
+        precheckForStandbyAdd(standbyConfig);
 
         InterProcessLock lock = drUtil.getDROperationLock();
 
@@ -1193,10 +1194,18 @@ public class DisasterRecoveryService {
         }
     }
 
+    private void precheckForGeo() {
+        Map<String, List<Site>> vdcSiteMap = drUtil.getVdcSiteMap();
+        int numOfVdcs = vdcSiteMap.keySet().size();
+        if (numOfVdcs > 1) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Not allowed to add standby site in multivdc configuration");
+        }
+    }
+    
     /*
      * Internal method to check whether standby can be attached to current active site
      */
-    protected void precheckForStandbyAttach(SiteConfigRestRep standby) {
+    protected void precheckForStandbyAdd(SiteConfigRestRep standby) {
         if (!isClusterStable()) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed("Current site is not stable");
         }

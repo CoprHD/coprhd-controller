@@ -6,6 +6,7 @@
 package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -26,9 +27,10 @@ public class VirtualNASMultipleProjectsAssociationMigration extends
     @Override
     public void process() {
 
-        logger.info("Migration started");
+        logger.info("Migration started.");
 
         DbClient dbClient = getDbClient();
+        List<VirtualNAS> vNASList = new ArrayList<VirtualNAS>();
 
         try {
             List<URI> virtualNASUris = dbClient.queryByType(VirtualNAS.class,
@@ -37,7 +39,7 @@ public class VirtualNASMultipleProjectsAssociationMigration extends
                     .queryIterativeObjects(VirtualNAS.class, virtualNASUris,
                             true);
 
-            logger.info("Processing virtual NASs to set the associated project into a set...");
+            logger.info("Processing virtual NASs to set the associated project into a set.");
 
             while (virtualNASIterator.hasNext()) {
 
@@ -46,10 +48,16 @@ public class VirtualNASMultipleProjectsAssociationMigration extends
                 URI projectURI = virtualNAS.getProject();
                 if (!NullColumnValueGetter.isNullURI(projectURI)) {
                     virtualNAS.associateProject(projectURI.toString());
+                    vNASList.add(virtualNAS);
                 }
             }
+            if (!vNASList.isEmpty()) {
+                logger.debug("Calling updateObject() to update virtual NAS is DB.");
+                dbClient.updateObject(vNASList);
+            }
+
         } catch (Exception ex) {
-            logger.error("Exception occured while associating project to virtual NAS");
+            logger.error("Exception occured while associating project to virtual NAS.");
             logger.error(ex.getMessage(), ex);
         }
 

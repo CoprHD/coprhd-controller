@@ -649,10 +649,6 @@ public class InternalDbClient extends DbClientImpl {
             internodeAuthProxy.removeFromBlacklist(newBlacklist);
         }
 
-        public void removeVdcNodesFromBlacklist(List<String> nodeIPs) {
-            internodeAuthProxy.removeFromBlacklist(nodeIPs);
-        }
-
         public List<String> getBlacklist() {
             return internodeAuthProxy.getBlacklist();
         }

@@ -212,43 +212,91 @@ _gen_prop2() {
     #'site_myid')
     [ -z "${_GENCONFIG_site_myid}" ] && export _GENCONFIG_site_myid='site1'
 
+    # set default site id as site1
     #'site_active_id')
     [ -z "${_GENCONFIG_site_active_id}" ] && export _GENCONFIG_site_active_id='site1'
 
-    #'vdc_vdc1_site1_node_count')
-    if [ -z "${_GENCONFIG_vdc_vdc1_site1_node_count}" ] ; then
-	if [ -n "${_GENCONFIG_vdc_vdc1_node_count}" ]; then
-	    export _GENCONFIG_vdc_vdc1_site1_node_count=${_GENCONFIG_vdc_vdc1_node_count}
-        else
-	    export _GENCONFIG_vdc_vdc1_site1_node_count=${_GENCONFIG_node_count}
-        fi
-    fi
+    # To handle upgrade from pre-yoda, we maps the following vdc config
+    # properties. Assume only one site in each vdc
+    #    vdc_vdc*_node_count -> vdc_vdc*_site1_node_count
+    #    vdc_vdc*_network_*_ipaddr -> vdc_vdc*_site1_network_*_ipaddr
+    #    vdc_vdc*_network_*_ipaddr6 -> vdc_vdc*_site1_network_*_ipaddr6
+    #    vdc_vdc*_network_vip -> vdc_vdc*_site1_network_vip
+    #    vdc_vdc*_network_vip6 -> vdc_vdc*_site1_network_vip6
 
-    #'vdc_vdc1_network_'*'_ipaddr')
-    for node_index in ${_GENCONFIG_node_indexes}; do
-        local var="_GENCONFIG_vdc_vdc1_site1_network_${node_index}_ipaddr"
-        if [ -z "${!var}" ]; then
-            local var2="_GENCONFIG_vdc1_network_${node_index}_ipaddr"
-            if [ -n "${!var2}" ]; then
-                eval export ${var}=${!var2}
-	    else
-                local var3="_GENCONFIG_network_${node_index}_ipaddr"
-		eval export ${var}=${!var3}
-	    fi
-        fi
-        var="_GENCONFIG_vdc_vdc1_site1_network_${node_index}_ipaddr6"
-        if [ -z "${!var}" ]; then
-            local var2="_GENCONFIG_vdc_vdc1_network_${node_index}_ipaddr6"
-            if [ -n "${!var2}" ]; then
-                eval export ${var}=${!var2}
-	    else
-                local var3="_GENCONFIG_network_${node_index}_ipaddr6"
-		eval export ${var}=${!var3}
-	    fi
+    # vdcid in _GENCONFIG_vdc_ids is separated by ,
+    local OLD_IFS="${IFS}"; IFS="${IFS},"
+
+    #'vdc_vdc*_site1_node_count')
+    for vdc in ${_GENCONFIG_vdc_ids}; do
+        local var="_GENCONFIG_vdc_${vdc}_site1_node_count"
+        if [ -z "${!var}" ] ; then
+            if [ "${vdc}" == "${_GENCONFIG_vdc_myid}" ]; then
+                eval export ${var}=${_GENCONFIG_node_count}
+            else
+                local var2="_GENCONFIG_vdc_${vdc}_node_count"
+                if [ -n "${!var2}" ]; then
+                    eval export ${var}=${!var2}
+                fi
+            fi
         fi
     done
 
-    local OLD_IFS="${IFS}"; IFS="${IFS},"
+    # Populate the following vdc config properties if they are empty
+    #    'vdc_vdc*_site1_network_'*'_ipaddr')
+    #    'vdc_vdc*_site1_network_'*'_ipaddr6')
+    #    'vdc_vdc*_site1_network_vip')
+    #    'vdc_vdc*_site1_network_vip6')
+    # If this is current vdc, use ip addresses in ovf-env
+    # (network_*_ipaddr/ipaddr6/vip/vip6). Otherwise
+    # use old vdc properties(vdc_vdc*_network_ipaddr/ipaddr6/vip/vip6)
+    for vdc in ${_GENCONFIG_vdc_ids}; do
+        local var="_GENCONFIG_vdc_${vdc}_site1_node_count"
+        for node_index in $(seq -s ' ' ${!var}); do
+            local var="_GENCONFIG_vdc_${vdc}_site1_network_${node_index}_ipaddr"
+            if [ -z "${!var}" ]; then
+                if [ "${vdc}" == "${_GENCONFIG_vdc_myid}" ] ; then
+                   local var2="_GENCONFIG_network_${node_index}_ipaddr"
+                   eval export ${var}=${!var2}
+                else
+                    local var3="_GENCONFIG_vdc_${vdc}_network_${node_index}_ipaddr"
+                    eval export ${var}=${!var3}
+                fi
+            fi
+            var="_GENCONFIG_vdc_${vdc}_site1_network_${node_index}_ipaddr6"
+            if [ -z "${!var}" ]; then
+                if [ "${vdc}" == "${_GENCONFIG_vdc_myid}" ] ; then
+                   local var2="_GENCONFIG_network_${node_index}_ipaddr6"
+                   eval export ${var}=${!var2}
+                else
+                    local var3="_GENCONFIG_vdc_${vdc}_network_${node_index}_ipaddr6"
+                    eval export ${var}=${!var3}
+                fi
+            fi
+        done
+        var="_GENCONFIG_vdc_${vdc}_site1_network_vip"
+        if [ -z "${!var}" ]; then
+            if [ "${vdc}" == "${_GENCONFIG_vdc_myid}" ]; then
+                eval export ${var}=${_GENCONFIG_network_vip}
+            else
+                local var2="_GENCONFIG_vdc_${vdc}_network_vip"
+                if [ -n "${!var2}" ]; then
+                    eval export ${var}=${!var2}
+                fi
+            fi
+        fi
+        var="_GENCONFIG_vdc_${vdc}_site1_network_vip6"
+        if [ -z "${!var}" ]; then
+            if [ "${vdc}" == "${_GENCONFIG_vdc_myid}" ] ; then
+                eval export ${var}=${_GENCONFIG_network_vip6}
+            else
+                local var2="_GENCONFIG_vdc_${vdc}_network_vip6"
+                if [ -n "${!var2}" ]; then
+                    eval export ${var}=${!var2}
+                fi
+            fi
+        fi
+    done
 
     #'vdc_'*'_network_'*'_ipaddr6')
     for vdc in ${_GENCONFIG_vdc_ids}; do
@@ -269,7 +317,7 @@ _gen_prop2() {
             eval export ${var}=$(_get_ipv6_uncompressed ${!var})
         done
     done
-    IFS="${OLD_IFS}"
+    IFS="${OLD_IFS}" # finished vdc properties pre-precessing
 
     #_GENCONFIG_NETWORK_STACK
     ipv4list=(${_GENCONFIG_network_complete_ipv4_list})

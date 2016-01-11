@@ -34,12 +34,21 @@ public class VdcConfigMigration extends BaseCustomMigrationCallback {
         migrateVdcConfigToZk();
     }
     
+    /**
+     * We store dbconfig/geodbconfig in under /config znode in pre-yoda versions. Since yoda, we move it 
+     * to site specific area /site/<site uuid>/config. So after yoda upgrade is done, remove those stale config
+     * entries in zk
+     */
     private void cleanupStaleDbConfig() {
         coordinatorClient.deletePath(String.format("%s/%s", ZkPath.CONFIG, Constants.DB_CONFIG));
         coordinatorClient.deletePath(String.format("%s/%s", ZkPath.CONFIG, Constants.GEODB_CONFIG));
         log.info("Removed dbconfig/geodbconfig in zk global area successfully");
     }
     
+    /**
+     * We store vdc ip addresses in local db(VirtualDataCenter CF) in pre-yoda. Since yoda, we move it
+     * to zookeeper. We move all vdcs config to zk
+     */
     private void migrateVdcConfigToZk() {
         List<URI> vdcIds = dbClient.queryByType(VirtualDataCenter.class, true);
         for(URI vdcId : vdcIds) {
@@ -55,7 +64,9 @@ public class VdcConfigMigration extends BaseCustomMigrationCallback {
             
             // insert DR active site info to ZK
             Site site = new Site();
-            site.setUuid(UUID.randomUUID().toString()); // use a random uuid
+            // TODO - we have no way to know site uuid in remote vdc during upgrade
+            // no harm for now. We don't care site uuid in remote vdc at all 
+            site.setUuid(UUID.randomUUID().toString()); 
             site.setName("Default Active Site");
             site.setVdcShortId(vdc.getShortId());
             site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);

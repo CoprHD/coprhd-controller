@@ -35,7 +35,6 @@ _get_geodbconf_props() {
         local OLD_IFS="${IFS}"; IFS="${IFS},"
         for vdc in ${_GENCONFIG_vdc_ids}; do
             [ "${_GENCONFIG_vdc_myid}" == "${vdc}" ] && continue
-            local var="_GENCONFIG_vdc_${vdc}_site1_node_count"
             # we don't support standalone in multiple vdc
             var="_GENCONFIG_vdc_${vdc}_site1_network_1_ipaddr"
             if [ -z "${!var}" ]; then

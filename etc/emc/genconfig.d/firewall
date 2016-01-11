@@ -30,31 +30,17 @@ _get_firewall_props() {
     local OLD_IFS="${IFS}"; IFS="${IFS},"
     for vdc in ${_GENCONFIG_vdc_ids}; do
         [ "$vdc" == "${_GENCONFIG_vdc_myid}" ] && continue
-        if [ -n "${_GENCONFIG_vdc_config_hashcode}" ]; then
-            local var="_GENCONFIG_vdc_${vdc}_node_count"
-            local vdc_node_count=${!var}
-            for index in $(seq ${vdc_node_count}); do
-                 var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr"
-                 local ipaddr="${!var}"
-                 if [ "${ipaddr}" == "0.0.0.0" ]; then
-                    ipaddr=''
-                 fi
-                 list+=" ${ipaddr}"
-            done
-        else
-            for site in ${_GENCONFIG_site_ids}; do
-                local var="_GENCONFIG_vdc_${vdc}_${site}_node_count"
-                local vdc_node_count=${!var}
-                for index in $(seq ${vdc_node_count}); do
-                    var="_GENCONFIG_vdc_${vdc}_${site}_network_${index}_ipaddr"
-                    local ipaddr="${!var}"
-                    if [ "${ipaddr}" == "0.0.0.0" ]; then
-                       ipaddr=''
-                    fi
-                    list+=" ${ipaddr}"
-                done
-            done
-        fi
+        # assume only 1 site in multivdc config
+        local var="_GENCONFIG_vdc_${vdc}_site1_node_count"
+        local vdc_node_count=${!var}
+        for index in $(seq ${vdc_node_count}); do
+            var="_GENCONFIG_vdc_${vdc}_site1_network_${index}_ipaddr"
+            local ipaddr="${!var}"
+            if [ "${ipaddr}" == "0.0.0.0" ]; then
+               ipaddr=''
+            fi
+            list+=" ${ipaddr}"
+        done
     done
     echo "vdc_nodes_ipaddr=$(echo ${list})"
 
@@ -63,31 +49,17 @@ _get_firewall_props() {
     list=''
     for vdc in ${_GENCONFIG_vdc_ids}; do
         [ "$vdc" == "${_GENCONFIG_vdc_myid}" ] && continue
-        if [ -n "${_GENCONFIG_vdc_config_hashcode}" ]; then
-            local var="_GENCONFIG_vdc_${vdc}_node_count"
-            local vdc_node_count=${!var}
-            for index in $(seq ${vdc_node_count}); do
-                 var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr"
-                 local ipaddr="${!var}"
-                 if [ "${ipaddr}" == "0.0.0.0" ]; then
-                    ipaddr=''
-                 fi
-                 list+=" ${ipaddr}"
-            done
-        else
-            for site in ${_GENCONFIG_site_ids}; do
-                local var="_GENCONFIG_vdc_${vdc}_${site}_node_count"
-                local vdc_node_count=${!var}
-                for index in $(seq ${vdc_node_count}); do
-                   var="_GENCONFIG_vdc_${vdc}_${site}_network_${index}_ipaddr6"
-                   ipaddr6="${!var}"
-                   if [ "${ipaddr6}" == "::0" ]; then
-                       ipaddr6=""
-                   fi
-                   list+=" ${ipaddr6}"
-                done
-            done
-        fi
+        # assume only 1 site in multivdc config
+        local var="_GENCONFIG_vdc_${vdc}_site1_node_count"
+        local vdc_node_count=${!var}
+        for index in $(seq ${vdc_node_count}); do
+            var="_GENCONFIG_vdc_${vdc}_site1_network_${index}_ipaddr6"
+            ipaddr6="${!var}"
+            if [ "${ipaddr6}" == "::0" ]; then
+                ipaddr6=""
+            fi
+            list+=" ${ipaddr6}"
+        done
     done
     echo "vdc_nodes_ipaddr6=$(echo ${list})"
 
@@ -113,8 +85,6 @@ _get_firewall_props() {
         done
     fi
     # iterate all nodes in standby sites
-    OLD_IFS="${IFS}"
-    IFS=","
     for standby in ${_GENCONFIG_site_ids} ; do
         if [ "${standby}" == "${_GENCONFIG_site_myid}" ] ; then
             continue # ignore current site
@@ -133,7 +103,6 @@ _get_firewall_props() {
             list6+=" ${ipaddr6}"
         done
     done
-    IFS="${OLD_IFS}"
     echo "dr_nodes_ipaddr=${list}"
     echo "dr_nodes_ipaddr6=${list6}"
 

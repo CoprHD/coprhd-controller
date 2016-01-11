@@ -265,7 +265,7 @@ class ConsistencyGroup(object):
             return (
                 common.block_until_complete("consistencygroup", resource["id"],
                                             result["id"], self.__ipAddr,
-                                            self.__port)
+                                            self.__port,sync)
             )
         else:
             raise SOSError(
@@ -557,7 +557,7 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
 
     update_parser.set_defaults(func=consistencygroup_update)
 

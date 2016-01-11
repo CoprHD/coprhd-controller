@@ -209,7 +209,7 @@ class Snapshot(object):
                 self.block_until_complete(
                     otype,
                     task['resource']['id'],
-                    task["id"])
+                    task["id"],sync)
             )
         else:
             return o
@@ -360,7 +360,7 @@ class Snapshot(object):
                 self.block_until_complete(
                     otype,
                     task['resource']['id'],
-                    task["id"])
+                    task["id"],sync)
             )
         else:
             return o
@@ -421,7 +421,7 @@ class Snapshot(object):
         o = common.json_decode(s)
 
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],sync)
         else:
             return o
         
@@ -487,7 +487,7 @@ class Snapshot(object):
         o = common.json_decode(s)
 
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],sync)
         else:
             return o
         
@@ -538,7 +538,7 @@ class Snapshot(object):
                 None)
         o = common.json_decode(s)
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],sync)
         else:
             return o
 
@@ -603,7 +603,7 @@ class Snapshot(object):
             o = common.json_decode(s)
 
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],sync)
         else:
             return o
 
@@ -667,7 +667,7 @@ class Snapshot(object):
         o = common.json_decode(s)
 
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],sync)
         else:
             return o
 
@@ -727,7 +727,7 @@ class Snapshot(object):
             o = common.json_decode(s)
 
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],sync)
         else:
             return o
 
@@ -771,7 +771,7 @@ class Snapshot(object):
             None)
         o = common.json_decode(s)
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],sync)
         else:
             return o
 
@@ -975,8 +975,8 @@ class Snapshot(object):
         self.isTimeout = True
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def block_until_complete(self, storageresType, resuri, task_id):
-        t = Timer(self.timeout, self.timeout_handler)
+    def block_until_complete(self, storageresType, resuri, task_id,sync):
+        t = Timer(sync, self.timeout_handler)
         t.start()
         while(True):
             #out = self.show_by_uri(id)
@@ -1170,7 +1170,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-synchronous', '-sync',
                                dest='synchronous',
                                help='Synchronous snapshot create',
-                               action='store_true')
+                               default=0,type=int)
 
     group = create_parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-filesystem', '-fs',
@@ -1500,7 +1500,7 @@ def delete_parser(subcommand_parsers, common_parser):
     delete_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Synchronous snapshot delete',
-                               action='store_true')
+                               default=0,type=int)
 
     delete_parser.set_defaults(func=snapshot_delete)
 
@@ -1624,7 +1624,7 @@ def export_file_parser(subcommand_parsers, common_parser):
     export_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Synchronous snapshot export file',
-                               action='store_true')
+                               default=0,type=int)
 
     mandatory_args.set_defaults(func=snapshot_export_file)
 
@@ -1752,7 +1752,7 @@ def export_volume_parser(subcommand_parsers, common_parser):
     export_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Synchronous snapshot export',
-                               action='store_true')
+                               default=0,type=int)
 
     mandatory_args.set_defaults(func=snapshot_export_volume)
 
@@ -1841,7 +1841,7 @@ def unexport_file_parser(subcommand_parsers, common_parser):
     unexport_parser.add_argument('-synchronous', '-sync',
                                  dest='sync',
                                  help='Synchronous snapshot unexport file',
-                                 action='store_true')
+                                 default=0,type=int)
 
     unexport_parser.set_defaults(func=snapshot_unexport_file)
 
@@ -1938,7 +1938,7 @@ def unexport_volume_parser(subcommand_parsers, common_parser):
     unexport_parser.add_argument('-synchronous', '-sync',
                                  dest='sync',
                                  help='Synchronous snapshot unexport',
-                                 action='store_true')
+                                 default=0,type=int)
 
     unexport_parser.set_defaults(func=snapshot_unexport_volume)
 
@@ -2268,7 +2268,7 @@ def activate_parser(subcommand_parsers, common_parser):
     activate_parser.add_argument('-synchronous', '-sync',
                                  dest='sync',
                                  help='Synchronous snapshot activate',
-                                 action='store_true')
+                                 default=0,type=int)
 
     mandatory_args.set_defaults(func=snapshot_activate)
 
@@ -2355,7 +2355,7 @@ def restore_parser(subcommand_parsers, common_parser):
     restore_parser.add_argument('-synchronous', '-sync',
                                 dest='sync',
                                 help='Synchronous snapshot restore',
-                                action='store_true')
+                                default=0,type=int)
 
     mandatory_args.set_defaults(func=snapshot_restore)
 
@@ -2436,7 +2436,7 @@ def resync_parser(subcommand_parsers, common_parser):
     resync_parser.add_argument('-synchronous', '-sync',
                                 dest='sync',
                                 help='Synchronous snapshot restore',
-                                action='store_true')
+                                default=0,type=int)
 
     mandatory_args.set_defaults(func=snapshot_resync)
 
@@ -2735,7 +2735,7 @@ def tag_parser(subcommand_parsers, common_parser):
     tag_parser.add_argument('-synchronous', '-sync',
                             dest='sync',
                             help='Synchronous snapshot export',
-                            action='store_true')
+                            default=0,type=int)
 
     tag.add_tag_parameters(tag_parser)
 

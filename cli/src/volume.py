@@ -1174,7 +1174,7 @@ class Volume(object):
             return o
 
     # Deletes a volume given a volume name
-    def delete(self, name, volume_name_list=None, sync=False,
+    def delete(self, name, volume_name_list=None, sync=0,
                forceDelete=False, vipronly=False):
         '''
         Deletes a volume based on volume name
@@ -1207,7 +1207,7 @@ class Volume(object):
                                str(invalid_vol_names) + " not found")
 
     # Deletes a volume given a volume uri
-    def delete_by_uri(self, uri, sync=False,
+    def delete_by_uri(self, uri, sync=0,
                       forceDelete=False, vipronly=False):
         '''
         Deletes a volume based on volume uri
@@ -1297,7 +1297,7 @@ class Volume(object):
                 return (
                     common.block_until_complete("volume", resource["id"],
                                                 result["id"], self.__ipAddr,
-                                                self.__port)
+                                                self.__port,sync)
                 )
             else:
                 raise SOSError(
@@ -1312,7 +1312,7 @@ class Volume(object):
                               project_name, volume_name, task_id)
         )
 
-    def expand(self, name, new_size, sync=False):
+    def expand(self, name, new_size, sync=0):
 
         #volume_uri = self.volume_query(name)
         volume_detail = self.show(name)
@@ -1794,7 +1794,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
     create_parser.set_defaults(func=volume_create)
     
     
@@ -1855,7 +1855,7 @@ def rp_journal_parser(subcommand_parsers, common_parser):
     rp_journal_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
     rp_journal_parser.set_defaults(func=rp_journal_create)
     
 # Common Parser for clone 
@@ -1930,7 +1930,7 @@ def volume_clone_common_parser(cc_common_parser):
                                 required=True)
     cc_common_parser.add_argument('-synchronous', '-sync',
                        dest='sync',
-                       action='store_true',
+                       default=0,type=int,
                        help='Synchronous mode enabled')
 
 def get_clone_source_resource(volObj, args, snapshot=None): 
@@ -2489,7 +2489,7 @@ def delete_parser(subcommand_parsers, common_parser):
     delete_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
     delete_parser.add_argument('-forceDelete', '-fd',
                             dest='forceDelete',
                             help='Delete volume forecibly',
@@ -2591,7 +2591,7 @@ def export_parser(subcommand_parsers, common_parser):
     export_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
     export_parser.set_defaults(func=volume_export)
 
 
@@ -2661,7 +2661,7 @@ def unexport_parser(subcommand_parsers, common_parser):
     unexport_parser.add_argument('-synchronous', '-sync',
                                  dest='sync',
                                  help='Execute in synchronous mode',
-                                 action='store_true')
+                                 default=0,type=int)
     unexport_parser.set_defaults(func=volume_unexport)
 
 
@@ -4006,7 +4006,7 @@ def expand_parser(subcommand_parsers, common_parser):
     expand_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
     expand_parser.set_defaults(func=volume_expand)
 
 

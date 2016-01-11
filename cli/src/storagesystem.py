@@ -842,7 +842,7 @@ class StorageSystem(object):
 
     def discover_storagesystem(
             self, device_name=None, serialno=None,
-            device_type=None, sync=False):
+            device_type=None, sync=0):
 
         # Discover all case
         if(device_name is None and device_type is None and serialno is None):
@@ -860,7 +860,7 @@ class StorageSystem(object):
         self.discover_storagesystem_by_uri(urideviceid, sync)
         return
 
-    def discover_storagesystem_by_uri(self, uri=None, sync=False):
+    def discover_storagesystem_by_uri(self, uri=None, sync=0):
         '''
         Makes a REST API call to discover storage system
         '''
@@ -887,7 +887,7 @@ class StorageSystem(object):
                 return (
                     common.block_until_complete("storagesystem",
                         resource["id"], result["op_id"], self.__ipAddr,
-                        self.__port)
+                        self.__port,sync)
                 )
             else:
                 raise SOSError(
@@ -1189,7 +1189,7 @@ def discover_parser(subcommand_parsers, common_parser):
     discover_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
 
     discover_parser.set_defaults(func=storagesystem_discover)
 

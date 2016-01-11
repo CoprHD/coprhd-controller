@@ -1579,7 +1579,7 @@ def compute_host_osinstall_parser(subcommand_parsers, common_parser):
     os_install_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
 
     os_install_parser.set_defaults(func=compute_host_os_install)
 

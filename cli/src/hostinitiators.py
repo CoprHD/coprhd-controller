@@ -386,7 +386,7 @@ class HostInitiator(object):
                 return (
                     common.block_until_complete("initiator", resource["id"],
                                                 result["id"], self.__ipAddr,
-                                                self.__port)
+                                                self.__port,sync)
                                                 
                                     
                 )
@@ -448,7 +448,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
     
     create_parser.add_argument('-initiatorname', '-initname',
                                help='Initiator Alias Name',

@@ -911,9 +911,9 @@ def timeout_handler():
 
 
 # Blocks the operation until the task is complete/error out/timeout
-def block_until_complete(componentType, resource_uri, task_id, ipAddr, port):
+def block_until_complete(componentType, resource_uri, task_id, ipAddr, port,sync):
         IS_TASK_TIMEOUT = False
-        t = Timer(300, timeout_handler)
+        t = Timer(sync, timeout_handler)
         t.start()
         while(True):
             out = get_task_by_resourceuri_and_taskId(

@@ -606,7 +606,7 @@ class ExportGroup(object):
                 return (
                     common.block_until_complete("export", resource["id"],
                                                 result["id"], self.__ipAddr,
-                                                self.__port)
+                                                self.__port,sync)
                 )
             else:
                 raise SOSError(
@@ -725,7 +725,7 @@ def delete_parser(subcommand_parsers, common_parser):
     delete_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
     delete_parser.set_defaults(func=exportgroup_delete)
 
 
@@ -947,7 +947,7 @@ def add_volume_parser(subcommand_parsers, common_parser):
     add_volume_parser.add_argument('-synchronous', '-sync',
                                    dest='sync',
                                    help='Execute in synchronous mode',
-                                   action='store_true')
+                                   default=0,type=int)
 
     add_volume_parser.set_defaults(func=exportgroup_add_volumes)
 
@@ -1020,7 +1020,7 @@ def remove_volume_parser(subcommand_parsers, common_parser):
     remove_volume_parser.add_argument('-synchronous', '-sync',
                                       dest='sync',
                                       help='Execute in synchronous mode',
-                                      action='store_true')
+                                      default=0,type=int)
 
     remove_volume_parser.set_defaults(func=exportgroup_remove_volumes)
 
@@ -1078,7 +1078,7 @@ def add_initiator_parser(subcommand_parsers, common_parser):
     add_initiator_parser.add_argument('-synchronous', '-sync',
                                       dest='sync',
                                       help='Execute in synchronous mode',
-                                      action='store_true')
+                                      default=0,type=int)
 
     add_initiator_parser.set_defaults(func=exportgroup_add_initiators)
 
@@ -1136,7 +1136,7 @@ def remove_initiator_parser(subcommand_parsers, common_parser):
     remove_initiator_parser.add_argument('-synchronous', '-sync',
                                          dest='sync',
                                          help='Execute in synchronous mode',
-                                         action='store_true')
+                                         default=0,type=int)
 
     remove_initiator_parser.set_defaults(func=exportgroup_remove_initiators)
 
@@ -1188,7 +1188,7 @@ def add_cluster_parser(subcommand_parsers, common_parser):
     add_cluster_parser.add_argument('-synchronous', '-sync',
                                     dest='sync',
                                     help='Execute in synchronous mode',
-                                    action='store_true')
+                                    default=0,type=int)
 
     add_cluster_parser.set_defaults(func=exportgroup_add_cluster)
 
@@ -1238,7 +1238,7 @@ def remove_cluster_parser(subcommand_parsers, common_parser):
     remove_cluster_parser.add_argument('-synchronous', '-sync',
                                        dest='sync',
                                        help='Execute in synchronous mode',
-                                       action='store_true')
+                                       default=0,type=int)
 
     remove_cluster_parser.set_defaults(func=exportgroup_remove_cluster)
 
@@ -1286,7 +1286,7 @@ def add_host_parser(subcommand_parsers, common_parser):
     add_host_parser.add_argument('-synchronous', '-sync',
                                  dest='sync',
                                  help='Execute in synchronous mode',
-                                 action='store_true')
+                                 default=0,type=int)
 
     add_host_parser.set_defaults(func=exportgroup_add_host)
 
@@ -1337,7 +1337,7 @@ def remove_host_parser(subcommand_parsers, common_parser):
     remove_host_parser.add_argument('-synchronous', '-sync',
                                     dest='sync',
                                     help='Execute in synchronous mode',
-                                    action='store_true')
+                                    default=0,type=int)
 
     remove_host_parser.set_defaults(func=exportgroup_remove_host)
 

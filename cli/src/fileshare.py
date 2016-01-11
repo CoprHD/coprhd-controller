@@ -840,7 +840,7 @@ class Fileshare(object):
                 return (
                     common.block_until_complete("fileshare", resource["id"],
                                                 result["id"], self.__ipAddr,
-                                                self.__port)
+                                                self.__port,sync)
                 )
             else:
                 raise SOSError(
@@ -934,7 +934,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
     create_parser.set_defaults(func=fileshare_create)
 
 
@@ -1047,7 +1047,7 @@ def delete_parser(subcommand_parsers, common_parser):
     delete_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
     delete_parser.add_argument(
         '-forceDelete', '-fd',
         metavar='<forceDelete>',
@@ -1503,7 +1503,7 @@ def export_parser(subcommand_parsers, common_parser):
     export_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
     export_parser.set_defaults(func=fileshare_export)
 
 
@@ -1603,7 +1603,7 @@ def unexport_parser(subcommand_parsers, common_parser):
     unexport_parser.add_argument('-synchronous', '-sync',
                                  dest='sync',
                                  help='Execute in synchronous mode',
-                                 action='store_true')
+                                 default=0,type=int)
     unexport_parser.set_defaults(func=fileshare_unexport)
 
 
@@ -2142,7 +2142,7 @@ def expand_parser(subcommand_parsers, common_parser):
     expand_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
-                               action='store_true')
+                               default=0,type=int)
     expand_parser.set_defaults(func=fileshare_expand)
 
 

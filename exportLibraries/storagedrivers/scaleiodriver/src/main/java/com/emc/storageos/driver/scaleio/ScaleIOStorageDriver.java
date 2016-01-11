@@ -799,5 +799,4 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         task.setMessage("Operation not supported");
         return task;
     }
-
 }

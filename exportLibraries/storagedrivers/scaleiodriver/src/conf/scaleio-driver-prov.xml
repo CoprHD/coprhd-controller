@@ -4,10 +4,6 @@
        xmlns="http://www.springframework.org/schema/beans"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="scaleIORestHandleFactory"
-          class="com.emc.storageos.driver.scaleio.ScaleIORestHandleFactory" depends-on="scaleIORestClientFactory">
-        <property name="scaleIORestClientFactory" ref="scaleIORestClientFactory"/>
-    </bean>
     <bean id="scaleIORestClientFactory"
           class="com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClientFactory" init-method="init">
         <property name="connectionTimeoutMs" value="30000"/>

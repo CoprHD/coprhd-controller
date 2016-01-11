@@ -388,7 +388,7 @@ public class BackupService {
     @POST
     @Path("pull/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public Response restoreBackup(@QueryParam("file") String backupName ) {
+    public Response pullBackup(@QueryParam("file") String backupName ) {
         log.info("The backup file {} to download", backupName);
 
         DownloadExecutor downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),

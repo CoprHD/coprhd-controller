@@ -14,6 +14,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -30,14 +34,15 @@ import javax.ws.rs.core.Response;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.api.service.impl.resource.utils.InternalSiteServiceClient;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DrOperationStatus;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
@@ -50,6 +55,7 @@ import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
@@ -140,8 +146,12 @@ public class DisasterRecoveryService {
                 descparams);
     }
 
-    public DisasterRecoveryService() {
+    /**
+     * init method, this will be called by Spring framework after create bean successfully
+     */
+    public void init() {
         siteMapper = new SiteMapper();
+        startLeaderSelector();
     }
 
     /**
@@ -1104,6 +1114,14 @@ public class DisasterRecoveryService {
 
         return standbyTimes;
     }
+    
+
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/internal/list")
+    public SiteList getSitesInternally() {
+        return this.getSites();
+    } 
 
     /**
      * Record new DR operation
@@ -1188,7 +1206,7 @@ public class DisasterRecoveryService {
         }
 
         // standby should be refresh install
-        if (!standby.isFreshInstallation()) {
+        if (!standby.isFreshInstallation() && !SiteState.ACTIVE_DEGRADED.toString().equalsIgnoreCase(standby.getState())) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed("Standby is not a fresh installation");
         }
 
@@ -1488,4 +1506,120 @@ public class DisasterRecoveryService {
     public void setDbCommonInfo(Properties dbCommonInfo) {
         this.dbCommonInfo = dbCommonInfo;
     }
+    
+    private void startLeaderSelector() {
+        LeaderSelector leaderSelector = coordinator.getLeaderSelector(coordinator.getSiteId(), Constants.FAILBACK_DETECT_LEADER,
+                new FailbackLeaderSelectorListener());
+        leaderSelector.autoRequeue();
+        leaderSelector.start();
+    }
+    
+    private class FailbackLeaderSelectorListener extends LeaderSelectorListenerImpl {
+
+        private static final int FAILBACK_DETECT_INTERNVAL_SECONDS = 60;
+        private ScheduledExecutorService service;
+
+        @Override
+        protected void startLeadership() throws Exception {
+            log.info("This node is selected as failback detector");
+
+            service = Executors.newScheduledThreadPool(1);
+            service.scheduleAtFixedRate(failbackDetectMonitor, 0, FAILBACK_DETECT_INTERNVAL_SECONDS, TimeUnit.SECONDS);
+        }
+
+        @Override
+        protected void stopLeadership() {
+            service.shutdown();
+            try {
+                while (!service.awaitTermination(30, TimeUnit.SECONDS)) {
+                    log.info("Waiting scheduler thread pool to shutdown for another 30s");
+                }
+            } catch (InterruptedException e) {
+                log.error("Interrupted while waiting to shutdown scheduler thread pool.", e);
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+    }
+    
+    private Runnable failbackDetectMonitor = new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                if (!needCheckFailback()) {
+                    return;
+                }
+                
+                Site localSite = drUtil.getLocalSite();
+                for (Site site : drUtil.listStandbySites()) {
+                    if (drUtil.isSiteUp(site.getUuid())) {
+                        log.info("Site {} is up, ignore to check it", site.getUuid());
+                        continue;
+                    } else {
+                        if (hasActiveSiteInRemote(site, localSite.getUuid())) {
+                            localSite.setState(SiteState.ACTIVE_DEGRADED);
+                            coordinator.persistServiceConfiguration(localSite.toConfiguration());
+                            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_FAILBACK_DEGRADE);
+                            return;
+                        }
+                    }
+                }
+                
+                log.info("No another active site detect for failback");
+            } catch (Exception e) {
+                log.error("Error occurs during failback detect monitor", e);
+            }
+        }
+        
+        private boolean needCheckFailback() {
+            if (drUtil.getLocalSite().getState().equals(SiteState.ACTIVE)) {
+                log.info("Current site is active site, need to detail failback");
+                return true;
+            }
+            
+            Site localSite = drUtil.getLocalSite();
+            if (localSite.getState().equals(SiteState.ACTIVE_DEGRADED)) {
+                log.info("Site is already ACTIVE_FAILBACK_DEGRADED");
+                if (!coordinator.locateAllServices(localSite.getUuid(), "controllersvc", "1", null, null).isEmpty()) {
+                    log.info("there are some controller service alive, process to degrade");
+                    return true;
+                }
+                
+                if (!coordinator.locateAllServices(localSite.getUuid(), "sasvc", "1", null, null).isEmpty() ) {
+                    log.info("there are some sa service alive, process to degrade");
+                    return true;
+                }
+                
+                if (!coordinator.locateAllServices(localSite.getUuid(), "vasasvc", "1", null, null).isEmpty()) {
+                    log.info("there are some vasa service alive, process to degrade");
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        private boolean hasActiveSiteInRemote(Site site, String localActiveSiteUUID) {
+            try {
+                InternalSiteServiceClient client = new InternalSiteServiceClient(site);
+                client.setCoordinatorClient(coordinator);
+                client.setKeyGenerator(apiSignatureGenerator);
+                SiteList remoteSiteList = client.getSiteList();
+                
+                for (SiteRestRep siteResp : remoteSiteList.getSites()) {
+                    if (SiteState.ACTIVE.toString().equalsIgnoreCase(siteResp.getState()) && !localActiveSiteUUID.equals(siteResp.getUuid())) {
+                        log.info("Remote site {} is active site, need to failback", siteResp);
+                        return true;
+                    }
+                }
+                
+                return false;
+            } catch (Exception e) {
+                log.warn("Failed to check remote site information during failback detect", e);
+                return false;
+            }
+        }
+    
+    };
 }

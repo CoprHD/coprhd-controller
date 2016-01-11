@@ -45,12 +45,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
             // Assume volumes can be created for different storage systems
             for (StorageVolume volume : volumes) {
                 String allocatedCapacity = volume.getAllocatedCapacity().toString();
-                String storagePoolId = volume.getStoragePoolId();
 
                 ScaleIORestClient client = this.getClientBySystemId(volume.getStorageSystemId());
 
                 if (client != null) {
-                    ScaleIOVolume result = null;
+                    ScaleIOVolume result;
 
                     try {
                         result = client.addVolume(volume.getStorageSystemId(), volume.getStoragePoolId(),

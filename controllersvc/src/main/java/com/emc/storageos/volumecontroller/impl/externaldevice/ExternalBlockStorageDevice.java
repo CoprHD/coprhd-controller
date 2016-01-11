@@ -367,6 +367,37 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} doExportGroupCreate END ...", storage.getSerialNumber());
     }
 
+    /**
+     *  {@inheritDoc}
+     *
+     */
+    @Override
+    public void doExportAddVolume(StorageSystem storage, ExportMask exportMask,
+                                  URI volume, Integer lun, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
+        Map<URI, Integer> map = new HashMap<URI, Integer>();
+        map.put(volume, lun);
+        VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), map, dbClient);
+        exportMaskOperationsHelper.addVolume(storage, exportMask.getId(), volumeLunArray, taskCompleter);
+        _log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
+    }
+
+    /**
+     *  {@inheritDoc}
+     *
+     */
+    @Override
+    public void doExportAddVolumes(StorageSystem storage,
+                                   ExportMask exportMask, Map<URI, Integer> volumes,
+                                   TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
+        VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), volumes, dbClient);
+        exportMaskOperationsHelper.addVolume(storage, exportMask.getId(),
+                volumeLunArray, taskCompleter);
+        _log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
+    }
+
 
     @Override
     public void doConnect(StorageSystem storageSystem) {

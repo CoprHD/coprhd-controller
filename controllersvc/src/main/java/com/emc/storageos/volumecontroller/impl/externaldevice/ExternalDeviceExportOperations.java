@@ -4,6 +4,16 @@
  */
 package com.emc.storageos.volumecontroller.impl.externaldevice;
 
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.emc.storageos.storagedriver.BlockStorageDriver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -11,16 +21,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
-
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
@@ -46,6 +47,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         log.info("createExportMask: assignments: {}", targetURIList);
         log.info("createExportMask: initiators: {}", initiatorList);
         log.info("createExportMask: volume-HLU pairs: {}", volumeURIHLUs);
+        BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
 
         taskCompleter.ready(dbClient);
 
@@ -58,8 +60,15 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void addVolume(StorageSystem storage, URI exportMask, VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void addVolume(StorageSystem storage, URI exportMaskUri, VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter) throws DeviceControllerException {
+        log.info("{} addVolume START...", storage.getSerialNumber());
+        log.info("Export mask id: {}", exportMaskUri);
+        log.info("addVolume: volume-HLU pairs: {}", volumeURIHLUs);
+        BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
 
+        taskCompleter.ready(dbClient);
+
+        log.info("{} addVolume END...", storage.getSerialNumber());
     }
 
     @Override
@@ -99,4 +108,5 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return null;
     }
+
 }

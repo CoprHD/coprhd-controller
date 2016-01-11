@@ -464,6 +464,7 @@ public class ExternalDeviceCommunicationInterface extends
         StorageSystem driverStorageSystem = new StorageSystem();
         driverStorageSystem.setNativeId(storageSystem.getNativeId());
         driverStorageSystem.setIpAddress(storageSystem.getIpAddress());
+        driverStorageSystem.setSystemName(storageSystem.getLabel());
 
         return driverStorageSystem;
     }

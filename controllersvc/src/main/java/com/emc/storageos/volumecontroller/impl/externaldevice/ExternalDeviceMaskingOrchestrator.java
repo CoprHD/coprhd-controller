@@ -6,6 +6,8 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.util.StorageDriverManager;
@@ -15,6 +17,7 @@ import com.emc.storageos.volumecontroller.impl.block.AbstractMaskingFirstOrchest
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import org.slf4j.Logger;
@@ -121,9 +124,9 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                                                    StorageSystem storage, ExportGroup exportGroup,
                                                    List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoneStepNeeded, String token)
             throws Exception {
-        Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
-        List<URI> hostURIs = new ArrayList<URI>();
-        List<String> portNames = new ArrayList<String>();
+        Map<String, URI> portNameToInitiatorURI = new HashMap<>();
+        List<URI> hostURIs = new ArrayList<>();
+        List<String> portNames = new ArrayList<>();
         _log.info("Started export mask steps generation.");
         /*
          * Populate the port WWN/IQNs (portNames) and the mapping of the
@@ -171,7 +174,88 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
     }
 
     @Override
-    public void createWorkFlowAndSubmitForAddVolumes(URI storageURI, URI exportGroupURI, Map<URI, Integer> volumeMap, String token, ExportTaskCompleter taskCompleter, ExportGroup exportGroup, StorageSystem storage) throws Exception {
+    public void createWorkFlowAndSubmitForAddVolumes(URI storageURI,
+                                                     URI exportGroupURI, Map<URI, Integer> volumeMap, String token,
+                                                     ExportTaskCompleter taskCompleter, ExportGroup exportGroup,
+                                                     StorageSystem storage) throws Exception
+    {
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
+                exportGroup, storageURI);
+        if (exportMasks != null && !exportMasks.isEmpty())
+        {
+            // Set up work flow steps.
+            Workflow workflow = _workflowService.getNewWorkflow(
+                    MaskingWorkflowEntryPoints.getInstance(),
+                    "exportGroupAddVolumes - Added volumes to existing mask",
+                    true, token);
 
+            // For each export mask in export group, invoke add Volumes if export Mask belongs to the provided storage array.
+            for (ExportMask exportMask : exportMasks) {
+                if (exportMask.getStorageDevice().equals(storageURI)) {
+                    _log.info("export_volume_add: adding volume to an existing export");
+                    exportMask.addVolumes(volumeMap);
+                    _dbClient.updateObject(exportMask);
+
+                    List<URI> volumeURIs = new ArrayList<>();
+                    volumeURIs.addAll(volumeMap.keySet());
+
+                    List<ExportMask> masks = new ArrayList<>();
+                    masks.add(exportMask);
+
+                    String maskingStep = generateExportMaskAddVolumesWorkflow(workflow,
+                            null, storage, exportGroup, exportMask, volumeMap);
+                    String zoningMapUpdateStep = generateZoningMapUpdateWorkflow(
+                            workflow, maskingStep, exportGroup, storage);
+                    generateZoningAddVolumesWorkflow(workflow, zoningMapUpdateStep,
+                            exportGroup, masks, volumeURIs);
+                }
+            }
+
+            String successMessage = String.format(
+                    "Volumes successfully added to export on StorageArray %s",
+                    storage.getLabel());
+            workflow.executePlan(taskCompleter, successMessage);
+        }
+        else
+        {
+            if (exportGroup.getInitiators() != null
+                    && !exportGroup.getInitiators().isEmpty())
+            {
+                _log.info("export_volume_add: adding volume, creating a new export");
+
+                List<URI> initiatorURIs = new ArrayList<>();
+                for (String initiatorId : exportGroup.getInitiators())
+                {
+                    Initiator initiator = _dbClient.queryObject(
+                            Initiator.class, URI.create(initiatorId));
+                    initiatorURIs.add(initiator.getId());
+                }
+
+                // Set up work flow steps.
+                Workflow workflow = _workflowService.getNewWorkflow(
+                        MaskingWorkflowEntryPoints.getInstance(),
+                        "exportGroupAddVolumes - Create a new mask", true,
+                        token);
+
+                generateExportMaskCreateWorkflow(workflow, null, storage,
+                        exportGroup, initiatorURIs, volumeMap, token);
+                generateZoningMapUpdateWorkflow(workflow,
+                        EXPORT_GROUP_MASKING_TASK, exportGroup, storage);
+                generateZoningCreateWorkflow(workflow,
+                        EXPORT_GROUP_UPDATE_ZONING_MAP, exportGroup, null,
+                        volumeMap);
+
+                String successMessage = String
+                        .format("Initiators successfully added to export StorageArray %s",
+                                storage.getLabel());
+
+                workflow.executePlan(taskCompleter, successMessage);
+            }
+            else
+            {
+                _log.info("export_volume_add: adding volume, no initiators yet");
+                taskCompleter.ready(_dbClient);
+            }
+        }
     }
 }

@@ -4,23 +4,18 @@
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -31,16 +26,14 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
     private static final Logger logger = LoggerFactory.getLogger(BlockMirrorIngestOrchestrator.class);
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
-            UnManagedVolume unManagedVolume,
-            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
-            List<UnManagedVolume> unManagedVolumesIngestedSuccessfully,
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
-            Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
+    public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
+            throws IngestionException {
 
+        UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();
+        boolean unManagedVolumeExported = requestContext.getVolumeContext().isVolumeExported();
+        
         // Validate the unManagedVolume properties
-        validateUnManagedVolume(unManagedVolume, vPool);
+        validateUnManagedVolume(unManagedVolume, requestContext.getVpool());
 
         // Check whether mirror already ingested or not.
         String mirrorNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
@@ -51,17 +44,17 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
             return clazz.cast(mirrorObj);
         }
         if (null == mirrorObj) {
-            mirrorObj = createBlockMirror(mirrorNativeGuid, system, unManagedVolume, vPool, virtualArray, project);
+            mirrorObj = createBlockMirror(mirrorNativeGuid, requestContext.getStorageSystem(), unManagedVolume, 
+                    requestContext.getVpool(), requestContext.getVarray(), requestContext.getProject());
         }
         // Run this always when the volume is NO_PUBLIC_ACCESS
-        if (markUnManagedVolumeInactive(unManagedVolume, mirrorObj, unManagedVolumesIngestedSuccessfully, createdObjectMap,
-                updatedObjectMap, taskStatusMap, vplexIngestionMethod)) {
+        if (markUnManagedVolumeInactive(requestContext, mirrorObj)) {
             logger.info("Marking UnManaged Volume {} as inactive, all the related replicas and parent has been ingested",
                     unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as inactive after successful export
             if (!unManagedVolumeExported) {
                 unManagedVolume.setInactive(true);
-                unManagedVolumesIngestedSuccessfully.add(unManagedVolume);
+                requestContext.getUnManagedVolumesToBeDeleted().add(unManagedVolume);
             }
         } else {
             logger.info("Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
@@ -70,14 +63,6 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         }
 
         return clazz.cast(mirrorObj);
-    }
-
-    /**
-     * There is no validation required for mirrors. Hence returning void argument.
-     */
-    @Override
-    protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
-        return;
     }
 
     /**
@@ -106,6 +91,11 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         String syncType = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.SYNC_TYPE.toString(), unManagedVolume.getVolumeInformation());
         mirror.setSyncType(syncType);
+        String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, system, vPool);
+        validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
+        if (null != autoTierPolicyId) {
+            updateTierPolicyProperties(autoTierPolicyId, mirror);
+        }
         return mirror;
     }
 }

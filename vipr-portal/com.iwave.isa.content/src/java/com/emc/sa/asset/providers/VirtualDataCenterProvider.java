@@ -15,8 +15,8 @@ import static com.emc.vipr.client.core.util.UnmanagedHelper.getLabel;
 import static com.emc.vipr.client.core.util.UnmanagedHelper.getVpoolsForUnmanaged;
 import static com.emc.vipr.client.core.util.UnmanagedHelper.isClone;
 import static com.emc.vipr.client.core.util.UnmanagedHelper.isMirror;
+import static com.emc.vipr.client.core.util.UnmanagedHelper.isNonRPExported;
 import static com.emc.vipr.client.core.util.UnmanagedHelper.isSnapShot;
-import static com.emc.vipr.client.core.util.UnmanagedHelper.isVolumeExported;
 
 import java.net.URI;
 import java.util.Collection;
@@ -64,6 +64,11 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     @Asset("unmanagedBlockStorageSystem")
     public List<AssetOption> getUnmanagedBlockStorageSystem(AssetOptionsContext ctx) {
         return createBaseResourceOptions(api(ctx).storageSystems().getAll(BLOCK.and(REGISTERED).and(INCOMPATIBLE.not())));
+    }
+
+    @Asset("unmanagedBlockProtectionSystem")
+    public List<AssetOption> getUnmanagedBlockProtectionSystem(AssetOptionsContext ctx) {
+        return createBaseResourceOptions(api(ctx).protectionSystems().getAll(REGISTERED.and(INCOMPATIBLE.not())));
     }
 
     @Asset("fileStorageSystem")
@@ -220,7 +225,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVolumeFilter(AssetOptionsContext ctx, URI storageSystemId, URI vpool) {
         List<String> volumeNames = Lists.newArrayList();
         for (UnManagedVolumeRestRep volume : listUnmanagedVolumes(ctx, storageSystemId, vpool)) {
-            if (!isVolumeExported(volume.getVolumeCharacteristics())) {
+            if (!isNonRPExported(volume.getVolumeCharacteristics())) {
                 volumeNames.add(getLabel(volume));
             }
         }
@@ -233,7 +238,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getUnmanagedVolumeByStorageSystemVirtualPool(AssetOptionsContext ctx, URI storageSystemId, URI vpool) {
         List<AssetOption> options = Lists.newArrayList();
         for (UnManagedVolumeRestRep volume : listUnmanagedVolumes(ctx, storageSystemId, vpool)) {
-            if (!isVolumeExported(volume.getVolumeCharacteristics())) {
+            if (!isNonRPExported(volume.getVolumeCharacteristics())) {
                 options.add(toAssetOption(volume));
             }
         }
@@ -247,7 +252,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
             int volumePage) {
         List<AssetOption> options = Lists.newArrayList();
         for (UnManagedVolumeRestRep volume : listUnmanagedVolumes(ctx, storageSystemId, vpool)) {
-            if (!isVolumeExported(volume.getVolumeCharacteristics())) {
+            if (!isNonRPExported(volume.getVolumeCharacteristics())) {
                 options.add(toAssetOption(volume));
             }
         }
@@ -261,7 +266,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
         List<AssetOption> options = Lists.newArrayList();
         for (UnManagedVolumeRestRep volume : listUnmanagedVolumes(ctx, storageSystemId)) {
-            if (matchesVpool(volume, vpool) && !isVolumeExported(volume.getVolumeCharacteristics())) {
+            if (matchesVpool(volume, vpool) && !isNonRPExported(volume.getVolumeCharacteristics())) {
                 options.add(toAssetOption(volume));
             }
         }

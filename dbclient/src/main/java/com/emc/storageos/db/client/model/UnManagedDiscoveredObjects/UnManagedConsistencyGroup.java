@@ -78,6 +78,7 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 
 	public void setStorageSystemUri(URI storageSystemUri) {
 		this._storageSystemUri = storageSystemUri;
+		setChanged("storageDevice");
 	}
 
 	@Name("AssociatedVolumes")

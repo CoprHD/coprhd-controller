@@ -233,11 +233,13 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
         try {
             URI snapshot = snapshotList.get(0);
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
+            Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
+            if (ControllerUtils.isInVNXVirtualRG(volume, _dbClient)) {
+                throw DeviceControllerException.exceptions.groupSnapshotNotSupported(volume.getReplicationGroupInstance());
+            }
 
             // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
             ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, snapshotObj, _dbClient, _helper, _cimPath);
-
-            Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant().getURI());
             String tenantName = tenant.getLabel();
             String snapLabelToUse =

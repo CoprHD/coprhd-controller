@@ -211,11 +211,28 @@ public class BlockSnapshotSessionManager {
         return snapSessionApi;
     }
 
+    /**
+     * Creates a snapshot session based on the given resource URI.  This method handles the following cases where
+     * resourceURI is...
+     *
+     * 1) a non-CG Volume/BlockSnapshot
+     * 2) a BlockConsistencyGroup
+     * 3) a CG Volume/BlockSnapshot (recursively calls this method, passing in its BlockConsistencyGroup URI)
+     *
+     * @param resourceURI   Resource to create a snapshot session from
+     * @param param         Snapshot session parameters
+     * @param fcManager     Full copy manager
+     * @return              TaskList
+     */
     public TaskList createSnapshotSession(URI resourceURI, SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
         if (URIUtil.isType(resourceURI, Volume.class) || URIUtil.isType(resourceURI, BlockSnapshot.class)) {
             BlockObject blockObject =
                     BlockSnapshotSessionUtils.querySnapshotSessionSource(resourceURI, _uriInfo, false, _dbClient);
-            return createSnapshotSession(Lists.newArrayList(blockObject), param, fcManager);
+            if (blockObject.hasConsistencyGroup()) {
+                return createSnapshotSession(blockObject.getConsistencyGroup(), param, fcManager);
+            } else {
+                return createSnapshotSession(Lists.newArrayList(blockObject), param, fcManager);
+            }
         } else if (URIUtil.isType(resourceURI, BlockConsistencyGroup.class)) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, resourceURI);
             return createSnapshotSession(cg, param, fcManager);

@@ -1067,6 +1067,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("mountedBlockVolume")
+    @AssetDependencies("hpuxHost")
+    public List<AssetOption> getMountedBlockVolumesForHpuxHost(AssetOptionsContext context, URI host) {
+        return getBlockVolumesForHost(api(context), context.getTenant(), host, true);
+    }
+
+    @Asset("mountedBlockVolume")
+    @AssetDependencies({ "hpuxHost", "project" })
+    public List<AssetOption> getMountedBlockVolumesForHpuxHost(AssetOptionsContext context, URI host, URI project) {
+        return getProjectBlockVolumesForHost(api(context), project, host, true);
+    }
+
+    @Asset("mountedBlockVolume")
     @AssetDependencies("windowsHost")
     public List<AssetOption> getMountedBlockVolumesForWindowsHost(AssetOptionsContext context, URI host) {
         return getBlockVolumesForHost(api(context), context.getTenant(), host, true);

@@ -9,11 +9,11 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 import java.util.List;
 
 import com.emc.hpux.HpuxSystem;
+import com.emc.hpux.model.MountPoint;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.iwave.ext.linux.model.MountPoint;
 
 public class ExpandBlockVolumeHelper {
     private final HpuxSupport hpuxSupport;
@@ -35,7 +35,7 @@ public class ExpandBlockVolumeHelper {
 
     public void precheck(BlockObjectRestRep volume) {
         usePowerPath = hpuxSupport.checkForPowerPath();
-        hpuxSupport.findMountPoint(volume);
+        mountPoint = hpuxSupport.findMountPoint(volume);
     }
 
     public void expandVolume(BlockObjectRestRep volume, Double newSizeInGB) {

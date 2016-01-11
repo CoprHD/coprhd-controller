@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -299,20 +300,26 @@ public class BlockSnapshotSessionManager {
 
         // Populate the preparedObjects list and create tasks for each snapshot session.
         TaskList response = new TaskList();
-        List<DataObject> preparedObjects = new ArrayList<>();
 
         response.getTaskList().add(toTask(snapSession, taskId));
-        preparedObjects.add(snapSession);
+        for (BlockObject sourceForTask : snapSessionSourceObjList) {
+            Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceForTask.getId(),
+                    taskId, ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION);
+            response.getTaskList().add(toTask(sourceForTask, taskId, op));
+        }
+        addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
+                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
 
+        List<DataObject> preparedObjects = new ArrayList<>();
         List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
+
         for (Map<URI, BlockSnapshot> snapshotMap : snapSessionSnapshots) {
             preparedObjects.addAll(snapshotMap.values());
             Set<URI> uris = snapshotMap.keySet();
             snapSessionSnapshotURIs.add(Lists.newArrayList(uris));
         }
 
-        // addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
-        // ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
+        preparedObjects.add(snapSession);
 
         // Create the snapshot sessions.
         try {
@@ -882,8 +889,9 @@ public class BlockSnapshotSessionManager {
             return;
         }
 
-        List<BlockConsistencyGroup> groups = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroups);
-        for (BlockConsistencyGroup group : groups) {
+        Iterator<BlockConsistencyGroup> groups = _dbClient.queryIterativeObjects(BlockConsistencyGroup.class, consistencyGroups);
+        while (groups.hasNext()) {
+            BlockConsistencyGroup group = groups.next();
             Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
                     operationTypeEnum);
             taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));

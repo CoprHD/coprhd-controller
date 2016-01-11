@@ -24,7 +24,7 @@ public class Main {
             Coordinator coordinator = (Coordinator) ctx.getBean(SERVICE_BEAN);
             addShutdownHook(coordinator);
             setZKOptions();
-            coordinator.start();
+        //    coordinator.start();
         } catch (Exception e) {
             _log.error("Failed to start {}:", SERVICE_BEAN, e);
             System.exit(1);

@@ -8,10 +8,13 @@ package com.emc.storageos.systemservices.impl.security;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.security.geo.GeoClientCacheManager;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.InetAddress;
 import java.util.Arrays;
@@ -29,6 +32,12 @@ public class IPSecMonitor implements Runnable {
 
     public ScheduledExecutorService scheduledExecutorService;
 
+    @Autowired
+    GeoClientCacheManager geoClientManager;
+
+    @Autowired
+    DbClient dbClient;
+
     public void start() {
         log.info("start IPSecMonitor.");
         scheduledExecutorService = Executors.newScheduledThreadPool(1);
@@ -38,6 +47,8 @@ public class IPSecMonitor implements Runnable {
                 IPSEC_CHECK_INTERVAL,
                 TimeUnit.MINUTES);
         log.info("scheduled IPSecMonitor.");
+
+        log.info("The geoclient manager is {}, the dbclient instance is {}", geoClientManager, dbClient);
     }
 
     public void shutdown() {

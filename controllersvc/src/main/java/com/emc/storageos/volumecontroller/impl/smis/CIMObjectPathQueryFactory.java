@@ -477,6 +477,11 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
     }
 
     @Override
+    public CIMObjectPath objectPath(String instanceId) {
+        return null;
+    }
+
+    @Override
     public CIMObjectPath getStorageHardwareIDManagementService(StorageSystem storage) {
         String wql = format("SELECT * FROM %s WHERE SystemName like'%s' AND Name ='%s'",
                 prefixWithParamName(STORAGE_HARDWARE_ID_MGMT_SVC), storage.getSerialNumber(),

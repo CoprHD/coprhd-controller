@@ -44,6 +44,16 @@ public class ZkConnection {
     // zk timeout ms
     private int _timeoutMs = DEFAULT_TIMEOUT_MS;
 
+    private String siteId;
+
+    public String getSiteId() {
+        return siteId;
+    }
+
+    public void setSiteId(String siteId) {
+        this.siteId = siteId;
+    }
+
     /**
      * Set coordinator cluster node URI's and build a connector.
      * <p/>
@@ -81,6 +91,7 @@ public class ZkConnection {
         try {
             _zkConnection = CuratorFrameworkFactory.builder().connectString(_connectString)
                     .connectionTimeoutMs(DEFAULT_CONN_TIMEOUT)
+                    .canBeReadOnly(true)
                     .sessionTimeoutMs(_timeoutMs).retryPolicy(
                             new RetryUntilElapsed(_timeoutMs, RETRY_INTERVAL_MS)).build();
             _zkConnection.getUnhandledErrorListenable().addListener(new UnhandledErrorListener() {

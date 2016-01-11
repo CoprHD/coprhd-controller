@@ -20,6 +20,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
+import com.emc.storageos.isilon.restapi.IsilonSmartQuota.Thresholds;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.CassandraInsertion;
@@ -90,10 +91,14 @@ public class IsilonStatsRecorder {
 
                 statsColumnInjector.injectColumns(stat, dbClient);
 
-                long provisioned = quota.getThresholds().getHard();
-                stat.setProvisionedCapacity(provisioned);
-                long usage = quota.getUsagePhysical();
-                stat.setAllocatedCapacity(usage);
+                long provisionedCapacity = 0L;
+                Thresholds threshold = quota.getThresholds();
+                if (threshold != null && threshold.getHard() != null) {
+                	provisionedCapacity = threshold.getHard();
+                }
+                stat.setProvisionedCapacity(provisionedCapacity);
+                long usedCapacity = quota.getUsagePhysical();
+                stat.setAllocatedCapacity(usedCapacity);
 
                 URIQueryResultList snapURIList = new URIQueryResultList();
                 dbClient.queryByConstraint(ContainmentConstraint.
@@ -125,8 +130,8 @@ public class IsilonStatsRecorder {
                 stat.setSnapshotCapacity(fsSnapshotSize);
                 _log.debug(String.format("Stat: %s: snapshot size: %s", fsNativeGuid, fsSnapshotSize));
 
-                _log.debug(String.format("Stat: %s: %s: provisioned(%s): used(%s)",
-                        stat.getResourceId(), fsNativeGuid, provisioned, usage));
+                _log.debug(String.format("Stat: %s: %s: provisioned capacity(%s): used capacity(%s)",
+                        stat.getResourceId(), fsNativeGuid, provisionedCapacity, usedCapacity));
             } catch (DatabaseException ex) {
                 _log.error("Query to db failed for FileShare id {}, skipping recording usage stat.", stat.getResourceId(), ex);
             }

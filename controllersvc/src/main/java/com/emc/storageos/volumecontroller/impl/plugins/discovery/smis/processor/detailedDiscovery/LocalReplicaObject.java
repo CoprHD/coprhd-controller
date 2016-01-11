@@ -17,13 +17,13 @@ public class LocalReplicaObject {
     // source Volume Native Guid
     private String sourceNativeGuid;
 
-    // list of volume uris of target full copies
+    // Native Guids of full copies
     private StringSet fullCopies;
 
-    // list of volume uris of target local mirrors
+    // Native Guids of local mirrors
     private StringSet mirrors;
 
-    // list of volume uris of target snapshots
+    // Native Guids of snapshots
     private StringSet snapshots;
 
     // for clone

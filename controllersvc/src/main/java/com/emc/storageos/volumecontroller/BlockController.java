@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -108,7 +109,7 @@ public interface BlockController extends BlockStorageManagementController {
 
     /**
      * Create a single snapshot using CreateElementReplica.
-     *
+     * 
      * @param storage
      * @param snapshotList
      * @param createInactive
@@ -259,7 +260,7 @@ public interface BlockController extends BlockStorageManagementController {
 
     /**
      * Establishes group relation between volume group and mirror group.
-     *
+     * 
      * @param storage the storage
      * @param sourceVolume the source volume
      * @param mirror the mirror
@@ -271,14 +272,15 @@ public interface BlockController extends BlockStorageManagementController {
 
     /**
      * Establishes group relation between volume group and mirror group.
-     *
+     * 
      * @param storage the storage
      * @param sourceVolume the source volume
      * @param snapshot the snapshot
      * @param opId the op id
      * @throws ControllerException the controller exception
      */
-    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId) throws ControllerException;
+    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId)
+            throws ControllerException;
 
     /**
      * Detach a mirror or mirrors of a volume or volumes.
@@ -367,7 +369,7 @@ public interface BlockController extends BlockStorageManagementController {
 
     /**
      * Establishes group relation between volume group and full copy group.
-     *
+     * 
      * @param storage the storage
      * @param sourceVolume the source volume
      * @param fullCopy the full copy
@@ -457,4 +459,81 @@ public interface BlockController extends BlockStorageManagementController {
             List<URI> volumeURIs,
             String opId) throws ControllerException;
 
+    /**
+     * Creates new array snapshot point in time copies on the array with the passed URI
+     * and optionally links 1 or more targets volumes to each snapshots.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURIs The URIs of the BlockSnapshotSession instances.
+     * @param sessionSnapshotURIMap Map of the BlockSnapshot instances for each session.
+     * @param copyMode The copy mode for linked targets.
+     * @param opId The unique task identifier.
+     * 
+     * @throws InternalException
+     */
+    public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs,
+            Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode, String opId)
+            throws InternalException;
+
+    /**
+     * Create and link new target volumes to the BlockSnapshotSession with the passed URI.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the snapshot session.
+     * @param snapshotURIs The URIs of the snapshots representing the linked targets
+     * @param copyMode The copy mode for the linked targets.
+     * @param opId The unique task identifier.
+     * 
+     * @throws InternalException
+     */
+    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
+            String copyMode, String opId) throws InternalException;
+
+    /**
+     * Re-link the linked targets represented the BlockSnapshot instances with the
+     * passed URIs to the BlockSnapshotSession instance with the passed URI.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param tgtSnapSessionURI The URI of the snapshot session to which the targets are re-linked.
+     * @param snapshotURIs The URIs of the snapshots representing the linked targets.
+     * @param opId The unique task identifier.
+     * 
+     * @throws InternalException
+     */
+    public void relinkTargetsToSnapshotSession(URI systemURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
+            String opId) throws InternalException;
+
+    /**
+     * Unlinks the targets represented by the BlockSnapshot instances with the passed
+     * URIs from the BlockSnapshotSession with the passed URI.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the snapshot session.
+     * @param snapshotMap A map of the containing the URIs of the BlockSnapshot instances representing the targets to be unlinked and
+     *            whether or not each target should be deleted.
+     * @param opId The unique task identifier.
+     */
+    public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
+            Map<URI, Boolean> snapshotDeletionMap, String opId);
+
+    /**
+     * Restores the source with the data from the array snapshot point-in-time
+     * copy represented by the passed BlockSnapshotSession instance.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the snapshot session.
+     * @param updateStatus true if the snap session operation status should be updated, false otherwise.
+     * @param opId The unique task identifier.
+     */
+    public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, Boolean updateStatus, String opId);
+
+    /**
+     * Deletes the array snapshot point-in-time copy represented by the
+     * passed BlockSnapshotSession instance.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the snapshot session.
+     * @param opId The unique task identifier.
+     */
+    public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId);
 }

@@ -80,6 +80,13 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     }
 
     @Override
+    public void
+            updateConsistencyGroupPolicy(URI protectionDevice, URI consistencyGroup, List<URI> volumeURIs, URI newVpoolURI, String task)
+                    throws InternalException {
+        execFS("updateConsistencyGroupPolicy", protectionDevice, consistencyGroup, volumeURIs, newVpoolURI, task);
+    }
+
+    @Override
     public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
             String opId) throws InternalException {
         execFS("createSnapshot", protectionDevice, storageDevice, snapshotList, createInactive, readOnly, opId);
@@ -111,5 +118,4 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
         execFS("updateApplication", systemURI, addVolumesNotInCG, removeVolumesURI, applicationId, taskId);
         
     }
-
 }

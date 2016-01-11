@@ -26,25 +26,6 @@ import com.emc.storageos.db.client.model.Volume;
 public interface BlockSnapshotSessionApi {
 
     /**
-     * Get any active source from the given consistency group, usually the
-     * first one.
-     *
-     * @param cg Consistency Group
-     * @return An active source relevant to the platform-specific implementation.
-     */
-    public BlockObject getActiveSource(BlockConsistencyGroup cg);
-
-    /**
-     * Get a list of all block objects to be operated on given the passed
-     * snapshot session source object for a snapshot session request.
-     * 
-     * @param sourceObj A reference to a Volume or BlockSnapshot instance.
-     * 
-     * @return A list of all snapshot session source objects.
-     */
-    public List<BlockObject> getAllSourceObjectsForSnapshotSessionRequest(BlockObject sourceObj);
-
-    /**
      * Validate a create block snapshot session request.
      * 
      * @param requestedSourceObj A reference to the source object.

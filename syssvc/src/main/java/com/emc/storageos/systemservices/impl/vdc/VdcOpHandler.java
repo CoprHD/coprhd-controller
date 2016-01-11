@@ -722,7 +722,7 @@ public abstract class VdcOpHandler {
             barrier.enter();
             
             if (isVirtualIPHolder(site)) {
-                log.info("This is virp1, notify remote old active site to reboot");
+                log.info("This node is virtual IP holder, notify remote old active site to reboot");
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
                         restartBarrierPath);
                 restartBarrier.removeBarrier();

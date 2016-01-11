@@ -836,7 +836,10 @@ public class UnManagedVolumeService extends TaskResourceService {
     			unManagedCG.setInactive(true);
     			blockCGsToCreate.add(consistencyGroup);    			
     		} else {                    			
-    			_logger.info("Updating unmanaged consistency group {}", unManagedCG.getLabel());    			
+    			_logger.info("Updating unmanaged consistency group {}", unManagedCG.getLabel());
+    			// log remaining volumes to be ingested
+    			_logger.info(unManagedCG.logRemainingUnManagedVolumes().toString());
+    			
     		}
     		consistencyGroupObjectsToUpdate.add(unManagedCG);
     	} else {

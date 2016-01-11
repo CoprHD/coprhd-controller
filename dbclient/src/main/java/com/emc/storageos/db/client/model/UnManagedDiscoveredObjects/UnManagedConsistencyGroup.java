@@ -6,21 +6,12 @@
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
 import java.net.URI;
-import java.util.Map;
 
-import com.emc.storageos.db.client.model.AlternateId;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cf;
-import com.emc.storageos.db.client.model.IndexByKey;
 import com.emc.storageos.db.client.model.Name;
-import com.emc.storageos.db.client.model.RelationIndex;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 
 @Cf("UnManagedConsistencyGroup")
 public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
@@ -111,5 +102,16 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 	public void setManagedVolumesMap(StringMap managedVolumesMap) {
 		this._managedVolumesMap = managedVolumesMap;
 	}
+	
+	public StringBuffer logRemainingUnManagedVolumes() {
+		StringBuffer buf = new StringBuffer();
+        buf.append(String.format("%n UnManaged Consistency Group: %s %n", _name));
+        buf.append(String.format("Volumes remaining to be ingested: %n"));
+        for (String vol : _unManagedVolumesMap.values()) {            
+            buf.append(String.format("UnManaged Volume : [%s] %n", vol));
+        }
+        buf.append(String.format("---------------------------------------- %n"));
+        return buf;
+    }
     
 }

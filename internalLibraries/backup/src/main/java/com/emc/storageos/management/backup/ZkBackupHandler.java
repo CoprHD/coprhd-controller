@@ -284,6 +284,10 @@ public class ZkBackupHandler extends BackupHandler {
         return fullBackupTag;
     }
 
+    private void backupSiteId(File targetDir) throws IOException {
+        FileUtils.copyFileToDirectory(new File(BackupConstants.SITE_ID_FILE_PATH), targetDir);
+    }
+
     @Override
     public File dumpBackup(final String backupTag, final String fullBackupTag) {
         File targetDir = new File(backupContext.getBackupDir(), backupTag);
@@ -296,6 +300,7 @@ public class ZkBackupHandler extends BackupHandler {
             ValidationUtil.validateFile(targetFolder, FileType.Dir,
                     NotExistEnum.NOT_EXSIT_CREATE);
             backupFolder(targetFolder, zkDir);
+            backupSiteId(targetFolder);
         } catch (IOException ex) {
             throw BackupException.fatals.failedToDumpZkData(fullBackupTag, ex);
         }

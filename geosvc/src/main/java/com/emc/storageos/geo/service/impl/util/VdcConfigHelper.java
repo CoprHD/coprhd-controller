@@ -16,6 +16,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -738,8 +739,10 @@ public class VdcConfigHelper {
 
         vdcConfig.setHostCount(activeSite.getNodeCount());
 
-        vdcConfig.setHostIPv4AddressesMap(activeSite.getHostIPv4AddressMap());
-        vdcConfig.setHostIPv6AddressesMap(activeSite.getHostIPv6AddressMap());
+        HashMap<String, String> ipv4AddrMap = new HashMap<String, String>(activeSite.getHostIPv4AddressMap());
+        vdcConfig.setHostIPv4AddressesMap(ipv4AddrMap);
+        HashMap<String, String> ipv6AddrMap = new HashMap<String, String>(activeSite.getHostIPv6AddressMap());
+        vdcConfig.setHostIPv6AddressesMap(ipv6AddrMap);
 
         vdcConfig.setVersion(vdc.getVersion());
         vdcConfig.setConnectionStatus(vdc.getConnectionStatus().toString());
@@ -899,9 +902,11 @@ public class VdcConfigHelper {
             Site activeSite = drUtil.getActiveSite(vdc.getShortId());
             
             if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty()) {
-                vdcConfig.setHostIPv4AddressesMap(activeSite.getHostIPv4AddressMap());
+                HashMap<String, String> addressMap = new HashMap<String, String>(activeSite.getHostIPv4AddressMap());
+                vdcConfig.setHostIPv4AddressesMap(addressMap);
             } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getHostIPv6AddressMap().isEmpty()) {
-                vdcConfig.setHostIPv6AddressesMap(activeSite.getHostIPv6AddressMap());
+                HashMap<String, String> addressMap = new HashMap<String, String>(activeSite.getHostIPv6AddressMap());
+                vdcConfig.setHostIPv6AddressesMap(addressMap);
             } else {
                 throw new IllegalStateException("Cannot perform node reachable check on vdc " + vdc.getShortId()
                         + " no nodes were found on VirtualDataCenter object");

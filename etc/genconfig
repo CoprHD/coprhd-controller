@@ -200,6 +200,10 @@ _gen_prop2() {
     # Return default NIC name
     export _GENCONFIG_network_nic_name="$(/etc/getnic)"
 
+    # see all vdc config properties in VdcConfigUtil.java
+    # Vdc config properties is generated after first boot of syssvc, so we 
+    # pre-populate default values so that genconfig could work in first
+    # boot
     #'vdc_ids')
     [ -z "${_GENCONFIG_vdc_ids}" ] && export _GENCONFIG_vdc_ids='vdc1'
 

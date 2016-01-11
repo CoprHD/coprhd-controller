@@ -27,6 +27,22 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
  * /config/disasterRecoverySites/<vdc_short_id>/<site_uuid>     has all the VDC/site configurations
  * /config/disasterRecoveryActive/<vdc_short_id>               specifies which site is the acitve in each VDC
  * /config/geoLocalVDC/global                                   specifies the local VDC in the geo federation
+ * 
+ * The vdcconfig.properties includes the node IPs as the following
+ * vdc_vdc*_site*_node_count(e.g vdc_vdc1_site1_node_count)             - number of nodes in specified site of specified vdc
+ * vdc_vdc*_site*_network_*_ipaddr(e.g vdc_vdc1_site1_network_1_ipaddr) - IPv4 address of specified node in specified site of specified vdc 
+ * vdc_vdc*_site*_network_*_vip                                         - VIP of specific site of specified vdc
+ * vdc_vdc*_site*_network_*_ipaddr6                                     - IPv6 address of specified node in specified site of specified vdc
+ * vdc_vdc*_site*_network_vip6                                          - IPv6 VIP specific site of specified vdc
+ * vdc_ids  - all vdc ids (e.g vdc1, vdc2 .. )
+ * vdc_myid - current vdc short id
+ * site_ids - all site ids in current vdc
+ * site_active_id - active site id in current vdc
+ * site_myid   - current site id 
+ * 
+ * back_compat_preyoda - true/false. If it is upgraded from pre-yoda, we set it true so dbsvc/syssvc may keep 
+ *                       some features(e.g ssl encryption) for backward compatibility
+ * vdc_config_version  - timestamp for last vdc config change. It should be same for all instance in GEO/DR                      
  */
 public class VdcConfigUtil {
     private static final Logger log = LoggerFactory.getLogger(VdcConfigUtil.class);

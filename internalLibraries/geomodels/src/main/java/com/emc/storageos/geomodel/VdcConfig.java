@@ -90,21 +90,21 @@ public class VdcConfig {
     }
 
     @XmlElement(name = "hostIPv4AddressesMap")
-    public Map<String, String> getHostIPv4AddressesMap() {
+    public HashMap<String, String> getHostIPv4AddressesMap() {
         return hostIPv4AddressesMap;
     }
 
-    public void setHostIPv4AddressesMap(Map<String, String> addressesMap) {
-        this.hostIPv4AddressesMap.putAll(addressesMap);
+    public void setHostIPv4AddressesMap(HashMap<String, String> addressesMap) {
+        this.hostIPv4AddressesMap = addressesMap;
     }
 
     @XmlElement(name = "hostIPv6AddressesMap")
-    public Map<String, String> getHostIPv6AddressesMap() {
+    public HashMap<String, String> getHostIPv6AddressesMap() {
         return hostIPv6AddressesMap;
     }
 
-    public void setHostIPv6AddressesMap(Map<String, String> addressesMap) {
-        this.hostIPv6AddressesMap.putAll(addressesMap);
+    public void setHostIPv6AddressesMap(HashMap<String, String> addressesMap) {
+        this.hostIPv6AddressesMap = addressesMap;
     }
 
     @XmlElement(name = "name")

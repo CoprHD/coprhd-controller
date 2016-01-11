@@ -418,9 +418,11 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
             vdcConfig.setId(vdc.getId());
             vdcConfig.setShortId(vdc.getShortId());
             if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty()) {
-                vdcConfig.setHostIPv4AddressesMap(activeSite.getHostIPv4AddressMap());
+                HashMap<String, String> ipv4AddrMap = new HashMap<String, String>(activeSite.getHostIPv4AddressMap());
+                vdcConfig.setHostIPv4AddressesMap(ipv4AddrMap);
             } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getHostIPv6AddressMap().isEmpty()) {
-                vdcConfig.setHostIPv6AddressesMap(activeSite.getHostIPv6AddressMap());
+                HashMap<String, String> ipv6AddrMap = new HashMap<String, String>(activeSite.getHostIPv6AddressMap());
+                vdcConfig.setHostIPv6AddressesMap(ipv6AddrMap);
             } else {
                 throw GeoException.fatals
                         .cannotPerformOperation(vdc.getId().toString(), " no nodes were found on VirtualDataCenter object");

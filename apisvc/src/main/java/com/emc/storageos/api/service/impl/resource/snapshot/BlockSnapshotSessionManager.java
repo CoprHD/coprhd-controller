@@ -25,6 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,17 +210,34 @@ public class BlockSnapshotSessionManager {
         return snapSessionApi;
     }
 
+    public TaskList createSnapshotSession(URI resourceURI, SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
+        if (URIUtil.isType(resourceURI, Volume.class) || URIUtil.isType(resourceURI, BlockSnapshot.class)) {
+            BlockObject blockObject =
+                    BlockSnapshotSessionUtils.querySnapshotSessionSource(resourceURI, _uriInfo, false, _dbClient);
+            return createSnapshotSession(blockObject, param, fcManager);
+        } else if (URIUtil.isType(resourceURI, BlockConsistencyGroup.class)) {
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, resourceURI);
+            return createSnapshotSession(cg, param, fcManager);
+        }
+        return null;
+    }
+
+    public TaskList createSnapshotSession(BlockConsistencyGroup cg, SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
+        List<Volume> sources = getAllSources(cg);
+        return createSnapshotSession(sources.get(0), param, fcManager);
+    }
+
     /**
      * Implements a request to create a new block snapshot session.
      * 
-     * @param sourceURI The URI of the snapshot session source object.
+     * @param sourceObj The URI of the snapshot session source object.
      * @param param A reference to the create session information.
      * @param fcManager A reference to a full copy manager.
      * 
      * @return TaskList A TaskList
      */
-    public TaskList createSnapshotSession(URI sourceURI, SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
-        s_logger.info("START create snapshot session for source {}", sourceURI);
+    public TaskList createSnapshotSession(BlockObject sourceObj, SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
+        s_logger.info("START create snapshot session for source {}", sourceObj.getId());
 
         // Get the snapshot session label.
         String snapSessionLabel = param.getName();
@@ -235,24 +253,21 @@ public class BlockSnapshotSessionManager {
             newTargetsCopyMode = linkedTargetsParam.getCopyMode();
         }
 
-        // Get the source Volume or BlockSnapshot.
-        BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(sourceURI, _uriInfo, false, _dbClient);
-
         // Get the project for the snapshot session source object.
-        Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
+        Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
 
         // Get the platform specific block snapshot session implementation.
-        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
+        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(sourceObj);
 
         // Get the list of all block objects for which we need to
         // create snapshot sessions. For example, when creating a
         // snapshot session for a volume in a consistency group,
         // we may create snapshot sessions for all volumes in the
         // consistency group.
-        List<BlockObject> snapSessionSourceObjList = snapSessionApiImpl.getAllSourceObjectsForSnapshotSessionRequest(snapSessionSourceObj);
+        List<BlockObject> snapSessionSourceObjList = snapSessionApiImpl.getAllSourceObjectsForSnapshotSessionRequest(sourceObj);
 
         // Validate the create snapshot session request.
-        snapSessionApiImpl.validateSnapshotSessionCreateRequest(snapSessionSourceObj, snapSessionSourceObjList, project, snapSessionLabel,
+        snapSessionApiImpl.validateSnapshotSessionCreateRequest(sourceObj, snapSessionSourceObjList, project, snapSessionLabel,
                 newLinkedTargetsCount, newTargetsName, newTargetsCopyMode, false, fcManager);
 
         // Create a unique task identifier.
@@ -285,10 +300,10 @@ public class BlockSnapshotSessionManager {
 
         // Create the snapshot sessions.
         try {
-            snapSessionApiImpl.createSnapshotSession(snapSessionSourceObj, snapSession.getId(),
+            snapSessionApiImpl.createSnapshotSession(sourceObj, snapSession.getId(),
                     snapSessionSnapshotURIs, newTargetsCopyMode, taskId);
         } catch (Exception e) {
-            String errorMsg = format("Failed to create snapshot sessions for source %s: %s", sourceURI, e.getMessage());
+            String errorMsg = format("Failed to create snapshot sessions for source %s: %s", sourceObj.getId(), e.getMessage());
             ServiceCoded sc = null;
             if (e instanceof ServiceCoded) {
                 sc = (ServiceCoded) e;
@@ -301,9 +316,9 @@ public class BlockSnapshotSessionManager {
 
         // Record a message in the audit log.
         auditOp(OperationTypeEnum.CREATE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN,
-                snapSessionLabel, sourceURI.toString(), snapSessionSourceObj.getStorageController().toString());
+                snapSessionLabel, sourceObj.getId().toString(), sourceObj.getStorageController().toString());
 
-        s_logger.info("FINISH create snapshot session for source {}", sourceURI);
+        s_logger.info("FINISH create snapshot session for source {}", sourceObj.getId());
         return response;
     }
 
@@ -873,6 +888,22 @@ public class BlockSnapshotSessionManager {
             Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
                     operationTypeEnum);
             taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
+        }
+    }
+
+    private List<Volume> getAllSources(BlockConsistencyGroup cg) {
+        if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && cg.checkForType(BlockConsistencyGroup.Types.RP)) {
+            // VPLEX+RP
+            return BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, Volume.PersonalityTypes.SOURCE);
+        } else if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && !cg.checkForType(BlockConsistencyGroup.Types.RP)) {
+            // VPLEX
+            return BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
+        } else if (cg.checkForType(BlockConsistencyGroup.Types.RP) && !cg.checkForType(BlockConsistencyGroup.Types.VPLEX)) {
+            // RP
+            return BlockConsistencyGroupUtils.getActiveNonVplexVolumesInCG(cg, _dbClient, Volume.PersonalityTypes.SOURCE);
+        } else {
+            // Native (no protection)
+            return BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
         }
     }
 }

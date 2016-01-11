@@ -3449,4 +3449,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.deleteVolumes(volumeDescriptors, taskId);
     }
+
+    @Override
+    public List<Volume> getActiveCGVolumes(BlockConsistencyGroup cg) {
+        return BlockConsistencyGroupUtils.getActiveNonVplexVolumesInCG(cg, _dbClient, PersonalityTypes.SOURCE);
+    }
 }

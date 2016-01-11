@@ -24,7 +24,7 @@
     },
     
     replicationGroup:{
-     type:"asset.vipr.replicationGroup",
+     type:"assetType.vipr.replicationGroup",
      required:"false"
     },
     

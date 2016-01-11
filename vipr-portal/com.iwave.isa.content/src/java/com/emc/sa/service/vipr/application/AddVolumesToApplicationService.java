@@ -30,7 +30,8 @@ public class AddVolumesToApplicationService extends ViPRService {
 
     @Override
     public void precheck() throws Exception {
-        if ((replicationGroup == null || replicationGroup.isEmpty()) && (newReplicationGroup == null || newReplicationGroup.isEmpty())) {
+        if ((existingReplicationGroup == null || existingReplicationGroup.isEmpty())
+                && (newReplicationGroup == null || newReplicationGroup.isEmpty())) {
             ExecutionUtils.fail("failTask.AddVolumesToApplicationService.replicationGroup.precheck", new Object[] {});
         } else {
             replicationGroup = existingReplicationGroup != null && !existingReplicationGroup.isEmpty() ?

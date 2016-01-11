@@ -2410,7 +2410,7 @@
     {
         key : "backup_max_manual_copies",
         label : "Backup Max Copies",
-        description : "Maximum number of manually created backup copies, keep on system",
+        description : "Maximum number of manually created backup copies, kept on system",
         type : "uint32",
         allowedValues : ( "0", "1", "2", "3", "4", "5" ),
         tag : "Backup",

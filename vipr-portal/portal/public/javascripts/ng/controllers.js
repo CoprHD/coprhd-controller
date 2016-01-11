@@ -1087,7 +1087,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
 });
 
 angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
-    angular.element("#backup-time").ready(function (event) {
+    angular.element("#backup-time").ready(function () {
         $scope.$apply(function() {
             $scope.backup_startTime = getLocalTimeFromOffset($schedulerTimeOffset);
         });

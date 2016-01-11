@@ -138,10 +138,13 @@ public class AuditService extends ResourceService {
             validateDataTimePair(startTime,endTime);
         }
         validateResultValue(result);
-        String audit_result = (result.equalsIgnoreCase("S") ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_SUCCESS);
+        String auditResult = null;
+        if (result != null){
+            auditResult = (result.equalsIgnoreCase("S") ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE);
+        }
 
         AuditLogRequest auditLogRequest = new AuditLogRequest.Builder().serviceType(svcType)
-                .user(user).result(audit_result).keyword(keyword).lang(language).timeBucket(timeBucket)
+                .user(user).result(auditResult).keyword(keyword).lang(language).timeBucket(timeBucket)
                 .start(startTime).end(endTime).build();
 
         return Response.ok(getStreamOutput(auditLogRequest, mType), mType).build();
@@ -204,7 +207,7 @@ public class AuditService extends ResourceService {
     }
 
     private void validateResultValue( String result) {
-        if (result != null && result.length() != 0) {
+        if (result != null) {
             if (!result.equalsIgnoreCase("S") &&  !result.equalsIgnoreCase("F")){
                 throw APIException.badRequests.parameterIsNotValid("result");
             }

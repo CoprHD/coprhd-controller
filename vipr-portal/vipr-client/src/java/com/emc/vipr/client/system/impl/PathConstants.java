@@ -19,6 +19,9 @@ public class PathConstants {
     public static final String BACKUP_URL = "/backupset/";
     public static final String BACKUP_CREATE_URL = BACKUP_URL + "backup/";
     public static final String BACKUP_UPLOAD_URL = BACKUP_URL + "backup/upload";
+    public static final String BACKUP_PULL_URL = BACKUP_URL + "pull/";
+    public static final String RESTORE_URL = BACKUP_URL + "restore/";
+    public static final String RESTORE_STATUS_URL = BACKUP_URL + "restore/status";
 
     public static final String CHECKDB_URL="/control/db";
     public static final String CHECKDB_GET_URL = CHECKDB_URL + "/consistency";

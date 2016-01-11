@@ -6,12 +6,16 @@ package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_CREATE_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_UPLOAD_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.RESTORE_STATUS_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.RESTORE_URL;
 
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.vipr.client.impl.RestClient;
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
@@ -67,4 +71,35 @@ public class Backup {
 
 		return status;
 	}
+
+    public void pullBackup(String name) {
+        UriBuilder builder = client.uriBuilder(BACKUP_PULL_URL);
+        addQueryParam(builder, "file", name);
+        client.postURI(String.class, builder.build());
+    }
+
+    public void restore(String name, String password, boolean isGeoFromScratch) {
+        UriBuilder builder = client.uriBuilder(RESTORE_URL);
+        addQueryParam(builder, "backupname", name);
+        addQueryParam(builder, "password", name);
+        if (isGeoFromScratch) {
+            addQueryParam(builder, "isgeofromscratch", true);
+        }
+        client.postURI(String.class, builder.build());
+    }
+
+    public BackupRestoreStatus restoreStatus(String name, boolean isLocal) {
+        BackupRestoreStatus status = null;
+        UriBuilder builder = client.uriBuilder(RESTORE_STATUS_URL);
+        addQueryParam(builder, "backupname", name);
+        addQueryParam(builder, "isLocal", isLocal);
+
+        try {
+            status = client.getURI(BackupRestoreStatus.class, builder.build());
+        } catch (Exception e) {
+            status = new BackupRestoreStatus();
+        }
+
+        return status;
+    }
 }

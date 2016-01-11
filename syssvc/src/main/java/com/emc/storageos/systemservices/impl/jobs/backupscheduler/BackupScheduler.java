@@ -265,11 +265,11 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             }
         }
 
-        String drSiteName = drUtil.getLocalSite().getName();
+        String drSiteId = drUtil.getLocalSite().getUuid();
         // Remove all non alphanumeric characters
-        drSiteName = drSiteName.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
+        drSiteId = drSiteId.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
         
-        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteName);
+        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteId);
     }
 
     public List<String> getDescParams(final String tag) {

@@ -54,10 +54,10 @@ public class IsilonSmartQuota {
          * @param sg soft grace limit
          */
         public Thresholds(Long h, Long a, Long s, Long sg) {
-            hard = h;
-            advisory = a;
-            soft = s;
-            soft_grace = sg;
+            hard = h != 0L ? h : null;
+            advisory = a != 0L ? a : null;
+            soft = s != 0L ? s : null;
+            soft_grace = sg != 0L ? sg : null;
         }
 
         public String toString() {

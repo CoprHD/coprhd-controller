@@ -799,7 +799,7 @@ public class IsilonApi {
      * @return Identifier for the quota created
      * @throws IsilonException
      */
-    public String createQuota(String path, long... thresholds) throws IsilonException {
+    public String createQuota(String path, Long... thresholds) throws IsilonException {
         IsilonSmartQuota quota;
         if (thresholds != null && thresholds.length > 0) {
             quota = constructIsilonSmartQuotaObjectWithThreshold(path, false, false,thresholds);
@@ -829,7 +829,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public String createQuota(String path, boolean bThresholdsIncludeOverhead,
-            boolean bIncludeSnapshots, long... thresholds) throws IsilonException {
+            boolean bIncludeSnapshots, Long... thresholds) throws IsilonException {
         IsilonSmartQuota quota;
         // Isilon does not allow to create zero quota directory.
         if (thresholds != null && thresholds.length > 0 && thresholds[0] > 0) {
@@ -847,21 +847,18 @@ public class IsilonApi {
 
     // If we want to provide the UI to enter quota we can re-use this
     private IsilonSmartQuota constructIsilonSmartQuotaObjectWithThreshold(String path, boolean bThresholdsIncludeOverhead,
-            boolean bIncludeSnapshots, long... thresholds) {
+            boolean bIncludeSnapshots, Long... thresholds) {
         IsilonSmartQuota quota;
         switch (thresholds.length) {
             case 2:
                 quota = new IsilonSmartQuota(path, thresholds[0], 
-                        (long) ((thresholds[1] * thresholds[0])/100),
-                        (long) ((directorySoftQuotaDefaultSize * thresholds[0])/100),
-                        (directorySoftQuotaDefaultGracePeriod * 60 * 60 * 24), bThresholdsIncludeOverhead,
+                        (long) ((thresholds[1] * thresholds[0])/100), 0L, 0L, bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
             case 3:
                 quota = new IsilonSmartQuota(path, thresholds[0], 
                         (long) ((thresholds[1] * thresholds[0])/100),
-                        (long) ((thresholds[2] * thresholds[0])/100),
-                        (directorySoftQuotaDefaultGracePeriod * 60 * 60 * 24), bThresholdsIncludeOverhead,
+                        (long) ((thresholds[2] * thresholds[0])/100), 0L, bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
             case 4:
@@ -872,10 +869,7 @@ public class IsilonApi {
                         bIncludeSnapshots);
                 break;
             default:
-                quota = new IsilonSmartQuota(path, thresholds[0], 
-                        (long) ((directoryAdvisoryQuotaSize * thresholds[0])/100),
-                        (long) ((directorySoftQuotaDefaultSize * thresholds[0])/100),
-                        (directorySoftQuotaDefaultGracePeriod * 60 * 60 * 24), bThresholdsIncludeOverhead,
+                quota = new IsilonSmartQuota(path, thresholds[0], 0L, 0L, 0L, bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
         }

@@ -798,7 +798,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             // set quota - save the quota id to extensions
             String qid = createQuotaWithThreshold(args.getFsMountPath(), args.getFsCapacity(), args.getFsSoftLimit(),
-                    args.getFsNotificationLimit(), Long.valueOf(args.getFsSoftGracePeriod()), isi);
+                    args.getFsNotificationLimit(), args.getFsSoftGracePeriod() != null ? Long.valueOf(args.getFsSoftGracePeriod()) : null,
+                    isi);
             if (args.getFsExtensions() == null) {
                 args.initFsExtensions();
             }
@@ -1213,7 +1214,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, bThresholdsIncludeOverhead,
-                bIncludeSnapshots, qDirSize, notificationLimitSize, softLimitSize, softGracePeriod);
+                bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
+                        softLimitSize != null ? softLimitSize : 0L , softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 

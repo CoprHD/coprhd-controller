@@ -2413,7 +2413,8 @@ public class FileService extends TaskResourceService {
         // Verify that the copy IDs are either all specified or none are specified
         // for a particular protection type. Combinations are not allowed
         verifyCopyIDs(param);
-        // Validate for SRDF Stop operation
+
+        // Validate for remotemirror Stop operation
         validateRemoteMirrorStopOperation(id, param);
 
         // Process the list of copies
@@ -2705,7 +2706,7 @@ public class FileService extends TaskResourceService {
                 mirrorLabel = mirror.getLabel();
                 mirrorURI = mirror.getId();
                 device = _dbClient.queryObject(StorageSystem.class, mirror.getStorageDevice());
-                fileServiceApi = getFileServiceImpl("mirror");
+                fileServiceApi = getFileServiceApis("mirror");
 
 
                 auditOp(OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, true, AuditLogManager.AUDITOP_BEGIN,

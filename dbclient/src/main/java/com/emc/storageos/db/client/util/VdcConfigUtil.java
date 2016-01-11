@@ -30,6 +30,8 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
  * /config/geoLocalVDC/global                                   specifies the local VDC in the geo federation
  */
 public class VdcConfigUtil {
+    private static final String DEFAULT_ACTIVE_SITE_ID = "site1";
+
     private static final Logger log = LoggerFactory.getLogger(VdcConfigUtil.class);
 
     public static final String VDC_CONFIG_VERSION = "vdc_config_version";
@@ -172,9 +174,10 @@ public class VdcConfigUtil {
             // right now we assume that SITE_IDS and SITE_IS_STANDBY only makes sense for local VDC
             // moving forward this may or may not be the case.
             vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
-            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(!activeSiteId.equals(localSite.getUuid())));
-            String activeSiteShortId = drUtil.getSiteFromLocalVdc(activeSiteId).getSiteShortId();
-            vdcConfig.put(SITE_ACTIVE_ID, activeSiteShortId);
+            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(!localSite.getUuid().equals(activeSiteId)));
+            vdcConfig.put(SITE_ACTIVE_ID, StringUtils.isEmpty(activeSiteId) ?
+                    DEFAULT_ACTIVE_SITE_ID :
+                    drUtil.getSiteFromLocalVdc(activeSiteId).getSiteShortId());
         }
     }
 

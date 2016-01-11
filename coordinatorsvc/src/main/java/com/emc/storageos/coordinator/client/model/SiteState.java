@@ -38,6 +38,16 @@ public enum SiteState {
             return true;
         }
     },
+    
+    /**
+     * Active site is back after failover, site has been down graded.
+     */
+    ACTIVE_DEGRADED {
+        @Override
+        public boolean isDROperationOngoing() {
+            return false;
+        }
+    },
 
     /**
      *  Standby site. Adding site

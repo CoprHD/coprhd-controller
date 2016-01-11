@@ -903,6 +903,26 @@ public abstract class VdcOpHandler {
         }
     }
     
+    /**
+     * This handler will be triggered in active site when it detect there are other active sites exist.
+     * Degraded itself to ACTIVE_DEGRADE and not provide any provisioning functions.
+     * 
+     */
+    public static class DrFailbackDegradeHandler extends VdcOpHandler {
+
+        @Override
+        public boolean isRebootNeeded() {
+            return true;
+        }
+
+        @Override
+        public void execute() throws Exception {
+            //no need to wait any barrier and some nodes may not be up
+            reconfigVdc(false);
+        }
+        
+    }
+    
     public CoordinatorClientExt getCoordinator() {
         return coordinator;
     }
@@ -991,12 +1011,21 @@ public abstract class VdcOpHandler {
     }
     
     protected void reconfigVdc() throws Exception {
-        syncFlushVdcConfigToLocal();
+        reconfigVdc(true);
+    }
+    
+    protected void reconfigVdc(boolean allNodeSyncRequired) throws Exception {
+        if (allNodeSyncRequired) {
+            syncFlushVdcConfigToLocal();
+        } else {
+            flushVdcConfigToLocal();
+        }
         refreshIPsec();
         refreshFirewall();
         refreshSsh();
         refreshCoordinator();
     }
+    
 
     protected void refreshFirewall() {
         localRepository.reconfigProperties("firewall");

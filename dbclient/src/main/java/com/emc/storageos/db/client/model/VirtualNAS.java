@@ -21,6 +21,13 @@ import com.emc.storageos.model.valid.EnumType;
 public class VirtualNAS extends NASServer {
 
     // Project name associated with VNAS
+    private URI project;
+
+    // Project URI set name associated with VNAS
+    /*
+     * Note: Cannot remove or modify the data type of the attribute: 'project'.
+     * Because, that's not legal for a schema change.
+     */
     private StringSet associatedProjects;
 
     // Base directory Path for the VNAS applicable in AccessZones & vFiler device types
@@ -28,6 +35,16 @@ public class VirtualNAS extends NASServer {
 
     // place holder for the Parent NAS server the Data Mover
     private URI parentNasUri;
+
+    @Name("project")
+    public URI getProject() {
+        return project;
+    }
+
+    public void setProject(URI project) {
+        this.project = project;
+        setChanged("project");
+    }
 
     @Name("associatedProjects")
     public StringSet getAssociatedProjects() {

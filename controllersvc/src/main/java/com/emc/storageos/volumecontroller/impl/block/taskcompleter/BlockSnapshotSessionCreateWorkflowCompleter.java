@@ -7,9 +7,10 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +44,8 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
     /**
      * Constructor
      * 
-     * @param snapSessionURIs The URIs of the BlockSnapshotSession instances created in the request.
-     * @param sessionSnapshotsMap A map of the BlockSnapshot instances linked to the session for the request.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance created in the request.
+     * @param sessionSnapshotURIs A map of the BlockSnapshot URIs linked to the session for the request.
      * @param taskId The unique task identifier.
      */
     public BlockSnapshotSessionCreateWorkflowCompleter(URI snapSessionURI, List<List<URI>> sessionSnapshotURIs, String taskId) {
@@ -59,19 +60,18 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, getId());
+            List<BlockObject> allSources = null;
 
-            BlockObject sourceObj = null;
             if (snapSession.hasConsistencyGroup()) {
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-                List<BlockObject> allSources = BlockConsistencyGroupUtils.getAllSources(cg, dbClient);
-                sourceObj = allSources.get(0);
+                allSources = BlockConsistencyGroupUtils.getAllSources(cg, dbClient);
             } else {
-                sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+                allSources = Lists.newArrayList(BlockObject.fetch(dbClient, snapSession.getParent().getURI()));
             }
 
             // Record the results.
             recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.CREATE_SNAPSHOT_SESSION,
-                    status, snapSession, sourceObj);
+                    status, snapSession, allSources.get(0));
 
             // Update the status map of the snapshot session.
             switch (status) {
@@ -97,9 +97,15 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
                     }
 
                     setErrorOnDataObject(dbClient, BlockSnapshotSession.class, getId(), coded);
+                    for (BlockObject source : allSources) {
+                        setErrorOnDataObject(dbClient, URIUtil.getModelClass(source.getId()), source.getId(), coded);
+                    }
                     break;
                 case ready:
                     setReadyOnDataObject(dbClient, BlockSnapshotSession.class, getId());
+                    for (BlockObject source : allSources) {
+                        setReadyOnDataObject(dbClient, URIUtil.getModelClass(source.getId()), source);
+                    }
                     break;
                 default:
                     String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
@@ -107,13 +113,11 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
                     throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
 
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the step to complete.
-                updateWorkflowStatus(status, coded);
-            }
             s_logger.info("Done snapshot session create task {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
             s_logger.error("Failed updating status for snapshot session create task {}", getOpId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
     }
 

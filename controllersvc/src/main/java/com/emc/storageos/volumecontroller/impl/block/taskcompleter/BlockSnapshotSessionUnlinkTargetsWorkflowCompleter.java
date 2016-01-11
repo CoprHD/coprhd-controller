@@ -58,8 +58,8 @@ public class BlockSnapshotSessionUnlinkTargetsWorkflowCompleter extends BlockSna
             BlockObject sourceObj = null;
             if (snapSession.hasConsistencyGroup()) {
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-                List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, dbClient);
-                sourceObj = nativeVolumes.get(0);
+                List<BlockObject> allSources = BlockConsistencyGroupUtils.getAllSources(cg, dbClient);
+                sourceObj = allSources.get(0);
             } else {
                 sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
             }

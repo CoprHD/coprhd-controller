@@ -2829,7 +2829,6 @@ public class VolumeIngestionUtil {
         consistencyGroup.setStorageController(unManagedCG.getStorageSystemUri());
         consistencyGroup.addSystemConsistencyGroup(unManagedCG.getStorageSystemUri().toString(), consistencyGroup.getLabel());
         consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
-        dbClient.createObject(consistencyGroup);
         return consistencyGroup;
     }
 

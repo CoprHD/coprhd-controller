@@ -110,6 +110,9 @@ public class UnManagedVolumeService extends TaskResourceService {
     private static final Logger _logger = LoggerFactory.getLogger(UnManagedVolumeService.class);
 
     private IngestStrategyFactory ingestStrategyFactory;
+    
+    private Set<UnManagedConsistencyGroup> unManagedCGsToUpdate = new HashSet<UnManagedConsistencyGroup>();
+    private Set<BlockConsistencyGroup> blockCGsToCreate = new HashSet<BlockConsistencyGroup>();
 
     public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
         this.ingestStrategyFactory = ingestStrategyFactory;
@@ -215,7 +218,7 @@ public class UnManagedVolumeService extends TaskResourceService {
         }
         TaskList taskList = new TaskList();
         List<UnManagedVolume> unManagedVolumes = new ArrayList<UnManagedVolume>();
-        Map<String, String> taskMap = new HashMap<String, String>();
+        Map<String, String> taskMap = new HashMap<String, String>();        
         BaseIngestionRequestContext requestContext = null;
         try {
             // Get and validate the project.
@@ -278,47 +281,10 @@ public class UnManagedVolumeService extends TaskResourceService {
                     requestContext.getProcessedUnManagedVolumeMap().put(
                             unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
                     
-                    // check if the unmanaged volume belongs to a cg
+                    // If the volume belongs to a consistency group perform consistency group processing 
                     if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
-                    	UnManagedConsistencyGroup unManagedCG = VolumeIngestionUtil.getUnManagedConsistencyGroup(unManagedVolume, _dbClient);
-                    	if (unManagedCG != null) {
-                    		_logger.info("Attempting to move volume {} from unmanaged to managed in the unmanged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
-                    		VolumeIngestionUtil.updateVolumeInUnManagedConsistencyGroup(unManagedCG, unManagedVolume, blockObject);
-                    		if (VolumeIngestionUtil.allVolumesInUnamangedCGIngested(unManagedCG)) {
-                    			// all unmanaged volumes have been ingested            			
-                    			// create block consistency group and remove UnManagedBlockConsistency Group
-                    			BlockConsistencyGroup consistencyGroup = VolumeIngestionUtil.createCGFromUnManagedCG(unManagedCG, requestContext.getProject(), requestContext.getTenant(), _dbClient);
-                    			_logger.info("Ingesting the final volume of unmanaged consistency group {}.  Block consistency group {} has been created.", 
-                    					unManagedCG.getLabel(), consistencyGroup.getLabel());                    			
-                    			for (String volumeNativeGuid : unManagedCG.getManagedVolumesMap().keySet()) {                    				
-                    				BlockObject volume  = requestContext.getObjectsToBeCreatedMap().get(volumeNativeGuid);                    				
-                    				if (volume == null) {                    					
-                    					// check if the volume has already been ingested
-                    					String ingestedVolumeURI = unManagedCG.getManagedVolumesMap().get(volumeNativeGuid);
-                    					volume = _dbClient.queryObject(Volume.class, URI.create(ingestedVolumeURI));
-                    					if (volume == null) {
-                    						throw IngestionException.exceptions.generalVolumeException(
-                    								unManagedVolume.getLabel(), "check the logs for more details");
-                    					}
-                    					_logger.info("Volume {} was ingested as part of previous ingestion operation.", volume.getLabel());
-                    				}
-                    				_logger.info("Adding ingested volume {} to consistency group {}", volume.getLabel(), consistencyGroup.getLabel());
-                    				volume.setConsistencyGroup(consistencyGroup.getId());
-                    				requestContext.getObjectsToBeCreatedMap().put(volumeNativeGuid, volume);
-                    			}
-                    			// All unmanaged volumes have been ingested, remove unmanaged consistency group
-                    			_logger.info("Removing unmanaged consistency group {}", unManagedCG.getLabel());
-                    			_dbClient.removeObject(unManagedCG);
-
-                    		} else {                    			
-                    			_logger.info("Updating unmanaged consistency group {}", unManagedCG.getLabel());
-                    			_dbClient.updateObject(unManagedCG);
-                    		}
-                    	} else {
-                    		throw IngestionException.exceptions.generalVolumeException(
-                    				unManagedVolume.getLabel(), "check the logs for more details");
-                    	}
-                    }                                        
+                    	ingestBlockConsistencyGroups(unManagedVolume, blockObject, requestContext);
+                    }                                                                                                  
 
                 } catch (APIException ex) {
                     _logger.error("APIException occurred", ex);
@@ -386,6 +352,14 @@ public class UnManagedVolumeService extends TaskResourceService {
             }
 
             _dbClient.createObject(requestContext.getObjectsToBeCreatedMap().values());
+            
+            // persist any consistency group changes
+            if (!unManagedCGsToUpdate.isEmpty()) {
+            	_dbClient.updateObject(unManagedCGsToUpdate);
+            }            
+            if (!blockCGsToCreate.isEmpty()) {
+            	_dbClient.createObject(blockCGsToCreate);
+            }
 
             // record the events after they have been persisted
             for (BlockObject volume : requestContext.getObjectsToBeCreatedMap().values()) {
@@ -453,6 +427,11 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
                 requestContext.getProcessedUnManagedVolumeMap().put(
                         unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
+                
+                // If the volume belongs to a consistency group perform consistency group processing 
+                if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
+                	ingestBlockConsistencyGroups(unManagedVolume, blockObject, requestContext);
+                } 
 
             } catch (APIException ex) {
                 _logger.warn("error: " + ex.getLocalizedMessage(), ex);
@@ -656,6 +635,15 @@ public class UnManagedVolumeService extends TaskResourceService {
 
             _dbClient.createObject(requestContext.getObjectsIngestedByExportProcessing());
             _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
+            
+            // persist any consistency group changes
+            if (!unManagedCGsToUpdate.isEmpty()) {
+            	_dbClient.updateObject(unManagedCGsToUpdate);
+            }            
+            if (!blockCGsToCreate.isEmpty()) {
+            	_dbClient.createObject(blockCGsToCreate);
+            }
+            
             // record the events after they have been persisted
             for (BlockObject volume : requestContext.getObjectsIngestedByExportProcessing()) {
                 recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
@@ -798,4 +786,58 @@ public class UnManagedVolumeService extends TaskResourceService {
         }
         return operationType;
     }
+     
+    /**
+     * Determines if all the unmanaged volumes belonging to the unmanaged consistency group have been ingested.
+     * If they have it creates a block consistency group and marks the unmanaged consistency group inactive.  
+     * If all the unmanaged volumes of an unmanaged consistency group have not been ingested it moves the 
+     * unmanaged volume passed in from the map of unmanaged volumes to the map of managed volumes. 
+     * 
+     * @param unManagedVolume - current unmanaged volume being ingested
+     * @param blockObject - current volume representing the unmanaged volume being ingested
+     * @param requestContext - context containing ingestion information
+     * @throws IngestionException
+     */
+    private void ingestBlockConsistencyGroups(UnManagedVolume unManagedVolume, BlockObject blockObject, BaseIngestionRequestContext requestContext) 
+    		throws IngestionException {
+    	UnManagedConsistencyGroup unManagedCG = VolumeIngestionUtil.getUnManagedConsistencyGroup(unManagedVolume, _dbClient);
+    	if (unManagedCG != null) {
+    		_logger.info("Attempting to move volume {} from unmanaged to managed in the unmanged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
+    		VolumeIngestionUtil.updateVolumeInUnManagedConsistencyGroup(unManagedCG, unManagedVolume, blockObject);
+    		if (VolumeIngestionUtil.allVolumesInUnamangedCGIngested(unManagedCG)) {
+    			// all unmanaged volumes have been ingested            			
+    			// create block consistency group and remove UnManagedBlockConsistency Group
+    			BlockConsistencyGroup consistencyGroup = VolumeIngestionUtil.createCGFromUnManagedCG(unManagedCG, requestContext.getProject(), requestContext.getTenant(), _dbClient);
+    			_logger.info("Ingesting the final volume of unmanaged consistency group {}.  Block consistency group {} has been created.", 
+    					unManagedCG.getLabel(), consistencyGroup.getLabel());                    			
+    			for (String volumeNativeGuid : unManagedCG.getManagedVolumesMap().keySet()) {                    				
+    				BlockObject volume  = requestContext.getObjectsToBeCreatedMap().get(volumeNativeGuid);                    				
+    				if (volume == null) {                    					
+    					// check if the volume has already been ingested
+    					String ingestedVolumeURI = unManagedCG.getManagedVolumesMap().get(volumeNativeGuid);
+    					volume = _dbClient.queryObject(Volume.class, URI.create(ingestedVolumeURI));
+    					if (volume == null) {
+    						throw IngestionException.exceptions.generalVolumeException(
+    								unManagedVolume.getLabel(), "check the logs for more details");
+    					}
+    					_logger.info("Volume {} was ingested as part of previous ingestion operation.", volume.getLabel());
+    				}
+    				_logger.info("Adding ingested volume {} to consistency group {}", volume.getLabel(), consistencyGroup.getLabel());
+    				volume.setConsistencyGroup(consistencyGroup.getId());
+    				requestContext.getObjectsToBeCreatedMap().put(volumeNativeGuid, volume);
+    			}
+    			// All unmanaged volumes have been ingested, remove unmanaged consistency group
+    			_logger.info("Removing unmanaged consistency group {}", unManagedCG.getLabel());
+    			unManagedCG.setInactive(true);
+    			blockCGsToCreate.add(consistencyGroup);    			
+    		} else {                    			
+    			_logger.info("Updating unmanaged consistency group {}", unManagedCG.getLabel());    			
+    		}
+    		unManagedCGsToUpdate.add(unManagedCG);
+    	} else {
+    		throw IngestionException.exceptions.generalVolumeException(
+    				unManagedVolume.getLabel(), "check the logs for more details");
+    	}
+    }
+    
 }

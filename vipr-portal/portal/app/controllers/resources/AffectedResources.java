@@ -580,12 +580,6 @@ public class AffectedResources extends Controller {
             volume = getVolume(client, blockSnapshotSession);
             neighborhood = getVirtualArray(client, blockSnapshotSession);
         }
-        
-        // Not yet implemented
-//        public List<ResourceUtils.HostExport> getHostExports() {
-//            List<ITLRestRep> itls = client.blockSnapshotsSession().listExports(uri(resourceId));
-//            return ResourceUtils.getHostExports(itls);
-//        }
     }
 
     public static class BlockConsistencyGroupDetails extends ResourceDetails {
@@ -614,15 +608,6 @@ public class AffectedResources extends Controller {
             }
             return snapshots;
         }
-        
-        // Not yet implemented
-//        public List<BlockSnapshotSessionDetails> getSnapshotSessions() {
-//            List<BlockSnapshotDetails> snapshotSessions = Lists.newArrayList();
-//            for (NamedRelatedResourceRep res : client.blockSnapshotSessions().listByConsistencyGroup(blockConsistencyGroup.getId())) {
-//                snapshots.add(new BlockSnapshotDetails(client, res.getId()));
-//            }
-//            return snapshotSessions;
-//        }
     }
 
     public static class BlockContinuousCopyDetails extends ResourceDetails {

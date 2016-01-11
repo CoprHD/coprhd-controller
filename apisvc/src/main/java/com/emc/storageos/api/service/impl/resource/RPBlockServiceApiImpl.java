@@ -1794,8 +1794,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         } catch (Exception e) {
             _log.error(e.getMessage(), e);
-            _log.error("EMC DEBUG - STACKTRACE: " + (e.getStackTrace() != null ? e.getStackTrace().toString() : "null stacktrace"));
-            _log.error("EMC DEBUG - CAUSE: " + e.getCause() + "\n" + (e.getCause() != null ? e.getCause().getMessage() : "null cause"));
 
             try {
                 // If there is a change vpool volume, we need to ensure that we rollback protection on it.
@@ -1831,7 +1829,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
 
-            throw APIException.badRequests.rpBlockApiImplPrepareVolumeException(volumeLabel);
+            //throw APIException.badRequests.rpBlockApiImplPrepareVolumeException(volumeLabel);
+            throw e;
         }
 
         return taskList;

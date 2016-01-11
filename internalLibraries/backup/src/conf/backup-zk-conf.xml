@@ -37,9 +37,5 @@
     <bean id="zkBackupFolder" class="java.io.File">
         <constructor-arg value="/data/zk/version-2"/>
     </bean>
-
-    <bean id="siteIdPath" class="java.io.File">
-        <constructor-arg value="/data/zk/siteid" />
-    </bean>
 </beans>
 

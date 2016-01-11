@@ -36,15 +36,7 @@ public class ZkBackupHandler extends BackupHandler {
     private static final String CONNECT_ZK_HOST = "localhost";
     private static final int CONNECT_ZK_PORT = 2181;
     private File zkDir;
-    private File siteIdFile;
 
-    public File getSiteIdFile() {
-        return siteIdFile;
-    }
-
-    public void setSiteIdFile(File siteIdFile) {
-        this.siteIdFile = siteIdFile;
-    }
 
     private List<String> fileTypeList;
 
@@ -295,7 +287,7 @@ public class ZkBackupHandler extends BackupHandler {
     }
 
     private void backupSiteId(File targetDir) throws IOException {
-        FileUtils.copyFileToDirectory(this.siteIdFile, targetDir);
+        FileUtils.copyFileToDirectory(new File(BackupConstants.SITE_ID_FILE), targetDir);
     }
 
     @Override

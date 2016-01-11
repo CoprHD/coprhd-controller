@@ -79,4 +79,6 @@ public interface BackupConstants {
     public static final String STORAGEOS_GROUP = "storageos";
 
     public static final File[] EMPTY_ARRAY = {};
+
+    public static final String SITE_ID_FILE = "/data/zk/siteid";
 }

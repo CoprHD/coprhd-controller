@@ -12,9 +12,11 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.security.geo.GeoClientCacheManager;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.sun.jersey.spi.inject.Inject;
+import javafx.application.Application;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -26,7 +28,7 @@ import java.util.concurrent.*;
 
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 
-public class IPSecMonitor implements Runnable {
+public class IPSecMonitor implements Runnable, ApplicationContextAware {
 
     private static final Logger log = LoggerFactory.getLogger(IPSecMonitor.class);
 
@@ -35,7 +37,6 @@ public class IPSecMonitor implements Runnable {
 
     public ScheduledExecutorService scheduledExecutorService;
 
-    @Autowired
     private ApplicationContext ctx;
 
     DbClient dbClient;
@@ -50,7 +51,8 @@ public class IPSecMonitor implements Runnable {
                 TimeUnit.MINUTES);
         log.info("scheduled IPSecMonitor.");
 
-        log.info(" the dbclient instance is {}",  dbClient);
+        log.info("=== the dbclient instance is {}",  dbClient);
+        log.info("Application context is {}",  ctx);
     }
 
     public void shutdown() {
@@ -269,5 +271,11 @@ public class IPSecMonitor implements Runnable {
         }
 
         return (int)(Long.parseLong(left) - Long.parseLong(right));
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.ctx = applicationContext;
+
     }
 }

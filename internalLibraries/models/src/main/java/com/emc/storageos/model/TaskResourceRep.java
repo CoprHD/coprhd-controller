@@ -130,7 +130,11 @@ public class TaskResourceRep extends DataObjectRestRep {
 
     /**
      * The state of the task
-     *
+     * Valid values:
+     *      queued = task is queued
+     *      pending = task is pending
+     *      ready = task succeed
+     *      error = task fails
      */
     @XmlElement(name = "state")
     public String getState() {

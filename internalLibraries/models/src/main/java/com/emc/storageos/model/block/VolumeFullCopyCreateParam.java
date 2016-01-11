@@ -31,7 +31,8 @@ public class VolumeFullCopyCreateParam {
     /**
      * Type of copy requested. Currently
      * only a full-copy is supported.
-     * 
+     * Valid value:
+     *      full_copy
      */
     @XmlElement(required = false)
     public String getType() {

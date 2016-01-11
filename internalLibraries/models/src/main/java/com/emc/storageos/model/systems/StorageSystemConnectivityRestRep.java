@@ -39,7 +39,9 @@ public class StorageSystemConnectivityRestRep {
 
     /**
      * The type of connection that exists between two storage systems
-     * 
+     * Valid value:
+     *      rp
+     *      vplex
      * 
      */
     @XmlElement(name = "connection_type")

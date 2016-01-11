@@ -26,7 +26,8 @@ public class NamedVolumesList {
 
     /**
      * List of volumes that make up this entry. Used primarily to ingest volumes into ViPR.
-     * 
+     * Valid value:
+     *  Maximum of 4000 volumes can be provided in this list.
      */
     @XmlElement(name = "volume")
     public List<NamedRelatedResourceRep> getVolumes() {

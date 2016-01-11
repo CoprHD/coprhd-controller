@@ -93,7 +93,8 @@ public class ITLRestRep {
 
     /**
      * A SAN zone name that maps the initiator to the target.
-     * 
+     * Valid value:
+     *      String name starting with alpha and containing alpha-number and underscore characters.
      */
     @XmlElement(name = "san_zone_name")
     public String getSanZoneName() {
@@ -168,6 +169,11 @@ public class ITLRestRep {
          * The port's network address assigned by the Storage Device.
          * Thie could be a Fiber Channel WWN, an iSCSI IQN or EUI value,
          * or an IP address.
+         * Valid value:
+         *      WWN
+         *      IQN
+         *      EUI
+         *      IP
          * 
          */
         @XmlElement(name = "port")
@@ -181,7 +187,8 @@ public class ITLRestRep {
 
         /**
          * The TCP port number used by the port (if any).
-         * 
+         * Valid value:
+         *      Integer value between 1 and 32767.
          */
         @XmlElement(name = "tcp_port")
         public String getTcpPort() {
@@ -201,7 +208,8 @@ public class ITLRestRep {
 
         /**
          * The ViPR URI of the Storage Device containing the volume.
-         * 
+         * Valid value:
+         *      URI
          */
         @XmlElement(name = "id")
         public URI getId() {
@@ -227,7 +235,8 @@ public class ITLRestRep {
 
         /**
          * The WWN of the volume.
-         * 
+         * Valid value:
+         *      World Wide Name
          */
         @XmlElement(name = "wwn")
         public String getWwn() {
@@ -274,7 +283,10 @@ public class ITLRestRep {
         /**
          * The address of the initiator. For Fiber Channel, this is a WWN.
          * For iSCSI, this is an IQN or EUI value.
-         * 
+         * Valid value:
+         *      WWN
+         *      IQN
+         *      EUI
          */
         @XmlElement(name = "port")
         public String getPort() {

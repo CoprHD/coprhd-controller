@@ -31,7 +31,8 @@ public class SanZoneRestRep {
 
     /**
      * The zone name.
-     * 
+     * Valid value:
+     *      A name starting with an alpha character and consisting of alpha-numberic characters and underscores.
      */
     @XmlElement(required = true)
     public String getName() {
@@ -44,7 +45,9 @@ public class SanZoneRestRep {
 
     @XmlElementWrapper(name = "members")
     /** 
-     * A list of Zone members, each consisting of a WWPN address. 
+     * A list of Zone members, each consisting of a WWPN address.
+     * Valid value:
+     *      A list of WWPN addresses (for example 10:00:00:00:00:00:00:01) 
      */
     @XmlElement(name = "member")
     public List<SanZoneMemberRestRep> getMembers() {

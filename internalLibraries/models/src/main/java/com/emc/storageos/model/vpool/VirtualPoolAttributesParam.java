@@ -37,12 +37,12 @@ public class VirtualPoolAttributesParam {
     /**
      * The protocols for a virtual pool.
      * Valid values:
-     *  FC
-     *  ISCSI
-     *  FCoE
-     *  NFS
-     *  NFSV4
-     *  CIFS
+     *  FC = Fibre Channel (block)
+     *  ISCSI = Internet Small Computer System Interface (block)
+     *  FCoE = Fibre Channel over Ethernet (block)
+     *  NFS = Network File System (file)
+     *  NFSV4 = Network File System Version 4 (file)
+     *  CIFS = Common Internet File System (file)
      * 
      */
     @XmlElement(name = "protocol")

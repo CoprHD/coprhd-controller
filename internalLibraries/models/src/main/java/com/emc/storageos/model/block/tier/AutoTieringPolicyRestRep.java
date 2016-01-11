@@ -52,7 +52,10 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * The provisioning type of the auto tiering policy
-     * 
+     * Valid value:
+     *  Thin
+     *  Thick
+     *  All
      */
     @XmlElement(name = "provisioning_type")
     public String getProvisioningType() {
@@ -65,7 +68,9 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * The type of storage system to which the auto tiering policy belongs
-     * 
+     * Valid value:
+     *  vmax
+     *  vnxblock
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {

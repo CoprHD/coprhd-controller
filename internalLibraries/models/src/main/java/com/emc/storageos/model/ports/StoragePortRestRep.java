@@ -177,8 +177,8 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * How the port connects its storage controller to its network
      * Valid values:
-     *  backend
-     *  frontend
+     *  backend = connects a VPLEX storage controller to another array
+     *  frontend = connects the storage controller to the hosts
      */
     @XmlElement(name = "port_type")
     public String getPortType() {

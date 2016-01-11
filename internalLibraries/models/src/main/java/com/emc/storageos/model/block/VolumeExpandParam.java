@@ -25,7 +25,9 @@ public class VolumeExpandParam {
     /**
      * This parameter specifies the volume expansion
      * size.
-     * 
+     * Valid value:
+     *      Supported size formats: TB, GB, MB, B
+     *      Default format is size in bytes
      */
     @XmlElement(required = true, name = "new_size")
     public String getNewSize() {

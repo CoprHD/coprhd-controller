@@ -104,6 +104,9 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
      * is set to a value, the provider will only receive group membership information
      * about the groups matched by the value.  If the White List is empty, all group
      * membership information will be retrieved.  (blank == "*").
+     * Valid values:
+     *  value can describe regular expressions
+     *  when empty, all groups are included implicitly
      */
     @XmlElement(name = "group_whitelist_value")
     public Set<String> getGroupWhitelistValues() {
@@ -145,7 +148,8 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     /**
      * Maximum number of results that the LDAP server will return on a single page.
-     * 
+     * Valid value:
+     *  Value must be greater than 0 and cannot be higher than the max page size configured on LDAP server.
      */
     @XmlElement(name = "max_page_size")
     public Integer getMaxPageSize() {
@@ -204,8 +208,8 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
      * In conjunction with the search_base, the search_scope indicates how many
      * levels below the base the search can continue.
      * Valid values:
-     *  ONELEVEL
-     *  SUBTREE
+     *  ONELEVEL = The search will start at the search_base location and continue up to one level deep
+     *  SUBTREE = The search will start at the search_base location and continue through the entire tree
      * 
      */
     @XmlElement(name = "search_scope")

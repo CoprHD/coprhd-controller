@@ -101,7 +101,9 @@ public class VolumeIngest {
 
     /**
      * The ingestion method for VPLEX volumes.
-     * 
+     * Valid values:
+     *      Full
+     *      VirtualVolumesOnly
      */
     @XmlElement(required = false)
     public String getVplexIngestionMethod() {

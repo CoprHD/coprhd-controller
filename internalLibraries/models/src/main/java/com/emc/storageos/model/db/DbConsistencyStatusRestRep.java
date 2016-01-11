@@ -50,10 +50,10 @@ public class DbConsistencyStatusRestRep{
     /**
      * The status of db consistency check. 
      * Valid values 
-     *  NOT_STARTED
-     *  IN_PROGRESS
-     *  SUCCESS
-     *  FAILED
+     *  NOT_STARTED = db consistency check has not started yet
+     *  IN_PROGRESS = db consistency check is in progress
+     *  SUCCESS = db consistency check succeed
+     *  FAILED = db consistency check failed
      * 
      */
     @XmlElement(name = "status")

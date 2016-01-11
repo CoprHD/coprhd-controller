@@ -26,7 +26,7 @@ public class TenantUpdateParam extends TenantParam {
     }
 
     /**
-     * Name change for the tenant
+     * Name change for the tenant. Any free form string within length limits
      * 
      */
     @XmlElement(required = false, name = "name")
@@ -40,7 +40,7 @@ public class TenantUpdateParam extends TenantParam {
     }
 
     /**
-     * Changes of user mappings for this tenant
+     * Changes of user mappings for this tenant. There can be at most one add and at most one remove element.
      * 
      */
     @XmlElement(name = "user_mapping_changes")

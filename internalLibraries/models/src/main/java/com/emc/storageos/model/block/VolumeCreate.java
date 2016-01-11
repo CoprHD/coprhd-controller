@@ -55,7 +55,8 @@ public class VolumeCreate {
      * consistency group. Once the source consistency group is
      * established, the snapshot operations for any volume in
      * the group would apply to all volumes in the group.
-     * 
+     * Valid value:
+     *      currently not supported for VMAX volumes
      */
     @XmlElement(name = "consistency_group")
     public URI getConsistencyGroup() {
@@ -81,7 +82,8 @@ public class VolumeCreate {
 
     /**
      * Name with which the volume is to be created.
-     * 
+     * Valid value:
+     *      minimum 2 characters and maximum 128 characters
      */
     @XmlElement(required = true)
     @Length(min = 2, max = 128)

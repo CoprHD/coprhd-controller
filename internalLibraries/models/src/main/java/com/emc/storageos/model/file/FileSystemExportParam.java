@@ -57,10 +57,10 @@ public class FileSystemExportParam {
     /**
      * Security type for the file export
      * Valid values:
-     *  sys
-     *  krb5
-     *  krb5i
-     *  krb5p
+     *  sys = Default UNIX security
+     *  krb5 = Kerberos security option
+     *  krb5i = Kerberos security option
+     *  krb5p = Kerberos security option
      */
     @XmlElement(name = "type")
     public String getSecurityType() {
@@ -89,9 +89,9 @@ public class FileSystemExportParam {
     /**
      * Permissions for the file export
      * Valid values:
-     *   ro
-     *   rw
-     *   root
+     *   ro = read only
+     *   rw = read and write
+     *   root = full permission
      */
     @XmlElement(name = "permissions")
     public String getPermissions() {
@@ -105,8 +105,8 @@ public class FileSystemExportParam {
     /**
      * User with root permissions
      * Valid values:
-     *   root
-     *   nobody
+     *   root = only root has special access permissions
+     *   nobody = nobody has special access permissions
      */
     @XmlElement(name = "root_user")
     public String getRootUserMapping() {
@@ -120,8 +120,8 @@ public class FileSystemExportParam {
     /**
      * File system export protocol.
      * Valid values:
-     *   CIFS
-     *   NFS
+     *   CIFS = Common Internet File System
+     *   NFS = Network File System
      * 
      */
     @XmlElement(name = "protocol", required = true)

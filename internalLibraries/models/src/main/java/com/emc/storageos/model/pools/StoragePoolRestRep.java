@@ -76,10 +76,10 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The type of replication. 
      * Valid values: 
-     * ASYNC
-     * SYNC
-     * UNSYNC_UNASSOC
-     * UNSYNC_ASSOC
+     * ASYNC            = A copy can be maintained asynchronously
+     * SYNC             = A copy can be maintained synchronously
+     * UNSYNC_UNASSOC   = A full copy can be made, but there is no association between the source and target after making the copy
+     * UNSYNC_ASSOC     = A full copy can be made, and there is an association between the source and target after making the copy
      *
      */
     @XmlElement(name = "copy_type")
@@ -101,7 +101,10 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     @XmlElementWrapper(name = "drive_types")
     /**
      * The disk drive type
-     *
+     * Valid values:
+     *    FC   = Fibre-Channel
+     *    SAS  = Serial Attached SCSI
+     *    SATA = Serial ATA 
      */
     @XmlElement(name = "drive_type")
     public Set<String> getDriveTypes() {
@@ -284,7 +287,10 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The ViPR storage resource type that can be provisioned in this pool
-     * 
+     * Valid values:
+     *  block  = Volume
+     *  file   = File System
+     *  object = Object Store
      */
     @XmlElement(name = "pool_service_type")
     public String getPoolServiceType() {
@@ -298,9 +304,9 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The Long term retention policy is available on this pool
      * Valid values:
-     *  block
-     *  file
-     *  object
+     *  block  = Volume
+     *  file   = File System
+     *  object = Object Store
      */
     @XmlElement(name = "long_term_retention")
     public Boolean getLongTermRetention() {
@@ -340,7 +346,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      *  RAID4
      *  RAID5
      *  RAID6
-     *  RAID10
+     *  RAID10 = RAID 1/0
      */
     @XmlElementWrapper(name = "raid_levels")
     /**

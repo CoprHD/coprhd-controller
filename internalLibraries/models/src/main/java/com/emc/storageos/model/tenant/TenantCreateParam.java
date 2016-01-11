@@ -28,7 +28,7 @@ public class TenantCreateParam extends TenantParam {
     }
 
     /**
-     * Name of the tenant to create
+     * Name of the tenant to create. Any free form string within length limits
      * 
      */
     @XmlElement(required = true, name = "name")

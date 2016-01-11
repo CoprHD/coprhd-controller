@@ -31,7 +31,9 @@ public class VirtualPoolHighAvailabilityParam {
 
     /**
      * The high availability type.
-     * 
+     * Valid values:
+     *      vplex_local
+     *      vplex_distributed
      */
     @XmlElement(name = "type")
     public String getType() {

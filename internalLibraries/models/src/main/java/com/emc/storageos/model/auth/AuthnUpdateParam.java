@@ -294,6 +294,9 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * Group member attributes to be included when querying LDAP
          * for searching the user and group membership.
+         * Valid value:
+         *  Valid LDAP schema attributes
+         *  When empty, search for user's membership in LDAP will fail
          */
         @XmlElement(name = "group_member_attribute")
         public Set<String> getAdd() {

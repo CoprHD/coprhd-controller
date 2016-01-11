@@ -96,7 +96,9 @@ public class ProtectionSourcePolicy {
 
     /**
      * The remote copy mode, sync or async
-     * 
+     * Valid value:
+     *      ASYNCHRONOUS = RecoverPoint CG will be in Asynchronous mode (default)
+     *      SYNCHRONOUS = RecoverPoint CG will be in Synchronous mode
      */
     @XmlElement(name = "remote_copy_mode", required = false)
     public String getRemoteCopyMode() {
@@ -130,7 +132,9 @@ public class ProtectionSourcePolicy {
      *  WRITES
      *  BYTES
      *  KB 
-     * 
+     *  MB
+     *  GB
+     *  TB
      */
     @XmlElement(name = "rpo_type", required = false)
     public String getRpoType() {

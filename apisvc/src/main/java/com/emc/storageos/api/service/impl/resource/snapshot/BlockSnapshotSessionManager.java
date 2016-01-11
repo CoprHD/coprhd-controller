@@ -7,7 +7,9 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+import static com.google.common.collect.Collections2.transform;
 import static java.lang.String.format;
 
 import java.net.URI;
@@ -256,7 +258,8 @@ public class BlockSnapshotSessionManager {
      */
     public TaskList createSnapshotSession(List<BlockObject> snapSessionSourceObjList,
                                           SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
-        s_logger.info("START create snapshot session for sources {}", Joiner.on(',').join(snapSessionSourceObjList));
+        Collection<URI> sourceURIs = transform(snapSessionSourceObjList, fctnDataObjectToID());
+        s_logger.info("START create snapshot session for sources {}", Joiner.on(',').join(sourceURIs));
 
         // Get the snapshot session label.
         String snapSessionLabel = param.getName();
@@ -292,8 +295,7 @@ public class BlockSnapshotSessionManager {
         // snapshot sessions.
         List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
         BlockSnapshotSession snapSession = snapSessionApiImpl.prepareSnapshotSession(snapSessionSourceObjList,
-                snapSessionLabel,
-                newLinkedTargetsCount, newTargetsName, snapSessionSnapshots, taskId);
+                snapSessionLabel, newLinkedTargetsCount, newTargetsName, snapSessionSnapshots, taskId);
 
         // Populate the preparedObjects list and create tasks for each snapshot session.
         TaskList response = new TaskList();

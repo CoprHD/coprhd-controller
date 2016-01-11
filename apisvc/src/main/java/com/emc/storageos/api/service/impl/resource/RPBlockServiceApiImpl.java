@@ -2765,6 +2765,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         _rpHelper.getVolumesToDelete(sourceVolumeURIs).size() == pset.getVolumes().size()) {
                     _dbClient.markForDeletion(pset);
                     psetsDeleted.add(sourceVolume.getProtectionSet().getURI());
+                } else if (_rpHelper.getVolumesToDelete(sourceVolumeURIs).size() != pset.getVolumes().size()) {
+                    // For debugging: log conditions that caused us to not delete the protection set
+                    _log.info(String.format("Not deleting protection %s because there are %d volumes to delete in the request, however there are %d volumes in the pset",
+                            pset.getLabel(),
+                            _rpHelper.getVolumesToDelete(sourceVolumeURIs).size(),
+                            pset.getVolumes().size()));
                 }
             }
         }        

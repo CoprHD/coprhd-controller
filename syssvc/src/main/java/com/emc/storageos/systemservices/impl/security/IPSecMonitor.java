@@ -57,6 +57,7 @@ public class IPSecMonitor implements Runnable {
 
     @Override
     public void run() {
+        log.info("The geoclient manager is {}, the dbclient instance is {}", geoClientManager, dbClient);
         try {
             log.info("step 1: start checking ipsec connections");
             String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();

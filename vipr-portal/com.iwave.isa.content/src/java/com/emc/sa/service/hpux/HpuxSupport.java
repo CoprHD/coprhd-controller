@@ -16,6 +16,7 @@ import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.service.hpux.tasks.CheckForPowerPath;
 import com.emc.sa.service.hpux.tasks.CreateDirectory;
 import com.emc.sa.service.hpux.tasks.DeleteDirectory;
+import com.emc.sa.service.hpux.tasks.FindMountPoint;
 import com.emc.sa.service.hpux.tasks.FindMountPointsForVolumes;
 import com.emc.sa.service.hpux.tasks.FindRDiskForVolume;
 import com.emc.sa.service.hpux.tasks.GetDirectoryContents;
@@ -28,6 +29,7 @@ import com.emc.sa.service.hpux.tasks.UnmountPath;
 import com.emc.sa.service.hpux.tasks.UpdatePowerPathEntries;
 import com.emc.sa.service.hpux.tasks.VerifyMountPoint;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockVolumeMachineTag;
 import com.emc.sa.service.vipr.block.tasks.SetBlockVolumeMachineTag;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -113,6 +115,14 @@ public class HpuxSupport {
 
     public void findMountPoints(List<VolumeSpec> volumes) {
         execute(new FindMountPointsForVolumes(targetSystem.getHostId(), volumes));
+    }
+
+    public MountPoint findMountPoint(BlockObjectRestRep volume) {
+        return execute(new FindMountPoint(targetSystem.getHostId(), volume));
+    }
+
+    public void resizeVolume(BlockObjectRestRep volume, Double newSizeInGB) {
+        BlockStorageUtils.expandVolume(volume.getId(), newSizeInGB);
     }
 
     public List<MountPoint> getMountPoints() {

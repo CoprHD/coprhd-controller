@@ -50,30 +50,32 @@ public class AuditLogQueryResult implements TimeSeriesQueryResult<AuditLog> {
      *            auditlog marshaler
      * @param out
      *            the writer for writing results one by one
-     *@param auditLogRequest
+     *@param auditLogFilter
      *            the request contain the query filters
      */
-    AuditLogQueryResult(AuditLogMarshaller marshaller, Writer out, AuditLogRequest auditLogRequest) {
+    AuditLogQueryResult(AuditLogMarshaller marshaller, Writer out, AuditLogRequest auditLogFilter) {
         _out = out;
         _marshaller = marshaller;
-        _request = auditLogRequest;
+        _request = auditLogFilter;
     }
 
     @Override
     public void data(AuditLog data, long insertionTimeMs) {
 
         _logger.debug("AuditLog #{}", _resultsCount.get());
-        if (!filterOut(data)) {
-            try {
-                if (!_stopStreaming) {
-                    if (_marshaller.marshal(data, _out, _request.getKeyword())) {
-                        _resultsCount.incrementAndGet();
-                    }
+        if (hasFilterOut(data)) {
+            _logger.debug("Filter out the audit log {}",data);
+            return ;
+        }
+        try {
+            if (!_stopStreaming) {
+                if (_marshaller.marshal(data, _out, _request.getKeyword())) {
+                    _resultsCount.incrementAndGet();
                 }
-            } catch (MarshallingExcetion e) {
-                _logger.error("Error during auditlog marshaling", e);
-                _stopStreaming = true;
             }
+        } catch (MarshallingExcetion e) {
+            _logger.error("Error during auditlog marshaling", e);
+            _stopStreaming = true;
         }
     }
 
@@ -89,23 +91,24 @@ public class AuditLogQueryResult implements TimeSeriesQueryResult<AuditLog> {
 
     public void outputCount() { _logger.info("Query Result Size  = {}", _resultsCount.get()); }
 
-    private boolean filterOut(AuditLog auditLog){
-        if(_request.getServiceType() != null && _request.getServiceType().length() != 0
-                && !_request.getServiceType().equalsIgnoreCase(auditLog.getServiceType())){
-            _logger.debug("{} filter out by service type {}",auditLog.getDescription(),_request.getServiceType());
-            return true;
-        }
-        if(_request.getUser() != null && _request.getUser().length() != 0
-                && (auditLog.getUserId() != null) && !_request.getUser().equalsIgnoreCase(auditLog.getUserId().toString())){
-            _logger.debug("{} filter out by user  {}",auditLog.getDescription(),_request.getUser());
-            return true;
-        }
-        if(_request.getResult() != null && _request.getResult().length() != 0
-                && !_request.getResult().equalsIgnoreCase(auditLog.getOperationalStatus())){
-            _logger.debug("{} filter out by result {}",auditLog.getDescription(),_request.getResult());
-            return true;
-        }
-        return false;
+    private boolean filterByServiceType(AuditLog auditLog) {
+        String sType = _request.getServiceType();
+        return (sType != null && !sType.isEmpty() && !sType.equalsIgnoreCase(auditLog.getServiceType()));
+    }
+
+    private boolean filterByUser(AuditLog auditLog) {
+        String user = _request.getUser();
+        return (user != null && !user.isEmpty() && !user.equalsIgnoreCase(auditLog.getUserId().toString()));
+    }
+
+    private boolean filterByResult(AuditLog auditLog) {
+        String result = _request.getResult();
+        return (result != null && !result.isEmpty() && !result.equalsIgnoreCase(auditLog.getOperationalStatus()));
+    }
+
+
+    private boolean hasFilterOut(AuditLog auditLog) {
+        return filterByServiceType(auditLog) || filterByUser(auditLog) || filterByResult(auditLog);
     }
 
 }

@@ -162,6 +162,5 @@ public class AuditLogRequest {
                 append(" user=" + this.user).append(" result=" + this.result).
                 append(" keyword=" +this.keyword).append(" language="+ this.language);
         return sb.toString();
-
     }
 }

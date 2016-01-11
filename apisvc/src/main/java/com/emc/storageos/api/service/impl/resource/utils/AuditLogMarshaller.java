@@ -24,7 +24,7 @@ public interface AuditLogMarshaller {
      * 
      * @param auditlog
      * @param writer
-     * @throws Exception
+     * @throws MarshallingExcetion
      */
     public void marshal(AuditLog auditlog, Writer writer) throws MarshallingExcetion;
     /**
@@ -32,8 +32,9 @@ public interface AuditLogMarshaller {
      *
      * @param auditlog
      * @param writer
+     * @param keyword
      * @return True if the Auditlog outputted to the writer,else False
-     * @throws Exception
+     * @throws MarshallingExcetion
      */
     public boolean marshal(AuditLog auditlog, Writer writer,String keyword) throws MarshallingExcetion;
 

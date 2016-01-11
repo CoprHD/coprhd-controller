@@ -797,7 +797,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             isi.createDir(args.getFsMountPath(), true);
 
             // set quota - save the quota id to extensions
-            String qid = createQuotaWithThreshold(args.getFsMountPath(), args.getFsCapacity(), isi);
+            String qid = createQuotaWithThreshold(args.getFsMountPath(), args.getFsCapacity(), args.getFsSoftLimit(),
+                    args.getFsNotificationLimit(), Long.valueOf(args.getFsSoftGracePeriod()), isi);
             if (args.getFsExtensions() == null) {
                 args.initFsExtensions();
             }
@@ -1095,7 +1096,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             // create directory for the file share
             isi.createDir(qDirPath, true);
 
-            String qid = createQuotaWithThreshold(qDirPath, qDirSize, isi);
+            String qid = createQuotaWithThreshold(qDirPath, qDirSize, quotaDir.getSoftLimit(), quotaDir.getNotificationLimit(),
+                    quotaDir.getSoftGracePeriod(), isi);
 
             if (args.getQuotaDirExtensions() == null) {
                 args.initQuotaDirExtensions();
@@ -1177,7 +1179,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             } else {
                 // Create a new Quota
-                String qid = createQuotaWithThreshold(qDirPath, qDirSize, isi);
+                String qid = createQuotaWithThreshold(qDirPath, qDirSize, quotaDir.getSoftLimit(), quotaDir.getNotificationLimit(),
+                        quotaDir.getSoftGracePeriod(), isi);
 
                 if (args.getQuotaDirExtensions() == null) {
                     args.initQuotaDirExtensions();
@@ -1193,12 +1196,10 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         }
     }
 
-    public String createQuotaWithThreshold(String qDirPath, Long qDirSize, IsilonApi isi) {
+    public String createQuotaWithThreshold(String qDirPath, Long qDirSize, Long softLimitSize, Long notificationLimitSize,
+            Long softGracePeriod, IsilonApi isi) {
         boolean bThresholdsIncludeOverhead = true;
         boolean bIncludeSnapshots = true;
-        long advisoryQuotaSize = 85;// number here is in precentage of HardQuota
-        long softQuotaSize = 95;// number here is in precentage of HardQuota
-        long softQuotaGracePeriod = 7;// number here is in days
 
         if (configinfo != null) {
             if (configinfo.containsKey("thresholdsIncludeOverhead")) {
@@ -1207,20 +1208,12 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             if (configinfo.containsKey("includeSnapshots")) {
                 bIncludeSnapshots = Boolean.parseBoolean(configinfo.get("includeSnapshots"));
             }
-            if (configinfo.containsKey("directorySoftQuotaDefaultSize")) {
-                softQuotaSize = Long.parseLong(configinfo.get("directorySoftQuotaDefaultSize"));
-            }
-            if (configinfo.containsKey("directorySoftQuotaDefaultGracePeriod")) {
-                softQuotaGracePeriod = Long.parseLong(configinfo.get("directorySoftQuotaDefaultGracePeriod"));
-            }
-            if (configinfo.containsKey("directoryAdvisoryQuotaSize")) {
-                advisoryQuotaSize = Long.parseLong(configinfo.get("directoryAdvisoryQuotaSize"));
-            }
+
         }
 
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, bThresholdsIncludeOverhead,
-                bIncludeSnapshots, qDirSize, advisoryQuotaSize, softQuotaSize, softQuotaGracePeriod);
+                bIncludeSnapshots, qDirSize, notificationLimitSize, softLimitSize, softGracePeriod);
         return qid;
     }
 

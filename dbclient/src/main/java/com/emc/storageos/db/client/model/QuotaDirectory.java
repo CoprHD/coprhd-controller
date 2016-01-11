@@ -41,6 +41,12 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
     private Boolean _oplock;
 
     private Long _size; // Quota size in bytes- hard limit.
+    
+    private Long _softLimit; //Soft limit in percentage of hard limit
+    
+    private Long _notificationLimit; // notification limit in percentage of hardl limit
+    
+    private Long _softGracePeriod; //soft grace period in days
 
     // UNIX, NTFS, Mixed
     private String _securityStyle = SecurityStyles.parent.name();
@@ -121,6 +127,36 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
     public void setSize(Long size) {
         this._size = size;
         setChanged("size");
+    }
+
+    @Name("softLimit")
+    public Long getSoftLimit() {
+        return _softLimit;
+    }
+
+    public void setSoftLimit(Long softLimit) {
+        this._softLimit = softLimit;
+        setChanged("softLimit");
+    }
+
+    @Name("notificationLimit")
+    public Long getNotificationLimit() {
+        return _notificationLimit;
+    }
+
+    public void setNotificationLimit(Long notificationLimit) {
+        this._notificationLimit = notificationLimit;
+        setChanged("notificationLimit");
+    }
+
+    @Name("softGracePeriod")
+    public Long getSoftGracePeriod() {
+        return _softGracePeriod;
+    }
+
+    public void setSoftGracePeriod(Long softGracePeriod) {
+        this._softGracePeriod = softGracePeriod;
+        setChanged("softGracePeriod");
     }
 
     @Name("security_style")

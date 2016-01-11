@@ -1425,6 +1425,15 @@ public class FileService extends TaskResourceService {
 
         fs.setStorageDevice(placement.getSourceStorageSystem());
         fs.setPool(placement.getSourceStoragePool());
+        if(param.getSoftLimit() != 0) {
+            fs.setSoftLimit(new Long(param.getSoftLimit()));
+        }
+        if(param.getNotificationLimit() != 0) {
+            fs.setNotificationLimit(new Long(param.getNotificationLimit()));
+        }
+        if(param.getSoftGrace() > 0) {
+            fs.setSoftGracePeriod(new Integer(param.getSoftGrace()));
+        }
         if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
             fs.setStoragePort(placement.getStoragePorts().get(0));
         }
@@ -1528,6 +1537,22 @@ public class FileService extends TaskResourceService {
         _log.info("FileService::createQtree Request recieved {}", id);
         String origQtreeName = param.getQuotaDirName();
         ArgValidator.checkQuotaDirName(origQtreeName, "name");
+        
+        Long softLimit = 0L;
+        Long notificationLimit = 0L;
+        Long softGracePeriod = 0L;
+        if(param.getSoftLimit() != null) {
+            softLimit = Long.valueOf(param.getSoftLimit());
+        }
+        if(param.getNotificationLimit() != null) {
+            notificationLimit = Long.valueOf(param.getNotificationLimit());
+        }
+        if(param.getSoftGracePeriod() != null) {
+            softGracePeriod = Long.valueOf(param.getSoftGracePeriod());
+        }
+        
+        ArgValidator.checkFieldMaximum(softLimit, 100, "softLimit");
+        ArgValidator.checkFieldMaximum(notificationLimit, 100, "notificationLimit");
 
         // check duplicate QuotaDirectory names for this fileshare
         checkForDuplicateName(origQtreeName, QuotaDirectory.class, id, "parent", _dbClient);
@@ -1552,6 +1577,9 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setOpStatus(new OpStatusMap());
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
         quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
+        quotaDirectory.setSoftLimit(softLimit);
+        quotaDirectory.setSoftGracePeriod(softGracePeriod);
+        quotaDirectory.setNotificationLimit(notificationLimit);
 
         String convertedName = origQtreeName.replaceAll("[^\\dA-Za-z_]", "");
         _log.info("FileService::QuotaDirectory Original name {} and converted name {}", origQtreeName, convertedName);

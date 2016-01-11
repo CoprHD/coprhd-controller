@@ -278,6 +278,7 @@ public class FileShare extends FileObject implements ProjectResource {
 
     public void setSoftLimit(Long softLimit) {
         this.softLimit = softLimit;
+        setChanged("softLimit");
     }
 
     @Name("softLimitExceeded")
@@ -287,6 +288,7 @@ public class FileShare extends FileObject implements ProjectResource {
 
     public void setSoftLimitExceeded(Boolean softLimitExceeded) {
         this.softLimitExceeded = softLimitExceeded;
+        setChanged("softLimitExceeded");
     }
 
     @Name("softGracePeriod")
@@ -296,6 +298,7 @@ public class FileShare extends FileObject implements ProjectResource {
 
     public void setSoftGracePeriod(Integer softGracePeriod) {
         this.softGracePeriod = softGracePeriod;
+        setChanged("softGracePeriod");
     }
     
     @Name("notificationLimit")
@@ -305,6 +308,7 @@ public class FileShare extends FileObject implements ProjectResource {
 
     public void setNotificationLimit(Long notificationLimit) {
         this.notificationLimit = notificationLimit;
+        setChanged("notificationLimit");
     }
 
 }

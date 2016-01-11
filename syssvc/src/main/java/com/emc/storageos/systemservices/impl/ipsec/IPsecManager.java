@@ -157,11 +157,9 @@ public class IPsecManager {
      * make sure cluster is in stable status
      */
     public void verifyClusterIsStable() {
-        ClusterInfo.ClusterState state = coordinator.getControlNodesState();
-        if (state != null &&
-                (state.equals(ClusterInfo.ClusterState.STABLE)
-                     || state.equals(ClusterInfo.ClusterState.INITIALIZING))){
-            // cluster is stable
+        IPsecStatus status = checkStatus();
+        if (status != null && status.getStatus().equals(STATUS_GOOD) ) {
+            // cluster is stable for ipsec change
             return;
         } else {
             throw APIException.serviceUnavailable.clusterStateNotStable();

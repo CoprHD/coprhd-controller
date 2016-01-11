@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.DataObjectUtils;
+import com.google.common.base.Strings;
 
 /**
  * This factory creates instances of {@link DataSource} from a list
@@ -228,7 +229,9 @@ public class DataSourceFactory {
 
         // for cluster, just create an in-memory object, cluster has no other attributes
         Cluster cluster = new Cluster();
-        cluster.setLabel(clusterName);
+        if (!Strings.isNullOrEmpty(clusterName)) {
+            cluster.setLabel(clusterName);
+        }
 
         return createExportMaskDataSource(configName, host, cluster, storageSystem);
 
@@ -302,7 +305,9 @@ public class DataSourceFactory {
     public DataSource createXtremIOClusterInitiatorGroupFolderNameDataSource(String clusterName, StorageSystem storageSystem) {
 
         Cluster cluster = new Cluster();
-        cluster.setLabel(clusterName);
+        if (!Strings.isNullOrEmpty(clusterName)) {
+            cluster.setLabel(clusterName);
+        }
         return createDataSource(CustomConfigConstants.XTREMIO_CLUSTER_INITIATOR_GROUP_FOLDER_NAME,
                 new DataObject[] { cluster, storageSystem });
 

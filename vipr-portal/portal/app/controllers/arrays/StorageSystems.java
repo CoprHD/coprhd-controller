@@ -408,8 +408,9 @@ public class StorageSystems extends ViprResourceController {
     }
 
     @FlashException(keep = true, referrer = { "virtualNasServers" })
-    public static void associateProject(String nasIds, String projectIds, String storageId) {
+    public static void associateProject(String nasIds, String projectIds, String storageId) throws Exception {
 
+        boolean error = false;
         Set<String> vnasServers = new TreeSet<String>();
         String[] projectIdArray = null;
         if (nasIds != null && !nasIds.isEmpty()) {
@@ -425,7 +426,17 @@ public class StorageSystems extends ViprResourceController {
 
         if (projectIdArray != null && projectIdArray.length > 0) {
             for (int i = 0; i < projectIdArray.length; i++) {
-                getViprClient().virtualNasServers().assignVnasServers(uri(projectIdArray[i].trim()), vNasParam);
+                try {
+                    getViprClient().virtualNasServers().assignVnasServers(uri(projectIdArray[i].trim()), vNasParam);
+                } catch (Exception e) {
+                    error = true;
+                    continue;
+                }
+            }
+
+            if (error) {
+                String errorMsg = "Some Virtual NAS servers could not be associated with selected project(s). Please check the API logs for more information.";
+                throw new Exception(errorMsg);
             }
         }
 

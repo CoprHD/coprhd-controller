@@ -2603,17 +2603,17 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cgReferencesInvalidProtectionSystem(final URI cgUri, final URI protectionSystemUri);
-	
-	@DeclareServiceCode(ServiceCode.API_AUTH_KEYSTONE_PROVIDER_CREATE_NOT_ALLOWED)
+
+    @DeclareServiceCode(ServiceCode.API_AUTH_KEYSTONE_PROVIDER_CREATE_NOT_ALLOWED)
     public BadRequestException keystoneProviderAlreadyPresent();
-    
-	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException managerDNMustcontainUserNameAndTenantName();
-    
-	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException managerDNMustcontainEqualTo();
-    
-	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException managerDNInvalid();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2692,6 +2692,7 @@ public interface BadRequestExceptions {
     public BadRequestException canNotCanceldbConsistencyCheck();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+<<<<<<< HEAD
     public BadRequestException volumeGroupWithChildrenCantBeDeleted(final String volumeGroupName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2723,6 +2724,16 @@ public interface BadRequestExceptions {
             replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+=======
+    public BadRequestException vpoolChangeInvalidProtectionSystemOrCg(final String invalidVolumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vpoolChangeNotAllowedInvalidVolumeList();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vpoolChangeNotAllowedCGsMustBeTheSame();
+
+>>>>>>> master
     public BadRequestException invalidSnapshotSessionSource(final String sourceId);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2775,6 +2786,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_UNSUPPORTED_CHANGE)
     public BadRequestException volumeForRPVpoolChangeHasSnapshotSessions(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException backupIntervalIsInvalid(String interval);
 }
 
 

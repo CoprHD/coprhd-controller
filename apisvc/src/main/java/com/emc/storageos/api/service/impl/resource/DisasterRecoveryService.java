@@ -408,28 +408,6 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Get Networking info for a standby site
-     *
-     * @param uuid site UUID
-     * @return standby site network test representation
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
-    @Path("/{uuid}/network")
-    public Response checkStandbyNetwork(@PathParam("uuid") String uuid) {
-        log.info("Begin to check site network");
-
-        try {
-            Double ping =drUtil.checkPing(uuid);
-            return Response.ok(String.format("%.3f", ping)).build();
-        } catch (Exception e) {
-            log.error("Can't get site network info");
-            throw APIException.badRequests.siteIdNotFound();
-        }
-    }
-
-    /**
      * Get specified site according site UUID
      * 
      * @param uuid site UUID
@@ -1104,7 +1082,7 @@ public class DisasterRecoveryService {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
-            standbyDetails.setPing(standby.getPing());
+            standbyDetails.setLatency(standby.getPing());
             if (standby.getState().equals(SiteState.STANDBY_PAUSED)) {
                 standbyDetails.setPausedTime(new Date(standby.getLastStateUpdateTime()));
             }

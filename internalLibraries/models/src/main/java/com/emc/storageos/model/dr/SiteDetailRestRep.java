@@ -17,7 +17,7 @@ public class SiteDetailRestRep {
     private Date creationTime;
     private Date pausedTime;
     private Date lastUpdateTime;
-    private Double ping;
+    private Double latency;
 
     @XmlElement(name = "creationTime")
     public Date getCreationTime() {
@@ -46,13 +46,13 @@ public class SiteDetailRestRep {
         this.lastUpdateTime = lastUpdateTime;
     }
 
-    @XmlElement(name = "network_ping")
-    public Double getPing() {
-        return ping;
+    @XmlElement(name = "network_latency")
+    public Double getLatency() {
+        return latency;
     }
 
-    public void setPing(Double ping) {
-        this.ping = ping;
+    public void setLatency(Double latency) {
+        this.latency = latency;
     }
 
     @Override
@@ -64,8 +64,8 @@ public class SiteDetailRestRep {
         builder.append(pausedTime);
         builder.append(", lastUpdateTime=");
         builder.append(lastUpdateTime);
-        builder.append(", ping=");
-        builder.append(ping);
+        builder.append(", latency=");
+        builder.append(latency);
         builder.append("]");
         return builder.toString();
     }

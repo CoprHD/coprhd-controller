@@ -95,7 +95,7 @@ public class XMLAuditLogMarshaller implements AuditLogMarshaller {
                 } else {
                     AuditLogUtils.resetDesc(auditlog, resb);
 
-                    if ( keyword == null || keyword.length() == 0 || auditlog.getDescription().contains(keyword)) {
+                    if ( keyword == null || keyword.isEmpty() || auditlog.getDescription().contains(keyword)) {
                         StringWriter sw = new StringWriter();
                         marshaller.marshal(auditlog, sw);
                         ow.write(sw.toString());

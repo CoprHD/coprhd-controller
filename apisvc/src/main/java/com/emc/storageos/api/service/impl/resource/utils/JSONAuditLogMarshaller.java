@@ -104,7 +104,7 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
     private boolean matchAndwriteOneAuditLog(BufferedWriter writer, AuditLog auditlog,String keyword) throws MarshallingExcetion {
         try {
             AuditLogUtils.resetDesc(auditlog, resb);
-            if ( keyword == null || keyword.length() == 0 || auditlog.getDescription().contains(keyword)) {
+            if ( keyword == null || keyword.isEmpty() || auditlog.getDescription().contains(keyword)) {
                 if (_count.getAndIncrement() > 0) {
                     while (!_firstWritten.get()) {
                         // wait until the thread which writes the first auditlog is done

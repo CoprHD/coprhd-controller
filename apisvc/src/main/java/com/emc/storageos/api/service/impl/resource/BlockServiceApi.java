@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
@@ -17,6 +18,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
@@ -496,5 +498,12 @@ public interface BlockServiceApi {
      */
     public void updateVolumesInVolumeGroup(VolumeGroupVolumeList addVolumes, List<Volume> removeVolumes, 
             URI volumeGroupId, String taskId);
+
+    /**
+     * return the replication group names related to this VolumeGroup
+     * @param group
+     * @return
+     */
+    public Collection<? extends String> getReplicationGroupNames(VolumeGroup group);
     
 }

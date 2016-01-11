@@ -55,4 +55,8 @@ public class AppSupportUtil {
     public static VolumeGroupRestRep getApplication(String id) {
         return BourneUtil.getViprClient().application().getApplication(uri(id));
     }
+    
+    public static List<NamedRelatedResourceRep> getVolumesByApplication(String id) {
+        return BourneUtil.getViprClient().application().getVolumeByApplication(uri(id)).getVolumes();
+    }
 }

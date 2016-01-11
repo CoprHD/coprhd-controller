@@ -1324,7 +1324,7 @@ public class DisasterRecoveryService {
         SiteMonitorResult siteMonitorResult = coordinator.getTargetInfo(standby.getUuid(), SiteMonitorResult.class);
         if (siteMonitorResult == null || siteMonitorResult.isActiveSiteLeaderAlive() || siteMonitorResult.isActiveSiteStable()) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Acitve site is available now, can't do failover");
+                    "Active site is available now, can't do failover");
         }
 
         // API should be only send to local site
@@ -1368,8 +1368,8 @@ public class DisasterRecoveryService {
         String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);
         log.info("Local coordinator mode is {}", coordinatorMode);
         if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
-            log.info("Acitve site is available now, can't do failover");
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Acitve site is available now, can't do failover");
+            log.info("Active site is available now, can't do failover");
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Active site is available now, can't do failover");
         }
     }
 

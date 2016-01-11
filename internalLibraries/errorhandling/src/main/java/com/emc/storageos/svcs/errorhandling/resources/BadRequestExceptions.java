@@ -2746,4 +2746,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_UNSUPPORTED_CHANGE)
     public BadRequestException volumeForRPVpoolChangeHasSnapshotSessions(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException backupIntervalIsInvalid(String interval);
 }

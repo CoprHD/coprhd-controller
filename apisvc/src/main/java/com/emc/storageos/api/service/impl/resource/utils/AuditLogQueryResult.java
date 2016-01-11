@@ -79,28 +79,30 @@ public class AuditLogQueryResult implements TimeSeriesQueryResult<AuditLog> {
 
     @Override
     public void done() {
-        _logger.info("Query Result Size = {}", _resultsCount.get());
+        _logger.debug("Query Result Size  = {}", _resultsCount.get());
     }
 
     @Override
     public void error(Throwable e) {
         _logger.error("Error during query execution", e);
     }
+    
+    public void outputCount() { _logger.info("Query Result Size  = {}", _resultsCount.get()); }
 
     private boolean filterOut(AuditLog auditLog){
         if(_request.getServiceType() != null && _request.getServiceType().length() != 0
                 && !_request.getServiceType().equalsIgnoreCase(auditLog.getServiceType())){
-            _logger.info("{} filter out by service type {}",auditLog.getDescription(),_request.getServiceType());
+            _logger.debug("{} filter out by service type {}",auditLog.getDescription(),_request.getServiceType());
             return true;
         }
         if(_request.getUser() != null && _request.getUser().length() != 0
                 && (auditLog.getUserId() != null) && !_request.getUser().equalsIgnoreCase(auditLog.getUserId().toString())){
-            _logger.info("{} filter out by user  {}",auditLog.getDescription(),_request.getUser());
+            _logger.debug("{} filter out by user  {}",auditLog.getDescription(),_request.getUser());
             return true;
         }
         if(_request.getResult() != null && _request.getResult().length() != 0
-                && !_request.getResult().equals(auditLog.getOperationalStatus())){
-            _logger.info("{} filter out by result {}",auditLog.getDescription(),_request.getResult());
+                && !_request.getResult().equalsIgnoreCase(auditLog.getOperationalStatus())){
+            _logger.debug("{} filter out by result {}",auditLog.getDescription(),_request.getResult());
             return true;
         }
         return false;

@@ -64,11 +64,12 @@ public class DbAuditLogRetriever extends AbstractDbRetriever implements AuditLog
 
         marshaller.header(writer);
 
-        log.info("Query time bucket  {} to ", start.toString(),end.toString());
+        log.info("Query time bucket  {} to {}", start.toString(),end.toString());
         for ( ; start.isBefore(end.toInstant());start = start.plusHours(1)){
             dbClient.queryTimeSeries(AuditLogTimeSeries.class, start, bucket, result,
                     getThreadPool());
         }
+        result.outputCount();
 
         marshaller.tailer(writer);
     }

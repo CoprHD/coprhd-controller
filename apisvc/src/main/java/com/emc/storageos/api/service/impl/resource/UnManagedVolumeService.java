@@ -111,7 +111,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     private IngestStrategyFactory ingestStrategyFactory;
     
-    private Set<UnManagedConsistencyGroup> unManagedCGsToUpdate = new HashSet<UnManagedConsistencyGroup>();
+    private Set<DataObject> consistencyGroupObjectsToUpdate = new HashSet<DataObject>();
     private Set<BlockConsistencyGroup> blockCGsToCreate = new HashSet<BlockConsistencyGroup>();
 
     public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
@@ -354,8 +354,8 @@ public class UnManagedVolumeService extends TaskResourceService {
             _dbClient.createObject(requestContext.getObjectsToBeCreatedMap().values());
             
             // persist any consistency group changes
-            if (!unManagedCGsToUpdate.isEmpty()) {
-            	_dbClient.updateObject(unManagedCGsToUpdate);
+            if (!consistencyGroupObjectsToUpdate.isEmpty()) {
+            	_dbClient.updateObject(consistencyGroupObjectsToUpdate);
             }            
             if (!blockCGsToCreate.isEmpty()) {
             	_dbClient.createObject(blockCGsToCreate);
@@ -637,8 +637,8 @@ public class UnManagedVolumeService extends TaskResourceService {
             _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
             
             // persist any consistency group changes
-            if (!unManagedCGsToUpdate.isEmpty()) {
-            	_dbClient.updateObject(unManagedCGsToUpdate);
+            if (!consistencyGroupObjectsToUpdate.isEmpty()) {
+            	_dbClient.updateObject(consistencyGroupObjectsToUpdate);
             }            
             if (!blockCGsToCreate.isEmpty()) {
             	_dbClient.createObject(blockCGsToCreate);
@@ -802,7 +802,7 @@ public class UnManagedVolumeService extends TaskResourceService {
     		throws IngestionException {
     	UnManagedConsistencyGroup unManagedCG = VolumeIngestionUtil.getUnManagedConsistencyGroup(unManagedVolume, _dbClient);
     	if (unManagedCG != null) {
-    		_logger.info("Attempting to move volume {} from unmanaged to managed in the unmanged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
+    		_logger.info("Attempting to move volume {} from unmanaged to managed in the unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
     		VolumeIngestionUtil.updateVolumeInUnManagedConsistencyGroup(unManagedCG, unManagedVolume, blockObject);
     		if (VolumeIngestionUtil.allVolumesInUnamangedCGIngested(unManagedCG)) {
     			// all unmanaged volumes have been ingested            			
@@ -821,10 +821,15 @@ public class UnManagedVolumeService extends TaskResourceService {
     								unManagedVolume.getLabel(), "check the logs for more details");
     					}
     					_logger.info("Volume {} was ingested as part of previous ingestion operation.", volume.getLabel());
+    					volume.setConsistencyGroup(consistencyGroup.getId());
+    					// add the volume to the list of cg objects to be 
+    					// updated because it already exists in the database
+    					consistencyGroupObjectsToUpdate.add(volume);
+    				} else {
+    					_logger.info("Adding ingested volume {} to consistency group {}", volume.getLabel(), consistencyGroup.getLabel());
+    					volume.setConsistencyGroup(consistencyGroup.getId());
+    					requestContext.getObjectsToBeCreatedMap().put(volumeNativeGuid, volume);
     				}
-    				_logger.info("Adding ingested volume {} to consistency group {}", volume.getLabel(), consistencyGroup.getLabel());
-    				volume.setConsistencyGroup(consistencyGroup.getId());
-    				requestContext.getObjectsToBeCreatedMap().put(volumeNativeGuid, volume);
     			}
     			// All unmanaged volumes have been ingested, remove unmanaged consistency group
     			_logger.info("Removing unmanaged consistency group {}", unManagedCG.getLabel());
@@ -833,7 +838,7 @@ public class UnManagedVolumeService extends TaskResourceService {
     		} else {                    			
     			_logger.info("Updating unmanaged consistency group {}", unManagedCG.getLabel());    			
     		}
-    		unManagedCGsToUpdate.add(unManagedCG);
+    		consistencyGroupObjectsToUpdate.add(unManagedCG);
     	} else {
     		throw IngestionException.exceptions.generalVolumeException(
     				unManagedVolume.getLabel(), "check the logs for more details");

@@ -372,6 +372,7 @@ RegistrationStatus.REGISTERED=Registered
 
 RemoteCopyMode.ASYNCHRONOUS=Asynchronous
 RemoteCopyMode.SYNCHRONOUS=Synchronous
+RemoteCopyMode.ACTIVE=Active
 
 RpoType.SECONDS=Seconds
 RpoType.MINUTES=Minutes
@@ -2420,6 +2421,11 @@ configProperties.changePassword=Local Account Passwords
 configProperties.password.doesNotMatch=Passwords do not match
 configProperties.password.state=state
 
+configProperties.backup.scheduled=Scheduled Backup
+configProperties.backup.manual=Manual Backup
+configProperties.backup.server=External Server
+configProperties.backup.setToZero.scheduler=WARNING: Setting the value as zero would cause all scheduled backup sets being reclaimed without any guarantee that they have been successfully uploaded to external server.
+configProperties.backup.setToZero.manual=WARNING: Setting the value as zero would disable manual backup creation.
 
 #Upgrade
 upgrade.title=Software Upgrade

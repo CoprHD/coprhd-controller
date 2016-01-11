@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.nio.charset.Charset;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -32,10 +34,17 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.hash.Hashing;
+import com.google.common.io.Files;
+import com.google.common.base.Preconditions;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+
+import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -43,21 +52,20 @@ import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Service;
+
+import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.exceptions.RetryableBackupException;
-import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
-import com.google.common.base.Preconditions;
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 
 public class BackupOps {
     private static final Logger log = LoggerFactory.getLogger(BackupOps.class);
-    private static final String BACKUP_LOCK = "backup";
     private static final String IP_ADDR_DELIMITER = ":";
     private static final String IP_ADDR_FORMAT = "%s" + IP_ADDR_DELIMITER + "%d";
     private static final Format FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
     private static final String BACKUP_FILE_PERMISSION = "644";
-    private static final int LOCK_TIMEOUT = 1000;
     private String serviceUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     private Map<String, String> hosts;
     private Map<String, String> dualAddrHosts;
@@ -134,7 +142,7 @@ public class BackupOps {
      * 
      * @return map of node id to IP address for each ViPR host
      */
-    private Map<String, String> getHosts() {
+    public Map<String, String> getHosts() {
         if (hosts == null || hosts.isEmpty()) {
             hosts = initHosts();
         }
@@ -243,6 +251,13 @@ public class BackupOps {
         this.backupDir = backupDir;
     }
 
+    public File getDownloadDirectory(String remoteBackupFilename) {
+        int dotIndex=remoteBackupFilename.lastIndexOf(".");
+        String backupFolder=remoteBackupFilename.substring(0, dotIndex);
+
+        return new File(BackupConstants.RESTORE_DIR, backupFolder);
+    }
+
     /**
      * Create backup file on all nodes
      * 
@@ -271,14 +286,107 @@ public class BackupOps {
         InterProcessLock backupLock = null;
         InterProcessLock recoveryLock = null;
         try {
-            recoveryLock = getLock(RecoveryConstants.RECOVERY_LOCK, LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
-            backupLock = getLock(BACKUP_LOCK, LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            recoveryLock = getLock(RecoveryConstants.RECOVERY_LOCK, BackupConstants.LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            backupLock = getLock(BackupConstants.BACKUP_LOCK, BackupConstants.LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
             createBackupWithoutLock(backupTag, force);
         } finally {
             releaseLock(backupLock);
             releaseLock(recoveryLock);
         }
     }
+
+    public void addRestoreListener(NodeListener listener) throws Exception {
+        coordinatorClient.addNodeListener(listener);
+    }
+
+    public void removeRestoreListener(NodeListener listener) throws Exception {
+        coordinatorClient.removeNodeListener(listener);
+    }
+
+    /**
+     * Query restore status from ZK
+    */
+    public BackupRestoreStatus queryBackupRestoreStatus(String backupName, boolean isLocal) {
+        Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
+                      getBackupConfigKind(backupName, isLocal), backupName);
+        Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
+
+        BackupRestoreStatus restoreStatus = new BackupRestoreStatus(allItems);
+        return restoreStatus;
+    }
+
+    private String getBackupConfigKind(String backupName, boolean isLocal) {
+        return isLocal ? BackupConstants.LOCAL_RESTORE_KIND_PREFIX : BackupConstants.REMOTE_RESTORE_KIND_PREFIX;
+    }
+
+    /**
+     * Persist upload status to ZK
+     */
+    public void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal) {
+        log.info("Persist backup restore status {}", status);
+        Map<String, String> allItems = (status != null) ? status.toMap(): null;
+
+        if (allItems == null || allItems.size() == 0){
+            return;
+        }
+
+        ConfigurationImpl config = new ConfigurationImpl();
+        String backupName = status.getBackupName();
+        config.setKind(getBackupConfigKind(backupName, isLocal));
+        config.setId(backupName);
+
+        for (Map.Entry<String, String> entry : allItems.entrySet()) {
+            config.setConfig(entry.getKey(), entry.getValue());
+        }
+
+        coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
+        log.info("Persist backup restore status to zk successfully");
+    }
+
+    /**
+     * To check if the MD5 of the file equals to MD5 in ${file}.md5
+     * The MD5 file is one-line file and should have following formate:
+     * MD5  FILE-SIZE  FILE
+     *
+     * @param file the file to be checked
+     * @return true the MD5 is matched
+     */
+    public boolean checkMD5(File file) {
+        log.info("To check {}", file.getAbsolutePath());
+
+        try {
+            String generatedMD5 = Files.hash(file, Hashing.md5()).toString();
+
+            String md5Filename = file.getAbsolutePath() + BackupConstants.MD5_SUFFIX;
+
+            File md5File = new File(md5Filename);
+
+            if (!md5File.exists()) {
+                log.info("The MD5 file {} not exist", md5File);
+                return false;
+            }
+
+            List<String> lines = Files.readLines(md5File, Charset.defaultCharset());
+            if (lines.size() != 1) {
+                log.error("Invalid md5 file {}: more than 1 line", md5Filename);
+                return false;
+            }
+
+            String[] tokens = lines.get(0).split("\\s");
+
+            if (tokens.length != 3) {
+                log.error("Invalid md5 file {} : only 3 fields allowed in a line", md5Filename);
+                return false;
+            }
+
+            return generatedMD5.equals(tokens[0]);
+        }catch (IOException e) {
+            log.error("Failed to check md5 e=",e);
+        }
+
+        return false;
+    }
+
 
     class CreateBackupCallable extends BackupCallable<Void> {
         @Override
@@ -407,7 +515,7 @@ public class BackupOps {
 
     private void validateBackupName(String backupTag) {
         Preconditions.checkArgument(isValidLinuxFileName(backupTag)
-                && !backupTag.contains(BackupConstants.BACKUP_NAME_DELIMITER),
+                        && !backupTag.contains(BackupConstants.BACKUP_NAME_DELIMITER),
                 "Invalid backup name: %s", backupTag);
     }
 
@@ -489,7 +597,7 @@ public class BackupOps {
         validateBackupName(backupTag);
         InterProcessLock lock = null;
         try {
-            lock = getLock(BACKUP_LOCK, LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            lock = getLock(BackupConstants.BACKUP_LOCK, BackupConstants.LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
             deleteBackupWithoutLock(backupTag, false);
         } finally {
             releaseLock(lock);
@@ -595,26 +703,31 @@ public class BackupOps {
         }
     }
 
-    private InterProcessLock getLock(String name, long time, TimeUnit unit) {
-        boolean acquired = false;
+    public InterProcessLock getLock(String name, long time, TimeUnit unit) {
         InterProcessLock lock = null;
         log.info("Try to acquire lock: {}", name);
         try {
             lock = coordinatorClient.getLock(name);
-            acquired = lock.acquire(time, unit);
+            if (time >=0) {
+                boolean acquired = lock.acquire(time, unit);
+
+                if (!acquired) {
+                    log.error("Unable to acquire lock: {}", name);
+                    throw BackupException.fatals.unableToGetLock(name);
+                }
+            }else {
+                lock.acquire(); // no timeout
+            }
         } catch (Exception e) {
             log.error("Failed to acquire lock: {}", name);
             throw BackupException.fatals.failedToGetLock(name, e);
         }
-        if (!acquired) {
-            log.error("Unable to acquire lock: {}", name);
-            throw BackupException.fatals.unableToGetLock(name);
-        }
+
         log.info("Got lock: {}", name);
         return lock;
     }
 
-    private void releaseLock(InterProcessLock lock) {
+    public void releaseLock(InterProcessLock lock) {
         if (lock == null) {
             log.info("The lock is null, no need to release");
             return;
@@ -840,6 +953,13 @@ public class BackupOps {
             goodNodes.addAll(hosts.keySet());
         }
         return goodNodes;
+    }
+
+    public List<Service> getAllSysSvc() {
+        return coordinatorClient.locateAllServices(
+                ((CoordinatorClientImpl) coordinatorClient).getSysSvcName(),
+                ((CoordinatorClientImpl) coordinatorClient).getSysSvcVersion(),
+                (String) null, null);
     }
 
     /**

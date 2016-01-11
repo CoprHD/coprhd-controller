@@ -257,7 +257,7 @@ public class UploadExecutor {
     }
 
     /**
-     * Mark invalid for stale incompleted backup file on server based on the input filename.
+     * Mark invalid for stale incomplete backup file on server based on the input filename.
      *
      * @param toUploadedFileName the filename about to upload,
      */

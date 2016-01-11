@@ -4045,6 +4045,7 @@ renderFunctions.disasterRecovery.status.standby.failingover=Standby Failing Over
 renderFunctions.disasterRecovery.status.standby.removing=Deleting Standby
 renderFunctions.disasterRecovery.status.standby.resuming=Resuming Standby
 renderFunctions.disasterRecovery.status.standby.error=Standby Error
+renderFunctions.disasterRecovery.status.standby.failbackDegraded=Active Degraded
 renderFunctions.disasterRecovery.status.unknown=Unknown
 
 templates.knob.label=%s of %s

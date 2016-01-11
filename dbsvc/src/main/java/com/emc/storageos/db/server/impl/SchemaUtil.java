@@ -406,9 +406,11 @@ public class SchemaUtil {
         }
 
         Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
+                localSite.getState().equals(SiteState.STANDBY_DEGRADED) ||
+                localSite.getState().equals(SiteState.STANDBY_DEGRADING)) {
             // don't add back the paused site
-            _log.info("local standby site has been paused and removed from strategy options. Do nothing");
+            _log.info("local standby site has been paused/degraded and removed from strategy options. Do nothing");
             return false;
         }
 

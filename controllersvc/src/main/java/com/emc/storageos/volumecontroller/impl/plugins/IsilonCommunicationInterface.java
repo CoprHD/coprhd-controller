@@ -1292,7 +1292,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                          */
                         HashSet<String> fsExportPaths= new HashSet<String>();
                         for(Entry<String, HashSet<Integer>> entry :expMap.entrySet()){
-                            if(entry.getKey().equalsIgnoreCase(fsPathName) || entry.getKey().startsWith(fsPathName)){
+                            if (entry.getKey().equalsIgnoreCase(fsPathName) || entry.getKey().startsWith(fsPathName + "/")) {
                                 _log.info("filesystem path : {} and export path: {}", fs.getPath(), entry.getKey());
                                 fsExportPaths.add(entry.getKey());
                             }

@@ -26,7 +26,7 @@
     replicationGroup:{
      type:"asset.vipr.replicationGroup",
      required:"false"
-    }
+    },
     
     newReplicationGroup:{
      type:"text",

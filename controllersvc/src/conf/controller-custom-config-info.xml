@@ -55,7 +55,8 @@
                 <ref bean="vplexStorageViewName"/>
                 <ref bean="vplexMigrationSpeed"/>
                 <ref bean="vplexVmaxMaskingViewMaximumVolumes"/>
-                <ref bean="vplexLocalVirtualVolumeName"/>
+                <ref bean="vplexHostLocalVirtualVolumeName"/>
+                <ref bean="vplexClusterLocalVirtualVolumeName"/>
                 <ref bean="vplexDistributedVirtualVolumeName"/>
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
@@ -662,13 +663,42 @@
         </property>
     </bean>
 
-    <bean id="vplexLocalVirtualVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-        <property name="name" value="VPlexLocalVirtualVolumeName"/>
+    <bean id="vplexHostLocalVirtualVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexHostLocalVirtualVolumeName"/>
         <property name="configType" value="CustomName"/>
         <property name="type" value="String"/>
         <property name="dataSourceVariables">
             <map>
                 <entry key-ref="hostName" value="true"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="volumeNativeId" value="true"/>
+            </map>
+        </property>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="(device_V{array_serial_number}-{vol_nativeid}).REPLACE(&quot;__&quot;, &quot;_&quot;)_vol"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="virtualVolNameMaxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="vplexClusterLocalVirtualVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexClusterLocalVirtualVolumeName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
                 <entry key-ref="clusterName" value="true"/>
                 <entry key-ref="storageSystemSerialNumber" value="true"/>
                 <entry key-ref="volumeNativeId" value="true"/>

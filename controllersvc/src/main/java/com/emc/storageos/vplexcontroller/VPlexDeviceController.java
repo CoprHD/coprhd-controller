@@ -1909,9 +1909,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 for(String associatedVolume : ((Volume)bo).getAssociatedVolumes()) {
                     Volume storageVolume = getDataObject(Volume.class, new URI(associatedVolume), _dbClient);
                     StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageVolume.getStorageController());
-                    DataSource dataSource = dataSourceFactory.createVirtualVolumeNameDataSource(storage, storageVolume.getNativeId(), exportGroup.getLabel());
+                    String configName = null;
+                    if(!exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
+                        configName = CustomConfigConstants.VPLEX_HOST_LOCAL_VIRTUAL_VOLUME_NAME;
+                    } else {
+                        configName = CustomConfigConstants.VPLEX_CLUSTER_LOCAL_VIRTUAL_VOLUME_NAME;
+                    }
+                    DataSource dataSource = dataSourceFactory.createVirtualVolumeNameDataSource(storage, storageVolume.getNativeId(), exportGroup.getType(), exportGroup.getLabel());
                     String newVirtualVolName = customConfigHandler.getComputedCustomConfigValue(
-                            CustomConfigConstants.VPLEX_VIRTUAL_VOLUME_NAME, vplexSystem.getSystemType(), dataSource);
+                            configName, vplexSystem.getSystemType(), dataSource);
                     String oldVirtualVolumeName = bo.getDeviceLabel();
                     _log.info(String.format("Custom config name for VPLEX Virtual Name is resolved to %s", newVirtualVolName));
         			_log.info(String.format("Old VPLEX Virtual Name is %s", oldVirtualVolumeName));
@@ -3005,7 +3011,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     continue;
                 }
                 Integer requestedHLU = entry.getValue();
-                // If user have provided specific HLU for volume, then check if its already in use
+                // If user have provided specific HLU for volume, then check if its alreday in use
                 if (requestedHLU.intValue() != VPlexApiConstants.LUN_UNASSIGNED &&
                         exportMask.anyVolumeHasHLU(requestedHLU.toString())) {
                     String message = String.format("Failed to add Volumes %s to ExportMask %s",
@@ -3034,7 +3040,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 return;
             }
 
-            // If deviceLabelToHLU map is empty then volumes already exists in the storage view hence return.
+            // If deviceLabelToHLU map is empty then volumes alreday exist in the storage view hence return.
             if (deviceLabelToHLU.isEmpty()) {
                 completer.ready(_dbClient);
                 return;
@@ -3244,22 +3250,60 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 }
                 for(URI volumeUri : volumeURIList) {
-                	Volume volume = getDataObject(Volume.class, volumeUri, _dbClient);
-                	if(volume.getStorageController().equals(vplex.getId())) {
-                		for(String associatedVolume : volume.getAssociatedVolumes()) {
-                			Volume storageVolume = getDataObject(Volume.class, new URI(associatedVolume), _dbClient);
-                			StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageVolume.getStorageController());
-                			DataSource dataSource = dataSourceFactory.createVirtualVolumeNameDataSource(storage, storageVolume.getNativeId(), exportGroup.getLabel());
-                			String newVirtualVolName = customConfigHandler.getComputedCustomConfigValue(
-                					CustomConfigConstants.VPLEX_VIRTUAL_VOLUME_NAME, CustomConfigConstants.GLOBAL_KEY, dataSource);
-                			String oldVirtualVolumeName = volume.getDeviceLabel();
-                			_log.info(String.format("Custom config name for VPLEX Virtual Name is resolved to %s", newVirtualVolName));
-                			_log.info(String.format("Old VPLEX Virtual Name is %s", oldVirtualVolumeName));
-//                            VPlexVirtualVolumeInfo vplexVirtualVolumeInfo = client.findVirtualVolume(volume.getDeviceLabel());
-                			hasSteps = true;
-                            String virtualVolumeRenamingStepId = handleVirtualVolumeRenaming(vplexURI, vplex.getSystemType(), volumeUri, newVirtualVolName, oldVirtualVolumeName, null, workflow);
-                		}
-                	}
+                    Volume volume = getDataObject(Volume.class, volumeUri, _dbClient);
+                    if(volume.getStorageController().equals(vplex.getId())) {
+                        for(String associatedVolume : volume.getAssociatedVolumes()) {
+                            Volume storageVolume = getDataObject(Volume.class, new URI(associatedVolume), _dbClient);
+                            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageVolume.getStorageController());
+                            DataSource dataSource = null;
+                            String newVirtualVolName = "";
+                            String oldVirtualVolumeName = "";
+                            _log.info(String.format("Is Volume %s exported: %s", volume.getLabel(), volume.isVolumeExported(_dbClient, true, true)));
+                            ExportGroup latestExportGroup = null;
+                            if(volume.isVolumeExported(_dbClient, true, true)) {
+                                List<ExportGroup> exportGroups = getExportGroupsForVolume(volume);
+                                for(ExportGroup eg : exportGroups) {
+                                    if(!eg.getLabel().equalsIgnoreCase(exportGroup.getLabel())) {
+                                        if(latestExportGroup == null) {
+                                            latestExportGroup = eg;
+                                        } else {
+                                            if(eg.getCreationTime().getTimeInMillis() > latestExportGroup.getCreationTime().getTimeInMillis()) {
+                                                latestExportGroup = eg;
+                                            }
+                                        }
+                                    }
+                                }
+                                if(latestExportGroup != null) {
+                                    String configName = null;
+                                    if(!latestExportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
+                                        configName = CustomConfigConstants.VPLEX_HOST_LOCAL_VIRTUAL_VOLUME_NAME;
+                                    } else {
+                                        configName = CustomConfigConstants.VPLEX_CLUSTER_LOCAL_VIRTUAL_VOLUME_NAME;
+                                    }
+                                    dataSource = dataSourceFactory.createVirtualVolumeNameDataSource(storage, storageVolume.getNativeId(), latestExportGroup.getType(), latestExportGroup.getLabel());
+                                    newVirtualVolName = customConfigHandler.getComputedCustomConfigValue(
+                                            configName, vplex.getSystemType(), dataSource);
+                                } else {
+                                    String configName = null;
+                                    if(!exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
+                                        configName = CustomConfigConstants.VPLEX_HOST_LOCAL_VIRTUAL_VOLUME_NAME;
+                                    } else {
+                                        configName = CustomConfigConstants.VPLEX_CLUSTER_LOCAL_VIRTUAL_VOLUME_NAME;
+                                    }
+                                    dataSource = dataSourceFactory.createVirtualVolumeNameDataSource(storage, storageVolume.getNativeId(), exportGroup.getType(), exportGroup.getLabel());
+                                    newVirtualVolName = customConfigHandler.getComputedCustomConfigValue(
+                                            configName, CustomConfigConstants.GLOBAL_KEY, dataSource);
+                                }
+                                _log.info(String.format("Host Name to be appended to VPLEX Virtual Name is %s", newVirtualVolName));
+                                oldVirtualVolumeName = volume.getDeviceLabel();
+                                _log.info(String.format("Custom config name for VPLEX Virtual Name is resolved to %s", newVirtualVolName));
+                                _log.info(String.format("Old VPLEX Virtual Name is %s", oldVirtualVolumeName));
+                            }
+                            hasSteps = true;
+                            String virtualVolumeRenamingStepId = handleVirtualVolumeRenaming(vplexURI, vplex.getSystemType(), volumeUri,
+                                    newVirtualVolName, oldVirtualVolumeName, null, workflow);
+                        }
+                    }
                 }
             }
 

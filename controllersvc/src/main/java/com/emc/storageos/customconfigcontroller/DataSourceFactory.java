@@ -11,6 +11,7 @@ import java.util.Map;
 import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
@@ -183,11 +184,19 @@ public class DataSourceFactory {
      * @return a data source populated with the properties needed to resolve
      *         VPLEX virtual volume name
      */
-    public DataSource createVirtualVolumeNameDataSource(StorageSystem storageSystem, String nativeId, String hostName) {
+    public DataSource createVirtualVolumeNameDataSource(StorageSystem storageSystem, String nativeId, String exportType, String hostName) {
         Volume volume = new Volume();
         volume.setNativeId(nativeId);
-        DataSource source = createDataSource(CustomConfigConstants.VPLEX_VIRTUAL_VOLUME_NAME,
-                new DataObject[] { getHostByName(hostName), storageSystem, volume });
+        DataSource source = null;
+        if(exportType.equals(ExportGroup.ExportGroupType.Cluster.name())) {
+            Cluster cluster = new Cluster();
+            cluster.setLabel(hostName);
+            source = createDataSource(CustomConfigConstants.VPLEX_CLUSTER_LOCAL_VIRTUAL_VOLUME_NAME,
+                    new DataObject[] { cluster, storageSystem, volume });
+        } else {
+            source = createDataSource(CustomConfigConstants.VPLEX_HOST_LOCAL_VIRTUAL_VOLUME_NAME,
+                    new DataObject[] { getHostByName(hostName), storageSystem, volume });
+        }
         return source;
     }
 

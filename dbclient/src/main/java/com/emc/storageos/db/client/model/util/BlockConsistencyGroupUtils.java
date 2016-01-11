@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Project;
@@ -357,5 +358,25 @@ public class BlockConsistencyGroupUtils {
                     .consistencyGroupAddVolumeThatIsInDifferentProject(volume.getLabel(),
                             projects.get(0).getLabel(), projects.get(1).getLabel());
         }
+    }
+
+    public static List<BlockObject> getAllSources(BlockConsistencyGroup cg, DbClient dbClient) {
+        List<BlockObject> result = new ArrayList<>();
+
+        if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && cg.checkForType(BlockConsistencyGroup.Types.RP)) {
+            // VPLEX+RP
+            result.addAll(getActiveVplexVolumesInCG(cg, dbClient, Volume.PersonalityTypes.SOURCE));
+        } else if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && !cg.checkForType(BlockConsistencyGroup.Types.RP)) {
+            // VPLEX
+            result.addAll(getActiveVplexVolumesInCG(cg, dbClient, null));
+        } else if (cg.checkForType(BlockConsistencyGroup.Types.RP) && !cg.checkForType(BlockConsistencyGroup.Types.VPLEX)) {
+            // RP
+            result.addAll(getActiveNonVplexVolumesInCG(cg, dbClient, Volume.PersonalityTypes.SOURCE));
+        } else {
+            // Native (no protection)
+            result.addAll(getActiveNativeVolumesInCG(cg, dbClient));
+        }
+
+        return result;
     }
 }

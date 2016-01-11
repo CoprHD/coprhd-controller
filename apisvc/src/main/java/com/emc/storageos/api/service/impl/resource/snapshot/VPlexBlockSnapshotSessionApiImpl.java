@@ -7,7 +7,6 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +21,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -30,13 +28,10 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.vplexcontroller.VPlexController;
-
-import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 /**
  * Block snapshot session implementation for volumes on VPLEX systems.
@@ -423,48 +418,4 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         }
     }
 
-    @Override
-    public List<BlockObject> getAllSourceObjectsForSnapshotSessionRequest(BlockObject sourceObj) {
-        List<BlockObject> sourceObjList = new ArrayList<>();
-        if (URIUtil.isType(sourceObj.getId(), BlockSnapshot.class)) {
-            // For snapshots we ignore group semantics.
-            sourceObjList.add(sourceObj);
-        } else {
-            /*
-             * 1) Acquire the backend volume for this VPLEX volume
-             * 2) Determine the BlockSnapshotSessionApi impl for said backend volume, e.g. VMAX3
-             * 3) Call same method on this impl
-             * 4) Acquire VPLEX volumes for each returned volume
-             */
-            Volume sourceVolume = (Volume) sourceObj;
-            Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(sourceVolume, true, _dbClient);
-            BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(backendVolume.getStorageController());
-
-            List<BlockObject> allBackendSrcVolumes = snapSessionImpl.getAllSourceObjectsForSnapshotSessionRequest(sourceVolume);
-
-            Map<URI, Volume> vplexVolumes = new HashMap<>();
-            for (BlockObject backendSrcVolume : allBackendSrcVolumes) {
-                Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, (Volume) backendSrcVolume);
-                vplexVolumes.put(vplexVolume.getId(), vplexVolume);
-            }
-            sourceObjList.addAll(vplexVolumes.values());
-        }
-
-        return sourceObjList;
-    }
-
-    @Override
-    public BlockObject getActiveSource(BlockConsistencyGroup cg) {
-        List<Volume> allVplexVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
-        // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
-        // that are RP source volumes.
-        for (Volume vplexVolume : allVplexVolumesInCG) {
-            String personality = vplexVolume.getPersonality();
-            if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
-                return vplexVolume;
-            }
-        }
-
-        throw APIException.badRequests.noSourceVolumesInCG(cg.getLabel());
-    }
 }

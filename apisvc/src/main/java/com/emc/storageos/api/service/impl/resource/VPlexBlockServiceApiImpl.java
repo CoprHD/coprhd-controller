@@ -1345,13 +1345,22 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     protected List<VolumeDescriptor> createChangeVirtualPoolDescriptors(StorageSystem vplexSystem, Volume volume,
             VirtualPool newVpool, String taskId, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
+                
+        s_logger.info(String.format("EMC DEBUG - createChangeVirtualPoolDescriptors: vplexSystem %s", (vplexSystem != null ? vplexSystem.getLabel() : "null")));
+        s_logger.info(String.format("EMC DEBUG - createChangeVirtualPoolDescriptors: volume %s", (volume != null ? volume.getLabel() : "null")));
+        s_logger.info(String.format("EMC DEBUG - createChangeVirtualPoolDescriptors: newVpool %s", (newVpool != null ? newVpool.getLabel() : "null")));
+        s_logger.info(String.format("EMC DEBUG - createChangeVirtualPoolDescriptors: taskId %s", (taskId != null ? taskId : "null")));
+        s_logger.info(String.format("EMC DEBUG - createChangeVirtualPoolDescriptors: recommendations size %s", (recommendations != null ? recommendations.size() : "null")));
+        
         // Get the varray and current vpool for the virtual volume.
         URI volumeVarrayURI = volume.getVirtualArray();
         VirtualArray volumeVarray = _dbClient.queryObject(VirtualArray.class, volumeVarrayURI);
         s_logger.info("Virtual volume varray is {}", volumeVarrayURI);
         URI volumeVpoolURI = volume.getVirtualPool();
         VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volumeVpoolURI);
-
+        
+        s_logger.info(String.format("EMC DEBUG - createChangeVirtualPoolDescriptors: currentVpool %s", (currentVpool != null ? currentVpool.getLabel() : "null")));
+        
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
 
         // Add the VPLEX Virtual Volume Descriptor for change vpool
@@ -1378,16 +1387,23 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // vplex volume. Recall for ingested volumes, we know
         // nothing about the backend volumes.
         if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, newVpool)) {
+            s_logger.info(String.format("EMC DEBUG - createChangeVirtualPoolDescriptors: migration required"));
+            
             Volume migSrcVolume = getAssociatedVolumeInVArray(volume, volumeVarrayURI);
+            s_logger.info(String.format("EMC DEBUG - createChangeVirtualPoolDescriptors: migSrcVolume %s", (migSrcVolume != null ? migSrcVolume.getLabel() : "null")));
+                        
             descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem, volume,
                     migSrcVolume, volumeVarray, newVpool, getVolumeCapacity(migSrcVolume != null ? migSrcVolume : volume),
                     taskId, recommendations, false, capabilities));
+        } else {
+            s_logger.info(String.format("EMC DEBUG - createChangeVirtualPoolDescriptors: migration NOT required"));
         }
 
         // Now determine if the backend volume in the HA varray
         // needs to be migrated.
         URI haVarrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool, _dbClient);
         if (haVarrayURI != null) {
+            s_logger.info(String.format("EMC DEBUG - createChangeVirtualPoolDescriptors: haVarrayURI is NOT null"));
             VirtualArray haVarray = _dbClient.queryObject(VirtualArray.class, haVarrayURI);
             VirtualPool currentHaVpool = VirtualPoolChangeAnalyzer.getHaVpool(currentVpool, _dbClient);
             VirtualPool newHaVpool = VirtualPoolChangeAnalyzer.getNewHaVpool(currentVpool, newVpool, _dbClient);
@@ -1398,6 +1414,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         migSrcVolume, haVarray, newHaVpool, getVolumeCapacity(migSrcVolume != null ? migSrcVolume : volume),
                         taskId, recommendations, true, capabilities));
             }
+        } else {
+            s_logger.info(String.format("EMC DEBUG - createChangeVirtualPoolDescriptors: haVarrayURI is null"));
         }
 
         return descriptors;
@@ -1574,6 +1592,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             Volume virtualVolume, Volume sourceVolume, VirtualArray varray, VirtualPool vpool,
             Long capacity, String taskId, List<Recommendation> recommendations, boolean isHA,
             VirtualPoolCapabilityValuesWrapper capabilities) {
+       
+        s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: vplexSystem %s", (vplexSystem != null ? vplexSystem.getLabel() : "null")));
+        s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: virtualVolume %s", (virtualVolume != null ? virtualVolume.getLabel() : "null")));
+        s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: sourceVolume %s", (sourceVolume != null ? sourceVolume.getLabel() : "null")));
+        s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: varray %s", (varray != null ? varray.getLabel() : "null")));
+        s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: vpool %s", (vpool != null ? vpool.getLabel() : "null")));
+        s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: isHA %s", ""+isHA));
+        s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: capabilities %s", (capabilities != null ? capabilities.toString() : "null")));
 
         // If we know the backend source volume, the new backend volume
         // will have the same label and project. Otherwise, the volume
@@ -1585,6 +1611,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Project targetProject = null;
         String targetLabel = null;
         if (sourceVolume != null) {
+            s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: sourceVolume is not null"));
             // Since we know the source volume, this is not an ingested
             // VPLEX volume that is being migrated. Ideally we would just
             // give the new backend volume the same name as the current
@@ -1609,18 +1636,25 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             sourceVolumeURI = sourceVolume.getId();
             targetProject = _dbClient.queryObject(Project.class, sourceVolume.getProject().getURI());
             targetLabel = sourceVolume.getLabel();
+            s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: targetLabel before %s", targetLabel));
             if (!targetLabel.endsWith(MIGRATION_LABEL_SUFFIX)) {
                 targetLabel += MIGRATION_LABEL_SUFFIX;
+                s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: targetLabel (migrate suffix) after %s", targetLabel));
             } else {
                 targetLabel = targetLabel.substring(0, targetLabel.length() - 1);
+                s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: targetLabel (no migrate suffix) after %s", targetLabel));
             }
         } else {
+            s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: sourceVolume IS null"));
             targetProject = getVplexProject(vplexSystem, _dbClient, _tenantsService);
             targetLabel = virtualVolume.getLabel();
+            s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: targetLabel before %s", targetLabel));
             if (virtualVolume.getVirtualArray().equals(varray.getId())) {
                 targetLabel += SRC_BACKEND_VOL_LABEL_SUFFIX;
+                s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: targetLabel (src suffix) after %s", targetLabel));
             } else {
                 targetLabel += HA_BACKEND_VOL_LABEL_SUFFIX;
+                s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: targetLabel (ha suffix) after %s", targetLabel));
             }
         }
 
@@ -1631,19 +1665,26 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         URI cgURI = null;
         // Check to see if the VirtualPoolCapabilityValuesWrapper have been passed in, if not, create a new one.
         if (capabilities != null) {
+            s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: capabilities is NOT null"));
             // The consistency group or null when not specified.
             final BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null : _dbClient
                     .queryObject(BlockConsistencyGroup.class, capabilities.getBlockConsistencyGroup());
+            
+            
 
             // If the consistency group is created but does not specify the LOCAL
             // type, the CG must be a CG created prior to 2.2 or an ingested CG. In
             // this case, we don't want a volume creation to result in backend CGs
             if ((consistencyGroup != null) && ((!consistencyGroup.created()) ||
                     (consistencyGroup.getTypes().contains(Types.LOCAL.toString())))) {
+                s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: consistencyGroup %s", (consistencyGroup != null ? consistencyGroup.getLabel() : "null")));
                 cgURI = consistencyGroup.getId();
+            } else {
+                s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: cgURI not set"));
             }
         }
         else {
+            s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: capabilities IS null"));
             capabilities = new VirtualPoolCapabilityValuesWrapper();
             capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, capacity);
             capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
@@ -1652,6 +1693,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         boolean premadeRecs = false;
 
         if (recommendations == null || recommendations.isEmpty()) {
+            s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: recommendations IS null"));
             recommendations = getBlockScheduler().scheduleStorage(
                     varray, requestedVPlexSystems, null, vpool, false, null, null, capabilities);
             if (recommendations.isEmpty()) {
@@ -1660,21 +1702,29 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             s_logger.info("Got recommendation");
         }
         else {
+            s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: recommendations is NOT null, premadeRecs is true"));
             premadeRecs = true;
         }
 
         // If we have premade recommendations passed in and this is trying to create descriptors for HA
         // then the HA rec will be at index 1 instead of index 0. Default case is index 0.
         int recIndex = (premadeRecs && isHA) ? 1 : 0;
+        
+        s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: recIndex %s", recIndex + ""));
 
         // Create a volume for the new backend volume to which
         // data will be migrated.
         URI targetStorageSystem = recommendations.get(recIndex).getSourceStorageSystem();
+        s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: targetStorageSystem %s", (targetStorageSystem != null ? targetStorageSystem.toString() : "null")));
+                
         URI targetStoragePool = recommendations.get(recIndex).getSourceStoragePool();
+        s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: targetStoragePool %s", (targetStoragePool != null ? targetStoragePool.toString() : "null")));
+        
         Volume targetVolume = prepareVolumeForRequest(capacity,
                 targetProject, varray, vpool, targetStorageSystem, targetStoragePool,
                 targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
                 taskId, _dbClient);
+        s_logger.info(String.format("EMC DEBUG - createBackendVolumeMigrationDescriptors: targetVolume %s", (targetVolume != null ? targetVolume.getLabel() : "null")));        
 
         // If the cgURI is null, try and get it from the source volume.
         if (cgURI == null) {
@@ -2852,12 +2902,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param volume
      */
     private Long getVolumeCapacity(Volume volume) {
+        s_logger.info(String.format("EMC DEBUG - getVolumeCapacity: volume %s", (volume != null ? volume.getLabel() : "null")));
         Long userRequestedCapacity = volume.getCapacity();
         Long provisionedCapacity = volume.getProvisionedCapacity();
         if (provisionedCapacity > userRequestedCapacity) {
+            s_logger.info(String.format("EMC DEBUG - getVolumeCapacity: provisionedCapacity %s", (provisionedCapacity != null ? provisionedCapacity.toString() : "null")));
             return provisionedCapacity;
         }
 
+        s_logger.info(String.format("EMC DEBUG - getVolumeCapacity: userRequestedCapacity %s", (userRequestedCapacity != null ? userRequestedCapacity.toString() : "null")));
         return userRequestedCapacity;
     }
 

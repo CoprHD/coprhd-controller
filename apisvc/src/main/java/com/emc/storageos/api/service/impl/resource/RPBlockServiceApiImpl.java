@@ -569,8 +569,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     private void createTaskForVolume(Volume volume, VirtualPoolCapabilityValuesWrapper capabilities, TaskList taskList, String task) {
         ResourceOperationTypeEnum type = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME;
-
+        _log.info(String.format("EMC DEBUG - createTaskForVolume: volume %s", (volume != null ? volume.getLabel() : "null")));
         if (capabilities.getAddJournalCapacity()) {
+            _log.info(String.format("EMC DEBUG - createTaskForVolume: getAddJournalCapacity is true"));
             type = ResourceOperationTypeEnum.ADD_JOURNAL_VOLUME;
         }
         createTaskForVolume(volume, type, taskList, task);
@@ -590,6 +591,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     private void createTaskForVolume(Volume volume, ResourceOperationTypeEnum type, TaskList taskList, String task) {
 
+        _log.info(String.format("EMC DEBUG - createTaskForVolume2: volume %s", (volume != null ? volume.getLabel() : "null")));
+        _log.info(String.format("EMC DEBUG - createTaskForVolume2: type %s", (type != null ? type.toString() : "null")));
         // Create the OP
         Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, type);
         volume.setOpStatus(new OpStatusMap());
@@ -945,13 +948,20 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // This is because the VPlexBlockServiceApiImpl will be creating the migration descriptors for the backend
             // volumes and it doesn't really care that we are swapping the Source and HA it just needs the correct
             // recommendations.
+            
+            _log.info(String.format("EMC DEBUG - Using swapped Source and HA? %s", "" + (isChangeVpool && isSrcAndHaSwapped)));
+
+            
             int srcRecIndex = (!(isChangeVpool && isSrcAndHaSwapped)) ? 0 : 1;
             int haRecIndex = (isChangeVpool && isSrcAndHaSwapped) ? 0 : 1;
             // Add Source Rec
             vplexRecs.add(srcRecIndex, rpRec.getVirtualVolumeRecommendation());
             // Add HA Rec, if it exists
             if (rpRec.getHaRecommendation() != null) {
+                _log.info(String.format("EMC DEBUG - HA Rec vvol: %s",rpRec.getHaRecommendation().getVirtualVolumeRecommendation()));
                 vplexRecs.add(haRecIndex, rpRec.getHaRecommendation().getVirtualVolumeRecommendation());
+            } else {
+                _log.info(String.format("EMC DEBUG - No HA Rec used"));
             }
 
             VirtualPool vplexVpool = vpool;
@@ -963,6 +973,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // we use the originalVpool here to correctly to get the change vpool
                 // artifacts we need.
                 vplexVpool = rpRec.getHaRecommendation().getVirtualPool();
+                
+                _log.info(String.format("EMC DEBUG - HA Rec vpool: %s", (vplexVpool != null ? vplexVpool.getLabel() : "null")));
             }
 
             // Prepare VPLEX specific volume info
@@ -986,6 +998,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         boolean createTask = isTaskRequired(rpVolume, capabilities, vplex, taskList);
         if (createTask) {
+            _log.info(String.format("EMC DEBUG - Create Task"));
             // Create a task for this volume
             createTaskForVolume(rpVolume, capabilities, taskList, task);
         }
@@ -1004,10 +1017,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @return True if task is needed, false otherwise.
      */
     private boolean isTaskRequired(Volume rpVolume, VirtualPoolCapabilityValuesWrapper capabilities, boolean vplex, TaskList taskList) {
+        _log.info(String.format("EMC DEBUG - isTaskRequired: rpVolume %s", (rpVolume != null ? rpVolume.getLabel() : "null")));
+        _log.info(String.format("EMC DEBUG - isTaskRequired: capabilities %s", (capabilities != null ? capabilities.toString() : "null")));
+        _log.info(String.format("EMC DEBUG - isTaskRequired: vplex %s", ""+vplex));
+        _log.info(String.format("EMC DEBUG - isTaskRequired: taskList %s", (taskList != null ? taskList.toString() : "null")));
         boolean rpNonVplexSourceVolume = (Volume.PersonalityTypes.SOURCE.name().equals(rpVolume.getPersonality()) && !vplex);
+        _log.info(String.format("EMC DEBUG - isTaskRequired: rpNonVplexSourceVolume %s", ""+rpNonVplexSourceVolume));
         boolean addJournalVolume = capabilities.getAddJournalCapacity();
+        _log.info(String.format("EMC DEBUG - isTaskRequired: addJournalVolume %s", ""+addJournalVolume));
         boolean notAlreadyInTaskList = (StorageScheduler.getPrecreatedVolume(_dbClient, taskList, rpVolume.getLabel()) == null);
+        _log.info(String.format("EMC DEBUG - isTaskRequired: notAlreadyInTaskList %s", ""+notAlreadyInTaskList));
         boolean createTask = addJournalVolume || (rpNonVplexSourceVolume && notAlreadyInTaskList);
+        _log.info(String.format("EMC DEBUG - isTaskRequired: createTask %s", ""+createTask));
         return createTask;
     }
 
@@ -1047,6 +1068,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, personality);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
 
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: project %s", project.getLabel()));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: varray %s", varray.getLabel()));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: vpool %s", vpool.getLabel()));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: storagePoolUri %s", storagePoolUri.toString()));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: storageSystemId %s", storageSystemId.toString()));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: capabilities %s", capabilities.toString()));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: consistencyGroup %s", consistencyGroup.getLabel()));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: param %s", param.toString()));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: volumeName %s", volumeName));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: size %s", size));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: descriptors %s", descriptors.toString()));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: taskList %s", taskList.toString()));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: personality %s", personality));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: isChangeVpool %s", ""+isChangeVpool));
+        _log.info(String.format("EMC DEBUG - prepareVPlexVolume: changeVpoolVolume %s", (changeVpoolVolume != null ? changeVpoolVolume.getLabel() : "null")));
+        
         // Tweak the VolumeCreate slightly for VPLEX
         VolumeCreate volumeCreateParam = new VolumeCreate();
         volumeCreateParam.setConsistencyGroup(consistencyGroup.getId());
@@ -1060,11 +1097,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         List<URI> volumes = new ArrayList<URI>();
 
         if (isChangeVpool) {
+            _log.info(String.format("EMC DEBUG - Change vpool operation"));
             StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, changeVpoolVolume.getStorageController());
             descriptors.addAll(vplexBlockServiceApiImpl
                     .createChangeVirtualPoolDescriptors(vplexStorageSystem, changeVpoolVolume, vpool, task,
                             vplexRecommendations, capabilities));
         } else {
+            _log.info(String.format("EMC DEBUG - NOT change vpool operation"));
             boolean createTask = Volume.PersonalityTypes.SOURCE.equals(personality);
             descriptors.addAll(vplexBlockServiceApiImpl
                     .createVPlexVolumeDescriptors(volumeCreateParam, project, varray, vpool,
@@ -1073,9 +1112,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         Volume vplexVirtualVolume = null;
         if (isChangeVpool && Volume.PersonalityTypes.SOURCE.equals(personality)) {
+            _log.info(String.format("EMC DEBUG - vplexVirtualVolume = changeVpoolVolume"));
             vplexVirtualVolume = changeVpoolVolume;
         } else {
             vplexVirtualVolume = this.getVPlexVirtualVolume(volumes);
+            _log.info(String.format("EMC DEBUG - prepareVPlexVolume: vplexVirtualVolume %s", (vplexVirtualVolume != null ? vplexVirtualVolume.getLabel() : "null")));
         }
 
         return vplexVirtualVolume;
@@ -1496,6 +1537,26 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             boolean isPreCreatedVolume) {
         // Check to see if this is a change vpool volume, if so, use it as the already existing volume.
         volume = (changeVpoolVolume != null) ? changeVpoolVolume : volume;
+        
+        _log.info(String.format("EMC DEBUG - prepareVolume: volume %s", (volume != null ? volume.getLabel() : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: project %s", (project != null ? project.getLabel() : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: varray %s", (varray != null ? varray.getLabel() : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: vpool %s", (vpool != null ? vpool.getLabel() : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: size %s", (size != null ? size : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: recommendation %s", (recommendation != null ? recommendation.toString() : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: label %s", (label != null ? label : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: consistencyGroup %s", (consistencyGroup != null ? consistencyGroup.getLabel() : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: protectionSystemURI %s", (protectionSystemURI != null ? protectionSystemURI.toString() : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: personality %s", (personality != null ? personality.toString() : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: rsetName %s", (rsetName != null ? rsetName : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: internalSiteName %s", (internalSiteName != null ? internalSiteName : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: rpCopyName %s", (rpCopyName != null ? rpCopyName : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: sourceVolume %s", (sourceVolume != null ? sourceVolume.getLabel() : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: journalVolume %s", (journalVolume != null ? journalVolume.getLabel() : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: standbyJournalVolume %s", (standbyJournalVolume != null ? standbyJournalVolume.getLabel() : "null")));        
+        _log.info(String.format("EMC DEBUG - prepareVolume: vplex %s", vplex+""));
+        _log.info(String.format("EMC DEBUG - prepareVolume: changeVpoolVolume %s", (changeVpoolVolume != null ? changeVpoolVolume.getLabel() : "null")));
+        _log.info(String.format("EMC DEBUG - prepareVolume: isPreCreatedVolume %s", isPreCreatedVolume+""));
 
         // If volume is still null, then it's a brand new volume
         boolean isNewVolume = (volume == null);
@@ -1512,85 +1573,116 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             volume.setLabel(label);
             volume.setCapacity(SizeUtil.translateSize(size));
+            _log.info(String.format("EMC DEBUG - prepareVolume: 1"));
             volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin
                     .toString()
                     .equalsIgnoreCase(vpool.getSupportedProvisioningType()));
+            _log.info(String.format("EMC DEBUG - prepareVolume: 2"));
             volume.setVirtualPool(vpool.getId());
+            _log.info(String.format("EMC DEBUG - prepareVolume: 3"));
             volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
+            _log.info(String.format("EMC DEBUG - prepareVolume: 4"));
             volume.setTenant(new NamedURI(project.getTenantOrg().getURI(),
                     volume.getLabel()));
+            _log.info(String.format("EMC DEBUG - prepareVolume: 5"));
             volume.setVirtualArray(varray.getId());
 
+            _log.info(String.format("EMC DEBUG - prepareVolume: 6"));
             if (null != recommendation.getSourceStoragePool()) {
+                _log.info(String.format("EMC DEBUG - prepareVolume: 7"));
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
                         recommendation.getSourceStoragePool());
                 if (null != pool) {
+                    _log.info(String.format("EMC DEBUG - prepareVolume: 8"));
                     volume.setProtocol(new StringSet());
                     volume.getProtocol()
                             .addAll(VirtualPoolUtil.getMatchingProtocols(
                                     vpool.getProtocols(), pool.getProtocols()));
 
                     if (!vplex) {
+                        _log.info(String.format("EMC DEBUG - prepareVolume: 9"));
                         volume.setPool(pool.getId());
                         volume.setStorageController(pool.getStorageDevice());
-                    }
+                    } else {
+                        _log.info(String.format("EMC DEBUG - prepareVolume: 10"));
+                    }                    
+                } else {
+                    _log.info(String.format("EMC DEBUG - prepareVolume: 11"));
                 }
+            } else {
+                _log.info(String.format("EMC DEBUG - prepareVolume: 12"));
             }
 
             volume.setVirtualArray(varray.getId());
         }
 
         if (journalVolume != null) {
+            _log.info(String.format("EMC DEBUG - prepareVolume: 13"));
             volume.setRpJournalVolume(journalVolume.getId());
         }
 
         if (standbyJournalVolume != null) {
+            _log.info(String.format("EMC DEBUG - prepareVolume: 14"));
             volume.setSecondaryRpJournalVolume(standbyJournalVolume.getId());
         }
 
         // Set all Journal Volumes to have the INTERNAL_OBJECT flag.
         if (personality.equals(Volume.PersonalityTypes.METADATA)) {
+            _log.info(String.format("EMC DEBUG - prepareVolume: 15"));
             volume.addInternalFlags(Flag.INTERNAL_OBJECT);
             volume.addInternalFlags(Flag.SUPPORTS_FORCE);
             volume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
         } else if (personality.equals(Volume.PersonalityTypes.SOURCE)) {
+            _log.info(String.format("EMC DEBUG - prepareVolume: 16"));
             volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
             volume.setLinkStatus(Volume.LinkStatus.OTHER.name());
         } else if (personality.equals(Volume.PersonalityTypes.TARGET)) {
+            _log.info(String.format("EMC DEBUG - prepareVolume: 17"));
             volume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
             volume.setLinkStatus(Volume.LinkStatus.OTHER.name());
         }
 
+        _log.info(String.format("EMC DEBUG - prepareVolume: 18"));
         volume.setPersonality(personality.toString());
         volume.setProtectionController(protectionSystemURI);
         volume.setRSetName(rsetName);
         volume.setInternalSiteName(internalSiteName);
         volume.setRpCopyName(rpCopyName);
 
+        _log.info(String.format("EMC DEBUG - prepareVolume: 19"));
         if (consistencyGroup != null) {
+            _log.info(String.format("EMC DEBUG - prepareVolume: 20"));
             volume.setConsistencyGroup(consistencyGroup.getId());
         }
 
         if (NullColumnValueGetter.isNotNullValue(vpool.getAutoTierPolicyName())) {
+            _log.info(String.format("EMC DEBUG - prepareVolume: 21"));
             URI autoTierPolicyUri = StorageScheduler.getAutoTierPolicy(volume.getPool(),
                     vpool.getAutoTierPolicyName(), _dbClient);
             if (null != autoTierPolicyUri) {
+                _log.info(String.format("EMC DEBUG - prepareVolume: 22"));
                 volume.setAutoTieringPolicyUri(autoTierPolicyUri);
             }
         }
-
+        _log.info(String.format("EMC DEBUG - prepareVolume: 23"));
         if (isNewVolume && !isPreCreatedVolume) {
+            _log.info(String.format("EMC DEBUG - prepareVolume: 24"));
             // Create the volume in the db
             _dbClient.createObject(volume);
         } else {
+            _log.info(String.format("EMC DEBUG - prepareVolume: 25"));
             _dbClient.updateAndReindexObject(volume);
         }
+        _log.info(String.format("EMC DEBUG - prepareVolume: 26"));
 
         // Keep track of target volumes associated with the source volume
         if (sourceVolume != null) {
+            _log.info(String.format("EMC DEBUG - prepareVolume: 27"));
             if (sourceVolume.getRpTargets() == null) {
+                _log.info(String.format("EMC DEBUG - prepareVolume: 28"));
                 sourceVolume.setRpTargets(new StringSet());
             }
+            _log.info(String.format("EMC DEBUG - prepareVolume: 29"));
             sourceVolume.getRpTargets().add(volume.getId().toString());
             _dbClient.updateAndReindexObject(sourceVolume);
         }
@@ -1688,6 +1780,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 computeProtectionCapacity(volumeURIs, requestedVolumeCapactity, false, isChangeVpool, null);
 
+                if (true) {
+                    throw new NullPointerException("STOP");//APIException.badRequests.rpBlockApiImplPrepareVolumeException("STOP !!!!!!");
+                }
+                
                 if (isChangeVpool) {
                     _log.info("Add Recoverpoint Protection to existing volume");
                     controller.changeVirtualPool(volumeDescriptors, task);
@@ -1698,6 +1794,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         } catch (Exception e) {
             _log.error(e.getMessage(), e);
+            _log.error("EMC DEBUG - STACKTRACE: " + (e.getStackTrace() != null ? e.getStackTrace().toString() : "null stacktrace"));
+            _log.error("EMC DEBUG - CAUSE: " + e.getCause() + "\n" + (e.getCause() != null ? e.getCause().getMessage() : "null cause"));
 
             try {
                 // If there is a change vpool volume, we need to ensure that we rollback protection on it.

@@ -63,6 +63,7 @@ import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.factories.VolumeFactory;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -75,6 +76,7 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -596,8 +598,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // attribute is not set
             Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
             String rpName = volume.getReplicationGroupInstance();
-            if (!(VPlexUtil.isVplexBackendVolume(volume, _dbClient) && NullColumnValueGetter.isNullValue(rpName)) &&
-                    !(volume.checkInternalFlags(Flag.INTERNAL_OBJECT) &&  NullColumnValueGetter.isNullValue(rpName))) {
+            if (!(NullColumnValueGetter.isNullValue(rpName))) {
+            	_log.info(String.format("Creating backend CG for %s", rpName));
                 URI deviceURI = descr.getDeviceURI();
                 if (!deviceURIs.contains(deviceURI)) {
                     deviceURIs.add(deviceURI);

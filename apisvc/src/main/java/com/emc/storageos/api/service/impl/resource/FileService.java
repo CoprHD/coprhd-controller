@@ -240,7 +240,7 @@ public class FileService extends TaskResourceService {
     // Block service implementations
     static volatile private Map<String, FileServiceApi> _fileServiceApis;
 
-    public static FileServiceApi getFileServiceApis(String Type) {
+    static public FileServiceApi getFileServiceApis(String Type) {
         return _fileServiceApis.get(Type);
     }
 

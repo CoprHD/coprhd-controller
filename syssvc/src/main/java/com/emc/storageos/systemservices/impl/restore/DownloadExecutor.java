@@ -70,6 +70,7 @@ public final class DownloadExecutor implements  Runnable {
 
     public void registerListener() {
         try {
+            log.info("lby add restore listener");
             backupOps.addRestoreListener(listener);
         }catch (Exception e) {
             log.error("Fail to add node listener for restore status config znode", e);
@@ -111,6 +112,7 @@ public final class DownloadExecutor implements  Runnable {
 
             if (s == Status.DOWNLOAD_FAILED || s == Status.RESTORE_CANCELLED || s == Status.DOWNLOAD_SUCCESS) {
                 try {
+                    log.info("lby remove restore listener");
                     backupOps.removeRestoreListener(listener);
                 }catch (Exception e) {
                     log.warn("Failed to remove download listener");

@@ -178,8 +178,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_PRE_VOLUME_EXPAND = "preVolumeExpand";
     private static final String STEP_POST_VOLUME_EXPAND = "postVolumeExpand";
 
-    private static final String STEP_PRE_VOLUME_RESTORE = "preVolumeRestore";
-    private static final String STEP_POST_VOLUME_RESTORE = "postVolumeRestore";
+    public static final String STEP_PRE_VOLUME_RESTORE = "preVolumeRestore";
+    public static final String STEP_POST_VOLUME_RESTORE = "postVolumeRestore";
 
     // Methods in the create workflow. Constants helps us avoid step dependency flubs.
     private static final String METHOD_CG_CREATE_STEP = "cgCreateStep";
@@ -210,8 +210,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String METHOD_RESTORE_VOLUME_STEP = "restoreVolume";
 
     // Methods in the expand volume workflow
-    private static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
-    private static final String METHOD_RECREATE_RSET_STEP = "recreateRSetStep";
+    public static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
+    public static final String METHOD_RECREATE_RSET_STEP = "recreateRSetStep";
 
     // Methods in the create RP snapshot workflow
     private static final String STEP_BOOKMARK_CREATE = "createBookmark";
@@ -494,7 +494,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Adds any post volume create steps that are needed.
-     *
+     * 
      * @param workflow the current WF
      * @param volumeDescriptors all volume descriptors
      * @param rpSystem the PS
@@ -526,22 +526,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * WF Step to reinstate the RP VPLEX Source Virtual Volume to use the originally requested assets.
-     *
+     * 
      * With RP+VPLEX there is an option when the user adds High Availability to the Source VPool
      * to use the HA VArray (and optionally an HA VPool) as the RecoverPoint Source.
      * Meaning the HA VArray should be used for connectivity to RP and not the Source VArray.
-     *
+     * 
      * During RP+VPLEX placement we perform a "swap" in the backend so that Source becomes HA and
      * HA becomes Source.
-     *
+     * 
      * After the VPlex Virtual Volume is created we want to reverse the swap back to the original
      * request VPool/VArray for clarity purposes for the user. (i.e. we want the Virtual Volume
      * to show that it was created with the requested VPool and VArray).
-     *
+     * 
      * So from the backing volumes, try and find the original VPool and VArray that were used
      * for the volume create request. We can use that volume to update the VPlex Virtual
      * Volume.
-     *
+     * 
      * @param rpSourceDescriptors Descriptors for RP_VPLEX_VIRT_SOURCE or RP_EXISTING_SOURCE volumes
      * @param token Workflow step ID
      * @return Whether or not the operation succeeded
@@ -592,7 +592,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * and make sure that the RP VPLEX Source Virtual Volume has those set. This is what is reflected
      * in the UI. The reason that they could be different is because of the possibility that the
      * user chose to use the HA Virtual Pool / Virtual Array as the leg connected to RP.
-     *
+     * 
      * @param backingVolumes backing volumes of the VPlex Virtual Volume passed in
      * @return Volume that has the original Virtual Assets from the volume create request
      */
@@ -656,7 +656,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         // Task 1: If this is the last volume, remove the consistency group
         waitFor = addDeleteCGStep(workflow, waitFor, rpVolumes);
-       
+
         // Tasks 2: Remove the volumes from the export group
         return addExportRemoveVolumesSteps(workflow, waitFor, rpVolumes);
     }
@@ -676,14 +676,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param volumes -- The entire list of VolumeDescriptors for this request (all technologies).
      * @param taskId -- The top level operation's taskId
      * @param completer -- The completer for the entire workflow.
-     * @param blockDeviceController -- Reference to a BlockDeviceController, used for specific 
-     *                                 steps on the volumes not covered by RP but required for the operation to be complete.
+     * @param blockDeviceController -- Reference to a BlockDeviceController, used for specific
+     *            steps on the volumes not covered by RP but required for the operation to be complete.
      * @return A waitFor key that can be used by subsequent controllers to wait on
      *         the Steps created by this controller.
      * @throws InternalException
      */
     public String addStepsForPostDeleteVolumes(Workflow workflow,
-            String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId, VolumeWorkflowCompleter completer, 
+            String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId, VolumeWorkflowCompleter completer,
             BlockDeviceController blockDeviceController) throws InternalException {
         // Filter to get only the RP volumes.
         List<VolumeDescriptor> rpSourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
@@ -694,8 +694,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         if (rpSourceDescriptors.isEmpty()) {
             return waitFor;
         }
-                                        
-        waitFor = addRemoveProtectionOnVolumeStep(workflow, waitFor, volumeDescriptors, taskId, blockDeviceController);          
+
+        waitFor = addRemoveProtectionOnVolumeStep(workflow, waitFor, volumeDescriptors, taskId, blockDeviceController);
 
         // Lock the CG (no-op for non-CG)
         // May be more appropriate in block orchestrator's deleteVolume, but I preferred it here
@@ -714,7 +714,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Create the RP Client consistency group request object based on the incoming prepared volumes.
-     *
+     * 
      * @param volumeDescriptors volume descriptor objects
      * @param rpSystem
      * @return RP request to create CG
@@ -878,7 +878,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Adds the volumes to the replication sets map.
-     *
+     * 
      * @param rsetParamsMap the replication sets map.
      * @param volumeParams the volume params.
      * @param volume the volume from which to pull the replication set name.
@@ -900,7 +900,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Assemble the CreateVolumeParams object with the input arguments.
      * Written to keep the prepare code tidy.
-     *
+     * 
      * @param volumeId Volume URI
      * @param storageSystemId Storage system for this Volume
      * @param neighborhoodId Neighborhood for this volume
@@ -959,7 +959,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for rolling back the ExportOrchestration sub-workflow steps.
-     *
+     * 
      * @param parentWorkflow -- the URI of the parent Workflow, which is used to locate the sub-workflow
      * @param exportOrchestrationStepId -- the Step id of the of the step that creates the Export Orchestration sub-workflow.
      * @param token the task -- the step id for the rollback step
@@ -999,7 +999,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Get the RP Exports from the CGRequestParams object
             Collection<RPExport> rpExports = generateStorageSystemExportMaps(params, volumeDescriptors);
 
-            Map<String, Set<URI>> rpSiteInitiatorsMap = getRPSiteInitiators(rpSystem, rpExports);            
+            Map<String, Set<URI>> rpSiteInitiatorsMap = getRPSiteInitiators(rpSystem, rpExports);
 
             // Acquire all the RP lock keys needed for export before we start assembling the export groups.
             acquireRPLockKeysForExport(taskId, rpExports, rpSiteInitiatorsMap);
@@ -1060,7 +1060,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 Set<URI> rpSiteInitiatorUris = rpSiteInitiatorsMap.get(internalSiteName);
                 if (rpSiteInitiatorUris != null) {
                     for (URI rpSiteInitiatorUri : rpSiteInitiatorUris) {
-                    	Initiator rpSiteInitiator = _dbClient.queryObject(Initiator.class, rpSiteInitiatorUri);
+                        Initiator rpSiteInitiator = _dbClient.queryObject(Initiator.class, rpSiteInitiatorUri);
                         URI rpInitiatorNetworkURI = getInitiatorNetwork(exportGroup, rpSiteInitiator);
                         if (rpInitiatorNetworkURI != null) {
                             if (rpNetworkToInitiatorsMap.get(rpInitiatorNetworkURI) == null) {
@@ -1256,7 +1256,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         List<String> lockKeys = new ArrayList<String>();
 
         for (RPExport rpExport : rpExports) {
-            Set<URI> rpSiteInitiatorUris = rpSiteInitiatorsMap.get(rpExport.getRpSite());     
+            Set<URI> rpSiteInitiatorUris = rpSiteInitiatorsMap.get(rpExport.getRpSite());
             lockKeys.addAll(ControllerLockingUtil.getStorageLockKeysByHostName(_dbClient,
                     rpSiteInitiatorUris, rpExport.getStorageSystem()));
         }
@@ -1322,7 +1322,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     if (!rpSiteInitiators.containsKey(rpSiteName)) {
                         rpSiteInitiators.put(rpSiteName, new HashSet<URI>());
                     }
-                                        
+
                     rpSiteInitiators.get(rpSiteName).add(initiator.getId());
                 }
             }
@@ -1344,7 +1344,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * This operation will add additional journal volumes to a recoverpoint consistency group
-     *
+     * 
      * @param rpSystemId - recoverpoint system
      * @param volumeDescriptors - journal volumes to add
      * @param taskId - task tracking the operation
@@ -1372,7 +1372,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Recoverpoint specific workflow method for creating an Export Group
      * NOTE: Workflow.Method requires that opId is added as a param.
-     *
+     * 
      * @param opId
      */
     public boolean createExportGroupStep(String opId) {
@@ -1385,7 +1385,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Recoverpoint specific rollback for creating an Export Group
      * NOTE: Workflow.Method requires that opId is added as a param.
-     *
+     * 
      * @param exportGroupURI
      * @param opId
      * @throws ControllerException
@@ -1417,7 +1417,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Method that adds the step to the workflow that creates the CG.
-     *
+     * 
      * @param workflow
      * @param recommendation
      * @param rpSystem
@@ -1444,7 +1444,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Method that adds the step to the workflow for adding a journal volume to a CG.
-     *
+     * 
      * @param workflow
      * @param recommendation
      * @param rpSystem
@@ -1471,7 +1471,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for rolling back adding journal volumes to CG.
-     *
+     * 
      * @param rpSystem RP system
      * @param token the task
      * @return
@@ -1485,7 +1485,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for creating/updating a consistency group.
-     *
+     * 
      * @param rpSystemId RP system Id
      * @param recommendation parameters needed to create the CG
      * @param token the task
@@ -1630,7 +1630,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for cg create rollback
-     *
+     * 
      * @param rpSystem RP system
      * @param params parameters needed to create the CG
      * @param token the task
@@ -1663,7 +1663,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Sets the volume consistency group
-     *
+     * 
      * @param volumeDescriptors
      * @param cgURI
      */
@@ -1678,7 +1678,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Validates the source and target volumes to ensure the provisioned
      * sizes are all the same.
-     *
+     * 
      * @param volumeDescriptors the volumes to validate
      */
     private void validateCGVolumes(List<VolumeDescriptor> volumeDescriptors) {
@@ -1722,7 +1722,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Helper method to retrieve the vpool change vpool hiding in the volume descriptors
-     *
+     * 
      * @param volumeDescriptors list of volumes
      * @return URI of the vpool change vpool
      */
@@ -1741,7 +1741,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * process failure of creating a cg step.
-     *
+     * 
      * @param volumeDescriptors volumes
      * @param cgParams cg parameters
      * @param protectionSetId protection set id
@@ -1761,9 +1761,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Helper method that consolidates all of the volumes into storage systems to make the minimum amount of export calls.
-     *
+     * 
      * @param volumeDescriptors
-     *
+     * 
      * @param recommendation
      */
     private Collection<RPExport> generateStorageSystemExportMaps(CGRequestParams cgParams, List<VolumeDescriptor> volumeDescriptors) {
@@ -1927,7 +1927,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * The step that deletes the CG from the RecoverPoint appliance if all of the volumeIDs are in the request,
      * otherwise delete replication sets and associated journals.
-     *
+     * 
      * @param rpSystem protection system
      * @param volumeIDs volume IDs
      * @param token task ID
@@ -2065,11 +2065,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 for (Volume volume : volumes) {
                     _log.info(String.format("Volume [%s] (%s) needs to have it's replication set removed from RP",
                             volume.getLabel(), volume.getId()));
-                        
+
                     // Delete the replication set if there are more volumes (other replication sets).
                     // If there are no other replications sets we will simply delete the CG instead.
                     volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(), _dbClient));
-                    
+
                     // Volume Info to give RP to clean up the RSets
                     replicationSetsToRemove.add(volumeProtectionInfo);
                     // Source volume to be removed from Protection Set
@@ -2111,7 +2111,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Cleans up the given ProtectionSet by removing volumes from it and marking for deletion if specified.
      * Also removes the volume's association on the BlockConsistencyGroup.
-     *
+     * 
      * @param protectionSet the protection set from which to remove volumes.
      * @param volumeIDs the volume ids to remove from the protection set.
      * @param markProtectionSetForDeletion if true, marks the protection set for deletion.
@@ -2136,7 +2136,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * The step that rolls back the delete of the CG from the RecoverPoint appliance. It is a no-op.
-     *
+     * 
      * @param rpSystem protection system
      * @param volumeID volume ID
      * @param token task ID
@@ -2153,7 +2153,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Add the steps that will remove the consistency groups (if this the last replication set in the CG),
      * otherwise it will remove the replication set associated with the volume.
-     *
+     * 
      * @param workflow workflow to add steps to
      * @param volumeID volume ID of the volume sent from the API
      * @throws InternalException
@@ -2193,25 +2193,25 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             URI cgId = entry.getKey();
             Set<URI> volumes = entry.getValue();
             BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
-            
+
             boolean deleteEntireCG = RPHelper.cgSourceVolumesContainsAll(_dbClient, consistencyGroup.getId(), volumes);
             if (!deleteEntireCG) {
                 // If we're not deleting the entire CG, we need to ensure that none of the
-                // link statuses on the volumes are in the failed-over state. Deleting 
+                // link statuses on the volumes are in the failed-over state. Deleting
                 // replication sets is not allowed while image access is enabled.
                 for (URI volumeURI : volumes) {
                     Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                    if (volume != null 
+                    if (volume != null
                             && Volume.LinkStatus.FAILED_OVER.name().equalsIgnoreCase(volume.getLinkStatus())) {
                         String imageAccessEnabledError = String.format("Can not delete or remove protection from volume [%s](%s) "
-                                + "while image access is enabled in RecoverPoint", 
+                                + "while image access is enabled in RecoverPoint",
                                 volume.getLabel(), volume.getId());
                         _log.error(imageAccessEnabledError);
                         throw DeviceControllerExceptions.recoverpoint.cgDeleteStepInvalidParam(imageAccessEnabledError);
                     }
                 }
             }
-            
+
             // All protection sets can be deleted at the same time, but only one step per protection set can be running
             String cgWaitFor = waitFor;
 
@@ -2242,7 +2242,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Add the steps that will remove the volumes from the export group
      * TODO: This could stand to be refactored to be simpler.
-     *
+     * 
      * @param workflow workflow object
      * @param waitFor step that these steps are dependent on
      * @param filteredSourceVolumeDescriptors volumes to act on
@@ -2369,7 +2369,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Convenience method to add an RPExport object to the map of RPExports.
-     *
+     * 
      * @param rpExports the Map we want to add to.
      * @param exportGroup the export group who's ID we want to use as the key.
      * @param volumeURI the volume we want to add to the RPExport.
@@ -2389,24 +2389,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportgroupID The export group
-     *
+     * 
      * @param snapshots snapshot list
-     *
+     * 
      * @param initatorURIs initiators to send to the block controller
-     *
+     * 
      * @param token The task object
      */
     @Override
@@ -2459,7 +2459,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Method that adds the export snapshot step.
-     *
+     * 
      * @param workflow workflow object
      * @param rpSystem RP system
      * @param exportGroupID export group ID
@@ -2497,7 +2497,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Method that adds the steps to the workflow to enable image access
-     *
+     * 
      * @param workflow workflow object
      * @param rpSystem RP system
      * @param snapshots snapshot map
@@ -2523,7 +2523,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for enabling an image access
-     *
+     * 
      * @param rpSystem RP system
      * @param snapshots Snapshot list to enable
      * @param token the task
@@ -2559,7 +2559,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow rollback step method for enabling an image access
-     *
+     * 
      * @param rpSystemId RP System
      * @param snapshots list of snapshots to rollback
      * @param setSnapshotsInactive true if this is a rollback operation. Should be true for any method calling this.
@@ -2590,19 +2590,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportgroupID The export group
-     *
+     * 
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2679,7 +2679,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Method that adds the export snapshot delete step.
-     *
+     * 
      * @param workflow workflow object
      * @param rpSystem RP system
      * @param exportGroupID export group ID
@@ -2715,15 +2715,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     *
+     * 
      * @param workflow Workflow
-     *
+     * 
      * @param waitFor waitFor step id
-     *
+     * 
      * @param snapshots list of snapshot to disable
-     *
+     * 
      * @param rpSystem RP system
-     *
+     * 
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -2744,7 +2744,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Workflow step method for disabling an image access. Called only when disabling image access
      * during a snapshot create that is part array snapshot and part RP bookmark.
-     *
+     * 
      * @param rpSystemId RP system
      * @param snapshots List of snapshot URIs
      * @param isRollback true if this method is invoked as part of rollback, false otherwise
@@ -2774,7 +2774,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Method that adds the steps to the workflow to disable image access
-     *
+     * 
      * @param workflow workflow object
      * @param rpSystem RP system
      * @param exportGroupID export group ID
@@ -2795,7 +2795,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for disabling an image access of all snapshots in an export group
-     *
+     * 
      * @param rpSystem RP system
      * @param token the task
      * @return true if successful
@@ -2836,7 +2836,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Add steps to disable image access
-     *
+     * 
      * @param workflow workflow object
      * @param rpSystem protection system
      * @param exportGroupID export group ID
@@ -2862,7 +2862,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for disabling an image access
-     *
+     * 
      * @param rpSystemId RP system URI
      * @param exportGroupURI ExportGroup URI
      * @param snapshots list of snapshots to disable
@@ -2891,24 +2891,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportGroupID The export group
-     *
+     * 
      * @param snapshot RP snapshot
-     *
+     * 
      * @param lun HLU
-     *
+     * 
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2961,7 +2961,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Method that adds the export snapshot step for a single volume
-     *
+     * 
      * @param workflow workflow object
      * @param rpSystem RP system
      * @param exportGroupID export group ID
@@ -3006,15 +3006,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * RPDeviceController.exportRemoveVolume()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to remove an RP volume from an export group.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volume
      * - Disable the bookmarks associated with the snapshot.
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
      * @param exportgroupID The export group
      * @param snapshotID snapshot ID to remove
@@ -3070,7 +3070,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Add the export remove volume step to the workflow
-     *
+     * 
      * @param workflow workflow object
      * @param rpSystem protection system
      * @param exportGroupID export group
@@ -3108,7 +3108,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Update the params objects with the proper WWN information so the CG can be created.
-     *
+     * 
      * @param params cg params
      * @throws InternalException
      */
@@ -3135,7 +3135,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Lock the entire CG based on this volume.
-     *
+     * 
      * @param volumeId volume whose CG we wish to lock
      * @return true if the lock succeeded, false otherwise
      */
@@ -3174,7 +3174,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * RP specific workflow steps required prior to expanding the underlying volume are added here.
      * Ex. RP CG remove replication sets.
-     *
+     * 
      * @param workflow
      * @param volURI
      * @param expandVolURIs
@@ -3230,13 +3230,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Gets the replication settings from RP for a given volume.
-     *
+     * 
      * @param rpSystem the RecoverPoint system.
      * @param volumeId the volume ID.
      * @return the replication set params to perform a recreate operation
      * @throws RecoverPointException
      */
-    private RecreateReplicationSetRequestParams getReplicationSettings(ProtectionSystem rpSystem, URI volumeId)
+    public RecreateReplicationSetRequestParams getReplicationSettings(ProtectionSystem rpSystem, URI volumeId)
             throws RecoverPointException {
         RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
         Volume volume = _dbClient.queryObject(Volume.class, volumeId);
@@ -3247,7 +3247,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * RP specific workflow steps after volume expansion are added here in this method
      * RP CG replication sets that were removed during pre expand are reconstructed with the new expanded volumes.
-     *
+     * 
      * @param workflow
      * @param waitFor
      * @param volume descriptors
@@ -3295,7 +3295,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Delete the replication set
-     *
+     * 
      * @param rpSystem RP system
      * @param params parameters needed to create the CG
      * @param token the task
@@ -3341,7 +3341,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Recreate the replication set
-     *
+     * 
      * @param rpSystem RP system
      * @param params parameters needed to create the CG
      * @param token the task
@@ -3383,7 +3383,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Create a protection set in the database that corresponds to this CG.
-     *
+     * 
      * @param params CG params object
      * @throws InternalException
      */
@@ -3403,10 +3403,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Update a protection set in the database that corresponds to the CG.
-     *
+     * 
      * BH Note: Currently this only supports adding to the protection set. We may eventually
      * want to support removal as well.
-     *
+     * 
      * @param params CG params object
      * @throws InternalException
      */
@@ -3489,7 +3489,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Find the export group associated with this volume and this protection system.
-     *
+     * 
      * @param rpSystem
      * @param volumeUri
      * @param virtualArrayUri
@@ -3561,7 +3561,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Using the passed in export group, try to find a matching one based on generated name. Return
      * null if it can't be found meaning we should create a new one.
-     *
+     * 
      * @param exportGroupToFind The export group to find
      * @return The found export group, or null if it doesn't exist
      * @throws InternalException
@@ -3597,11 +3597,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * Get an initiator as specified by the passed initiator data. First checks
      * if an initiator with the specified port already exists in the database,
      * and simply returns that initiator, otherwise creates a new initiator.
-     *
+     * 
      * @param initiatorParam The data for the initiator.
-     *
+     * 
      * @return A reference to an initiator.
-     *
+     * 
      * @throws InternalException When an error occurs querying the database.
      */
     private Initiator getOrCreateNewInitiator(Initiator initiatorParam)
@@ -3631,7 +3631,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -3891,7 +3891,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * After a swap, we need to swap personalities of source and target volumes
-     *
+     * 
      * @param id volume we failed over to
      * @throws InternalException
      */
@@ -3958,7 +3958,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * After a failover, we need to set specific flags
-     *
+     * 
      * @param id volume we failed over to
      * @throws InternalException
      */
@@ -3994,7 +3994,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * After a failover of a failover (without swap), we need to set specific flags
-     *
+     * 
      * @param id volume we failed over to
      * @throws InternalException
      */
@@ -4035,7 +4035,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
@@ -4131,7 +4131,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Add WF step for creating block snapshots
-     *
+     * 
      * @param workflow Workflow
      * @param waitFor wait on this step/step-group to finish before invoking the step herein
      * @param storageURI UID of the storage system
@@ -4162,7 +4162,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Invokes the storage specific BlockController method to perform the snapshot operation
-     *
+     * 
      * @param storageURI Storage System URI
      * @param snapshotList List of snaps in the request
      * @param createInactive Specifies whether the snapshot is created and activated or just created
@@ -4186,7 +4186,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Rollback method for Block snapshot create.
-     *
+     * 
      * @param stepId
      * @return
      */
@@ -4199,7 +4199,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Add workflow step for creating bookmarks.
-     *
+     * 
      * @param workflow Workflow
      * @param snapshotList List of snapshots
      * @param system Protection System
@@ -4230,7 +4230,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * This method creates a RP bookmark
-     *
+     * 
      * @param snapshotList List of snapshot
      * @param system Protection Sytem
      * @param snapshotName snapshot name
@@ -4284,7 +4284,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Rollback method for create bookmark step.
      * Currently, this is just a dummy step and does nothing.
-     *
+     * 
      * @param stepId
      * @return
      */
@@ -4297,7 +4297,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Amend the BlockSnapshot object based on the results of the Bookmark creation operation
-     *
+     * 
      * @param result result from the snapshot creation command
      * @param system protection system
      * @param snapshotList snapshot list generated
@@ -4405,7 +4405,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * BlockSnapshots that share the same snapset label. Secondly, if the snapshot's
      * parent volume is a VPlex backing volume, we must lookup the associated
      * VPlex volume and use that.
-     *
+     * 
      * @param snapshot the snapshot to restore.
      * @param volume the volume to be restored.
      * @return a list of volume IDs to be restored.
@@ -4449,7 +4449,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * <li>A BlockSnapshot parent volume that is a regular RP source/target residing on a VMAX.</li>
      * <li>A BlockSnapshot parent volume that is a backing volume to a VPlex distributed volume.</li>
      * </ul>
-     *
+     * 
      * @param workflow the Workflow being constructed
      * @param storageSystemURI the URI of storage controller
      * @param volumeURI the URI of volume to be restored
@@ -4541,7 +4541,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * <li>A BlockSnapshot parent volume that is a regular RP source/target residing on a VMAX.</li>
      * <li>A BlockSnapshot parent volume that is a backing volume to a VPlex distributed volume.</li>
      * </ul>
-     *
+     * 
      * @param workflow the Workflow being constructed
      * @param storageSystemURI the URI of storage controller
      * @param volumeURI the URI of volume to be restored
@@ -4658,7 +4658,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Restore an RP bookmark. This will enable the specified bookmark on the CG if the CG is not already enabled. This step is
      * required for RP bookmark restores.
-     *
+     * 
      * @param protectionDevice RP protection system URI
      * @param storageDevice storage device of the volume
      * @param snapshotId snapshot URI
@@ -4730,7 +4730,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Enable image access for RP snapshots.
-     *
+     * 
      * @param protectionDevice protection system
      * @param storageDevice storage device of the backing (parent) volume
      * @param snapshotList list of snapshots to enable
@@ -4835,7 +4835,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Disable image access for RP snapshots.
-     *
+     * 
      * @param protectionDevice protection system
      * @param snapshotList list of snapshots to enable
      * @param setSnapshotsInactive true if this is called during rollback and BlockSnapshots should be marked inactive, false otherwise.
@@ -4943,7 +4943,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * It is possible that RP snapshots are exported to more than one host and hence part of more than one ExportGroup.
      * If the same snapshot is part of more than one active ExportGroup, do not disable Image Access on the RP CG.
-     *
+     * 
      * @param snapshot snapshot to be unexported
      * @return true if it is safe to disable image access on the CG, false otherwise
      */
@@ -5012,7 +5012,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Collects the RP statistics for the given <code>ProtectionSystem</code>.
-     *
+     * 
      * @param protectionSystem
      * @throws InternalException
      */
@@ -5058,7 +5058,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Looks up controller dependency for given hardware
-     *
+     * 
      * @param clazz controller interface
      * @param hw hardware name
      * @param <T>
@@ -5072,7 +5072,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Check if initiator being added to export-group is good.
-     *
+     * 
      * @param exportGroup
      * @param initiator
      * @throws InternalException
@@ -5137,7 +5137,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Searches for all specified bookmarks (RP snapshots). If even just one
      * bookmark does not exist, an exception will be thrown.
-     *
+     * 
      * @param protectionDevice the protection system URI
      * @param snapshots the RP snapshots to search for
      */
@@ -5229,11 +5229,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * Returns the Storage Ports on the Storage device that should be used for a particular
      * storage array. This is done by finding ports in the array and RP initiators that have
      * common Networks. Returns a map of NetworkURI to List<StoragePort>.
-     *
+     * 
      * @param rpInitiatorNetworkURI The URI of network where this RP site is in
      * @param arrayURI The URI of a connected backend storage system.
      * @param varrayURI The URI of the virtual array.
-     *
+     * 
      * @return Map<URI, List<StoragePort>> A map of Network URI to a List<StoragePort>
      */
     private Map<URI, List<StoragePort>> getInitiatorPortsForArray(Map<URI, Set<Initiator>> rpNetworkToInitiatorMap,
@@ -5292,7 +5292,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * This is done on a per Network basis and then summed together.
      * Within each Network, we determine the number of ports available, and then
      * convert to paths. Currently we don't allocate more paths than initiators.
-     *
+     * 
      * @param initiatorPortMap -- used to determine networks and initiator counts
      * @param varray -- only Networks in the specified varray are considered
      * @param array -- StorageSystem -- used to determine available ports
@@ -5343,7 +5343,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Update the backing volume virtual pool reference, needed for change vpool
      * operations for RP+VPLEX and MetroPoint.
-     *
+     * 
      * @param volumeDescriptors
      *            The Volume descriptors, needed to see if there are any
      *            migrations present.
@@ -5419,7 +5419,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for updating a consistency group.
-     *
+     * 
      * @param rpSystemId RP system Id
      * @param recommendation parameters needed to create the CG
      * @param token the task
@@ -5436,22 +5436,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             WorkflowStepCompleter.stepExecuting(token);
             _log.info("Update CG step executing");
-            
+
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
-            
-            if (!existingProtectedSourceVolumeDescriptors.isEmpty()) {                    
+
+            if (!existingProtectedSourceVolumeDescriptors.isEmpty()) {
                 // Get the first descriptor, that's all we need. This operation will
                 // affect all the RSets in the CG by adding a new standby copy.
                 VolumeDescriptor descriptor = existingProtectedSourceVolumeDescriptors.get(0);
-                            
+
                 Volume sourceVolume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
-    
+
                 URI newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
                 URI oldVPoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID);
-    
+
                 VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVPoolURI);
-    
+
                 // Phase 1 - Only support upgrade from RP+VPLEX to MetroPoint.
                 // This includes:
                 // Adding a secondary journal and possibly adding MP targets to an existing RP+VPLEX CG
@@ -5461,7 +5461,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
                     upgradeRPVPlexToMetroPoint(sourceVolume, newVpool, oldVpool, rpSystem);
                 }
-    
+
                 // Update the ProtectionSet with any newly added protection set objects
                 // TODO support remove as well?
                 ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet());
@@ -5486,9 +5486,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Upgrades a RP+VPLEX CG to MetroPoint by adding a standby journal to the HA side.
-     *
+     * 
      * Prerequisite: All RSets(volumes) in the CG must have had their HA sides already exported to RP in VPLEX.
-     *
+     * 
      * @param sourceVolume A single source volume from the CG, we only need one.
      * @param rpSystem The rpSystem we're using
      */
@@ -5555,7 +5555,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step method for creating a consistency group.
-     *
+     * 
      * @param rpSystem RP system
      * @param params parameters needed to create the CG
      * @param token the task
@@ -5570,7 +5570,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * process failure of creating a cg step.
-     *
+     * 
      * @param volumeDescriptors volumes
      * @param cgParams cg parameters
      * @param protectionSetId protection set id
@@ -5591,7 +5591,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Creates a rollback workflow method that does nothing, but allows rollback
      * to continue to prior steps back up the workflow chain.
-     *
+     * 
      * @return A workflow method
      */
     private Workflow.Method rollbackMethodNullMethod() {
@@ -5600,7 +5600,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * The null rollback method. Simply marks the step as succeeded.
-     *
+     * 
      * @param stepId the step id.
      * @throws WorkflowException
      */
@@ -5610,26 +5610,26 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Step to remove protection on RP Source volumes
-     *
+     * 
      * @param workflow The current WF
      * @param waitFor The previous waitFor step ID or Group
      * @param volumeDescriptors RP Source volume descriptors
      * @param taskId The Task ID
-     * @param blockDeviceController Reference to a BlockDeviceController, used for specific steps on 
-     *                              the volumes not covered by RP but required for the operation to be complete.
+     * @param blockDeviceController Reference to a BlockDeviceController, used for specific steps on
+     *            the volumes not covered by RP but required for the operation to be complete.
      * @return The next waitFor step ID or Group
      */
-    private String addRemoveProtectionOnVolumeStep(Workflow workflow, String waitFor, 
+    private String addRemoveProtectionOnVolumeStep(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumeDescriptors, String taskId, BlockDeviceController blockDeviceController) {
         List<URI> volumeURIs = new ArrayList<URI>();
         URI newVpoolURI = null;
-        
+
         // Filter to get only the RP Source volumes.
         List<VolumeDescriptor> rpSourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
                 new VolumeDescriptor.Type[] {});
-        
+
         for (VolumeDescriptor descriptor : rpSourceDescriptors) {
             if (descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null) {
                 // This is a rollback protection operation. We do not want to delete the volume but we do
@@ -5644,17 +5644,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         if (volumeURIs.isEmpty()) {
             return waitFor;
         }
-        
+
         // Filter to get only the Block Data volumes
         List<VolumeDescriptor> blockDataDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
                 new VolumeDescriptor.Type[] {});
-        
+
         // Check to see if there are any BLOCK_DATA volumes flagged to not be fully deleted.
-        // These volumes could potentially need to have some untag operation performed 
+        // These volumes could potentially need to have some untag operation performed
         // on the underlying array even though they won't be deleted.
         List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(blockDataDescriptors);
-        
+
         // Breakup the descriptors further into RP and RP+VPLEX descriptors
         List<VolumeDescriptor> rpDescriptors = new ArrayList<VolumeDescriptor>();
         List<VolumeDescriptor> rpVPlexDescriptors = new ArrayList<VolumeDescriptor>();
@@ -5667,18 +5667,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 rpDescriptors.add(descr);
             }
         }
-        
+
         if (doNotDeleteDescriptors != null && !doNotDeleteDescriptors.isEmpty()) {
-            // Call the BlockDeviceController to perform untag operations on the volumes. 
+            // Call the BlockDeviceController to perform untag operations on the volumes.
             // NOTE: Only needed for RP volumes.
             waitFor = blockDeviceController.addStepsForUntagVolumes(workflow, waitFor, rpDescriptors, taskId);
-            
+
             // Call the BlockDeviceController to remove the volumes from any backend array CGs.
             // NOTE: Only needed for RP+VPLEX/MP volumes.
             waitFor = blockDeviceController.addStepsForUpdateConsistencyGroup(workflow, waitFor, null, rpVPlexDescriptors);
         }
-        
-        // Grab any volume from the list so we can grab the protection system. This 
+
+        // Grab any volume from the list so we can grab the protection system. This
         // request could be over multiple protection systems but we don't really
         // care at this point. We just need this reference to pass into the
         // WorkFlow.
@@ -5697,7 +5697,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Removes ViPR level protection attributes from RP Source volumes
-     *
+     * 
      * @param volumes All volumes to remove protection attributes from
      * @param newVpoolURI The vpool to move this volume to
      * @param stepId The step id in this WF

@@ -120,19 +120,25 @@ public class AuditService extends ResourceService {
         }
 
         DateTime startTime, endTime;
-        if (timeBucket != null) {
-            if ((startTime = getDataTime(timeBucket,HOUR_BUCKET_TIME_FORMAT)) != null ){
+        if (timeBucket != null && !timeBucket.isEmpty()) {
+            startTime = getDataTime(timeBucket,HOUR_BUCKET_TIME_FORMAT);
+            if (startTime != null ) {
                 endTime = startTime.plusHours(1);
-            }else if((startTime = getDataTime(timeBucket,MINUTE_BUCKET_TIME_FORMAT)) != null){
-                endTime = startTime.plusMinutes(1);
             }else {
-                throw APIException.badRequests.invalidTimeBucket(timeBucket);
+                startTime = getDataTime(timeBucket,MINUTE_BUCKET_TIME_FORMAT);
+                if (startTime != null) {
+                    endTime = startTime.plusMinutes(1);
+                }else {
+                    throw APIException.badRequests.invalidTimeBucket(timeBucket);
+                }
             }
         }else {
-            if ((startTime = getDataTime(startTimeStr, HOUR_BUCKET_TIME_FORMAT)) == null){
+            startTime = getDataTime(startTimeStr, HOUR_BUCKET_TIME_FORMAT);
+            if (startTime == null) {
                 throw APIException.badRequests.invalidDate(startTimeStr);
             }
-            if ((endTime = getDataTime(endTimeStr, HOUR_BUCKET_TIME_FORMAT)) == null){
+            endTime = getDataTime(endTimeStr, HOUR_BUCKET_TIME_FORMAT);
+            if (endTime == null) {
                 throw APIException.badRequests.invalidDate(endTimeStr);
             }
             validateDataTimePair(startTime,endTime);

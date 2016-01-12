@@ -232,6 +232,7 @@ public class VirtualDataCenters extends ViprResourceController {
     }
 
     @FlashException("list")
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN") })
     public static void disconnect(@As(",") String[] ids) {
         disconnect(uris(ids));
         list();
@@ -247,6 +248,7 @@ public class VirtualDataCenters extends ViprResourceController {
     }
 
     @FlashException("list")
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN") })
     public static void reconnect(@As(",") String[] ids) {
         reconnect(uris(ids));
         list();

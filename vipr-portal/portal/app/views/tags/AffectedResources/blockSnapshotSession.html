@@ -1,0 +1,36 @@
+%{
+  resourceId = _resource.resourceId;
+  blockSnapshotSession = _resource.blockSnapshotSession;
+  varray = _resource.neighborhood;
+  volume = _resource.volume;
+}%
+#{AffectedResources.resource img: 'blockSnapshot.png', classes: 'blockSnapshotSession', typeKey: 'affectedResources.blockSnapshotSession'}
+#{AffectedResources.singleColumn }
+  <dt>&{'affectedResources.blockSnapshotSession'}:</dt>
+  <dd>#{spaceForNull resourceId ?: blockSnapshotSession?.id/}</dd>
+  #{if blockSnapshotSession}
+    <dt>&{'affectedResources.blockSnapshotSession.name'}:</dt>
+    <dd>
+      <a href="@{resources.BlockSnapshotSessions.snapshotSessionDetails(resourceId)}"
+      >#{spaceForNull blockSnapshotSession?.name/}#{if blockSnapshotSession.inactive} (&{'affectedResources.inactive'})#{/if}</a>
+    </dd>
+
+    <dt>&{'affectedResources.blockSnapshotSession.creationTime'}:</dt>
+    <dd>#{localDateTime blockSnapshotSession?.creationTime/}&nbsp;</dd>
+
+    #{if neighborhood}
+      <dt>&{'affectedResources.varray'}:</dt>
+      <dd>#{spaceForNull varray?.name/}</dd>
+    #{/if}
+
+    #{if volume}
+      <dt>&{'affectedResources.volume'}:</dt>
+      <dd>#{spaceForNull volume?.name/}</dd>
+    #{/if}
+  #{/if}
+  #{else}
+    <dt></dt>
+    <dd>&{'affectedResources.notFound', messages.get('affectedResources.blockSnapshotSession')}</dd>
+  #{/else}
+#{/AffectedResources.singleColumn }
+#{/AffectedResources.resource}

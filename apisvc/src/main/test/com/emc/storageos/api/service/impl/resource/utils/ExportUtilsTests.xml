@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util 
+       http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+    <import resource="classpath:attr-matcher.xml"/>
+    <bean id="dbclient" class="com.emc.storageos.api.service.utils.DummyDBClient"/>
+    <bean id="coordinator" class="com.emc.storageos.db.server.util.StubCoordinatorClientImpl">
+        <constructor-arg>
+            <bean class="java.net.URI"><constructor-arg value="urn:StubCoordinatorClientImpl"/></bean>
+        </constructor-arg>
+    </bean>
+</beans>

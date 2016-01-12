@@ -1046,6 +1046,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 throw CoordinatorException.fatals.unableToDecodeDataFromCoordinator(e);
             }
         }
+
+        // add site specific properties
+        PropertyInfoExt siteScopePropInfo = getTargetInfo(PropertyInfoExt.class, getSiteId(), PropertyInfoExt.TARGET_PROPERTY);
+        if (siteScopePropInfo != null) {
+            info.getProperties().putAll(siteScopePropInfo.getProperties());
+        }
+
         // add the ovf properties
         info.getProperties().putAll((Map) ovfProperties);
         return info;

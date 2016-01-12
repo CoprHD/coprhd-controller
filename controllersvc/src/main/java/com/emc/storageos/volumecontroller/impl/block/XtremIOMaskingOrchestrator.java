@@ -648,7 +648,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     MaskingWorkflowEntryPoints.getInstance(), "exportGroupDelete", true,
                     token);
 
-            String zoningStep = generateZoningDeleteWorkflow(workflow, null, exportGroup, exportMasks);
+            String previousStep = generateZoningDeleteWorkflow(workflow, null, exportGroup, exportMasks);
 
             if (null == exportMasks || exportMasks.isEmpty()) {
                 exportGroup.getVolumes().clear();
@@ -664,15 +664,14 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
              * right set of initiators and volumes to be removed from both the export Groups.
              */
             for (ExportMask exportMask : exportMasks) {
-
-                generateExportMaskDeleteWorkflow(workflow, zoningStep, storage, exportGroup,
+                previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
                         exportMask, null);
-
-                String successMessage = String.format(
-                        "Export was successfully removed from StorageArray %s",
-                        storage.getLabel());
-                workflow.executePlan(taskCompleter, successMessage);
             }
+
+            String successMessage = String.format(
+                    "Export was successfully removed from StorageArray %s",
+                    storage.getLabel());
+            workflow.executePlan(taskCompleter, successMessage);
 
             log.info(String.format("exportGroupDelete end - Array: %s ExportMask: %s",
                     storageURI.toString(), exportGroupURI.toString()));

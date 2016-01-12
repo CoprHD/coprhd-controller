@@ -197,6 +197,16 @@ clean_up() {
     loop_execute "${command}" "true"
 }
 
+gen_config() {
+    vdcpropsfile="/data/zk/version-2/vdcprops"
+    if [ ! -f $vdcpropsfile ]; then
+        return
+    fi
+    echo -n "Regenerating storageos configuration files based on restored vdc properties"
+    /etc/systool --setvdcprops "${vdcpropsfile}"
+    echo "done"
+}
+
 start_service() {
     echo -n "Starting storageos services on all nodes.."
     local command="/etc/storageos/storageos start"
@@ -280,7 +290,7 @@ fi
 
 trap clean_up EXIT
 
-comands=(upload_backup confirm_vdc_status stop_service restore_data start_service)
+comands=(upload_backup confirm_vdc_status stop_service restore_data gen_config start_service)
 for cmd in ${comands[@]}
 do
     $cmd

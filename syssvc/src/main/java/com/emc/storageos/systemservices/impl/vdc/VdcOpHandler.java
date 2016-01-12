@@ -696,13 +696,14 @@ public abstract class VdcOpHandler {
      */
     public static class DrFailoverHandler extends VdcOpHandler {
         private Factory postHandlerFactory;
+        private boolean isRebootNeeded;
         
         public DrFailoverHandler() {
         }
         
         @Override
         public boolean isRebootNeeded() {
-            return true;
+            return isRebootNeeded;
         }
         
         @Override
@@ -710,12 +711,14 @@ public abstract class VdcOpHandler {
             Site site = drUtil.getLocalSite();
 
             if (isNewActiveSiteForFailover(site)) {
+                isRebootNeeded = true;
                 coordinator.stopCoordinatorSvcMonitor();
                 reconfigVdc();
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
                 processFailover();
                 waitForAllNodesAndReboot(site);
-
+            } else {
+                reconfigVdc();
             }
         }
         

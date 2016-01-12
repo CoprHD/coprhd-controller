@@ -53,6 +53,9 @@ public abstract class TaskCompleter implements Serializable {
     @XmlElement
     private final Set<URI> _consistencyGroupIds = new HashSet<>();
 
+    @XmlElement
+    private final Set<URI> _volumeGroupIds = new HashSet<>();
+
     // Whether to notify workflow when task is complete
     @XmlTransient
     private boolean notifyWorkflow = true;
@@ -127,6 +130,17 @@ public abstract class TaskCompleter implements Serializable {
     public boolean addConsistencyGroupId(URI consistencyGroupId) {
         if (consistencyGroupId != null) {
             return _consistencyGroupIds.add(consistencyGroupId);
+        }
+        return false;
+    }
+
+    public Set<URI> getVolumeGroupIds() {
+        return _volumeGroupIds;
+    }
+
+    public boolean addVolumeGroupId(URI volumeGroupId) {
+        if (volumeGroupId != null) {
+            return _volumeGroupIds.add(volumeGroupId);
         }
         return false;
     }

@@ -71,8 +71,8 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
     /**
      * @return the replicationGroupNames
      */
-    @XmlElementWrapper(name = "replication-group-names")
-    @XmlElement(name = "replication-group-name")
+    @XmlElementWrapper(name = "replication_group_names")
+    @XmlElement(name = "replication_group_name")
     public Set<String> getReplicationGroupNames() {
         if (replicationGroupNames == null) {
             replicationGroupNames = new HashSet<String>();

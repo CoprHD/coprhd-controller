@@ -1195,15 +1195,21 @@ public class StorageScheduler implements Scheduler {
         volume.setPool(poolId);
         if (consistencyGroup != null) {
             volume.setConsistencyGroup(consistencyGroup.getId());
-            if (!consistencyGroup.isProtectedCG()) {
-                volume.setReplicationGroupInstance(consistencyGroup.getLabel());
-
-                // if other volumes in the same CG are in an application, add this volume to the same application
-                VolumeGroup volumeGroup = getApplicationForCG(dbClient, consistencyGroup, volume.getReplicationGroupInstance());
-                if (volumeGroup != null) {
-                    volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
-                }
+            
+            if (consistencyGroup.getArrayConsistency()) {
+	            StorageSystem storageObj = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+	            String groupName = ControllerUtils.generateReplicationGroupName(storageObj, consistencyGroup, null);
+	            volume.setReplicationGroupInstance(groupName);
+	            
+	            if (!consistencyGroup.isProtectedCG()) {
+		            // if other volumes in the same CG are in an application, add this volume to the same application
+		            VolumeGroup volumeGroup = getApplicationForCG(dbClient, consistencyGroup, volume.getReplicationGroupInstance());
+		            if (volumeGroup != null) {
+		                volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
+		            }
+	            }
             }
+            
         }
 
         if (null != cosCapabilities.getAutoTierPolicyName()) {

@@ -42,7 +42,7 @@
                 <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'bucketACL.type'}</strong></div>
                 <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'bucketACL.name'}</strong></div>
                 <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'bucketACL.domain'}</strong></div>
-                <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'bucketACL.permissions'}</strong></div>
+                <div class="pull-left col-md-4" style="text-align:center;"><strong>&{'bucketACL.permissions'}</strong></div>
                 <div class="pull-left col-md-1"></div>
            </div>
            <hr style="margin:5px;"/>
@@ -50,7 +50,7 @@
                <div class="pull-left col-md-2" v-field="info.type" style="padding-right:0px;"><select-one options="typeOpt"></select-one></div>
                <div class="pull-left col-md-2" v-field="info.name"><input-text></input-text><label style="position: absolute; color:#a94442; font-size: 18px; right: -0px; top: 8px;">*</label></div>
                <div class="pull-left col-md-2" v-field="info.domain"><input-text></input-text></div>
-               <div class="pull-left col-md-3" v-field="info.permission" style="padding-right:0px;"></<input><select-many options="permOpt"></select-many></div>
+               <div class="pull-left col-md-4" v-field="info.permission" style="padding-right:0px;"></<input><select-many options="permOpt"></select-many></div>
                <div class="pull-left col-md-1" style="padding-left:0px; margin-top:5px;"><button type="button" ng-click="deleteACE($index)" class="close">&times;</button></div>
            </div>
            <div class="row">

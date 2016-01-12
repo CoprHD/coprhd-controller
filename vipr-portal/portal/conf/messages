@@ -2959,6 +2959,14 @@ affectedResources.blockSnapshot.wwn=WWN
 affectedResources.blockSnapshot.volume=Volume
 affectedResources.blockSnapshot.varray=Virtual Array
 
+affectedResources.blockSnapshotSession=Block Snapshot Session
+affectedResources.blockSnapshotSession.image=serviceCatalog/Snapshot.png
+affectedResources.blockSnapshotSession.name=Name
+affectedResources.blockSnapshotSession.creationTime=Creation Time
+affectedResources.blockSnapshotSession.wwn=WWN
+affectedResources.blockSnapshotSession.volume=Volume
+affectedResources.blockSnapshotSession.varray=Virtual Array
+
 affectedResources.blockConsistencyGroup=Consistency Group
 affectedResources.blockConsistencyGroup.image=assets/Consistency_Group.png
 affectedResources.blockConsistencyGroup.name=Name

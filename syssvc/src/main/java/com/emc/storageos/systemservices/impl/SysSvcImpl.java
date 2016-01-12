@@ -153,7 +153,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     }
 
     private void startSystemAudit(DbClient dbclient) {
-        SystemAudit sysAudit = new SystemAudit(dbclient);
+        SystemAudit sysAudit = new SystemAudit(dbclient, _coordinator.getCoordinatorClient());
         Thread t = new Thread(sysAudit);
         t.start();
     }

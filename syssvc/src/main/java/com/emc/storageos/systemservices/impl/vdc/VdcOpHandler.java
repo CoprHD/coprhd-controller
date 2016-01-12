@@ -610,7 +610,7 @@ public abstract class VdcOpHandler {
      * 6.Restart all nodes.
      * 
      * new active :
-     * 1.Wait for old active site¡¯s state has been changed to STANDBY_SYNCED
+     * 1.Wait for old active site's state has been changed to STANDBY_SYNCED
      * 2.Check whether old active restart barrier exists (ZK path: /sites/{site_uuid}/switchoverRestartBarrier):
      *  a.If NO, do thing. It means barrier has been removed
      *  b. If Yes, all nodes enter barrier (ZK path: /sites/{site_uuid}/switchoverStandbySiteRemoveBarrier) and remove the barrier (created

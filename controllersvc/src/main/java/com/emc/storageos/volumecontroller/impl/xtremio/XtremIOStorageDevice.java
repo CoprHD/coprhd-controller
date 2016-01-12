@@ -291,6 +291,17 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                                 // Check if there are no volumes in the CG
                                 if (null == xioCG.getVolList() || xioCG.getVolList().isEmpty()) {
                                     client.removeConsistencyGroup(consistencyGroupObj.getLabel(), clusterName);
+                                    _log.info("CG is empty on array. Remove array association from the CG");
+                                    consistencyGroupObj.removeSystemConsistencyGroup(storageSystem.getId().toString(),
+                                            consistencyGroupObj.getLabel());
+                                    // clear the LOCAL type
+                                    StringSet types = consistencyGroupObj.getTypes();
+                                    if (types != null) {
+                                        types.remove(Types.LOCAL.name());
+                                        consistencyGroupObj.setTypes(types);
+                                    }
+
+                                    dbClient.updateObject(consistencyGroupObj);
                                 }
                             }
                         }
@@ -564,7 +575,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 }
                 // Set the consistency group to inactive
                 consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storage.getId()), consistencyGroup.getLabel());
-                client.deleteTag(cgProject.getLabel(), XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
+
+                if (null != XtremIOProvUtils.isTagAvailableInArray(client, cgProject.getLabel(),
+                        XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName)) {
+                    client.deleteTag(cgProject.getLabel(), XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
+                }
+
                 if (markInactive) {
                     consistencyGroup.setInactive(true);
                 }

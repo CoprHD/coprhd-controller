@@ -4088,32 +4088,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     private static Workflow.Method createConsistencyGroupMethod(URI storage, URI consistencyGroup) {
-        return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup);
+        return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup, null);
     }
 
-    public boolean createConsistencyGroupStep(URI storage, URI consistencyGroup, String opId)
-            throws ControllerException {
-        TaskCompleter taskCompleter = null;
-        try {
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            taskCompleter = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
-            getDevice(storageSystem.getSystemType()).doCreateConsistencyGroup(
-                    storageSystem, consistencyGroup, null, taskCompleter);
-        } catch (Exception e) {
-            _log.error("create consistency group job failed:", e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            taskCompleter.error(_dbClient, serviceError);
-            WorkflowStepCompleter.stepFailed(opId, serviceError);
-            return false;
-        }
-        return true;
+    private static Workflow.Method createConsistencyGroupMethod(URI storage, URI consistencyGroup, String replicationGroupName) {
+        return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup, replicationGroupName);
     }
 
-    private static Workflow.Method createConsistencyGrpMethod(URI storage, URI consistencyGroup, String replicationGroupName) {
-        return new Workflow.Method("createConsistencyGrpStep", storage, consistencyGroup, replicationGroupName);
-    }
-
-    public boolean createConsistencyGrpStep(URI storage, URI consistencyGroup, String replicationGroupName, String opId)
+    public boolean createConsistencyGroupStep(URI storage, URI consistencyGroup, String replicationGroupName, String opId)
             throws ControllerException {
         TaskCompleter taskCompleter = null;
         try {
@@ -5097,7 +5079,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             String.format("Creating consistency group %s", cg.getLabel()),
                             waitFor, storage, storageSystem.getSystemType(),
                             this.getClass(),
-                            createConsistencyGrpMethod(storage, cguri, addVolList.getReplicationGroupName()),
+                            createConsistencyGroupMethod(storage, cguri, addVolList.getReplicationGroupName()),
                             rollbackMethodNullMethod(), null);
                 }
 

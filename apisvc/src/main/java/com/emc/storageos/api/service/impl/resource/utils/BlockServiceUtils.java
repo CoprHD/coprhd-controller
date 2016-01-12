@@ -245,6 +245,7 @@ public class BlockServiceUtils {
                 }
             } else if (storage.deviceIsType(Type.xtremio)) {
                 return true;
+            }
         }
 
         return false;

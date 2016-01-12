@@ -10,45 +10,29 @@
 #{/breadcrumb.container}
 
 <div class="container">
-    <div id="checkDbProgress">
+    <div id="checkPullStatus">
     #{Form.header titleKey:'restore.title' /}
         <div><b>&{'restore.from.version'}:</b> <span id="restore-version">${id}</span><br/></div>
         <br/><br/>
     #{Form.subheader titleKey:"restore.download.progress", descriptionKey:"restore.download.progress.description"/}
         <br/>
-        <table class="database-check-progress-table">
-            <tr>
-                <td width="300">
-                %{
-                    style = "success"
-                    if (isDbCheckStatus.equals("FAILED")) {
-                    style="danger"
-                    }
-                    }%
-                #{progressBar name:"Status", percentage:checkProgress, style:style/}</td>
-            </tr>
-            <tr>
-                <td width="300">
-		  <span id="checkDbStatus">
-          #{if isDbCheckStatus.equals("FAILED")}&{'upgrade.checkDb.failed'}#{/if}
-          </span>
 
-                    <div id="checkDetailMsg" style="color:#2c95dd"></div>
-                </td>
-            </tr>
-        </table>
-        <br/>
-        <br/>
 
-    #{form @restore(), id:'restoreForm',class:'form form-horizontal', autocomplete:"off"}
+    #{form @doRestore(), id:'restoreForm',class:'form form-horizontal', autocomplete:"off"}
 
         <div style="width: 500px;">
-            #{field 'restore.rootPassword'}
+            #{field 'restoreForm.password'}
             %{
                 field.cssClass = 'initialFocus'
                 field.required = true
                 }%
                 #{Form.inputPasswordControlGroup field:field/}
+            #{/field}
+            #{field 'restoreForm.name'}
+                <input type="hidden" name="${field.name}" value="${id}">
+            #{/field}
+            #{field 'restoreForm.type'}
+                <input type="hidden" name="${field.name}" value="${type}">
             #{/field}
         </div>
 
@@ -58,7 +42,7 @@
         </div>
         <div class="alert alert-info"> &{'restore.prompt'} </div>
 
-        #{Form.button 'button.ok', class:'primary', icon:'ok-sign', submit:'deleteModalForm'/}
+        #{Form.button 'button.ok', class:'primary', icon:'ok-sign', submit:'restoreForm'/}
         #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
 
     #{/form}

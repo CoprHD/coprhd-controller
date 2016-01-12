@@ -132,12 +132,24 @@ public class Backup extends Controller {
 
     }
 
-    public static void restore(String id) {
+    public static void restore(String id, Type type) {
         renderArgs.put("id", id);
+        renderArgs.put("type", type);
         render();
     }
 
-    public static void checkBackupDownloadProgress() {
+    @FlashException(keep = true, referrer = { "restore" })
+    public static void doRestore(String id, String password, boolean isGeoFromScratch) {
+        RestoreForm restoreForm = new RestoreForm();
+        restoreForm.name = params.get("restoreForm.name");
+        restoreForm.password = params.get("restoreForm.password");
+        restoreForm.isGeoFromScratch = params.get("restoreForm.isGeoFromScratch", boolean.class);
+        Type type = params.get("restoreForm.type", Type.class);
+        restoreForm.restore();
+        list(type);
+    }
+
+    public static void getRestoreStatus(String id) {
 
     }
 
@@ -176,6 +188,23 @@ public class Backup extends Controller {
         public void save() throws ViPRException {
             BackupUtils.createBackup(name, force);
         }
+    }
+    
+    public static class RestoreForm {
+
+        @Required
+        public String name;
+
+        @Required
+        public String password;
+
+        public boolean isGeoFromScratch = false;
+
+        public void restore() throws ViPRException {
+            BackupUtils.restore(name, StringUtils.trimToNull(password), isGeoFromScratch);
+        }
+
+
     }
 
 }

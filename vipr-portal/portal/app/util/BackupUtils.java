@@ -52,7 +52,7 @@ public class BackupUtils {
     }
 
     public static void restore(String name, String password, boolean isGeoFromScratch) {
-        BourneUtil.getSysClient().backup().restore(name, password, isGeoFromScratch);
+        BourneUtil.getSysClient().backup().restore(name,password,true);
     }
 
     public static BackupRestoreStatus restoreStatus(String name, boolean isLocal) {

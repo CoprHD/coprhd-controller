@@ -50,7 +50,7 @@ render.uploadAndRestoreBtn = function(o, val) {
 	}
 
     url = #{jsAction @restore()/};
-    href = url(odata) + "/" + name;
+    href = url(odata) + "/name/" + name + "/type/" + "${type}";
     btns += "&nbsp;&nbsp;<a id='" + val+"BtnId" + "' href='" + href + "' " +"  class=\"btn btn-default btn-xs\">" + "Restore" + "</a>";
     return btns;
 
@@ -60,7 +60,7 @@ render.restoreBtn = function (o, val) {
     var odata = o.aData;
     var name = odata.name;
     var url = #{jsAction @restore()/};
-    var href = url(odata) + "/" + name;
+    href = url(odata) + "/name/" + name + "/type/" + "${type}";
     return "<a id='" + val + "BtnId" + "' href='" + href + "' " + "  class=\"btn btn-default btn-xs\">" + "Restore" + "</a>";
 }
 

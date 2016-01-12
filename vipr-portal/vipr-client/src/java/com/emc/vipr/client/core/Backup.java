@@ -81,7 +81,7 @@ public class Backup {
     public void restore(String name, String password, boolean isGeoFromScratch) {
         UriBuilder builder = client.uriBuilder(RESTORE_URL);
         addQueryParam(builder, "backupname", name);
-        addQueryParam(builder, "password", name);
+        addQueryParam(builder, "password", password);
         if (isGeoFromScratch) {
             addQueryParam(builder, "isgeofromscratch", true);
         }

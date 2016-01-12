@@ -76,7 +76,8 @@ public class VdcManager extends AbstractManager {
     public static final int REMOVE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     private static final int BACK_UPGRADE_RETRY_MILLIS = 30 * 1000; // 30 seconds
-    public static final int FAILOVER_TIMEOUT_MILLIS = 40 * 60 * 1000; // 40 minutes
+    public static final int FAILOVER_STANDBY_SITE_TIMEOUT_MILLIS = 40 * 60 * 1000; // 40 minutes
+    public static final int FAILOVER_ACTIVE_SITE_TIMEOUT_MILLIS = 40 * 60 * 1000; // 40 minutes
     
     private SiteInfo targetSiteInfo;
     private String currentSiteId;
@@ -600,7 +601,15 @@ public class VdcManager extends AbstractManager {
                 }
                 break;
             case STANDBY_FAILING_OVER:
-                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_FAILOVER_TIMEOUT, FAILOVER_TIMEOUT_MILLIS);
+                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_FAILOVER_STANDBY_SITE_TIMEOUT, FAILOVER_STANDBY_SITE_TIMEOUT_MILLIS);
+                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
+                    log.info("Step5: site {} set to error due to failover timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.failoverFailedTimeout(
+                            site.getName(), drOpTimeoutMillis / 60 / 1000));
+                }
+                break;
+            case ACTIVE_FAILING_OVER:
+                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_FAILOVER_ACTIVE_SITE_TIMEOUT, FAILOVER_ACTIVE_SITE_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step5: site {} set to error due to failover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.failoverFailedTimeout(

@@ -62,7 +62,8 @@ public class DrUtil {
     public static final String KEY_DATA_SYNC_TIMEOUT = "data_sync_timeout_millis";
     public static final String KEY_SWITCHOVER_TIMEOUT = "switchover_timeout_millis";
     public static final String KEY_STANDBY_DEGRADE_THRESHOLD = "degrade_standby_threshold_millis";
-    public static final String KEY_FAILOVER_TIMEOUT = "failover_timeout_millis";
+    public static final String KEY_FAILOVER_STANDBY_SITE_TIMEOUT = "failover_standby_site_timeout_millis";
+    public static final String KEY_FAILOVER_ACTIVE_SITE_TIMEOUT = "failover_active_site_timeout_millis";
 
     private CoordinatorClient coordinator;
 

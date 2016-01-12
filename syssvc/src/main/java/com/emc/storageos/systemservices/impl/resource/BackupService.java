@@ -430,11 +430,12 @@ public class BackupService {
     @Path("restore/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response restoreBackup(@QueryParam("backupname") String backupName,
+                                  @QueryParam("isLocal") boolean isLocal,
                                   @QueryParam("password") String password,
                                   @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
-        log.info("Received restore backup request, backup name={} passowrd={} isGeoFromScratch={}",
-                new Object[] {backupName, password, isGeoFromScratch});
-        File backupDir= getBackupDir(backupName);
+        log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
+                new Object[] {backupName, isLocal, password, isGeoFromScratch});
+        File backupDir= getBackupDir(backupName, isLocal);
         String[] restoreCommand=new String[]{restoreCmd,
                 backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
                 restoreLog};
@@ -466,20 +467,14 @@ public class BackupService {
         return status;
     }
 
-    private File getBackupDir(String backupName) {
-        File backupDir = new File(backupOps.getBackupDir(), backupName);
+    private File getBackupDir(String backupName, boolean isLocal) {
+        File backupDir = isLocal ? new File(backupOps.getBackupDir(), backupName) : new File(BackupConstants.RESTORE_DIR, backupName);
         if (backupDir.exists()) {
             return backupDir;
         }
-
-        backupDir = new File("/data/"+ backupName);
-        if (backupDir.exists()) {
-            return backupDir;
-        }
-
+        
         throw APIException.badRequests.invalidParameter("backupname", backupName);
     }
-
 
     /**
      * This method returns a list of files on each node to be downloaded for specified tag

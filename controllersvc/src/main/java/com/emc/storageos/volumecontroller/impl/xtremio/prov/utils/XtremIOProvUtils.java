@@ -119,6 +119,28 @@ public class XtremIOProvUtils {
     }
 
     /**
+     * Check if there is a tag with the given name
+     * If found, return the tag
+     * 
+     * @param client
+     * @param tagName
+     * @param tagEntityType
+     * @param clusterName
+     * @return XtrmIO tag if found else null
+     */
+    public static XtremIOTag isTagAvailableInArray(XtremIOClient client, String tagName, String tagEntityType, String clusterName){
+        XtremIOTag tag = null;
+        
+        try{
+            tag = client.getTagDetails(tagName, tagEntityType, clusterName);
+        } catch (Exception e) {
+            _log.info("Tag {} not available in Array.", tagName);
+        }
+
+        return tag;
+    }
+
+    /**
      * Check if there is a snapset with the given name
      * If found, return the snapset
      * 

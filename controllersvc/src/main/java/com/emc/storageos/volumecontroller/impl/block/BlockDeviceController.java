@@ -4216,16 +4216,20 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     private static Workflow.Method createConsistencyGroupMethod(URI storage, URI consistencyGroup) {
-        return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup);
+        return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup, null);
     }
 
-    public boolean createConsistencyGroupStep(URI storage, URI consistencyGroup, String opId)
+    private static Workflow.Method createConsistencyGroupMethod(URI storage, URI consistencyGroup, String replicationGroupName) {
+        return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup, replicationGroupName);
+    }
+
+    public boolean createConsistencyGroupStep(URI storage, URI consistencyGroup, String replicationGroupName, String opId)
             throws ControllerException {
         TaskCompleter taskCompleter = null;
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             taskCompleter = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
-            String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, null, _dbClient);
+            String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, replicationGroupName, _dbClient);
             getDevice(storageSystem.getSystemType()).doCreateConsistencyGroup(
                     storageSystem, consistencyGroup, groupName, taskCompleter);
         } catch (Exception e) {
@@ -5196,13 +5200,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
 
                 // check if cg is created, if not create it
-                if (!cg.created()) {
+                if (!cg.created(addVolList.getReplicationGroupName(), storageSystem.getId())) {
                     _log.info("Consistency group not created. Creating it");
                     waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                             String.format("Creating consistency group %s", cg.getLabel()),
                             waitFor, storage, storageSystem.getSystemType(),
                             this.getClass(),
-                            createConsistencyGroupMethod(storage, cguri),
+                            createConsistencyGroupMethod(storage, cguri, addVolList.getReplicationGroupName()),
                             rollbackMethodNullMethod(), null);
                 }
 

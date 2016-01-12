@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Network;
@@ -2039,7 +2040,9 @@ public class RPHelper {
         exportGroup.setOpStatus(new OpStatusMap());
         // TODO: May need to use a default size or compute based on the contents of the export mask.
         exportGroup.setNumPaths(numPaths);
+        exportGroup.setType(ExportGroupType.Cluster.name());
         exportGroup.setZoneAllInitiators(true);
+        
         return exportGroup;
     }
 

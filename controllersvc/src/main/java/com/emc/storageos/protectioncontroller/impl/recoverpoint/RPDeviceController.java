@@ -1055,6 +1055,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (isJournalExport) {
                 	exportGroup.addInternalFlags(Flag.RECOVERPOINT_JOURNAL);
                 	exportGroup.setGeneratedName(exportGroup.getGeneratedName()+"_JOURNAL");
+                	exportGroup.setLabel(exportGroup.getGeneratedName()+"_JOURNAL");
                 }
 
                 // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)

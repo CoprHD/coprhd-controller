@@ -26,19 +26,17 @@ import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -1116,7 +1114,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 }
             }
 
-            // The initiatorURIsCopy was used in the foreach initiator loop to see
+            // The initiatorURIsCopy was used in the for each initiator loop to see
             // which initiators already exist in a mask. If it is non-empty,
             // then it means there are initiators that are new,
             // so let's add them to the main tracker
@@ -1306,8 +1304,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         //Bharath TODO: test only
         masksMap = applyVolumesToMasksUsingRPVMAXRules(storage, exportGroup, existingMasksToUpdateWithNewVolumes, volumesWithNoMask, masksMap, maskToInitiatorsMap, partialMasks, token);
         
-        if (masksMap.isEmpty()) {
-        	return false;
+        if (masksMap.isEmpty()) {        	
+        	_log.info("No masks were found for RP that satisified the host rule, returning true");
+        	return true;
         }
                            
         // Rule 1: See if there is a mask that matches our policy and only our policy
@@ -1358,9 +1357,28 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 	            Map<URI, Set<Initiator>> maskToInitiatorsMap,
 	            Set<URI> partialMasks, String token) {
     	
+        Map<ExportMask, ExportMaskPolicy> matchingMaskMap = new HashMap<ExportMask, ExportMaskPolicy>();
+
+    	
     	//If there is no host information in the exportGroup, then just return the maskMap for further processing
-    	if (!exportGroup.checkInternalFlags(Flag.RECOVERPOINT) || null == exportGroup.getHosts() || exportGroup.getHosts().isEmpty() ) {
+    	if (!exportGroup.checkInternalFlags(Flag.RECOVERPOINT) || !exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL)) {     		
     		return masksMap;
+    	}
+    	
+    	if (exportGroup.getHosts() == null) {
+    		return masksMap;
+    	}
+    	
+    	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL)) {    		
+    		_log.info("Looking for ExportMasks with JOURNAL keyword since the ExportGroup is intended for journal volumes only");
+    	    for(Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {      
+    	     	ExportMask rpMaskingView = maskMap.getKey();    	     	    	     
+    	     	if (rpMaskingView.getMaskName().contains("JOURNAL") || rpMaskingView.getMaskName().contains("journal")) {
+    	     		matchingMaskMap.put(maskMap.getKey(), maskMap.getValue());
+    	     	}
+    	    }    		
+    	    
+    	    return matchingMaskMap;
     	}
     	
     	//Get the host to which the volume is being exported       	
@@ -1386,7 +1404,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     	                        
         //In the case of an RP protected volume, the masksMap contains all the masks matching the RP initiators that was passed down. 
         //We need to weed through this list to find only those masking view that is compatible with the list of host masking views.
-        Map<ExportMask, ExportMaskPolicy> matchingMaskMap = new HashMap<ExportMask, ExportMaskPolicy>();
         for(Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {        	
         	ExportMask rpMaskingView = maskMap.getKey();
         	        	
@@ -1396,10 +1413,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         			ExportMask hostMaskingView = _dbClient.queryObject(ExportMask.class, hostMV);
         		
         			//Find a masking view for the RP, if one exists, that matches
-        			if (hostMaskingView.getStoragePorts().containsAll(rpMaskingView.getStoragePorts())) {    					
+        			if (hostMaskingView.getStoragePorts().size() == rpMaskingView.getStoragePorts().size() && 
+        					hostMaskingView.getStoragePorts().containsAll(rpMaskingView.getStoragePorts())) {    					
         				if (!matchingMaskMap.containsKey(rpMaskingView)) {
         					_log.info(String.format("Found a RP masking view %s that has the same storage ports as the host %s to which we are exporting the volume. OK to use " , rpMaskingView.getMaskName(), hostMaskingView.getMaskName()));
         					matchingMaskMap.put(rpMaskingView, maskMap.getValue());
+        					        				
         					//TODO: may break when we find the first one. if there are multiple RP mv's that each map to a host mv, then everything is returned.
         					//If we break here, make sure that when the volumes are exported, the correct host masking view is picked, one that corresponds to the RP masking view
         					//that was selected here.
@@ -1408,7 +1427,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         		}
         	}        	        
         }
-    	
+        
+        if (matchingMaskMap.isEmpty()) {
+        	_log.info("No mask found to be matching with the host masking view ");        	
+        }
+        
+         	
     	return matchingMaskMap;
     }
     

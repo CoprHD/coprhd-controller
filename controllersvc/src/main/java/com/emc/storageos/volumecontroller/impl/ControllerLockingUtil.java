@@ -117,6 +117,8 @@ public class ControllerLockingUtil {
      *  (could be a Protection System or null in which case only host in key)
      * @return List<String> where each item in list is a lockKey
      */
+    
+    //TODO: Fix method name
     static public List<String> getStorageLockKeysByHostName(DbClient dbClient, 
             Collection<URI> initiatorURIs, URI storageURI) {
         String storageKey = getStorageKey(dbClient, storageURI);

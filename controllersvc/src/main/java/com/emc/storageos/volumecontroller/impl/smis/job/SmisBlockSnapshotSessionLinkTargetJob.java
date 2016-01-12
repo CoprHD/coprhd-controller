@@ -42,8 +42,8 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
     // The unique job name.
     private static final String JOB_NAME = "SmisBlockSnapshotSessionLinkTargetJob";
 
-    // The URI of the snapshot session to which the target is linked
-    private final URI _snapSessionURI;
+    // The URI of the snapshot
+    private final URI _snapshotURI;
 
     // The copy mode in which the target is linked to the snapshot.
     @SuppressWarnings("unused")
@@ -57,14 +57,14 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
      * 
      * @param cimJob The CIM object path of the underlying CIM Job.
      * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the snapshot session to which the target is linked.
+     * @param snapshotURI The URI of the snapshot.
      * @param copyMode The copy mode in which the target is linked to the snapshot.
      * @param taskCompleter A reference to the task completer.
      */
-    public SmisBlockSnapshotSessionLinkTargetJob(CIMObjectPath cimJob, URI systemURI, URI snapSessionURI, String copyMode,
+    public SmisBlockSnapshotSessionLinkTargetJob(CIMObjectPath cimJob, URI systemURI, URI snapshotURI, String copyMode,
             TaskCompleter taskCompleter) {
         super(cimJob, systemURI, taskCompleter, JOB_NAME);
-        _snapSessionURI = snapSessionURI;
+        _snapshotURI = snapshotURI;
         _copyMode = copyMode;
     }
 
@@ -78,7 +78,7 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
         try {
             DbClient dbClient = jobContext.getDbClient();
             TaskCompleter completer = getTaskCompleter();
-            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, completer.getId());
+            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, _snapshotURI);
             if (jobStatus == JobStatus.IN_PROGRESS) {
                 return;
             }
@@ -86,7 +86,7 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
                 s_logger.info("Post-processing successful link snapshot session target {} for task {}", snapshot.getId(),
                         completer.getOpId());
                 // Get the snapshot session to which the target is being linked.
-                BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, _snapSessionURI);
+                BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, completer.getId());
 
                 // Get the snapshot device ID and set it against the BlockSnapshot object.
                 BlockObject sourceObj = BlockObject.fetch(dbClient, snapshot.getParent().getURI());

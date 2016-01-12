@@ -9,10 +9,7 @@ import java.io.Writer;
 
 import javax.ws.rs.core.MediaType;
 
-import org.joda.time.DateTime;
-
-import com.emc.storageos.db.client.TimeSeriesMetadata;
-
+import com.emc.storageos.security.audit.AuditLogRequest;
 /**
  * Interface to retrieve auditlogs from underlying persistence layer
  * 
@@ -22,10 +19,8 @@ public interface AuditLogRetriever {
     /**
      * Retrieve all auditlogs and stream them to the output stream
      * 
-     * @param time
-     *            - time of the bucket to be retrieved
-     * @param bucket
-     *            - granularity of the time, eg. HOUR, MINUTE, etc.
+     * @param auditLogRequest
+     *            - request with query params that auditlogs to be retrieved
      * @param type
      *            - media type to be streamed
      * @param writer
@@ -33,6 +28,6 @@ public interface AuditLogRetriever {
      * @throws MarshallingExcetion
      *             - auditlog object marshalling failed
      */
-    public void getBulkAuditLogs(DateTime time, TimeSeriesMetadata.TimeBucket bucket,
-            MediaType type, String lang, Writer writer) throws MarshallingExcetion;
+    public void getBulkAuditLogs(AuditLogRequest auditLogRequest, MediaType type, Writer writer) throws MarshallingExcetion;
+
 }

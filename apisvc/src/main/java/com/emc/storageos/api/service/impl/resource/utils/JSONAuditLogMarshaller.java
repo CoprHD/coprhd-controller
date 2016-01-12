@@ -70,18 +70,23 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
 
     @Override
     public void marshal(AuditLog auditlog, Writer writer) throws MarshallingExcetion {
+        marshal(auditlog, writer, null);
+    }
+
+    public boolean marshal(AuditLog auditlog, Writer writer, String keyword) throws MarshallingExcetion {
 
         BufferedWriter ow = ((BufferedWriter) writer);
 
         if (auditlog == null) {
             _logger.warn("null auditlog dropped");
-        } else {
-            writeOneAuditLog(ow, auditlog);
+            return false;
         }
+        return matchAndwriteOneAuditLog(ow, auditlog, null);
     }
 
     /**
-     * Stream out one auditlog.
+     * Match if auditlog description contains expected keyword ,Stream out the auditlog if
+     * matched,Otherwise ignore this one piece of auditlog.
      * Since the streaming format for the first auditlog is slightly different from all the
      * rest of auditlogs, this method uses a boolean to block auditlog being streamed until
      * the first auditlog is streamed by a thread.
@@ -90,34 +95,40 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
      *            - the output writer to stream the auditlog.
      * @param auditlog
      *            - the auditlog to be streamed.
+     * @param keyword
+     *            - keyword if audit log description contain
+     * @return true if the Auditlog outputted to the writer,else false
      * @throws MarshallingExcetion
      *             - failure during streaming.
      */
-    private void writeOneAuditLog(BufferedWriter writer, AuditLog auditlog) throws MarshallingExcetion {
+    private boolean matchAndwriteOneAuditLog(BufferedWriter writer, AuditLog auditlog,String keyword) throws MarshallingExcetion {
         try {
-            if (_count.getAndIncrement() > 0) {
-                while (!_firstWritten.get()) {
-                    // wait until the thread which writes the first auditlog is done
-                    try {
-                        Thread.sleep(1);
-                    } catch (InterruptedException e) {
-                        _logger.warn("Sleep interrupted");
+            AuditLogUtils.resetDesc(auditlog, resb);
+            if (AuditLogUtils.isKeywordContained(auditlog,keyword)) {
+                if (_count.getAndIncrement() > 0) {
+                    while (!_firstWritten.get()) {
+                        // wait until the thread which writes the first auditlog is done
+                        try {
+                            Thread.sleep(1);
+                        } catch (InterruptedException e) {
+                            _logger.warn("Sleep interrupted");
+                        }
                     }
+                    writer.write("," + _mapper.writeValueAsString(auditlog));
+                } else {
+                    writer.write(_mapper.writeValueAsString(auditlog));
+                    _firstWritten.set(true);
                 }
-                AuditLogUtils.resetDesc(auditlog, resb);
-                writer.write("," + _mapper.writeValueAsString(auditlog));
-            } else {
-                AuditLogUtils.resetDesc(auditlog, resb);
-                writer.write(_mapper.writeValueAsString(auditlog));
-                _firstWritten.set(true);
+                return true;
             }
+            _logger.debug("{} filter out by description keyword {}",auditlog.getDescription(),keyword);
+            return false;
         } catch (JsonGenerationException e) {
             throw new MarshallingExcetion("JSON Generation Error", e);
         } catch (JsonMappingException e) {
             throw new MarshallingExcetion("JSON Mapping Error", e);
         } catch (IOException e) {
             throw new MarshallingExcetion("JSON streaming failed: ", e);
-            // throw new MarshallingExcetion("JSON streaming failed: "+auditlog.getAuditLogId(), e);
         }
     }
 

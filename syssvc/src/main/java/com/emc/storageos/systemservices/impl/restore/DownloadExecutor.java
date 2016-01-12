@@ -20,11 +20,12 @@ import java.util.zip.ZipInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.commons.io.FileUtils;
 
-import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus.Status;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.util.FtpClient;
@@ -69,9 +70,10 @@ public final class DownloadExecutor implements  Runnable {
 
     public void registerListener() {
         try {
+            log.info("add download listener");
             backupOps.addRestoreListener(listener);
         }catch (Exception e) {
-            log.error("Fail to add node listener for restore status config znode", e);
+            log.error("Fail to add download listener e=", e);
             throw APIException.internalServerErrors.addListenerFailed();
         }
     }
@@ -79,18 +81,43 @@ public final class DownloadExecutor implements  Runnable {
     class DownloadListener implements NodeListener {
         @Override
         public String getPath() {
-            String path = String.format("/config/%s/%s/%s",
-                    BackupConstants.BACKUP_RESTORE_STATUS, remoteBackupFileName,
-                    Constants.GLOBAL_ID);
-            return path;
+            String prefix = backupOps.getBackupConfigPrefix();
+            return prefix + "/" + remoteBackupFileName;
         }
 
         /**
-         * called when user modify restore status, procedure or node status from ipreconfig point of view
+         * called when user modify restore status, procedure or node status
          */
         @Override
         public void nodeChanged() {
             log.info("The restore status changed");
+            onRestoreStatusChange();
+        }
+
+        private void onRestoreStatusChange() {
+            BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
+            log.info("Restore status={}", status);
+            Status s = status.getStatus();
+
+            if (s == Status.DOWNLOAD_FAILED || s == Status.RESTORE_CANCELLED ) {
+                //Remove downloaded backup data
+                File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
+                log.info("To remove downloaded {}", downloadedDir);
+                try {
+                    FileUtils.deleteDirectory(downloadedDir);
+                }catch (IOException e) {
+                    log.error("Failed to remove {} e=", downloadedDir.getAbsolutePath(), e );
+                }
+            }
+
+            if (s == Status.DOWNLOAD_FAILED || s == Status.RESTORE_CANCELLED || s == Status.DOWNLOAD_SUCCESS) {
+                try {
+                    log.info("remove download listener");
+                    backupOps.removeRestoreListener(listener);
+                }catch (Exception e) {
+                    log.warn("Failed to remove download listener");
+                }
+            }
         }
 
         /**
@@ -101,6 +128,7 @@ public final class DownloadExecutor implements  Runnable {
             log.info("Restore status connection state changed to {}", state);
             if (state.equals(State.CONNECTED)) {
                 log.info("Curator (re)connected.");
+                onRestoreStatusChange();
             }
         }
     }
@@ -148,7 +176,6 @@ public final class DownloadExecutor implements  Runnable {
         }finally {
             try {
                 backupOps.releaseLock(lock);
-                backupOps.removeRestoreListener(listener);
             }catch (Exception e) {
                 log.error("Failed to remove listener e=",e);
             }
@@ -184,8 +211,14 @@ public final class DownloadExecutor implements  Runnable {
         // fix the download size
         postDownload(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS);
 
-        zin.closeEntry();
-        zin.close();
+        try {
+            zin.closeEntry();
+            zin.close();
+        }catch (IOException e) {
+            log.debug("Failed to close the stream e", e);
+            // it's a known issue to use curl
+            //it's safe to ignore this exception here.
+        }
     }
 
     private boolean hasDownloaded(File backupFolder) {

@@ -55,6 +55,37 @@
             min:2,
             max:128
         }
+    },
+    
+    accessControlList:{
+      type:"table",
+      items:{
+        aclType:{
+          type: "choice",
+          initialValue: "USER",
+          select: "one",
+          required: false,
+          options: {
+            "USER": "User",
+            "GROUP": "Group"
+          }
+        },
+        
+        aclName:{
+          type:"text",
+          required: false
+        },
+          
+        aclDomain:{
+          type:"text",
+          required: false
+        },
+        
+        aclPermission:{
+          type:"assetType.vipr.fileShareACLPermission",
+          initialValue:"CHANGE"
+        }
+      }
     }
   }
 }

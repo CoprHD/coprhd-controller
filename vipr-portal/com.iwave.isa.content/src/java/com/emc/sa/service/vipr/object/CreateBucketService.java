@@ -14,10 +14,14 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 
 import java.net.URI;
+import java.util.List;
 
+import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.file.FileStorageUtils;
 
 @Service("CreateBucket")
 public class CreateBucketService extends ViPRService {
@@ -45,9 +49,29 @@ public class CreateBucketService extends ViPRService {
 
     @Param(value = OWNER, required = false)
     protected String owner;
+    
+    @Bindable(itemType = ObjectStorageUtils.ObjectStorageACLs.class)
+    protected ObjectStorageUtils.ObjectStorageACLs[] objectStorageACLs;
+    
+    protected URI bucketId;
+    
+    @Override
+    public void precheck() throws Exception {
+        if (objectStorageACLs != null && objectStorageACLs.length > 0) {
+            List<String> invalidNames = ObjectStorageUtils.getInvalidObjectACLs(objectStorageACLs);
+            if (!invalidNames.isEmpty()) {
+                ExecutionUtils.fail("failTask.CreateCifsShareHelper.invalidName", invalidNames, invalidNames);
+            }
+            objectStorageACLs = ObjectStorageUtils.clearEmptyObjectACLs(objectStorageACLs);
+        }
+    }
 
     @Override
     public void execute() throws Exception {
-        ObjectStorageUtils.createBucket(bucketName, virtualArray, virtualPool, project, softQuota, hardQuota, retention, owner);
+        this.bucketId = ObjectStorageUtils.createBucket(bucketName, virtualArray, virtualPool, project, softQuota, hardQuota, retention, owner);
+        
+        if (objectStorageACLs != null && objectStorageACLs.length > 0) {
+            ObjectStorageUtils.setObjectShareACL(bucketId, bucketName, objectStorageACLs);
+        }
     }
 }

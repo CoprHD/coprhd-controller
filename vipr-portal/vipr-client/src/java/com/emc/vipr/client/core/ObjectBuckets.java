@@ -10,8 +10,11 @@ import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 import java.net.URI;
 import java.util.List;
 
+import javax.ws.rs.core.UriBuilder;
+
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.model.object.BucketBulkRep;
 import com.emc.storageos.model.object.BucketDeleteParam;
 import com.emc.storageos.model.object.BucketParam;
@@ -91,5 +94,33 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      */
     public Task<BucketRestRep> update(URI id, BucketUpdateParam input) {
         return putTask(input, getIdUrl(), id);
+    }
+    
+    /**
+     * Update Bucket ACL
+     * 
+     * API Call: <tt>PUT /object/buckets/{id}/acl</tt>
+     * 
+     * @param id
+     *            the ID of the bucket.
+     * @param shareName
+     *            the shareName to update associated ACLs
+     * @param param
+     *            the update/create configuration
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BucketRestRep> updateBucketACL(URI id, String shareName, BucketACLUpdateParams param) {
+        UriBuilder builder = client.uriBuilder(getBucketACLsUrl());
+        URI targetUri = builder.build(id, shareName);
+        return putTaskURI(param, targetUri);
+    }
+    
+    /**
+     * Gets the base URL for shares for a single bucket: <tt>/file/bucket</tt>
+     * 
+     * @return the shares URL.
+     */
+    protected String getBucketACLsUrl() {
+        return getIdUrl() + "/{id}/acl";
     }
 }

@@ -95,15 +95,14 @@ public class XMLAuditLogMarshaller implements AuditLogMarshaller {
                 } else {
                     AuditLogUtils.resetDesc(auditlog, resb);
 
-                    if ( keyword == null || keyword.isEmpty() || auditlog.getDescription().contains(keyword)) {
+                    if (AuditLogUtils.isKeywordContained(auditlog,keyword)) {
                         StringWriter sw = new StringWriter();
                         marshaller.marshal(auditlog, sw);
                         ow.write(sw.toString());
                         return true;
-                    }else {
-                        _logger.debug("{} filter out by description keyword {}",auditlog.getDescription(),keyword);
-                        return false;
                     }
+                    _logger.debug("{} filter out by description keyword {}", auditlog.getDescription(), keyword);
+                    return false;
                 }
             }
         } catch (JAXBException e) {

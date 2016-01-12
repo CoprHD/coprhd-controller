@@ -70,7 +70,6 @@ public class AuditService extends ResourceService {
      * @return Output stream of auditlogs or an error status.
      */
     public Response getAuditLogs( final String timeBucket, final String language, HttpHeaders header) {
-
         return getAuditLogs(timeBucket, language, null, null, null, null, null, null, header);
     }
     /**

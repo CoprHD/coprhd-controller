@@ -4596,7 +4596,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         this._blockDeviceController = _blockDeviceController;
     }
 
-    public void setBlockDeviceController(RPDeviceController rpDeviceController) {
+    public void setRpDeviceController(RPDeviceController rpDeviceController) {
         _rpDeviceController = rpDeviceController;
     }
 

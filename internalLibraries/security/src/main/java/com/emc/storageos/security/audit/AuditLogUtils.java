@@ -88,7 +88,6 @@ public class AuditLogUtils {
 
     public static boolean isKeywordContained(AuditLog auditLog,String keyword){
         return keyword == null || keyword.isEmpty() || auditLog.getDescription().contains(keyword);
-
     }
 
 }

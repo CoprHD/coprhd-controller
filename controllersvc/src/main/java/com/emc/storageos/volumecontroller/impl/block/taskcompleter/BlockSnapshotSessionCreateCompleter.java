@@ -5,8 +5,8 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,14 +17,13 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.TaskCompleter;
 
 /**
  * Task completer invoked when a workflow step creating new BlockSnapshotSession
  * instance completes.
  */
 @SuppressWarnings("serial")
-public class BlockSnapshotSessionCreateCompleter extends TaskLockingCompleter {
+public class BlockSnapshotSessionCreateCompleter extends BlockSnapshotSessionCompleter {
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionCreateCompleter.class);
@@ -36,7 +35,7 @@ public class BlockSnapshotSessionCreateCompleter extends TaskLockingCompleter {
      * @param stepId The id of the WF step in which the session is being created.
      */
     public BlockSnapshotSessionCreateCompleter(URI snapSessionURI, String stepId) {
-        super(BlockSnapshotSession.class, snapSessionURI, stepId);
+        super(snapSessionURI, stepId);
     }
 
     /**
@@ -78,11 +77,16 @@ public class BlockSnapshotSessionCreateCompleter extends TaskLockingCompleter {
                     s_logger.info(errMsg);
                     throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
-
-            super.complete(dbClient, status, coded);
             s_logger.info("Done snapshot session create step {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
             s_logger.error("Failed updating status for snapshot session create step {}", getOpId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
+    }
+
+    @Override
+    protected String getDescriptionOfResults(Status status, BlockObject sourceObj, BlockSnapshotSession snapSession) {
+        return null;
     }
 }

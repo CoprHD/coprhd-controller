@@ -5454,6 +5454,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_SAPSHOT_SESSION_WF_NAME, false, opId);
             _log.info("Created new workflow to create a new snapshot session for source with operation id {}", opId);
 
+            boolean isCG = checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
+
             // Create a step to create the session.
             String waitFor = workflow.createStep(CREATE_SNAPSHOT_SESSION_STEP_GROUP, String.format("Creating block snapshot session"),
                     null, systemURI, getDeviceType(systemURI), getClass(),
@@ -5463,7 +5465,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // If necessary add a step for each session to create the new targets and link them to the session.
             if ((sessionSnapshotURIs != null) && (!sessionSnapshotURIs.isEmpty())) {
 
-                if (checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer)) {
+                if (isCG) {
                     for (List<URI> snapshotURIs : sessionSnapshotURIs) {
                         workflow.createStep(
                                 LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
@@ -5528,6 +5530,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
             completer = new BlockSnapshotSessionCreateCompleter(snapSessionURI, stepId);
+            WorkflowStepCompleter.stepExecuting(stepId);
             getDevice(system.getSystemType()).doCreateSnapshotSession(system, snapSessionURI, completer);
         } catch (Exception e) {
             if (completer != null) {
@@ -5953,6 +5956,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _log.info("Created new workflow to delete snapshot session {} with operation id {}",
                     snapSessionURI, opId);
 
+            checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
+
             // Create the workflow step to delete the snapshot session.
             workflow.createStep(DELETE_SNAPSHOT_SESSION_STEP_GROUP,
                     String.format("Delete snapshot session %s", snapSessionURI),
@@ -5998,6 +6003,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
             completer = new BlockSnapshotSessionDeleteCompleter(snapSessionURI, markInactive, stepId);
+            WorkflowStepCompleter.stepExecuting(stepId);
             getDevice(system.getSystemType()).doDeleteBlockSnapshotSession(system, snapSessionURI, completer);
         } catch (Exception e) {
             if (completer != null) {

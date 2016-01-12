@@ -5,15 +5,13 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSet;
@@ -22,7 +20,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_URI_TO_STRING;
 import static com.google.common.collect.Collections2.transform;
-import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Lists.newArrayList;
 
 /**
@@ -30,7 +27,7 @@ import static com.google.common.collect.Lists.newArrayList;
  * volume to an array snapshot completes.
  */
 @SuppressWarnings("serial")
-public class BlockSnapshotSessionLinkTargetCompleter extends TaskLockingCompleter {
+public class BlockSnapshotSessionLinkTargetCompleter extends BlockSnapshotSessionCompleter {
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionLinkTargetCompleter.class);
@@ -46,7 +43,7 @@ public class BlockSnapshotSessionLinkTargetCompleter extends TaskLockingComplete
      * @param stepId The id of the WF step in which the target is being created and linked.
      */
     public BlockSnapshotSessionLinkTargetCompleter(URI snapSessionURI, List<URI> snapshotURIs, String stepId) {
-        super(BlockSnapshot.class, snapshotURIs, stepId);
+        super(snapSessionURI, stepId);
         _snapshotSessionURI = snapSessionURI;
         _snapshotURIs = snapshotURIs;
     }
@@ -78,14 +75,16 @@ public class BlockSnapshotSessionLinkTargetCompleter extends TaskLockingComplete
                     s_logger.info(errMsg);
                     throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
-
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the step to complete.
-                updateWorkflowStatus(status, coded);
-            }
             s_logger.info("Done link snapshot session target step {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
             s_logger.error("Failed updating status for link snapshot session target step {}", getOpId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
+    }
+
+    @Override
+    protected String getDescriptionOfResults(Operation.Status status, BlockObject sourceObj, BlockSnapshotSession snapSession) {
+        return null;
     }
 }

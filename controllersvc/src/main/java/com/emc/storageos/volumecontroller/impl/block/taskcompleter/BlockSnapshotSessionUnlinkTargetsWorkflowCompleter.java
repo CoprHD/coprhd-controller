@@ -82,13 +82,11 @@ public class BlockSnapshotSessionUnlinkTargetsWorkflowCompleter extends BlockSna
                     throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
 
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the task to complete.
-                updateWorkflowStatus(status, coded);
-            }
             s_logger.info("Done unlink targets from snapshot session task {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
             s_logger.error("Failed updating status for unlink targets from snapshot session task {}", getOpId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
     }
 

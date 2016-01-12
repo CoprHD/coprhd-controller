@@ -7,12 +7,12 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.StringSet;
@@ -25,10 +25,10 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
  * volume to an array snapshot completes.
  */
 @SuppressWarnings("serial")
-public class BlockSnapshotSessionRelinkTargetCompleter extends TaskLockingCompleter {
+public class BlockSnapshotSessionRelinkTargetCompleter extends BlockSnapshotSessionCompleter {
 
     // The URI of the BlockSnapshotSession representing the target array snapshot.
-    private final URI _tgtSnapSessionURI;
+    private final URI _snapshotURI;
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionRelinkTargetCompleter.class);
@@ -41,8 +41,8 @@ public class BlockSnapshotSessionRelinkTargetCompleter extends TaskLockingComple
      * @param stepId The id of the WF step in which the target is being re-linked.
      */
     public BlockSnapshotSessionRelinkTargetCompleter(URI tgtSnapSessionURI, URI snapshotURI, String stepId) {
-        super(BlockSnapshot.class, snapshotURI, stepId);
-        _tgtSnapSessionURI = tgtSnapSessionURI;
+        super(tgtSnapSessionURI, stepId);
+        _snapshotURI = snapshotURI;
     }
 
     /**
@@ -59,7 +59,7 @@ public class BlockSnapshotSessionRelinkTargetCompleter extends TaskLockingComple
                     // current snapshot session and add them to the linked targets for
                     // the target session.
                     URI snapshotURI = getId();
-                    BlockSnapshotSession tgtSnapSession = dbClient.queryObject(BlockSnapshotSession.class, _tgtSnapSessionURI);
+                    BlockSnapshotSession tgtSnapSession = dbClient.queryObject(BlockSnapshotSession.class, getId());
                     StringSet tgtSnapSessionTargets = tgtSnapSession.getLinkedTargets();
                     List<BlockSnapshotSession> snaphotSessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
                             BlockSnapshotSession.class,
@@ -76,7 +76,7 @@ public class BlockSnapshotSessionRelinkTargetCompleter extends TaskLockingComple
                     // If the target was not re-linked to the same snapshot session
                     // update the linked targets list for both the current and target
                     // snapshot sessions.
-                    if (!currentSnapSession.getId().equals(_tgtSnapSessionURI)) {
+                    if (!currentSnapSession.getId().equals(getId())) {
                         String snapshotId = snapshotURI.toString();
                         // Remove from the current snapshot session.
                         StringSet currentSnapSessionTargets = currentSnapSession.getLinkedTargets();
@@ -97,14 +97,16 @@ public class BlockSnapshotSessionRelinkTargetCompleter extends TaskLockingComple
                     s_logger.info(errMsg);
                     throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
-
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the step to complete.
-                updateWorkflowStatus(status, coded);
-            }
             s_logger.info("Done re-link target volume step {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
             s_logger.error("Failed updating status for re-link target volume step {}", getOpId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
+    }
+
+    @Override
+    protected String getDescriptionOfResults(Status status, BlockObject sourceObj, BlockSnapshotSession snapSession) {
+        return null;
     }
 }

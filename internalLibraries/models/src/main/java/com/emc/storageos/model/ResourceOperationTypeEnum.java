@@ -311,7 +311,8 @@ public enum ResourceOperationTypeEnum {
     RELINK_SNAPSHOT_SESSION_TARGETS("RELINK SNAPSHOT SESSION TARGETS", "re-links target volumes to a snapshot session"),
     UNLINK_SNAPSHOT_SESSION_TARGETS("UNLINK SNAPSHOT SESSION TARGETS", "unlinks target volumes from a snapshot session"),
     RESTORE_SNAPSHOT_SESSION("RESTORE SNAPSHOT SESSION", "restore source from snapshot session"),
-    DELETE_SNAPSHOT_SESSION("DELETE SNAPSHOT SESSION", "delete snapshot session");
+    DELETE_SNAPSHOT_SESSION("DELETE SNAPSHOT SESSION", "delete snapshot session"),
+    DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION("DELETE CONSISTENCY GROUP SNAPSHOT SESSION", "delete consistency group snapshot session");
 
     private final String name;
     private final String description;

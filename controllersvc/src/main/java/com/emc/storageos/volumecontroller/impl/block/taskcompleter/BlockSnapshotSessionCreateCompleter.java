@@ -6,7 +6,6 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.model.BlockObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,10 +82,5 @@ public class BlockSnapshotSessionCreateCompleter extends BlockSnapshotSessionCom
         } finally {
             super.complete(dbClient, status, coded);
         }
-    }
-
-    @Override
-    protected String getDescriptionOfResults(Status status, BlockObject sourceObj, BlockSnapshotSession snapSession) {
-        return null;
     }
 }

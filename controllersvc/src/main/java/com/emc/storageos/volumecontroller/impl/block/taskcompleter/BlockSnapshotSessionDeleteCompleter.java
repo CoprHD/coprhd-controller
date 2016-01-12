@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -69,10 +68,5 @@ public class BlockSnapshotSessionDeleteCompleter extends BlockSnapshotSessionCom
         } finally {
             super.complete(dbClient, status, coded);
         }
-    }
-
-    @Override
-    protected String getDescriptionOfResults(Status status, BlockObject sourceObj, BlockSnapshotSession snapSession) {
-        return null;
     }
 }

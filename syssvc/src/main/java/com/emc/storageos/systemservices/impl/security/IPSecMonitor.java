@@ -10,6 +10,7 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.security.geo.GeoClientCacheManager;
+import com.emc.storageos.systemservices.impl.SpringApplicationContextManager;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.sun.jersey.spi.inject.Inject;
 import javafx.application.Application;
@@ -28,7 +29,7 @@ import java.util.concurrent.*;
 
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 
-public class IPSecMonitor implements Runnable, ApplicationContextAware {
+public class IPSecMonitor implements Runnable {
 
     private static final Logger log = LoggerFactory.getLogger(IPSecMonitor.class);
 
@@ -36,8 +37,6 @@ public class IPSecMonitor implements Runnable, ApplicationContextAware {
     public static int IPSEC_CHECK_INITIAL_DELAY = 1;  // minutes
 
     public ScheduledExecutorService scheduledExecutorService;
-
-    private ApplicationContext ctx;
 
     DbClient dbClient;
 
@@ -52,7 +51,6 @@ public class IPSecMonitor implements Runnable, ApplicationContextAware {
         log.info("scheduled IPSecMonitor.");
 
         log.info("=== the dbclient instance is {}",  dbClient);
-        log.info("Application context is {}",  ctx);
     }
 
     public void shutdown() {
@@ -61,6 +59,9 @@ public class IPSecMonitor implements Runnable, ApplicationContextAware {
 
     @Override
     public void run() {
+
+        ApplicationContext ctx = SpringApplicationContextManager.getApplicationContext();
+
 
         try {
             // geo checking
@@ -271,11 +272,5 @@ public class IPSecMonitor implements Runnable, ApplicationContextAware {
         }
 
         return (int)(Long.parseLong(left) - Long.parseLong(right));
-    }
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.ctx = applicationContext;
-
     }
 }

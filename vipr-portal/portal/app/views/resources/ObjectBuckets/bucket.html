@@ -63,6 +63,11 @@
       <dd><img src="/public/img/serviceCatalog/Virtual_Array.png" style="width: 32px;"/> #{spaceForNull virtualArray?.name/}</dd>
       <dt>&{'resources.bucket.vpool'}:</dt>
       <dd><img src="/public/img/serviceCatalog/Virtual_Pool.png" style="width: 32px;"/> #{spaceForNull virtualPool?.name/}</dd>
+      <dt> &nbsp;</dt>
+      <dd>
+      <a href="@{listBucketACL(bucket.id)}">&{'resources.bucket.manageAcl'}</a><br/>      
+      &nbsp;
+      </dd>   
     </dl>
 
     <div class="clearfix"></div>

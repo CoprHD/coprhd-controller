@@ -29,7 +29,7 @@ public class Site {
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
     private static final String KEY_SITE_STATE = "state";
     private static final String KEY_PING = "ping";
-    private static final String KEY_NETWORK_STATE = "networkState";
+    private static final String KEY_NETWORK_HEALTH = "networkHealth";
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
     private static final String KEY_NODECOUNT = "nodeCount";
@@ -48,7 +48,7 @@ public class Site {
     private long creationTime;
     private long lastStateUpdateTime;
     private double ping;
-    private String networkState;
+    private String networkHealth;
     private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
 
@@ -149,12 +149,12 @@ public class Site {
         this.ping = ping;
     }
 
-    public String getNetworkState() {
-        return networkState;
+    public String getNetworkHealth() {
+        return networkHealth;
     }
 
-    public void setNetworkState(String networkState) {
-        this.networkState = networkState;
+    public void setNetworkHealth(String networkHealth) {
+        this.networkHealth = networkHealth;
     }
 
     public long getLastStateUpdateTime() {
@@ -220,8 +220,8 @@ public class Site {
         if (ping != 0D) {
             config.setConfig(KEY_PING, String.valueOf(ping));
         }
-        if (networkState != null) {
-            config.setConfig(KEY_NETWORK_STATE, networkState);
+        if (networkHealth != null) {
+            config.setConfig(KEY_NETWORK_HEALTH, networkHealth);
         }
 
         if (state != null) {
@@ -253,7 +253,7 @@ public class Site {
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
             this.standbyShortId = config.getConfig(KEY_STANDBY_SHORTID);
-            this.networkState = config.getConfig(KEY_NETWORK_STATE);
+            this.networkHealth = config.getConfig(KEY_NETWORK_HEALTH);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
                 this.creationTime = Long.valueOf(s);
@@ -320,8 +320,8 @@ public class Site {
         builder.append(creationTime);
         builder.append(", ping=");
         builder.append(ping);
-        builder.append(", networkState=");
-        builder.append(networkState);
+        builder.append(", networkHealth=");
+        builder.append(networkHealth);
         builder.append("]");
         return builder.toString();
     }

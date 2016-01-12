@@ -325,6 +325,12 @@
         <property name="auditLogManager" ref="auditLogManager"/>
     </bean>
 
+    <bean id="networkMonitor" class="com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor" init-method="init">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="auditLogManager" ref="auditLogManager"/>
+    </bean>
+
     <bean id="diagnosticsScheduler" class="com.emc.storageos.systemservices.impl.jobs.DiagnosticsScheduler">
         <property name="dbLogAnalyser" ref="dbLogAnalyser" />
         <property name="zkLogAnalyser" ref="zkLogAnalyser" />

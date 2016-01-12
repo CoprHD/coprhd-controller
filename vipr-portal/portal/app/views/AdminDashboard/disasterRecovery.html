@@ -10,7 +10,7 @@
 					<tr>
 						<th>&{'disasterRecovery.name'}</th>
 						<th>&{'disasterRecovery.status'}</th>
-						<th>&{'disasterRecovery.network_state'}</th>
+						<th>&{'disasterRecovery.networkHealth'}</th>
 					</tr>
 					</thead>
         			<tbody>
@@ -61,7 +61,17 @@
 									<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png"><span> &{'renderFunctions.disasterRecovery.status.standby.error'}</span>
 								#{/if}
 							</td>
-							<td>${site.network_state}</td>
+							<td>
+								#{if site.networkHealth == "Good"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png">
+								#{/if}
+								#{if site.networkHealth == "Slow"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">
+								#{/if}
+								#{if site.networkHealth == "Broken"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png">
+								#{/if}
+							</td>
 						</tr>
 						#{/list}
         			</tbody>

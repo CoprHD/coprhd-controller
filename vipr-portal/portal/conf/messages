@@ -911,7 +911,7 @@ disasterRecovery.error.message=Error Message
 disasterRecovery.error.creation.time=Creation Time
 disasterRecovery.paused.time=Paused Time
 disasterRecovery.lastOperation.time=Last Synced Time
-disasterRecovery.latency=Latency
+disasterRecovery.latency=Latency (ms)
 disasterRecovery.switchover.failed.instruction=Please contact an administrator or EMC Support
 
 # About
@@ -4047,6 +4047,11 @@ renderFunctions.disasterRecovery.status.standby.removing=Deleting Standby
 renderFunctions.disasterRecovery.status.standby.resuming=Resuming Standby
 renderFunctions.disasterRecovery.status.standby.error=Standby Error
 renderFunctions.disasterRecovery.status.unknown=Unknown
+
+renderFunctions.disasterRecovery.networkHealth.good=Good
+renderFunctions.disasterRecovery.networkHealth.slow=Slow
+renderFunctions.disasterRecovery.networkHealth.broken=Broken
+
 
 templates.knob.label=%s of %s
 

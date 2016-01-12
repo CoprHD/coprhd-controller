@@ -31,7 +31,7 @@ public class SiteMapper {
         to.setVip(from.getVip());
         to.setDescription(from.getDescription());
         to.setState(from.getState().toString());
-        to.setNetworkState(from.getNetworkState());
+        to.setNetworkHealth(from.getNetworkHealth());
     }
 
     public void map(Site from, SiteParam to) {

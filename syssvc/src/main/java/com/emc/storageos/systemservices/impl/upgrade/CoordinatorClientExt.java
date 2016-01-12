@@ -36,6 +36,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
@@ -51,7 +52,6 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
@@ -113,7 +113,6 @@ public class CoordinatorClientExt {
     private int _nodeCount = 0;
     private DrUtil drUtil;
     private volatile boolean stopCoordinatorSvcMonitor; // default to false
-    private volatile boolean stopNetworkMonitor;
     
     private DbServiceStatusChecker statusChecker = null;
 
@@ -1419,7 +1418,7 @@ public class CoordinatorClientExt {
         if (drUtil.isActiveSite()) {
             _log.info("Start monitoring local networkMonitor status on active site");
             ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
-            exe.scheduleAtFixedRate(networkMonitor, 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+            exe.scheduleAtFixedRate(new DrSiteNetworkMonitor(getMyNodeId()), 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
     }
 
@@ -1505,113 +1504,6 @@ public class CoordinatorClientExt {
         }
     };
 
-    public void stopNetworkMonitor() {
-        stopNetworkMonitor = true;
-    }
-
-    /**
-     * Monitor standby network on active site
-     */
-    private Runnable networkMonitor = new Runnable(){
-
-        public void run() {
-            if (stopNetworkMonitor) {
-                return;
-            }
-
-            try {
-                checkPing();
-            } catch (Exception e) {
-                //try catch exception to make sure next scheduled run can be launched.
-                _log.error("Error occurs when monitor standby network", e);
-            }
-        }
-
-        private void checkPing() {
-
-            //Only leader on active site will test ping (no networking info if active down?)
-            String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
-            String ZOOKEEPER_MODE_LEADER = "leader";
-            if (ZOOKEEPER_MODE_LEADER.equals(state)) {
-                //I'm the leader
-                for (Site site : drUtil.listStandbySites()){
-                    String host = site.getVip();
-                    double ping = testPing(host,80);
-                    _log.info("Ping: "+ping);
-                    site.setPing(ping);
-
-                    if (ping > 400) {
-                        site.setNetworkState("POOR");
-                    }
-                    else if (ping < 0) {
-                        site.setNetworkState("DISCONNECTED");
-                    }
-                    else {
-                        site.setNetworkState("GOOD");
-                    }
-                    _coordinator.persistServiceConfiguration(site.toConfiguration());
-                }
-            }
-        }
-
-        /**
-         * Connect using layer4 (sockets)
-         *
-         * @return delay if the specified host responded, -1 if failed
-         */
-        private double testPing(String hostAddress, int port) {
-            InetAddress inetAddress = null;
-            InetSocketAddress socketAddress = null;
-            SocketChannel sc = null;
-            long timeToRespond = -1;
-            long start, stop;
-
-            try {
-                inetAddress = InetAddress.getByName(hostAddress);
-            } catch (UnknownHostException e) {
-                _log.error("Problem, unknown host:",e);
-            }
-
-            try {
-                socketAddress = new InetSocketAddress(inetAddress, port);
-            } catch (IllegalArgumentException e) {
-                _log.error("Problem, port may be invalid:",e);
-            }
-
-            // Open the channel, set it to non-blocking, initiate connect
-            try {
-                sc = SocketChannel.open();
-                sc.configureBlocking(true);
-                start = System.nanoTime();
-                if (sc.connect(socketAddress)) {
-                    stop = System.nanoTime();
-                    timeToRespond = (stop - start);
-                }
-            } catch (IOException e) {
-                _log.error("Problem, connection could not be made:",e);
-            }
-
-            try {
-                sc.close();
-            } catch (IOException e) {
-                _log.error("Error closing socket during latency test",e);
-            }
-
-            if (timeToRespond > Integer.MAX_VALUE) {
-                _log.error("maybe throw a PingCalculationException?");
-            }
-
-            //The ping failed, return -1
-            if (timeToRespond == -1) {
-                return -1;
-            }
-
-            //the ping suceeded, convert from ns to ms with 3 decimals
-            timeToRespond = timeToRespond/1000;
-            return timeToRespond/1000.0;
-        }
-
-    };
 
     /**
      * reconfigure ZooKeeper to participant mode within the local site

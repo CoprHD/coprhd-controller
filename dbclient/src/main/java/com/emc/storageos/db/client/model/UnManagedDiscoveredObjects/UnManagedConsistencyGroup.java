@@ -49,6 +49,7 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 
 	public void setNumberOfVols(String numberOfVols) {
 		this._numberOfVols = numberOfVols;
+		setChanged("NumberOfVols");
 	}
 
 	@Name("Name")
@@ -58,16 +59,17 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 
 	public void setName(String name) {
 		this._name = name;
+		setChanged("Name");
 	}
 
-	@Name("StorageSystem")
+	@Name("storageDevice")
 	public URI getStorageSystemUri() {
 		return _storageSystemUri;
 	}
 
 	public void setStorageSystemUri(URI storageSystemUri) {
 		this._storageSystemUri = storageSystemUri;
-		//setChanged("storageDevice");
+		setChanged("storageDevice");
 	}
 
 	@Name("AssociatedVolumes")
@@ -77,6 +79,7 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 
 	public void setAssociatedVolumes(StringSet associatedVolumes) {
 		this.associatedVolumes = associatedVolumes;
+		setChanged("AssociatedVolumes");
 	}	
 
 	@Name("UnManagedVolumes")

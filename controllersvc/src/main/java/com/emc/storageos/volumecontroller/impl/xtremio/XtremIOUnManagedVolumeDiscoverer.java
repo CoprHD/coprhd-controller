@@ -650,6 +650,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
     	UnManagedConsistencyGroup unManagedCG = new UnManagedConsistencyGroup();
     	unManagedCG.setId(URIUtil.createId(UnManagedConsistencyGroup.class));
     	unManagedCG.setLabel(consistencyGroup.getName());
+    	unManagedCG.setName(consistencyGroup.getName());
     	unManagedCG.setNativeGuid(unManagedCGNativeGuid);
     	unManagedCG.setStorageSystemUri(storageSystemURI);
     	unManagedCG.setNumberOfVols(consistencyGroup.getNumOfVols());    	    	    	    	

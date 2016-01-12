@@ -63,6 +63,7 @@ public interface BackupConstants {
     // Dynamic string format of listing backups
     public static final String LIST_BACKUP_TITLE = "  %%-%ds%%-10s%%-20s";
     public static final String LIST_BACKUP_INFO = "  %%-%ds%%-10.2f%%-20s";
+    public static final String COLLECTED_BACKUP_REGEX_PATTERN = "^(\\S+)*-\\d+-\\d+-(\\S+)*\\.zip$";
 
     // The common part of backup info file name
     public static final String BACKUP_INFO_SUFFIX = BACKUP_NAME_DELIMITER + "info.properties";

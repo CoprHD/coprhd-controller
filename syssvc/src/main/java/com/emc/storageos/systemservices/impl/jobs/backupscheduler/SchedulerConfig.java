@@ -91,16 +91,27 @@ public class SchedulerConfig {
         this.mailHelper = new MailHelper(coordinator.getCoordinatorClient());
     }
 
-    public String getUploadPassword() {
-        if (this.uploadPassword == null) {
-            return "";
-        }
-
-        return this.encryptionProvider.decrypt(Base64.decodeBase64(this.uploadPassword));
-    }
-
     public Calendar now() {
         return Calendar.getInstance(UTC);
+    }
+
+    public String getUploadUrl() {
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
+        return getUploadUrl(propInfo);
+    }
+
+    public String getUploadUserName() {
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
+        return getUploadUserName(propInfo);
+    }
+
+    public String getUploadPassword() {
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
+        byte[] uploadPassword = getUploadPassword(propInfo);
+        if (uploadPassword == null) {
+            return "";
+        }
+        return this.encryptionProvider.decrypt(Base64.decodeBase64(uploadPassword));
     }
 
     public void reload() throws Exception {
@@ -112,14 +123,19 @@ public class SchedulerConfig {
 
         this.nodeCount = coordinator.getNodeCount();
 
-        String startTimeStr = propInfo.getProperty(BackupConstants.SCHEDULE_TIME);
-        String intervalStr = propInfo.getProperty(BackupConstants.SCHEDULE_INTERVAL);
-        String copiesStr = propInfo.getProperty(BackupConstants.COPIES_TO_KEEP);
-        String urlStr = propInfo.getProperty(BackupConstants.UPLOAD_URL);
-        String usernameStr = propInfo.getProperty(BackupConstants.UPLOAD_USERNAME);
-        String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWD);
-        String enableStr = propInfo.getProperty(BackupConstants.SCHEDULER_ENABLED);
+        initBackupInterval(propInfo);
+        this.schedulerEnabled = isSchedulerEnabled(propInfo);
+        this.startOffsetMinutes = getStartOffsetMinutes(propInfo);
+        this.copiesToKeep = getCopiesToKeep(propInfo);
+        this.uploadUrl = getUploadUrl(propInfo);
+        this.uploadUserName = getUploadUserName(propInfo);
+        this.uploadPassword = getUploadPassword(propInfo);
 
+        initRetainedAndUploadedBackups();
+    }
+
+    private void initBackupInterval(PropertyInfo propInfo) {
+        String intervalStr = propInfo.getProperty(BackupConstants.SCHEDULE_INTERVAL);
         this.interval = ScheduleTimeRange.ScheduleInterval.DAY;
         this.intervalMultiple = 1;
         if (intervalStr != null && !intervalStr.isEmpty()) {
@@ -139,8 +155,16 @@ public class SchedulerConfig {
         } else {
             log.warn("The interval string is absent or empty, daily backup (\"1day\") is used as default.");
         }
+    }
 
-        this.startOffsetMinutes = 0;
+    private boolean isSchedulerEnabled(PropertyInfo propInfo) {
+        String enableStr = propInfo.getProperty(BackupConstants.SCHEDULER_ENABLED);
+        return (enableStr == null || enableStr.length() == 0) ? false : Boolean.parseBoolean(enableStr);
+    }
+
+    private int getStartOffsetMinutes(PropertyInfo propInfo) {
+        int startOffsetMinutes = 0;
+        String startTimeStr = propInfo.getProperty(BackupConstants.SCHEDULE_TIME);
         if (startTimeStr != null && startTimeStr.length() > 0) {
             // Format is ...dddHHmm
             int raw = Integer.parseInt(startTimeStr);
@@ -149,33 +173,56 @@ public class SchedulerConfig {
             int hour = raw % 100;
             int day = raw / 100;
 
-            this.startOffsetMinutes = (day * 24 + hour) * 60 + minute;
+            startOffsetMinutes = (day * 24 + hour) * 60 + minute;
         }
+        return startOffsetMinutes;
+    }
 
-        this.copiesToKeep = BackupConstants.DEFAULT_BACKUP_COPIES_TO_KEEP;
+    private int getCopiesToKeep(PropertyInfo propInfo) {
+        int copiesToKeep = BackupConstants.DEFAULT_BACKUP_COPIES_TO_KEEP;
+        String copiesStr = propInfo.getProperty(BackupConstants.COPIES_TO_KEEP);
         if (copiesStr != null && copiesStr.length() > 0) {
-            this.copiesToKeep = Integer.parseInt(copiesStr);
+            copiesToKeep = Integer.parseInt(copiesStr);
         }
+        return copiesToKeep;
+    }
 
+    private String getUploadUrl(PropertyInfo propInfo) {
+        String uploadUrl;
+        String urlStr = propInfo.getProperty(BackupConstants.UPLOAD_URL);
         if (urlStr == null || urlStr.length() == 0) {
-            this.uploadUrl = null;
+            uploadUrl = null;
         } else if (urlStr.endsWith("/")) {
-            this.uploadUrl = urlStr;
+            uploadUrl = urlStr;
         } else {
-            this.uploadUrl = urlStr + "/";
+            uploadUrl = urlStr + "/";
         }
+        return uploadUrl;
+    }
 
-        this.uploadUserName = usernameStr;
-        this.uploadPassword = null;
+    private String getUploadUserName(PropertyInfo propInfo) {
+        return propInfo.getProperty(BackupConstants.UPLOAD_USERNAME);
+    }
+
+    private byte[] getUploadPassword(PropertyInfo propInfo) {
+        byte[] uploadPassword = null;
+        String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWD);
         if (passwordStr != null && passwordStr.length() > 0) {
-            this.uploadPassword = passwordStr.getBytes("UTF-8");
+            try {
+                uploadPassword = passwordStr.getBytes("UTF-8");
+            } catch (Exception ex) {
+                log.error("Failed to parse upload password: {}", passwordStr, ex);
+            }
         }
+        return uploadPassword;
+    }
 
-        this.schedulerEnabled = enableStr == null || enableStr.length() == 0 ? false : Boolean.parseBoolean(enableStr);
+    private void initRetainedAndUploadedBackups() {
         this.retainedBackups.clear();
         this.uploadedBackups.clear();
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
-        Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(), Constants.BACKUP_SCHEDULER_CONFIG, Constants.GLOBAL_ID);
+        Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
+                Constants.BACKUP_SCHEDULER_CONFIG, Constants.GLOBAL_ID);
         if (cfg != null) {
             String succBackupStr = cfg.getConfig(BackupConstants.BACKUP_TAGS_RETAINED);
             if (succBackupStr != null && succBackupStr.length() > 0) {

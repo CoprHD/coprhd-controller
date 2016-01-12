@@ -26,6 +26,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
+import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,10 +53,12 @@ import com.emc.storageos.management.backup.BackupOps;
 import com.emc.storageos.management.backup.BackupSetInfo;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.BackupConstants;
+import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
 
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 
@@ -69,6 +72,7 @@ public class BackupService {
     private static final int ASYNC_STATUS = 202;
     private BackupOps backupOps;
     private BackupScheduler backupScheduler;
+    private SchedulerConfig backupConfig;
     private JobProducer jobProducer;
     private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
     private final String restoreCmd="/opt/storageos/bin/restore-from-ui.sh";
@@ -183,6 +187,63 @@ public class BackupService {
             }
         }
         return new BackupSets.BackupSet();
+    }
+
+    /**
+     * Get a list of backup files on external server
+     *
+     * @brief List current backup files on external server
+     * @prereq none
+     * @return A list of backup files info
+     */
+    @GET
+    @Path("external/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public List<String> listExternalBackup() {
+        log.info("Received list backup files on external server request");
+        try {
+            FtpClient ftpClient = new FtpClient(backupConfig.getUploadUrl(),
+                    backupConfig.getUploadUserName(),
+                    backupConfig.getUploadPassword());
+            return ftpClient.listAllFiles();
+        } catch (Exception e) {
+            log.error("Failed to list backup files on external server", e);
+            throw APIException.internalServerErrors.getObjectError("External backup files", e);
+        }
+    }
+
+    /**
+     * Get info for a specific backup file on external server
+     *
+     * @brief Get a specific backup file info
+     * @param backupFileName The name of backup file
+     * @prereq none
+     * @return Info of a specific backup file
+     */
+    @GET
+    @Path("external/backup/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public ExternalBackupInfo queryExternalBackup(@QueryParam("name") String backupFileName) {
+        log.info("Received query backup on external server request, file name={}", backupFileName);
+        try {
+            ExternalBackupInfo externalBackupInfo = new ExternalBackupInfo();
+            externalBackupInfo.setFileName(backupFileName);
+            externalBackupInfo.setCreateTime(getBackupCreateTime(backupFileName));
+            externalBackupInfo.setRestoreStatus(queryRestoreStatus(backupFileName, false));
+
+            log.info("External Backup info: {}", externalBackupInfo);
+            return externalBackupInfo;
+        } catch (BackupException e) {
+            log.error("Failed to list backup files on external server", e);
+            throw APIException.internalServerErrors.getObjectError("External Backup Info", e);
+        }
+    }
+
+    private Long getBackupCreateTime(String backupName) {
+        //TODO: parse backup create time from backup name
+        return null;
     }
 
     /**

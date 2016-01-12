@@ -548,23 +548,27 @@ public class VolumeIngestionUtil {
     }
     
     /**
-     * get unmanaged CG , applicable only for xtremio.
+     * get the unmanaged consistency group object for the unmanaged volume
      * 
-     * @param unManagedVolume     
-     * @return the URI of the UnManagedConsistencyGroup
-     */
-    public static UnManagedConsistencyGroup getUnManagedConsistencyGroup(UnManagedVolume unManagedVolume, DbClient dbClient) {    	    	    	
-    	UnManagedConsistencyGroup unmanagedCG = null;
-    	String unmanagedCGURI = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
-                unManagedVolume.getVolumeInformation());
-        if (null != unmanagedCGURI && !unmanagedCGURI.trim().isEmpty()) {
-        	unmanagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, URI.create(unmanagedCGURI));
-        	_logger.info("The unmanaged volume {} belongs to unmanaged consistency group {}", unManagedVolume.getLabel(), unmanagedCG.getLabel());
-        } else {
-        	_logger.info("Unable to determine the unmanaged consistency group the unmanaged volume {} belongs to", unManagedVolume.getLabel());
-        }
-        return unmanagedCG;
-    }
+     * @param unManagedVolume - the unmanaged volume being ingested
+     * @param consistencyGroupObjectsToUpdate - contains objects which have been modified as part of this ingestion
+     * @param dbClient
+     * @return the unmananged consistency group for this volume
+     */     
+    public static UnManagedConsistencyGroup getUnManagedConsistencyGroup(UnManagedVolume unManagedVolume, 
+    		Map <String, DataObject> consistencyGroupObjectsToUpdate, DbClient dbClient) {    	
+    	UnManagedConsistencyGroup unManagedCG = null;
+    	String unManagedCGURI = PropertySetterUtil.extractValueFromStringSet
+    			(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(), unManagedVolume.getVolumeInformation());
+    	if (unManagedCGURI != null) {    		
+    		// check if the unManagedCG is already in consistencyGroupObjectsToUpdate    		
+    		unManagedCG = (UnManagedConsistencyGroup) consistencyGroupObjectsToUpdate.get(unManagedCGURI);
+    		if (unManagedCG == null) {
+    			unManagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, URI.create(unManagedCGURI));    			
+    		}
+    	}    	    	
+        return unManagedCG;
+    }        
 
     public static boolean checkUnManagedVolumeHasReplicas(UnManagedVolume unManagedVolume) {
         StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();

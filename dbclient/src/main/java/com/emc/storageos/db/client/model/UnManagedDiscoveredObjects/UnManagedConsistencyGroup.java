@@ -108,7 +108,7 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 	
 	public StringBuffer logRemainingUnManagedVolumes() {
 		StringBuffer buf = new StringBuffer();
-        buf.append(String.format("%n UnManaged Consistency Group: %s %n", _name));
+        buf.append(String.format("%nUnManaged Consistency Group: %s %n", _name));
         buf.append(String.format("Volumes remaining to be ingested: %n"));
         for (String vol : _unManagedVolumesMap.values()) {            
             buf.append(String.format("UnManaged Volume : [%s] %n", vol));

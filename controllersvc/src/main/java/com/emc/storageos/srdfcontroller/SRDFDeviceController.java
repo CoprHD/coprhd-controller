@@ -97,10 +97,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String DELETE_SRDF_MIRRORS_STEP_GROUP = "DELETE_SRDF_MIRRORS_STEP_GROUP";
     private static final String CREATE_SRDF_MIRRORS_STEP_DESC = "Create SRDF Link";
     private static final String REFRESH_SYSTEM_STEP_DESC = "Refresh System";
-    private static final String SUSPEND_SRDF_MIRRORS_STEP_DESC = "Suspend SRDF Link";
+    public static final String SUSPEND_SRDF_MIRRORS_STEP_GROUP = "SUSPEND_SRDF_MIRRORS_STEP_GROUP";
+    public static final String SUSPEND_SRDF_MIRRORS_STEP_DESC = "Suspend SRDF Link";
     public static final String SPLIT_SRDF_MIRRORS_STEP_DESC = "Split SRDF Link ";
     private static final String DETACH_SRDF_MIRRORS_STEP_DESC = "Detach SRDF Link";
-    private static final String RESUME_SRDF_MIRRORS_STEP_DESC = "Resume SRDF Link";
+    public static final String RESUME_SRDF_MIRRORS_STEP_GROUP = "RESUME_SRDF_MIRRORS_STEP_GROUP";
+    public static final String RESUME_SRDF_MIRRORS_STEP_DESC = "Resume SRDF Link";
     private static final String UPDATE_SRDF_PAIRING_STEP_GROUP = "UPDATE_SRDF_PAIRING_STEP_GROUP";
     private static final String UPDATE_SRDF_PAIRING = "updateSRDFPairingStep";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
@@ -1564,7 +1566,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
-    private Workflow.Method suspendSRDFLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt) {
+    public Workflow.Method suspendSRDFLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt) {
         return new Workflow.Method(SUSPEND_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, consExempt);
     }
 

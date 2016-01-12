@@ -1046,7 +1046,7 @@ public class DisasterRecoveryService {
         }
 
         if (!validSiteName(siteParam.getName())) {
-            throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site name should not be empty or longer than 60 characters.");
+            throw APIException.internalServerErrors.updateSiteFailed(site.getName(), String.format("Site name should not be empty or longer than %d characters.", SITE_NAME_LENGTH_LIMIT));
         }
 
         for (Site eachSite : drUtil.listSites()) {
@@ -1391,7 +1391,7 @@ public class DisasterRecoveryService {
     protected void validateAddParam(SiteAddParam param, List<Site> existingSites) {
         String siteName = param.getName();
         if (!validSiteName(siteName)) {
-            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Site name should not be empty or longer than 64 characters");
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Site name should not be empty or longer than %d characters.", SITE_NAME_LENGTH_LIMIT));
         }
         for (Site site : existingSites) {
             if (site.getName().equals(siteName)) {

@@ -63,6 +63,7 @@ nav.block.consistencygroups=Consistency Groups
 nav.block.exportgroups=Export Groups
 nav.block.snapshots=Block Snapshots
 nav.block.virtualPools=Block Virtual Pools
+nav.block.app=Applications
 nav.file=File
 nav.file.filesystems=File Systems
 nav.file.snapshots=File Snapshots
@@ -374,6 +375,7 @@ RegistrationStatus.REGISTERED=Registered
 
 RemoteCopyMode.ASYNCHRONOUS=Asynchronous
 RemoteCopyMode.SYNCHRONOUS=Synchronous
+RemoteCopyMode.ACTIVE=Active
 
 RpoType.SECONDS=Seconds
 RpoType.MINUTES=Minutes
@@ -660,11 +662,16 @@ application.description=Description
 application.role=Role
 Application.deleteConfirm=Are you sure you want to delete the Application(s).
 ApplicationForm.create.title=Create Application
+
 ApplicationForm.edit.title=Edit Application
 application.create.description=Enter information needed for an Application
 applicationForm.name=Application Name
 applicationForm.description=Description
 applicationForm.roles=Roles
+application.volume=Volumes
+application.clones=Clones
+application.snapshot=Snapshots
+application.mirror=Mirrors
 application.save.success=Saved '%s'
 applications.deleted=Application(s) deleted successfully
 Application.unknown=Unknown Application with ID '%s'
@@ -2436,6 +2443,11 @@ configProperties.changePassword=Local Account Passwords
 configProperties.password.doesNotMatch=Passwords do not match
 configProperties.password.state=state
 
+configProperties.backup.scheduled=Scheduled Backup
+configProperties.backup.manual=Manual Backup
+configProperties.backup.server=External Server
+configProperties.backup.setToZero.scheduler=WARNING: Setting the value as zero would cause all scheduled backup sets being reclaimed without any guarantee that they have been successfully uploaded to external server.
+configProperties.backup.setToZero.manual=WARNING: Setting the value as zero would disable manual backup creation.
 
 #Upgrade
 upgrade.title=Software Upgrade
@@ -2995,6 +3007,8 @@ affectedResources.vcenter.image=assets/VCenter.png
 
 affectedResources.computeSystem.image=assets/Host.png
 
+affectedResources.application=Applications
+affectedResources.application.image=assets/Application.png
 resources.hosts=Hosts
 resources.host=Host
 resources.host.image=serviceCatalog/icon_host.png
@@ -3195,6 +3209,16 @@ resources.fullcopy.name=Name
 resources.fullcopy.size=Size
 resources.fullcopy.status=Status
 resources.fullcopy.protocol=Protocol
+
+resources.applications=Applications
+resources.protocol=Protocols
+volumeApplication.name=Name
+volumeApplication.capacity=Size
+volumeApplication.varray=Virtual Array
+volumeApplication.vpool=Virtual Pool
+volumeApplication.protocols=Protocols
+volumeApplication.wwn=WWN
+volumeApplication.consistencygroup=Consistency Group
 
 resources.snapshots=Block Snapshots
 resources.snapshots.none=No Snapshots

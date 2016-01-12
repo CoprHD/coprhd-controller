@@ -12,6 +12,7 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.ControllerException;
 
 public interface VPlexController extends Controller {
@@ -319,5 +320,17 @@ public interface VPlexController extends Controller {
      */
     public abstract void restoreSnapshotSession(URI vplexURI, URI snapSessionURI, String opId)
             throws InternalException;
+    
+    /**
+     * Add/remove volumes to/from volume group
+     * @param vplexURI
+     * @param addVolList
+     * @param removeVolumeList
+     * @param volumeGroup
+     * @param opId
+     * @throws internalException
+     */
+    public abstract void updateVolumeGroup(URI vplexURI, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList,
+            URI volumeGroup, String opId) throws InternalException;
 
 }

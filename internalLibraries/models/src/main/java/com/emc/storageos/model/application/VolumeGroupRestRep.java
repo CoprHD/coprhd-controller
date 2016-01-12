@@ -24,6 +24,7 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
     private String description;
     private Set<String> roles;
     private RelatedResourceRep parent;
+    private Set<String> replicationGroupNames;
 
     @XmlElement
     public String getDescription() {
@@ -65,5 +66,24 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
 
     public void setParent(RelatedResourceRep parent) {
         this.parent = parent;
+    }
+
+    /**
+     * @return the replicationGroupNames
+     */
+    @XmlElementWrapper(name = "replication_group_names")
+    @XmlElement(name = "replication_group_name")
+    public Set<String> getReplicationGroupNames() {
+        if (replicationGroupNames == null) {
+            replicationGroupNames = new HashSet<String>();
+        }
+        return replicationGroupNames;
+    }
+
+    /**
+     * @param replicationGroupNames the replicationGroupNames to set
+     */
+    public void setReplicationGroupNames(Set<String> replicationGroupNames) {
+        this.replicationGroupNames = replicationGroupNames;
     }
 }

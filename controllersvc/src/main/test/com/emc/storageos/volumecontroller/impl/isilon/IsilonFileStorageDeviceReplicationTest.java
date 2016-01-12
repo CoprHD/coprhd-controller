@@ -13,34 +13,88 @@ import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 public class IsilonFileStorageDeviceReplicationTest {
-	private static IsilonFileStorageDevice _isi;
-	private static StorageSystem _device;
-	private static String ip = EnvConfig.get("sanity", "isilon.ip");
-	private static String userName = EnvConfig.get("sanity", "isilon.username");
-	private static String password = EnvConfig.get("sanity", "isilon.password");
-	private static BiosCommandResult result;
+    private static IsilonFileStorageDevice _isi;
+    private static StorageSystem _device;
+    private static String ip = EnvConfig.get("sanity", "isilon.ip");
+    private static String userName = EnvConfig.get("sanity", "isilon.username");
+    private static String password = EnvConfig.get("sanity", "isilon.password");
+    private static BiosCommandResult result;
 
-	public static void setUp() {
-		System.out.println("hh222222");
-		_isi = new IsilonFileStorageDevice();
-		IsilonApiFactory factory = new IsilonApiFactory();
-		factory.init();
-		_isi.setIsilonApiFactory(factory);
-		_device = new StorageSystem();
-		_device.setSystemType("isilon");
-		_device.setIpAddress(ip);
-		_device.setPortNumber(8080);
-		_device.setUsername(userName);
-		_device.setPassword(password);
-	}
+    public static void setUp() {
+        _isi = new IsilonFileStorageDevice();
+        IsilonApiFactory factory = new IsilonApiFactory();
+        factory.init();
+        _isi.setIsilonApiFactory(factory);
+        _device = new StorageSystem();
+        _device.setSystemType("isilon");
+        _device.setIpAddress(ip);
+        _device.setPortNumber(8080);
+        _device.setUsername(userName);
+        _device.setPassword(password);
+    }
 
-	public void testCreateReplicationPolicy() {
-		result = _isi.doCreateReplicationPolicy(_device, "", "", "", "", IsilonSyncPolicy.Action.copy, "", "");
-		result.getCommandStatus();
-	}
+    public static void testCreateReplicationPolicy() {
+        IsilonFileStorageDeviceReplicationTest.setUp();
+        result = _isi.doCreateReplicationPolicy(_device, "mudit_policy", "/ifs/vipr/muditjainsource", "",
+                "/ifs/vipr/mudtjaintarget", IsilonSyncPolicy.Action.copy, "", "");
+        result.getCommandStatus();
+    }
 
-/*	public static void main(String args[]) {
-		System.out.println("zscascd");
-	}*/
+    public static void testStartReplicationPolicy() {
+        IsilonFileStorageDeviceReplicationTest.setUp();
+        result = _isi.doStartReplicationPolicy(_device, "mudit_policy");
+        result.getCommandStatus();
+    }
 
+    public static void testPauseReplicationPolicy() {
+        IsilonFileStorageDeviceReplicationTest.setUp();
+        result = _isi.doPauseReplicationPolicy(_device, "mudit_policy");
+        result.getCommandStatus();
+    }
+
+    public static void testResumeReplicationPolicy() {
+        IsilonFileStorageDeviceReplicationTest.setUp();
+        result = _isi.doResumeReplicationPolicy(_device, "mudit_policy");
+        // result = _isi.doResumeReplicationPolicy(_device, "mudit_polic"); // negative test to with non-existed policy
+        result.getCommandStatus();
+    }
+
+    public static void testDeleteReplicationPolicy() {
+        IsilonFileStorageDeviceReplicationTest.setUp();
+        result = _isi.dodeleteReplicationPolicy(_device, "mudit_policy");
+        result.getCommandStatus();
+    }
+
+    public static void testModifyReplicationPolicy() {
+        IsilonFileStorageDeviceReplicationTest.setUp();
+        result = _isi.doModifyReplicationPolicy(_device, "mudit_policy", "");
+        result.getCommandStatus();
+    }
+
+    public static void testFailover() {
+        _isi = new IsilonFileStorageDevice();
+        IsilonApiFactory factory = new IsilonApiFactory();
+        factory.init();
+        _isi.setIsilonApiFactory(factory);
+        _device = new StorageSystem();
+        _device.setSystemType("isilon");
+        _device.setIpAddress("");
+        _device.setPortNumber(8080);
+        _device.setUsername(userName);
+        _device.setPassword(password);
+
+        result = _isi.doFailover(_device, "mudit_policy");
+        result.getCommandStatus();
+    }
+
+    public static void main(String args[]) {
+
+        // IsilonFileStorageDeviceReplicationTest.testCreateReplicationPolicy();
+        // IsilonFileStorageDeviceReplicationTest.testStartReplicationPolicy();
+        // IsilonFileStorageDeviceReplicationTest.testPauseReplicationPolicy();
+        // IsilonFileStorageDeviceReplicationTest.testResumeReplicationPolicy();
+        // IsilonFileStorageDeviceReplicationTest.testDeleteReplicationPolicy();
+        // IsilonFileStorageDeviceReplicationTest.testModifyReplicationPolicy();
+        // IsilonFileStorageDeviceReplicationTest.testFailover();
+    }
 }

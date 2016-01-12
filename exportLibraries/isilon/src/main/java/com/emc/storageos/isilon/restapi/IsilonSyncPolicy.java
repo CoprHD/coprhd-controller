@@ -7,12 +7,28 @@ package com.emc.storageos.isilon.restapi;
 public class IsilonSyncPolicy {
 
     /*
-     * If set to copy, source files are copied to the target cluster. If set to sync, files and directories that were deleted
-     * on the source cluster and files that no longer match the selection criteria are deleted from the target directory.
+     * If set to copy, source files are copied to the target cluster. If set to
+     * sync, files and directories that were deleted on the source cluster and
+     * files that no longer match the selection criteria are deleted from the
+     * target directory.
      */
     public static enum Action {
-        copy,                    // for archival
-        sync       // for fail over
+        copy, // for archival
+        sync // for fail over
+    }
+
+    public static enum JobState {
+        scheduled,
+        running,
+        paused,
+        finished,
+        resumed,
+        failed,
+        canceled,
+        needs_attention,
+        skipped,
+        pending,
+        unknown,
     }
 
     private String name;
@@ -22,25 +38,27 @@ public class IsilonSyncPolicy {
     private String target_host;
     private String schedule;
     private String description;
-    private IsilonSyncJob.State last_job_state;
+    private JobState last_job_state;
 
     /*
-     * If set to true, replication jobs are automatically run based on the associated replication policy and schedule. If set to false,
-     * replication jobs are only performed when manually triggered.
+     * If set to true, replication jobs are automatically run based on the
+     * associated replication policy and schedule. If set to false, replication
+     * jobs are only performed when manually triggered.
      */
     private Boolean enabled;
 
     /*
-     * If set to true, files on the target cluster are compared against the source cluster during the initial replication
-     * job, and missing files are transferred.
+     * Specifies the last time a replication job was started for the replication
+     * policy. The value is NULL if the replication policy has never run.
      */
-    private Boolean target_compare_initial_sync = false;
+    private Integer last_started;
 
     public IsilonSyncPolicy() {
     }
 
     public IsilonSyncPolicy(String name, String source_root_path,
-            String target_path, String target_host, IsilonSyncPolicy.Action action) {
+            String target_path, String target_host,
+            IsilonSyncPolicy.Action action) {
         this.name = name;
         this.source_root_path = source_root_path;
         this.target_path = target_path;
@@ -104,14 +122,6 @@ public class IsilonSyncPolicy {
         this.description = description;
     }
 
-    public Boolean getTarget_compare_initial_sync() {
-        return target_compare_initial_sync;
-    }
-
-    public void setTarget_compare_initial_sync(Boolean target_compare_initial_sync) {
-        this.target_compare_initial_sync = target_compare_initial_sync;
-    }
-
     public String getSchedule() {
         return schedule;
     }
@@ -120,15 +130,22 @@ public class IsilonSyncPolicy {
         this.schedule = schedule;
     }
 
-    public IsilonSyncJob.State getLast_job_state() {
+    public JobState getLast_job_state() {
         return last_job_state;
+    }
+
+    public Integer getLast_started() {
+        return last_started;
     }
 
     @Override
     public String toString() {
-        return "IsilonSyncPolicy [name=" + name + ", source_root_path=" + source_root_path + ", action=" + action + ", target_path="
-                + target_path + ", target_host=" + target_host + ", schedule=" + schedule + ", description=" + description
-                + ", last_job_state=" + last_job_state + ", enabled=" + enabled + "]";
+        return "IsilonSyncPolicy [name=" + name + ", source_root_path="
+                + source_root_path + ", action=" + action + ", target_path="
+                + target_path + ", target_host=" + target_host + ", schedule="
+                + schedule + ", description=" + description
+                + ", last_job_state=" + last_job_state + ", enabled=" + enabled
+                + "]";
     }
 
 }

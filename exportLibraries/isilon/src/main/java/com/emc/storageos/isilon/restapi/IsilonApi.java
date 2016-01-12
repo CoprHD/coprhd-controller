@@ -65,8 +65,10 @@ public class IsilonApi {
     private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
     private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
     private static final URI URI_REPLICATION_POLICIES = URI.create("/platform/1/sync/policies/");
+    private static final URI URI_REPLICATION_JOBS = URI.create("/platform/1/sync/jobs");
     private static final URI URI_TARGET_REPLICATION_POLICIES = URI.create("platform/1/sync/target/policies/");
-    private static final URI URI_REPLICATION_JOBS = URI.create("/platform/1/sync/jobs/");
+    private static final URI URI_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/reports?policy_name=");
+    private static final URI URI_TARGET_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/target/reports?policy_name=");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -542,6 +544,53 @@ public class IsilonApi {
         } catch (Exception e) {
             String response = String.format("%1$s", (resp == null) ? "" : resp);
             throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc(key, id, response, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+    }
+
+    /**
+     * Generic get resource
+     * 
+     * @param url url to get from
+     * @param key reference string representing the object type being deleted
+     * @param c Class of object representing the return value
+     * @return T Object parsed from the response, on success
+     * @throws IsilonException
+     */
+    private <T> T get(URI url, String key, Class<T> c) throws IsilonException {
+
+        ClientResponse resp = null;
+        try {
+            T returnInstance = null;
+            resp = _client.get(url);
+
+            if (resp.hasEntity()) {
+                JSONObject jObj = resp.getEntity(JSONObject.class);
+                if (resp.getStatus() == 200) {
+                    JSONArray array = jObj.getJSONArray(key);
+                    if (array.length() != 1) {
+                        String length = String.format("%1$s", array.length());
+                        throw IsilonException.exceptions.getResourceFailedOnIsilonArray(key, length);
+                    }
+
+                    JSONObject exp = array.getJSONObject(0);
+                    returnInstance = new Gson().fromJson(SecurityUtils.sanitizeJsonString(exp.toString()), c);
+                } else {
+                    processErrorResponse("get", key + ": ", resp.getStatus(), jObj);
+                }
+            } else {
+                // no entity in response
+                processErrorResponse("get", key + ": ", resp.getStatus(), null);
+            }
+            return returnInstance;
+        } catch (IsilonException ie) {
+            throw ie;
+        } catch (Exception e) {
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc(key, "", response, e);
         } finally {
             if (resp != null) {
                 resp.close();
@@ -1704,13 +1753,40 @@ public class IsilonApi {
     }
 
     /**
-     * modify a replication Job (pause, cancel, or restart a job)
+     * Start a Replication Job
      * 
-     * @param opState
-     * @param jobId
+     * @param IsilonSyncJob Object
+     * @return policy_name
+     * @throws IsilonException
      */
-    public void modifyReplicationJobState(String Id, IsilonSyncJob job) {
-        modify(_baseUrl.resolve(URI_REPLICATION_JOBS), Id, "jobs", job);
+    public String modifyReplicationJob(IsilonSyncJob job) throws IsilonException {
+        return create(_baseUrl.resolve(URI_REPLICATION_JOBS), "jobs", job);
+    }
+
+    /**
+     * Get Replication Reports information from the Isilon array
+     * 
+     * @param Name for the replication policy
+     * @return Replication Report Object
+     * @throws IsilonException
+     */
+
+    public IsilonList<IsilonSyncPolicyReport> getReplicationPolicyReports(String policyName) throws IsilonException {
+        URI uri = URI.create(URI_REPLICATION_POLICY_REPORTS.toString() + policyName);
+        return list(_baseUrl.resolve(uri), "reports", IsilonSyncPolicyReport.class, "");
+    }
+
+    /**
+     * Get Target Replication Reports information from the Isilon array
+     * 
+     * @param Name for the replication policy
+     * @return Replication Report Object
+     * @throws IsilonException
+     */
+
+    public IsilonList<IsilonSyncPolicyReport> getTargetReplicationPolicyReports(String policyName) throws IsilonException {
+        URI uri = URI.create(URI_TARGET_REPLICATION_POLICY_REPORTS.toString() + policyName);
+        return list(_baseUrl.resolve(uri), "reports", IsilonSyncPolicyReport.class, "");
     }
 
     private String getURIWithZoneName(String id, String zoneName) {

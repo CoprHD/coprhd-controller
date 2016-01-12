@@ -301,14 +301,21 @@ public class BlockSnapshotSessionManager {
         // Populate the preparedObjects list and create tasks for each snapshot session.
         TaskList response = new TaskList();
 
-        response.getTaskList().add(toTask(snapSession, taskId));
-        for (BlockObject sourceForTask : snapSessionSourceObjList) {
-            Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceForTask.getId(),
-                    taskId, ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION);
-            response.getTaskList().add(toTask(sourceForTask, taskId, op));
+        Operation snapSessionOp = _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(),
+                taskId, getCreateResourceOperationTypeEnum(snapSession));
+        snapSession.getOpStatus().put(taskId, snapSessionOp);
+
+        if (snapSession.hasConsistencyGroup()) {
+            addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
+                    getCreateResourceOperationTypeEnum(snapSession));
+        } else {
+            response.getTaskList().add(toTask(snapSession, taskId, snapSessionOp));
+            for (BlockObject sourceForTask : snapSessionSourceObjList) {
+                Operation op = _dbClient.createTaskOpStatus(URIUtil.getModelClass(sourceForTask.getId()),
+                        sourceForTask.getId(), taskId, ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION);
+                response.getTaskList().add(toTask(sourceForTask, taskId, op));
+            }
         }
-        addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
-                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
 
         List<DataObject> preparedObjects = new ArrayList<>();
         List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
@@ -731,9 +738,10 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         BlockObject snapSessionSourceObj = null;
+        List<BlockObject> snapSessionSourceObjs = null;
         if (snapSession.hasConsistencyGroup()) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-            List<BlockObject> snapSessionSourceObjs = BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
+            snapSessionSourceObjs = BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
             snapSessionSourceObj = snapSessionSourceObjs.get(0);
         } else {
             snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
@@ -752,11 +760,16 @@ public class BlockSnapshotSessionManager {
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
 
-        Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION);
-        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, op);
-        snapSession.getOpStatus().put(taskId, op);
-        taskList.addTask(toTask(snapSession, taskId));
+        Operation snapSessionOp = new Operation();
+        snapSessionOp.setResourceType(getDeleteResourceOperationTypeEnum(snapSession));
+        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, snapSessionOp);
+        snapSession.getOpStatus().put(taskId, snapSessionOp);
+
+        if (snapSession.hasConsistencyGroup()) {
+            addConsistencyGroupTasks(snapSessionSourceObjs, taskList, taskId, getDeleteResourceOperationTypeEnum(snapSession));
+        } else {
+            taskList.addTask(toTask(snapSession, taskId, snapSessionOp));
+        }
 
         // Delete the snapshot session.
         try {
@@ -869,7 +882,7 @@ public class BlockSnapshotSessionManager {
 
     /**
      * Creates tasks against consistency groups associated with a request and adds them to the given task list.
-     * 
+     *
      * @param objects
      * @param taskList
      * @param taskId
@@ -894,7 +907,20 @@ public class BlockSnapshotSessionManager {
             BlockConsistencyGroup group = groups.next();
             Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
                     operationTypeEnum);
+            group.getOpStatus().put(taskId, op);
             taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
         }
+    }
+
+    private ResourceOperationTypeEnum getCreateResourceOperationTypeEnum(BlockSnapshotSession session) {
+        return session.hasConsistencyGroup() ?
+                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION :
+                ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION;
+    }
+
+    private ResourceOperationTypeEnum getDeleteResourceOperationTypeEnum(BlockSnapshotSession session) {
+        return session.hasConsistencyGroup() ?
+                ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION :
+                ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION;
     }
 }

@@ -316,7 +316,6 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             String taskId) {
         BlockSnapshotSession snapSession = new BlockSnapshotSession();
         Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
-        Operation op = new Operation();
 
         snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
         snapSession.setLabel(instanceLabel);
@@ -324,17 +323,12 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
 
         snapSession.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
-        snapSession.setOpStatus(new OpStatusMap());
 
         if (sourceObj.hasConsistencyGroup()) {
             snapSession.setConsistencyGroup(sourceObj.getConsistencyGroup());
-            op.setResourceType(ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
         } else {
             snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
-            op.setResourceType(ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION);
         }
-
-        snapSession.getOpStatus().createTaskStatus(taskId, op);
         return snapSession;
     }
 

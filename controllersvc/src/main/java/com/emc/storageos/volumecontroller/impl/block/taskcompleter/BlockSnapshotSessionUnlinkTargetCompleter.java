@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,10 +26,10 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
  * an array snapshot completes.
  */
 @SuppressWarnings("serial")
-public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingCompleter {
+public class BlockSnapshotSessionUnlinkTargetCompleter extends BlockSnapshotSessionCompleter {
 
     // The URI of the BlockSnapshotSession representing the array snapshot.
-    private final URI _snapSessionURI;
+    private final URI _snapshotURI;
 
     // Whether or not the target is deleted when unlinked.
     private final Boolean _deleteTarget;
@@ -45,8 +46,8 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingComple
      * @param stepId The id of the WF step in which the target is being unlinked.
      */
     public BlockSnapshotSessionUnlinkTargetCompleter(URI snapSessionURI, URI snapshotURI, Boolean deleteTarget, String stepId) {
-        super(BlockSnapshot.class, snapshotURI, stepId);
-        _snapSessionURI = snapSessionURI;
+        super(snapSessionURI, stepId);
+        _snapshotURI = snapshotURI;
         _deleteTarget = deleteTarget;
     }
 
@@ -62,8 +63,8 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingComple
                 case ready:
                     // Remove the linked targets from the linked targets for the session.
                     List<BlockSnapshot> snapshots = new ArrayList<>();
-                    BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, getId());
-                    BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, _snapSessionURI);
+                    BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, _snapshotURI);
+                    BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, getId());
                     StringSet linkedTargets = snapSession.getLinkedTargets();
 
                     if (snapshotObj.hasConsistencyGroup()) {
@@ -94,14 +95,11 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingComple
                     s_logger.info(errMsg);
                     throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
-
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the step to complete.
-                updateWorkflowStatus(status, coded);
-            }
             s_logger.info("Done unlink targets from snapshot session step {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
             s_logger.error("Failed updating status for unlink targets from snapshot session step {}", getOpId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
     }
 
@@ -112,5 +110,10 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingComple
      */
     public boolean getDeleteTarget() {
         return _deleteTarget;
+    }
+
+    @Override
+    protected String getDescriptionOfResults(Status status, BlockObject sourceObj, BlockSnapshotSession snapSession) {
+        return null;
     }
 }

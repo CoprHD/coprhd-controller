@@ -201,18 +201,4 @@ public abstract class TaskLockingCompleter extends TaskCompleter {
             updateWorkflowStatus(status, coded);
         }
     }
-
-    private void updateConsistencyGroupTasks(DbClient dbClient, Operation.Status status, ServiceCoded coded) {
-        for (URI consistencyGroupId : getConsistencyGroupIds()) {
-            _logger.info("Updating consistency group task: {}", consistencyGroupId);
-            switch (status) {
-                case error:
-                    setErrorOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId, coded);
-                    break;
-                case ready:
-                    setReadyOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId);
-                    break;
-            }
-        }
-    }
 }

@@ -7,6 +7,8 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +28,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * Abstract base task completer for operations on BlockSnapshotSession instances.
  */
 @SuppressWarnings("serial")
-public abstract class BlockSnapshotSessionCompleter extends TaskLockingCompleter {
+public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionCompleter.class);
@@ -49,6 +51,14 @@ public abstract class BlockSnapshotSessionCompleter extends TaskLockingCompleter
      */
     public BlockSnapshotSessionCompleter(URI snapSessionURI, String taskId) {
         super(BlockSnapshotSession.class, snapSessionURI, taskId);
+    }
+
+    @Override
+    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
+        updateConsistencyGroupTasks(dbClient, status, coded);
+        if (isNotifyWorkflow()) {
+            updateWorkflowStatus(status, coded);
+        }
     }
 
     /**

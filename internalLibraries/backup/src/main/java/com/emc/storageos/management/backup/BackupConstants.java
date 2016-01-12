@@ -82,4 +82,5 @@ public interface BackupConstants {
 
     public static final String SITE_ID_FILE_PATH = "/data/zk/siteid";
     public static final String SITE_ID_FILE_NAME = "siteid";
+    public static final int SYSTOOL_TIMEOUT_MILLIS = 120000; // 2 min
 }

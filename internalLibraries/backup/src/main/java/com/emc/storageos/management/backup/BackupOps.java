@@ -397,6 +397,10 @@ public class BackupOps {
         return false;
     }
 
+    public boolean isGeoBackup(String backupFileName) {
+        return backupFileName.contains("multivdc");
+    }
+
 
     class CreateBackupCallable extends BackupCallable<Void> {
         @Override

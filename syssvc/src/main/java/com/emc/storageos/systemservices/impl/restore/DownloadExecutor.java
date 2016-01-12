@@ -43,6 +43,7 @@ public final class DownloadExecutor implements  Runnable {
     private String localHostName;
     private BackupRestoreStatus restoreStatus;
     private DownloadListener listener = new DownloadListener();
+    private boolean isGeo = false; // true if the backupset is from GEO env
 
     public static DownloadExecutor create(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps, boolean notifyOthers) {
 
@@ -271,6 +272,17 @@ public final class DownloadExecutor implements  Runnable {
 
     private long downloadMyBackupFile(File downloadDir, String backupFileName, ZipInputStream zin) throws IOException {
         long downloadSize = 0;
+
+        if (isGeo == false) {
+            isGeo = backupOps.isGeoBackup(backupFileName);
+
+            if (isGeo) {
+                BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
+                status.setIsGeo(true);
+                log.info("This is a Geo backup status={}", status);
+                backupOps.persistBackupRestoreStatus(status, false);
+            }
+        }
 
         File file = new File(downloadDir, backupFileName);
         if (!file.exists()) {

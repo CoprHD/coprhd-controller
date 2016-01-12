@@ -256,6 +256,12 @@ public class DbManager implements DbManagerMBean {
             return null;
         }
     }
+    
+    @Override
+    public void resetRepairState() {
+        DbRepairRunnable.resetRepairState(this.coordinator, this.clientContext.getKeyspaceName(),
+                this.clientContext.isGeoDbsvc());
+    }
 
     private Integer getNumTokensToSet() {
         int nodeCount = StorageService.instance.getLiveNodes().size();

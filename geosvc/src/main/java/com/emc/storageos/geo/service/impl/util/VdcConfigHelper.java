@@ -10,60 +10,53 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
-import java.nio.charset.CharacterCodingException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.cassandra.cli.CliMain;
-import org.apache.cassandra.cli.CliOptions;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Token;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.VirtualDataCenter.ConnectionStatus;
 import com.emc.storageos.db.client.model.VirtualDataCenter.GeoReplicationStatus;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.VdcUtil;
-import com.emc.storageos.db.server.impl.SchemaUtil;
 import com.emc.storageos.geo.vdccontroller.impl.InternalDbClient;
 import com.emc.storageos.geomodel.VdcCertListParam;
 import com.emc.storageos.geomodel.VdcCertParam;
@@ -82,9 +75,7 @@ import com.emc.storageos.security.keystore.impl.KeyCertificatePairGenerator;
 import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
 import com.emc.storageos.security.keystore.impl.KeystoreEngine;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.vipr.model.sys.ClusterInfo;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class VdcConfigHelper {
     private static final Logger log = LoggerFactory.getLogger(VdcConfigHelper.class);
@@ -115,6 +106,9 @@ public class VdcConfigHelper {
 
     @Autowired
     private CertificateVersionHelper certificateVersionHelper;
+    
+    @Autowired
+    private DrUtil drUtil;
 
     public void setDbClient(InternalDbClient dbClient) {
         this.dbClient = dbClient;
@@ -163,6 +157,8 @@ public class VdcConfigHelper {
     }
 
     public void syncVdcConfig(List<VdcConfig> newVdcConfigList, String assignedVdcId, boolean isRecover) {
+        boolean vdcConfigChanged = false;
+        
         // query existing vdc list from db
         // The new queryByType method returns an iterative list, convert it to a "real"
         // list first
@@ -187,6 +183,11 @@ public class VdcConfigHelper {
                 if (newVdc.getLocal()) {
                     VdcUtil.invalidateVdcUrnCache();
                 }
+                createVdcConfigInZk(config);
+                vdcConfigChanged = true;
+                if (newVdc.getLocal()) {
+                    drUtil.setLocalVdcShortId(newVdc.getShortId());
+                }
             }
         }
 
@@ -201,7 +202,7 @@ public class VdcConfigHelper {
                 continue;
             }
             dbClient.markForDeletion(vdc);
-            Map<String, String> addressesMap = vdc.queryHostIPAddressesMap();
+            Map<String, String> addressesMap = dbClient.queryHostIPAddressesMap(vdc);
             if (!addressesMap.isEmpty()) {
                 // obsolete peers ip in cassandra system table
                 obsoletePeers.addAll(addressesMap.values());
@@ -209,6 +210,8 @@ public class VdcConfigHelper {
             }
 
             dbClient.removeVdcNodesFromBlacklist(vdc);
+            deleteVdcConfigFromZk(vdc);
+            vdcConfigChanged = true;
         }
 
         if (!obsoletePeers.isEmpty()) {
@@ -223,6 +226,13 @@ public class VdcConfigHelper {
             updateDbSvcConfig(Constants.GEODBSVC_NAME, Constants.REINIT_DB, String.valueOf(true));
         }
 
+        if (vdcConfigChanged) {
+            triggerVdcConfigUpdate();
+        }
+    }
+
+    public void triggerVdcConfigUpdate() {
+        log.info("Vdc config change detected. Trigger a config change later");
         // trigger syssvc to update the vdc config to all the nodes in the current vdc
         // add a small deley so that sync process can finish
         wakeupExecutor.schedule(new Runnable() {
@@ -242,7 +252,6 @@ public class VdcConfigHelper {
             }
         }, WAKEUP_DELAY, TimeUnit.SECONDS);
     }
-
     public void syncVdcConfigPostSteps(VdcPostCheckParam checkParam) {
         // TODO: verify network strategy
         String type = checkParam.getConfigChangeType();
@@ -432,38 +441,6 @@ public class VdcConfigHelper {
             srcVdc.setVersion(targetVdc.getVersion());
         }
 
-        if (!isEqual(srcVdc.getHostCount(), targetVdc.getHostCount())) {
-            isChanged = true;
-            if (srcVdc.getLocal()) {
-                log.warn("The local VDC host count changes from {} to {} according to " +
-                        "remote VDC config.", srcVdc.getHostCount(),
-                        targetVdc.getHostCount());
-            }
-            srcVdc.setHostCount(targetVdc.getHostCount());
-        }
-
-        // TODO: need to revisit this logic
-        HashMap<String, String> tgtHostList = targetVdc.getHostIPv4AddressesMap();
-        if (!isEqual(srcVdc.getHostIPv4AddressesMap(), tgtHostList)) {
-            if (srcVdc.getLocal()) {
-                log.warn("The local VDC host list changes from {} to {} according to remote " +
-                        " VDC config.", srcVdc.getHostIPv4AddressesMap(), targetVdc.getHostIPv4AddressesMap());
-            }
-            srcVdc.getHostIPv4AddressesMap().replace(tgtHostList);
-            log.info("after merge src IPv4={}", srcVdc.getHostIPv4AddressesMap());
-            isChanged = true;
-        }
-
-        tgtHostList = targetVdc.getHostIPv6AddressesMap();
-        if (!isEqual(srcVdc.getHostIPv6AddressesMap(), tgtHostList)) {
-            if (srcVdc.getLocal()) {
-                log.warn("The local VDC host list changes from {} to {} according to remote " +
-                        " VDC config.", srcVdc.getHostIPv6AddressesMap(), targetVdc.getHostIPv6AddressesMap());
-            }
-            srcVdc.getHostIPv6AddressesMap().replace(tgtHostList);
-            isChanged = true;
-        }
-
         if (!isEqual(srcVdc.getLabel(), targetVdc.getName())) {
             isChanged = true;
             if (srcVdc.getLocal()) {
@@ -554,17 +531,6 @@ public class VdcConfigHelper {
 
         vdc.setVersion(config.getVersion());
         vdc.setShortId(config.getShortId());
-        vdc.setHostCount(config.getHostCount());
-
-        final HashMap<String, String> tgtHostIPv4AddressesMap = config.getHostIPv4AddressesMap();
-        StringMap addrMap = new StringMap();
-        addrMap.putAll(tgtHostIPv4AddressesMap);
-        vdc.setHostIPv4AddressesMap(addrMap);
-
-        final HashMap<String, String> tgtHostIPv6AddressesMap = config.getHostIPv6AddressesMap();
-        addrMap = new StringMap();
-        addrMap.putAll(tgtHostIPv6AddressesMap);
-        vdc.setHostIPv6AddressesMap(addrMap);
 
         vdc.setLabel(config.getName());
         vdc.setDescription(config.getDescription());
@@ -755,7 +721,8 @@ public class VdcConfigHelper {
     public VdcConfig toConfigParam(VirtualDataCenter vdc) {
         log.info("copy {} to the sync config param", vdc.getShortId());
         VdcConfig vdcConfig = new VdcConfig();
-
+        Site activeSite = drUtil.getActiveSite(vdc.getShortId());
+        
         vdcConfig.setId(vdc.getId());
         vdcConfig.setShortId(vdc.getShortId());
         vdcConfig.setSecretKey(vdc.getSecretKey());
@@ -766,21 +733,24 @@ public class VdcConfigHelper {
         if ((vdc.getDescription() != null) && (!vdc.getDescription().isEmpty())) {
             vdcConfig.setDescription(vdc.getDescription());
         }
-        if (vdc.getApiEndpoint() != null) {
-            vdcConfig.setApiEndpoint(vdc.getApiEndpoint());
+        if (activeSite.getVip() != null) {
+            vdcConfig.setApiEndpoint(activeSite.getVip());
         }
 
-        vdcConfig.setHostCount(vdc.getHostCount());
+        vdcConfig.setHostCount(activeSite.getNodeCount());
 
-        vdcConfig.setHostIPv4AddressesMap(vdc.getHostIPv4AddressesMap());
-        vdcConfig.setHostIPv6AddressesMap(vdc.getHostIPv6AddressesMap());
+        HashMap<String, String> ipv4AddrMap = new HashMap<String, String>(activeSite.getHostIPv4AddressMap());
+        vdcConfig.setHostIPv4AddressesMap(ipv4AddrMap);
+        HashMap<String, String> ipv6AddrMap = new HashMap<String, String>(activeSite.getHostIPv6AddressMap());
+        vdcConfig.setHostIPv6AddressesMap(ipv6AddrMap);
 
         vdcConfig.setVersion(vdc.getVersion());
         vdcConfig.setConnectionStatus(vdc.getConnectionStatus().toString());
         vdcConfig.setRepStatus(vdc.getRepStatus().toString());
         vdcConfig.setGeoCommandEndpoint(vdc.getGeoCommandEndpoint());
         vdcConfig.setGeoDataEndpoint(vdc.getGeoDataEndpoint());
-
+        vdcConfig.setActiveSiteId(activeSite.getUuid());
+        
         return vdcConfig;
     }
 
@@ -846,8 +816,8 @@ public class VdcConfigHelper {
         }
 
         VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcId);
-
-        if (areNodesReachable(vdc.getShortId(), vdc.getHostIPv4AddressesMap(), vdc.getHostIPv6AddressesMap(), false)) {
+        Site activeSite = drUtil.getActiveSite(vdc.getShortId());
+        if (areNodesReachable(vdc.getShortId(), activeSite.getHostIPv4AddressMap(), activeSite.getHostIPv6AddressMap(), false)) {
             return true;
         }
 
@@ -929,10 +899,14 @@ public class VdcConfigHelper {
             VdcConfig vdcConfig = new VdcConfig();
             vdcConfig.setId(vdc.getId());
             vdcConfig.setShortId(vdc.getShortId());
-            if (vdc.getHostIPv4AddressesMap() != null && !vdc.getHostIPv4AddressesMap().isEmpty()) {
-                vdcConfig.setHostIPv4AddressesMap(vdc.getHostIPv4AddressesMap());
-            } else if (vdc.getHostIPv6AddressesMap() != null && !vdc.getHostIPv6AddressesMap().isEmpty()) {
-                vdcConfig.setHostIPv6AddressesMap(vdc.getHostIPv6AddressesMap());
+            Site activeSite = drUtil.getActiveSite(vdc.getShortId());
+            
+            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty()) {
+                HashMap<String, String> addressMap = new HashMap<String, String>(activeSite.getHostIPv4AddressMap());
+                vdcConfig.setHostIPv4AddressesMap(addressMap);
+            } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getHostIPv6AddressMap().isEmpty()) {
+                HashMap<String, String> addressMap = new HashMap<String, String>(activeSite.getHostIPv6AddressMap());
+                vdcConfig.setHostIPv6AddressesMap(addressMap);
             } else {
                 throw new IllegalStateException("Cannot perform node reachable check on vdc " + vdc.getShortId()
                         + " no nodes were found on VirtualDataCenter object");
@@ -1005,8 +979,8 @@ public class VdcConfigHelper {
         {
             return; // already added
         }
-
-        options.put(shortVdcId, vdc.getHostCount().toString());
+        Site activeSite = drUtil.getActiveSite(vdc.getShortId());
+        options.put(shortVdcId, String.valueOf(activeSite.getNodeCount()));
 
         dbClient.getGeoContext().setCassandraStrategyOptions(options, wait);
     }
@@ -1057,5 +1031,36 @@ public class VdcConfigHelper {
      */
     public String getViPRVersion(Properties vdcProp) {
         return geoClientCache.getGeoClient(vdcProp).getViPRVersion();
+    }
+    
+    public void createVdcConfigInZk(VdcConfig vdc) {
+        log.info("Update Vdc info to zk {}", vdc.getShortId());
+        
+        // Insert vdc info
+        ConfigurationImpl vdcConfig = new ConfigurationImpl();
+        vdcConfig.setKind(Site.CONFIG_KIND);
+        vdcConfig.setId(vdc.getShortId());
+        coordinator.persistServiceConfiguration(vdcConfig);
+        
+        // insert DR active site info to ZK
+        Site site = new Site();
+        site.setUuid(vdc.getActiveSiteId()); 
+        site.setName("Default Active Site");
+        site.setVdcShortId(vdc.getShortId());
+        site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
+        site.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
+        site.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
+        site.setState(SiteState.ACTIVE);
+        site.setCreationTime(System.currentTimeMillis());
+        site.setVip(vdc.getApiEndpoint());
+        site.setNodeCount(vdc.getHostCount());
+        
+        coordinator.persistServiceConfiguration(site.toConfiguration());
+    }
+    
+    public void deleteVdcConfigFromZk(VirtualDataCenter vdc) {
+        String path = String.format("%s/%s/%s", ZkPath.CONFIG, Site.CONFIG_KIND, vdc.getShortId());
+        log.info("Delete vdc config at {}", path);
+        dbClient.getCoordinatorClient().deletePath(path);
     }
 }

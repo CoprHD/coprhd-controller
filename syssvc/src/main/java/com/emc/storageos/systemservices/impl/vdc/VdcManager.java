@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,7 +79,6 @@ public class VdcManager extends AbstractManager {
     private static final int BACK_UPGRADE_RETRY_MILLIS = 30 * 1000; // 30 seconds
     
     private SiteInfo targetSiteInfo;
-    private String currentSiteId;
     private VdcConfigUtil vdcConfigUtil;
     private Map<String, VdcOpHandler> vdcOpHandlerMap;
     private Boolean backCompatPreYoda = false;
@@ -149,7 +149,6 @@ public class VdcManager extends AbstractManager {
         // need to distinguish persistent locks acquired from UpgradeManager/VdcManager/PropertyManager
         // otherwise they might release locks acquired by others when they start
         final String svcId = String.format("%s,vdc", coordinator.getMySvcId());
-        currentSiteId = coordinator.getCoordinatorClient().getSiteId();
         vdcConfigUtil = new VdcConfigUtil(coordinator.getCoordinatorClient());
         vdcConfigUtil.setBackCompatPreYoda(backCompatPreYoda);
         
@@ -208,8 +207,6 @@ public class VdcManager extends AbstractManager {
 
                 try {
                     updateVdcProperties(svcId);
-                    //updateSwitchoverSiteState();
-                    //updateFailoverSiteState();
                 } catch (Exception e) {
                     log.info("Step3: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
@@ -233,9 +230,9 @@ public class VdcManager extends AbstractManager {
                 continue;
             }
             
-            // Step 6 : check backward compatibile upgrade flag
+            // Step 6 : check backward compatible upgrade flag
             try {
-                if (backCompatPreYoda) {
+                if (backCompatPreYoda && !isGeoConfig()) {
                     log.info("Check if pre-yoda upgrade is done");
                     checkPreYodaUpgrade();
                     continue;
@@ -277,17 +274,24 @@ public class VdcManager extends AbstractManager {
         // targetVdcPropInfo = loadVdcConfigFromDatabase();
         targetVdcPropInfo = loadVdcConfig();
 
-        if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null) {
-            localVdcPropInfo = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+        if (isGeoUpgradeFromPreYoda()) {
+            log.info("Detect vdc properties from preyoda. Keep local vdc config properties unchanged until all vdc configs are migrated to zk");
             localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
                     String.valueOf(targetSiteInfo.getVdcConfigVersion()));
             localRepository.setVdcPropertyInfo(localVdcPropInfo);
-
-            String vdc_ids = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
-            String[] vdcIds = vdc_ids.split(",");
-            if (vdcIds.length > 1) {
-                log.info("More than one Vdc, rebooting");
-                reboot();
+        } else {
+            if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null) {
+                localVdcPropInfo = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+                localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
+                         String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+                localRepository.setVdcPropertyInfo(localVdcPropInfo);
+                
+                String vdc_ids = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+                String[] vdcIds = vdc_ids.split(",");
+                if (vdcIds.length > 1) {
+                    log.info("More than one Vdc, rebooting");
+                    reboot();
+                }
             }
         }
         
@@ -334,10 +338,19 @@ public class VdcManager extends AbstractManager {
         long localVdcConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null ? 0 :
                 Long.parseLong(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
         long targetVdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
-
         return localVdcConfigVersion != targetVdcConfigVersion;
     }
 
+    private boolean isGeoUpgradeFromPreYoda() {
+        String vdcIds = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+        return !StringUtils.isEmpty(vdcIds) && vdcIds.contains(",") && StringUtils.isEmpty(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
+    }
+    
+    private boolean isGeoConfig() {
+        return targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
+                || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",");
+    }
+    
     /**
      * Update vdc properties and reboot the node if
      *
@@ -349,8 +362,7 @@ public class VdcManager extends AbstractManager {
         // multi VDC configuration a reboot is needed. If only operating on a single VDC
         // do not reboot the nodes.
         String action = targetSiteInfo.getActionRequired();
-        if (targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
-                || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")) {
+        if (isGeoConfig()) {
             log.info("Step3: Acquiring reboot lock for vdc properties change.");
             if (!getRebootLock(svcId)) {
                 retrySleep();
@@ -359,8 +371,13 @@ public class VdcManager extends AbstractManager {
                 retrySleep();
             } else {
                 log.info("Step3: Setting vdc properties and reboot");
+                targetVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-                reboot();
+                if (backCompatPreYoda) {
+                    log.info("Back compatiblilty to preyoda flag detected. Skip the reboot until all vdcs are upgraded to yoda");
+                } else {
+                    reboot();
+                }
             }
             return;
         }

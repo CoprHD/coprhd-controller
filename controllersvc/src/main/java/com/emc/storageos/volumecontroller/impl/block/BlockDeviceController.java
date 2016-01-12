@@ -1992,7 +1992,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
              * In this case we should create element replica using createListReplica.
              * We should not use createGroup replica as backend cg will not be available in this case.
              */
-            isListReplicaFlow = isListReplicaFlow(sourceVolumeObj);
+            boolean isVnxVolume = ControllerUtils.isVnxVolume(sourceVolumeObj, _dbClient);
+            // VNX doesn't support list replica for snapshot
+            isListReplicaFlow = !isVnxVolume && isListReplicaFlow(sourceVolumeObj);
 
             if (!isListReplicaFlow) {
                 getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
@@ -4100,7 +4102,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             taskCompleter = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
             String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, null, _dbClient);
             getDevice(storageSystem.getSystemType()).doCreateConsistencyGroup(
-                    storageSystem, consistencyGroup, null, taskCompleter);
+                    storageSystem, consistencyGroup, groupName, taskCompleter);
         } catch (Exception e) {
             _log.error("create consistency group job failed:", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

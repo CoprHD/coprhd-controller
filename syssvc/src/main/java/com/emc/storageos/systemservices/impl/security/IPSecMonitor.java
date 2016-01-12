@@ -14,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Map;
@@ -231,6 +232,9 @@ public class IPSecMonitor implements Runnable {
         try {
             InetAddress IP = InetAddress.getLocalHost();
             String localIP = IP.getHostAddress();
+            if(IP instanceof Inet6Address) {
+                localIP = IpUtils.decompressIpv6Address(localIP);
+            }
             log.info("IP of my system is : " + localIP);
             return localIP;
         } catch (Exception ex) {

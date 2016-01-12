@@ -8,8 +8,6 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Iterator;
 
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-
 @Cf("BlockConsistencyGroup")
 public class BlockConsistencyGroup extends DataObject implements ProjectResource {
 

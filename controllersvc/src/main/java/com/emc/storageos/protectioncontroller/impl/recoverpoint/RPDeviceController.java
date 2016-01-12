@@ -181,8 +181,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_PRE_VOLUME_EXPAND = "preVolumeExpand";
     private static final String STEP_POST_VOLUME_EXPAND = "postVolumeExpand";
 
-    private static final String STEP_PRE_VOLUME_RESTORE = "preVolumeRestore";
-    private static final String STEP_POST_VOLUME_RESTORE = "postVolumeRestore";
+    public static final String STEP_PRE_VOLUME_RESTORE = "preVolumeRestore";
+    public static final String STEP_POST_VOLUME_RESTORE = "postVolumeRestore";
 
     // Methods in the create workflow. Constants helps us avoid step dependency flubs.
     private static final String METHOD_CG_CREATE_STEP = "cgCreateStep";
@@ -213,9 +213,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String METHOD_RESTORE_VOLUME_STEP = "restoreVolume";
 
     // Methods in the expand volume workflow
-    private static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
+    public static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
     private static final String METHOD_DELETE_RSET_ROLLBACK_STEP = "recreateRSetStep";
-    private static final String METHOD_RECREATE_RSET_STEP = "recreateRSetStep";
+    public static final String METHOD_RECREATE_RSET_STEP = "recreateRSetStep";
 
     // Methods in the create RP snapshot workflow
     private static final String STEP_BOOKMARK_CREATE = "createBookmark";
@@ -3229,7 +3229,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return the replication set params to perform a recreate operation
      * @throws RecoverPointException
      */
-    private RecreateReplicationSetRequestParams getReplicationSettings(ProtectionSystem rpSystem, URI volumeId)
+    public RecreateReplicationSetRequestParams getReplicationSettings(ProtectionSystem rpSystem, URI volumeId)
             throws RecoverPointException {
         RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
         Volume volume = _dbClient.queryObject(Volume.class, volumeId);

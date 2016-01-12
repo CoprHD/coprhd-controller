@@ -64,6 +64,7 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -87,6 +88,9 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.recoverpoint.requests.RecreateReplicationSetRequestParams;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -338,6 +342,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private VPlexApiLockManager _vplexApiLockManager;
     private DbClient _dbClient;
     private BlockDeviceController _blockDeviceController;
+    private RPDeviceController _rpDeviceController;
     private BlockOrchestrationDeviceController _blockOrchestrationController;
     private NetworkDeviceController _networkDeviceController;
     private BlockStorageScheduler _blockScheduler;
@@ -4589,6 +4594,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     public void setBlockDeviceController(BlockDeviceController _blockDeviceController) {
         this._blockDeviceController = _blockDeviceController;
+    }
+
+    public void setBlockDeviceController(RPDeviceController rpDeviceController) {
+        _rpDeviceController = rpDeviceController;
     }
 
     public void setBlockOrchestrationDeviceController(BlockOrchestrationDeviceController blockOrchestrationController) {
@@ -10775,8 +10784,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _dbClient);
 
             // The workflow depends on if the VPLEX volume is local or distributed.
-            String waitFor = null;
             boolean isLocal = firstVplexVolume.getAssociatedVolumes().size() == 1;
+            String waitFor = null;
             if (isLocal) {
                 for (Volume vplexVolume : vplexVolumes) {
                     // Create a step to invalidate the read cache for the VPLEX volume.
@@ -10793,6 +10802,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
                         snapSessionURI, waitFor, null);
             } else {
+                // Check for RP, there are pre/post steps that need to be executed in this case.
+                boolean isRP = firstVplexVolume.checkForRp();
+
+                // Create the steps that need to be executed on each VPLEX volume.
                 for (Volume vplexVolume : vplexVolumes) {
                     // For distributed volumes we take snaps of and restore the
                     // source backend volume. Before we can do the restore, we need
@@ -10806,7 +10819,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
                             vplexURI, vplexVolumeURI, haVolumeURI, vplexVolume.getConsistencyGroup(), detachStepId);
                     waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem, vplexVolume,
-                            haVolumeURI, detachStepId, null, restoreVolumeRollbackMethod);
+                            haVolumeURI, detachStepId, isRP ? RPDeviceController.STEP_PRE_VOLUME_RESTORE : null,
+                            restoreVolumeRollbackMethod);
 
                     // We now create a step to invalidate the cache for the
                     // VPLEX volume. Note that if this step fails we need to
@@ -10826,6 +10840,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // fails because at this point the restore is really
                     // complete.
                     createWorkflowStepForWaitOnRebuild(workflow, vplexSystem, vplexVolumeURI, waitFor);
+                }
+
+                // Create the pre/post RP steps if necessary.
+                if (isRP) {
+                    ProtectionSystem rpSystem = getDataObject(ProtectionSystem.class,
+                            firstVplexVolume.getProtectionController(), _dbClient);
+
+                    // Create the pre restore step which will be the first step executed
+                    // in the workflow.
+                    createWorkflowStepForDeleteReplicationSet(workflow, rpSystem, vplexVolumes, null);
+
+                    // Create the post restore step, which will be the last step executed
+                    // in the workflow after the volume shave been rebuilt.
+                    createWorkflowStepForRecreateReplicationSet(workflow, rpSystem, vplexVolumes, WAIT_ON_REBUILD_STEP);
                 }
 
                 // Create a workflow step to native restore the backend volume
@@ -10861,6 +10889,72 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     snapSessionURI.toString(), e);
             completer.error(_dbClient, serviceError);
         }
+    }
+
+    /**
+     * 
+     * @param workflow
+     * @param rpSystem
+     * @param vplexVolumes
+     * @param waitFor
+     * 
+     * @return
+     */
+    private String createWorkflowStepForDeleteReplicationSet(Workflow workflow, ProtectionSystem rpSystem,
+            List<Volume> vplexVolumes, String waitFor) {
+        List<URI> vplexVolumeURIs = new ArrayList<>();
+        Map<String, RecreateReplicationSetRequestParams> params = getRecreateReplicationSetParams(rpSystem, vplexVolumes, vplexVolumeURIs);
+        Workflow.Method executeMethod = new Workflow.Method(RPDeviceController.METHOD_DELETE_RSET_STEP, rpSystem.getId(), vplexVolumeURIs);
+        Workflow.Method rollbackMethod = new Workflow.Method(RPDeviceController.METHOD_RECREATE_RSET_STEP, rpSystem.getId(),
+                vplexVolumeURIs, params);
+        workflow.createStep(RPDeviceController.STEP_PRE_VOLUME_RESTORE,
+                "Delete RP replication set step for snapshot session restore",
+                waitFor, rpSystem.getId(), rpSystem.getSystemType(), RPDeviceController.class,
+                executeMethod, rollbackMethod, null);
+
+        return RPDeviceController.STEP_PRE_VOLUME_RESTORE;
+    }
+
+    /**
+     * 
+     * @param workflow
+     * @param rpSystem
+     * @param vplexVolumes
+     * @param waitFor
+     * 
+     * @return
+     */
+    private String createWorkflowStepForRecreateReplicationSet(Workflow workflow, ProtectionSystem rpSystem,
+            List<Volume> vplexVolumes, String waitFor) {
+        List<URI> vplexVolumeURIs = new ArrayList<>();
+        Map<String, RecreateReplicationSetRequestParams> params = getRecreateReplicationSetParams(rpSystem, vplexVolumes, vplexVolumeURIs);
+        Workflow.Method executeMethod = new Workflow.Method(RPDeviceController.METHOD_RECREATE_RSET_STEP, rpSystem.getId(),
+                vplexVolumeURIs, params);
+        workflow.createStep(RPDeviceController.STEP_POST_VOLUME_RESTORE,
+                "Delete RP replication set step for snapshot session restore",
+                waitFor, rpSystem.getId(), rpSystem.getSystemType(), RPDeviceController.class,
+                executeMethod, rollbackMethodNullMethod(), null);
+        return RPDeviceController.STEP_POST_VOLUME_RESTORE;
+    }
+
+    /**
+     * 
+     * @param rpSystem
+     * @param vplexVolumes
+     * @param vplexVolumeURIs
+     * 
+     * @return
+     */
+    private Map<String, RecreateReplicationSetRequestParams> getRecreateReplicationSetParams(ProtectionSystem rpSystem,
+            List<Volume> vplexVolumes, List<URI> vplexVolumeURIs) {
+        Map<String, RecreateReplicationSetRequestParams> params = new HashMap<String, RecreateReplicationSetRequestParams>();
+        for (Volume vplexVolume : vplexVolumes) {
+            URI vplexVolumeURI = vplexVolume.getId();
+            vplexVolumeURIs.add(vplexVolumeURI);
+            RecreateReplicationSetRequestParams volumeParam = _rpDeviceController.getReplicationSettings(rpSystem, vplexVolumeURI);
+            params.put(RPHelper.getRPWWn(vplexVolumeURI, _dbClient), volumeParam);
+        }
+        return params;
     }
 
     /**

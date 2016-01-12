@@ -668,6 +668,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
         <property name="blockDeviceController" ref="blockDeviceController" />
+        <property name="rpDeviceController" ref="rpProtection" />
         <property name="blockOrchestrationDeviceController" ref="blockOrchestrationDeviceController" />
         <property name="vplexApiFactory" ref="vplexapifactory" />
         <property name="networkDeviceController" ref="networkDeviceController" />

@@ -216,18 +216,17 @@ public class VdcManager extends AbstractManager {
                     log.info("Step3: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
                     continue;
-                } finally {
-                    // Step4: set site error state if on active
-                    try {
-                        updateSiteErrors();
-                    } catch (Exception e) {
-                        log.error("Step4: Failed to set site errors. {}", e);
-                        continue;
-                    }
                 }
                 continue;
             }
             
+            // Step4: set site error state if on active
+            try {
+                updateSiteErrors();
+            } catch (Exception e) {
+                log.error("Step4: Failed to set site errors. {}", e);
+                continue;
+            }
             
             // Step5: record DR operation audit log if on active
             try {

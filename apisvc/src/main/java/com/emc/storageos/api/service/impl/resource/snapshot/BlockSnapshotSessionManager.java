@@ -7,7 +7,9 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+import static com.google.common.collect.Collections2.transform;
 import static java.lang.String.format;
 
 import java.net.URI;
@@ -16,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -211,11 +214,28 @@ public class BlockSnapshotSessionManager {
         return snapSessionApi;
     }
 
+    /**
+     * Creates a snapshot session based on the given resource URI.  This method handles the following cases where
+     * resourceURI is...
+     *
+     * 1) a non-CG Volume/BlockSnapshot
+     * 2) a BlockConsistencyGroup
+     * 3) a CG Volume/BlockSnapshot (recursively calls this method, passing in its BlockConsistencyGroup URI)
+     *
+     * @param resourceURI   Resource to create a snapshot session from
+     * @param param         Snapshot session parameters
+     * @param fcManager     Full copy manager
+     * @return              TaskList
+     */
     public TaskList createSnapshotSession(URI resourceURI, SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
         if (URIUtil.isType(resourceURI, Volume.class) || URIUtil.isType(resourceURI, BlockSnapshot.class)) {
             BlockObject blockObject =
                     BlockSnapshotSessionUtils.querySnapshotSessionSource(resourceURI, _uriInfo, false, _dbClient);
-            return createSnapshotSession(Lists.newArrayList(blockObject), param, fcManager);
+            if (blockObject.hasConsistencyGroup()) {
+                return createSnapshotSession(blockObject.getConsistencyGroup(), param, fcManager);
+            } else {
+                return createSnapshotSession(Lists.newArrayList(blockObject), param, fcManager);
+            }
         } else if (URIUtil.isType(resourceURI, BlockConsistencyGroup.class)) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, resourceURI);
             return createSnapshotSession(cg, param, fcManager);
@@ -239,7 +259,8 @@ public class BlockSnapshotSessionManager {
      */
     public TaskList createSnapshotSession(List<BlockObject> snapSessionSourceObjList,
                                           SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
-        s_logger.info("START create snapshot session for sources {}", Joiner.on(',').join(snapSessionSourceObjList));
+        Collection<URI> sourceURIs = transform(snapSessionSourceObjList, fctnDataObjectToID());
+        s_logger.info("START create snapshot session for sources {}", Joiner.on(',').join(sourceURIs));
 
         // Get the snapshot session label.
         String snapSessionLabel = param.getName();
@@ -275,25 +296,30 @@ public class BlockSnapshotSessionManager {
         // snapshot sessions.
         List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
         BlockSnapshotSession snapSession = snapSessionApiImpl.prepareSnapshotSession(snapSessionSourceObjList,
-                snapSessionLabel,
-                newLinkedTargetsCount, newTargetsName, snapSessionSnapshots, taskId);
+                snapSessionLabel, newLinkedTargetsCount, newTargetsName, snapSessionSnapshots, taskId);
 
         // Populate the preparedObjects list and create tasks for each snapshot session.
         TaskList response = new TaskList();
-        List<DataObject> preparedObjects = new ArrayList<>();
 
         response.getTaskList().add(toTask(snapSession, taskId));
-        preparedObjects.add(snapSession);
+        for (BlockObject sourceForTask : snapSessionSourceObjList) {
+            Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceForTask.getId(),
+                    taskId, ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION);
+            response.getTaskList().add(toTask(sourceForTask, taskId, op));
+        }
+        addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
+                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
 
+        List<DataObject> preparedObjects = new ArrayList<>();
         List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
+
         for (Map<URI, BlockSnapshot> snapshotMap : snapSessionSnapshots) {
             preparedObjects.addAll(snapshotMap.values());
             Set<URI> uris = snapshotMap.keySet();
             snapSessionSnapshotURIs.add(Lists.newArrayList(uris));
         }
 
-        // addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
-        // ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
+        preparedObjects.add(snapSession);
 
         // Create the snapshot sessions.
         try {
@@ -863,8 +889,9 @@ public class BlockSnapshotSessionManager {
             return;
         }
 
-        List<BlockConsistencyGroup> groups = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroups);
-        for (BlockConsistencyGroup group : groups) {
+        Iterator<BlockConsistencyGroup> groups = _dbClient.queryIterativeObjects(BlockConsistencyGroup.class, consistencyGroups);
+        while (groups.hasNext()) {
+            BlockConsistencyGroup group = groups.next();
             Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
                     operationTypeEnum);
             taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));

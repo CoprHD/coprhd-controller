@@ -1891,7 +1891,7 @@ public class BlockService extends TaskResourceService {
             op.setResourceType(ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
             op.ready();
             volume.getOpStatus().createTaskStatus(task, op);
-            _dbClient.persistObject(volume);
+            _dbClient.updateObject(volume);
         } else {
             URI systemURI = null;
             if (!isNullURI(volume.getProtectionController())) {
@@ -1903,7 +1903,7 @@ public class BlockService extends TaskResourceService {
             op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
             volume.getOpStatus().createTaskStatus(task, op);
-            _dbClient.persistObject(volume);
+            _dbClient.updateObject(volume);
 
             try {
                 blockServiceApi.deleteVolumes(systemURI, volumeURIs, type, task);
@@ -1916,7 +1916,7 @@ public class BlockService extends TaskResourceService {
                 op = vol.getOpStatus().get(task);
                 op.error(e);
                 vol.getOpStatus().updateTaskStatus(task, op);
-                _dbClient.persistObject(vol);
+                _dbClient.updateObject(vol);
                 throw e;
             }
 

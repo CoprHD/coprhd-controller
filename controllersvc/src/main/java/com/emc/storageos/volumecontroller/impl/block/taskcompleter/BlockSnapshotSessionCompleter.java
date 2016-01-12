@@ -142,5 +142,7 @@ public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
      * 
      * @return The operation description.
      */
-    abstract protected String getDescriptionOfResults(Operation.Status status, BlockObject sourceObj, BlockSnapshotSession snapSession);
+    protected String getDescriptionOfResults(Operation.Status status, BlockObject sourceObj, BlockSnapshotSession snapSession) {
+        return null;
+    }
 }

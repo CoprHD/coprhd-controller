@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,10 +109,5 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends BlockSnapshotSess
      */
     public boolean getDeleteTarget() {
         return _deleteTarget;
-    }
-
-    @Override
-    protected String getDescriptionOfResults(Status status, BlockObject sourceObj, BlockSnapshotSession snapSession) {
-        return null;
     }
 }

@@ -92,7 +92,7 @@ public class DrSiteNetworkMonitor implements Runnable{
                 double ping = testPing(host,80);
                 _log.info("Ping: "+ping);
                 site.setPing(ping);
-                if (ping > 400) {
+                if (ping > 150) {
                     site.setNetworkHealth(NETWORK_HEALTH_SLOW);
                     _log.warn("Network for standby {} is slow",site.getName());
                 }
@@ -238,10 +238,6 @@ public class DrSiteNetworkMonitor implements Runnable{
             sc.close();
         } catch (IOException e) {
             _log.error("Error closing socket during latency test",e);
-        }
-
-        if (timeToRespond > Integer.MAX_VALUE) {
-            _log.error("maybe throw a PingCalculationException?");
         }
 
         //The ping failed, return -1

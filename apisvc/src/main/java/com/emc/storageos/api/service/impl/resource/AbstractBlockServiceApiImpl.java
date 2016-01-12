@@ -1410,13 +1410,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         if (!updatedExportGroupMap.isEmpty()) {
             List<ExportGroup> updatedExportGroups = new ArrayList<ExportGroup>(
                     updatedExportGroupMap.values());
-            _dbClient.persistObject(updatedExportGroups);
+            _dbClient.updateObject(updatedExportGroups);
         }
 
         if (!updatedExportMaskMap.isEmpty()) {
             List<ExportMask> updatedExportMasks = new ArrayList<ExportMask>(
                     updatedExportMaskMap.values());
-            _dbClient.persistObject(updatedExportMasks);
+            _dbClient.updateObject(updatedExportMasks);
         }
     }
 

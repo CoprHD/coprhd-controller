@@ -10,6 +10,7 @@ import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate;
 
+import org.apache.cassandra.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -179,6 +180,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startPropertyManager();
             startVdcManager();
             startIpReconfigManager();
+            
+            //config cassandra as client mode to avoid load yaml file
+            Config.setClientMode(true);
             
             DrUtil drUtil = _coordinator.getDrUtil();
             if (drUtil.isActiveSite()) {

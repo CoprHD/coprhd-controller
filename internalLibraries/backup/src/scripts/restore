@@ -204,6 +204,7 @@ gen_config() {
     fi
     echo -n "Regenerating storageos configuration files based on restored vdc properties"
     /etc/systool --setvdcprops "${vdcpropsfile}"
+    /etc/systool --getprops | /etc/genconfig
     echo "done"
 }
 

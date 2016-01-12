@@ -9,6 +9,9 @@ import java.net.URI;
 
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.RelationIndex;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
@@ -62,6 +65,7 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 		setChanged("Name");
 	}
 
+	@RelationIndex(cf = "UnManagedCGRelationIndex", type = StorageSystem.class)
 	@Name("storageDevice")
 	public URI getStorageSystemUri() {
 		return _storageSystemUri;

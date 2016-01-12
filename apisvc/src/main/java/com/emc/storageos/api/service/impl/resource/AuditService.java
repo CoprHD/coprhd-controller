@@ -192,15 +192,14 @@ public class AuditService extends ResourceService {
     private DateTime getDataTime(String timeStr,String timeFormatStr) {
         DateTimeFormatter timeFormatter = DateTimeFormat.forPattern(
                 timeFormatStr).withZoneUTC();
+        if ((timeStr == null) || timeStr.length() != timeFormatStr.length() - 2) {
+            return null;
+        }
         try{
-            if ((null != timeStr) && (timeStr.length() == timeFormatStr.length() - 2)){
-                return timeFormatter.parseDateTime(timeStr);
-            }
+            return timeFormatter.parseDateTime(timeStr);
         }catch (IllegalArgumentException e){
             throw APIException.badRequests.invalidTimeBucket(timeStr, e);
         }
-        return null;
-
     }
 
     private void validateDataTimePair(DateTime start,DateTime end) {

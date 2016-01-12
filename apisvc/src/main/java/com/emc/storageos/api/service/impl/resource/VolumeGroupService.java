@@ -8,11 +8,11 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -57,8 +57,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -856,7 +854,7 @@ public class VolumeGroupService extends TaskResourceService {
                 return;
             }
 
-            BlockServiceApi serviceAPI = BlockService.getBlockServiceImpl(firstVol, dbClient);
+            BlockServiceApi serviceAPI = getBlockService(dbClient, firstVol);
             Operation op = dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(),
                     taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
             try {
@@ -895,7 +893,7 @@ public class VolumeGroupService extends TaskResourceService {
             if (group.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())){
                 List<Volume> volumes = getVolumeGroupVolumes(dbClient, group);
                 if (volumes != null && !volumes.isEmpty()) {
-                    BlockServiceApi serviceAPI = BlockService.getBlockServiceImpl(volumes.iterator().next(), dbClient);
+                    BlockServiceApi serviceAPI = getBlockService(dbClient, volumes.iterator().next());
                     groupNames.addAll(serviceAPI.getReplicationGroupNames(group));
                 }
             }
@@ -1076,6 +1074,24 @@ public class VolumeGroupService extends TaskResourceService {
                 }
             }
         }
+        
+        private static BlockServiceApi getBlockService(DbClient dbClient, final Volume volume) {
+            if (!isNullURI(volume.getProtectionController())
+                    && volume.checkForRp()) {
+                return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
+            }
+
+            if (Volume.checkForSRDF(dbClient, volume.getId())) {
+                return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+            }
+
+            URI systemUri = volume.getStorageController();
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
+            String type = system.getSystemType();
+            String volType = getVolumeType(type);
+            return getBlockServiceImpl(volType);
+        }   
+        
     }
 
     /**

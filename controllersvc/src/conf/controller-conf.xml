@@ -644,7 +644,6 @@
       	<property name="workflowService" ref="workflowService" />
       	<property name="rpStatsHelper" ref="rpStatsHelper" />
         <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />        
-        <property name="blockDeviceController" ref="blockDeviceController" />
     </bean>
 
     <bean id="rpcontroller" class="com.emc.storageos.protectioncontroller.impl.RPControllerImpl">

@@ -157,9 +157,11 @@ public class IPSecMonitor implements Runnable {
         }
 
         if (nodeKey != null && nodeKey.contains(myVdcId)) {
+            log.info(node + " is in the same vdc as localhost");
             return true;
         }
 
+        log.info(node + " is NOT in the same vdc as localhost");
         return false;
     }
 

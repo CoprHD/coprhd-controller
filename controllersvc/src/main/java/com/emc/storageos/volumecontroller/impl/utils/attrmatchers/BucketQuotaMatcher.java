@@ -43,18 +43,18 @@ private static final Logger _logger = LoggerFactory.getLogger(BucketQuotaMatcher
         Long hardQuota = Long.parseLong(quota);
         //convert to KB
         hardQuota = hardQuota/1024;
-        _logger.info("Pools Matching hard quota Started {}, {} :", hardQuota,
+        _logger.info("Pools Matching hard quota Started : {}, {}", hardQuota,
                 Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
         Iterator<StoragePool> poolIterator = allPools.iterator();
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>(allPools);
         while (poolIterator.hasNext()) {
             StoragePool pool = poolIterator.next();
             if (pool.getFreeCapacity() < hardQuota) {
-                _logger.info("Ignoring pool {} as Free capacity is less :", pool.getNativeGuid());
-                allPools.remove(pool);
+                _logger.info("Ignoring pool {} as Free capacity is less", pool.getNativeGuid());
+                filteredPoolList.remove(pool);
             }
         }
-        _logger.info("Pools Matching Hard quota Ended {}, {}", hardQuota,
+        _logger.info("Pools Matching Hard quota Ended : {}, {}", hardQuota,
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         return filteredPoolList;
 

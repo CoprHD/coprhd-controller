@@ -41,18 +41,18 @@ public class MinDataCenterMatcher extends AttributeMatcher {
 	protected List<StoragePool> matchStoragePoolsWithAttributeOn(
 			List<StoragePool> allPools, Map<String, Object> attributeMap) {
 		Integer minDataCenters = (Integer) attributeMap.get(Attributes.min_datacenters.toString());
-        _logger.info("Pools Matching Minimum Data Centers Started {}, {} :", minDataCenters,
+        _logger.info("Pools Matching Minimum Data Centers Started : {}, {}", minDataCenters,
                 Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
         Iterator<StoragePool> poolIterator = allPools.iterator();
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>(allPools);
         while (poolIterator.hasNext()) {
             StoragePool pool = poolIterator.next();
             if (pool.getDataCenters() < minDataCenters) {
-            	_logger.info("Ignoring pool {} as Data Centers is less :", pool.getNativeGuid());
-            	allPools.remove(pool);
+            	_logger.info("Ignoring pool {} as Data Centers is less", pool.getNativeGuid());
+            	filteredPoolList.remove(pool);
             }
         }
-        _logger.info("Pools Matching Minimum Data Centers Ended {}, {}", minDataCenters,
+        _logger.info("Pools Matching Minimum Data Centers Ended : {}, {}", minDataCenters,
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         return filteredPoolList;
 	}

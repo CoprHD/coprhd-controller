@@ -309,4 +309,13 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      */
     public void setDeviceInitiators(List<Initiator> deviceInitiators);
 
+    /**
+     * Finds a BlockObject by native GUID by first looking in the database,
+     * then in the context's createdObjectMap (or parent contexts, if needed).
+     * 
+     * @param nativeGuid the BlockObject native GUID to look for
+     * @return a BlockObject for the native GUID on null if none found
+     */
+    public BlockObject findCreatedBlockObject(String nativeGuid);
+
 }

@@ -375,7 +375,7 @@ public class BackupService {
         downloadThread.setName("backupDownloadThread");
         downloadThread.start();
 
-        return Response.ok().build();
+        return Response.status(202).build();
     }
 
     /**
@@ -399,7 +399,7 @@ public class BackupService {
         downloadThread.start();
 
         log.info("done");
-        return Response.ok().build();
+        return Response.status(202).build();
     }
 
     class RestoreRunnable implements Runnable {
@@ -447,7 +447,7 @@ public class BackupService {
         restoreThread.start();
 
         log.info("done");
-        return Response.ok().build();
+        return Response.status(202).build();
     }
 
     /**

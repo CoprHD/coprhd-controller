@@ -5,11 +5,7 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
 import java.net.URI;
-import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -604,11 +600,28 @@ public abstract class VdcOpHandler {
 
     /**
      * Process DR config change for switchover
-     *  - old active site: flush new vdc config to disk, reconfig/reload coordinator(synchronized with new active site), 
-     *                     update site state to STANDBY_SYNCED
-     *  - new active : flush new vdc config to disk, reconfig/reload coordinator(synchronized with old active site), 
-     *                 update site state to ACTIVE
-     *  - other standby - flush new vdc config to disk, reconfig/reload coordinator
+     * On old active site:
+     * 1.Flush vdc config properties to local
+     * 2.Stop controller, sa, vasa services
+     * 3.All nodes enter double barrier (ZK path : /sites/{site_uuid}/switchoverBarrierActiveSite) and set site state to STANDBY_SYNCED
+     * 4.Set new active site state from "STANDBY_SYNCED" to "STANDBY_SWITCHING_OVER"
+     * 5.Wait for new active site's confirm to restart: wait for barrier created at step 3. All nodes will wait until restart barrier is
+     * removed by new active site.
+     * 6.Restart all nodes.
+     * 
+     * new active :
+     * 1.Wait for old active site¡¯s state has been changed to STANDBY_SYNCED
+     * 2.Check whether old active restart barrier exists (ZK path: /sites/{site_uuid}/switchoverRestartBarrier):
+     *  a.If NO, do thing. It means barrier has been removed
+     *  b. If Yes, all nodes enter barrier (ZK path: /sites/{site_uuid}/switchoverStandbySiteRemoveBarrier) and remove the barrier (created
+     *  at old active site's step 5).
+     * 3.Wait until there is no ZK leader
+     * 4.Flush vdc config properties to local
+     * 5.Reconfig ZK to participant
+     * 6.Make sure all nodes enter barrier (ZK path: /sites/{site_uuid}/switchoverBarrierStandbySite) and set site state to "ACTIVE"
+     * 7.Restart all nodes
+     * 
+     * other standby - flush new vdc config to disk, reconfig/reload coordinator
      */
     public static class DrSwitchoverHandler extends VdcOpHandler {
         
@@ -631,7 +644,7 @@ public abstract class VdcOpHandler {
             
             // Update site state
             if (site.getUuid().equals(siteInfo.getSourceSiteUUID())) {
-                log.info("This is switchover acitve site (old acitve)");
+                log.info("This is switchover active site (old acitve)");
 
                 coordinator.stopCoordinatorSvcMonitor();
                 
@@ -721,7 +734,7 @@ public abstract class VdcOpHandler {
                     SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
             barrier.enter();
             
-            if (isVirtualIPHolder(site)) {
+            if (coordinator.isVirtualIPHolder()) {
                 log.info("This node is virtual IP holder, notify remote old active site to reboot");
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
                         restartBarrierPath);
@@ -774,16 +787,6 @@ public abstract class VdcOpHandler {
         
         private String getSingleBarrierPath(String siteID, String barrierName) {
             return String.format("%s/%s/%s", ZkPath.SITES, siteID, barrierName);
-        }
-        
-        private boolean isVirtualIPHolder(Site site) {
-            try {
-                InetAddress vip = InetAddress.getByName(site.getVip());
-                return NetworkInterface.getByInetAddress(vip) != null;
-            } catch (Exception e) {
-                log.error("Error occured when check virtual IP holder",e);
-                return false;
-            } 
         }
         
         // See coordinator hack for DR in CoordinatorImpl.java. If single node

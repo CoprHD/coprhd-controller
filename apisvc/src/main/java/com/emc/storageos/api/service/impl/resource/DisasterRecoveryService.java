@@ -859,6 +859,8 @@ public class DisasterRecoveryService {
             oldActiveSite.setState(SiteState.ACTIVE_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
             
+            // this barrier is set when begin switchover and will be removed by new active site. Old active site will wait and reboot after
+            // barrier is removed 
             DistributedBarrier restartBarrier = coordinator.getDistributedBarrier(String.format("%s/%s/%s", ZkPath.SITES,
                     oldActiveSite.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART));
             restartBarrier.setBarrier();

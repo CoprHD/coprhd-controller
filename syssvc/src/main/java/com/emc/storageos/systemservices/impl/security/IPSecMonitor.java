@@ -8,6 +8,7 @@ package com.emc.storageos.systemservices.impl.security;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.security.ipsec.IpUtils;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -144,7 +145,12 @@ public class IPSecMonitor implements Runnable {
         String myVdcId = vdcProps.getProperty("vdc_myid");
         String nodeKey = null;
         for (String key : vdcProps.getAllProperties().keySet()) {
-            if (vdcProps.getProperty(key).equals(node)) {
+            String value = vdcProps.getProperty(key);
+            if (key.contains("ipaddr6")) {
+                value = IpUtils.decompressIpv6Address(value);
+            }
+
+            if (value !=null && value.toLowerCase().equals(node.toLowerCase())) {
                 nodeKey = key;
                 break;
             }

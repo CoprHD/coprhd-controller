@@ -1554,6 +1554,7 @@
 		<property name="rebootRequired" value="true" />
 		<property name="value" value="0" />
 		<property name="controlNodeOnly" value="false" />
+		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="controller_vplex_firmware_version" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="VPLEX firmware version" />

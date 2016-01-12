@@ -1866,10 +1866,12 @@ public class RPHelper {
 
         // filter out old style journal volumes
         // new style journal volumes are named with the virtual array as the first component
+        // some journals may be ingested and not fit either style.  Avoid those too.
         List<Volume> newStyleJournals = new ArrayList<Volume>();
         for (Volume journalVol : existingJournals) {
             String volName = journalVol.getLabel();
-            if (volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
+            if (volName != null && volName.length() >= journalPrefix.length() && 
+                volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
                 newStyleJournals.add(journalVol);
             }
         }

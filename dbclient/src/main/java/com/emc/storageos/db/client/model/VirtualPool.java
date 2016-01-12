@@ -130,7 +130,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         LOCAL, REMOTE, NONE;
         public static boolean lookup(final String name) {
             for (FileReplicationType value : values()) {
-                if (value.name().equals(name)) {
+                if (value.name().equalsIgnoreCase(name)) {
                     return true;
                 }
             }

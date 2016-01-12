@@ -85,11 +85,14 @@ public class DrSiteNetworkMonitor implements Runnable{
 
 
         if (ZOOKEEPER_MODE_LEADER.equals(zkState)) {
+
+            int testPort = 4443;
+
             //I'm the leader
             for (Site site : drUtil.listStandbySites()){
                 String previousState = site.getNetworkHealth();
                 String host = site.getVip();
-                double ping = testPing(host,80);
+                double ping = testPing(host,4443);
                 _log.info("Ping: "+ping);
                 site.setPing(ping);
                 if (ping > 150) {

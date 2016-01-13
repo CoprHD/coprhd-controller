@@ -120,6 +120,10 @@ public class DbServiceImpl implements DbService {
         _coordinator = coordinator;
     }
 
+    public CoordinatorClient getCoordinator() {
+        return _coordinator;
+    }
+
     /**
      * Set DB schema utility
      * 
@@ -588,6 +592,7 @@ public class DbServiceImpl implements DbService {
         if (backCompatPreYoda) {
             _log.info("Pre-yoda back compatible flag detected. Initialize local keystore/truststore for Cassandra native encryption");
             initKeystoreAndTruststore();
+            _schemaUtil.setBackCompatPreYoda(true);
         }
         System.setProperty("cassandra.config", _config);
         System.setProperty("cassandra.config.loader", CassandraConfigLoader.class.getName());
@@ -624,6 +629,7 @@ public class DbServiceImpl implements DbService {
 
             if (_jmxServer != null) {
                 _jmxServer.start();
+                System.setProperty("com.sun.management.jmxremote.port", Integer.toString(_jmxServer.getPort()));
             }
 
             if (!isDbCurrentVersionEncrypted() && !_statusChecker.isMigrationDone()) {

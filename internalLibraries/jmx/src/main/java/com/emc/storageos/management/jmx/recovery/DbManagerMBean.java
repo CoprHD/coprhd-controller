@@ -57,6 +57,12 @@ public interface DbManagerMBean {
     @ManagedOperation(description = "Get status of last succeeded repair, the returned status, if any, is always succeeded")
     DbRepairStatus getLastSucceededRepairStatus(boolean forCurrentNodesOnly);
 
+    /**
+     * Reset db repair status
+     */
+    @ManagedOperation(description = "Reset db repair status")
+    public void resetRepairState();
+    
     @ManagedOperation(description = "Adjust number of tokens for this node to expected value in this software version, if it's not done already.")
     boolean adjustNumTokens() throws InterruptedException;
 

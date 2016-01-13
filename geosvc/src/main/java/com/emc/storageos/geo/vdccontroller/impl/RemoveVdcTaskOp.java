@@ -119,7 +119,6 @@ public class RemoveVdcTaskOp extends AbstractVdcTaskOp {
                 dbClient.waitVdcRemoveDone(operatedVdc.getShortId());
             }
             dbClient.waitAllSitesDbStable();
-            dbClient.removeVdcNodesFromBlacklist(operatedVdc);
             removeVdcVersion(operatedVdc);
         } catch (Exception e) {
             log.error("wait for all sites db stable failed");

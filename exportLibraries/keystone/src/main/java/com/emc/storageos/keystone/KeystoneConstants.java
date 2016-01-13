@@ -12,11 +12,11 @@ package com.emc.storageos.keystone;
 
 public class KeystoneConstants {
 
-	public static String KEYSTONE = "keystone";
-	public static String AUTH_TOKEN = "X-Auth-Token";
-	
-	public static String BASE_URI_V2 = "/v2.0/";
-	public static String URI_TOKENS = BASE_URI_V2 + "tokens";
-	public static String VALIDATE_TOKEN = URI_TOKENS + "/%1$s";
+    public static String KEYSTONE = "keystone";
+    public static String AUTH_TOKEN = "X-Auth-Token";
+
+    public static String BASE_URI_V2 = "/v2.0/";
+    public static String URI_TOKENS = BASE_URI_V2 + "tokens";
+    public static String VALIDATE_TOKEN = URI_TOKENS + "/%1$s";
 
 }

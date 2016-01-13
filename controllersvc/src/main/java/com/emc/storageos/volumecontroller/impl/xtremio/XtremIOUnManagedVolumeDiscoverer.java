@@ -44,6 +44,7 @@ import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -63,6 +64,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
     private static final Logger log = LoggerFactory.getLogger(XtremIOUnManagedVolumeDiscoverer.class);
     private static final String UNMANAGED_VOLUME = "UnManagedVolume";
     private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
+    private static final String TRUE = "true";
+    private static final String FALSE = "false";
 
     List<UnManagedVolume> unManagedVolumesToCreate = null;
     List<UnManagedVolume> unManagedVolumesToUpdate = null;
@@ -108,8 +111,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         for (List<Object> snapDetail : snapDetails) {
             // This can't be null
-        	snapNameToProcess = snapDetail.get(1);
-            if ((null == snapNameToProcess || snapNameToProcess.toString().length() == 0)  || null == snapDetail.get(2)) {
+            snapNameToProcess = snapDetail.get(1);
+            if ((null == snapNameToProcess || snapNameToProcess.toString().length() == 0) || null == snapDetail.get(2)) {
                 log.warn("Skipping snapshot as it is null for volume {}", parentGUID);
                 continue;
             }
@@ -165,7 +168,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap = new HashMap<String, List<UnManagedVolume>>();
         Map<String, StringSet> igKnownVolumesMap = new HashMap<String, StringSet>();
-        Map<String, List<String>> volumeSnapsMap = new HashMap<String, List<String>>();
 
         String xioClusterName = xtremIOClient.getClusterDetails(storageSystem.getSerialNumber()).getName();
         // get the xtremio volume links and process them in batches
@@ -222,7 +224,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                             parentMatchedVPools, xtremIOClient, xioClusterName, dbClient, igUnmanagedVolumesMap, igKnownVolumesMap);
                     // set the HAS_REPLICAS property
                     unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
-                            Boolean.TRUE.toString());
+                            TRUE);
                     StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
                     if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString()))
                     {
@@ -244,7 +246,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     }
                 } else {
                     unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
-                            Boolean.FALSE.toString());
+                            FALSE);
                 }
 
                 allCurrentUnManagedVolumeUris.add(unManagedVolume.getId());
@@ -291,14 +293,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
     private void populateSnapInfo(UnManagedVolume unManagedVolume, XtremIOVolume xioSnap, String parentVolumeNatvieGuid,
             StringSet parentMatchedVPools) {
-        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString(), Boolean.TRUE.toString());
+        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString(), TRUE);
 
         StringSet parentVol = new StringSet();
         parentVol.add(parentVolumeNatvieGuid);
         unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString(), parentVol);
 
         StringSet isSyncActive = new StringSet();
-        isSyncActive.add(Boolean.TRUE.toString());
+        isSyncActive.add(TRUE);
         unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), isSyncActive);
 
         StringSet isReadOnly = new StringSet();
@@ -309,8 +311,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
         StringSet techType = new StringSet();
         techType.add(BlockSnapshot.TechnologyType.NATIVE.toString());
         unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(), techType);
-
-        StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
 
         log.debug("Matched Pools : {}", Joiner.on("\t").join(parentMatchedVPools));
         if (null == parentMatchedVPools || parentMatchedVPools.isEmpty()) {
@@ -412,6 +412,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
             List<Initiator> hostInitiators = hostInitiatorsMap.get(hostname);
             Set<String> hostIGs = hostIGNamesMap.get(hostname);
 
+            boolean isRpBackendMask = false;
+            if (ExportUtils.checkIfInitiatorsForRP(hostInitiators)) {
+                log.info("host {} contains RP initiators, "
+                        + "so this mask contains RP protected volumes", hostname);
+                isRpBackendMask = true;
+            }
+
             boolean isVplexBackendMask = false;
             for (Initiator hostInitiator : hostInitiators) {
                 if (!isVplexBackendMask && VPlexControllerUtils.isVplexInitiator(hostInitiator, dbClient)) {
@@ -443,13 +450,32 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         hostUnManagedVol.setInitiatorNetworkIds(knownNetworkIdSet);
                         hostUnManagedVol.setInitiatorUris(knownIniSet);
                         hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
+
                         if (isVplexBackendMask) {
                             log.info("marking unmanaged Xtremio volume {} as a VPLEX backend volume",
                                     hostUnManagedVol.getLabel());
                             hostUnManagedVol.putVolumeCharacterstics(
                                     SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString(),
-                                    Boolean.TRUE.toString());
+                                    TRUE);
                         }
+
+                        // RP processing for this volume in this mask. By default, the RP characteristics are set to false, so
+                        // here we check if the volume is in any non-RP mask. If so, it's exported to something other than RP, and
+                        // we need to mark that so we can do an exported-volume ingestion. Secondly if any mask associated with this
+                        // volume IS associated with RP, we want to mark that volume as RP enabled.
+                        if (!isRpBackendMask) {
+                            log.info("unmanaged volume {} is exported to something other than RP.  Marking IS_NONRP_EXPORTED.",
+                                    hostUnManagedVol.forDisplay());
+                            hostUnManagedVol.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
+                                    TRUE);
+                        } else {
+                            log.info("unmanaged volume {} is an RP volume", hostUnManagedVol.getLabel());
+                            hostUnManagedVol.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
+                                    TRUE);
+                        }
+
                         mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                         unManagedExportVolumesToUpdate.add(hostUnManagedVol);
                     }
@@ -580,7 +606,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 igVolumes.add(unManagedVolume);
             }
         }
+
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
+
+        // Set these default to false. The individual storage discovery will change them if needed.
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), FALSE);
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(), FALSE);
 
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(volume.getVolInfo().get(1));
@@ -616,10 +647,10 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 nativeId);
 
         unManagedVolumeCharacteristics.put(
-                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), Boolean.TRUE.toString());
+                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);
 
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(),
-                Boolean.TRUE.toString());
+                TRUE);
 
         // Set up default MAXIMUM_IO_BANDWIDTH and MAXIMUM_IOPS
         StringSet bwValues = new StringSet();

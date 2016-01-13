@@ -1,12 +1,12 @@
-/* Copyright (c) 2015 EMC Corporation
+/*
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
  */
+
 
 package com.emc.storageos.api.service.impl.resource.cinder;
 
 import java.net.URI;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +35,8 @@ import com.emc.storageos.cinder.model.CinderExtension;
 import com.emc.storageos.cinder.model.CinderExtensionsRestResp;
 import com.emc.storageos.cinder.model.CinderLimits;
 import com.emc.storageos.cinder.model.CinderLimitsDetail;
+import com.emc.storageos.cinder.model.CinderOsServicesRestResp;
+import com.emc.storageos.cinder.model.CinderOsVolumeTransferRestResp;
 import com.emc.storageos.cinder.model.UsageStats;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
@@ -49,9 +51,6 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-
-import com.emc.storageos.cinder.model.CinderOsVolumeTransferRestResp;
-import com.emc.storageos.cinder.model.CinderOsServicesRestResp;
 
 @Path("/v2/{tenant_id}")
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR },
@@ -101,7 +100,7 @@ public class MiscService extends TaskResourceService {
         }
 
         UsageStats objUsageStats = new UsageStats();
-        objUsageStats = getCinderHelper().GetUsageStats(null, project.getId());
+        objUsageStats = getCinderHelper().getStorageStats(null, project.getId());
 
         totalVolumesUsed = (int) objUsageStats.volumes;
         totalSnapshotsUsed = (int) objUsageStats.snapshots;
@@ -120,7 +119,6 @@ public class MiscService extends TaskResourceService {
             quotaObj.setSnapshotsLimit(QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA);
             quotaObj.setTotalQuota((long) maxQuota);
             _dbClient.createObject(quotaObj);
-            _dbClient.persistObject(quotaObj);
             maxTotalSnapshots = (int) QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA;
             maxTotalVolumes = (int) QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA;
         }
@@ -144,6 +142,8 @@ public class MiscService extends TaskResourceService {
      * @param tenant_id the URN of the tenant
      * @brief Get extensions
      * @return extensions
+     * NOTE: Horizon invokes GET request on /extensions URI. 
+     * This function is implemented, so as to not break the horizon UI.  
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -167,7 +167,9 @@ public class MiscService extends TaskResourceService {
 
     /**
      * Get os-volume-transfer details
-     * 
+     * NOTE: This dummy function has been implemented so that it does not break the horizon.
+     * We are not returning an unsupported exception, as horizon invokes this call, when we 
+     * click on volumes tab. Hence, we implement the dummy.
      * @prereq none
      * @param tenant_id the URN of the tenant
      * @return transfers
@@ -177,19 +179,14 @@ public class MiscService extends TaskResourceService {
     @Path("/os-volume-transfer/detail")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response getVolumeTransfers(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
-        _log.info("RAG START getVolumeTransfers");
+        _log.info("START getVolumeTransfers");
         CinderOsVolumeTransferRestResp volTransferResp = new CinderOsVolumeTransferRestResp();
-        // Todo
-        // need to support You can transfer a volume from one owner to another by using the cinder transfer* commands
-        // this involves Create a volume transfer request, Accept a volume transfer request
-        // and Delete a volume transfer
-
         return CinderApiUtils.getCinderResponse(volTransferResp, header, false);
     }
 
     /**
      * Get os-services
-     * 
+     * This function returns the cinder services and their details.
      * @prereq none
      * @param tenant_id the URN of the tenant
      * @return services
@@ -199,16 +196,16 @@ public class MiscService extends TaskResourceService {
     @Path("/os-services")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response getOsServices(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
-        _log.info("RAG START getOsServices");
+        _log.info("START getOsServices");
         // ToDo
         // need to support system Information os-service
-
         CinderOsServicesRestResp osServicesResp = new CinderOsServicesRestResp();
         return CinderApiUtils.getCinderResponse(osServicesResp, header, false);
     }
 
     /**
-     * Get availability zones
+     * Get availability zones. 
+     * NOTE:The availability zone in Openstack maps to the virtual array in the ViPR
      * 
      * @prereq none
      * @param tenant_id the URN of the tenant

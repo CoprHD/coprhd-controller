@@ -6,7 +6,7 @@ CERT_OPTIONS_1=options
 # You can specialize this file for each language.
 # For example, for French create a messages.fr file
 #
-application.name=EMC ViPR
+application.name=EMC ViPR Controller
 # Validation messages
 #   Most of these are exact copies from the play framework and are here to make
 #   it easier to find and change validation messages for the entire application.
@@ -45,7 +45,7 @@ nav.viewOrders=My Orders
 nav.allOrders=All Orders
 nav.pendingOrders=Scheduled Orders
 nav.user=User Mode
-nav.catalog=Service Catalog
+nav.catalog=Catalog
 nav.viewCatalog=View Catalog
 nav.editCatalog=Edit Catalog
 nav.approvals=Approvals
@@ -54,7 +54,7 @@ nav.preferences=Preferences
 nav.password=Change Password
 nav.logout=Logout
 nav.storage=Resources
-nav.virtualStorage=Virtual Assets
+nav.virtualStorage=Virtual
 nav.object=Object
 nav.settings=Settings
 nav.block=Block
@@ -73,7 +73,7 @@ nav.computeVirtualPools=Compute Virtual Pools
 nav.system=System
 nav.tenant=Tenant
 nav.tenants=Tenants
-nav.assets=Physical Assets
+nav.assets=Physical
 nav.security=Security
 nav.status=About
 nav.upgrade=Upgrade
@@ -96,7 +96,7 @@ nav.vdcRoles=VDC Role Assignments
 nav.certificates=Trusted Certificates
 nav.help=Help
 nav.object.virtualPools=Object Virtual Pools
-nav.tenantsettings=Tenant Settings
+nav.tenantsettings=Tenants
 nav.project=Tenant Groups
 nav.consistencygroups=Consistency Groups
 nav.tasks=Tasks
@@ -372,6 +372,7 @@ RegistrationStatus.REGISTERED=Registered
 
 RemoteCopyMode.ASYNCHRONOUS=Asynchronous
 RemoteCopyMode.SYNCHRONOUS=Synchronous
+RemoteCopyMode.ACTIVE=Active
 
 RpoType.SECONDS=Seconds
 RpoType.MINUTES=Minutes
@@ -706,6 +707,7 @@ CustomConfigs.configType.HDSHostModeOption=Host Mode Option
 CustomConfigs.configType.VPlexStorageViewName=Storage View Name
 CustomConfigs.configType.NasDynamicPerformancePlacementEnabled=Dynamic Performance Placement Enabled
 CustomConfigs.configType.NasUsePhysicalNASForProvisioning=Use Physical NAS For Provisioning
+CustomConfigs.configType.NasShareVNASWithMultipleProjects=Enable Association of Virtual NAS to Multiple Projects
 CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.scopeType.global=Global
@@ -1877,7 +1879,7 @@ StorageSystems.pools.description=Enter the information needed to edit a Storage 
 vNasServers.nasName=Name
 vNasServers.protocols=Protocols
 vNasServers.storagePorts=Storage Ports
-vNasServers.project=Project
+vNasServers.project=Project(s)
 vNasServers.parentNASURI= Parent NAS Server
 vNasServers.nasState= State
 vNasServers.storageDomain=Domain
@@ -1895,7 +1897,8 @@ vNasServers.usedStorageCapacity= Used Storage Capacity
 vNasServers.avgPercentagebusy=Average Percentage busy
 vNasServers.percentLoad=Percentage Load
 vNasServersDataTable.notApplicable=N/A
-vNasServers.associateToProject=Associate to a Project
+vNasServers.associateToProject=Associate to Project(s)
+vNasServers.dissociateFromProject=Dissociate from Project(s)
 vNasServers.dissociate.Confirm=Are you sure you want to dissociate these vNas Server(s) from the project?
 
 storageArrayPool.name=Name
@@ -2060,6 +2063,7 @@ vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a 
 
 #Object Specefic
 vpool.maxRetention=Maximum Retention (Days)
+vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
 
 # Block Specific
@@ -2122,6 +2126,17 @@ vpool.rpVplex.source=Source
 vpool.rpVplex.ha=HA
 vpool.activeSite=Active Site
 vpool.activeSite.help=Specifies the VPLEX site for active protection with RecoverPoint.  The link to the other VPLEX site is configured as stand-by.
+vpool.replicationMode=Replication Mode
+vpool.replicationRpo=Min RPO
+vpool.replicationCopies=Replication Copies
+vpool.remoteVirtualArray=Virtual Array
+vpool.remoteVirtualPool=Virtual Pool
+vpool.replicationType=Replication Type
+
+# File Replication
+replicationCopy.virtualArray=Virtual Array
+replicationCopy.virtualPool=Virtual Pool
+replicationCopy.title=Replication Copy
 
 # Recoverpoint
 vpool.rpJournalSize=RecoverPoint Source Journal Size
@@ -2406,6 +2421,11 @@ configProperties.changePassword=Local Account Passwords
 configProperties.password.doesNotMatch=Passwords do not match
 configProperties.password.state=state
 
+configProperties.backup.scheduled=Scheduled Backup
+configProperties.backup.manual=Manual Backup
+configProperties.backup.server=External Server
+configProperties.backup.setToZero.scheduler=WARNING: Setting the value as zero would cause all scheduled backup sets being reclaimed without any guarantee that they have been successfully uploaded to external server.
+configProperties.backup.setToZero.manual=WARNING: Setting the value as zero would disable manual backup creation.
 
 #Upgrade
 upgrade.title=Software Upgrade
@@ -2676,7 +2696,9 @@ computeImageServers.tftpBootDir=TFTPBOOT Directory
 computeImageServers.confirmPassword=Comfirm Password
 computeImageServers.computeImageServerStatus=Image Server Status
 computeImageServers.osInstallNetworkAddress=OS Install Network Address
-computeImageServers.osInstallTimeOut=OS Install Timeout
+computeImageServers.osInstallTimeOut=OS Install Timeout in seconds
+computeImageServers.sshTimeout=Timeout in seconds for SSH commands sent to Image Server
+computeImageServers.imageImportTimeout=Image Import Timeout in seconds
 computeImageServers.availableComputeImages=Available Images
 computeImageServers.failedComputeImages=Images Failed to import
 computeImageServers.confirmPassword.not.match=User Password and Confirm Password do not match
@@ -2793,7 +2815,7 @@ setup.no.proxy.password=Proxy User Password Not Set
 
 successfully.saved=Successfully Saved.
 
-dashboard.welcome=Welcome to EMC ViPR
+dashboard.welcome=Welcome to EMC ViPR Controller
 dashboard.welcomeMessage=To get started, browse the <a href="%s">Service Catalog</a> to order storage.
 dashboard.clusterState=state
 
@@ -2937,8 +2959,17 @@ affectedResources.blockSnapshot.wwn=WWN
 affectedResources.blockSnapshot.volume=Volume
 affectedResources.blockSnapshot.varray=Virtual Array
 
+affectedResources.blockSnapshotSession=Block Snapshot Session
+affectedResources.blockSnapshotSession.image=serviceCatalog/Snapshot.png
+affectedResources.blockSnapshotSession.name=Name
+affectedResources.blockSnapshotSession.creationTime=Creation Time
+affectedResources.blockSnapshotSession.wwn=WWN
+affectedResources.blockSnapshotSession.volume=Volume
+affectedResources.blockSnapshotSession.varray=Virtual Array
+
 affectedResources.blockConsistencyGroup=Consistency Group
-affectedResources.blockConsistencyGroup.image=serviceCatalog/Snapshot.png
+affectedResources.blockConsistencyGroup.image=assets/Consistency_Group.png
+affectedResources.blockConsistencyGroup.name=Name
 
 affectedResources.fileSnapshot=File Snapshot
 affectedResources.fileSnapshot.image=serviceCatalog/Snapshot.png
@@ -3249,7 +3280,7 @@ resources.filesystem.share.acl.deleted=Task initiated to delete selected ACEs.
 resources.filesystem.share.acl.deleteConfirm=Are you sure you want delete these access control setting(s)?
 resources.filesystem.share.acl.added=Task created to add Access Control Entry, You may need to refresh this view to see new  changes.
 resources.filesystem.share.acl.invalid.settings=Please Enter valid access control setting(s)
-resources.filesystem.share.acl.invalid.name=Name cannot be empty or cannot contain a backslash ('/') character.
+resources.filesystem.share.acl.invalid.name=Name cannot be empty or cannot contain a backslash ('\\') character.
 resources.filesystem.share.acl.add=Add Access Control Entry
 resources.filesystem.share.mountpoint=Mount Point
 resources.filesystem.share.description=Description

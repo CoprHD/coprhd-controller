@@ -126,7 +126,7 @@ public class VolumeService extends TaskResourceService {
     private static final String PROJECT_TENANTID_NULL = "Both Project and Tenant Id are null";
     private static final String TRUE = "true";
 
-    protected PlacementManager _placementManager;
+    private PlacementManager _placementManager;
     private CinderHelpers helper;// = new CinderHelpers(_dbClient , _permissionsHelper);
 
     public void setPlacementManager(PlacementManager placementManager) {
@@ -156,13 +156,14 @@ public class VolumeService extends TaskResourceService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public Response getVolumeList(@PathParam("tenant_id") String openstack_tenant_id, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
+    public Response getVolumeList(@PathParam("tenant_id") String openstackTenantId, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             @Context HttpHeaders header) {
         VolumesRestResp volumes = new VolumesRestResp();
 
-        URIQueryResultList uris = getVolumeUris(openstack_tenant_id);
+        URIQueryResultList uris = getVolumeUris(openstackTenantId);
         if (uris != null) {
-            for (URI volumeUri : uris) {
+            while (uris.iterator().hasNext()) {
+            	URI volumeUri = uris.iterator().next();
                 Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
                 if (volume != null && !volume.getInactive()) {
                     CinderVolume cinder_volume = new CinderVolume();
@@ -191,17 +192,17 @@ public class VolumeService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/detail")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public Response getDetailedVolumeList(@PathParam("tenant_id") String openstack_tenant_id,
+    public Response getDetailedVolumeList(@PathParam("tenant_id") String openstackTenantId,
             @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header) {
         _log.debug("START get detailed volume list");
-        URIQueryResultList uris = getVolumeUris(openstack_tenant_id);
+        URIQueryResultList uris = getVolumeUris(openstackTenantId);
         // convert to detailed format
         VolumeDetails volumeDetails = new VolumeDetails();
         if (uris != null) {
             for (URI volumeUri : uris) {
                 Volume vol = _dbClient.queryObject(Volume.class, volumeUri);
                 if (vol != null && !vol.getInactive()) {
-                    VolumeDetail volumeDetail = getVolumeDetail(vol, isV1Call, openstack_tenant_id);
+                    VolumeDetail volumeDetail = getVolumeDetail(vol, isV1Call, openstackTenantId);
                     volumeDetails.getVolumes().add(volumeDetail);
                 }
             }
@@ -225,14 +226,14 @@ public class VolumeService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{volume_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public Response getVolume(@PathParam("tenant_id") String openstack_tenant_id,
-            @PathParam("volume_id") String volume_id, @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header) {
+    public Response getVolume(@PathParam("tenant_id") String openstackTenantId,
+            @PathParam("volume_id") String volumeId, @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header) {
 
         VolumeDetail response = new VolumeDetail();
-        Volume vol = findVolume(volume_id, openstack_tenant_id);
+        Volume vol = findVolume(volumeId, openstackTenantId);
 
         if (vol != null) {
-            response = getVolumeDetail(vol, isV1Call, openstack_tenant_id);
+            response = getVolumeDetail(vol, isV1Call, openstackTenantId);
         }
         return CinderApiUtils.getCinderResponse(response, header, true);
     }
@@ -258,11 +259,11 @@ public class VolumeService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response createVolume(@PathParam("tenant_id") String openstack_tenant_id,
+    public Response createVolume(@PathParam("tenant_id") String openstackTenantId,
             @HeaderParam("X-Cinder-V1-Call") String isV1Call, VolumeCreateRequestGen param, @Context HttpHeaders header)
             throws InternalException {
         // Step 1: Parameter validation
-        Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
+        Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
         String snapshotId = param.volume.snapshot_id;
         String sourceVolId = param.volume.source_volid;
         String imageId = param.volume.imageRef;
@@ -271,8 +272,8 @@ public class VolumeService extends TaskResourceService {
         boolean hasConsistencyGroup = false;
 
         if (project == null) {
-            if (openstack_tenant_id != null) {
-                throw APIException.badRequests.projectWithTagNonexistent(openstack_tenant_id);
+            if (openstackTenantId != null) {
+                throw APIException.badRequests.projectWithTagNonexistent(openstackTenantId);
             } else {
                 throw APIException.badRequests.parameterIsNullOrEmpty(PROJECT_TENANTID_NULL);
             }
@@ -288,11 +289,11 @@ public class VolumeService extends TaskResourceService {
         long requestedSize = param.volume.size * GB;
         // convert volume type from name to vpool
         VirtualPool vpool = getVpool(param.volume.volume_type);
-        if (!validateVolumeCreate(openstack_tenant_id, null, requestedSize)) {
+        if (!validateVolumeCreate(openstackTenantId, null, requestedSize)) {
             _log.info("The volume can not be created because of insufficient project quota.");
             throw APIException.badRequests.insufficientQuotaForProject(project.getLabel(), "volume");
         }
-        else if (!validateVolumeCreate(openstack_tenant_id, vpool, requestedSize)) {
+        else if (!validateVolumeCreate(openstackTenantId, vpool, requestedSize)) {
             _log.info("The volume can not be created because of insufficient quota for virtual pool.");
             throw APIException.badRequests.insufficientQuotaForVirtualPool(vpool.getLabel(), "virtual pool");
         }
@@ -301,6 +302,12 @@ public class VolumeService extends TaskResourceService {
             throw APIException.badRequests.parameterIsNotValid(param.volume.volume_type);
         _log.debug("Create volume: vpool = {}", vpool.getLabel());
         VirtualArray varray = getCinderHelper().getVarray(param.volume.availability_zone, getUserFromContext());
+        if ((snapshotId == null) && (sourceVolId == null) && (varray == null)) {
+        	//snapshotId and sourceVolId is optional can be null
+        	//when snapshotId and sourceVolId values are absent varry values has to be provided
+        	//otherwise availability_zone exception will be thrown
+            throw APIException.badRequests.parameterIsNotValid(param.volume.availability_zone);
+        }
 
         // Validating consistency group
         URI blockConsistencyGroupId = null;
@@ -326,9 +333,7 @@ public class VolumeService extends TaskResourceService {
 
         BlockSnapshot snapshot = null;
         URI snapUri = null;
-        if ((snapshotId == null) && (sourceVolId == null) && (varray == null)) {
-            throw APIException.badRequests.parameterIsNotValid(param.volume.availability_zone);
-        }
+
         if (snapshotId != null) {
             snapshot = getCinderHelper().querySnapshotByTag(URI.create(snapshotId), getUserFromContext());
             if (snapshot == null) {
@@ -347,9 +352,9 @@ public class VolumeService extends TaskResourceService {
         String name = null;
         String description = null;
 
-        _log.info("isV1Call is {}", isV1Call);
-        _log.info("name is {}", name);
-        _log.info("description is {}", description);
+        _log.info("is isV1Call {}", isV1Call);
+        _log.info("name = {},  description  = {}", name, description);
+
         if (isV1Call != null) {
             name = param.volume.display_name;
             description = param.volume.display_description;
@@ -359,10 +364,8 @@ public class VolumeService extends TaskResourceService {
             description = param.volume.description;
         }
 
-        _log.info("param.volume.name is {}", param.volume.name);
-        _log.info("param.volume.display_name is {}", param.volume.display_name);
-        _log.info("param.volume.description is {}", param.volume.description);
-        _log.info("param.volume.display_description is {}", param.volume.display_description);
+        _log.info("param.volume.name = {}, param.volume.display_name = {}", param.volume.name,param.volume.display_name);
+        _log.info("param.volume.description = {}, param.volume.display_description = {}", param.volume.description, param.volume.display_description);
 
         if (name == null || (name.length() <= 2))
             throw APIException.badRequests.parameterIsNotValid(name);
@@ -408,7 +411,7 @@ public class VolumeService extends TaskResourceService {
         if (sourceVolId != null)
         {
             _log.debug("Creating New Volume from Volume : Source volume ID ={}", sourceVolId);
-            Volume sourceVolume = findVolume(sourceVolId, openstack_tenant_id);
+            Volume sourceVolume = findVolume(sourceVolId, openstackTenantId);
             if (sourceVolume != null) {
                 tasklist = volumeClone(name, project, sourceVolId, varray, volumeCount, sourceVolume, blkFullCpManager);
             } else {
@@ -423,7 +426,7 @@ public class VolumeService extends TaskResourceService {
 
         } else if ((snapshotId == null) && (sourceVolId == null))
         {
-            _log.debug("Creating New Volume snapshotId ={}, sourceVolId ={}", snapshotId, sourceVolId);
+            _log.debug("Creating New Volume where snapshotId and sourceVolId are null");
             tasklist = newVolume(volumeCreate, project, api, capabilities, varray, task, vpool, param, volumeCount, requestedSize, name);
         }
 
@@ -461,7 +464,7 @@ public class VolumeService extends TaskResourceService {
                     tagSet.add(tagLabel);
 
                     _dbClient.updateAndReindexObject(vol);
-                    return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstack_tenant_id), header, true);
+                    return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true);
                 }
                 else {
                     throw APIException.badRequests.parameterIsNullOrEmpty("Volume");
@@ -487,12 +490,12 @@ public class VolumeService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{volume_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public Response updateVolume(@PathParam("tenant_id") String openstack_tenant_id,
-            @PathParam("volume_id") String volume_id, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
+    public Response updateVolume(@PathParam("tenant_id") String openstackTenantId,
+            @PathParam("volume_id") String volumeId, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             VolumeUpdateRequestGen param, @Context HttpHeaders header) {
-        Volume vol = findVolume(volume_id, openstack_tenant_id);
+        Volume vol = findVolume(volumeId, openstackTenantId);
         if (vol == null)
-            throw APIException.badRequests.parameterIsNotValid(volume_id);
+            throw APIException.badRequests.parameterIsNotValid(volumeId);
         _log.debug("Update volume {}: ", vol.getLabel());
         String label = null;
         String description = null;
@@ -524,8 +527,8 @@ public class VolumeService extends TaskResourceService {
             _log.debug("Update volume : stored description");
             vol.setExtensions(extensions);
         }
-        _dbClient.persistObject(vol);
-        return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstack_tenant_id), header, true);
+        _dbClient.updateObject(vol);
+        return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true);
     }
 
     /**
@@ -545,15 +548,15 @@ public class VolumeService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{volume_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public Response deleteVolume(@PathParam("tenant_id") String openstack_tenant_id,
-            @PathParam("volume_id") String volume_id) {
-        _log.info("Delete volume: id = {} tenant: id ={}", volume_id, openstack_tenant_id);
-        Volume vol = findVolume(volume_id, openstack_tenant_id);
+    public Response deleteVolume(@PathParam("tenant_id") String openstackTenantId,
+            @PathParam("volume_id") String volumeId) {
+        _log.info("Delete volume: id = {} tenant: id ={}", volumeId, openstackTenantId);
+        Volume vol = findVolume(volumeId, openstackTenantId);
         if (vol == null) {
             return Response.status(404).build();
         }
         BlockServiceApi api = BlockService.getBlockServiceImpl(vol, _dbClient);
-        if ((api.getSnapshots(vol) != null) && (api.getSnapshots(vol).size() > 0)) {
+        if ((api.getSnapshots(vol) != null) && (!api.getSnapshots(vol).isEmpty())) {
             return CinderApiUtils.createErrorResponse(400, "Invalid volume: Volume still has one or more dependent snapshots");
         }
         verifyUserCanModifyVolume(vol);
@@ -574,19 +577,19 @@ public class VolumeService extends TaskResourceService {
 
         vol.getExtensions().put("status", ComponentStatus.DELETING.getStatus().toLowerCase());
         vol.getExtensions().put(DELETE_TASK_ID, task);
-        _dbClient.persistObject(vol);
+        _dbClient.updateObject(vol);
 
         return Response.status(202).build();
     }
 
     // INTERNAL FUNCTIONS
-    protected VolumeDetail getVolumeDetail(Volume vol, String isV1Call, String openstack_tenant_id) {
+    protected VolumeDetail getVolumeDetail(Volume vol, String isV1Call, String openstackTenantId) {
         VolumeDetail detail = new VolumeDetail();
         int sizeInGB = (int) ((vol.getCapacity() + halfGB) / GB);
         detail.size = sizeInGB;
         detail.id = getCinderHelper().trimId(vol.getId().toString());
         detail.host_name = getCinderHelper().trimId(vol.getStorageController().toString());
-        detail.tenant_id = openstack_tenant_id;
+        detail.tenant_id = openstackTenantId;
 
         detail.attachments = new ArrayList<Attachment>();
         if (vol.getInactive()) {
@@ -616,7 +619,7 @@ public class VolumeService extends TaskResourceService {
                     else if (taskObj.getStatus().equals("pending")) {
                         detail.status = ComponentStatus.DELETING.getStatus().toLowerCase();
                     }
-                    _dbClient.persistObject(vol);
+                    _dbClient.updateObject(vol);
                 }
                 else {
                     detail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
@@ -656,7 +659,7 @@ public class VolumeService extends TaskResourceService {
                     vol.getExtensions().remove("task_id");
                     vol.getExtensions().put("status", "");
                 }
-                _dbClient.persistObject(vol);
+                _dbClient.updateObject(vol);
             }
             else if (vol.getExtensions().containsKey("status") && !vol.getExtensions().get("status").equals("")) {
                 detail.status = vol.getExtensions().get("status").toString().toLowerCase();
@@ -732,29 +735,30 @@ public class VolumeService extends TaskResourceService {
         return detail;
     }
 
-    private boolean validateVolumeCreate(String openstack_tenant_id, VirtualPool pool, long requestedSize) {
+    private boolean validateVolumeCreate(String openstackTenantId, VirtualPool pool, long requestedSize) {
         QuotaOfCinder objQuota = null;
+        boolean isValidVolume = false;
 
         if (pool == null)
-            objQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
+            objQuota = getCinderHelper().getProjectQuota(openstackTenantId, getUserFromContext());
         else
-            objQuota = getCinderHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
+            objQuota = getCinderHelper().getVPoolQuota(openstackTenantId, pool, getUserFromContext());
 
         if (objQuota == null) {
             _log.info("Unable to retrive the Quota information");
             return false;
         }
 
-        Project proj = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
+        Project proj = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
 
         long totalVolumesUsed = 0;
         long totalSizeUsed = 0;
         UsageStats stats = null;
 
         if (pool != null)
-            stats = getCinderHelper().GetUsageStats(pool.getId(), proj.getId());
+            stats = getCinderHelper().getStorageStats(pool.getId(), proj.getId());
         else
-            stats = getCinderHelper().GetUsageStats(null, proj.getId());
+            stats = getCinderHelper().getStorageStats(null, proj.getId());
 
         totalVolumesUsed = stats.volumes;
         totalSizeUsed = stats.spaceUsed;
@@ -765,12 +769,19 @@ public class VolumeService extends TaskResourceService {
 
         if ((objQuota.getVolumesLimit() != QuotaService.DEFAULT_VOLUME_TYPE_VOLUMES_QUOTA)
                 && (objQuota.getVolumesLimit() <= totalVolumesUsed))
-            return false;
+        {
+            return isValidVolume;
+        }
         else if ((objQuota.getTotalQuota() != QuotaService.DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA)
                 && (objQuota.getTotalQuota() <= (totalSizeUsed + (long) (requestedSize / GB))))
-            return false;
+        {
+            return isValidVolume;
+        }
         else
-            return true;
+        {
+        	isValidVolume = true;
+            return isValidVolume;
+        }
     }
 
     protected ExportGroup findExportGroup(Volume vol) {
@@ -802,9 +813,9 @@ public class VolumeService extends TaskResourceService {
         return attachments;
     }
 
-    private URIQueryResultList getVolumeUris(String openstack_tenant_id) {
+    private URIQueryResultList getVolumeUris(String openstackTenantId) {
         URIQueryResultList uris = new URIQueryResultList();
-        Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
+        Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
         if (project == null)   // return empty list
             return null;
 
@@ -816,13 +827,13 @@ public class VolumeService extends TaskResourceService {
     }
 
     /* Get vpool from the given label */
-    private VirtualPool getVpool(String vpool_name) {
-        if (vpool_name == null)
+    private VirtualPool getVpool(String vpoolName) {
+        if (vpoolName == null)
             return null;
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 PrefixConstraint.Factory.getLabelPrefixConstraint(
-                        VirtualPool.class, vpool_name),
+                        VirtualPool.class, vpoolName),
                 uris);
         for (URI vpoolUri : uris) {
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolUri);
@@ -863,11 +874,11 @@ public class VolumeService extends TaskResourceService {
         }
     }
 
-    protected Volume findVolume(String volume_id, String openstack_tenant_id) {
+    protected Volume findVolume(String volume_id, String openstackTenantId) {
         Volume vol = getCinderHelper().queryVolumeByTag(URI.create(volume_id), getUserFromContext());
-        Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
+        Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
         if (project == null) {
-            throw APIException.badRequests.projectWithTagNonexistent(openstack_tenant_id);
+            throw APIException.badRequests.projectWithTagNonexistent(openstackTenantId);
         }
         if (vol != null) {
             if ((project != null) &&
@@ -930,7 +941,7 @@ public class VolumeService extends TaskResourceService {
         return null;
     }
 
-    protected TaskList volumeFromSnapshot(String name, Project project, String snapshot_id,
+    protected TaskList volumeFromSnapshot(String name, Project project, String snapshotId,
             VirtualArray varray, VolumeCreateRequestGen param, int volumeCount,
             BlockFullCopyManager blkFullCpManager, URI snapUri, BlockSnapshot sourceSnapshot)
     {
@@ -954,7 +965,7 @@ public class VolumeService extends TaskResourceService {
 
             auditOp(OperationTypeEnum.CREATE_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
                     volname, volumeCount, varray.getId().toString(), project.getId().toString(),
-                    snapshot_id, VOLUME_FROM_SNAPSHOT);
+                    snapshotId, VOLUME_FROM_SNAPSHOT);
 
             // Setting createInactive to true for openstack as it is not needed to
             // wait for synchronization to complete and detach.

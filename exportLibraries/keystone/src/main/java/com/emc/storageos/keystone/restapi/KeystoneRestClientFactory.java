@@ -18,10 +18,10 @@ import com.sun.jersey.api.client.Client;
 
 public class KeystoneRestClientFactory extends RestClientFactory {
 
-	@Override
-	protected RestClientItf createNewRestClient(URI endpoint, String managerDn,
-			String password, Client client) {
-		return new KeystoneApiClient(endpoint, managerDn, password, client);
-	}
+    @Override
+    protected RestClientItf createNewRestClient(URI endpoint, String managerDn,
+            String password, Client client) {
+        return new KeystoneApiClient(endpoint, managerDn, password, client);
+    }
 
 }

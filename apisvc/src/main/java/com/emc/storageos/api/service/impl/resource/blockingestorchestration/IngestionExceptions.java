@@ -5,6 +5,8 @@
 
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
+import java.net.URI;
+
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -143,19 +145,82 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException inconsistentZoningAcrossHosts(String messages);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException failedToIngestVplexBackend(String message);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException failedToGetStorageVolumeInfoForDevice(String supportingDeviceName, String reason);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException validationException(String reason);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException exportedVolumeIsMissingWwn(String unManagedVolume);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException vplexBackendVolumeHasNoParent(String unManagedVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unManagedProtectionSetNotFound(String nativeGuid);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException rpIngestingNonVolumeObject(String nativeGuid);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noManagedTargetVolumeFound(String nativeGuid, String rpManagedTargetVolumeIdStr);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noUnManagedTargetVolumeFound(String nativeGuid, String rpUnManagedTargetVolumeIdStr);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noManagedSourceVolumeFound(String nativeGuid, String rpManagedSourceVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noUnManagedSourceVolumeFound(String nativeGuid);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noUnManagedSourceVolumeFound2(String nativeGuid, String rpUnManagedSourceVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noVolumesFoundInProtectionSet(String label);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noUnManagedExportMaskFound(String nativeGuid);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException rpObjectNotSet(String fieldName, URI objectId);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException rpObjectNotFound(URI objectId);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noUnManagedVolumesFound(String cgName);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException invalidSourceRPVirtualPool(String volLabel, String vpoolLabel);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException invalidRPVirtualPool(String volLabel, String vpoolLabel);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unManagedProtectionSetNotHealthy(String cgName, String unmanagedVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unManagedProtectionSetNotAsync(String cgName, String unmanagedVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unManagedProtectionSetNotSync(String cgName, String unmanagedVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException rpUnManagedTargetVolumeInImageAccessState(String nativeGuid, String rpAccessState);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException vplexVolumeCannotHaveReplicasOnBothLegs(String details);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException rpUnManagedVolumeCannotHaveMirrors(String volLabel, String mirrors);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException cannotIngestMirrorsOfRPVolumes(String mirrorLabel, String parentLabel);
 }

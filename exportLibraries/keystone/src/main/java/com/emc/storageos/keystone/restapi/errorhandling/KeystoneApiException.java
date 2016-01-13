@@ -17,9 +17,8 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 @SuppressWarnings("serial")
 public class KeystoneApiException extends InternalException {
 
-	private KeystoneApiException(final ServiceCode code, final Throwable cause,
-            final String detailBase, final String detailKey, final Object[] detailParams) 
-	{
+    private KeystoneApiException(final ServiceCode code, final Throwable cause,
+            final String detailBase, final String detailKey, final Object[] detailParams) {
         super(false, code, cause, detailBase, detailKey, detailParams);
     }
 

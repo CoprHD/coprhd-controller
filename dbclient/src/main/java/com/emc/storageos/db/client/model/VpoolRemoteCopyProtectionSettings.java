@@ -50,7 +50,7 @@ public class VpoolRemoteCopyProtectionSettings extends DataObject {
     }
 
     public enum CopyModes {
-        SYNCHRONOUS, ASYNCHRONOUS;
+        SYNCHRONOUS, ASYNCHRONOUS, ACTIVE;
 
         public static boolean lookup(String mode) {
             for (CopyModes cMode : values()) {

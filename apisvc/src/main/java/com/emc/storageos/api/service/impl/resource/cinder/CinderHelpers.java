@@ -34,7 +34,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class CinderHelpers {
-    protected DbClient _dbClient;
+    private DbClient _dbClient;
     private PermissionsHelper _permissionsHelper;
     private static final Logger _log = LoggerFactory.getLogger(CinderHelpers.class);
     private static final long GB = 1024 * 1024 * 1024;
@@ -60,15 +60,24 @@ public class CinderHelpers {
         }
         return instCinderHelpers;
     }
-
-    /* Get project from the OpenStack Tenant ID parameter */
-    protected Project getProject(String openstack_tenant_id, StorageOSUser user) {
-        // StorageOSUser user = getUserFromContext();
+    /**
+     * Get project from the OpenStack Tenant ID parameter
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param openstackTenantId
+     * @param user - with user credential details
+     * 
+     * @brief get project fro given tenant_id
+     * @return Project
+     */
+    protected Project getProject(String openstackTenantId, StorageOSUser user) {
         URI vipr_tenantId = URI.create(user.getTenantId());
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 PrefixConstraint.Factory.getTagsPrefixConstraint(
-                        Project.class, openstack_tenant_id, vipr_tenantId),
+                        Project.class, openstackTenantId, vipr_tenantId),
                 uris);
         for (URI projectUri : uris) {
             Project project = _dbClient.queryObject(Project.class, projectUri);
@@ -81,10 +90,10 @@ public class CinderHelpers {
         return null;  // no project found
     }
 
+    
     // Helper function to check if the user has authorization to access the project
     // This is used by all search functions
     private boolean isAuthorized(URI projectUri, StorageOSUser user) {
-        // final StorageOSUser user = getUserFromContext();
         if (_permissionsHelper == null)
             return false;
         Project project = _permissionsHelper.getObjectById(projectUri, Project.class);
@@ -99,14 +108,24 @@ public class CinderHelpers {
             return false;
     }
 
-    /* Get vpool from the given label */
-    public VirtualPool getVpool(String vpool_name) {
-        if (vpool_name == null)
+    /**
+     * Get vpool from the given label
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param vpool_name
+     * 
+     * @brief get vpool
+     * @return vpool
+     */
+    public VirtualPool getVpool(String vpoolName) {
+        if (vpoolName == null)
             return null;
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 PrefixConstraint.Factory.getLabelPrefixConstraint(
-                        VirtualPool.class, vpool_name),
+                        VirtualPool.class, vpoolName),
                 uris);
         for (URI vpoolUri : uris) {
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolUri);
@@ -116,14 +135,25 @@ public class CinderHelpers {
         return null;  // no matching vpool found
     }
 
-    /* Get varray from the given label */
-    public VirtualArray getVarray(String varray_name, StorageOSUser user) {
-        if ((varray_name == null) || (varray_name.equals(""))) {
-            ArrayList az_list = new ArrayList<CinderAvailabiltyZone>();
-            getAvailabilityZones(az_list, user);
+    /**
+     * Get varray from the given label
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param varray_name
+     * @param user
+     * 
+     * @brief get varray
+     * @return varray
+     */
+    public VirtualArray getVarray(String varrayName, StorageOSUser user) {
+        if ((varrayName == null) || (varrayName.equals(""))) {
+            ArrayList<CinderAvailabiltyZone> azList = new ArrayList<CinderAvailabiltyZone>();
+            getAvailabilityZones(azList, user);
 
-            if (az_list.size() > 0) {
-                varray_name = ((CinderAvailabiltyZone) az_list.get(0)).zoneName;
+            if (!azList.isEmpty()) {
+                varrayName = ((CinderAvailabiltyZone) azList.get(0)).zoneName;
             }
             else {
                 throw APIException.internalServerErrors.genericApisvcError("Get Varray failed", new Throwable("VArray not configured."));
@@ -133,7 +163,7 @@ public class CinderHelpers {
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 PrefixConstraint.Factory.getLabelPrefixConstraint(
-                        VirtualArray.class, varray_name),
+                        VirtualArray.class, varrayName),
                 uris);
         if (uris != null) {
             while (uris.iterator().hasNext()) {
@@ -157,7 +187,19 @@ public class CinderHelpers {
         }
     }
 
-    public List getAvailabilityZones(List az_list, StorageOSUser user) {
+    /**
+     * Get list of availability zones
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param az_list
+     * @param user
+     * 
+     * @brief get availablityzones
+     * @return availablityZoneList
+     */
+    public List getAvailabilityZones(List azList, StorageOSUser user) {
         _log.debug("retrieving virtual arrays via dbclient");
 
         List<VirtualArray> nhObjList = Collections.emptyList();
@@ -171,11 +213,11 @@ public class CinderHelpers {
                 CinderAvailabiltyZone objAz = new CinderAvailabiltyZone();
                 objAz.zoneName = nh.getLabel();
                 objAz.zoneState.available = !nh.getInactive();
-                az_list.add(objAz);
+                azList.add(objAz);
             }
         }
 
-        return az_list;
+        return azList;
     }
 
     public Volume queryVolumeByTag(URI id, StorageOSUser user) {
@@ -212,7 +254,6 @@ public class CinderHelpers {
     }
 
     public BlockSnapshot querySnapshotByTag(URI id, StorageOSUser user) {
-        // StorageOSUser user = getUserFromContext();
         URI vipr_tenantId = URI.create(user.getTenantId());
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
@@ -228,12 +269,12 @@ public class CinderHelpers {
         return null;
     }
 
-    public BlockConsistencyGroup queryConsistencyGroupByTag(URI id, StorageOSUser user) {
+    public BlockConsistencyGroup queryConsistencyGroupByTag(URI openstackId, StorageOSUser user) {
         URI vipr_tenantId = URI.create(user.getTenantId());
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 PrefixConstraint.Factory.getTagsPrefixConstraint(
-                        BlockConsistencyGroup.class, id.toString(), vipr_tenantId), uris);
+                        BlockConsistencyGroup.class, openstackId.toString(), vipr_tenantId), uris);
 
         if (uris != null) {
             while (uris.iterator().hasNext()) {
@@ -249,14 +290,17 @@ public class CinderHelpers {
 
     /**
      * Get all consistency group based on tenant id
+     *      
+     * @prereq none
      * 
-     * @param openstack_tenant_id
+     * @brief get consistency group Uris
+     * @param openstackTenantId
      * @return URIQueryResultList
      */
     protected URIQueryResultList getConsistencyGroupsUris(
-            String openstack_tenant_id, StorageOSUser user) {
+            String openstackTenantId, StorageOSUser user) {
         URIQueryResultList uris = new URIQueryResultList();
-        Project project = getProject(openstack_tenant_id,
+        Project project = getProject(openstackTenantId,
                 user);
         if (project == null) // return empty list
             return null;
@@ -267,10 +311,22 @@ public class CinderHelpers {
 
         return uris;
     }
+    /**
+     * Get quota for provided vpool
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param tenantId
+     * @param vpool
+     * 
+     * @brief get vpool quota
+     * @return quota
+     */
 
-    public QuotaOfCinder getVPoolQuota(String tenant_id, VirtualPool vpool, StorageOSUser user) {
-        _log.info("In GetProjectQuota");
-        Project project = getProject(tenant_id.toString(), user);
+    public QuotaOfCinder getVPoolQuota(String tenantId, VirtualPool vpool, StorageOSUser user) {
+        _log.debug("In getVPoolQuota");
+        Project project = getProject(tenantId.toString(), user);
 
         List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);
         for (URI quota : quotas) {
@@ -294,8 +350,19 @@ public class CinderHelpers {
         return createVpoolDefaultQuota(project, vpool);
     }
 
-    public QuotaOfCinder getProjectQuota(String tenant_id, StorageOSUser user) {
-        Project project = getProject(tenant_id.toString(), user);
+    /**
+     * Get quota for given project/tenant
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param tenantId
+     * 
+     * @brief get project quota
+     * @return quota
+     */
+    public QuotaOfCinder getProjectQuota(String tenantId, StorageOSUser user) {
+        Project project = getProject(tenantId.toString(), user);
 
         List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);
         for (URI quota : quotas) {
@@ -313,6 +380,17 @@ public class CinderHelpers {
         return createProjectDefaultQuota(project);
     }
 
+    /**
+     * Get default quota for provided project
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param project
+     * 
+     * @brief get project default quota
+     * @return quota
+     */
     public QuotaOfCinder createProjectDefaultQuota(Project project) {
         long maxQuota = 0;
         if (project.getQuotaEnabled()) {
@@ -329,14 +407,23 @@ public class CinderHelpers {
         quotaObj.setSnapshotsLimit(QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA);
         quotaObj.setTotalQuota(maxQuota);
 
-        _log.info("before creating proj default quota");
+        _log.info("Creating default quota for project");
         _dbClient.createObject(quotaObj);
-        _log.info("before persisiting proj default quota");
-        _dbClient.persistObject(quotaObj);
-
         return quotaObj;
     }
 
+    /**
+     * Create default quota for vpool
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param project
+     * @param vpool
+     * 
+     * @brief create default quota
+     * @return quota
+     */
     public QuotaOfCinder createVpoolDefaultQuota(Project project, VirtualPool vpool) {
         QuotaOfCinder objQuotaOfCinder = new QuotaOfCinder();
         objQuotaOfCinder.setProject(project.getId());
@@ -346,15 +433,23 @@ public class CinderHelpers {
         objQuotaOfCinder.setId(URI.create(UUID.randomUUID().toString()));
         objQuotaOfCinder.setVpool(vpool.getId());
 
-        _log.info("before create object for vpool quota");
+        _log.info("Create vpool default quota");
         _dbClient.createObject(objQuotaOfCinder);
-        _log.info("before update object for vpool quota");
-        _dbClient.persistObject(objQuotaOfCinder);
-
         return objQuotaOfCinder;
     }
 
-    public UsageStats GetUsageStats(URI vpool, URI projectId) {
+    /**
+     * Get usage statistics(like total number of volumes, snapshots and total size) for given vpool
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param vpool
+     * 
+     * @brief get statistics
+     * @return UsageStats
+     */
+    public UsageStats getStorageStats(URI vpool, URI projectId) {
         UsageStats objStats = new UsageStats();
         long totalSnapshotsUsed = 0;
         long totalSizeUsed = 0;
@@ -377,7 +472,7 @@ public class CinderHelpers {
                 for (URI snapUri : snapList) {
                     BlockSnapshot blockSnap = _dbClient.queryObject(BlockSnapshot.class, snapUri);
                     if (blockSnap != null && !blockSnap.getInactive()) {
-                        _log.info("blockSnap.getProvisionedCapacity() {} ", blockSnap.getProvisionedCapacity());
+                        _log.info("ProvisionedCapacity = {} ", blockSnap.getProvisionedCapacity());
                         totalSizeUsed += (long) (blockSnap.getProvisionedCapacity() / GB);
                         totalSnapshotsUsed++;
                     }
@@ -418,8 +513,13 @@ public class CinderHelpers {
     /**
      * Get Consistency Group Snapshot Uris
      * 
+     * 
+     * @prereq none
+     * 
      * @param consistencyGroupsUris
+     * @brief get consistency group snapshot URIS
      * @return URI list
+     * 
      */
     public URIQueryResultList getConsistencyGroupSnapshotUris(URI consistencyGroupsUri) {
         URIQueryResultList snapshotUris = new URIQueryResultList();

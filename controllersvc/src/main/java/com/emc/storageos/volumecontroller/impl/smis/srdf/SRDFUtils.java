@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -45,10 +46,12 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations;
+import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.CollectorFactory;
@@ -208,6 +211,19 @@ public class SRDFUtils implements SmisConstants {
 
         return result;
     }
+    
+    public Collection<CIMObjectPath> getStorageSynchronizationsInRemoteGroup(StorageSystem provider, RemoteDirectorGroup group) {
+        CIMObjectPath remoteGroupPath = cimPath.getRemoteReplicationCollection(provider, group);
+        List<CIMObjectPath> volumePathsInRemoteGroup = getVolumePathsInRemoteGroup(provider, remoteGroupPath);
+
+        List<CIMObjectPath> result = new ArrayList<>();
+        for (CIMObjectPath volumePath : volumePathsInRemoteGroup) {
+            CIMObjectPath storageSync = getStorageSynchronizationFromVolume(provider, volumePath);
+            result.add(storageSync);
+        }
+
+        return result;
+    }
 
     public Collection<CIMObjectPath> getSynchronizations(StorageSystem activeProviderSystem, Volume sourceVolume,
             Volume targetVolume) throws WBEMException {
@@ -224,8 +240,13 @@ public class SRDFUtils implements SmisConstants {
             result.addAll(getConsistencyGroupSyncPairs(sourceSystem, sourceVolume, targetSystem, targetVolume,
                     activeProviderSystem));
         } else {
-            CIMObjectPath objectPath = getStorageSynchronizedObject(sourceSystem, sourceVolume, targetVolume,
-                    activeProviderSystem);
+            CIMObjectPath objectPath = null;
+            if (Mode.ACTIVE.equals(Mode.valueOf(targetVolume.getSrdfCopyMode()))) {
+                objectPath = getStorageSynchronizationFromVolume(sourceSystem, sourceVolume, targetVolume, activeProviderSystem);
+            } else {
+                objectPath = getStorageSynchronizedObject(sourceSystem, sourceVolume, targetVolume,
+                        activeProviderSystem);
+            }
             if (objectPath != null) {
                 result.add(objectPath);
             }
@@ -260,6 +281,39 @@ public class SRDFUtils implements SmisConstants {
         }
 
         return dbClient.queryObject(Volume.class, volumeURIs);
+    }
+    
+    /**
+     * Gets associated ViPR volumes based on the SRDF group
+     * 
+     * @param system The provider system to collect synchronization instances from.
+     * @param target The subject of the association query.
+     * @return A list of Volumes
+     */
+    public List<Volume> getAssociatedVolumesForSRDFGroup(StorageSystem system, RemoteDirectorGroup group) {
+        Collection<CIMObjectPath> syncPaths = getStorageSynchronizationsInRemoteGroup(system, group);
+        Collection<SynchronizedVolumePair> volumePairs = transform(syncPaths, toSynchronizedVolumePairFn());
+
+        Set<URI> volumeURIs = new HashSet<>();
+        URIQueryResultList results = new URIQueryResultList();
+        for (SynchronizedVolumePair pair : volumePairs) {
+            dbClient.queryByConstraint(getVolumeNativeGuidConstraint(pair.getSourceGUID()), results);
+            volumeURIs.add(results.iterator().next());
+            dbClient.queryByConstraint(getVolumeNativeGuidConstraint(pair.getTargetGUID()), results);
+            volumeURIs.add(results.iterator().next());
+        }
+
+        return dbClient.queryObject(Volume.class, volumeURIs);
+    }
+
+
+    public Predicate<? super Volume> volumePersonalityPredicate(final PersonalityTypes personality) {
+        return new Predicate<Volume>() {
+            @Override
+            public boolean apply(Volume input) {
+                return personality.toString().equalsIgnoreCase(input.getPersonality());
+            }
+        };
     }
 
     /**
@@ -539,21 +593,32 @@ public class SRDFUtils implements SmisConstants {
     }
 
     /**
-     * Checks if a volume has snapshot or clone or mirror associated.
+     * Checks if a volume has snapshot, snapshot session, or clone or mirror associated.
      */
     private boolean CheckIfVolumeHasReplica(Volume volume) {
         boolean forceAdd = false;
+        URI volumeURI = volume.getId();
         URIQueryResultList list = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getVolumeSnapshotConstraint(volume.getId()), list);
+                .getVolumeSnapshotConstraint(volumeURI), list);
         Iterator<URI> it = list.iterator();
         while (it.hasNext()) {
             URI snapshotID = it.next();
             BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
             if (snapshot != null) {
-                log.debug("There are Snapshot(s) available for volume {}", volume.getId());
+                log.debug("There are Snapshot(s) available for volume {}", volumeURI);
                 forceAdd = true;
                 break;
+            }
+        }
+
+        // Check snapshot sessions also.
+        if (!forceAdd) {
+            List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                    BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volumeURI));
+            if (!snapSessions.isEmpty()) {
+                log.debug("There are snapshot sessions available on volume {}", volumeURI);
+                forceAdd = true;
             }
         }
 
@@ -561,13 +626,13 @@ public class SRDFUtils implements SmisConstants {
             // TODO ignore DETACHED clones?
             URIQueryResultList cloneList = new URIQueryResultList();
             dbClient.queryByConstraint(ContainmentConstraint.Factory
-                    .getAssociatedSourceVolumeConstraint(volume.getId()), cloneList);
+                    .getAssociatedSourceVolumeConstraint(volumeURI), cloneList);
             Iterator<URI> iter = cloneList.iterator();
             while (iter.hasNext()) {
                 URI cloneID = iter.next();
                 Volume clone = dbClient.queryObject(Volume.class, cloneID);
                 if (clone != null) {
-                    log.debug("There are Clone(s) available for volume {}", volume.getId());
+                    log.debug("There are Clone(s) available for volume {}", volumeURI);
                     forceAdd = true;
                     break;
                 }
@@ -577,13 +642,13 @@ public class SRDFUtils implements SmisConstants {
         if (!forceAdd) {
             URIQueryResultList mirrorList = new URIQueryResultList();
             dbClient.queryByConstraint(ContainmentConstraint.Factory
-                    .getVolumeBlockMirrorConstraint(volume.getId()), mirrorList);
+                    .getVolumeBlockMirrorConstraint(volumeURI), mirrorList);
             Iterator<URI> itr = mirrorList.iterator();
             while (itr.hasNext()) {
                 URI mirrorID = itr.next();
                 BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorID);
                 if (mirror != null) {
-                    log.debug("There are Mirror(s) available for volume {}", volume.getId());
+                    log.debug("There are Mirror(s) available for volume {}", volumeURI);
                     forceAdd = true;
                     break;
                 }
@@ -611,6 +676,30 @@ public class SRDFUtils implements SmisConstants {
         }
 
         throw new RuntimeException("Failed to acquire storage synchronization");
+    }
+
+    private CIMObjectPath getStorageSynchronizationFromVolume(final StorageSystem sourceSystem, final Volume source,
+            final Volume target, final StorageSystem activeProviderSystem) {
+
+        // If the Source Provider is down, make use of target provider to
+        // find the Sync Paths.
+        // null check makes the caller not to check liveness for multiple volumes in loop.
+        boolean isSourceActiveNow = (null == activeProviderSystem || URIUtil.identical(activeProviderSystem.getId(),
+                sourceSystem.getId()));
+        String nativeIdToUse = (isSourceActiveNow) ? source.getNativeId() : target.getNativeId();
+        // Use the activeSystem always.
+        StorageSystem systemToUse = (isSourceActiveNow) ? sourceSystem : activeProviderSystem;
+        if (null != activeProviderSystem) {
+            log.info("sourceSystem, activeProviderSystem: {} {}", sourceSystem.getNativeGuid(), activeProviderSystem.getNativeGuid());
+        }
+
+        CIMObjectPath volumePath = cimPath.getVolumePath(systemToUse, nativeIdToUse);
+        if (volumePath == null) {
+            throw new IllegalStateException("Volume not found : " + source.getNativeId());
+        }
+        log.info("Volume Path {}", volumePath.toString());
+        return getStorageSynchronizationFromVolume(systemToUse, volumePath);
+
     }
 
     private Collection<CIMObjectPath> getConsistencyGroupSyncPairs(StorageSystem sourceSystem, Volume source,
@@ -724,6 +813,40 @@ public class SRDFUtils implements SmisConstants {
             }
         }
         return false;
+    }
+
+    /**
+     * Utility method that returns target volumes for the RDF group
+     * 
+     * @param group Reference to RemoteDirectorGroup
+     * @return list of volumes
+     */
+    public List<URI> getTargetVolumesForRAGroup(RemoteDirectorGroup group) {
+        List<URI> volumeList = new ArrayList<URI>();
+        log.info("Find Target Volumes from RA group {} {}", group.getLabel(), group.getId());
+        StringSet volumeNativeGUIdList = group.getVolumes();
+        log.info("volumeNativeGUIdList : {}", volumeNativeGUIdList);
+        if (volumeNativeGUIdList != null) {
+            for (String volumeNativeGUId : volumeNativeGUIdList) {
+                log.debug("volume nativeGUId:{}", volumeNativeGUId);
+                URIQueryResultList result = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeNativeGuidConstraint(volumeNativeGUId), result);
+                Iterator<URI> volumeIterator = result.iterator();
+                if (volumeIterator.hasNext()) {
+                    Volume volume = dbClient.queryObject(Volume.class, volumeIterator.next());
+                    if (volume != null && PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality())) {
+                        log.info("Found volume {} in vipr db", volume.getNativeGuid());
+                        StringSet srdfTargets = volume.getSrdfTargets();
+                        if (null != srdfTargets && !srdfTargets.isEmpty()) {
+                            volumeList.addAll(URIUtil.toURIList(volume.getSrdfTargets()));
+                        }
+                    }
+                }
+            }
+        }
+        log.info("volume list size {}", volumeList.size());
+        return volumeList;
     }
 
 }

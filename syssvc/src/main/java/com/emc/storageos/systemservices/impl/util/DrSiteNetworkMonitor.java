@@ -26,10 +26,10 @@ public class DrSiteNetworkMonitor implements Runnable{
     private String myNodeId;
     private MailHandler mailHandler;
 
-    String ZOOKEEPER_MODE_LEADER = "leader";
-    String NETWORK_HEALTH_BROKEN = "Broken";
-    String NETWORK_HEALTH_GOOD = "Good";
-    String NETWORK_HEALTH_SLOW = "Slow";
+    private String ZOOKEEPER_MODE_LEADER = "leader";
+    private String NETWORK_HEALTH_BROKEN = "Broken";
+    private String NETWORK_HEALTH_GOOD = "Good";
+    private String NETWORK_HEALTH_SLOW = "Slow";
 
     public DrSiteNetworkMonitor(String myNodeId, CoordinatorClient coordinatorClient) {
         this.coordinatorClient = coordinatorClient;

@@ -629,6 +629,7 @@ public class DbServiceImpl implements DbService {
 
             if (_jmxServer != null) {
                 _jmxServer.start();
+                System.setProperty("com.sun.management.jmxremote.port", Integer.toString(_jmxServer.getPort()));
             }
 
             if (!isDbCurrentVersionEncrypted() && !_statusChecker.isMigrationDone()) {

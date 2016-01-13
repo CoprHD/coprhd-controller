@@ -5,8 +5,21 @@
 
 package com.emc.storageos.db.server.upgrade.impl.callback;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -18,25 +31,11 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.callbacks.BlockObjectMultipleConsistencyGroupsMigration;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
-
-import org.junit.BeforeClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-
-import org.junit.Assert;
 
 /**
  * Test proper population of the new BlockConsistencyGroup fields and collapsing
@@ -674,7 +673,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         sourceVolume.setLabel(volumeName);
         sourceVolume.setPersonality(Volume.PersonalityTypes.SOURCE.toString());
         sourceVolume.setRSetName(rsetName);
-        sourceVolume.setProtectionSet(new NamedURI(protectionSet.getId(), sourceVolume.getLabel()));
+        sourceVolume.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
         sourceVolume.setStorageController(storageSystem.getId());
         if (isRpVPlex) {
             sourceVolume.setAssociatedVolumes(associatedVolumes);
@@ -695,7 +694,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         sourceVolumeJournal.setId(sourceVolumeJournalURI);
         sourceVolumeJournal.setLabel(volumeName + RP_SRC_JOURNAL_APPEND);
         sourceVolumeJournal.setPersonality(Volume.PersonalityTypes.METADATA.toString());
-        sourceVolumeJournal.setProtectionSet(new NamedURI(protectionSet.getId(), sourceVolumeJournal.getLabel()));
+        sourceVolumeJournal.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
         sourceVolumeJournal.setStorageController(storageSystem.getId());
         if (isRpVPlex) {
             sourceVolumeJournal.setAssociatedVolumes(associatedVolumes);
@@ -718,7 +717,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
             sourceVolumeTarget.setLabel(volumeName + RP_TGT_APPEND + "vArray" + i);
             sourceVolumeTarget.setPersonality(Volume.PersonalityTypes.TARGET.toString());
             sourceVolumeTarget.setRSetName(rsetName);
-            sourceVolumeTarget.setProtectionSet(new NamedURI(protectionSet.getId(), sourceVolumeTarget.getLabel()));
+            sourceVolumeTarget.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
             sourceVolumeTarget.setStorageController(storageSystem.getId());
             if (isRpVPlex) {
                 sourceVolumeTarget.setAssociatedVolumes(associatedVolumes);
@@ -740,7 +739,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
             sourceVolumeTargetJournal.setId(sourceVolumeTargetJournalURI);
             sourceVolumeTargetJournal.setLabel(volumeName + RP_TGT_JOURNAL_APPEND + "vArray" + i);
             sourceVolumeTargetJournal.setPersonality(Volume.PersonalityTypes.METADATA.toString());
-            sourceVolumeTargetJournal.setProtectionSet(new NamedURI(protectionSet.getId(), sourceVolumeTargetJournal.getLabel()));
+            sourceVolumeTargetJournal.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
             sourceVolumeTargetJournal.setStorageController(storageSystem.getId());
             if (isRpVPlex) {
                 sourceVolumeTargetJournal.setAssociatedVolumes(associatedVolumes);

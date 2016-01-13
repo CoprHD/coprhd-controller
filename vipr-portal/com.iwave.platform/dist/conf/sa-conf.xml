@@ -142,10 +142,6 @@
     <bean id="userFromRequestHelper" class="com.emc.storageos.security.authentication.UserFromRequestHelper" >
         <property name="permissionsHelper" ref="permissionsHelper"/>
     </bean>
-    
-    <bean id="permissionsFilterFactory" class="com.emc.storageos.api.service.authorization.PermissionsFilterFactory">
-        <property name="permissionsHelper" ref="permissionsHelper"/>
-    </bean>
 
     <bean id="responseFilter" class="com.emc.storageos.api.errorhandling.filters.TaskResponseFilter"/>    
 

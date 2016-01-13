@@ -42,7 +42,7 @@ public class VdcConfigMigration extends BaseCustomMigrationCallback {
     private void cleanupStaleDbConfig() {
         coordinatorClient.deletePath(String.format("%s/%s", ZkPath.CONFIG, Constants.DB_CONFIG));
         coordinatorClient.deletePath(String.format("%s/%s", ZkPath.CONFIG, Constants.GEODB_CONFIG));
-        log.info("Removed dbconfig/geodbconfig in zk global area successfully");
+        log.info("Removed dbconfig and geodbconfig in zk global area successfully");
     }
     
     /**

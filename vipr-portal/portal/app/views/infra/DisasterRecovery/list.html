@@ -174,3 +174,34 @@ function standbyStatusIcon(o, val) {
     return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
 }
 </script>
+
+<script type="text/javascript">
+function networkHealthIcon(o, val) {
+    if (!o) {
+        return "";
+    }
+    var labels = {
+        'Good': 'label-success',
+        'Slow': 'label-warning',
+        'Broken': 'label-danger'
+    }
+    var icons = {
+        'Good': 'glyphicon glyphicon-ok',
+        'Slow': 'glyphicon glyphicon-warning-sign',
+        'Broken':  'glyphicon glyphicon-remove'
+    }
+
+	var messages = {
+            'Good': Messages.get("renderFunctions.disasterRecovery.networkHealth.good"),
+            'Slow': Messages.get("renderFunctions.disasterRecovery.networkHealth.slow"),
+            'Broken': Messages.get("renderFunctions.disasterRecovery.networkHealth.broken")
+	};
+
+    var label = defaultValue(labels[o.aData.status], 'label-default');
+    var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
+
+    var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
+
+    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
+}
+</script>

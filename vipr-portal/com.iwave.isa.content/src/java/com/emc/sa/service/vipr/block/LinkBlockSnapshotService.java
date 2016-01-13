@@ -14,6 +14,7 @@ import static com.emc.sa.service.ServiceParams.VOLUMES;
 
 import java.util.List;
 
+import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -59,8 +60,10 @@ public class LinkBlockSnapshotService extends ViPRService {
                 if (linkedSnapshotCount == null || linkedSnapshotCount.intValue() <= 0) {
                     ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCount.precheck", new Object[] {}, new Object[] {});
                 }
-                // Ensure that copy mode is selected
-                if (linkedSnapshotCopyMode == null || linkedSnapshotCopyMode.isEmpty()) {
+                // Ensure that copy mode is selected            
+                if (linkedSnapshotCopyMode == null
+                        || !(BlockProvider.LINKED_SNAPSHOT_COPYMODE_VALUE.equals(linkedSnapshotCopyMode)
+                                || BlockProvider.LINKED_SNAPSHOT_NOCOPYMODE_VALUE.equals(linkedSnapshotCopyMode))) {
                     ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCopyMode.precheck", new Object[] {}, new Object[] {});
                 }
             }            

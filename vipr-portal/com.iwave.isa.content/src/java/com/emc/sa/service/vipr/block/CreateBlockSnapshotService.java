@@ -70,7 +70,9 @@ public class CreateBlockSnapshotService extends ViPRService {
                         ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCount.precheck", new Object[] {}, new Object[] {});
                     }
                     // Ensure that copy mode is selected
-                    if (linkedSnapshotCopyMode == null || linkedSnapshotCopyMode.isEmpty()) {
+                    if (linkedSnapshotCopyMode == null
+                            || !(BlockProvider.LINKED_SNAPSHOT_COPYMODE_VALUE.equals(linkedSnapshotCopyMode)
+                                    || BlockProvider.LINKED_SNAPSHOT_NOCOPYMODE_VALUE.equals(linkedSnapshotCopyMode))) {
                         ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCopyMode.precheck", new Object[] {}, new Object[] {});
                     }
                 }

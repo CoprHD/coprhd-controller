@@ -217,7 +217,7 @@ public class BackupService {
             backups.setBackups(backupFiles);
         } catch (Exception e) {
             log.error("Failed to list backup files on external server", e);
-            throw APIException.internalServerErrors.getObjectError("External backup files", e);
+            throw APIException.internalServerErrors.listExternalBackupFailed(e);
         }
         return backups;
     }
@@ -236,18 +236,17 @@ public class BackupService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ExternalBackupInfo queryExternalBackup(@QueryParam("name") String backupFileName) {
         log.info("Received query backup on external server request, file name={}", backupFileName);
+        ExternalBackupInfo externalBackupInfo = new ExternalBackupInfo();
         try {
-            ExternalBackupInfo externalBackupInfo = new ExternalBackupInfo();
             externalBackupInfo.setFileName(backupFileName);
             externalBackupInfo.setCreateTime(getBackupCreateTime(backupFileName));
             externalBackupInfo.setRestoreStatus(queryRestoreStatus(backupFileName, false));
-
-            log.info("External Backup info: {}", externalBackupInfo);
-            return externalBackupInfo;
         } catch (BackupException e) {
             log.error("Failed to list backup files on external server", e);
-            throw APIException.internalServerErrors.getObjectError("External Backup Info", e);
+            throw APIException.internalServerErrors.queryExternalBackupFailed(e);
         }
+        log.info("External Backup info: {}", externalBackupInfo);
+        return externalBackupInfo;
     }
 
     private Long getBackupCreateTime(String backupName) {

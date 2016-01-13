@@ -204,7 +204,7 @@ gen_config() {
     fi
     echo -n "Regenerating storageos configuration files based on restored vdc properties"
     local command="mv ${vdcpropsfile} /tmp && /etc/systool --setvdcprops /tmp/vdcconfig.properties && /etc/systool --getprops | /etc/genconfig"
-    loop_execute "${command}" "true"
+    loop_execute "bash -c \"${command}\"" "true"
     echo "done"
 }
 

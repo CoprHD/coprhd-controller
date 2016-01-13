@@ -20,6 +20,7 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.storageos.model.object.ObjectBucketACLUpdateParams;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
@@ -126,9 +127,9 @@ public class ObjectProvider extends BaseAssetOptionsProvider {
     @Asset("ObjectACLPermission")
     public List<AssetOption> getObjectACLPermissions(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
-//        for (ObjectBucketACLUpdateParams.SharePermission perm : ObjectBucketACLUpdateParams.SharePermission.values()) {
-//            options.add(newAssetOption(perm.name(), String.format("file.ACL.permission.%s", perm.name())));
-//        }
+        for (BucketACLUpdateParams.BucketPermissions perm : BucketACLUpdateParams.BucketPermissions.values()) {
+            options.add(newAssetOption(perm.name(), String.format("Object.ACL.permission.%s", perm.name())));
+        }
         return options;
     }
 }

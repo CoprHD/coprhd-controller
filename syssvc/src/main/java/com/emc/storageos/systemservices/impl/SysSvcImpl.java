@@ -46,6 +46,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
 
     private static final int NETWORK_MONITORING_INTERVAL = 60; // in seconds
 
+    private MailHandler _mailHandler;
     private UpgradeManager _upgradeMgr;
     private InternalApiSignatureKeyGenerator _keyGenerator;
     private Thread _upgradeManagerThread = null;
@@ -70,6 +71,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
 
     @Autowired
     private ServiceBeacon _svcBeacon;
+
     @Autowired
     private CoordinatorClientExt _coordinator;
 
@@ -77,14 +79,15 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private RecoveryManager _recoveryMgr;
 
     @Autowired
-    private MailHandler _mailHandler;
-
-    @Autowired
     // used by data node to poll the ip address change of controller cluster
     private ClusterAddressPoller _clusterPoller;
 
     public void setUpgradeManager(UpgradeManager upgradeMgr) {
         _upgradeMgr = upgradeMgr;
+    }
+
+    public void setMailHandler(MailHandler mailHandler) {
+        _mailHandler = mailHandler;
     }
 
     public void setClusterPoller(ClusterAddressPoller _clusterPoller) {

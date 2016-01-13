@@ -261,6 +261,12 @@
         </property>
     </bean>
 
+    <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler">
+        <property name="coordinatorClient" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="auditLogManager" ref="auditLogManager"/>
+    </bean>
+
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
         <property name="softwareUpdate" ref="softwareUpdate" />
         <property name="application" ref="syssvcApp" />
@@ -327,12 +333,6 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="localUsers" ref="localUserMap"/>
         <property name="passwordUtils" ref="passwordUtils"/>
-        <property name="auditLogManager" ref="auditLogManager"/>
-    </bean>
-
-    <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler">
-        <property name="coordinator" ref="coordinator"/>
-        <property name="dbClient" ref="dbclient"/>
         <property name="auditLogManager" ref="auditLogManager"/>
     </bean>
 

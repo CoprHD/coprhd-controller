@@ -658,6 +658,10 @@ public class IpReconfigManager implements Runnable {
             log.info("Platform(VApp) is unsupported for ip reconfiguraiton");
             throw new UnsupportedOperationException("VApp is unsupported for ip reconfiguration");
         }
+        if (PlatformUtils.hasMultipleSites()) {
+            log.info("Multiple sites env is unsupported for ip reconfiguraiton");
+            throw new UnsupportedOperationException("Multiple sites env is unsupported for ip reconfiguration");
+        }
     }
 
     /**

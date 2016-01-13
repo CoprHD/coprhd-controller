@@ -205,6 +205,7 @@ public class BackupService {
         log.info("Received list backup files on external server request");
         ExternalBackups backups = new ExternalBackups();
         try {
+            backupConfig = backupScheduler.getCfg();
             String externalServerUrl = backupConfig.getExternalServerUrl();
             String userName = backupConfig.getExternalServerUserName();
             String password = backupConfig.getExternalServerPassword();
@@ -242,7 +243,7 @@ public class BackupService {
             externalBackupInfo.setCreateTime(getBackupCreateTime(backupFileName));
             externalBackupInfo.setRestoreStatus(queryRestoreStatus(backupFileName, false));
         } catch (BackupException e) {
-            log.error("Failed to list backup files on external server", e);
+            log.error("Failed to query external backup info", e);
             throw APIException.internalServerErrors.queryExternalBackupFailed(e);
         }
         log.info("External Backup info: {}", externalBackupInfo);

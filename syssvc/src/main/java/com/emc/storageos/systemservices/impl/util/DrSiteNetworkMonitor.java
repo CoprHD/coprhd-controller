@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.systemservices.impl.util;
 
 import com.emc.storageos.coordinator.client.model.Site;
@@ -12,9 +17,6 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.channels.SocketChannel;
 
-/**
- * Created by aquinn on 1/11/16.
- */
 public class DrSiteNetworkMonitor implements Runnable{
 
     private static final Logger _log = LoggerFactory.getLogger(DrSiteNetworkMonitor.class);

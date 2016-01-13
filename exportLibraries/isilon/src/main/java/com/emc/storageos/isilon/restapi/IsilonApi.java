@@ -552,53 +552,6 @@ public class IsilonApi {
     }
 
     /**
-     * Generic get resource
-     * 
-     * @param url url to get from
-     * @param key reference string representing the object type being deleted
-     * @param c Class of object representing the return value
-     * @return T Object parsed from the response, on success
-     * @throws IsilonException
-     */
-    private <T> T get(URI url, String key, Class<T> c) throws IsilonException {
-
-        ClientResponse resp = null;
-        try {
-            T returnInstance = null;
-            resp = _client.get(url);
-
-            if (resp.hasEntity()) {
-                JSONObject jObj = resp.getEntity(JSONObject.class);
-                if (resp.getStatus() == 200) {
-                    JSONArray array = jObj.getJSONArray(key);
-                    if (array.length() != 1) {
-                        String length = String.format("%1$s", array.length());
-                        throw IsilonException.exceptions.getResourceFailedOnIsilonArray(key, length);
-                    }
-
-                    JSONObject exp = array.getJSONObject(0);
-                    returnInstance = new Gson().fromJson(SecurityUtils.sanitizeJsonString(exp.toString()), c);
-                } else {
-                    processErrorResponse("get", key + ": ", resp.getStatus(), jObj);
-                }
-            } else {
-                // no entity in response
-                processErrorResponse("get", key + ": ", resp.getStatus(), null);
-            }
-            return returnInstance;
-        } catch (IsilonException ie) {
-            throw ie;
-        } catch (Exception e) {
-            String response = String.format("%1$s", (resp == null) ? "" : resp);
-            throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc(key, "", response, e);
-        } finally {
-            if (resp != null) {
-                resp.close();
-            }
-        }
-    }
-
-    /**
      * Generic get resource when key is not applicable
      * 
      * @param url url to get from

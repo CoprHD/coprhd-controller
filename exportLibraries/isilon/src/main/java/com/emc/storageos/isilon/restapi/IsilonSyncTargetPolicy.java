@@ -10,10 +10,10 @@ public class IsilonSyncTargetPolicy extends IsilonSyncPolicy {
         writes_disabled, enabling_writes, writes_enabled, disabling_writes, creating_resync_policy, resync_policy_created
     }
 
-    private IsilonSyncTargetPolicy.FOFB_STATES failover_failback_state;
+    private FOFB_STATES failover_failback_state;
     private String source_host;
 
-    public IsilonSyncTargetPolicy.FOFB_STATES getFoFbState() {
+    public FOFB_STATES getFoFbState() {
         return failover_failback_state;
     }
 

@@ -33,7 +33,7 @@ public class IsilonSyncPolicy {
 
     private String name;
     private String source_root_path;
-    private IsilonSyncPolicy.Action action;
+    private Action action;
     private String target_path;
     private String target_host;
     private String schedule;

@@ -36,7 +36,7 @@ public class IsilonFileStorageDeviceReplicationTest {
     public static void testCreateReplicationPolicy() {
         IsilonFileStorageDeviceReplicationTest.setUp();
         result = _isi.doCreateReplicationPolicy(_device, "mudit_policy", "/ifs/vipr/muditjainsource", "",
-                "/ifs/vipr/mudtjaintarget", IsilonSyncPolicy.Action.copy, "", "");
+                "/ifs/vipr/mudtjaintarget", IsilonSyncPolicy.Action.copy, "this_is_mudit_policy", "");
         result.getCommandStatus();
     }
 
@@ -67,7 +67,7 @@ public class IsilonFileStorageDeviceReplicationTest {
 
     public static void testModifyReplicationPolicy() {
         IsilonFileStorageDeviceReplicationTest.setUp();
-        result = _isi.doModifyReplicationPolicy(_device, "mudit_policy", "");
+        result = _isi.doModifyReplicationPolicy(_device, "test_policy", "");
         result.getCommandStatus();
     }
 
@@ -87,6 +87,28 @@ public class IsilonFileStorageDeviceReplicationTest {
         result.getCommandStatus();
     }
 
+    public static void testFailBack() {
+        _isi = new IsilonFileStorageDevice();
+        IsilonApiFactory factory = new IsilonApiFactory();
+        factory.init();
+        _isi.setIsilonApiFactory(factory);
+        _device = new StorageSystem();
+        _device.setSystemType("isilon");
+        _device.setIpAddress("");
+        _device.setPortNumber(8080);
+        _device.setUsername(userName);
+        _device.setPassword(password);
+        StorageSystem _device2 = new StorageSystem();
+        _device2.setSystemType("isilon");
+        _device2.setIpAddress("");
+        _device2.setPortNumber(8080);
+        _device2.setUsername(userName);
+        _device2.setPassword(password);
+
+        result = _isi.doFailBack(_device, _device2, "mudit_policy");
+
+    }
+
     public static void main(String args[]) {
 
         // IsilonFileStorageDeviceReplicationTest.testCreateReplicationPolicy();
@@ -96,5 +118,6 @@ public class IsilonFileStorageDeviceReplicationTest {
         // IsilonFileStorageDeviceReplicationTest.testDeleteReplicationPolicy();
         // IsilonFileStorageDeviceReplicationTest.testModifyReplicationPolicy();
         // IsilonFileStorageDeviceReplicationTest.testFailover();
+        IsilonFileStorageDeviceReplicationTest.testFailBack();
     }
 }

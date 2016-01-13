@@ -51,6 +51,7 @@ import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
+import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.NfsACE;
@@ -2222,10 +2223,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 policy.setDescription(description);
             }
             String policyId = isi.createReplicationPolicy(policy);
-            if (policyId != null) {
-                _log.info("IsilonFileStorageDevice doCreateReplicationPolicy {} with policyId {} - complete", name,
-                        policyId);
-            }
+            _log.info("IsilonFileStorageDevice doCreateReplicationPolicy {} with policyId {} - complete", name,
+                    policyId);
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
@@ -2251,10 +2250,23 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     || !policyState.equals(JobState.resumed)) {
                 IsilonSyncJob job = new IsilonSyncJob();
                 job.setId(policyName);
-                isi.modifyReplicationJob(job);
-                _log.info("IsilonFileStorageDevice doStartReplicationPolicy - {}  - complete", policyName);
-                return BiosCommandResult.createSuccessfulResult();
 
+                isi.modifyReplicationJob(job);
+
+                policy = isi.getReplicationPolicy(policyName);
+                while (policy.getLast_job_state().equals(JobState.running)) {
+                    // TODO wait till job is finished
+                    policy = isi.getReplicationPolicy(policyName);
+                }
+                if (policy.getLast_job_state().equals(JobState.finished)) {
+                    _log.info("IsilonFileStorageDevice doStartReplicationPolicy - {}  - complete", policyName);
+                    return BiosCommandResult.createSuccessfulResult();
+                } else {
+                    String errorMessage = isiGetReportErrMsg(isi.getReplicationPolicyReports(policyName).getList());
+                    _log.error(errorMessage);
+                    ServiceError error = DeviceControllerErrors.isilon.jobFailed("doFailover failed  as : " + errorMessage);
+                    return BiosCommandResult.createErrorResult(error);
+                }
             } else {
                 _log.error("Replication Policy - {} can't be STARTED because policy is in {} state", policyName,
                         policyState);
@@ -2383,37 +2395,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     public BiosCommandResult doFailover(StorageSystem system, String policyName) {
         try {
-            IsilonApi isi = getIsilonDevice(system);
-            IsilonSyncJob job = new IsilonSyncJob();
-
-            job.setId(policyName);
-            job.setAction(Action.allow_write);
-            isi.modifyReplicationJob(job);
-
-            IsilonSyncTargetPolicy targetPolicy = isi.getTargetReplicationPolicy(policyName);
-            while (targetPolicy.getLast_job_state().equals(JobState.running)
-                    && targetPolicy.getFoFbState().equals(IsilonSyncTargetPolicy.FOFB_STATES.enabling_writes)) {
-                // TODO wait till job is finished
-                targetPolicy = isi.getTargetReplicationPolicy(policyName);
-            }
-            if (targetPolicy.getLast_job_state().equals(JobState.finished)
-                    && targetPolicy.getFoFbState().equals(IsilonSyncTargetPolicy.FOFB_STATES.writes_enabled)) {
-                _log.info("Failover to secondary Cluster - {}  finished successfully", system.getIpAddress());
+            JobState state = isiAllowWrite(system, policyName);
+            if (state.equals(JobState.finished)) {
+                _log.info("Failover to cluster -{}  done successfully ", system.getIpAddress());
                 return BiosCommandResult.createSuccessfulResult();
             } else {
-                String errorMessage = "";
-                List<IsilonSyncPolicyReport> policyReports = isi.getTargetReplicationPolicyReports(policyName).getList();
-                for (IsilonSyncPolicyReport report : policyReports) {
-                    if (report.getState().equals(JobState.failed) || report.getState().equals(JobState.needs_attention)) {
-                        errorMessage = report.getErrors()[0];
-                        break;
-                    } else {
-                        continue;
-                    }
-                }
+                IsilonApi isi = getIsilonDevice(system);
+                String errorMessage = isiGetReportErrMsg(isi.getTargetReplicationPolicyReports(policyName).getList());
                 _log.error(errorMessage);
-                ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed("doFailover failed  as : " + errorMessage);
+                ServiceError error = DeviceControllerErrors.isilon.jobFailed("doFailover failed  as : " + errorMessage);
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -2421,87 +2411,122 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    /*
-     * public BiosCommandResult doFailBack(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName) {
-     * String mirrorPolicyName = policyName.concat("_mirror");
-     * IsilonSyncPolicy mirrorPolicy;
-     * IsilonSyncPolicy sourcePolicy;
-     * IsilonXMLApiResult result;
-     * try {
-     * 
-     * // Primary Cluster API,CLI client
-     * IsilonApi isiPrimary = getIsilonDevice(primarySystem);
-     * IsilonSshApi sshDmApiPrimary = getIsilonDeviceSsh(primarySystem);
-     * 
-     * // Secondary Cluster API,CLI client
-     * IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
-     * IsilonSshApi sshDmApiSecondary = getIsilonDeviceSsh(secondarySystem);
-     * 
-     * 
-     * Step 1. Creates a mirror replication policy for the secondary
-     * cluster i.e Resync-prep on primary cluster , this will disable
-     * primary cluster replication policy.
-     * 
-     * result = sshDmApiPrimary.executeSsh("sync recovery" + "" + "resync-prep" + "" + policyName, "");
-     * // TODO wait till the mirror policy is created , it may take time..
-     * sourcePolicy = isiPrimary.getReplicationPolicy(policyName);
-     * mirrorPolicy = isiSecondary.getReplicationPolicy(mirrorPolicyName);
-     * 
-     * 
-     * Step 2. Start the mirror replication policy manually, this will
-     * replicate new data (written during failover) from secondary
-     * cluster to primary cluster.
-     * 
-     * if (result.isCommandSuccess() && mirrorPolicy != null && !sourcePolicy.getEnabled()) {
-     * _log.info("Mirror Policy {} created successfully on secondary - {} cluster", mirrorPolicy.toString(),
-     * secondarySystem.getIpAddress());
-     * // isiStartReplicationJob(secondarySystem, mirrorPolicyName);
-     * IsilonSyncJob job = isiSecondary.getReplicationJob(mirrorPolicyName);
-     * while (job != null && job.getState().equals(IsilonSyncJob.State.running)) {
-     * // TODO some code to wait till next polling
-     * job = isiSecondary.getReplicationJob(mirrorPolicyName);
-     * }
-     * mirrorPolicy = isiSecondary.getReplicationPolicy(mirrorPolicyName);
-     * if (mirrorPolicy.getLast_job_state().equals(IsilonSyncJob.State.finished)) {
-     * _log.info(
-     * "Data Replication from secondary cluster - {} to primary cluster-{} for "
-     * + "miror replication policy-{} completed successfully",
-     * secondarySystem.getIpAddress(), primarySystem.getIpAddress(), mirrorPolicyName);
-     * }
-     * }
-     * 
-     * 
-     * Step 3. Allow Write on Primary Cluster local target after
-     * replication from step 2.
-     * 
-     * result = sshDmApiPrimary.executeSsh("sync recovery" + "" + "allow-write" + "" + mirrorPolicyName, "");
-     * IsilonSyncTargetPolicy localTargetPolicy = isiPrimary.getTargetReplicationPolicy(mirrorPolicyName);
-     * if (result.isCommandSuccess() && localTargetPolicy.getFoFbState()
-     * .equals(IsilonSyncTargetPolicy.FOFB_STATES.writes_enabled)) {
-     * _log.info("Allow Write on Primary Cluster {} local target after replication done",
-     * primarySystem.getIpAddress());
-     * }
-     * 
-     * 
-     * Step 4. Resync-prep on secondary cluster , same as step 1 but
-     * will be executed on secondary cluster instead of primary cluster.
-     * 
-     * result = sshDmApiSecondary.executeSsh("sync recovery" + "" + "resync-prep" + "" + mirrorPolicyName, "");
-     * // TODO wait till the mirror policy is created , it may take time..
-     * mirrorPolicy = isiSecondary.getReplicationPolicy(mirrorPolicyName);
-     * sourcePolicy = isiPrimary.getReplicationPolicy(policyName);
-     * if (result.isCommandSuccess() && sourcePolicy != null && !mirrorPolicy.getEnabled()) {
-     * _log.info("Fail back to primary cluster - {} from secondary cluster - {} completed ",
-     * primarySystem.getIpAddress(), secondarySystem.getIpAddress());
-     * }
-     * 
-     * return BiosCommandResult.createSuccessfulResult();
-     * 
-     * } catch (IsilonException e) {
-     * return BiosCommandResult.createErrorResult(e);
-     * }
-     * }
-     */
+    public BiosCommandResult doFailBack(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName) {
+
+        String mirrorPolicyName = policyName.concat("_mirror");
+
+        try {
+            // Step 1. Creates a mirror replication policy for the secondary cluster i.e Resync-prep on primary cluster , this will disable
+            // primary cluster replication policy.
+
+            JobState state = isiResyncPrep(primarySystem, secondarySystem, policyName);
+            if (state.equals(JobState.finished)) {
+                _log.info("Resync-Prep on cluster {} finished successfully", primarySystem.getIpAddress());
+            } else {
+                IsilonApi isi = getIsilonDevice(primarySystem);
+                String errorMessage = isiGetReportErrMsg(isi.getReplicationPolicyReports(policyName).getList());
+                _log.error(errorMessage);
+                ServiceError error = DeviceControllerErrors.isilon.jobFailed("Resync-Prep FAILED  as : " + errorMessage);
+                return BiosCommandResult.createErrorResult(error);
+            }
+
+            // Step 2. Start the mirror replication policy manually, this will replicate new data (written during failover) from secondary
+            // cluster to primary cluster.
+
+            BiosCommandResult result = doStartReplicationPolicy(secondarySystem, mirrorPolicyName);
+            if (!result.isCommandSuccess()) {
+                return result;
+            }
+
+            // Step 3. Allow Write on Primary Cluster local target after replication from step 2 i.e Failover to Primary Cluster
+
+            result = doFailover(primarySystem, mirrorPolicyName);
+            if (!result.isCommandSuccess()) {
+                return result;
+            }
+
+            // Step 4. Resync-prep on secondary cluster , same as step 1 but will be executed on secondary cluster instead of primary
+            // cluster.
+
+            state = isiResyncPrep(secondarySystem, primarySystem, mirrorPolicyName);
+            if (state.equals(JobState.finished)) {
+                _log.info("Resync-Prep on cluster {} finished successfully", secondarySystem.getIpAddress());
+            } else {
+                IsilonApi isi = getIsilonDevice(secondarySystem);
+                String errorMessage = isiGetReportErrMsg(isi.getReplicationPolicyReports(mirrorPolicyName).getList());
+                _log.error(errorMessage);
+                ServiceError error = DeviceControllerErrors.isilon.jobFailed("Resync-Prep FAILED  as : " + errorMessage);
+                return BiosCommandResult.createErrorResult(error);
+            }
+
+            _log.info("Failback from cluster {} to cluster {} successfully finished", secondarySystem.getIpAddress(),
+                    primarySystem.getIpAddress());
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            return BiosCommandResult.createErrorResult(e);
+        }
+    }
+
+    public JobState isiResyncPrep(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName) throws IsilonException {
+
+        IsilonSyncTargetPolicy secondaryLocalTargetPolicy;
+        IsilonApi isiPrimary = getIsilonDevice(primarySystem);
+        IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
+        IsilonSyncJob job = new IsilonSyncJob();
+        job.setId(policyName);
+        job.setAction(Action.resync_prep);
+
+        isiPrimary.modifyReplicationJob(job);
+
+        secondaryLocalTargetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
+        while (secondaryLocalTargetPolicy.getFoFbState().equals(FOFB_STATES.creating_resync_policy)) {
+            // TODO wait till job is finished
+            secondaryLocalTargetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
+        }
+        if (secondaryLocalTargetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created)
+                && secondaryLocalTargetPolicy.getLast_job_state().equals(JobState.finished)) {
+            return JobState.finished;
+        } else {
+            return JobState.failed;
+        }
+    }
+
+    public JobState isiAllowWrite(StorageSystem system, String policyName) throws IsilonException {
+
+        IsilonApi isi = getIsilonDevice(system);
+        IsilonSyncJob job = new IsilonSyncJob();
+        job.setId(policyName);
+        job.setAction(Action.allow_write);
+
+        isi.modifyReplicationJob(job);
+
+        IsilonSyncTargetPolicy targetPolicy = isi.getTargetReplicationPolicy(policyName);
+        while (targetPolicy.getLast_job_state().equals(JobState.running)
+                && targetPolicy.getFoFbState().equals(FOFB_STATES.enabling_writes)) {
+            // TODO wait till job is finished
+            targetPolicy = isi.getTargetReplicationPolicy(policyName);
+        }
+        if (targetPolicy.getLast_job_state().equals(JobState.finished)
+                && targetPolicy.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
+            return JobState.finished;
+        } else {
+            return JobState.failed;
+        }
+    }
+
+    public String isiGetReportErrMsg(List<IsilonSyncPolicyReport> policyReports) {
+        String errorMessage = "";
+        for (IsilonSyncPolicyReport report : policyReports) {
+            if (report.getState().equals(JobState.failed) || report.getState().equals(JobState.needs_attention)) {
+                errorMessage = report.getErrors()[0];
+                break;
+            } else {
+                continue;
+            }
+        }
+        return errorMessage;
+    }
+
     @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
         // TODO Auto-generated method stub

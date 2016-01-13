@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.valid.Length;
@@ -135,9 +136,7 @@ public abstract class DataObject implements Serializable {
      * @param label
      */
     public void setLabel(String label) {
-        // COP-18886 revert this fix for Darth SP1 to unblock unmanaged volume ingestion
-        // it didn't really help us much if we don't fix existing records anyways.
-        // validateLabel(label);
+        validateLabel(label);
         _label = label;
         setChanged("label");
     }
@@ -145,11 +144,13 @@ public abstract class DataObject implements Serializable {
     private void validateLabel(String label) {
         int minLength = getPrefixIndexMinLength();
         if (label != null && label.length() < minLength) {
-            String clazzName = this.getClass().getSimpleName();
-            throw DatabaseException.fatals.fieldLengthTooShort(clazzName, this.getId(), READ_LABEL_METHOD_NAME, label.length(), minLength);
+            //we only log the invalid label before it fixed in upper layer
+            _log.error(String.format("%s invalid label length %s, the minimum length is %s", this.getId().toString(), label.length(), minLength), new IllegalArgumentException());
+
+            //throw DatabaseException.fatals.fieldLengthTooShort(clazzName, this.getId(), READ_LABEL_METHOD_NAME, label.length(), minLength);
         }
     }
-    
+
     private int getPrefixIndexMinLength()  {
         int length = DEFAULT_MIN_LABEL_LENGTH;
         try {
@@ -161,7 +162,6 @@ public abstract class DataObject implements Serializable {
         }
         return length;
     }
-
     /**
      * get inactive
      * 

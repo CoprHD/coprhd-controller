@@ -140,12 +140,13 @@ public class Backup extends Controller {
     }
 
     @FlashException(keep = true, referrer = { "restore" })
-    public static void doRestore(String id, String password, boolean isGeoFromScratch) {
+    public static void doRestore() {
         RestoreForm restoreForm = new RestoreForm();
         restoreForm.name = params.get("restoreForm.name");
         restoreForm.password = params.get("restoreForm.password");
         restoreForm.isGeoFromScratch = params.get("restoreForm.isGeoFromScratch", boolean.class);
         Type type = params.get("restoreForm.type", Type.class);
+        restoreForm.isLocal = type == Type.LOCAL ? true : false;
         restoreForm.restore();
         list(type);
     }
@@ -199,10 +200,12 @@ public class Backup extends Controller {
         @Required
         public String password;
 
+        public boolean isLocal;
+
         public boolean isGeoFromScratch = false;
 
         public void restore() throws ViPRException {
-            BackupUtils.restore(name, StringUtils.trimToNull(password), isGeoFromScratch);
+            BackupUtils.restore(name, StringUtils.trimToNull(password), isLocal, isGeoFromScratch);
         }
 
 

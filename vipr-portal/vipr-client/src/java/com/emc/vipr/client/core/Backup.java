@@ -78,12 +78,15 @@ public class Backup {
         client.postURI(String.class, builder.build());
     }
 
-    public void restore(String name, String password, boolean isGeoFromScratch) {
+    public void restore(String name, String password, boolean isLocal, boolean isGeoFromScratch) {
         UriBuilder builder = client.uriBuilder(RESTORE_URL);
         addQueryParam(builder, "backupname", name);
         addQueryParam(builder, "password", password);
         if (isGeoFromScratch) {
             addQueryParam(builder, "isgeofromscratch", true);
+        }
+        if (isLocal) {
+            addQueryParam(builder, "isLocal", true);
         }
         client.postURI(String.class, builder.build());
     }

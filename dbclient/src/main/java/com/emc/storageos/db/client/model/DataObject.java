@@ -419,7 +419,11 @@ public abstract class DataObject implements Serializable {
         NO_PUBLIC_ACCESS(2),        // 0x04
         SUPPORTS_FORCE(3),          // 0x08
         RECOVERPOINT(4),            // 0x10
-        DELETION_IN_PROGRESS(5);    // 0x20
+        DELETION_IN_PROGRESS(5),    // 0x20
+
+        // Temporary Usage for replica operation on Volume Group
+        // TODO update more info
+        VOLUME_GROUP_PARTIAL_REQUEST(6);    // 0x40
 
         private final long mask;
 

@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -111,7 +112,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             URI cgURI = fcSourceVolume.getConsistencyGroup();
             if (!isNullURI(cgURI)) {
                 // if volume is part of COPY type Volume Group, get only the Array Group volumes
-                if (fcSourceVolume.isInVolumeGroup() && fcSourceVolume.getCopyTypeVolumeGroup(_dbClient) != null) {
+                if (fcSourceVolume.isInVolumeGroup() && fcSourceVolume.getApplication(_dbClient) != null) {
                     fcSourceObjList.addAll(
                             ControllerUtils.getVolumesPartOfRG(fcSourceVolume.getReplicationGroupInstance(), _dbClient));
                 } else {
@@ -322,8 +323,9 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         Set<URI> fullCopyURIs = null;
         Map<URI, Volume> fullCopyMap = null;
         VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
-                ? ((Volume) fcSourceObj).getCopyTypeVolumeGroup(_dbClient) : null;
-        if (volumeGroup != null) {
+                ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
+        boolean partialRequest = fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+        if (volumeGroup != null && !partialRequest) {
             s_logger.info("Volume {} is part of Application, detaching all full copies in the Application.", fcSourceObj.getId());
             // get all volumes
             List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
@@ -405,7 +407,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         }
 
         // if Volume is part of VolumeGroup
-        if (volumeGroup != null) {
+        if (volumeGroup != null && !partialRequest) {
             Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
                     ResourceOperationTypeEnum.DETACH_VOLUME_GROUP_FULL_COPY);
             taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));

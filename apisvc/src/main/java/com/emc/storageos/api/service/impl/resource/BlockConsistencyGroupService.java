@@ -1413,6 +1413,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        // TODO check for cases - part of VPLEX/RP CG volumes are in Application and remaining are not
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
+
         // Get the full copy source.
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
                 fullCopyURI, uriInfo, false, _dbClient);
@@ -2067,12 +2071,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     /**
      * Check if the given CG volume is part of an application.
-     * If so, throw an error indicating replica operation is supported on CG.
+     * If so, throw an error indicating replica operation is not supported on CG.
      *
      * @param volume the CG volume
      */
     private void validateVolumeNotPartOfApplication(Volume volume, String replicaType) {
-        VolumeGroup volumeGroup = volume.getCopyTypeVolumeGroup(_dbClient);
+        VolumeGroup volumeGroup = volume.getApplication(_dbClient);
         if (volumeGroup != null) {
             throw APIException.badRequests.replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(volumeGroup.getLabel(),
                     replicaType);

@@ -1410,6 +1410,28 @@ public class ControllerUtils {
     }
 
     /**
+     * Returns true if the request is made for subset of array groups within the Volume Group.
+     * For Partial request, PARTIAL Flag was set on the requested Volume.
+     *
+     */
+    public static boolean checkVolumeForVolumeGroupPartialRequest(DbClient dbClient, Volume volume) {
+        boolean partial = false;
+        if (volume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+            partial = true;
+        } else {
+            // check on other volumes part of the array group.
+            List<Volume> volumes = ControllerUtils.getVolumesPartOfRG(volume.getReplicationGroupInstance(), dbClient);
+            for (Volume vol : volumes) {
+                if (vol.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                    partial = true;
+                    break;
+                }
+            }
+        }
+        return partial;
+    }
+
+    /**
      * Get volume group's volumes.
      * skip internal volumes
      *

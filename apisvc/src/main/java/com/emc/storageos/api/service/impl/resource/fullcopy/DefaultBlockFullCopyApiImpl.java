@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
@@ -41,6 +42,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockController;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
@@ -221,8 +223,10 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         // if Volume is part of Application (COPY type VolumeGroup)
         VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
-                ? ((Volume) fcSourceObj).getCopyTypeVolumeGroup(_dbClient) : null;
-        if (volumeGroup != null) {
+                ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
+        if (volumeGroup != null &&
+                !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, (Volume) fcSourceObj)) {
+
             Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
                     ResourceOperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY);
             taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));

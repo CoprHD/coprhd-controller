@@ -266,8 +266,9 @@ public class BlockFullCopyManager {
 
         // if Volume is part of Application (COPY type VolumeGroup)
         VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
-                ? ((Volume) fcSourceObj).getCopyTypeVolumeGroup(_dbClient) : null;
-        if (volumeGroup != null) {
+                ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
+        boolean partialRequest = fcSourceObj.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+        if (volumeGroup != null && !partialRequest) {
             s_logger.info("Volume {} is part of Application, Creating full copy for all volumes in the Application.", sourceURI);
             // get all volumes
             List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
@@ -322,7 +323,6 @@ public class BlockFullCopyManager {
                     fullCopyApiImpl);
         }
 
-        // TODO volumes in Volume Group can be in different vArrays. Change create() signature?
         // Create the full copies
         TaskList taskList = fullCopyApiImpl.create(fcSourceObjList, null, name,
                 createInactive, count, taskId);

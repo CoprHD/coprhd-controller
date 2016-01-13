@@ -3226,8 +3226,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
                     _dbClient.queryObject(Volume.class, sourceVolume) : null;
             VolumeGroup volumeGroup = (source != null && source.isInVolumeGroup())
-                    ? source.getCopyTypeVolumeGroup(_dbClient) : null;
-            if (volumeGroup != null) {
+                    ? source.getApplication(_dbClient) : null;
+            if (volumeGroup != null
+                    && !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, source)) {
                 /**
                  * If a Volume is in Volume Group (COPY type),
                  * Query all volumes belonging to that Volume Group,
@@ -3555,31 +3556,32 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             TaskCompleter taskCompleter = new CloneWorkflowCompleter(fullCopyVolumes, taskId);
 
-            Volume clone = _dbClient.queryObject(Volume.class, fullCopyVolumes.get(0));
-            URI sourceVolume = clone.getAssociatedSourceVolume();
-
             Workflow workflow = _workflowService.getNewWorkflow(this, FULL_COPY_WORKFLOW, true, taskId);
 
-            Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
-                    _dbClient.queryObject(Volume.class, sourceVolume) : null;
-            VolumeGroup volumeGroup = (source != null && source.isInVolumeGroup())
-                    ? source.getCopyTypeVolumeGroup(_dbClient) : null;
-            if (volumeGroup != null) {
-                _log.info("Detaching full copy for Application {}", volumeGroup.getLabel());
-                // add VolumeGroup to taskCompleter
-                taskCompleter.addVolumeGroupId(volumeGroup.getId());
-            }
-
             if (ConsistencyUtils.getCloneConsistencyGroup(fullCopyVolumes.get(0), _dbClient) != null) {
-                /**
-                 * Group the given full-copies by Array Replication Group and create workflow step for each Array Group,
-                 * these steps runs in parallel
-                 */
+
+                Volume clone = _dbClient.queryObject(Volume.class, fullCopyVolumes.get(0));
+                URI sourceVolume = clone.getAssociatedSourceVolume();
+                Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
+                        _dbClient.queryObject(Volume.class, sourceVolume) : null;
+                VolumeGroup volumeGroup = (source != null && source.isInVolumeGroup())
+                        ? source.getApplication(_dbClient) : null;
+                if (volumeGroup != null) {
+                    _log.info("Detaching full copy for Application {}", volumeGroup.getLabel());
+                    // add VolumeGroup to taskCompleter
+                    taskCompleter.addVolumeGroupId(volumeGroup.getId());
+                }
+
                 List<Volume> fullCopyVolumeObjects = new ArrayList<Volume>();
                 Iterator<Volume> iterator = _dbClient.queryIterativeObjects(Volume.class, fullCopyVolumes);
                 while (iterator.hasNext()) {
                     fullCopyVolumeObjects.add(iterator.next());
                 }
+
+                /**
+                 * Group the given full-copies by Array Replication Group and create workflow step for each Array Group,
+                 * these steps runs in parallel
+                 */
                 Map<String, List<Volume>> arrayGroupToFullCopies = ControllerUtils.groupVolumesByArrayGroup(fullCopyVolumeObjects);
                 for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
                     List<Volume> arrayGroupFullCopies = arrayGroupToFullCopies.get(arrayGroupName);
@@ -3590,7 +3592,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     if (cg != null) {
                         taskCompleter.addConsistencyGroupId(cg.getId());
                     }
-                    // getDevice(storageSystem.getSystemType()).doDetachGroupClone(storageSystem, fullCopyVolumes, taskCompleter);
 
                     List<URI> arrayGroupFullCopyURIs = new ArrayList<URI>(transform(arrayGroupFullCopies, fctnDataObjectToID()));
                     Workflow.Method detachMethod = detachFullCopyMethod(storageSystem.getId(), arrayGroupFullCopyURIs);
@@ -3599,8 +3600,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             null);
                 }
             } else {
-                // getDevice(storageSystem.getSystemType()).doDetachClone(storageSystem, fullCopyVolumes.get(0), taskCompleter);
-
                 Workflow.Method detachMethod = detachFullCopyMethod(storage, fullCopyVolumes);
                 workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", null,
                         storage, storageSystem.getSystemType(), getClass(), detachMethod, rollbackMethodNullMethod(), null);

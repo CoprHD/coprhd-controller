@@ -372,6 +372,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
         fullCopies.add(clone.getId().toString());
         _dbClient.createObject(clone);
+        _dbClient.updateObject(volume);
 
         return clone;
     }

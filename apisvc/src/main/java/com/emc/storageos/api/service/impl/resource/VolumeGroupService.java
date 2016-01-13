@@ -74,6 +74,7 @@ import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
+import com.emc.storageos.model.block.VolumeGroupFullCopyDetachParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
@@ -382,7 +383,7 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Creates a volume group fullcopy
-     *
+     * TODO update doc
      *
      * @prereq none
      *
@@ -406,8 +407,14 @@ public class VolumeGroupService extends TaskResourceService {
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, "full copy");
 
+        TaskList taskList = new TaskList();
+
         // get all volumes
         List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+        // validate that there should be some volumes in VolumeGroup
+        if (volumes.isEmpty()) {
+            throw APIException.badRequests.replicaOperationNotAllowedOnEmptyVolumeGroup(volumeGroup.getLabel(), "Full copy");
+        }
 
         List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
         for (VolumeGroupUtils util : utils) {
@@ -417,10 +424,63 @@ public class VolumeGroupService extends TaskResourceService {
             // may be use Copy-VolumeGroupUtils to validate such things.
         }
 
-        auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY, true, AuditLogManager.AUDITOP_BEGIN, volumeGroup.getId().toString(),
-                param.getName(), param.getCount());
+        if (param.getPartial()) {
+            log.info("Full Copy requested for subset of array groups in Application.");
 
-        return getFullCopyManager().createFullCopy(volumes.get(0).getId(), param);
+            // validate that at least one volume URI is provided
+            ArgValidator.checkFieldNotEmpty(param.getVolumes(), "volumes");
+
+            // validate that provided volumes
+            List<String> arrayGroupNames = new ArrayList<String>();
+            List<Volume> volumesInRequest = new ArrayList<Volume>();
+            for (URI volumeURI : param.getVolumes()) {
+                ArgValidator.checkFieldUriType(volumeURI, Volume.class, "volume");
+                // Get the Volume.
+                Volume volume = (Volume) BlockFullCopyUtils.queryFullCopyResource(volumeURI,
+                        uriInfo, true, _dbClient);
+                ArgValidator.checkEntityNotNull(volume, volumeURI, isIdEmbeddedInURL(volumeURI));
+
+                // skip repeated array groups
+                if (arrayGroupNames.contains(volume.getReplicationGroupInstance())) {
+                    log.info("Skipping repetitive request for Volume array group {}. Volume: {}",
+                            volume.getReplicationGroupInstance(), volume.getLabel());
+                    continue;
+                }
+                arrayGroupNames.add(volume.getReplicationGroupInstance());
+
+                // validate that provided volumes are part of Volume Group
+                if (!volumeGroupId.equals(volume.getApplication(_dbClient).getId())) {
+                    throw APIException.badRequests
+                            .replicaOperationNotAllowedVolumeNotInVolumeGroup("Full copy", volume.getLabel());
+                }
+
+                volumesInRequest.add(volume);
+            }
+
+            // send create request after validating all volumes
+            for (Volume volume : volumesInRequest) {
+                // set Flag in Volume so that we will know about partial request during processing.
+                volume.addInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+                _dbClient.updateObject(volume);
+
+                // Create full copy. Note that it will take into account the
+                // fact that the volume is in a ReplicationGroup
+                // and full copies will be created for all volumes in that ReplicationGroup.
+
+                // In case of partial request, Tasks will be generated for each Array group
+                // and they cannot be monitored together.
+                taskList.getTaskList().addAll(getFullCopyManager().createFullCopy(volume.getId(), param).getTaskList());
+            }
+        } else {
+            log.info("Full Copy requested for entire Application");
+            auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY, true, AuditLogManager.AUDITOP_BEGIN, volumeGroup.getId().toString(),
+                    param.getName(), param.getCount());
+
+            // Full copy will be created for all volumes in Application
+            taskList = getFullCopyManager().createFullCopy(volumes.get(0).getId(), param);
+        }
+
+        return taskList;
     }
 
     /**
@@ -498,6 +558,7 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Detach the specified Volume group full copy.
+     * TODO update doc
      *
      * @prereq Create Volume group full copy as active.
      *
@@ -510,16 +571,20 @@ public class VolumeGroupService extends TaskResourceService {
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/protection/full-copies/{fcid}/detach")
+    @Path("/{id}/protection/full-copies/detach")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList detachVolumeGroupFullCopy(@PathParam("id") final URI volumeGroupId,
-            @PathParam("fcid") URI fullCopyURI) {
+            final VolumeGroupFullCopyDetachParam param) {
         ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
         // Query Volume Group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+        TaskList taskList = new TaskList();
 
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, "full copy");
+
+        // validate that at least one full copy URI is provided
+        ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
 
         // get all volumes
         List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
@@ -529,21 +594,61 @@ public class VolumeGroupService extends TaskResourceService {
             //
         }
 
-        // Get the full copy.
-        Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
-                fullCopyURI, uriInfo, false, _dbClient);
-        URI fcSourceURI = fullCopyVolume.getAssociatedSourceVolume();
-        if (!NullColumnValueGetter.isNullURI(fcSourceURI)) {
-            verifyReplicaForCopyRequest(fullCopyVolume, volumes);
+        List<String> arrayGroupNames = new ArrayList<String>();
+        List<Volume> fullCopyVolumesInRequest = new ArrayList<Volume>();
+        for (URI fullCopyURI : param.getFullCopies()) {
+            ArgValidator.checkFieldUriType(fullCopyURI, Volume.class, "volume");
+            // Get the full copy.
+            Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
+                    fullCopyURI, uriInfo, false, _dbClient);
+            ArgValidator.checkEntityNotNull(fullCopyVolume, fullCopyURI, isIdEmbeddedInURL(fullCopyURI));
+
+            // skip repeated array groups
+            if (arrayGroupNames.contains(fullCopyVolume.getReplicationGroupInstance())) {
+                log.info("Skipping repetitive request for Full Copy array group {}. Full Copy: {}",
+                        fullCopyVolume.getReplicationGroupInstance(), fullCopyVolume.getLabel());
+                continue;
+            }
+            arrayGroupNames.add(fullCopyVolume.getReplicationGroupInstance());
+
+            URI fcSourceURI = fullCopyVolume.getAssociatedSourceVolume();
+            if (!NullColumnValueGetter.isNullURI(fcSourceURI)) {
+                verifyReplicaForCopyRequest(fullCopyVolume, volumes);
+            }
+
+            fullCopyVolumesInRequest.add(fullCopyVolume);
         }
 
-        auditOp(OperationTypeEnum.DETACH_VOLUME_GROUP_FULL_COPY, true, AuditLogManager.AUDITOP_BEGIN, volumeGroup.getId().toString(),
-                fullCopyVolume.getLabel());
+        for (Volume fullCopyVolume : fullCopyVolumesInRequest) {
+            URI fcSourceURI = fullCopyVolume.getAssociatedSourceVolume();
+            if (param.getPartial()) {
+                log.info("Full Copy operation requested for subset of array groups in Application. Processing Full copy {}",
+                        fullCopyVolume.getLabel());
+                // set Flag in Clone so that we will know about partial request during processing.
+                fullCopyVolume.addInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+                _dbClient.updateObject(fullCopyVolume);
 
-        // Detach the full copy. Note that it will take into account the
-        // fact that the volume is in a VolumeGroup
-        // and all volumes in that VolumeGroup will be detached.
-        return getFullCopyManager().detachFullCopy(fcSourceURI, fullCopyURI);
+                // Detach the full copy. Note that it will take into account the
+                // fact that the volume is in a ReplicationGroup
+                // and all volumes in that ReplicationGroup will be detached.
+
+                // In case of partial request, Tasks will be generated for each Array group
+                // and they cannot be monitored together.
+                taskList.getTaskList().addAll(getFullCopyManager().detachFullCopy(fcSourceURI, fullCopyVolume.getId()).getTaskList());
+            } else {
+                log.info("Full Copy operation requested for entire Application");
+                auditOp(OperationTypeEnum.DETACH_VOLUME_GROUP_FULL_COPY, true, AuditLogManager.AUDITOP_BEGIN,
+                        volumeGroup.getId().toString(), fullCopyVolume.getLabel());
+
+                // Detach the full copy. Note that it will take into account the
+                // fact that the volume is in a VolumeGroup
+                // and all volumes in that VolumeGroup will be detached.
+                taskList = getFullCopyManager().detachFullCopy(fcSourceURI, fullCopyVolume.getId());
+                break;  // for full request, we need to process only once.
+            }
+        }
+
+        return taskList;
     }
 
     /**

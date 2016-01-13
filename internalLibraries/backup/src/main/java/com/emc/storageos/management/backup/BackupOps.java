@@ -308,15 +308,25 @@ public class BackupOps {
     */
     public BackupRestoreStatus queryBackupRestoreStatus(String backupName, boolean isLocal) {
         Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
-                      getBackupConfigKind(backupName, isLocal), backupName);
+                      getBackupConfigKind(isLocal), backupName);
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
 
         BackupRestoreStatus restoreStatus = new BackupRestoreStatus(allItems);
         return restoreStatus;
     }
 
-    private String getBackupConfigKind(String backupName, boolean isLocal) {
+    public String getBackupConfigKind(boolean isLocal) {
         return isLocal ? BackupConstants.LOCAL_RESTORE_KIND_PREFIX : BackupConstants.REMOTE_RESTORE_KIND_PREFIX;
+    }
+
+    public String getBackupConfigPrefix() {
+        String path = getBackupConfigKind(false);
+        StringBuilder builder = new StringBuilder("/sites/");
+        builder.append(coordinatorClient.getSiteId());
+        builder.append("/config/");
+        builder.append(path);
+
+        return builder.toString();
     }
 
     /**
@@ -332,7 +342,7 @@ public class BackupOps {
 
         ConfigurationImpl config = new ConfigurationImpl();
         String backupName = status.getBackupName();
-        config.setKind(getBackupConfigKind(backupName, isLocal));
+        config.setKind(getBackupConfigKind(isLocal));
         config.setId(backupName);
 
         for (Map.Entry<String, String> entry : allItems.entrySet()) {
@@ -385,6 +395,10 @@ public class BackupOps {
         }
 
         return false;
+    }
+
+    public boolean isGeoBackup(String backupFileName) {
+        return backupFileName.contains("multivdc");
     }
 
 

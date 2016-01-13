@@ -129,12 +129,12 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * @param snapshotSessionId 
      *           The URI of the BlockSnapshotSession instance to which the
      *           new targets will be linked.
-     * @param param 
-     *           The linked target information.
+     * @param linkTargetsParam 
+     *           The new linked target information.
      * @return a task for monitoring the progress of the operation.
      */
-    public Tasks<BlockSnapshotSessionRestRep> linkTargets(URI snapshotSessionId, SnapshotSessionLinkTargetsParam linkTargetsParam) {
-        return postTasks(getIdUrl() + "/link-targets", snapshotSessionId, linkTargetsParam);
+    public Task<BlockSnapshotSessionRestRep> linkTargets(URI snapshotSessionId, SnapshotSessionLinkTargetsParam linkTargetsParam) {
+        return postTask(linkTargetsParam, getIdUrl() + "/link-targets", snapshotSessionId);
     }
     
     /**
@@ -146,12 +146,12 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * @param snapshotSessionId 
      *           The URI of the BlockSnapshotSession instance to which the
      *           the targets will be relinked.
-     * @param param 
-     *           The linked target information.
+     * @param relinkTargetsParam 
+     *           The existing linked target information.
      * @return a task for monitoring the progress of the operation.
      */
-    public Tasks<BlockSnapshotSessionRestRep> relinkTargets(URI snapshotSessionId, SnapshotSessionRelinkTargetsParam relinkTargetsParam) {
-        return postTasks(getIdUrl() + "/relink-targets", snapshotSessionId, relinkTargetsParam);
+    public Task<BlockSnapshotSessionRestRep> relinkTargets(URI snapshotSessionId, SnapshotSessionRelinkTargetsParam relinkTargetsParam) {
+        return postTask(relinkTargetsParam, getIdUrl() + "/relink-targets", snapshotSessionId);
     }
     
     /**
@@ -163,12 +163,12 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * @param snapshotSessionId 
      *           The URI of the BlockSnapshotSession instance to which the
      *           new targets are currently linked.
-     * @param param 
-     *           The linked target information.
+     * @param unlinkTargetsParam 
+     *           The linked target information for the snapshots to unlink.
      * @return a task for monitoring the progress of the operation.
      */
-    public Tasks<BlockSnapshotSessionRestRep> unlinkTargets(URI snapshotSessionId, SnapshotSessionUnlinkTargetsParam unlinkTargetsParam) {
-        return postTasks(getIdUrl() + "/unlink-targets", snapshotSessionId, unlinkTargetsParam);
+    public Task<BlockSnapshotSessionRestRep> unlinkTargets(URI snapshotSessionId, SnapshotSessionUnlinkTargetsParam unlinkTargetsParam) {
+        return postTask(unlinkTargetsParam, getIdUrl() + "/unlink-targets", snapshotSessionId);
     }
     
     /**

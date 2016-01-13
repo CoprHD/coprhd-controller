@@ -352,6 +352,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             }
 
             _dbClient.createObject(requestContext.getObjectsToBeCreatedMap().values());
+            _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
             
             // persist any consistency group changes
             if (!consistencyGroupObjectsToUpdate.isEmpty()) {

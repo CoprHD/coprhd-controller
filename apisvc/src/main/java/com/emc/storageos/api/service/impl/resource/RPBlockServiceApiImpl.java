@@ -2728,8 +2728,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // For a VIPR only deletion make sure to clean up the export
         // groups and mask so that they no longer reference associated
         // volumes.
-        List<VolumeDescriptor> sourceVolumeDescriptors = VolumeDescriptor
-                .getDescriptors(volumeDescriptors, VolumeDescriptor.Type.RP_SOURCE);
+        List<VolumeDescriptor> sourceVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
+                new VolumeDescriptor.Type[] {});
         List<URI> sourceVolumeURIs = new ArrayList<URI>();
         for (URI sourceVolumeURI : VolumeDescriptor.getVolumeURIs(sourceVolumeDescriptors)) {
             Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
@@ -2738,7 +2740,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 sourceVolumeURIs.add(sourceVolumeURI);
             }
         }
-        for (URI assocVolumeURI : _rpHelper.getVolumesToDelete(sourceVolumeURIs)) {
+        
+        Set<URI> volumesToDelete = _rpHelper.getVolumesToDelete(sourceVolumeURIs);
+        for (URI assocVolumeURI : volumesToDelete) {
             cleanVolumeFromExports(assocVolumeURI, true);
         }
 
@@ -2762,10 +2766,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             if (sourceVolume.getProtectionSet() != null) {
                 ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet().getURI());
                 if (!psetsDeleted.contains(sourceVolume.getProtectionSet().getURI()) &&
-                        _rpHelper.getVolumesToDelete(sourceVolumeURIs).size() == pset.getVolumes().size()) {
+                        volumesToDelete.size() == pset.getVolumes().size()) {
                     _dbClient.markForDeletion(pset);
                     psetsDeleted.add(sourceVolume.getProtectionSet().getURI());
-                } else if (_rpHelper.getVolumesToDelete(sourceVolumeURIs).size() != pset.getVolumes().size()) {
+                } else if (volumesToDelete.size() != pset.getVolumes().size()) {
                     // For debugging: log conditions that caused us to not delete the protection set
                     _log.info(String.format("Not deleting protection %s because there are %d volumes to delete in the request, however there are %d volumes in the pset",
                             pset.getLabel(),

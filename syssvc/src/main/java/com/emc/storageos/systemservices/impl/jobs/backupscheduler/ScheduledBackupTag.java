@@ -28,6 +28,7 @@ public class ScheduledBackupTag {
 
     private static final String BACKUP_TAG_TEMPLATE = "%s-%d-%s";
     private static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s-%s-%s-%s%s";
+    private static final String SCHEDULED_BACKUP_TAG_REGEX_PATTERN = "^%s-(\\w+|\\.)*\\d+-\\d+-\\d{%d}$";
     private static final ThreadLocal<SimpleDateFormat> dateFormat = new ThreadLocal<SimpleDateFormat>() {
         @Override
         protected SimpleDateFormat initialValue() {
@@ -69,7 +70,7 @@ public class ScheduledBackupTag {
         ArrayList<String> scheduledTags = new ArrayList<>();
         // Typically, this pattern String could match all tags produced by toBackupTag method
         // also in consideration of extension, version part could be longer and node count could bigger
-        String regex = String.format(BackupConstants.SCHEDULED_BACKUP_TAG_REGEX_PATTERN, ProductName.getName(),
+        String regex = String.format(SCHEDULED_BACKUP_TAG_REGEX_PATTERN, ProductName.getName(),
                 BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length());
         Pattern backupNamePattern = Pattern.compile(regex);
         for (String tag : tags) {

@@ -230,7 +230,6 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_BACKUP_QUERY_EXTERNAL_FAILED)
     public InternalServerErrorException queryExternalBackupFailed(final Throwable cause);
 
-
     @DeclareServiceCode(ServiceCode.SYS_IPRECONFIG_TRIGGER_FAILED)
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);
     

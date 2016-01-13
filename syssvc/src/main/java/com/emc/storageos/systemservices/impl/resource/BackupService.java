@@ -245,7 +245,7 @@ public class BackupService {
             externalBackupInfo.setFileName(backupFileName);
             externalBackupInfo.setCreateTime(getBackupCreateTime(backupFileName));
             externalBackupInfo.setRestoreStatus(queryRestoreStatus(backupFileName, false));
-        } catch (BackupException e) {
+        } catch (Exception e) {
             log.error("Failed to query external backup info", e);
             throw APIException.internalServerErrors.queryExternalBackupFailed(e);
         }

@@ -137,7 +137,7 @@
                 <ul class="list-group">
                     <li class="list-group-item">
                         <div class="row text-margin-top text-margin-left">
-                            #{Form.button name:'button.ipsec.rotate.keys', class:'primary', icon:'repeat', disabled:ipSecStatusInfo?!ipSecStatusInfo.status:true, href:@rotateIPsecKeys()/}
+                            #{Form.button name:'button.ipsec.rotate.keys', class:'primary', icon:'repeat', disabled:ipSecStatusInfo?ipSecStatusInfo.status!="good":true, href:@rotateIPsecKeys()/}
                         </div>
                         <div class="row text-margin-top text-margin-left">
                             <span id="keyRotationDescription" class="text">&{'ipsec.key.rotation.description'}</span>

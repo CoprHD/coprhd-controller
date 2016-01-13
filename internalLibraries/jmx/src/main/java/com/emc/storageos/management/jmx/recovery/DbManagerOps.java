@@ -140,6 +140,10 @@ public class DbManagerOps implements AutoCloseable {
         return this.mbean.getLastSucceededRepairStatus(forCurrentNodesOnly);
     }
 
+    public void resetRepairState() {
+        mbean.resetRepairState();
+    }
+    
     public boolean adjustNumTokens() throws InterruptedException {
         return this.mbean.adjustNumTokens();
     }

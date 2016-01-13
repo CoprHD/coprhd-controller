@@ -9,6 +9,10 @@ import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate;
+
+import org.apache.cassandra.config.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.security.AbstractSecuredWebServer;
@@ -25,11 +29,14 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.systemservices.SysSvc;
 import com.emc.storageos.systemservices.impl.audit.SystemAudit;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.server.impl.DbServiceImpl;
 
 /**
  * Default SysSvc implementation - starts/stops REST service
  */
 public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
+    private static final Logger log = LoggerFactory.getLogger(SysSvcImpl.class);
+    
     private UpgradeManager _upgradeMgr;
     private InternalApiSignatureKeyGenerator _keyGenerator;
     private Thread _upgradeManagerThread = null;
@@ -147,7 +154,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     }
 
     private void startSystemAudit(DbClient dbclient) {
-        SystemAudit sysAudit = new SystemAudit(dbclient);
+        SystemAudit sysAudit = new SystemAudit(dbclient, _coordinator.getCoordinatorClient());
         Thread t = new Thread(sysAudit);
         t.start();
     }
@@ -155,6 +162,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     @Override
     public void start() throws Exception {
         if (_app != null) {
+            
+            initThreadUncaughtExceptionHandler();
+            
             initServer();
             initSysClientFactory();
             _server.start();
@@ -170,6 +180,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startPropertyManager();
             startVdcManager();
             startIpReconfigManager();
+            
+            //config cassandra as client mode to avoid load yaml file
+            Config.setClientMode(true);
             
             DrUtil drUtil = _coordinator.getDrUtil();
             if (drUtil.isActiveSite()) {
@@ -190,5 +203,16 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _vdcMgr.stop();
         stopNewVersionCheck();
         _server.stop();
+    }
+    
+    private void initThreadUncaughtExceptionHandler() {
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                log.error("Thread {} throws uncaught exception {}", t, e);
+            }
+        });
+        
     }
 }

@@ -40,7 +40,7 @@ public class SiteMapper {
         to.setName(from.getName()); // this is the name for the standby site
         to.setUuid(from.getUuid());
         to.setVip(from.getVip());
-        to.setShortId(from.getStandbyShortId());
+        to.setShortId(from.getSiteShortId());
         to.setState(from.getState().toString());
         to.setNodeCount(from.getNodeCount());
         to.setCreationTime(from.getCreationTime());
@@ -51,7 +51,7 @@ public class SiteMapper {
         to.setVip(from.getVip());
         to.getHostIPv4AddressMap().putAll(from.getHostIPv4AddressMap());
         to.getHostIPv6AddressMap().putAll(from.getHostIPv6AddressMap());
-        to.setStandbyShortId(from.getShortId());
+        to.setSiteShortId(from.getShortId());
         to.setState(SiteState.valueOf(from.getState()));
         to.setNodeCount(from.getNodeCount());
         to.setCreationTime(from.getCreationTime());

@@ -112,7 +112,7 @@ public class DisasterRecovery extends ViprResourceController {
         String standby_vip = null;
         String active_name = null;
         String targetURL = null;
-        Boolean iamPrimary = false;
+        Boolean iamActiveSite = false;
 
         // Get active site details
         SiteRestRep activesite = DisasterRecoveryUtils.getActiveSite();
@@ -127,14 +127,14 @@ public class DisasterRecovery extends ViprResourceController {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
             // Check Switchover or Failover
-            SiteActive currentSite = DisasterRecoveryUtils.checkPrimary();
+            SiteActive currentSite = DisasterRecoveryUtils.checkActiveSite();
             if (currentSite.getIsActive() == true) {
                 DisasterRecoveryUtils.doSwitchover(id);
-                iamPrimary = true;
+                iamActiveSite = true;
             }
             else {
                 DisasterRecoveryUtils.doFailover(id);
-                iamPrimary = false;
+                iamActiveSite = false;
             }
             standby_name = result.getName();
             standby_vip = result.getVip();
@@ -143,7 +143,7 @@ public class DisasterRecovery extends ViprResourceController {
         result = DisasterRecoveryUtils.getSite(id);
         String site_state = result.getState();
         targetURL = "https://" + standby_vip;
-        render(active_name, standby_name, standby_vip, site_uuid, site_state, iamPrimary, targetURL);
+        render(active_name, standby_name, standby_vip, site_uuid, site_state, iamActiveSite, targetURL);
     }
 
     private static DisasterRecoveryDataTable createDisasterRecoveryDataTable() {
@@ -237,8 +237,12 @@ public class DisasterRecovery extends ViprResourceController {
         itemsJson(uuids);
     }
 
-    public static boolean isPrimarySite() {
-        return DisasterRecoveryUtils.isPrimarySite();
+    public static boolean isActiveSite() {
+        return DisasterRecoveryUtils.isActiveSite();
+    }
+
+    public static String getLocalSiteName() {
+        return DisasterRecoveryUtils.getLocalSiteName();
     }
 
     public static void checkFailoverProgress(String uuid) {
@@ -253,8 +257,8 @@ public class DisasterRecovery extends ViprResourceController {
         if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
             SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
             isError = true;
-            if(disasterSiteError.getCreationTime() != null) {
-                DateTime creationTime = new DateTime (disasterSiteError.getCreationTime().getTime());
+            if (disasterSiteError.getCreationTime() != null) {
+                DateTime creationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
                 renderArgs.put("creationTime", creationTime);
             }
             render(isError, uuid, disasterSiteError);

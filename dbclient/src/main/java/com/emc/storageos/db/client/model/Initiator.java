@@ -12,7 +12,7 @@ import com.emc.storageos.db.client.util.iSCSIUtility;
  * SCSI initiator in either a Fiber Channel or iSCSI SAN.
  */
 @Cf("Initiator")
-public class Initiator extends HostInterface {
+public class Initiator extends HostInterface implements Comparable<Initiator> {
 
     private String _port;
     private String _node;
@@ -20,6 +20,8 @@ public class Initiator extends HostInterface {
     private String _hostName;
     // to do - This is temporary until initiator service is remove
     private String _clusterName;
+    // Lazily initialized, cached hashCode
+    private volatile int hashCode;
 
     /**
      * Default Constructor. This is the constructor used by the API.
@@ -192,5 +194,50 @@ public class Initiator extends HostInterface {
     public Object[] auditParameters() {
         return new Object[] { getInitiatorPort(), getInitiatorNode(),
                 getHost(), getId() };
+    }
+
+    @Override
+    public int compareTo(Initiator that) {
+        if (this == that) {
+            return 0;
+        }
+
+        if (this.equals(that)) {
+            return 0;
+        }
+
+        return this.getInitiatorPort().compareTo(that.getInitiatorPort());
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (!(object instanceof Initiator)) {
+            return false;
+        }
+
+        if (this == object) {
+            return true;
+        }
+
+        Initiator that = (Initiator) object;
+        if (!this._id.equals(that._id)) {
+            return false;
+        }
+
+        String thisPort = this.getInitiatorPort();
+        String thatPort = that.getInitiatorPort();
+        return thisPort.equals(thatPort);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = hashCode;
+        if (result == 0) {
+            result = 17;
+            result = 31 * result + _id.hashCode();
+            result = 31 * result + this.getInitiatorPort().hashCode();
+            hashCode = result;
+        }
+        return result;
     }
 }

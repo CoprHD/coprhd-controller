@@ -34,11 +34,11 @@ _get_geodbconf_props() {
     if [ "${_GENCONFIG_vdc_myid}" != "${_GENCONFIG_vdc_ids}" ]; then
         local OLD_IFS="${IFS}"; IFS="${IFS},"
         for vdc in ${_GENCONFIG_vdc_ids}; do
-            local var="_GENCONFIG_vdc_${vdc}_node_count"
+            [ "${_GENCONFIG_vdc_myid}" == "${vdc}" ] && continue
             # we don't support standalone in multiple vdc
-            var="_GENCONFIG_vdc_${vdc}_network_1_ipaddr"
+            var="_GENCONFIG_vdc_${vdc}_site1_network_1_ipaddr"
             if [ -z "${!var}" ]; then
-                var="_GENCONFIG_vdc_${vdc}_network_1_ipaddr6"
+                var="_GENCONFIG_vdc_${vdc}_site1_network_1_ipaddr6"
             fi
             list+=" ${!var}"
         done
@@ -47,15 +47,13 @@ _get_geodbconf_props() {
     # for standby sites, add the first node from primary site to the list as well
     # TODO: add first node from other standby sites
     if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
-        var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_1_ipaddr"
+        var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_1_ipaddr"
         if [ -z "${!var}" ]; then
-            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_1_ipaddr6"
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_1_ipaddr6"
         fi
         list+=" ${!var}"
     fi
     echo "vdc_seeds_ipaddr=$(echo $list | tr ' ' ',')"
-
-    _get_props site_id
 }
 
 _get_geodb_jmx_props() {
@@ -63,12 +61,12 @@ _get_geodb_jmx_props() {
 }
 
 _get_rackdc_props() {
-    local myid="${_GENCONFIG_vdc_myid}"
-	
-    if [ "${_GENCONFIG_vdc_myid}" == "${_GENCONFIG_site_myid}" ] || [ "${_GENCONFIG_site_myid}" == "" ] ; then
-		echo "vdc_myid=${myid}"
-	else
-		echo "vdc_myid=${_GENCONFIG_site_my_uuid}"
+    # always use vdc short id as cassandra dc name for first site
+    # in the vdc. in order to keep backward compatibility with geo
+    if [ "${_GENCONFIG_site_myid}" == "site1" ]; then
+        echo "vdc_myid=${_GENCONFIG_vdc_myid}"
+    else
+        echo "vdc_myid=${_GENCONFIG_site_my_uuid}"
     fi
 }
 

@@ -136,9 +136,10 @@ public interface Constants {
     String CONFIG_GEO_LOCAL_VDC_SHORT_ID = "vdcShortId";
     
     public static final String CONFIG_GEO_FIRST_VDC_SHORT_ID = "vdc1";
+    public static final String CONFIG_DR_FIRST_SITE_SHORT_ID = "site1";
     
     public static final String SITE_STATE = "state";
-    public static final String SITE_ID= "siteid";
+    public static final String SITE_ID_FILE= "site_id_file";
     
     public static final String KEY_CERTIFICATE_PAIR_CONFIG_KIND = "keyCertificatePairConfig";
     public static final String ZK_OBSERVER_CONFIG_SUFFIX= ":2888:2889:observer;2181";
@@ -152,4 +153,5 @@ public interface Constants {
     public static final String FAILOVER_BARRIER = "failoverBarrier";
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
     public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";
+    public static final String FAILBACK_DETECT_LEADER = "failbackDetectLeader";
 }

@@ -9,25 +9,25 @@ import java.util.List;
 
 @XmlRootElement(name = "external_backups")
 public class ExternalBackups {
-    private List<String> backupsName;
+    private List<String> backups;
 
     public ExternalBackups() {
     }
 
-    public ExternalBackups(List<String> backupsName) {
-        this.backupsName = backupsName;
+    public ExternalBackups(List<String> backups) {
+        this.backups = backups;
     }
 
-    @XmlElementWrapper(name = "backups_name")
+    @XmlElementWrapper(name = "backups")
     @XmlElement(name = "name")
-    public List<String> getBackupsName() {
-        if (backupsName == null) {
-            backupsName = new ArrayList<String>();
+    public List<String> getBackups() {
+        if (backups == null) {
+            backups = new ArrayList<String>();
         }
-        return backupsName;
+        return backups;
     }
 
-    public void setBackupsName(List<String> backupsName) {
-        this.backupsName = backupsName;
+    public void setBackups(List<String> backups) {
+        this.backups = backups;
     }
 }

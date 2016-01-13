@@ -26,7 +26,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
-import com.emc.vipr.model.sys.backup.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +55,11 @@ import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.vipr.model.sys.backup.BackupSets;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus;
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
+import com.emc.vipr.model.sys.backup.ExternalBackups;
 
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 
@@ -199,6 +203,7 @@ public class BackupService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ExternalBackups listExternalBackup() {
         log.info("Received list backup files on external server request");
+        ExternalBackups backups = new ExternalBackups();
         try {
             String externalServerUrl = backupConfig.getExternalServerUrl();
             String userName = backupConfig.getExternalServerUserName();
@@ -209,12 +214,12 @@ public class BackupService {
             }
             FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
             List<String> backupFiles = ftpClient.listAllFiles();
-            ExternalBackups backups = new ExternalBackups(backupFiles);
-            return backups;
+            backups.setBackups(backupFiles);
         } catch (Exception e) {
             log.error("Failed to list backup files on external server", e);
             throw APIException.internalServerErrors.getObjectError("External backup files", e);
         }
+        return backups;
     }
 
     /**

@@ -276,6 +276,7 @@
         <property name="serviceInfo" ref="serviceinfo"/>
         <property name="ciphersToInclude" ref="strongCiphers"/>
         <property name="coordinator" ref="coordinator"/>
+        <property name="mailHandler" ref="mailHandler"/>
         <property name="startDbClientInBackground" value="true"/>
     </bean>
 

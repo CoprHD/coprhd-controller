@@ -10,6 +10,8 @@ import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate;
 
+import com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor;
+import com.emc.storageos.systemservices.impl.util.MailHandler;
 import org.apache.cassandra.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,12 +33,19 @@ import com.emc.storageos.systemservices.impl.audit.SystemAudit;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.server.impl.DbServiceImpl;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Default SysSvc implementation - starts/stops REST service
  */
 public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private static final Logger log = LoggerFactory.getLogger(SysSvcImpl.class);
-    
+
+
+    private static final int NETWORK_MONITORING_INTERVAL = 60; // in seconds
+
     private UpgradeManager _upgradeMgr;
     private InternalApiSignatureKeyGenerator _keyGenerator;
     private Thread _upgradeManagerThread = null;
@@ -66,6 +75,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
 
     @Autowired
     private RecoveryManager _recoveryMgr;
+
+    @Autowired
+    private MailHandler _mailHandler;
 
     @Autowired
     // used by data node to poll the ip address change of controller cluster
@@ -159,6 +171,12 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         t.start();
     }
 
+    private void startNetworkMonitor() {
+        log.info("Start monitoring local networkMonitor status on active site");
+        ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+        exe.scheduleAtFixedRate(new DrSiteNetworkMonitor(_coordinator.getMyNodeId(),_coordinator.getCoordinatorClient(),_mailHandler), 0, NETWORK_MONITORING_INTERVAL, TimeUnit.SECONDS);
+    }
+
     @Override
     public void start() throws Exception {
         if (_app != null) {
@@ -190,6 +208,11 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
                 startSystemAudit(_dbClient);
             }
             _svcBeacon.start();
+
+
+            if (drUtil.isActiveSite()) {
+                startNetworkMonitor();
+            }
         } else {
             throw new Exception("No app found.");
         }

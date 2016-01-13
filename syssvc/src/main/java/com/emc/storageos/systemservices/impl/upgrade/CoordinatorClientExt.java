@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
-import com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
@@ -1461,11 +1460,6 @@ public class CoordinatorClientExt {
             });
             exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(getMyNodeId(), _coordinator, dbCommonInfo)
                     , 0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
-        }
-        if (drUtil.isActiveSite()) {
-            _log.info("Start monitoring local networkMonitor status on active site");
-            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
-            exe.scheduleAtFixedRate(new DrSiteNetworkMonitor(getMyNodeId(),_coordinator), 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
     }
 

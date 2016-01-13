@@ -31,11 +31,11 @@ public class DrSiteNetworkMonitor implements Runnable{
     private String NETWORK_HEALTH_GOOD = "Good";
     private String NETWORK_HEALTH_SLOW = "Slow";
 
-    public DrSiteNetworkMonitor(String myNodeId, CoordinatorClient coordinatorClient) {
+    public DrSiteNetworkMonitor(String myNodeId, CoordinatorClient coordinatorClient, MailHandler mailHandler) {
         this.coordinatorClient = coordinatorClient;
         this.drUtil = new DrUtil(coordinatorClient);
         this.myNodeId = myNodeId;
-        mailHandler = new MailHandler();
+        this.mailHandler = mailHandler;
     }
 
     public void run() {
@@ -90,9 +90,9 @@ public class DrSiteNetworkMonitor implements Runnable{
     }
 
     /**
-     * Connect using layer4 (sockets)
+     * Connect using sockets
      *
-     * @return delay if the specified host responded, -1 if failed
+     * @return delay in ms if the specified host responded, -1 if failed
      */
     private double testPing(String hostAddress, int port) {
         InetAddress inetAddress = null;

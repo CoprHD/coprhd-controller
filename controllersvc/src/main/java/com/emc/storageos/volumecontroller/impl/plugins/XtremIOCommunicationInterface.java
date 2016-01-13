@@ -328,12 +328,15 @@ public class XtremIOCommunicationInterface extends
                 List<XtremIOPort> scPorts = storageControllerPortMap.get(scName);
                 StorageHADomain haDomain = createStorageHADomain(system, scName, scPorts.size());
                 for (XtremIOPort targetPort : scPorts) {
-                    String portSpeedStr = targetPort.getPortSpeed().split("G")[0];
-                    try {
-                        portSpeed = Long.parseLong(portSpeedStr);
-                    } catch (NumberFormatException nfe) {
-                        portSpeed = 0L;
+                    if (targetPort.getPortSpeed() != null) {
+                        String portSpeedStr = targetPort.getPortSpeed().split("G")[0];
+                        try {
+                            portSpeed = Long.parseLong(portSpeedStr);
+                        } catch (NumberFormatException nfe) {
+                            portSpeed = 0L;
+                        }
                     }
+
 
                     String nativeGuid = NativeGUIDGenerator.generateNativeGuid(system, targetPort.getPortAddress(),
                             NativeGUIDGenerator.PORT);

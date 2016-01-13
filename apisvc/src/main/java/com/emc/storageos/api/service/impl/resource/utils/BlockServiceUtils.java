@@ -224,6 +224,9 @@ public class BlockServiceUtils {
     /**
      * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or
      * higher
+     * 
+     * Fox XtremIO creating/deleting volume in/from CG with existing CG is supported.
+     * 
      * For VNX, creating/deleting volume in/from CG with existing group relationship is supported for virtual replication group
      *
      * @param volume Volume part of the CG
@@ -240,6 +243,8 @@ public class BlockServiceUtils {
                 if (StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG)) {
                     return true;
                 }
+            } else if (storage.deviceIsType(Type.xtremio)) {
+                return true;
             }
         }
 

@@ -1,12 +1,11 @@
 #
-# Copyright 2015 EMC Corporation
+# Copyright 2016 EMC Corporation
 # All Rights Reserved
 #
 
 ##################################################
 #  Setup
 ##################################################
-export DO_NOT_START := yes
 WORKSPACE := $(shell pwd)
 NAME := AIO-Simulators
 VERSION := 2.5.0.0
@@ -26,7 +25,7 @@ OVF := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)/$(NAME).x86_64-$(VERSION).$(
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
 
 .DEFAULT: all
-.PHONY: downdloadISO downdloadRPM downdloadTGZ createREPO appliance clean destroy
+.PHONY: downloadISO downloadRPM createREPO appliance clean destroy
 all: appliance
 
 ##################################################
@@ -41,14 +40,16 @@ endef
 ##################################################
 #  Targets
 ##################################################
-downdloadISO:
+downloadISO:
 	$(call targetLog,+)
 	mkdir -p $(WORKSPACE)/iso/mount
-	-[ -f $(WORKSPACE)/iso/$(ISO_FILE) ] || cp -pr /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) $(WORKSPACE)/iso/
+	[ ! -f /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) ] || ln -fs /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) $(WORKSPACE)/iso/
+	[ -s $(WORKSPACE)/iso/$(ISO_FILE) ] || wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
+
 	wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
 	$(call targetLog,-)
 
-downdloadRPM:
+downloadRPM:
 	$(call targetLog,+)
 	rm -fr $(WORKSPACE)/zypper/reposd
 	mkdir -p $(WORKSPACE)/zypper/{reposd,cache,solv,pkg}
@@ -62,17 +63,10 @@ downdloadRPM:
 	zypper $(ZYPPER_PARAMS) addrepo --name server-monitoring --no-gpgcheck --no-check http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 server-monitoring.repo
 	zypper $(ZYPPER_PARAMS) addrepo --name home-seife-testing --no-gpgcheck --no-check http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 home-seife-testing.repo
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) --non-interactive download atop GeoIP-data libGeoIP1 GeoIP sipcalc python-cjson
 	$(call targetLog,-)
 
-downdloadTGZ:
-	$(call targetLog,+)
-	wget http://nginx.org/download/nginx-1.6.2.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/nginx-1.6.2.tar.gz
-	wget --no-check-certificate https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.3.0.tar.gz
-	wget --no-check-certificate https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.25.tar.gz
-	$(call targetLog,-)
 
-createREPO: | downdloadRPM downdloadTGZ
+createREPO: | downloadRPM 
 	$(call targetLog,+)
 	rm -fr $(WORKSPACE)/zypper/repo
 	mkdir -p $(WORKSPACE)/zypper/repo
@@ -94,7 +88,7 @@ destroy:
 
 appliance: | $(OVF)
 
-$(VMDK): | downdloadISO createREPO
+$(VMDK): | downloadISO createREPO
 	$(call targetLog,+)
 	bash $(WORKSPACE)/patch.sh
 	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml

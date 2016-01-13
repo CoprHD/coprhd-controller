@@ -85,14 +85,7 @@
         <package name="xbitmaps"/>
         <!-- storageOS DevKit RPM installs -->
         <package name="telnet"/>
-        <package name="atop"/>
-        <package name="GeoIP-data"/>
-        <package name="libGeoIP1"/>
-        <package name="GeoIP"/>
         <!--package name="gradle"/-->
-        <package name="sipcalc"/>
-        <package name="python-cjson"/>
-        <!--package name="nginx"/-->
         <package name="make"/>
         <package name="ant"/>
         <package name="apache2-mod_perl"/>
@@ -154,10 +147,6 @@
         <package name="python-gpgme"/>
         <package name="yum"/>
         <package name="keepalived"/>
-        <!-- archives to build source -->
-        <archive name="nginx-1.6.2.tar.gz"/>
-        <archive name="v0.3.0.tar.gz"/>
-        <archive name="v0.25.tar.gz"/>
     </packages>
     <packages type="bootstrap">
         <package name="udev"/>

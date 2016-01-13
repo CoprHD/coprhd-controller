@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2015 EMC Corporation
+# Copyright 2016 EMC Corporation
 # All Rights Reserved
 #
 

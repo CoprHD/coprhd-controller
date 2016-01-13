@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2015 EMC Corporation
+# Copyright 2016 EMC Corporation
 # All Rights Reserved
 #
 
@@ -73,16 +73,6 @@ LineNo="$LineNo "$(grep -A 5 -n ".*Normal keypad and cursor of xterm" /etc/input
 for ln in $LineNo; do sed -i "$ln s/.*/#&/" /etc/inputrc; done
 
 workspace=$( pwd )
-mkdir -p /tmp/nginx
-mv /nginx-1.6.2 /tmp/nginx/
-mv /nginx_upstream_check_module-0.3.0 /tmp/nginx/
-mv /headers-more-nginx-module-0.25 /tmp/nginx/
-cd /tmp/nginx/nginx-1.6.2
-patch -p1 < ../nginx_upstream_check_module-0.3.0/check_1.5.12+.patch
-./configure --add-module=../nginx_upstream_check_module-0.3.0 --add-module=../headers-more-nginx-module-0.25 --with-http_ssl_module --prefix=/usr --conf-path=/etc/nginx/nginx.conf
-make
-make install
-rm -fr /tmp/nginx
 cd $workspace
 
 groupadd storageos

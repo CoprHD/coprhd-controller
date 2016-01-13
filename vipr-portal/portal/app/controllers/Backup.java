@@ -135,6 +135,7 @@ public class Backup extends Controller {
     public static void restore(String id, Type type) {
         renderArgs.put("id", id);
         renderArgs.put("type", type);
+        renderArgs.put("isGeo", false);
         render();
     }
 

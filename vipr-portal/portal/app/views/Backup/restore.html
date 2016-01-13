@@ -10,43 +10,57 @@
 #{/breadcrumb.container}
 
 <div class="container">
+#{Form.header titleKey:'restore.title' /}
+    <div><b>&{'restore.from.version'}:</b> <span id="restore-version">${id}</span><br/></div>
+    <br/><br/>
+#{if type.equals(models.datatable.BackupDataTable.Type.REMOTE)}
     <div id="checkPullStatus">
-    #{Form.header titleKey:'restore.title' /}
-        <div><b>&{'restore.from.version'}:</b> <span id="restore-version">${id}</span><br/></div>
-        <br/><br/>
-    #{Form.subheader titleKey:"restore.download.progress", descriptionKey:"restore.download.progress.description"/}
+        #{Form.subheader titleKey:"restore.download.progress", descriptionKey:"restore.download.progress.description"/}
         <br/>
 
-
-    #{form @doRestore(), id:'restoreForm',class:'form form-horizontal', autocomplete:"off"}
-
-        <div style="width: 500px;">
-            #{field 'restoreForm.password'}
-            %{
-                field.cssClass = 'initialFocus'
-                field.required = true
-                }%
-                #{Form.inputPasswordControlGroup field:field/}
-            #{/field}
-            #{field 'restoreForm.name'}
-                <input type="hidden" name="${field.name}" value="${id}">
-            #{/field}
-            #{field 'restoreForm.type'}
-                <input type="hidden" name="${field.name}" value="${type}">
-            #{/field}
-        </div>
-
-        <div>
-            <label><input type="checkbox"> &{'restore.checkbox.help'}</label>
-            <div class="alert alert-danger"> &{'restore.disconnect'} </div>
-        </div>
-        <div class="alert alert-info"> &{'restore.prompt'} </div>
-
-        #{Form.button 'button.ok', class:'primary', icon:'ok-sign', submit:'restoreForm'/}
-        #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
-
-    #{/form}
-
-
+        <table class="database-check-progress-table">
+            <tr>
+                <td width="300">
+                %{
+                    style = "success"
+                    }%
+                    #{progressBar name:"Status", percentage:getRestoreStatus, style:style/}
+                </td>
+            </tr>
+        </table>
+        <br/>
+        <br/>
     </div>
+#{/if}
+
+#{form @doRestore(), id:'restoreForm',class:'form form-horizontal', autocomplete:"off"}
+    <div style="width: 500px;">
+        #{field 'restoreForm.password'}
+        %{
+            field.cssClass = 'initialFocus'
+            field.required = true
+            }%
+            #{Form.inputPasswordControlGroup field:field/}
+        #{/field}
+        #{field 'restoreForm.name'}
+            <input type="hidden" name="${field.name}" value="${id}">
+        #{/field}
+        #{field 'restoreForm.type'}
+            <input type="hidden" name="${field.name}" value="${type}">
+        #{/field}
+    </div>
+
+    #{if isGeo == true}
+        <div id="checkBoxForRestoreGeo">
+            <label><input type="checkbox"> &{'restore.geo.checkbox.help'}</label>
+
+            <div class="alert alert-danger"> &{'restore.geo.disconnect'} </div>
+        </div>
+    #{/if}
+
+    <div class="alert alert-info"> &{'restore.prompt'} </div>
+
+    #{Form.button 'button.ok', class:'primary', icon:'ok-sign', submit:'restoreForm'/}
+    #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
+#{/form}
 </div>

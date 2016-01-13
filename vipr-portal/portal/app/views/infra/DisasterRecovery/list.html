@@ -197,10 +197,10 @@ function networkHealthIcon(o, val) {
             'Broken': Messages.get("renderFunctions.disasterRecovery.networkHealth.broken")
 	};
 
-    var label = defaultValue(labels[o.aData.status], 'label-default');
-    var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
+    var label = defaultValue(labels[o.aData.networkHealth], 'label-default');
+    var icon = defaultValue(icons[o.aData.networkHealth], 'glyphicon glyphicon-question-sign');
 
-    var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
+    var message = defaultValue(messages[o.aData.networkHealth], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
 
     return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
 }

@@ -12,7 +12,9 @@ import java.io.PipedOutputStream;
 import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.net.URI;
@@ -26,6 +28,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
+import com.emc.storageos.coordinator.client.model.ProductName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -251,8 +254,34 @@ public class BackupService {
     }
 
     private Long getBackupCreateTime(String backupName) {
-        //TODO: parse backup create time from backup name
+        if (backupName == null) {
+            log.error("Backup file name is empty");
+            throw new IllegalStateException("Backup file name is empty");
+        }
+        if (backupName.contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
+            log.error("Backup file name should contain {}", BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER );
+            throw new IllegalStateException("Invalid backup file name: " + backupName);
+        }
+
+        String[] nameSegs = backupName.split(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
+        for (String segment : nameSegs) {
+            if (isTimeFormat(segment)) {
+                log.info("Backup({}) create time is: {}", backupName, segment);
+                return Long.parseLong(segment);
+            }
+        }
+        log.info("Could not get create time from backup name");
         return null;
+    }
+
+    private boolean isTimeFormat(String nameSegment) {
+        String regex = String.format(BackupConstants.SCHEDULED_BACKUP_DATE_REGEX_PATTERN,
+                BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length());
+        Pattern backupNamePattern = Pattern.compile(regex);
+        if (backupNamePattern.matcher(nameSegment).find()) {
+            return true;
+        }
+        return false;
     }
 
     /**

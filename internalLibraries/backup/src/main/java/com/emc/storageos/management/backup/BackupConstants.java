@@ -50,6 +50,7 @@ public interface BackupConstants {
 
     // Delimiter for backup file name
     public static final String BACKUP_NAME_DELIMITER = "_";
+    public static final String COLLECTED_BACKUP_NAME_DELIMITER = "-";
 
     // Backup compress format
     public static final String COMPRESS_SUFFIX = ".zip";
@@ -59,11 +60,14 @@ public interface BackupConstants {
 
     // Standard date string format
     public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    public static final String SCHEDULED_BACKUP_DATE_FORMAT = "yyyyMMddHHmmss";
 
     // Dynamic string format of listing backups
     public static final String LIST_BACKUP_TITLE = "  %%-%ds%%-10s%%-20s";
     public static final String LIST_BACKUP_INFO = "  %%-%ds%%-10.2f%%-20s";
     public static final String COLLECTED_BACKUP_REGEX_PATTERN = "^(\\S+)*-\\d+-\\d+-(\\S+)*\\.zip$";
+    public static final String SCHEDULED_BACKUP_TAG_REGEX_PATTERN = "^%s-(\\w+|\\.)*\\d+-\\d+-\\d{%d}$";
+    public static final String SCHEDULED_BACKUP_DATE_REGEX_PATTERN = "^\\d{%d}$";
 
     // The common part of backup info file name
     public static final String BACKUP_INFO_SUFFIX = BACKUP_NAME_DELIMITER + "info.properties";

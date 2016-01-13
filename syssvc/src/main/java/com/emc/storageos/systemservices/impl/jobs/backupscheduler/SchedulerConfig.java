@@ -91,10 +91,6 @@ public class SchedulerConfig {
         this.mailHelper = new MailHelper(coordinator.getCoordinatorClient());
     }
 
-    public Calendar now() {
-        return Calendar.getInstance(UTC);
-    }
-
     public String getUploadUrl() {
         PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
         return getUploadUrl(propInfo);
@@ -112,6 +108,10 @@ public class SchedulerConfig {
             return "";
         }
         return this.encryptionProvider.decrypt(Base64.decodeBase64(uploadPassword));
+    }
+
+    public Calendar now() {
+        return Calendar.getInstance(UTC);
     }
 
     public void reload() throws Exception {

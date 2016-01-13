@@ -356,7 +356,13 @@ public class UnManagedVolumeService extends TaskResourceService {
             
             // persist any consistency group changes
             if (!consistencyGroupObjectsToUpdate.isEmpty()) {
-            	_dbClient.updateObject(consistencyGroupObjectsToUpdate.values());
+            	_dbClient.updateObject(consistencyGroupObjectsToUpdate.values());            	
+            	// log remaining unmanaged volumes for unmanaged consistency groups
+            	for (DataObject unManagedCG : consistencyGroupObjectsToUpdate.values()) {
+            		if (unManagedCG instanceof UnManagedConsistencyGroup) {
+            			_logger.info(((UnManagedConsistencyGroup) unManagedCG).logRemainingUnManagedVolumes().toString());
+            		}
+            	}
             }            
             if (!blockCGsToCreate.isEmpty()) {
             	_dbClient.createObject(blockCGsToCreate);
@@ -640,6 +646,12 @@ public class UnManagedVolumeService extends TaskResourceService {
             // persist any consistency group changes
             if (!consistencyGroupObjectsToUpdate.isEmpty()) {
             	_dbClient.updateObject(consistencyGroupObjectsToUpdate.values());
+            	// log remaining unmanaged volumes for unmanaged consistency groups
+            	for (DataObject unManagedCG : consistencyGroupObjectsToUpdate.values()) {
+            		if (unManagedCG instanceof UnManagedConsistencyGroup) {
+            			_logger.info(((UnManagedConsistencyGroup) unManagedCG).logRemainingUnManagedVolumes().toString());
+            		}
+            	}
             }            
             if (!blockCGsToCreate.isEmpty()) {
             	_dbClient.createObject(blockCGsToCreate);
@@ -840,9 +852,6 @@ public class UnManagedVolumeService extends TaskResourceService {
     		blockCGsToCreate.add(consistencyGroup);    			
     	} else {                    			
     		_logger.info("Updating unmanaged consistency group {}", unManagedCG.getLabel());
-    		// log remaining volumes to be ingested
-    		_logger.info(unManagedCG.logRemainingUnManagedVolumes().toString());
-
     	}
     	consistencyGroupObjectsToUpdate.put(unManagedCG.getId().toString(), unManagedCG);
     }

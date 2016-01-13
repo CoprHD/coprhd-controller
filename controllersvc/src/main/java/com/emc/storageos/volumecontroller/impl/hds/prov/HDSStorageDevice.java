@@ -129,6 +129,18 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         this.metaVolumeOperations = metaVolumeOperations;
     }
 
+    public void setCloneOperations(CloneOperations cloneOperations) {
+        this.cloneOperations = cloneOperations;
+    }
+
+    public void setMirrorOperations(MirrorOperations mirrorOperations) {
+        this.mirrorOperations = mirrorOperations;
+    }
+
+    public void setSnapshotOperations(SnapshotOperations snapshotOperations) {
+        this.snapshotOperations = snapshotOperations;
+    }
+
     /*
      * (non-Javadoc)
      * 
@@ -953,10 +965,6 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                 storage, exportMask, volumeURIs, newVpool, rollback, taskCompleter);
     }
 
-    public void setCloneOperations(CloneOperations cloneOperations) {
-        this.cloneOperations = cloneOperations;
-    }
-
     @Override
     public void doModifyVolumes(StorageSystem storage, StoragePool storagePool, String opId, List<Volume> volumes,
             TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -1008,14 +1016,6 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.error(dbClient, serviceError);
             }
         }
-    }
-
-    public void setMirrorOperations(MirrorOperations mirrorOperations) {
-        this.mirrorOperations = mirrorOperations;
-    }
-
-    public void setSnapshotOperations(SnapshotOperations snapshotOperations) {
-        this.snapshotOperations = snapshotOperations;
     }
 
     @Override

@@ -32,6 +32,8 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
@@ -44,6 +46,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -79,6 +82,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gson.internal.Pair;
 
@@ -196,8 +200,8 @@ public class HDSExportOperations implements ExportMaskOperations {
             // registered, add the host.
             registerHostsWithInitiators(initiatorList, hdsApiClient);
 
-            List<StoragePort> storagePorts = dbClient.queryObject(StoragePort.class, targetURIList, true);
-            if (checkIfMixedTargetPortTypeSelected(storagePorts)) {
+            Iterator<StoragePort> storagePortsItr = dbClient.queryIterativeObjects(StoragePort.class, targetURIList, true);
+            if (checkIfMixedTargetPortTypeSelected(storagePortsItr)) {
                 log.error("Unsupported Host as it has both FC & iSCSI Initiators");
                 throw HDSException.exceptions.unsupportedConfigurationFoundInHost();
             }
@@ -225,7 +229,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 }
                 // Step 2: Add initiators to all HSD's.
                 hsdsWithInitiators = executeBatchHSDAddInitiatorsCommand(hdsApiClient,
-                        systemObjectID, hsdResponseList, storagePorts, initiatorList, storage.getModel());
+                        systemObjectID, hsdResponseList, storagePortsItr, initiatorList, storage.getModel());
 
                 // Step 3: Add volumes to all HSD's.
                 List<Path> allHSDPaths = executeBatchHSDAddVolumesCommand(hdsApiClient,
@@ -297,7 +301,7 @@ public class HDSExportOperations implements ExportMaskOperations {
         }
         exportMask.addDeviceDataMap(deviceDataMap);
         updateVolumeHLUInfo(volumeURIHLUs, allHSDPaths, exportMask);
-        dbClient.updateAndReindexObject(exportMask);
+        dbClient.updateObject(exportMask);
         log.info("ExportMask: {} details updated successfully.", exportMask.getId());
     }
 
@@ -372,16 +376,18 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @return
      * @throws Exception
      */
-    private List<HostStorageDomain> executeBatchHSDAddInitiatorsCommand(HDSApiClient hdsApiClient, String systemObjectID,
-            List<HostStorageDomain> createHsdsResponseList, List<StoragePort> storagePorts, List<Initiator> initiators, String model)
-            throws Exception {
+    private List<HostStorageDomain>
+            executeBatchHSDAddInitiatorsCommand(HDSApiClient hdsApiClient, String systemObjectID,
+                    List<HostStorageDomain> createHsdsResponseList, Iterator<StoragePort> storagePortsItr, List<Initiator> initiators,
+                    String model)
+                    throws Exception {
 
         List<HostStorageDomain> fcHsdsToAddInitiators = new ArrayList<HostStorageDomain>();
         List<HostStorageDomain> iSCSIHsdsToAddInitiators = new ArrayList<HostStorageDomain>();
         List<HostStorageDomain> hsdsWithAddIniResponseList = new ArrayList<HostStorageDomain>();
         // Considers the IVR Networks as well.
         Map<URI, Set<String>> networkInitiatorsMap = NetworkUtil.getNetworkToInitiators(dbClient, initiators);
-        Map<HostStorageDomain, URI> networkToHsdObjectIdMap = getHostGroupNetworkIdMap(storagePorts, createHsdsResponseList, dbClient);
+        Map<HostStorageDomain, URI> networkToHsdObjectIdMap = getHostGroupNetworkIdMap(storagePortsItr, createHsdsResponseList, dbClient);
         log.info("networkInitiatorsMap: {}", networkInitiatorsMap);
         log.info("networkToHsdObjectIdMap :{}", networkToHsdObjectIdMap);
 
@@ -394,14 +400,14 @@ public class HDSExportOperations implements ExportMaskOperations {
             // Get the initiators part of the storagePort's Network
             List<String> formattedInitiators = getFormattedInitiators(initiatorsOnSameNetwork);
             if (hsd.getDomainType().equalsIgnoreCase(HDSConstants.HOST_GROUP_DOMAIN_TYPE)) {
-                List<WorldWideName> wwnList = new ArrayList(Collections2.transform(
+                List<WorldWideName> wwnList = Lists.newArrayList(Collections2.transform(
                         formattedInitiators, HDSUtils.fctnPortWWNToWorldWideName()));
                 hsdToAddInitiators.setWwnList(wwnList);
                 fcHsdsToAddInitiators.add(hsdToAddInitiators);
             }
             if (hsd.getDomainType().equalsIgnoreCase(
                     HDSConstants.ISCSI_TARGET_DOMAIN_TYPE)) {
-                List<ISCSIName> iscsiNameList = new ArrayList(Collections2.transform(
+                List<ISCSIName> iscsiNameList = Lists.newArrayList(Collections2.transform(
                         formattedInitiators, HDSUtils.fctnPortNameToISCSIName()));
                 hsdToAddInitiators.setIscsiList(iscsiNameList);
                 iSCSIHsdsToAddInitiators.add(hsdToAddInitiators);
@@ -436,9 +442,10 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @return
      */
     private static Map<HostStorageDomain, URI> getHostGroupNetworkIdMap(
-            List<StoragePort> sports, List<HostStorageDomain> hsds, DbClient dbClient) {
+            Iterator<StoragePort> storagePortsItr, List<HostStorageDomain> hsds, DbClient dbClient) {
         Map<HostStorageDomain, URI> networkToHSDMap = new HashMap<HostStorageDomain, URI>();
-        for (StoragePort sport : sports) {
+        while (storagePortsItr.hasNext()) {
+            StoragePort sport = storagePortsItr.next();
             NetworkLite network = NetworkUtil.getEndpointNetworkLite(sport.getPortNetworkId(), dbClient);
             if (null != network) {
                 if (network != null && network.getInactive() == false
@@ -551,10 +558,11 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @param portURIList
      * @return
      */
-    private boolean checkIfMixedTargetPortTypeSelected(List<StoragePort> ports) {
+    private boolean checkIfMixedTargetPortTypeSelected(Iterator<StoragePort> portsItr) {
         boolean isFC = false;
         boolean isIP = false;
-        for (StoragePort port : ports) {
+        while (portsItr.hasNext()) {
+            StoragePort port = portsItr.next();
             if (port.getPortType().equalsIgnoreCase(Transport.FC.name())) {
                 isFC = true;
             } else if (port.getPortType().equalsIgnoreCase(Transport.IP.name())) {
@@ -897,7 +905,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     // update volume-lun relationship to exportmask.
                     updateVolumeHLUInfo(volumeURIHLUs, pathResponseList,
                             exportMask);
-                    dbClient.updateAndReindexObject(exportMask);
+                    dbClient.updateObject(exportMask);
                 } else {
                     log.error(
                             String.format("addVolume failed - maskURI: %s",
@@ -1041,8 +1049,8 @@ public class HDSExportOperations implements ExportMaskOperations {
             systemObjectID = HDSUtils.getSystemObjectID(storage);
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
 
-            List<StoragePort> ports = dbClient.queryObject(StoragePort.class, targetURIList, true);
-            if (checkIfMixedTargetPortTypeSelected(ports)) {
+            Iterator<StoragePort> portsItr = dbClient.queryIterativeObjects(StoragePort.class, targetURIList, true);
+            if (checkIfMixedTargetPortTypeSelected(portsItr)) {
                 log.error("Unsupported Host as it has both FC & iSCSI Initiators");
                 throw HDSException.exceptions.unsupportedConfigurationFoundInHost();
             }
@@ -1078,7 +1086,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     }
                     // Step 2: Add initiators to all HSD's.
                     hsdsWithInitiators = executeBatchHSDAddInitiatorsCommand(hdsApiClient,
-                            systemObjectID, hsdResponseList, ports, initiators, storage.getModel());
+                            systemObjectID, hsdResponseList, portsItr, initiators, storage.getModel());
 
                     // Step 3: Add volumes to all HSD's.
                     List<Path> allHSDPaths = executeBatchHSDAddVolumesCommand(hdsApiClient,
@@ -1279,93 +1287,139 @@ public class HDSExportOperations implements ExportMaskOperations {
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames, boolean mustHaveAllPorts) {
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
-        log.info("finding export masks for storage {}", storage.getId());
-        HDSApiClient client = hdsApiFactory.getClient(
-                getHDSServerManagementServerInfo(storage),
-                storage.getSmisUserName(), storage.getSmisPassword());
-        HDSApiExportManager exportManager = client.getHDSApiExportManager();
-        String systemObjectID = HDSUtils.getSystemObjectID(storage);
-        Map<URI, Set<HostStorageDomain>> matchedHostHSDsMap = new HashMap<URI, Set<HostStorageDomain>>();
-        Map<URI, Set<URI>> hostToInitiatorMap = new HashMap<URI, Set<URI>>();
-        Map<URI, Set<String>> matchedHostInitiators = new HashMap<URI, Set<String>>();
         try {
-            List<HostStorageDomain> hsdList = exportManager
+            log.info("finding export masks for storage {}", storage.getId());
+            HDSApiClient client = hdsApiFactory.getClient(
+                    getHDSServerManagementServerInfo(storage),
+                    storage.getSmisUserName(), storage.getSmisPassword());
+            HDSApiExportManager exportManager = client.getHDSApiExportManager();
+            String systemObjectID = HDSUtils.getSystemObjectID(storage);
+
+            Map<String, Integer> sharedVolumesMap = new HashMap<String, Integer>();
+            Set<URI> initiatorUris = new HashSet<URI>();
+            // Get the initiators from db for the given initiator names.
+            Map<String, List<String>> computeResourceToPortNames = getComputeResourceInitiators(initiatorNames, initiatorUris);
+            List<HostStorageDomain> allHsdList = exportManager
                     .getHostStorageDomains(systemObjectID);
-            for (HostStorageDomain hsd : hsdList) {
-                List<String> initiatorsExistsOnHSD = getInitiatorsExistsOnHSD(
-                        hsd.getWwnList(), hsd.getIscsiList());
-                // Find out if the port is in this masking container
-                for (String initiatorName : initiatorNames) {
-                    String normalizedName = initiatorName.replace(
-                            HDSConstants.COLON, HDSConstants.DOT_OPERATOR);
-                    if (initiatorsExistsOnHSD.contains(normalizedName)) {
-                        log.info("Found a matching HSD for {}", initiatorName);
-                        Initiator initiator = fetchInitiatorByName(initiatorName);
-                        Set<HostStorageDomain> matchedHSDs = matchedHostHSDsMap
-                                .get(initiator.getHost());
-                        if (matchedHSDs == null) {
-                            matchedHSDs = new HashSet<HostStorageDomain>();
-                            matchedHostHSDsMap.put(initiator.getHost(),
-                                    matchedHSDs);
-                        }
-                        matchedHSDs.add(hsd);
-                        Set<String> matchedInitiators = matchedHostInitiators
-                                .get(initiator.getHost());
-                        if (null == matchedInitiators) {
-                            matchedInitiators = new HashSet<String>();
-                            matchedHostInitiators.put(initiator.getHost(),
-                                    matchedInitiators);
-                        }
-                        matchedInitiators.add(initiatorName);
-                    }
-                }
-            }
-            hsdList.clear();
-            log.info("matchedHSDs: {}", matchedHostHSDsMap);
-            log.info("initiatorURIToNameMap: {}", matchedHostInitiators);
-            processInitiators(initiatorNames, hostToInitiatorMap);
-            List<URI> activeMaskIdsInDb = dbClient.queryByType(
-                    ExportMask.class, true);
-            List<ExportMask> activeMasks = dbClient.queryObject(
-                    ExportMask.class, activeMaskIdsInDb);
-            if (null != matchedHostHSDsMap && !matchedHostHSDsMap.isEmpty()) {
-                // Iterate through each host
-                for (URI hostURI : hostToInitiatorMap.keySet()) {
-                    Set<URI> hostInitiators = hostToInitiatorMap.get(hostURI);
-                    boolean isNewExportMask = false;
-                    // Create single ExportMask for each host
-                    ExportMask exportMask = fetchExportMaskFromDB(activeMasks,
-                            hostInitiators, storage);
-                    if (null == exportMask) {
-                        isNewExportMask = true;
-                        exportMask = new ExportMask();
-                        exportMask.setId(URIUtil.createId(ExportMask.class));
-                        exportMask.setStorageDevice(storage.getId());
-                        exportMask.setCreatedBySystem(false);
-                    }
-                    updateHSDInfoInExportMask(exportMask, hostInitiators,
-                            matchedHostHSDsMap.get(hostURI), storage,
-                            matchingMasks);
-                    if (isNewExportMask) {
-                        dbClient.createObject(exportMask);
-                    } else {
-                        ExportMaskUtils.sanitizeExportMaskContainers(dbClient, exportMask);
-                        dbClient.updateAndReindexObject(exportMask);
-                    }
-                    updateMatchingMasksForHost(
-                            matchedHostInitiators.get(hostURI), exportMask,
-                            matchingMasks);
-                }
+            List<HostStorageDomain> matchedHostGroups = null;
+            boolean isSharedExport = false;
+            if (computeResourceToPortNames.keySet().size() > 1) {
+                isSharedExport = true;
             }
 
+            if (!computeResourceToPortNames.keySet().isEmpty()) {
+                // Check all cluster initiators first
+                matchedHostGroups = fetchMatchingHostGroups(storage, allHsdList, initiatorNames, sharedVolumesMap);
+                // If we don't find any then get the individual hosts
+                if (matchedHostGroups.isEmpty()) {
+                    for (Map.Entry<String, List<String>> entry : computeResourceToPortNames.entrySet()) {
+                        matchedHostGroups.addAll(fetchMatchingHostGroups(storage, allHsdList, entry.getValue(), sharedVolumesMap));
+                    }
+                }
+            }
+            allHsdList.clear();
+            log.info("matchedHSDs: {}", matchedHostGroups);
+            log.info("Found shared volumes: {}", sharedVolumesMap);
+            List<URI> activeMaskIdsInDb = dbClient.queryByType(ExportMask.class, true);
+            Iterator<ExportMask> activeMasksItr = dbClient.queryIterativeObjects(ExportMask.class, activeMaskIdsInDb);
+
+            if (!matchedHostGroups.isEmpty()) {
+                // Create single ExportMask for each host
+                ExportMask exportMask = fetchExportMaskFromDB(activeMasksItr,
+                        initiatorUris, storage, isSharedExport);
+                if (null == exportMask) {
+                    exportMask = new ExportMask();
+                    exportMask.setId(URIUtil.createId(ExportMask.class));
+                    exportMask.setStorageDevice(storage.getId());
+                    exportMask.setCreatedBySystem(false);
+                }
+                updateHSDInfoInExportMask(exportMask, initiatorUris,
+                        matchedHostGroups, storage,
+                        matchingMasks);
+                if (null == exportMask.getCreationTime()) {
+                    dbClient.createObject(exportMask);
+                } else {
+                    ExportMaskUtils.sanitizeExportMaskContainers(dbClient, exportMask);
+                    dbClient.updateObject(exportMask);
+                }
+                updateMatchingMasksForHost(
+                        initiatorNames, exportMask,
+                        matchingMasks);
+            }
         } catch (Exception e) {
-            log.error("Error when attempting to query LUN masking information",
+            log.error("Error when attempting to query Host Groups information",
                     e);
             throw HDSException.exceptions.queryExistingMasksFailure(e
                     .getMessage());
         }
         log.info("Found matching masks: {}", matchingMasks);
         return matchingMasks;
+    }
+
+    private List<HostStorageDomain> fetchMatchingHostGroups(StorageSystem storage, List<HostStorageDomain> allHsdList,
+            List<String> initiatorNames, Map<String, Integer> sharedVolumesMap) {
+        List<HostStorageDomain> matchedHostGroups = new ArrayList<HostStorageDomain>();
+        for (HostStorageDomain hsd : allHsdList) {
+            List<String> initiatorsExistsOnHSD = getInitiatorsExistsOnHSD(
+                    hsd.getWwnList(), hsd.getIscsiList());
+            Set<String> diff = Sets.difference(Sets.newHashSet(initiatorsExistsOnHSD), Sets.newHashSet(initiatorNames));
+            // Find the exact set of initiators.
+            if (diff.isEmpty() && (initiatorsExistsOnHSD.size() == initiatorNames.size())) {
+                log.info("Found a matching HSD {} for initiators {} ", hsd.getObjectID(), initiatorNames);
+                matchedHostGroups.add(hsd);
+            }
+            if (sharedVolumesMap.isEmpty()) {
+                sharedVolumesMap = getVolumeInfo(storage, hsd.getPathList());
+            } else {
+                eliminateNonSharedVolumes(storage, sharedVolumesMap, hsd.getPathList());
+            }
+        }
+        return matchedHostGroups;
+    }
+
+    private void eliminateNonSharedVolumes(StorageSystem storage, Map<String, Integer> sharedVolumesMap, List<Path> pathList) {
+        Map<String, Integer> tmpMap = getVolumeInfo(storage, pathList);
+        sharedVolumesMap.keySet().retainAll(tmpMap.keySet());
+    }
+
+    private Map<String, Integer> getVolumeInfo(StorageSystem storage, List<Path> pathList) {
+        Map<String, Integer> tmpVolumesMap = new HashMap<String, Integer>();
+        for (Path path : pathList) {
+            String volumeWWN = HDSUtils.generateHitachiVolumeWWN(storage, path.getDevNum());
+            tmpVolumesMap.put(volumeWWN, Integer.valueOf(path.getLun()));
+        }
+        return tmpVolumesMap;
+    }
+
+    private Map<String, List<String>> getComputeResourceInitiators(List<String> initiatorNames, Set<URI> initiatorUris) {
+        Map<String, List<String>> computeResourceToPortNames = new HashMap<String, List<String>>();
+        for (String initiatorWwn : initiatorNames) {
+            URIQueryResultList queryResult = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiatorWwn), queryResult);
+            while (queryResult.iterator().hasNext()) {
+                initiatorUris.add(queryResult.iterator().next());
+            }
+        }
+        Iterator<Initiator> initiatorsItr = dbClient.queryIterativeObjects(Initiator.class, initiatorUris);
+
+        while (initiatorsItr.hasNext()) {
+            Initiator initiator = initiatorsItr.next();
+            String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
+            URI hostURI = initiator.getHost();
+            if (hostURI == null) {
+                // Bogus URI for those initiators without a host object,
+                // helps maintain a good map. We want to put bunch up the non-host
+                // initiators together.
+                hostURI = NullColumnValueGetter.getNullURI();
+            }
+            List<String> initiatorSet = computeResourceToPortNames.get(hostURI.toString());
+            if (initiatorSet == null) {
+                initiatorSet = new ArrayList<String>();
+                computeResourceToPortNames.put(hostURI.toString(), initiatorSet);
+            }
+            initiatorSet.add(normalizedName);
+        }
+        return computeResourceToPortNames;
     }
 
     /**
@@ -1376,10 +1430,10 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @param exportMask
      * @param matchingMasks
      */
-    private void updateMatchingMasksForHost(Set<String> matchedHostInitiators,
+    private void updateMatchingMasksForHost(List<String> initiatorNames,
             ExportMask exportMask, Map<String, Set<URI>> matchingMasks) {
-        if (null != matchedHostInitiators && !matchedHostInitiators.isEmpty()) {
-            for (String initiatorName : matchedHostInitiators) {
+        if (null != initiatorNames && !initiatorNames.isEmpty()) {
+            for (String initiatorName : initiatorNames) {
                 Set<URI> maskURIs = matchingMasks.get(initiatorName);
                 if (maskURIs == null) {
                     maskURIs = new HashSet<URI>();
@@ -1400,7 +1454,7 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @param matchedHSDs
      */
     private void updateHSDInfoInExportMask(ExportMask exportMask,
-            Set<URI> hostInitiators, Set<HostStorageDomain> matchedHSDs,
+            Set<URI> hostInitiators, List<HostStorageDomain> matchedHSDs,
             StorageSystem storage, Map<String, Set<URI>> matchingMasks) {
         StringBuilder builder = new StringBuilder();
         if (null != matchedHSDs && !matchedHSDs.isEmpty()) {
@@ -1461,66 +1515,45 @@ public class HDSExportOperations implements ExportMaskOperations {
     }
 
     /**
-     * Fetches ExportMask from DB based on the given initiators.
      * 
+     * @param activeMasksItr
      * @param hostInitiators
      * @param storage
+     * @param isShared
      * @return
      */
-    private ExportMask fetchExportMaskFromDB(List<ExportMask> activeMasks, Set<URI> hostInitiators, StorageSystem storage) {
+    private ExportMask fetchExportMaskFromDB(Iterator<ExportMask> activeMasksItr, Set<URI> hostInitiators, StorageSystem storage,
+            boolean isShared) {
         ExportMask exportMask = null;
-        if (null != activeMasks && !activeMasks.isEmpty()) {
-            for (ExportMask activeExportMask : activeMasks) {
-                if (!activeExportMask.getStorageDevice().equals(storage.getId())) {
-                    continue;
-                }
-                Set<URI> emInitiators = ExportMaskUtils.getAllInitiatorsForExportMask(dbClient, activeExportMask);
-                Set<URI> matchingInitiators = Sets.intersection(emInitiators, hostInitiators);
-                if (!matchingInitiators.isEmpty()) {
+        while (activeMasksItr.hasNext()) {
+            ExportMask activeExportMask = activeMasksItr.next();
+            if (!activeExportMask.getStorageDevice().equals(storage.getId())) {
+                continue;
+            }
+            Set<URI> emInitiators = ExportMaskUtils.getAllInitiatorsForExportMask(dbClient, activeExportMask);
+            Set<URI> matchingInitiators = Sets.intersection(emInitiators, hostInitiators);
+            if (!matchingInitiators.isEmpty()) {
+                List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(dbClient, activeExportMask);
+                if (checkExportType(exportGroups, isShared)) {
                     exportMask = activeExportMask;
                     break;
                 }
             }
+
         }
         return exportMask;
     }
 
-    /**
-     * Process the initiators passed in to form a host => initiators data
-     * structure.
-     * 
-     * @param initiatorNames
-     * @param hostToInitiatorMap
-     */
-    private void processInitiators(List<String> initiatorNames, Map<URI, Set<URI>> hostToInitiatorMap) {
-        for (String initiatorWWNStr : initiatorNames) {
-            Initiator initiator = fetchInitiatorByName(initiatorWWNStr);
-            if (null != initiator) {
-                Set<URI> initiators = hostToInitiatorMap.get(initiator.getHost());
-                if (initiators == null) {
-                    initiators = new HashSet<URI>();
-                    hostToInitiatorMap.put(initiator.getHost(), initiators);
-                }
-                initiators.add(initiator.getId());
+    private boolean checkExportType(List<ExportGroup> exportGroups, boolean isShared) {
+        boolean foundExportGroup = false;
+        for (ExportGroup exportGroup : exportGroups) {
+            if (isShared && ExportGroupType.Cluster.name().equals(exportGroup.getType()) ||
+                    !isShared && ExportGroupType.Host.name().equals(exportGroup.getType())) {
+                foundExportGroup = true;
+                break;
             }
         }
-    }
-
-    /**
-     * Fetches initiator from DB based on its WWN.
-     * 
-     * @param initiatorName
-     * @return
-     */
-    private Initiator fetchInitiatorByName(String initiatorName) {
-        URIQueryResultList initiatorResultList = new URIQueryResultList();
-        Initiator initiator = null;
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(WWNUtility
-                .getWWNWithColons(initiatorName)), initiatorResultList);
-        if (initiatorResultList.iterator().hasNext()) {
-            initiator = dbClient.queryObject(Initiator.class, initiatorResultList.iterator().next());
-        }
-        return initiator;
+        return foundExportGroup;
     }
 
     /**
@@ -1554,8 +1587,9 @@ public class HDSExportOperations implements ExportMaskOperations {
         List<String> portURIs = new ArrayList<String>();
         URIQueryResultList portURIList = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(storage.getId()), portURIList);
-        List<StoragePort> storagePorts = dbClient.queryObject(StoragePort.class, portURIList);
-        for (StoragePort portFromDB : storagePorts) {
+        Iterator<StoragePort> storagePortsItr = dbClient.queryIterativeObjects(StoragePort.class, portURIList, true);
+        while (storagePortsItr.hasNext()) {
+            StoragePort portFromDB = storagePortsItr.next();
             String portNativeIdFromDB = getStoragePortNumber(portFromDB.getNativeGuid());
             for (String portNativeIdOnHSD : storagePortsOnExistingHSD) {
                 if (portNativeIdOnHSD.equals(portNativeIdFromDB)) {
@@ -1578,7 +1612,7 @@ public class HDSExportOperations implements ExportMaskOperations {
         List<String> initiatorsExistsOnHSD = new ArrayList<String>();
         if (null != wwnList && !wwnList.isEmpty()) {
             for (WorldWideName wwn : wwnList) {
-                String wwnWithOutDot = wwn.getWwn().replace(HDSConstants.DOT_OPERATOR, "");
+                String wwnWithOutDot = wwn.getWwn().replace(HDSConstants.DOT_OPERATOR, HDSConstants.COLON);
                 initiatorsExistsOnHSD.add(wwnWithOutDot);
             }
         }
@@ -1636,10 +1670,10 @@ public class HDSExportOperations implements ExportMaskOperations {
                     discoveredVolumes.putAll(getVolumesFromHSD(hsd, storage));
                     discoveredInitiators.addAll(getInitiatorsFromHSD(hsd));
                 }
-                Set existingInitiators = (mask.getExistingInitiators() != null) ?
-                        mask.getExistingInitiators() : Collections.emptySet();
-                Set existingVolumes = (mask.getExistingVolumes() != null) ?
-                        mask.getExistingVolumes().keySet() : Collections.emptySet();
+                StringSet existingInitiators = (StringSet) ((mask.getExistingInitiators() != null) ?
+                        mask.getExistingInitiators() : Collections.emptySet());
+                StringSet existingVolumes = (StringSet) ((mask.getExistingVolumes() != null) ?
+                        mask.getExistingVolumes().keySet() : Collections.emptySet());
 
                 builder.append(String.format("%nXM object: %s I{%s} V:{%s}%n", maskName,
                         Joiner.on(',').join(existingInitiators), Joiner.on(',').join(existingVolumes)));
@@ -1697,11 +1731,11 @@ public class HDSExportOperations implements ExportMaskOperations {
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     ExportMaskUtils.sanitizeExportMaskContainers(dbClient, mask);
-                    dbClient.updateAndReindexObject(mask);
+                    dbClient.updateObject(mask);
                 } else {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }
-                _networkDeviceController.refreshZoningMap(mask, initiatorsToRemove, Collections.EMPTY_LIST,
+                _networkDeviceController.refreshZoningMap(mask, initiatorsToRemove, Collections.<String> emptyList(),
                         (addInitiators || removeInitiators), true);
                 log.info(builder.toString());
             }
@@ -1790,13 +1824,14 @@ public class HDSExportOperations implements ExportMaskOperations {
             String newPolicyName = ControllerUtils.getFastPolicyNameFromVirtualPool(dbClient, storage, newVirtualPool);
             log.info("{} : AutoTieringPolicy: {}", message, newPolicyName);
 
-            List<Volume> volumes = dbClient.queryObject(Volume.class,
-                    volumeURIs);
+            Iterator<Volume> volumesItr = dbClient.queryIterativeObjects(Volume.class,
+                    volumeURIs, true);
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
                     HDSUtils.getHDSServerManagementServerInfo(storage),
                     storage.getSmisUserName(), storage.getSmisPassword());
             String systemObjectID = HDSUtils.getSystemObjectID(storage);
-            for (Volume volume : volumes) {
+            while (volumesItr.hasNext()) {
+                Volume volume = volumesItr.next();
                 String luObjectId = HDSUtils.getLogicalUnitObjectId(volume.getNativeId(), storage);
 
                 LogicalUnit logicalUnit = hdsApiClient.getLogicalUnitInfo(systemObjectID, luObjectId);

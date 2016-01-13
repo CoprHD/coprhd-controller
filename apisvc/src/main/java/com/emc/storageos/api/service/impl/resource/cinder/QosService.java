@@ -475,7 +475,7 @@ public class QosService extends TaskResourceService {
 
     @Override
     protected URI getTenantOwner(URI id) {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     /**

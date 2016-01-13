@@ -2061,10 +2061,11 @@ vpool.systemType=System Type
 vpool.poolAssignment=Pool Assignment
 vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a subset of the storage pools matching the criteria
 
-#Object Specefic
+#Object Specific
 vpool.maxRetention=Maximum Retention (Days)
 vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
+storagePools.numOfDataCenters=Data Center(s)
 
 # Block Specific
 vpool.minPaths=Minimum Paths

@@ -416,10 +416,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
         MetaVolumeTaskCompleter metaVolumeTaskCompleter = new MetaVolumeTaskCompleter(
                 volumeCompleter);
-        boolean canBeExpanded = false;
-        try {
-            _helper.doApplyRecoverPointTag(storageSystem, volume, false);
-
+        try {        	
+        	boolean tagSet = _helper.doApplyRecoverPointTag(storageSystem, volume, false);
+        	if (!tagSet) {
+        		TaskCompleter taskCompleter = metaVolumeTaskCompleter.getVolumeTaskCompleter();
+        		ServiceError error = DeviceControllerErrors.smis.errorSettingRecoverPointTag("disable");
+                taskCompleter.error(_dbClient, error);
+                return;               
+        	}
             // First of all check if we need to do cleanup of dangling meta volumes left from previous failed
             // expand attempt (may happen when rollback of expand failed due to smis connection issues -- typically cleanup
             // is done by expand rollback)
@@ -539,8 +543,15 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 ServiceError error = DeviceControllerErrors.smis.volumeExpandIsNotSupported(storageSystem.getNativeGuid());
                 taskCompleter.error(_dbClient, error);
                 return;
-            }
-            _helper.doApplyRecoverPointTag(storageSystem, volume, false);
+            }            
+            
+            boolean tagSet = _helper.doApplyRecoverPointTag(storageSystem, volume, false);
+        	if (!tagSet) {
+        		ServiceError error = DeviceControllerErrors.smis.errorSettingRecoverPointTag("disable");
+                taskCompleter.error(_dbClient, error);
+                return;
+        	}
+            
             CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);
             CIMArgument[] inArgs = _helper.getExpandVolumeInputArguments(storageSystem, pool, volume,
                     size);
@@ -2379,14 +2390,15 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doSuspendLink(StorageSystem system, Volume targetVolume, boolean consExempt, TaskCompleter completer) {
-        _srdfOperations.performSuspend(system, targetVolume, consExempt, completer);
+    public void doSuspendLink(StorageSystem system, Volume targetVolume, boolean consExempt, boolean refreshVolumeProperties,
+            TaskCompleter completer) {
+        _srdfOperations.performSuspend(system, targetVolume, consExempt, refreshVolumeProperties, completer);
     }
 
     @Override
     public void doResumeLink(final StorageSystem system, final Volume targetVolume,
-            final TaskCompleter completer) {
-        _srdfOperations.performEstablish(system, targetVolume, completer);
+            boolean refreshVolumeProperties, final TaskCompleter completer) {
+        _srdfOperations.performEstablish(system, targetVolume, refreshVolumeProperties, completer);
     }
 
     @Override
@@ -2646,6 +2658,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
+    public void refreshVolumeProperties(URI systemURI, List<URI> volumeURIs) throws Exception {
+        _srdfOperations.refreshVolumeProperties(systemURI, volumeURIs);
+    }
+
     public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         try {

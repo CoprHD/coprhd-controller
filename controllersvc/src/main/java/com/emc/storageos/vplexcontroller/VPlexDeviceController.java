@@ -63,6 +63,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -527,7 +528,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // Now we need to do the necessary zoning and export steps to ensure
                     // the VPlex can see these new backend volumes.
                     lastStep = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
-                            volumeMap, projectURI, tenantURI, waitFor);
+                            volumeMap, projectURI, tenantURI, lastStep);
                 } catch (Exception ex) {
                     _log.error("Could not create volumes for vplex: " + vplexURI, ex);
                     TaskCompleter completer = new VPlexTaskCompleter(Volume.class, vplexURI,
@@ -1165,8 +1166,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // COP-17983 - We need to wait for the previous step *and* the forgetVolumes step, if it was scheduled.
         // The below 'waiter' steps are there to make sure that this happens because if markVirtualVolumes ran
         // before forgetVolumes, then:
-        //   1). forgetVolumes operation is never called against the VPlex
-        //   2). The overall delete volumes task, and thus the Order, will never be marked complete
+        // 1). forgetVolumes operation is never called against the VPlex
+        // 2). The overall delete volumes task, and thus the Order, will never be marked complete
         // ======================================================================================================
         String name = String.format("Wait for '%s'", waitFor);
         Workflow.Method previousStepWaiter = stepWaiter(name);
@@ -1198,7 +1199,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Simple NO-OP method to use as a way to wait on a step.
-     *
+     * 
      * @param waitedOn [IN] - String name for what was being waited on
      * @param stepId [IN] - This step waiter UUID
      */
@@ -1207,7 +1208,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _log.info("Completed waiting on '{}'", waitedOn);
         WorkflowStepCompleter.stepSucceded(stepId);
     }
-    
+
     public Workflow.Method markVolumesInactiveMethod(List<URI> volumes) {
         return new Workflow.Method(MARK_VIRTUAL_VOLUMES_INACTIVE, volumes);
     }
@@ -2983,7 +2984,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     continue;
                 }
                 Integer requestedHLU = entry.getValue();
-                // If user have provided specific HLU for volume, then check if its alreday in use
+                // If user have provided specific HLU for volume, then check if its already in use
                 if (requestedHLU.intValue() != VPlexApiConstants.LUN_UNASSIGNED &&
                         exportMask.anyVolumeHasHLU(requestedHLU.toString())) {
                     String message = String.format("Failed to add Volumes %s to ExportMask %s",
@@ -3012,7 +3013,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 return;
             }
 
-            // If deviceLabelToHLU map is empty then volumes alreday exist in the storage view hence return.
+            // If deviceLabelToHLU map is empty then volumes already exists in the storage view hence return.
             if (deviceLabelToHLU.isEmpty()) {
                 completer.ready(_dbClient);
                 return;
@@ -3544,7 +3545,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         return lastStepId;
     }
-    
+
     private Workflow.Method zoneAddInitiatorStepMethod(URI vplexURI, URI exportURI,
             List<URI> initiatorURIs, URI varrayURI) {
         return new Workflow.Method("zoneAddInitiatorStep", vplexURI, exportURI, initiatorURIs, varrayURI);
@@ -3553,6 +3554,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Workflow step to add an initiator. Calls NetworkDeviceController.
      * Arguments here should match zoneAddInitiatorStepMethod above except for stepId.
+     * 
      * @param exportURI
      * @param initiatorURIs
      * @param varrayURI
@@ -3599,10 +3601,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
-    
+
     private Workflow.Method zoneRollbackMethod(URI exportGroupURI, String contextKey) {
         return new Workflow.Method("zoneRollback", exportGroupURI, contextKey);
     }
+
     /**
      * TODO: Remove - it's in NetworkDeviceController
      * Args should match zoneRollbackMethod above except for taskId.
@@ -5699,10 +5702,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             URI projectURI = firstVolume.getProject().getURI();
             URI tenantURI = firstVolume.getTenant().getURI();
 
+            Project project = _dbClient.queryObject(Project.class, projectURI);
             // Now we need to do the necessary zoning and export steps to ensure
             // the VPlex can see these new backend volumes.
-            createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
-                    volumeMap, projectURI, tenantURI, waitFor);
+            if (!project.checkInternalFlags(Flag.INTERNAL_OBJECT) && vplexSystemProject != null && vplexSystemTenant != null) {
+                // If project is not set as an INTERAL_OBJECT then this is the case
+                // where native volume is moved into VPLEX.
+                // vplexSystemProject and vplexSystemTenant are passed in this case
+                // and we need to use that else backend export group gets visible
+                // in UI as the native volume project at this point is not a VPLEX
+                // project.
+                createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
+                        volumeMap, vplexSystemProject, vplexSystemTenant, waitFor);
+            } else {
+                createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
+                        volumeMap, projectURI, tenantURI, waitFor);
+            }
 
             // Now make a Step to create the VPlex Virtual volumes.
             // This will be done from this controller.

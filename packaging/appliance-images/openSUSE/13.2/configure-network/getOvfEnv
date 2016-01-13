@@ -1,0 +1,177 @@
+#!/bin/sh
+#
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+#
+# /etc/init.d/boot.getOvfEnv
+#
+# Boot time script to populate configuration files using parameters
+# provided in ovf-env.xml
+#
+### BEGIN INIT INFO
+# Provides:          boot.getOvfEnv
+# Required-Start:    boot.localfs
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     B
+# Default-Stop:
+# Description:       Generate configuration files using ovf-env.xml
+### END INIT INFO
+
+cdrom_dev='/dev/sr0'
+cdrom_mnt='/mnt/cdromOvfEnv'
+ovfEnvName="ovf-env.xml"
+ovfEnvFile="${cdrom_mnt}/${ovfEnvName}"
+ovfEnvTmp="/tmp/${ovfEnvName}.tmp"
+ovfEnvCache="/opt/ADG/conf/${ovfEnvName}.cache"
+
+export PATH=/bin:/usr/bin:/sbin:/usr/sbin
+. /etc/rc.status
+
+_ismounted() {
+    while read dev mnt dummy ; do [ "${1}" = "${dev}" -o "${1}" = "${mnt}" ] && return 0 ; done </proc/mounts ; return 1
+}
+
+_umount() {
+    if _ismounted ${1} ; then umount ${1} ; fi
+}
+
+_mount() {
+    if ! _ismounted "${2}" ; then
+        if [ ! -d "${2}" ] ; then  mkdir -p "${2}" || return $? ; fi
+        mount -t iso9660 -o ro "${1}" "${2}"
+    fi
+}
+
+_probe() {
+    local dev=${1}
+    udevadm settle # ; [ -e "${dev}" ] || return 1
+    local retry
+    for retry in 1 2 3 4 5 ; do
+        local err
+        err=$(dd if=${dev} of=/dev/zero count=1 2>&1) && return 0
+        case "${err}" in
+            *'No medium found') return 1;;
+            *)                  echo "${err}" >&2;;
+        esac
+        sleep 1
+    done
+}
+
+_env_write() {
+   rm -f "${1}" && cp /dev/null "${1}" && chmod 400 "${1}" && echo "${2}" >>"${1}"
+}
+
+_make_cache() {
+    [ ! -d $(dirname "${ovfEnvCache}") ] && mkdir -p $(dirname "${ovfEnvCache}")
+    rm -f "${2}" && cp /dev/null "${2}" && chmod 600 "${2}" && cat "${1}" >>"${2}"
+}
+
+_clean() {
+    [ -s ${ovfEnvTmp} ] && rm -f ${ovfEnvTmp}
+    _umount "${cdrom_mnt}"
+}
+
+mountCD() {
+    _probe "${1}"        || return 1 # No CD-ROM
+    _mount "${1}" "${2}" || return 2 # Can't mount
+    [ -f ${ovfEnvFile} ] || return 3 # OVF Properties file does not exist on this CD-ROM
+    return 0
+}
+
+useVMTools() {
+    local env=$(vmtoolsd --cmd='info-get guestinfo.ovfEnv')
+    _env_write "${1}" "${env}" || return 1 # Problem creating file
+    return 0
+}
+
+compareProps() {
+    if [ -s ${2} ]; then
+        if diff -qwB ${1} ${2}; then
+            _clean
+            return 1
+        else
+            _make_cache ${1} ${2}
+        fi
+    else
+        _make_cache ${1} ${2}
+    fi
+
+    _clean
+    return 0
+}
+
+
+rc_reset
+
+case ${1} in
+    start|restart|reload)
+        # Try to retrieve the properties
+        if mountCD "${cdrom_dev}" "${cdrom_mnt}" ; then
+            echo -n "CDROM mount successful"
+            compareTo=${ovfEnvFile}
+            rc_status -v
+        elif useVMTools "${ovfEnvTmp}" ; then
+            echo -n "CDROM mount unsuccessful.  Using vmtoolsd."
+            compareTo=${ovfEnvTmp}
+            rc_status -v
+        else
+            echo -n "Error retrieving properties file!"
+            rc_failed 1
+            exit 1
+        fi
+
+        # Compare the properties with the last boot
+        # compareProps will return 0 if there were differences
+        #              will return 1 if there were no changes
+        if compareProps "${compareTo}" "${ovfEnvCache}"; then
+            echo -n "Generating environment configuration"
+            python /opt/ADG/bin/parseOvfEnv.py "${ovfEnvCache}" 2>&1
+            result=$?
+            if [ $result -eq 0 ]; then
+                rc_status -v
+                # configure at least one NIC
+                nic_size=1
+
+                echo "Configuring network"
+                grep "network.ip0" ${ovfEnvCache} > /dev/null
+                if [ $? -eq 0 ]; then
+                  # number of NIC cards in single mode OVF
+                  nic_size=$( grep network.ip[0-9] /opt/ADG/conf/ovf-env.xml.cache | wc -l )
+                fi
+                grep "network.ipv40" ${ovfEnvCache} > /dev/null
+                if [ $? -eq 0 ]; then
+                  # number of NIC cards in dual mode OVF
+                  nic_size=$( grep network.ipv4[0-9]. /opt/ADG/conf/ovf-env.xml.cache | wc -l )
+                fi
+
+                for (( n=0; n<$nic_size; n++ )) do
+                  /bin/bash /opt/ADG/bin/setNetwork $n
+                done
+            elif [ $result -eq 2 ]; then
+              echo -n "Error parsing properties file due to missing VM name!"
+              rc_status -v
+            else
+                echo -n "Error parsing properties file!"
+                rc_failed 1
+                exit 1
+            fi
+            rc_status -v
+        else
+            echo -n "Nothing to do."
+            rc_status -s
+            exit 0
+        fi
+        ;;
+    stop|status)
+        echo -n "Nothing to do."
+        rc_status -s
+        exit 0
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status|reload}"
+        exit 1
+esac
+
+rc_exit

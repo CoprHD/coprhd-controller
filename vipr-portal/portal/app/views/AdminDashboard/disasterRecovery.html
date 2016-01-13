@@ -17,11 +17,11 @@
         				#{list items:drsites, as:'site'}
         				<tr>
 							<td>
-								<form action="http://${site.vip}" method="POST" accept-charset="utf-8" enctype="application/x-www-form-urlencoded" id="StandbySite">
+								<form action="#{./vdcLink host:site.vip, path:''/}" method="POST" accept-charset="utf-8" enctype="application/x-www-form-urlencoded" id="StandbySite">
       								#{authenticityToken /}
 	  								<input type="hidden" name="auth-token" value="${token}">
  								</form>
-								<a href="http://${site.vip}" onclick="$('#StandbySite').submit(); return false;">${site.name} </a>
+								<a href="#" onclick="$('#StandbySite').submit(); return false;">${site.name} </a>
 							</td>
 							<td>
 								#{if site.state == "ACTIVE"}

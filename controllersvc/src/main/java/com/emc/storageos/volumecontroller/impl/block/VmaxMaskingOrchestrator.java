@@ -1305,7 +1305,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         masksMap = applyVolumesToMasksUsingRPVMAXRules(storage, exportGroup, existingMasksToUpdateWithNewVolumes, volumesWithNoMask, masksMap, maskToInitiatorsMap, partialMasks, token);
         
         if (masksMap.isEmpty()) {        	
-        	_log.info("No masks were found for RP that satisified the host rule, returning true");
+        	_log.info("No masks were found for RP that satisified the host rule, proceeding to create new masks");
         	return true;
         }
                            
@@ -1358,17 +1358,20 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 	            Set<URI> partialMasks, String token) {
     	
         Map<ExportMask, ExportMaskPolicy> matchingMaskMap = new HashMap<ExportMask, ExportMaskPolicy>();
-
     	
-    	//If there is no host information in the exportGroup, then just return the maskMap for further processing
-    	if (!exportGroup.checkInternalFlags(Flag.RECOVERPOINT) || !exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL)) {     		
+    	//If this is not a RP export, just return the exist masksMap
+    	if (!exportGroup.checkInternalFlags(Flag.RECOVERPOINT)) {     		
     		return masksMap;
     	}
     	
-    	if (exportGroup.getHosts() == null) {
+    	//If this an RP Export (non-journal) but there is no host information, return the existing maskMap. 
+    	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) && !exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL) && exportGroup.getHosts() == null) {
+    		_log.info("ExportGroup doesnt specify any hosts, return");
     		return masksMap;
     	}
     	
+    	//If this is a RP Journal export operation, try to find an existing ExportMask that contains "Journal" keyword in the name. 
+    	//If a matching mask is found, use it. (There should not be more than one journal mask on the VMAX)
     	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL)) {    		
     		_log.info("Looking for ExportMasks with JOURNAL keyword since the ExportGroup is intended for journal volumes only");
     	    for(Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {      
@@ -1398,11 +1401,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             _log.info("Host initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
         }
         
-        //Next, fetch all the Masking view for the host
-        //Bharath TODO: change the last argument to true and test once Ameer's changes are in. 
+        //Fetch all the existing masks for the host
         Map<String, Set<URI>> hostMaskingViews = getDevice().findExportMasks(storage, hostInitiatorNames, true);
     	                        
-        //In the case of an RP protected volume, the masksMap contains all the masks matching the RP initiators that was passed down. 
+        //In the case of an RP  volume, the masksMap contains all the masks matching the RP initiators that was passed down. 
         //We need to weed through this list to find only those masking view that is compatible with the list of host masking views.
         for(Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {        	
         	ExportMask rpMaskingView = maskMap.getKey();
@@ -1429,10 +1431,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
         
         if (matchingMaskMap.isEmpty()) {
-        	_log.info("No mask found to be matching with the host masking view ");        	
+        	_log.info("No RP masks found that correspond to the host masks");        	
         }
-        
-         	
+                 	
     	return matchingMaskMap;
     }
     

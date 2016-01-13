@@ -2019,7 +2019,7 @@ public class RPHelper {
      * @return an export group
      */
     public static ExportGroup createRPExportGroup(String internalSiteName, VirtualArray virtualArray, Project project, ProtectionSystem protectionSystem,
-            StorageSystem storageSystem, Integer numPaths) {
+            StorageSystem storageSystem, Integer numPaths, boolean isJournalExport) {
         ExportGroup exportGroup;
         exportGroup = new ExportGroup();
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
@@ -2044,6 +2044,12 @@ public class RPHelper {
         exportGroup.setNumPaths(numPaths);
         exportGroup.setType(ExportGroupType.Cluster.name());
         exportGroup.setZoneAllInitiators(true);
+        
+        if (isJournalExport) {
+        	exportGroup.addInternalFlags(Flag.RECOVERPOINT_JOURNAL);
+        	exportGroup.setGeneratedName(exportGroup.getGeneratedName()+"_JOURNAL");
+        	exportGroup.setLabel(exportGroup.getGeneratedName()+"_JOURNAL");
+        }
         
         return exportGroup;
     }

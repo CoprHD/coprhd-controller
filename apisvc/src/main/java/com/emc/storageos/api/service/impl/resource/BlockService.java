@@ -704,7 +704,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
 
         //Bharath TODO
-        param.setHost(URI.create("urn:storageos:Host:d85d5421-3f32-48c2-9a42-592891d52003:vdc1"));
+        param.setHost(URI.create("urn:storageos:Host:a566a031-b5d4-44c3-a989-c020e14ed8cc:vdc1"));
         
         // Get and validate the project.
         Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);

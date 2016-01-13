@@ -1050,13 +1050,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 boolean isJournalExport = rpExport.getIsJournalExport();
                 // Setup the export group - we may or may not need to create it, but we need to have everything ready in case we do
                 ExportGroup exportGroup = RPHelper.createRPExportGroup(internalSiteName, varray, _dbClient.queryObject(Project.class, 
-                        params.getProject()), rpSystem, storageSystem, 0);
-                
-                if (isJournalExport) {
-                	exportGroup.addInternalFlags(Flag.RECOVERPOINT_JOURNAL);
-                	exportGroup.setGeneratedName(exportGroup.getGeneratedName()+"_JOURNAL");
-                	exportGroup.setLabel(exportGroup.getGeneratedName()+"_JOURNAL");
-                }
+                        params.getProject()), rpSystem, storageSystem, 0, isJournalExport);                               
 
                 // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
                 Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);

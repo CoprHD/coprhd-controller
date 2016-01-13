@@ -10,7 +10,6 @@ public class IpUtils {
 
     /**
      * decompress input address into a canonical ipv6 address
-     * return null if it is not a valid ipv6 address.
      *
      * @param address
      * @return

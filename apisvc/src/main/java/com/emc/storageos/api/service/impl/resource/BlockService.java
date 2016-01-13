@@ -741,10 +741,10 @@ public class BlockService extends TaskResourceService {
             volumeSize = SizeUtil.translateSize(param.getSize());
             // HY: JPMC initiated the request to be able able to create GK devices and
             // ViPR controller has decided not block device creations when the size is < 1 GB
-            // Validate the requested volume size is at least 1 GB.
-            // if (volumeSize < GB) {
-            // throw APIException.badRequests.leastVolumeSize("1");
-            // }
+            // Validate the requested volume size is at least > 0.
+            if (volumeSize <= 0) {
+                throw APIException.badRequests.parameterMustBeGreaterThan("size", 0);
+            }
             capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volumeSize);
         }
 

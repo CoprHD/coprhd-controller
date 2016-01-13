@@ -41,7 +41,7 @@
           "baseService": "UnexportVolume"
         },
         {
-          "image": "icon_host_remove.png",
+          "image": "icon_host_multi_remove.png",
           "baseService": "UnexportMultiVolume"
         },
         {

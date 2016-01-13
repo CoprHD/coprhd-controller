@@ -629,6 +629,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterStorageSystemNamespace(String namespace);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidParameterProtectionSystemNamespace(String namespace);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterSystemTypeforAutoTiering();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1105,6 +1108,27 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidCopyMode(String copyMode);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidReplicationRPOType(String rpoType);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidVirtualPoolFromVirtualArray(URI vpool, URI varray);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidReplicationType(String copyMode);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException noReplicationRemoteCopies(String replicationType);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException noReplicationTypesSpecified();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException moreThanOneRemoteCopiesSpecified();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException remoteCopyDoesNotExists(URI varray, URI vpool);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicateRemoteSettingsDetected(URI varray);
@@ -1552,6 +1576,10 @@ public interface BadRequestExceptions {
     // inactiveRemoteVArrayDetected
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException inactiveRemoteVArrayDetected(final URI vArray);
+    
+    // inactiveRemoteVPoolDetected
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException inactiveRemoteVPoolDetected(final URI vPool);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException parameterVPLEXNotSupportedWithSRDF();
@@ -1974,6 +2002,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException updatingCompletedApproval();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException updateApprovalBySameUser(final String name);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidVarrayForVplex(final String vplex, final String varray);
@@ -2424,6 +2455,9 @@ public interface BadRequestExceptions {
     public BadRequestException migrationCantBeCancelled(String migrationName, String status);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cancelMigrationFailed(String migrationName, String reason);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException migrationHasntStarted(String migrationId);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2567,6 +2601,21 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cgReferencesInvalidProtectionSystem(final URI cgUri, final URI protectionSystemUri);
 
+    @DeclareServiceCode(ServiceCode.API_AUTH_KEYSTONE_PROVIDER_CREATE_NOT_ALLOWED)
+    public BadRequestException keystoneProviderAlreadyPresent();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException managerDNMustcontainUserNameAndTenantName();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException managerDNMustcontainEqualTo();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException managerDNInvalid();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException projectWithTagNonexistent(final String openstackTenantId);
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notEnoughPortsForMaxpath(final URI storageURI, final Integer portCount, final Integer maxPaths);
 
@@ -2640,6 +2689,14 @@ public interface BadRequestExceptions {
     public BadRequestException canNotCanceldbConsistencyCheck();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vpoolChangeInvalidProtectionSystemOrCg(final String invalidVolumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vpoolChangeNotAllowedInvalidVolumeList();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vpoolChangeNotAllowedCGsMustBeTheSame();
+
     public BadRequestException invalidSnapshotSessionSource(final String sourceId);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2692,4 +2749,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_UNSUPPORTED_CHANGE)
     public BadRequestException volumeForRPVpoolChangeHasSnapshotSessions(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException backupIntervalIsInvalid(String interval);
 }

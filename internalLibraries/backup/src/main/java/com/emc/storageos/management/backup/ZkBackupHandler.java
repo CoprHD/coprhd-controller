@@ -42,6 +42,15 @@ public class ZkBackupHandler extends BackupHandler {
     private static final int CONNECT_ZK_PORT = 2181;
     private File zkDir;
     private List<String> fileTypeList;
+    private File siteIdFile;
+
+    public File getSiteIdFile() {
+        return siteIdFile;
+    }
+
+    public void setSiteIdFile(File siteIdFile) {
+        this.siteIdFile = siteIdFile;
+    }
 
     /**
      * Sets zk file location
@@ -290,7 +299,7 @@ public class ZkBackupHandler extends BackupHandler {
     }
 
     private void backupSiteId(File targetDir) throws IOException {
-        FileUtils.copyFileToDirectory(new File(BackupConstants.SITE_ID_FILE_PATH), targetDir);
+        FileUtils.copyFileToDirectory(siteIdFile, targetDir);
     }
 
     /**
@@ -304,7 +313,7 @@ public class ZkBackupHandler extends BackupHandler {
             log.error("Filed to get vdcprops via /etc/systool --getvdcprops");
             throw new IOException("Can't backup vdc properties for current site");
         }
-        Writer writer = new PrintWriter(new FileOutputStream(new File(folder, "vdcprops")));
+        Writer writer = new PrintWriter(new FileOutputStream(new File(folder, BackupConstants.VDC_PROPS_FILE_NAME)));
         try {
             writer.write(result.getStdOutput());
         } finally {

@@ -198,14 +198,13 @@ clean_up() {
 }
 
 gen_config() {
-    vdcpropsfile="/data/zk/version-2/vdcprops"
+    vdcpropsfile="/data/zk/version-2/vdcconfig.properties"
     if [ ! -f $vdcpropsfile ]; then
         return
     fi
     echo -n "Regenerating storageos configuration files based on restored vdc properties"
-    /etc/systool --setvdcprops "${vdcpropsfile}"
-    /etc/systool --getprops | /etc/genconfig
-    rm -rf "${vdcpropsfile}"
+    local command="mv ${vdcpropsfile} /tmp && /etc/systool --setvdcprops /tmp/vdcconfig.properties && /etc/systool --getprops | /etc/genconfig"
+    loop_execute "${command}" "true"
     echo "done"
 }
 

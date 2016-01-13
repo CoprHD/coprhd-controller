@@ -12,7 +12,6 @@ import java.io.PipedOutputStream;
 import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -28,7 +27,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
-import com.emc.storageos.coordinator.client.model.ProductName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -115,7 +115,7 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
         buf.append(String.format("%nUnManaged Consistency Group: %s %n", _name));
         buf.append(String.format("Volumes remaining to be ingested: %n"));
         if (_unManagedVolumesMap.isEmpty()) {
-        	buf.append(String.format("All volumes for this consistency group have been ingetsed.%n"));
+        	buf.append(String.format("All volumes for this consistency group have been ingested.%n"));
         } else {
         	for (String vol : _unManagedVolumesMap.values()) {            
                 buf.append(String.format("UnManaged Volume : [%s] %n", vol));

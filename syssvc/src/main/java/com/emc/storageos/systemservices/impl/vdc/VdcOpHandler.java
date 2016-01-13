@@ -791,14 +791,13 @@ public abstract class VdcOpHandler {
             }
         }
     }
-    
+
     /**
      * This handler will be triggered in active site when it detect there are other active sites exist.
      * Degraded itself to ACTIVE_DEGRADE and not provide any provisioning functions.
      * 
      */
     public static class DrFailbackDegradeHandler extends VdcOpHandler {
-
         @Override
         public boolean isRebootNeeded() {
             return true;
@@ -809,10 +808,7 @@ public abstract class VdcOpHandler {
             //no need to wait any barrier and some nodes may not be up
             reconfigVdc(false);
         }
-        
     }
-    
-
 
     /**
      * IP Change handler to update IPs info from ZK to vdcproperty

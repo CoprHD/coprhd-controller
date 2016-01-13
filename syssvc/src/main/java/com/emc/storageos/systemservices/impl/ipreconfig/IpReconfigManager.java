@@ -24,6 +24,7 @@ import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ipreconfig.*;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.slf4j.Logger;
@@ -43,6 +44,7 @@ public class IpReconfigManager implements Runnable {
     private static Charset UTF_8 = Charset.forName("UTF-8");
     private static final long IPRECONFIG_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours timeout for the procedure
     private static final long POLL_INTERVAL = 10 * 1000; // 10 second polling interval
+    private static final String UPDATE_ZKIP_LOCK = "update_zkip";
 
     // ipreconfig entry in ZK
     Configuration config = null;
@@ -52,6 +54,7 @@ public class IpReconfigManager implements Runnable {
     private Integer localNodeId;                // local node id (1~5)
     private Integer nodeCount;
     private long expiration_time = 0L;         // ipreconfig would fail if not finished at this time
+
 
     @Autowired
     private CoordinatorClientExt _coordinator;
@@ -802,7 +805,7 @@ public class IpReconfigManager implements Runnable {
             _coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
 
             // wake up syssvc to regenerate configurations
-            drUtil.updateVdcTargetVersion(_coordinator.getCoordinatorClient().getSiteId(), SiteInfo.IP_OP_CHANGE);
+            drUtil.updateVdcTargetVersion(_coordinator.getCoordinatorClient().getSiteId(), SiteInfo.IP_OP_CHANGE, System.currentTimeMillis());
 
             log.info("Finished update local site IPs into ZK");
         } catch (Exception e) {

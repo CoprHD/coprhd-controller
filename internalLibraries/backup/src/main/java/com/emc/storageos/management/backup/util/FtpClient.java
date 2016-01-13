@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import com.emc.storageos.coordinator.client.model.ProductName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

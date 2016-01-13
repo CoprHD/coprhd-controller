@@ -56,6 +56,7 @@ public abstract class VdcOpHandler {
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 20;
+    private static final int IPSEC_RESTART_DELAY = 1000 * 60; // 1 min
     // data revision time out - 5 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
     
@@ -63,6 +64,8 @@ public abstract class VdcOpHandler {
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
     private static final String LOCK_FAILOVER_REMOVE_OLD_ACTIVE="drFailoverRemoveOldActiveLock";
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
+    private static final String LOCK_DEGRADE_STANDBY="drDegradeStandbyLock";
+    private static final String LOCK_REJOIN_STANDBY="drRejoinStandbyLock";
     private static final String LOCK_ADD_STANDBY="drAddStandbyLock";
 
     public static final String NTPSERVERS = "network_ntpservers";
@@ -373,7 +376,7 @@ public abstract class VdcOpHandler {
 
 
     /**
-     * Process DR config change for add-standby op
+     * Process DR config change for pause-standby op
      *  - All existing sites - exclude paused site from vdc config and reconfig, remove db nodes of paused site 
      *  - To-be-paused site - nothing
      */
@@ -481,7 +484,7 @@ public abstract class VdcOpHandler {
     }
 
     /**
-     * Process DR config change for add-standby op
+     * Process DR config change for resume-standby op
      *  - All existing sites - include resumed site to vdc config and apply the config
      *  - To-be-resumed site - rebuild db/zk data from active site and apply the config 
      */
@@ -493,6 +496,105 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
+        }
+    }
+
+    /**
+     * Process DR config change for degrade-standby op
+     *  - Active site - remove to-be-degraded sites from strategy options
+     *  - To-be-degraded sites - restart dbsvc/geodbsvc
+     *  - Other sites - will not be notified
+     */
+    public static class DrDegradeStandbyHandler extends VdcOpHandler {
+        public DrDegradeStandbyHandler() {
+        }
+
+        @Override
+        public void execute() throws Exception {
+            if(drUtil.isActiveSite()) {
+                InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_DEGRADE_STANDBY);
+                while (drUtil.hasSiteInState(SiteState.STANDBY_DEGRADING)) {
+                    try {
+                        log.info("Acquiring lock {}", LOCK_DEGRADE_STANDBY);
+                        lock.acquire();
+                        log.info("Acquired lock {}", LOCK_DEGRADE_STANDBY);
+
+                        if (!drUtil.hasSiteInState(SiteState.STANDBY_DEGRADING)) {
+                            // someone else updated the status already
+                            break;
+                        }
+
+                        for (Site site : drUtil.listSitesInState(SiteState.STANDBY_DEGRADING)) {
+                            removeDbNodesFromGossip(site);
+                        }
+
+                        for (Site site : drUtil.listSitesInState(SiteState.STANDBY_DEGRADING)) {
+                            removeDbNodesFromStrategyOptions(site);
+
+                            log.info("Setting site {} to STANDBY_DEGRADED", site.getUuid());
+                            site.setState(SiteState.STANDBY_DEGRADED);
+                            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+                        }
+                    } finally {
+                        try {
+                            log.info("Releasing lock {}", LOCK_DEGRADE_STANDBY);
+                            lock.release();
+                            log.info("Released lock {}", LOCK_DEGRADE_STANDBY);
+                        } catch (Exception e) {
+                            log.error("Failed to release lock {}", LOCK_DEGRADE_STANDBY);
+                        }
+                    }
+                }
+                flushVdcConfigToLocal();
+            } else {
+                flushVdcConfigToLocal();
+                // restart dbsvc/geodbsvc so that the internode authenticator takes effect.
+                localRepository.restart(Constants.DBSVC_NAME);
+                localRepository.restart(Constants.GEODBSVC_NAME);
+            }
+        }
+    }
+
+    /**
+     * Process DR config change for rejoin-standby op
+     *  - To-be-rejoined site - rebuild db/zk data from active site and apply the config
+     *  - Other sites - will not be notified
+     */
+    public static class DrRejoinStandbyHandler extends VdcOpHandler {
+        public DrRejoinStandbyHandler() {
+        }
+
+        @Override
+        public void execute() throws Exception {
+            Site localSite = drUtil.getLocalSite();
+            InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_REJOIN_STANDBY);
+            while (localSite.getState().equals(SiteState.STANDBY_DEGRADED)) {
+                try {
+                    log.info("Acquiring lock {}", LOCK_DEGRADE_STANDBY);
+                    lock.acquire();
+                    log.info("Acquired lock {}", LOCK_DEGRADE_STANDBY);
+
+                    localSite = drUtil.getLocalSite();
+                    if (localSite.getState().equals(SiteState.STANDBY_DEGRADED)) {
+                        // nobody get the lock before me
+                        log.info("Setting local site {} to STANDBY_SYNCING", localSite.getUuid());
+                        localSite.setState(SiteState.STANDBY_SYNCING);
+                        coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                    }
+                } finally {
+                    try {
+                        log.info("Releasing lock {}", LOCK_DEGRADE_STANDBY);
+                        lock.release();
+                        log.info("Released lock {}", LOCK_DEGRADE_STANDBY);
+                    } catch (Exception e) {
+                        log.error("Failed to release lock {}", LOCK_DEGRADE_STANDBY);
+                    }
+                }
+
+                localRepository.restart(Constants.DBSVC_NAME);
+                localRepository.restart(Constants.GEODBSVC_NAME);
+            }
+            flushVdcConfigToLocal();
         }
     }
 
@@ -595,13 +697,14 @@ public abstract class VdcOpHandler {
      */
     public static class DrFailoverHandler extends VdcOpHandler {
         private Factory postHandlerFactory;
+        private boolean isRebootNeeded;
         
         public DrFailoverHandler() {
         }
         
         @Override
         public boolean isRebootNeeded() {
-            return true;
+            return isRebootNeeded;
         }
         
         @Override
@@ -609,12 +712,14 @@ public abstract class VdcOpHandler {
             Site site = drUtil.getLocalSite();
 
             if (isNewActiveSiteForFailover(site)) {
+                isRebootNeeded = true;
                 coordinator.stopCoordinatorSvcMonitor();
                 reconfigVdc();
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
                 processFailover();
                 waitForAllNodesAndReboot(site);
-
+            } else {
+                reconfigVdc();
             }
         }
         
@@ -684,6 +789,24 @@ public abstract class VdcOpHandler {
             } finally {
                 barrier.leave();
             }
+        }
+    }
+
+    /**
+     * This handler will be triggered in active site when it detect there are other active sites exist.
+     * Degraded itself to ACTIVE_DEGRADE and not provide any provisioning functions.
+     * 
+     */
+    public static class DrFailbackDegradeHandler extends VdcOpHandler {
+        @Override
+        public boolean isRebootNeeded() {
+            return true;
+        }
+
+        @Override
+        public void execute() throws Exception {
+            //no need to wait any barrier and some nodes may not be up
+            reconfigVdc(false);
         }
     }
 
@@ -783,17 +906,40 @@ public abstract class VdcOpHandler {
         try {
             flushVdcConfigToLocal();
         } finally {
-            vdcBarrier.leave();
+            boolean allLeft = vdcBarrier.leave();
+
+            // the additional sleep is for addressing COP-19315 -- hangs at barrier.leave()
+            //
+            // without sleep here, which means to restart ipsec immediately even barrier.leave() returned
+            // as timed out, the first timed-out node restarting ipsec will cause ZK lose its quorum,
+            // because of that, the second node will never be able to return from leave() function.
+            //
+            // with 1 minute delay to restart ipsec, it can make sure all live nodes are returned from leave()
+            // function, as they are all enter() at the same time. the time difference among their leave() time
+            // will be in the range of seconds.
+            if (!allLeft) {
+                log.info("wait 1 minute, so all nodes be able to return from leave()");
+                Thread.sleep(IPSEC_RESTART_DELAY);
+            }
         }
     }
     
     protected void reconfigVdc() throws Exception {
-        syncFlushVdcConfigToLocal();
+        reconfigVdc(true);
+    }
+    
+    protected void reconfigVdc(boolean allNodeSyncRequired) throws Exception {
+        if (allNodeSyncRequired) {
+            syncFlushVdcConfigToLocal();
+        } else {
+            flushVdcConfigToLocal();
+        }
         refreshIPsec();
         refreshFirewall();
         refreshSsh();
         refreshCoordinator();
     }
+    
 
     protected void refreshFirewall() {
         localRepository.reconfigProperties("firewall");
@@ -916,7 +1062,7 @@ public abstract class VdcOpHandler {
          * Waiting for all nodes leaving the VdcPropBarrier.
          * @throws Exception
          */
-        public void leave() throws Exception {
+        public boolean leave() throws Exception {
             // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
             log.info("Waiting for all nodes leaving {}", barrierPath);
 
@@ -926,6 +1072,8 @@ public abstract class VdcOpHandler {
             } else {
                 log.warn("Only Part of nodes left VdcPropBarrier before timeout");
             }
+
+            return allLeft;
         }
 
         private String getBarrierPath(SiteInfo siteInfo) {

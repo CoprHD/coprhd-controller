@@ -72,7 +72,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String AUTO_CROSS_CONNECT_EXPORT = "autoCrossConnectExport";
     private static final String RP_RPO_VALUE = "rpRpoValue";
     private static final String RP_RPO_TYPE = "rpRpoType";
-    private static final String RP_COPY_MODE = "rpCopyMode";    
+    private static final String RP_COPY_MODE = "rpCopyMode";
     private static final String HA_CONNECTED_TO_RP = "haVarrayConnectedToRp";
     private static final String JOURNAL_SIZE = "journalSize";
     private static final String JOURNAL_VARRAY = "journalVarray";
@@ -82,7 +82,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     private static final String[] INCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] { AUTO_TIER_POLICY_NAME,
             HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS };
-    
+
     private static final String[] EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] {
             AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, ARRAY_INFO,
             UNIQUE_AUTO_TIERING_POLICY_NAMES, ASSIGNED_STORAGE_POOLS,
@@ -97,7 +97,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Determines if the VPlex virtual volume vpool change is supported.
-     * 
+     *
      * @param volume A reference to the volume.
      * @param currentVpool A reference to the current volume vpool.
      * @param newVpool The desired new vpool.
@@ -308,10 +308,10 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * Gets the HA virtual pool for a VPLEX volume, if any, given the volume's
      * virtual pool.
-     * 
+     *
      * @param vpool A reference to the volume's virtual pool.
      * @param dbClient A reference to a DB client.
-     * 
+     *
      * @return The HA virtual pool for a VPLEX volume, if any, given the
      *         volume's virtual pool. Will be null if the volume's virtual pool
      *         does not specify VPLEX distributed HA.
@@ -340,11 +340,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      * Gets the new HA virtual pool for a VPLEX volume, if any, given the
      * volume's current virtual pool and a new virtual pool to which it is being
      * changed.
-     * 
+     *
      * @param currentVpool The current virtual pool for a VPLEX volume.
      * @param newVpool A new virtual pool to which the volume will be changed.
      * @param dbClient A reference to a DB client.
-     * 
+     *
      * @return The new HA virtual pool for a VPLEX volume, if any, that will
      *         result from changing the volume for its current virtual pool to
      *         the passed new virtual pool. Will return null if the current
@@ -385,10 +385,10 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Gets the HA virtual array specified by the passed virtual pool.
-     * 
+     *
      * @param vpool A reference to the virtual pool.
      * @param dbClient A reference to a DB client.
-     * 
+     *
      * @return The HA virtual array specified by the passed virtual pool
      *         or null if the virtual pool does not specify VPLEX distributed HA.
      */
@@ -407,10 +407,10 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * Determines if the two Vpool are equivalent by examining the modified
      * fields.
-     * 
+     *
      * @param currentVpool A reference to the current volume Vpool.
      * @param newVpool The desired new Vpool.
-     * 
+     *
      * @return true if equivalent, false otherwise.
      */
     public static boolean vpoolChangeRequiresMigration(VirtualPool currentVpool, VirtualPool newVpool) {
@@ -439,11 +439,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * Returns true if the difference between vpool1 and vpool2 is that vpool2 is
      * requesting highAvailability.
-     * 
+     *
      * @param vpool1 Reference to Vpool to compare.
      * @param vpool2 Reference to Vpool to compare.
      * @param notImportReasonBuff [OUT] Specifies reason why its not an import.
-     * 
+     *
      * @return true if the Vpool difference indicates vpool2 adds VPlex high
      *         availability, false otherwise.
      */
@@ -513,12 +513,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * Returns true if the new virtual pool contains the storage pool of the
      * volume requested for virtual pool change.
-     * 
+     *
      * @param volume the volume requested for virtual pool change
      * @param newVpool the target virtual pool
      * @param notSuppReasonBuff [OUT] contains the reasons a virtual pool
      *            change is not supported
-     * 
+     *
      * @return true if the target virtual pool contains the storage pool of
      *         the volume requested for virtual pool change
      */
@@ -541,12 +541,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * Returns true iff the only difference is converting from a vplex_local to
      * vplex_distributed.
-     * 
+     *
      * @param vpool1 A reference to a Vpool
      * @param vpool2 A reference to a Vpool
      * @param notSuppReasonBuff [OUT] Specifies the reason a Vpool change is not
      *            supported between the two Vpool.
-     * 
+     *
      * @return true if the Vpool difference specifies only a change in the high
      *         availability type from local to distributed, false otherwise.
      */
@@ -594,7 +594,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      * Verifies the Vpool change for a tech refresh of a VPlex virtual volume.
      * The Vpool should only specify a simple change such as the type of disk
      * drive.
-     * 
+     *
      * @param srcVpool The Vpool of the migration source
      * @param tgtVpool The proposed Vpool of the migration target.
      */
@@ -618,7 +618,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Determines if the volume qualifies for RP protection. (and if not, why not)
-     * 
+     *
      * @param volume A reference to the volume.
      * @param currentVpool A reference to the current volume Vpool.
      * @param newVpool The desired new Vpool.
@@ -707,7 +707,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Determines if the volume qualifies for SRDF protection. (and if not, why not)
-     * 
+     *
      * @param volume A reference to the volume.
      * @param currentVpool A reference to the current volume Vpool.
      * @param newVpool The desired new Vpool.
@@ -770,7 +770,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Determine if the volume qualifies for the addition of continuous copies.
-     * 
+     *
      * @param volume
      * @param currentVpool
      * @param newVpool
@@ -818,7 +818,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * This method is used for the VPLEX Distributed volume to check if add mirror(s) is
      * supported by changing vpool to newVpool.
-     * 
+     *
      * @param volume The reference to the volume
      * @param currentVpool The reference to the current virtual pool for the volume
      * @param newVpool The reference to new virtual pool
@@ -901,7 +901,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Checks to see if only the Export Path Params have changed.
-     * 
+     *
      * @param volume
      * @param currentVpool
      * @param newVpool
@@ -945,7 +945,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Check to see if the current VirtualPool is the same as the requested VirtualPool.
-     * 
+     *
      * @param current
      * @param requested
      * @param notSuppReasonBuff
@@ -953,7 +953,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      */
     public static boolean isSameVirtualPool(VirtualPool current, VirtualPool requested, StringBuffer notSuppReasonBuff) {
         if (current.getId().equals(requested.getId())) {
-            String msg = "The target virtual pool is the same as current virtual pool.";
+            String msg = String.format("The target virtual pool [%s] is the same as current virtual pool.", requested.getLabel());
             s_logger.info(msg);
             if (notSuppReasonBuff != null) {
                 notSuppReasonBuff.append(msg);
@@ -968,8 +968,66 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     }
 
     /**
+     * Checks to see if the replication mode change is supported.
+     *
+     * @param currentVpool the source virtual pool
+     * @param newVpool the target virtual pool
+     * @param notSuppReasonBuff the not supported reason string buffer
+     * @return
+     */
+    public static boolean isSupportedReplicationModeChange(VirtualPool currentVpool, VirtualPool newVpool, StringBuffer notSuppReasonBuff) {
+        s_logger.info(String.format("Checking isSupportedReplicationModeChange from [%s] to [%s]...", currentVpool.getLabel(),
+                newVpool.getLabel()));
+        // Make sure the VirtualPool's are not the same instance.
+        if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
+            return false;
+        }
+
+        // Both the source and target vpools must specify RP protection.
+        // NOTE: If support for SRDF is added in the future, we must modify the conditions
+        if (!VirtualPool.vPoolSpecifiesProtection(currentVpool) || !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("Replication Mode virtual pool change is not supported for target virtual pool %s.  Cannot modify the replication mode if both the source and target vpools do not specify RP protection.",
+                                    newVpool.getLabel()));
+            s_logger.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // First, check that RP_COPY_MODE changed.
+        String[] included = new String[] { RP_COPY_MODE };
+        if (analyzeChanges(currentVpool, newVpool, included, null, null).isEmpty()) {
+            notSuppReasonBuff
+                    .append(String
+                            .format(
+                                    "Replication Mode virtual pool change is not supported for target virtual pool %s. There is no change in replication mode.",
+                                    newVpool.getLabel()));
+            s_logger.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // Check that nothing other than the excluded attributes changed.
+        List<String> excluded = new ArrayList<String>();
+        String[] exclude = new String[] { RP_COPY_MODE, RP_RPO_VALUE, RP_RPO_TYPE, PROTECTION_VARRAY_SETTINGS };
+        excluded.addAll(Arrays.asList(exclude));
+        excluded.addAll(Arrays.asList(generallyExcluded));
+        Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
+        if (!changes.isEmpty()) {
+            notSuppReasonBuff.append(String.format("These target virtual pool [%s] differences are invalid: ", newVpool.getLabel()));
+            for (String key : changes.keySet()) {
+                notSuppReasonBuff.append(key + " ");
+            }
+            s_logger.info(String.format("Replication Mode virtual pool change not supported. %s. Parameters other than %s were changed.",
+                    notSuppReasonBuff.toString(), excluded.toString()));
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Checks to see if only the Auto-tiering policy and/or host io limits (only for vmax) has changed.
-     * 
+     *
      * @param volume the volume
      * @param currentVpool the current vPool
      * @param newVpool the new vPool
@@ -989,7 +1047,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
          * Case 3 : from some Auto-tiering policy (current vPool) to NONE (no Auto-tiering policy in new vPool).
          * - no need to check whether system type has changed.
          * Case 4 : from host io limit bandwidth and/or iops fron current vpool are different from new vPool.
-         * 
+         *
          */
         s_logger.info(String.format("Checking isSupportedAutoTieringPolicyAndLimitsChange from [%s] to [%s]...", currentVpool.getLabel(),
                 newVpool.getLabel()));
@@ -1052,6 +1110,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String[] exclude = EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE;
         excluded.addAll(Arrays.asList(exclude));
         excluded.addAll(Arrays.asList(generallyExcluded));
+        // PROTECTION_VARRAY_SETTINGS changes every time a vpool is duplicated so we will ignore it, otherwise
+        // this change vpool operation is blocked.
+        // RP_RPO_VALUE will be updated from null to 0 if any vpool update is performed so we will ignore it,
+        // otherwise this change vpool operation is blocked.
+        excluded.addAll(Arrays.asList(RP_RPO_VALUE, PROTECTION_VARRAY_SETTINGS));
         if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(currentVpool)
                 && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(newVpool)) {
             // get current & new HA vPools and compare
@@ -1096,7 +1159,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * Check that target vPool has volume's storage pool in its matched pools list.
      * If target vPool has manual pool selection enabled, then volume's pool should be in assigned pools list.
-     * 
+     *
      * In case of VPLEX Distributed vPool, the check is also done for HA vPool.
      */
     private static boolean checkTargetVpoolHasVolumePool(Volume volume,
@@ -1143,7 +1206,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Determines if the VPLEX volume qualifies for RP protection. (and if not, why not)
-     * 
+     *
      * @param volume
      * @param currentVpool
      * @param newVpool
@@ -1163,7 +1226,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Convenience method to add extra element to an array
-     * 
+     *
      * @param array reference to an array
      * @param element new element to be added to the array
      * @return the array update with new element
@@ -1176,7 +1239,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Determines if the volume qualifies for RP protection. (and if not, why not)
-     * 
+     *
      * @param volume A reference to the volume.
      * @param currentVpool A reference to the current volume Vpool.
      * @param newVpool The desired new Vpool.
@@ -1367,16 +1430,15 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
         return true;
     }
-    
+
     /**
      * Determines if the volume qualifies for RP protection. (and if not, why not)
-     * 
-     
+     *
      */
-    
+
     /**
      * Checks to see if the remove protection operation is supported.
-     * 
+     *
      * @param volume A reference to the volume.
      * @param currentVpool A reference to the current volume Vpool.
      * @param newVpool The desired new Vpool.
@@ -1392,15 +1454,15 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         // Make sure the Vpool are not the same instance.
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
             return false;
-        }        
-           
+        }
+
         if (volume.checkForRp()
                 && VirtualPool.vPoolSpecifiesProtection(currentVpool)
-                && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {            
+                && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
             // Check that nothing other than the excluded attributes changed.
             List<String> excluded = new ArrayList<String>();
-            String[] exclude = new String[] { PROTECTION_VARRAY_SETTINGS, RP_RPO_VALUE, RP_RPO_TYPE, 
-                    RP_COPY_MODE, ARRAY_INFO, DRIVE_TYPE, JOURNAL_SIZE, JOURNAL_VARRAY, JOURNAL_VPOOL, 
+            String[] exclude = new String[] { PROTECTION_VARRAY_SETTINGS, RP_RPO_VALUE, RP_RPO_TYPE,
+                    RP_COPY_MODE, ARRAY_INFO, DRIVE_TYPE, JOURNAL_SIZE, JOURNAL_VARRAY, JOURNAL_VPOOL,
                     MULTI_VOLUME_CONSISTENCY, METROPOINT };
             excluded.addAll(Arrays.asList(exclude));
             excluded.addAll(Arrays.asList(generallyExcluded));
@@ -1420,7 +1482,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             s_logger.warn("RP remove protection operation is NOT supported.");
             return false;
         }
-        
+
         s_logger.info("RP remove protection operation is supported.");
         return true;
     }

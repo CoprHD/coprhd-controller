@@ -13,13 +13,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "file_vpool_update")
 public class FileVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
 
-    private FileVirtualPoolProtectionParam protection;
+    private FileVirtualPoolProtectionUpdateParam protection;
     private Boolean retention;
 
     public FileVirtualPoolUpdateParam() {
     }
 
-    public FileVirtualPoolUpdateParam(FileVirtualPoolProtectionParam protection) {
+    public FileVirtualPoolUpdateParam(FileVirtualPoolProtectionUpdateParam protection) {
         super();
         this.protection = protection;
     }
@@ -30,11 +30,11 @@ public class FileVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
      * @valid none
      */
     @XmlElement(name = "protection")
-    public FileVirtualPoolProtectionParam getProtection() {
+    public FileVirtualPoolProtectionUpdateParam getProtection() {
         return protection;
     }
 
-    public void setProtection(FileVirtualPoolProtectionParam protection) {
+    public void setProtection(FileVirtualPoolProtectionUpdateParam protection) {
         this.protection = protection;
     }
 

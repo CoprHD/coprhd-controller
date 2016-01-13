@@ -7,7 +7,6 @@ package com.emc.storageos.security.geo;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.db.common.DependencyChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,14 +15,15 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
+import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.db.common.VdcUtil;
 
 public class GeoDependencyChecker {
     final private Logger log = LoggerFactory.getLogger(GeoDependencyChecker.class);
 
-    private DbClient dbClient;
-    private GeoClientCacheManager geoClientManager;
-    private DependencyChecker localDependencyChecker;
+    private final DbClient dbClient;
+    private final GeoClientCacheManager geoClientManager;
+    private final DependencyChecker localDependencyChecker;
 
     public GeoDependencyChecker(DbClient dbClient, CoordinatorClient coordinator, DependencyChecker localDependencyChecker) {
         this.dbClient = dbClient;
@@ -45,7 +45,22 @@ public class GeoDependencyChecker {
      * @return null if no references exist on this uri, return the type of the dependency if exist
      */
     public String checkDependencies(URI uri, Class<? extends DataObject> type, boolean onlyActive) {
-        String depMsg = localDependencyChecker.checkDependencies(uri, type, true);
+        return checkDependencies(uri, type, onlyActive, null);
+    }
+
+    /**
+     * checks to see if any references exist for this uri
+     * uses dependency list created from relational indices
+     * 
+     * @param uri id of the DataObject
+     * @param type DataObject class name
+     * @param onlyActive if true, checks for active references only (expensive)
+     * @param excludeTypes optional list of classes that can be excluded as dependency
+     * @return null if no references exist on this uri, return the type of the dependency if exist
+     */
+    public String checkDependencies(URI uri, Class<? extends DataObject> type, boolean onlyActive,
+            List<Class<? extends DataObject>> excludeTypes) {
+        String depMsg = localDependencyChecker.checkDependencies(uri, type, true, excludeTypes);
         if (depMsg != null || KeyspaceUtil.isLocal(type)) {
             return depMsg;
         }
@@ -60,7 +75,7 @@ public class GeoDependencyChecker {
         VirtualDataCenter vDC = null;
         for (URI vDCId : vDCIds) {
             if (vDCId.equals(VdcUtil.getLocalVdc().getId()))
-             {
+            {
                 continue; // skip local vDC
             }
 
@@ -93,7 +108,7 @@ public class GeoDependencyChecker {
         VirtualDataCenter vDC = null;
         for (URI vDCId : vDCIds) {
             if (vDCId.equals(VdcUtil.getLocalVdc().getId()))
-             {
+            {
                 continue; // skip local vDC
             }
 

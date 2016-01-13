@@ -16,14 +16,16 @@ public class SiteMonitorResult implements CoordinatorSerializable {
     
     private boolean isActiveSiteLeaderAlive;
     private boolean isActiveSiteStable;
+    private long dbQuorumLostSince;
     
     public SiteMonitorResult() {
         
     }
     
-    public SiteMonitorResult(boolean isActiveSiteLeaderAlive, boolean isActiveSiteStable) {
+    private SiteMonitorResult(boolean isActiveSiteLeaderAlive, boolean isActiveSiteStable, long dbQuorumLostSince) {
         this.isActiveSiteLeaderAlive = isActiveSiteLeaderAlive;
         this.isActiveSiteStable = isActiveSiteStable;
+        this.dbQuorumLostSince = dbQuorumLostSince;
     }
 
     public boolean isActiveSiteLeaderAlive() {
@@ -42,12 +44,22 @@ public class SiteMonitorResult implements CoordinatorSerializable {
         this.isActiveSiteStable = isActiveSiteStable;
     }
 
+    public long getDbQuorumLostSince() {
+        return dbQuorumLostSince;
+    }
+
+    public void setDbQuorumLostSince(long dbQuorumLostSince) {
+        this.dbQuorumLostSince = dbQuorumLostSince;
+    }
+
     @Override
     public String encodeAsString() {
         StringBuilder sb = new StringBuilder();
         sb.append(isActiveSiteLeaderAlive);
         sb.append(ENCODING_SEPARATOR);
         sb.append(isActiveSiteStable);
+        sb.append(ENCODING_SEPARATOR);
+        sb.append(dbQuorumLostSince);
         return sb.toString();
     }
 
@@ -58,11 +70,12 @@ public class SiteMonitorResult implements CoordinatorSerializable {
         }
 
         final String[] strings = infoStr.split(ENCODING_SEPARATOR);
-        if (strings.length != 2) {
+        if (strings.length != 3) {
             throw CoordinatorException.fatals.decodingError("invalid site monitor state info");
         }
         
-        return new SiteMonitorResult(Boolean.parseBoolean(strings[0]), Boolean.parseBoolean(strings[1]));
+        return new SiteMonitorResult(Boolean.parseBoolean(strings[0]), Boolean.parseBoolean(strings[1]),
+                Long.valueOf(strings[2]));
     }
 
     @Override

@@ -66,7 +66,8 @@ public class BackupSchedulerTest {
         BackupExecutor bakExec = new BackupExecutor(cfg, cli);
 
         for (int i = 0; i < 365; i++) {
-            bakExec.runOnce();
+            bakExec.create();
+            bakExec.reclaim();
 
             // Advance time
             cfg.currentTime.add(Calendar.DAY_OF_MONTH, 1);
@@ -118,7 +119,7 @@ public class BackupSchedulerTest {
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
         // not retire backups in cluster.
-        upExec.runOnce();
+        upExec.upload();
 
         // Verify the backups are uploaded
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
@@ -175,7 +176,7 @@ public class BackupSchedulerTest {
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
         // not retire backups in cluster.
-        upExec.runOnce();
+        upExec.upload();
 
         Assert.assertTrue("Missing completed tag", cfg.uploadedBackups.contains(aliveBackupsAt20141231[0]));
         Assert.assertTrue("Missing completed tag", cfg.uploadedBackups.contains(aliveBackupsAt20141231[1]));

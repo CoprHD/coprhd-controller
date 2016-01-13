@@ -225,6 +225,10 @@ _get_ips_in_active() {
     local cursite_begin_index="0"
     local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_node_count"
     local primary_cnt="${!var}"
+    if [ -z "${primary_cnt}" ]; then
+       var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+       primary_cnt="${!var}"
+    fi
     local ips=""
     for i in $(seq ${primary_cnt}) ; do
         local ipaddr=""

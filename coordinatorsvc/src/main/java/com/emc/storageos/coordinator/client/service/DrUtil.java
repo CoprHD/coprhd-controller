@@ -507,4 +507,14 @@ public class DrUtil {
 
         return lock;
     }
+    
+    /**
+     * Check if it is a multi-vdc configuration 
+     * 
+     * @return true if there are more than 1 vdc
+     */
+    public boolean isMultivdc() {
+        return getVdcSiteMap().keySet().size() > 1;
+    }
+
 }

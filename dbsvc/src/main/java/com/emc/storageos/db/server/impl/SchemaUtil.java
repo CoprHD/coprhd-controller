@@ -346,11 +346,6 @@ public class SchemaUtil {
                 // Ensure schema agreement before checking the strategy options,
                 // since the strategy options from the local site might be older than the active site
                 // and shouldn't be used any more.
-                // Also there is a chance that some of the nodes in the current site has been added to
-                // gossip before the restart, in which case they must be removed again before a schema
-                // agreement can be reached.
-                // All the other nodes in the current site are now being blocked by the schema lock
-                // and are definitely unreachable if they are already in the ring.
                 clientContext.ensureSchemaAgreement();
             }
             checkStrategyOptions();

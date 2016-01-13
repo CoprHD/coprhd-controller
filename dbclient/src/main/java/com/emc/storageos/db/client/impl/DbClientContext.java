@@ -6,7 +6,6 @@
 package com.emc.storageos.db.client.impl;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -36,11 +35,21 @@ import com.netflix.astyanax.partitioner.Murmur3Partitioner;
 import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.retry.RetryPolicy;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
+import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TFramedTransport;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -366,10 +375,12 @@ public class DbClientContext {
 
             // ensure a schema agreement before updating the strategy options
             // or else it's destined to fail due to SchemaDisagreementException
-            ensureSchemaAgreement();
+            boolean hasUnreachableNodes = ensureSchemaAgreement();
 
             String schemaVersion;
-            if (kd != null) {
+            if (hasUnreachableNodes) {
+                schemaVersion = alterKeyspaceWithThrift(kd, update);
+            } else if (kd != null) {
                 schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
             } else {
                 schemaVersion = cluster.addKeyspace(update).getResult().getSchemaId();
@@ -382,6 +393,23 @@ public class DbClientContext {
             log.error("Fail to update strategy option", ex);
             throw DatabaseException.fatals.failedToChangeStrategyOption(ex.getMessage());
         }
+    }
+
+    private String alterKeyspaceWithThrift(KeyspaceDefinition kd, KeyspaceDefinition update) {
+        try (TTransport tr = new TFramedTransport(new TSocket(LOCAL_HOST, getThriftPort()))) {
+            TProtocol proto = new TBinaryProtocol(tr);
+            Cassandra.Client client = new Cassandra.Client(proto);
+            tr.open();
+            KsDef def = ((ThriftKeyspaceDefinitionImpl) update).getThriftKeyspaceDefinition();
+            if (kd != null) {
+                return client.system_update_keyspace(def);
+            } else {
+                return client.system_add_keyspace(def);
+            }
+        } catch (TException e) {
+            log.error("Failed to update keyspace with thrift", e);
+        }
+        return null;
     }
 
     /**
@@ -408,14 +436,11 @@ public class DbClientContext {
     }
 
     /**
-     * Forcibly reach a schema agreement
-     * If a schema agreement cannot be reached ONLY because there are unreachable nodes,
-     * remove these unreachable nodes and try again.
+     * Try to reach a schema agreement among all the reachable nodes
      *
-     * This should be fine since all the removed nodes will add themselves back to gossip
-     * should they ever come back again.
+     * @return true if there are unreachable nodes
      */
-    public void ensureSchemaAgreement() {
+    public boolean ensureSchemaAgreement() {
         long start = System.currentTimeMillis();
         Map<String, List<String>> schemas = null;
         while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
@@ -432,20 +457,8 @@ public class DbClientContext {
                 // there are more than two schema versions besides UNREACHABLE, keep waiting.
                 continue;
             }
-            if (schemas.size() == 1 && !schemas.containsKey(StorageProxy.UNREACHABLE)) {
-                // schema agreement reached and we are all set
-                return;
-            }
-            // schemas.size() == 2, try removing the unreachable nodes from all sites and check again.
-            if (schemas.containsKey(StorageProxy.UNREACHABLE)) {
-                for (String nodeIp : schemas.get(StorageProxy.UNREACHABLE)) {
-                    try {
-                        removeCassandraNode(InetAddress.getByName(nodeIp));
-                    } catch (UnknownHostException e) {
-                        log.error("Invalid node IP: {}", nodeIp);
-                        throw new IllegalStateException(e);
-                    }
-                }
+            if (schemas.size() == 1) {
+                return schemas.containsKey(StorageProxy.UNREACHABLE);
             }
         }
         log.error("Unable to converge schema versions {}", schemas);

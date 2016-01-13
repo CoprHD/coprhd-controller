@@ -1418,7 +1418,7 @@ public class CoordinatorClientExt {
         if (drUtil.isActiveSite()) {
             _log.info("Start monitoring local networkMonitor status on active site");
             ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
-            exe.scheduleAtFixedRate(new DrSiteNetworkMonitor(getMyNodeId()), 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+            exe.scheduleAtFixedRate(new DrSiteNetworkMonitor(getMyNodeId(),_coordinator), 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
     }
 

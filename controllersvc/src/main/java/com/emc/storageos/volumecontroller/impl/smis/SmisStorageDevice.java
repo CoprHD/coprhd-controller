@@ -2472,14 +2472,15 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doSuspendLink(StorageSystem system, Volume targetVolume, boolean consExempt, TaskCompleter completer) {
-        _srdfOperations.performSuspend(system, targetVolume, consExempt, completer);
+    public void doSuspendLink(StorageSystem system, Volume targetVolume, boolean consExempt, boolean refreshVolumeProperties,
+            TaskCompleter completer) {
+        _srdfOperations.performSuspend(system, targetVolume, consExempt, refreshVolumeProperties, completer);
     }
 
     @Override
     public void doResumeLink(final StorageSystem system, final Volume targetVolume,
-            final TaskCompleter completer) {
-        _srdfOperations.performEstablish(system, targetVolume, completer);
+            boolean refreshVolumeProperties, final TaskCompleter completer) {
+        _srdfOperations.performEstablish(system, targetVolume, refreshVolumeProperties, completer);
     }
 
     @Override
@@ -2749,6 +2750,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
+    public void refreshVolumeProperties(URI systemURI, List<URI> volumeURIs) throws Exception {
+        _srdfOperations.refreshVolumeProperties(systemURI, volumeURIs);
+    }
+
     public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         try {

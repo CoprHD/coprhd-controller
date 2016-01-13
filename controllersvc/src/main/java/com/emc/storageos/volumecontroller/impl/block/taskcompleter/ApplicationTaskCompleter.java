@@ -51,26 +51,30 @@ public class ApplicationTaskCompleter extends TaskCompleter{
         log.info("START ApplicationCompleter complete");
         super.setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
-        for (URI voluri : addVolumes) {
-            Volume volume = getVolume(voluri, dbClient);
-            switch (status) {
-                case error:
-                    setErrorOnDataObject(dbClient, Volume.class, volume.getId(), coded);
-                    break;
-                default:
-                    setReadyOnDataObject(dbClient, Volume.class, volume.getId());
-                    addApplicationToVolume(volume, dbClient);
+        if (addVolumes != null) {
+            for (URI voluri : addVolumes) {
+                Volume volume = getVolume(voluri, dbClient);
+                switch (status) {
+                    case error:
+                        setErrorOnDataObject(dbClient, Volume.class, volume.getId(), coded);
+                        break;
+                    default:
+                        setReadyOnDataObject(dbClient, Volume.class, volume.getId());
+                        addApplicationToVolume(volume, dbClient);
+                }
             }
         }
-        for (URI voluri : removeVolumes) {
-            Volume volume = getVolume(voluri, dbClient);
-           switch (status) {
-                case error:
-                    setErrorOnDataObject(dbClient, Volume.class, volume.getId(), coded);
-                    break;
-                default:
-                    setReadyOnDataObject(dbClient, Volume.class, volume.getId());
-                    removeApplicationFromVolume(volume.getId(), dbClient);
+        if (removeVolumes != null) {
+            for (URI voluri : removeVolumes) {
+                Volume volume = getVolume(voluri, dbClient);
+               switch (status) {
+                    case error:
+                        setErrorOnDataObject(dbClient, Volume.class, volume.getId(), coded);
+                        break;
+                    default:
+                        setReadyOnDataObject(dbClient, Volume.class, volume.getId());
+                        removeApplicationFromVolume(volume.getId(), dbClient);
+                }
             }
         }
         if (consistencyGroups != null && !consistencyGroups.isEmpty()) {

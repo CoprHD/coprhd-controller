@@ -45,7 +45,7 @@
           "baseService": "DiscoverUnmanagedVolumes"
         },
         {
-          "image": "Service_Discover_Unmanaged_Volumes.png",
+          "image": "Service_Discover_Unmanaged_CGs.png",
           "baseService": "DiscoverUnmanagedCGs"
         },
         {

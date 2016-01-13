@@ -20,17 +20,17 @@ public class DbStepUpgradeTest extends DbStepSkipUpgradeTestBase {
     public void runStepUpgradeTest() throws Exception {
 
         stopAll();
-        setupDB(initalVersion, "com.emc.storageos.db.server.upgrade.util.models.old");
+        setupDB(initalVersion, initalVersion, "com.emc.storageos.db.server.upgrade.util.models.old");
         prepareData1();
         stopAll();
-        setupDB(firstUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated");
+        setupDB(initalVersion,firstUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated");
         // restart with same version
         stopAll();
-        setupDB(firstUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated");
+        setupDB(firstUpgradeVersion, firstUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated");
         firstUpgradeVerifyResults();
         prepareData2();
         stopAll();
-        setupDB(secondUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated2");
+        setupDB(firstUpgradeVersion, secondUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated2");
         secondUpgradeVerifyResults();
         stop();
     }

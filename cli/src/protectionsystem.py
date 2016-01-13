@@ -35,6 +35,7 @@ class ProtectionSystem(object):
     URI_PROTECTION_SYSTEM_UPDATE = URI_PROTECTION_SYSTEMS + "/{0}"
     URI_PROTECTION_SYSTEMS_DISCOVER_ALL = URI_PROTECTION_SYSTEMS + "/discover"
     URI_PROTECTION_SYSTEM_DISCOVER = URI_PROTECTION_SYSTEMS + "/{0}/discover"
+    URI_PROTECTION_SYSTEM_DISCOVER_UNMANAGED_CGS = URI_PROTECTION_SYSTEMS + "/{0}/discover?namespace=UNMANAGED_CGS"
     URI_PROTECTION_SYSTEM_CONNECTIVITY = URI_PROTECTION_SYSTEMS + \
                                          "/{0}/connectivity"
     URI_PROTECTION_SYSTEM_DEACTIVATE = URI_PROTECTION_SYSTEMS + \
@@ -307,6 +308,23 @@ class ProtectionSystem(object):
                             None)
         return common.json_decode(s)
 
+    def ps_discover_unmanaged_cgs(self, name):
+        '''
+        Discover the unmanaged CGs of a RP protection system based
+        on its name
+        Parameters:
+            name: name of protection system
+        Returns:
+            Success or failure exception
+        '''
+        if (name is not None):
+            uri = self.ps_query(name)
+            (s, h) = common.service_json_request(self.__ipAddr, self.__port, 
+                            "POST", 
+                            self.URI_PROTECTION_SYSTEM_DISCOVER_UNMANAGED_CGS.format(uri),
+                            None)
+        return common.json_decode(s)
+
     def ps_connectivity(self, name):
         '''
         This function will take name of protection system as input and
@@ -553,10 +571,12 @@ def discover_parser(subcommand_parsers, common_parser):
                 parents=[common_parser],
                 conflict_handler='resolve',
                 help='discover a Protection system')
-    discover_parser.add_argument('-name', '-n',
-                                 help='name of Protection system',
-                                 dest='name',
-                                 metavar='<psname>')
+    mandatory_args = discover_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='name of Protection system',
+                                dest='name',
+                                metavar='<psname>',
+                                required=True)
 
     discover_parser.set_defaults(func=ps_discover)
 
@@ -576,6 +596,36 @@ def ps_discover(args):
             common.format_err_msg_and_raise("discover",
                                             "protectionsystem",
                                             e.err_text, e.err_code)
+
+# Protection system unmanaged CGS discover routines
+
+def um_cgs_discover_parser(subcommand_parsers, common_parser):
+    um_cg_discover_parser = subcommand_parsers.add_parser(
+        'discover_unmanagedcg',
+        description='ViPR Protection system discover unmanaged CG CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Discover unmanaged CG details')
+    mandatory_args = um_cg_discover_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='name of Protection system',
+                                dest='name',
+                                metavar='<psname>',
+                                required=True)
+        
+    um_cg_discover_parser.set_defaults(func=ps_discover_unmanaged_cgs)
+
+
+def ps_discover_unmanaged_cgs(args):
+    obj = ProtectionSystem(args.ip, args.port)
+    try:
+        res = obj.ps_discover_unmanaged_cgs(args.name)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "discover unmanaged CGs",
+            "protectionsystem",
+            e.err_text,
+            e.err_code)
 
 # Protection system connectivity routines
 
@@ -749,6 +799,9 @@ def protectionsystem_parser(parent_subparser, common_parser):
 
     # list command parser
     discover_parser(subcommand_parsers, common_parser)
+
+    # unmanaged CGs discover  command parser
+    um_cgs_discover_parser(subcommand_parsers, common_parser)
 
     # list command parser
     connectivity_parser(subcommand_parsers, common_parser)

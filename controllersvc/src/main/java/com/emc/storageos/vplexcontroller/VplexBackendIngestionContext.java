@@ -43,7 +43,7 @@ import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
  */
 public class VplexBackendIngestionContext {
 
-    private static Logger _logger = LoggerFactory.getLogger(VplexBackendIngestionContext.class);
+    protected static Logger _logger = LoggerFactory.getLogger(VplexBackendIngestionContext.class);
 
     public static final String VOLUME = "VOLUME";
     public static final String UNMANAGEDVOLUME = "UNMANAGEDVOLUME";
@@ -58,7 +58,7 @@ public class VplexBackendIngestionContext {
     public static final String SLOT_0 = "0";
     public static final String SLOT_1 = "1";
 
-    private final DbClient _dbClient;
+    protected final DbClient _dbClient;
     private final UnManagedVolume _unmanagedVirtualVolume;
 
     private boolean _discoveryInProgress = false;
@@ -78,11 +78,6 @@ public class VplexBackendIngestionContext {
 
     private Project backendProject;
     private Project frontendProject;
-
-    private final Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
-    private final Map<String, BlockObject> createdObjectMap = new HashMap<String, BlockObject>();
-    private final Map<String, List<DataObject>> updatedObjectMap = new HashMap<String, List<DataObject>>();
-    private final List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
 
     // A map of BlockSnapshot instances that are created during VPLEX backend ingestion. Snapshots
     // can be created when the VPLEX backend volume is also a snapshot target volume.
@@ -869,46 +864,6 @@ public class VplexBackendIngestionContext {
     }
 
     /**
-     * Returns the Map of processed UnManagedVolumes, used
-     * by the general ingestion framework.
-     * 
-     * @return the processed UnManagedVolume Map
-     */
-    public Map<String, UnManagedVolume> getProcessedUnManagedVolumeMap() {
-        return processedUnManagedVolumeMap;
-    }
-
-    /**
-     * Returns the Map of created objects, used
-     * by the general ingestion framework.
-     * 
-     * @return the created object Map
-     */
-    public Map<String, BlockObject> getCreatedObjectMap() {
-        return createdObjectMap;
-    }
-
-    /**
-     * Returns the Map of updated objects, used
-     * by the general ingestion framework.
-     * 
-     * @return the updated object Map
-     */
-    public Map<String, List<DataObject>> getUpdatedObjectMap() {
-        return updatedObjectMap;
-    }
-
-    /**
-     * Returns the Map of ingested objects, used
-     * by the general ingestion framework.
-     * 
-     * @return the ingested objects Map
-     */
-    public List<BlockObject> getIngestedObjects() {
-        return ingestedObjects;
-    }
-
-    /**
      * Returns the map of BlockSnapshot instances created during VPLEX backend ingestion.
      * 
      * @return The map of BlockSnapshot instances created during VPLEX backend ingestion.
@@ -1282,40 +1237,4 @@ public class VplexBackendIngestionContext {
         }
     }
 
-    /**
-     * Returns a detailed report on the state of everything in this context,
-     * useful for debugging.
-     * 
-     * @return a detailed report on the context
-     */
-    public String toStringDebug() {
-        StringBuilder s = new StringBuilder("\n\nVplexBackendIngestionContext \n\t ");
-        s.append("unmanaged virtual volume: ").append(this._unmanagedVirtualVolume).append(" \n\t ");
-        s.append("unmanaged backend volume(s): ").append(this.getUnmanagedBackendVolumes()).append(" \n\t ");
-        s.append("unmanaged snapshots: ").append(this.getUnmanagedSnapshots()).append(" \n\t ");
-        s.append("unmanaged full clones: ").append(this.getUnmanagedVplexClones()).append(" \n\t ");
-        s.append("unmanaged backend only clones: ").append(this.getUnmanagedBackendOnlyClones()).append(" \n\t ");
-        s.append("unmanaged mirrors: ").append(this.getUnmanagedVplexMirrors()).append(" \n\t ");
-        s.append("ingested objects: ").append(this.getIngestedObjects()).append(" \n\t ");
-        s.append("created objects map: ").append(this.getCreatedObjectMap()).append(" \n\t ");
-        s.append("updated objects map: ");
-        for (Entry<String, List<DataObject>> e : this.getUpdatedObjectMap().entrySet()) {
-            s.append(e.getKey()).append(": ");
-            for (DataObject o : e.getValue()) {
-                s.append(o.getLabel()).append("; ");
-            }
-        }
-        s.append(" \n\t ");
-        s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap()).append("\n");
-        return s.toString();
-    }
-
-    @Override
-    public String toString() {
-        if (_logger.isDebugEnabled()) {
-            return toStringDebug();
-        }
-
-        return super.toString();
-    }
 }

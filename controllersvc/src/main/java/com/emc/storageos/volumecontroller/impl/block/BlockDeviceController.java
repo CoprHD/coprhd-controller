@@ -2149,14 +2149,24 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
 
             if (system.checkIfVmax3()) {
+                _log.info("Creating workflow for restore VMAX3 snapshot {}", blockSnapshot.getId());
+
                 // To restore the source from a linked target volume for VMAX3 SnapVX, we must
                 // do the following:
                 //
-                // 1. Create a temporary snapshot session of the linked target volume.
-                // 2. Link the source volume of the BlockSnapshot to the temporary snapshot session in copy mode.
-                // 3. Wait for the data from the session to be copied to the source.
-                // 4. Unlink the source from the temporary session.
-                // 5. Delete the temporary session.
+                // 1. Terminate any stale restore sessions on the source.
+                // 2. Create a temporary snapshot session of the linked target volume.
+                // 3. Link the source volume of the BlockSnapshot to the temporary snapshot session in copy mode.
+                // 4. Wait for the data from the session to be copied to the source.
+                // 5. Unlink the source from the temporary session.
+                // 6. Delete the temporary session.
+
+                // Create a workflow step to terminate stale restore sessions on the source.
+                waitFor = workflow.createStep(BLOCK_VOLUME_RESTORE_GROUP,
+                        String.format("Terminating VMAX restore session from %s to %s", blockSnapshot.getId(), sourceVolume.getId()),
+                        waitFor, system.getId(), system.getSystemType(), BlockDeviceController.class,
+                        terminateRestoreSessionsMethod(system.getId(), sourceVolume.getId(), blockSnapshot.getId()),
+                        rollbackMethodNullMethod(), null);
 
                 // Create a BlockSnapshot to represent the passed source volume when it is
                 // it is linked to the snapshot session created in the previous step.

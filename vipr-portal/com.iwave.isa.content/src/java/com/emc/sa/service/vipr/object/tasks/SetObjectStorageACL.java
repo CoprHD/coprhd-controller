@@ -8,7 +8,7 @@ import com.emc.sa.service.vipr.object.ObjectStorageUtils;
 import com.emc.sa.service.vipr.object.ObjectStorageUtils.ObjectStorageACLs;
 import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.object.BucketACL;
-import com.emc.storageos.model.object.BucketACLUpdateParams;
+import com.emc.storageos.model.object.ObjectBucketACLUpdateParams;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.vipr.client.Task;
 
@@ -26,10 +26,10 @@ public class SetObjectStorageACL extends WaitForTask<BucketRestRep> {
 
     @Override
     protected Task<BucketRestRep> doExecute() throws Exception {
-        BucketACLUpdateParams aclUpdate = new BucketACLUpdateParams();
+        ObjectBucketACLUpdateParams aclUpdate = new ObjectBucketACLUpdateParams();
         BucketACL aclsToAdd = ObjectStorageUtils.createBucketACLs(acls);
         aclUpdate.setAclToAdd(aclsToAdd);
-        return getClient().objectBuckets().updateBucketACL(bucketId, shareName, aclUpdate);
+        return getClient().objectBuckets().updateBucketACL(bucketId, aclUpdate);
     }
     
 }

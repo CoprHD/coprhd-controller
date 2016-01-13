@@ -268,6 +268,7 @@ public class FileService extends TaskResourceService {
 
         if(param.getSoftLimit() > 0) {
             ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
+            ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1, "softGracePeriod");
             capabilities.put(VirtualPoolCapabilityValuesWrapper.SUPPORT_SOFT_LIMIT, true);
         }
         
@@ -1538,21 +1539,16 @@ public class FileService extends TaskResourceService {
         String origQtreeName = param.getQuotaDirName();
         ArgValidator.checkQuotaDirName(origQtreeName, "name");
         
-        Long softLimit = 0L;
-        Long notificationLimit = 0L;
-        Long softGracePeriod = 0L;
-        if(param.getSoftLimit() != null) {
-            softLimit = Long.valueOf(param.getSoftLimit());
-        }
-        if(param.getNotificationLimit() != null) {
-            notificationLimit = Long.valueOf(param.getNotificationLimit());
-        }
-        if(param.getSoftGracePeriod() != null) {
-            softGracePeriod = Long.valueOf(param.getSoftGracePeriod());
-        }
-        
+        Long softLimit = param.getSoftLimit() != null ? Long.valueOf(param.getSoftLimit()) : 0L;
+        Long notificationLimit = param.getNotificationLimit() != null ? Long.valueOf(param.getNotificationLimit()) : 0L;
+        Long softGracePeriod = param.getSoftGracePeriod() != null ? Long.valueOf(param.getSoftGracePeriod()) : 0L;
+
         ArgValidator.checkFieldMaximum(softLimit, 100, "softLimit");
         ArgValidator.checkFieldMaximum(notificationLimit, 100, "notificationLimit");
+        
+        if(softLimit != 0L) {
+            ArgValidator.checkFieldMinimum(softGracePeriod, 1L, "softGracePeriod");
+        }
 
         // check duplicate QuotaDirectory names for this fileshare
         checkForDuplicateName(origQtreeName, QuotaDirectory.class, id, "parent", _dbClient);

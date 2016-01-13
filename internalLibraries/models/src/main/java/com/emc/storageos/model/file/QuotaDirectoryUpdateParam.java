@@ -19,6 +19,9 @@ public class QuotaDirectoryUpdateParam {
     private String size; // Quota size - hard limit.
     // UNIX, NTFS, Mixed
     private String securityStyle;
+    private String softLimit;
+    private String notificationLimit;
+    private String softGracePeriod;
 
     public QuotaDirectoryUpdateParam() {
     }
@@ -73,5 +76,32 @@ public class QuotaDirectoryUpdateParam {
 
     public void setSecurityStyle(String securityStyle) {
         this.securityStyle = securityStyle;
+    }
+    
+    @XmlElement(name="softLimit")
+    public String getSoftLimit() {
+        return softLimit;
+    }
+
+    public void setSoftLimit(String softLimit) {
+        this.softLimit = softLimit;
+    }
+
+    @XmlElement(name="notificationLimit")
+    public String getNotificationLimit() {
+        return notificationLimit;
+    }
+
+    public void setNotificationLimit(String notificationLimit) {
+        this.notificationLimit = notificationLimit;
+    }
+
+    @XmlElement(name="softGracePeriod")
+    public String getSoftGracePeriod() {
+        return softGracePeriod;
+    }
+
+    public void setSoftGracePeriod(String softGracePeriod) {
+        this.softGracePeriod = softGracePeriod;
     }
 }

@@ -1174,7 +1174,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 // Isilon does not allow to update quota directory to zero.
                 if (qDirSize > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
-                    IsilonSmartQuota expandedQuota = new IsilonSmartQuota(qDirSize);
+                    IsilonSmartQuota expandedQuota = new IsilonSmartQuota(qDirSize, quotaDir.getNotificationLimit(),
+                            quotaDir.getSoftLimit(), quotaDir.getSoftGracePeriod());
                     isi.modifyQuota(quotaId, expandedQuota);
                 }
 
@@ -1215,7 +1216,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L , softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 

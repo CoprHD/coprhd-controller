@@ -249,6 +249,17 @@ public class FileQuotaDirectoryService extends TaskResourceService {
                 quotaDir.setSize(quotaSize);
             }
         }
+        
+        Long softLimit = param.getSoftLimit() != null ? Long.valueOf(param.getSoftLimit()) : 0L;
+        Long notificationLimit = param.getNotificationLimit() != null ? Long.valueOf(param.getNotificationLimit()) : 0L;
+        Long softGracePeriod = param.getSoftGracePeriod() != null ? Long.valueOf(param.getSoftGracePeriod()) : 0L;
+
+        ArgValidator.checkFieldMaximum(softLimit, 100, "softLimit");
+        ArgValidator.checkFieldMaximum(notificationLimit, 100, "notificationLimit");
+        
+        if(softLimit != 0L) {
+            ArgValidator.checkFieldMinimum(softGracePeriod, 1L, "softGracePeriod");
+        }
 
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR);

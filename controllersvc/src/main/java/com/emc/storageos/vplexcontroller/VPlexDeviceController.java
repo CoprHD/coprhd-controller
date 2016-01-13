@@ -10931,7 +10931,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Workflow.Method executeMethod = new Workflow.Method(RPDeviceController.METHOD_RECREATE_RSET_STEP, rpSystem.getId(),
                 vplexVolumeURIs, params);
         workflow.createStep(RPDeviceController.STEP_POST_VOLUME_RESTORE,
-                "Delete RP replication set step for snapshot session restore",
+                "Recreate RP replication set step for snapshot session restore",
                 waitFor, rpSystem.getId(), rpSystem.getSystemType(), RPDeviceController.class,
                 executeMethod, rollbackMethodNullMethod(), null);
         return RPDeviceController.STEP_POST_VOLUME_RESTORE;

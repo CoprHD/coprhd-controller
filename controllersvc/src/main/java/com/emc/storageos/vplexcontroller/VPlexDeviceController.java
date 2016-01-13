@@ -10892,13 +10892,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
+     * Create a step in the passed workflow that will temporarily delete the RP replication
+     * set prior to a snapshot session restore.
      * 
-     * @param workflow
-     * @param rpSystem
-     * @param vplexVolumes
-     * @param waitFor
+     * @param workflow A reference to a workflow.
+     * @param rpSystem A reference to the RP protection system.
+     * @param vplexVolumes A list of the VPLEX distributed volumes.
+     * @param waitFor The step to wait for completion.
      * 
-     * @return
+     * @return RPDeviceController.STEP_PRE_VOLUME_RESTORE
      */
     private String createWorkflowStepForDeleteReplicationSet(Workflow workflow, ProtectionSystem rpSystem,
             List<Volume> vplexVolumes, String waitFor) {
@@ -10916,13 +10918,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
+     * Create a step in the passed workflow that will recreate the RP replication set
+     * during a snapshot session restore after the remote mirrors have been reattached
+     * and the distributed VPLEX volumes are added back to their consistency group.
      * 
-     * @param workflow
-     * @param rpSystem
-     * @param vplexVolumes
-     * @param waitFor
+     * @param workflow A reference to a workflow.
+     * @param rpSystem A reference to the RP protection system.
+     * @param vplexVolumes A list of the VPLEX distributed volumes.
+     * @param waitFor The step to wait for completion.
      * 
-     * @return
+     * @return RPDeviceController.STEP_POST_VOLUME_RESTORE
      */
     private String createWorkflowStepForRecreateReplicationSet(Workflow workflow, ProtectionSystem rpSystem,
             List<Volume> vplexVolumes, String waitFor) {
@@ -10938,10 +10943,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
+     * Gets the replication set parameters.
      * 
-     * @param rpSystem
-     * @param vplexVolumes
-     * @param vplexVolumeURIs
+     * @param rpSystem A reference to the RP protection system.
+     * @param vplexVolumes A list of the VPLEX distributed volumes.
+     * @param vplexVolumeURIs An OUT parameters containing the URIs of the passed VPLEX volumes.
      * 
      * @return
      */

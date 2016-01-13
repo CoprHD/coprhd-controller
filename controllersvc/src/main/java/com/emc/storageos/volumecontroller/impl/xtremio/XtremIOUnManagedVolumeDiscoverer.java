@@ -163,9 +163,9 @@ public class XtremIOUnManagedVolumeDiscoverer {
         XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(storageSystem, xtremioRestClientFactory);
 
         unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
-        unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();
+        unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();                
         
-        unManagedCGToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+        Map <String,UnManagedConsistencyGroup> unManagedCGToUpdateMap = new HashMap<String, UnManagedConsistencyGroup>();
         
         // get the storage pool associated with the xtremio system
         StoragePool storagePool = getXtremIOStoragePool(storageSystem.getId(), dbClient);
@@ -268,26 +268,37 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 		// Update the unManagedVolume object with CG information
                 		unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());                		              	
                 		// Get the unmanaged CG details from the array
-                		XtremIOConsistencyGroup xioCG = xtremIOClient.getConsistencyGroupDetails(cgNameToProcess.toString(), xioClusterName);                		
+                		XtremIOConsistencyGroup xioCG = xtremIOClient.getConsistencyGroupDetails(cgNameToProcess.toString(), xioClusterName);                		                		
                 		// determine the native guid for the unmanaged CG (storage system id + xio cg guid)
                 		String unManagedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(storageSystem.getNativeGuid(), xioCG.getGuid());  
-                		// determine if the unmanaged CG already exists in the database
-                		UnManagedConsistencyGroup unManagedCG = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient, unManagedCGNativeGuid);
-                		if (null == unManagedCG) {                			
-                			// unmanaged CG does not exist in the database, create it
-                			unManagedCG = createUnManagedCG(unManagedCGNativeGuid, xioCG, storageSystem.getId(), dbClient);
-                			log.info("Created unmanaged consistency group: {}", unManagedCG.toString());
-                		} else {
-                			// clean out the list of unmanaged volumes, the list should be re-populated by the current discovery operation
-                			unManagedCG.getUnManagedVolumesMap().clear();
-                		}
+                		// determine if the unmanaged CG already exists in the unManagedCGToUpdateMap or in the database
+                		// if the the unmanaged CG is not in either create a new one
+                		UnManagedConsistencyGroup unManagedCG = null;
+                		if (unManagedCGToUpdateMap.containsKey(unManagedCGNativeGuid)) {
+                			unManagedCG = unManagedCGToUpdateMap.get(unManagedCGNativeGuid);
+                			log.info("Unmanaged consistency group {} was previously added to the unManagedCGToUpdateMap", unManagedCG.getLabel());
+            			} else {
+            				unManagedCG = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient, unManagedCGNativeGuid);            				
+                    		if (null == unManagedCG) {                			
+                    			// unmanaged CG does not exist in the database, create it
+                    			unManagedCG = createUnManagedCG(unManagedCGNativeGuid, xioCG, storageSystem.getId(), dbClient);
+                    			log.info("Created unmanaged consistency group: {}", unManagedCG.getId().toString());
+                    		} else {
+                    			log.info("Unmanaged consistency group {} was previously added to the database", unManagedCG.getLabel());
+                    			// clean out the list of unmanaged volumes if this unmanaged cg was already
+                    			// in the database and its first time being used in this discovery operation
+                    			// the list should be re-populated by the current discovery operation
+                    			log.info("Cleaning out unmanaged volume map from unmanaged consistency group: {}", unManagedCG.getLabel());
+                        			unManagedCG.getUnManagedVolumesMap().clear();
+                    		}                    		
+            			}
                 		log.info("Adding unmanaged volume {} to unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
                 		// set the uri of the unmanaged CG in the unmanaged volume object
                 		unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(), unManagedCG.getId().toString()); 
                 		// add the unmanaged volume object to the unmanaged CG
                 		unManagedCG.getUnManagedVolumesMap().put(unManagedVolume.getNativeGuid(), unManagedVolume.getId().toString());                		
-                		// add the unmanaged CG to the list of unmanaged CGs to be updated in the database once all volumes have been processed
-                		unManagedCGToUpdate.add(unManagedCG);
+                		// add the unmanaged CG to the map of unmanaged CGs to be updated in the database once all volumes have been processed                		
+                		unManagedCGToUpdateMap.put(unManagedCGNativeGuid, unManagedCG);                		
                 		// add the unmanaged CG to the current set of CGs being discovered on the array.  This is for book keeping later.
                 		allCurrentUnManagedCgURIs.add(unManagedCG.getId());
                 	}                	
@@ -328,7 +339,10 @@ public class XtremIOUnManagedVolumeDiscoverer {
             }
         }
 
-        if (!unManagedCGToUpdate.isEmpty()) {
+        
+        
+        if (!unManagedCGToUpdateMap.isEmpty()) {
+        	unManagedCGToUpdate = new ArrayList<UnManagedConsistencyGroup>(unManagedCGToUpdateMap.values());   
             partitionManager.updateAndReIndexInBatches(unManagedCGToUpdate,
                     Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_CONSISTENCY_GROUP);
             unManagedCGToUpdate.clear();

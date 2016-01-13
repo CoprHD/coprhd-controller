@@ -41,6 +41,7 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -174,7 +175,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                         // Do not add RP+VPlex journal or target backing volumes to consistency groups.
                         // This causes issues with local array snapshots of RP+VPlex volumes.
                         if (isCG && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
-                                        PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
+                                        PersonalityTypes.METADATA, PersonalityTypes.TARGET) &&
+                        		!(VPlexUtil.isVplexBackendVolume(volume, dbClient) && !cgObj.getArrayConsistency())) {
                             client.addVolumeToConsistencyGroup(volume.getLabel(), cgObj.getLabel(), clusterName);
                         }
                     }

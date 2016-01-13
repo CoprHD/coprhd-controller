@@ -1309,7 +1309,7 @@ public class ControllerUtils {
         if (groupName == null && cg != null) {
             groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
         }
-        if (storage != null && storage.deviceIsType(Type.vnxblock)) {
+        if (storage != null && storage.deviceIsType(Type.vnxblock) && !groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
             groupName = SmisConstants.VNX_VIRTUAL_RG + groupName;
             s_logger.info("VNX virtual replication group {}", groupName);
         }

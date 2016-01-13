@@ -66,6 +66,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.factories.VolumeFactory;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -78,6 +79,7 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -596,12 +598,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // journal/target volume, we want to ignore its storage system. We do not want to
             // create backing array consistency groups for RP+VPlex target volumes. Only
             // source volume.
-            // We don't want to create backend CG if it is Vplex backend volume, and its replicationGroupInstance
-            // attribute is not set
+            // We don't want to create backend CG if VPLEX CG arrayConsistency is false 
             Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
             String rpName = volume.getReplicationGroupInstance();
-            if (!(NullColumnValueGetter.isNullValue(rpName))) {
-            	_log.info(String.format("Creating backend CG for %s", rpName));
+            if (NullColumnValueGetter.isNotNullValue(rpName)) {
+            	_log.info("Creating backend CG.");
                 URI deviceURI = descr.getDeviceURI();
                 if (!deviceURIs.contains(deviceURI)) {
                     deviceURIs.add(deviceURI);
@@ -4225,7 +4226,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             taskCompleter = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
             String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, null, _dbClient);
             getDevice(storageSystem.getSystemType()).doCreateConsistencyGroup(
-                    storageSystem, consistencyGroup, null, taskCompleter);
+                    storageSystem, consistencyGroup, groupName, taskCompleter);
         } catch (Exception e) {
             _log.error("create consistency group job failed:", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

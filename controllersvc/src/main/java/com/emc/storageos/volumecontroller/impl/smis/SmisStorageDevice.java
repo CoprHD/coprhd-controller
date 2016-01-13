@@ -1224,7 +1224,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      */
     public void addVolumesToConsistencyGroup(StorageSystem storage,
             final BlockConsistencyGroup consistencyGroup, final List<Volume> volumes,
-            final TaskCompleter taskCompleter) throws DeviceControllerException {
+            final String replicationGroupName, final TaskCompleter taskCompleter) throws DeviceControllerException {
         if (isSRDFProtected(volumes.get(0))) {
             return;
         }
@@ -1262,7 +1262,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         _log.info("Adding Volumes to Consistency Group: {}", consistencyGroup.getId());
         try {
             // Check if the consistency group exists
-            String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
+        	String groupName = null;
+        	if (replicationGroupName != null && !replicationGroupName.isEmpty()) {
+        		groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName);
+        	} else {
+                groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
+        	}
             storage = findProviderFactory.withGroup(storage, groupName).find();
 
             if (storage == null) {

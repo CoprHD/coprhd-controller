@@ -34,10 +34,12 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -379,10 +381,12 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             // Add all the new volumes to the consistency group except for RP+VPlex target/journal backing volumes
             List<URI> updatedVolumeIds = new ArrayList<URI>();
 
+            String rpName = null;
             for (URI volumeId : volumesIds) {
                 Volume volume = dbClient.queryObject(Volume.class, volumeId);
-
-                if (!RPHelper.isAssociatedToRpVplexType(volume, dbClient, PersonalityTypes.TARGET, PersonalityTypes.METADATA)) {
+                rpName = volume.getReplicationGroupInstance();
+                if (!RPHelper.isAssociatedToRpVplexType(volume, dbClient, PersonalityTypes.TARGET, PersonalityTypes.METADATA) &&
+                		NullColumnValueGetter.isNotNullValue(rpName)) {
                     updatedVolumeIds.add(volumeId);
                 }
             }
@@ -392,7 +396,7 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
                 return;
             }
 
-            storageDevice.addVolumesToConsistencyGroup(storage, consistencyGroup, volumes, getTaskCompleter());
+            storageDevice.addVolumesToConsistencyGroup(storage, consistencyGroup, volumes, rpName, getTaskCompleter());
         } catch (Exception e) {
             _log.error("Problem making SMI-S call: ", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());

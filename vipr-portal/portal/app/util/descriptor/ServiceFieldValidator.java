@@ -51,9 +51,9 @@ public class ServiceFieldValidator {
         else if (ServiceField.TYPE_STORAGE_SIZE.equals(field.getType())) {
             validateStorageSizeField(service, field, fieldName, value);
         }
- else if (ServiceField.TYPE_EXPAND_SIZE.equals(field.getType())) {
+        else if (ServiceField.TYPE_EXPAND_SIZE.equals(field.getType())) {
             validateExpandSizeField(service, field, fieldName, value);
-        }        
+        }
         else if (ServiceField.TYPE_BOOLEAN.equals(field.getType())) {
             validateBooleanField(service, field, fieldName, value);
         }

@@ -250,7 +250,7 @@ public class ValidationUtils {
      */
     private static void validateStorageSizeField(Integer storageSize, ServiceField field, String value) {
         validateNumber(field.getName(), value);
-        int min = Math.max(1, field.getValidation().getMin());
+        int min = Math.max(0, field.getValidation().getMin());
         if (Float.valueOf(value) < min) {
             throw APIException.badRequests.serviceFieldBelowMin(field.getName());
         }

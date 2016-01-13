@@ -41,6 +41,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
     private RelatedResourceRep pool;
     private List<RelatedResourceRep> volumeGroups;
     private Boolean supportsSnapshotSessions;
+    private String replicationGroupInstance;
 
     // Fields in a Volume that are specific to RecoverPoint
     public static class RecoverPointRestRep {
@@ -641,5 +642,21 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     public void setSupportsSnapshotSessions(Boolean supportsSnapshotSessions) {
         this.supportsSnapshotSessions = supportsSnapshotSessions;
+    }
+
+    /**
+     * the replication group name on the array
+     * @return the replicationGroupInstance
+     */
+    @XmlElement(name = "replication_group_instance")
+    public String getReplicationGroupInstance() {
+        return replicationGroupInstance;
+    }
+
+    /**
+     * @param replicationGroupInstance the replicationGroupInstance to set
+     */
+    public void setReplicationGroupInstance(String replicationGroupInstance) {
+        this.replicationGroupInstance = replicationGroupInstance;
     }
 }

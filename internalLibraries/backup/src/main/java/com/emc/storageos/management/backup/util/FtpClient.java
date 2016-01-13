@@ -114,12 +114,13 @@ public class FtpClient {
             processor.captureAllTextInBackground(processor.getStdErr(), errText);
 
             for (String line : processor.enumLines(processor.getStdOut())) {
-                log.debug("File name: {}", line);
+                log.info("File name: {}", line);
                 if (!backupNamePattern.matcher(line).find()) {
                     continue;
                 }
                 if (prefix == null || line.startsWith(prefix)) {
                     fileList.add(line);
+                    log.info("Listing {}", line);
                 }
             }
 

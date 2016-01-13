@@ -21,7 +21,7 @@ public class FtpsUploader extends Uploader {
 
     public FtpsUploader(SchedulerConfig cfg, BackupScheduler cli) {
         super(cfg, cli);
-        ftpClient = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getUploadPassword());
+        ftpClient = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
     }
 
     public static boolean isSupported(String url) {

@@ -62,7 +62,7 @@ public final class DownloadExecutor implements  Runnable {
             }
         }
 
-        client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getUploadPassword());
+        client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
         remoteBackupFileName = backupZipFileName;
         this.backupOps = backupOps;
         this.notifyOthers = notifyOthers;

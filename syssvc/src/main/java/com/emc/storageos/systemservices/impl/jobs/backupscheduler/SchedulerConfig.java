@@ -91,19 +91,19 @@ public class SchedulerConfig {
         this.mailHelper = new MailHelper(coordinator.getCoordinatorClient());
     }
 
-    public String getUploadUrl() {
+    public String getExternalServerUrl() {
         PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
-        return getUploadUrl(propInfo);
+        return getExternalServerUrl(propInfo);
     }
 
-    public String getUploadUserName() {
+    public String getExternalServerUserName() {
         PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
-        return getUploadUserName(propInfo);
+        return getExternalServerUserName(propInfo);
     }
 
-    public String getUploadPassword() {
+    public String getExternalServerPassword() {
         PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
-        byte[] uploadPassword = getUploadPassword(propInfo);
+        byte[] uploadPassword = getExternalServerPassword(propInfo);
         if (uploadPassword == null) {
             return "";
         }
@@ -127,9 +127,9 @@ public class SchedulerConfig {
         this.schedulerEnabled = isSchedulerEnabled(propInfo);
         this.startOffsetMinutes = getStartOffsetMinutes(propInfo);
         this.copiesToKeep = getCopiesToKeep(propInfo);
-        this.uploadUrl = getUploadUrl(propInfo);
-        this.uploadUserName = getUploadUserName(propInfo);
-        this.uploadPassword = getUploadPassword(propInfo);
+        this.uploadUrl = getExternalServerUrl(propInfo);
+        this.uploadUserName = getExternalServerUserName(propInfo);
+        this.uploadPassword = getExternalServerPassword(propInfo);
 
         initRetainedAndUploadedBackups();
     }
@@ -187,7 +187,7 @@ public class SchedulerConfig {
         return copiesToKeep;
     }
 
-    private String getUploadUrl(PropertyInfo propInfo) {
+    private String getExternalServerUrl(PropertyInfo propInfo) {
         String uploadUrl;
         String urlStr = propInfo.getProperty(BackupConstants.UPLOAD_URL);
         if (urlStr == null || urlStr.length() == 0) {
@@ -200,11 +200,11 @@ public class SchedulerConfig {
         return uploadUrl;
     }
 
-    private String getUploadUserName(PropertyInfo propInfo) {
+    private String getExternalServerUserName(PropertyInfo propInfo) {
         return propInfo.getProperty(BackupConstants.UPLOAD_USERNAME);
     }
 
-    private byte[] getUploadPassword(PropertyInfo propInfo) {
+    private byte[] getExternalServerPassword(PropertyInfo propInfo) {
         byte[] uploadPassword = null;
         String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWD);
         if (passwordStr != null && passwordStr.length() > 0) {

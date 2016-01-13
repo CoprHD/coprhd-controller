@@ -673,6 +673,19 @@ public class SmisCommandHelper implements SmisConstants {
         return args.toArray(new CIMArgument[] {});
     }
 
+    public CIMArgument[] getSRDFActivePauseLinkInputArguments(Collection<CIMObjectPath> syncPaths, Object repSettingInstance,
+            boolean sync) {
+        List<CIMArgument> args = new ArrayList<CIMArgument>();
+        args.add(_cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true));
+        args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SUSPENDED));
+        args.add(_cimArgument.uint16(CP_OPERATION, (sync ? FRACTURE_VALUE : SUSPEND_SYNC_PAIR)));
+        args.add(_cimArgument.bool(CP_FORCE, true));
+        args.add(_cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})));
+        args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance));
+
+        return args.toArray(new CIMArgument[] {});
+    }
+
     public CIMArgument[] getSRDFSplitInputArguments(Collection<CIMObjectPath> syncPaths, Object repSettingInstance) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FRACTURE_VALUE),
@@ -813,6 +826,15 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getResumeSyncListInputArguments(Collection<CIMObjectPath> syncPaths) {
         return new CIMArgument[] {
                 _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
+                _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
+        };
+    }
+
+    public CIMArgument[] getResumeActiveListInputArguments(Collection<CIMObjectPath> syncPaths) {
+        return new CIMArgument[] {
+                _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
+                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED),
                 _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
                 _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
@@ -4259,8 +4281,27 @@ public class SmisCommandHelper implements SmisConstants {
         return getPrefix(storage) + "SmisDevice";
     }
 
+    /**
+     * Simple puts the thread to sleep for the passed duration.
+     * 
+     * @param duration How long to pause in milliseconds.
+     */
+    static void pauseThread(long duration) {
+        try {
+            Thread.sleep(duration);
+        } catch (Exception e) {
+            _log.warn("Exception while trying to sleep", e);
+        }
+    }
+
     public Object callRefreshSystem(StorageSystem storage,
             SimpleFunction toCallAfterRefresh)
+            throws WBEMException {
+        return callRefreshSystem(storage, toCallAfterRefresh, false);
+    }
+
+    public Object callRefreshSystem(StorageSystem storage,
+            SimpleFunction toCallAfterRefresh, boolean force)
             throws WBEMException {
         Object result = null;
         String lockKey = String.format("callRefreshSystem-%s",
@@ -4270,6 +4311,19 @@ public class SmisCommandHelper implements SmisConstants {
                 storage = _dbClient.queryObject(StorageSystem.class, storage.getId());
                 long currentMillis = Calendar.getInstance().getTimeInMillis();
                 long deltaLastRefreshValue = currentMillis - storage.getLastRefresh();
+                if (deltaLastRefreshValue < REFRESH_THRESHOLD && force) {
+                    // In case of SRDF Active mode resume operation, its possible that second call
+                    // to refreshSystem might be done where REFRESH_THRESHOLD value might not be met so we
+                    // will pause thread for the remainder of the time as we need to make sure refresh
+                    // system is executed to be able to get correct access state for the target volumes.
+                    long sleepDuration = REFRESH_THRESHOLD - deltaLastRefreshValue;
+                    _log.info(String.format("Sleep for %d msecs before calling refresh because last "
+                            + "refresh was done %d msecs ago", sleepDuration, deltaLastRefreshValue));
+                    pauseThread(sleepDuration);
+                    currentMillis = Calendar.getInstance().getTimeInMillis();
+                    deltaLastRefreshValue = currentMillis - storage.getLastRefresh();
+                }
+
                 // Do a basic calculation of how long we had to wait for the
                 // acquireLock to finish. If were waiting for a long time, then
                 // presumably the deltaLastRefreshValue would be non-zero and much

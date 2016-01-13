@@ -26,7 +26,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
-import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +40,7 @@ import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
+import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import com.emc.storageos.systemservices.impl.restore.DownloadExecutor;
 import com.emc.storageos.systemservices.impl.jobs.common.JobProducer;
 import com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil;
@@ -203,9 +203,14 @@ public class BackupService {
     public List<String> listExternalBackup() {
         log.info("Received list backup files on external server request");
         try {
-            FtpClient ftpClient = new FtpClient(backupConfig.getUploadUrl(),
-                    backupConfig.getUploadUserName(),
-                    backupConfig.getUploadPassword());
+            String externalServerUrl = backupConfig.getUploadUrl();
+            String userName = backupConfig.getUploadUserName();
+            String password = backupConfig.getUploadPassword();
+            if (externalServerUrl == null) {
+                log.warn("External server has not been configured");
+                throw new IllegalStateException("External server has not been configured");
+            }
+            FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
             return ftpClient.listAllFiles();
         } catch (Exception e) {
             log.error("Failed to list backup files on external server", e);

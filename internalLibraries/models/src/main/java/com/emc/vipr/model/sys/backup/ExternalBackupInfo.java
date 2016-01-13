@@ -57,4 +57,19 @@ public class ExternalBackupInfo {
     public void setRestoreStatus(BackupRestoreStatus restoreStatus) {
         this.restoreStatus = restoreStatus;
     }
+
+    @Override
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
+        sb.append("FileName:");
+        sb.append(getFileName());
+        sb.append(", CreateTime:");
+        sb.append(getCreateTime());
+        sb.append(", FileSize:");
+        sb.append(getFileSize());
+        sb.append(", RestoreStatus:");
+        sb.append(getRestoreStatus());
+
+        return sb.toString();
+    }
 }

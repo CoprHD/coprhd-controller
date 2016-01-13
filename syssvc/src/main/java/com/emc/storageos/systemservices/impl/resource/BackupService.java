@@ -204,7 +204,6 @@ public class BackupService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ExternalBackups listExternalBackup() {
         log.info("Received list backup files on external server request");
-        ExternalBackups backups = new ExternalBackups();
         try {
             backupConfig = backupScheduler.getCfg();
             String externalServerUrl = backupConfig.getExternalServerUrl();
@@ -216,12 +215,12 @@ public class BackupService {
             }
             FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
             List<String> backupFiles = ftpClient.listAllFiles();
-            backups.setBackups(backupFiles);
+            ExternalBackups backups = new ExternalBackups(backupFiles);
+            return backups;
         } catch (Exception e) {
             log.error("Failed to list backup files on external server", e);
             throw APIException.internalServerErrors.listExternalBackupFailed(e);
         }
-        return backups;
     }
 
     /**
@@ -238,27 +237,27 @@ public class BackupService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ExternalBackupInfo queryExternalBackup(@QueryParam("name") String backupFileName) {
         log.info("Received query backup on external server request, file name={}", backupFileName);
-        ExternalBackupInfo externalBackupInfo = new ExternalBackupInfo();
         try {
+            ExternalBackupInfo externalBackupInfo = new ExternalBackupInfo();
             externalBackupInfo.setFileName(backupFileName);
             externalBackupInfo.setCreateTime(getBackupCreateTime(backupFileName));
             externalBackupInfo.setRestoreStatus(queryRestoreStatus(backupFileName, false));
+            log.info("External Backup info: {}", externalBackupInfo);
+            return externalBackupInfo;
         } catch (Exception e) {
             log.error("Failed to query external backup info", e);
             throw APIException.internalServerErrors.queryExternalBackupFailed(e);
         }
-        log.info("External Backup info: {}", externalBackupInfo);
-        return externalBackupInfo;
     }
 
     private Long getBackupCreateTime(String backupName) {
         if (backupName == null) {
             log.error("Backup file name is empty");
-            throw new IllegalStateException("Backup file name is empty");
+            throw new IllegalArgumentException("Backup file name is empty");
         }
         if (!backupName.contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
-            log.error("Backup file name should contain {}", BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER );
-            throw new IllegalStateException("Invalid backup file name: " + backupName);
+            log.error("Backup file name should contain {}", BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
+            throw new IllegalArgumentException("Invalid backup file name: " + backupName);
         }
 
         String[] nameSegs = backupName.split(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);

@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
-import com.emc.storageos.coordinator.client.model.ProductName;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -15,9 +13,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import com.emc.storageos.management.backup.BackupConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.management.backup.BackupConstants;
 
 /**
  * Class to manage backup file names (tags) using by Backup Scheduler

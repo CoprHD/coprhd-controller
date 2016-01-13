@@ -25,13 +25,19 @@ public class ExternalBackups {
     @XmlElementWrapper(name = "backups")
     @XmlElement(name = "name")
     public List<String> getBackups() {
-        if (backups == null) {
-            backups = new ArrayList<String>();
-        }
         return backups;
     }
 
     public void setBackups(List<String> backups) {
         this.backups = backups;
+    }
+
+    @Override
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
+        sb.append("Backups:");
+        sb.append(getBackups());
+
+        return sb.toString();
     }
 }

@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.channels.SocketChannel;
 
@@ -54,12 +55,19 @@ public class DrSiteNetworkMonitor implements Runnable{
         //Only leader on active site will test ping (no networking info if active down?)
         String zkState = drUtil.getLocalCoordinatorMode(myNodeId);
 
-
+        //Check if this node is the leader
         if (ZOOKEEPER_MODE_LEADER.equals(zkState)) {
 
             int testPort = 4443;
 
-            //I'm the leader
+            //Check that active site is set to good Network Health
+            Site active = drUtil.getLocalSite();
+            if (!active.getNetworkHealth().equals(NETWORK_HEALTH_GOOD) || active.getPing() != 0) {
+                active.setNetworkHealth(NETWORK_HEALTH_GOOD);
+                active.setPing(0);
+                coordinatorClient.persistServiceConfiguration(active.toConfiguration());
+            }
+
             for (Site site : drUtil.listStandbySites()){
                 String previousState = site.getNetworkHealth();
                 String host = site.getVip();
@@ -97,7 +105,7 @@ public class DrSiteNetworkMonitor implements Runnable{
     private double testPing(String hostAddress, int port) {
         InetAddress inetAddress = null;
         InetSocketAddress socketAddress = null;
-        SocketChannel sc = null;
+        Socket socket = new Socket();
         long timeToRespond = -1;
         long start, stop;
 
@@ -115,19 +123,17 @@ public class DrSiteNetworkMonitor implements Runnable{
 
         // Open the channel, set it to non-blocking, initiate connect
         try {
-            sc = SocketChannel.open();
-            sc.configureBlocking(true);
             start = System.nanoTime();
-            if (sc.connect(socketAddress)) {
-                stop = System.nanoTime();
-                timeToRespond = (stop - start);
-            }
+            socket.connect(socketAddress,10000);
+            stop = System.nanoTime();
+            timeToRespond = (stop - start);
+
         } catch (IOException e) {
             _log.error("Problem, connection could not be made:",e);
         }
 
         try {
-            sc.close();
+            socket.close();
         } catch (IOException e) {
             _log.error("Error closing socket during latency test",e);
         }

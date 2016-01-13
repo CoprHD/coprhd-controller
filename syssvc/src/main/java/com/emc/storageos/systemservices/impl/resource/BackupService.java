@@ -256,7 +256,7 @@ public class BackupService {
             log.error("Backup file name is empty");
             throw new IllegalStateException("Backup file name is empty");
         }
-        if (backupName.contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
+        if (!backupName.contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
             log.error("Backup file name should contain {}", BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER );
             throw new IllegalStateException("Invalid backup file name: " + backupName);
         }

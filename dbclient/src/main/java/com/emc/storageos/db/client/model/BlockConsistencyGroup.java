@@ -248,6 +248,31 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     }
 
     /**
+     * Returns true if the given cg name(replicationGroupName) has been created on the given storage array.
+     * 
+     * @param replicationGroupName
+     * @param systemURI
+     * @return
+     */
+    public boolean created(String replicationGroupName, URI systemURI) {
+        boolean status = false;
+        if (getSystemConsistencyGroups() != null && replicationGroupName != null && systemURI != null) {
+            StringSet replicationNameSet = getSystemConsistencyGroups().get(systemURI.toString());
+            if (replicationNameSet != null) {
+                Iterator<String> replicationNameIterator = replicationNameSet.iterator();
+                while (replicationNameIterator.hasNext()) {
+                    String replicationName = replicationNameIterator.next();
+                    if (replicationGroupName.equals(replicationName)) {
+                        status = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return status;
+    }
+
+    /**
      * Returns true if CG creation has been initiated or even completed
      * as given by something was recorded in requestedTypes().
      *

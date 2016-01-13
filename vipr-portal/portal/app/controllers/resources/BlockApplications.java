@@ -60,7 +60,9 @@ public class BlockApplications extends ResourceController {
     
     public static class VolumeApplicationDataTable extends BlockVolumesDataTable {
         public VolumeApplicationDataTable() {
-            
+            alterColumn("protocols").hidden();
+            alterColumn("wwn").hidden();
+            addColumn("replicationGroup");
         }
     }
 }

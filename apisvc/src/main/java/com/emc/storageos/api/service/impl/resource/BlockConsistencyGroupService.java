@@ -1047,7 +1047,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     consistencyGroup.getStorageController(), StorageSystem.class);
         }
 
-        // VPlex, VNX, ScaleIO, and VMax volumes only
+        // IBMXIV, XtremIO, VPlex, VNX, ScaleIO, and VMax volumes only
         String systemType = cgStorageSystem.getSystemType();
         if (!systemType.equals(DiscoveredDataObject.Type.vplex.name())
                 && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())
@@ -1101,7 +1101,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
         }
 
-        if (cgStorageSystem.getUsingSmis80() && cgStorageSystem.deviceIsType(Type.vmax)) {
+        if (cgStorageSystem.deviceIsType(Type.xtremio) || (cgStorageSystem.getUsingSmis80() && cgStorageSystem.deviceIsType(Type.vmax))) {
             // CG can have replicas
             if (_log.isDebugEnabled()) {
                 _log.debug("CG can have replicas for VMAX with SMI-S 8.x");

@@ -25,10 +25,10 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.FileExportRule;
-import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.PhysicalNAS;
@@ -61,8 +61,8 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
@@ -463,6 +463,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getVolumeByAssociatedVolumesConstraint(String volumeId) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("associatedVolumes"), volumeId);
+        }
+
+        public static AlternateIdConstraint getVolumeByReplicationGroupInstance(String groupName) {
+            DataObjectType doType = TypeMap.getDoType(Volume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"), groupName);
         }
 
         public static AlternateIdConstraint getStorageSystemByAssociatedSystemConstraint(String systemId) {

@@ -1320,8 +1320,13 @@ public class ControllerUtils {
         
         if (groupName == null && cg != null) {
             // if there is only one system cg name for this storage system, use this; it may be different than the label
-            if (cg.getSystemConsistencyGroups() != null && cg.getSystemConsistencyGroups().get(storage.getId().toString()).size() == 1) {
-                groupName = cg.getSystemConsistencyGroups().get(storage.getId().toString()).iterator().next();
+            if (cg.getSystemConsistencyGroups() != null && storage != null) {
+                StringSet cgsforStorage = cg.getSystemConsistencyGroups().get(storage.getId().toString());
+                if (cgsforStorage != null && cgsforStorage.size() == 1) {
+                    groupName = cgsforStorage.iterator().next();
+                } else {
+                    groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+                }
             } else {
                 groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
             }

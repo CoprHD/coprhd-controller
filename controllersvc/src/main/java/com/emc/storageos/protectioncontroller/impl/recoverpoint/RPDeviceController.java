@@ -1789,7 +1789,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 URI volumeId = volume.getId();
 
                 // Generate a unique key based on Storage System + Internal Site + Virtual Array
-                String key = storageSystem.toString() + rpSiteName + varray.toString() + "JOURNAL";
+                String key = storageSystem.toString() + rpSiteName + varray.toString() + "Journal";
 
                 // Try and get an existing rp export object from the map using the key
                 RPExport rpExport = rpExportMap.get(key);
@@ -1888,12 +1888,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         rpExportMap.put(key, rpExport);
                     }
 
+                    // Add host information to the export if specified
                     if (vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
                     	for(VolumeDescriptor desc : volumeDescriptors) {
                     		if (desc.getVolumeURI().equals(vol.getId())) {
-                            	_log.info("Add host information for the source volume");
-                    			rpExport.setHost(desc.getHost());
-                    			break;
+                    			if (!NullColumnValueGetter.isNullURI(desc.getHost())) {
+	                            	_log.info("Add host information for the source volume");
+	                    			rpExport.setHost(desc.getHost());
+	                    			break;
+                    			}
                     		}
                     	}
                     }

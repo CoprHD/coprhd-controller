@@ -1301,7 +1301,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Set<URI> partialMasks, String token) {
         boolean isVMAX3 = storage.checkIfVmax3();
         
-        //Bharath TODO: test only
+        // Apply RP+VMAX best practice rules        
         masksMap = applyVolumesToMasksUsingRPVMAXRules(storage, exportGroup, existingMasksToUpdateWithNewVolumes, volumesWithNoMask, masksMap, maskToInitiatorsMap, partialMasks, token);
         
         if (masksMap.isEmpty()) {        	
@@ -1338,7 +1338,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     
-    //TODO Bharath
+
     /**
      * @param storage
      * @param exportGroup

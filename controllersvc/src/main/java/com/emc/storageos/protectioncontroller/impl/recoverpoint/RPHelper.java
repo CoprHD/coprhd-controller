@@ -1100,16 +1100,17 @@ public class RPHelper {
         Map<Long, List<Volume>> cgTargetJournalsBySize = new TreeMap<Long, List<Volume>>(Collections.reverseOrder());
 
         for (Volume cgTargetVolume : cgTargetVolumes) {
-            // Make sure we only consider existing CG target volumes from the same virtual array
-            if (cgTargetVolume.getVirtualArray().equals(varray)
-                    && cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
-                if (null != cgTargetVolume.getRpJournalVolume()) {
-                    Volume targetJournal = _dbClient.queryObject(Volume.class, cgTargetVolume.getRpJournalVolume());
-                    if (!cgTargetJournalsBySize.containsKey(targetJournal.getProvisionedCapacity())) {
-                        cgTargetJournalsBySize.put(targetJournal.getProvisionedCapacity(), new ArrayList<Volume>());
-                    }
-                    cgTargetJournalsBySize.get(targetJournal.getProvisionedCapacity()).add(targetJournal);
-                    validExistingTargetJournalVolumes.add(targetJournal);
+        	if (!NullColumnValueGetter.isNullURI(cgTargetVolume.getRpJournalVolume())) {
+	            // Make sure we only consider existing CG target journal volumes from the same virtual array
+	        	Volume existingTgtJournalVolume = _dbClient.queryObject(Volume.class, cgTargetVolume.getRpJournalVolume());
+	            if (existingTgtJournalVolume.getVirtualArray().equals(varray)
+	            		&& cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
+                                   
+                    if (!cgTargetJournalsBySize.containsKey(existingTgtJournalVolume.getProvisionedCapacity())) {
+                        cgTargetJournalsBySize.put(existingTgtJournalVolume.getProvisionedCapacity(), new ArrayList<Volume>());
+                	 }
+                    cgTargetJournalsBySize.get(existingTgtJournalVolume.getProvisionedCapacity()).add(existingTgtJournalVolume);
+                    validExistingTargetJournalVolumes.add(existingTgtJournalVolume);
                 }
             }
         }
@@ -1123,6 +1124,8 @@ public class RPHelper {
         if (null == existingCGTargetJournalVolume) {
             existingCGTargetJournalVolume = validExistingTargetJournalVolumes.get(0);
         }
+        
+        _log.info("selectExistingJournalsForTargetVolume :: Found we can use journal volume : " + existingCGTargetJournalVolume);
         return existingCGTargetJournalVolume;
     }
 

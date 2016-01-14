@@ -16,9 +16,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 
 /**
  * Utility class to generate VDC/Site property for syssvc.
@@ -65,9 +67,11 @@ public class VdcConfigUtil {
     
     private DrUtil drUtil;
     private Boolean backCompatPreYoda = false;
+    private CoordinatorClient coordinator;
     
     public VdcConfigUtil(CoordinatorClient coordinator) {
         drUtil = new DrUtil(coordinator);
+        this.coordinator = coordinator;
     }
 
     public void setBackCompatPreYoda(Boolean backCompatPreYoda) {
@@ -114,7 +118,23 @@ public class VdcConfigUtil {
     }
 
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
-        String activeSiteId = drUtil.getActiveSiteId(vdcShortId);
+        String activeSiteId = null;
+        try {
+            activeSiteId = drUtil.getActiveSiteId(vdcShortId);
+        } catch (RetryableCoordinatorException e) {
+            log.warn("Failed to find active site id from ZK, go on since it maybe switchover case");
+        }
+        
+        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
+        Site localSite = drUtil.getLocalSite();
+        
+        if (StringUtils.isEmpty(activeSiteId) && SiteInfo.DR_OP_SWITCHOVER.equals(siteInfo.getActionRequired())) {
+            activeSiteId = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()).getUuid();
+        }
+        
+        if (StringUtils.isEmpty(activeSiteId)) {
+            throw new IllegalStateException("No valid active site UUID found");
+        }
         
         Collections.sort(sites, new Comparator<Site>() {
             @Override
@@ -125,8 +145,7 @@ public class VdcConfigUtil {
         
         List<String> shortIds = new ArrayList<>();
         for (Site site : sites) {
-            boolean isActiveSite = site.getUuid().equals(activeSiteId);
-
+            
             if (shouldExcludeFromConfig(site)) {
                 log.info("Ignore site {} of vdc {}", site.getSiteShortId(), site.getVdcShortId());
                 continue;
@@ -182,9 +201,10 @@ public class VdcConfigUtil {
             // right now we assume that SITE_IDS and SITE_IS_STANDBY only makes sense for local VDC
             // moving forward this may or may not be the case.
             vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
-            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(drUtil.isStandby()));
-            vdcConfig.put(SITE_ACTIVE_ID,
-                    StringUtils.isEmpty(activeSiteId) ? DEFAULT_ACTIVE_SITE_ID : drUtil.getSiteFromLocalVdc(activeSiteId).getSiteShortId());
+            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(!localSite.getUuid().equals(activeSiteId)));
+            vdcConfig.put(SITE_ACTIVE_ID, StringUtils.isEmpty(activeSiteId) ?
+                    DEFAULT_ACTIVE_SITE_ID :
+                    drUtil.getSiteFromLocalVdc(activeSiteId).getSiteShortId());
         }
     }
 

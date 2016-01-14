@@ -95,7 +95,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         } catch (Exception e) {
             log.error("Fail to send request to precheck failover", e);
             //throw APIException.internalServerErrors.failoverPrecheckFailed(site.getName(), String.format("Can't connect to standby to do precheck for failover, %s", e.getMessage()));
-            return FailoverPrecheckResponse.noError();
+            return null;
         }
         
         FailoverPrecheckResponse response = resp.getEntity(FailoverPrecheckResponse.class);

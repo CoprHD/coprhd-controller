@@ -17,6 +17,7 @@ public class SiteDetailRestRep {
     private Date creationTime;
     private Date pausedTime;
     private Date lastUpdateTime;
+    private String clusterState;
 
     @XmlElement(name = "creationTime")
     public Date getCreationTime() {
@@ -45,6 +46,15 @@ public class SiteDetailRestRep {
         this.lastUpdateTime = lastUpdateTime;
     }
 
+    @XmlElement(name = "clusterState")
+    public String getClusterState() {
+        return clusterState;
+    }
+
+    public void setClusterState(String clusterState) {
+        this.clusterState = clusterState;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -54,6 +64,8 @@ public class SiteDetailRestRep {
         builder.append(pausedTime);
         builder.append(", lastUpdateTime=");
         builder.append(lastUpdateTime);
+        builder.append(", clusterState=");
+        builder.append(clusterState);
         builder.append("]");
         return builder.toString();
     }

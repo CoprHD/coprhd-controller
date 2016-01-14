@@ -516,9 +516,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     /**
      * SRDF between VMAX3 to VMAX2 is failing due to configuration mismatch (OPT#475186).
      * As a workaround, calculate the VMAX2 volume size based on the VMAX3 cylinder size.
-     * HY: The below method will also be used as a place holder to make sure Capacity is
-     * re-calibrated if we are created a Meta Source or Meta Target.
-     * 
      * @param targetVolume
      * @param vpool
      */
@@ -533,49 +530,72 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
         StoragePool sourcePool = _dbClient.queryObject(StoragePool.class, sourceVolume.getPool());
 
-        boolean capacitySet = false;
-        if (sourceSystem != null && targetSystem != null && sourcePool != null && targetPool != null) {
-            MetaVolumeRecommendation sourceVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(sourceSystem, sourcePool,
-                    sourceVolume.getCapacity(), sourceVolume.getThinlyProvisioned(),
-                    vpool.getFastExpansion(), null);
-            MetaVolumeRecommendation targetVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(targetSystem, targetPool,
-                    targetVolume.getCapacity(), targetVolume.getThinlyProvisioned(),
-                    vpool.getFastExpansion(), null);
-            // compare source and target recommendations to make sure that source and target volumes have the same spec.
-            if (!sourceVolumeRecommendation.equals(targetVolumeRecommendation)) {
-                if (sourceVolumeRecommendation.isCreateMetaVolumes() &&
-                        targetPool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
-                    // Important: We have to adjust the size for smooth RDF operations....
-                    Long cylinderCount = (long) Math
-                            .ceil((double) sourceVolume.getCapacity()
-                                    / (V2CYLINDERSIZE * sourceVolumeRecommendation.getMetaMemberCount()));
-                    sourceVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * sourceVolumeRecommendation.getMetaMemberCount());
-                    targetVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * sourceVolumeRecommendation.getMetaMemberCount());
-                    _dbClient.updateObject(sourceVolume);
-                    capacitySet = true;
-                }
-                // HY: If V3 is the Source, we can Have a V2 Device that is a Meta
-                if (targetVolumeRecommendation.isCreateMetaVolumes() &&
-                        sourcePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
-                    // Important: We have to adjust the size for smooth RDF operations....
-                    Long cylinderCount = (long) Math
-                            .ceil((double) targetVolume.getCapacity()
-                                    / (V2CYLINDERSIZE * targetVolumeRecommendation.getMetaMemberCount()));
-                    targetVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * targetVolumeRecommendation.getMetaMemberCount());
-                    sourceVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * targetVolumeRecommendation.getMetaMemberCount());
-                    _dbClient.updateObject(sourceVolume);
-                    capacitySet = true;
-                }
+        if (sourceSystem != null && targetSystem != null) {
+            boolean isCapacityReset = false;
+            if (sourcePool != null && targetPool != null) {
+                // Meta Versus Non Meta
+                MetaVolumeRecommendation sourceVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(sourceSystem, sourcePool,
+                        sourceVolume.getCapacity(), sourceVolume.getThinlyProvisioned(),
+                        vpool.getFastExpansion(), null);
+                MetaVolumeRecommendation targetVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(targetSystem, targetPool,
+                        targetVolume.getCapacity(), targetVolume.getThinlyProvisioned(),
+                        vpool.getFastExpansion(), null);
+                isCapacityReset = computeCapacityforSRDFV3ToV2Meta(sourcePool, targetPool, sourceVolume, targetVolume,
+                        sourceVolumeRecommendation, targetVolumeRecommendation);
+            }
+            // Source : VMAX3 & Target : VMAX2 case
+            if (sourceSystem.checkIfVmax3() && !targetSystem.checkIfVmax3() && !isCapacityReset) {
+                Long cylinderCount = (long) Math.ceil((double) targetVolume.getCapacity() / V3CYLINDERSIZE);
+                targetVolume.setCapacity(cylinderCount * V3CYLINDERSIZE);
+                _log.info("Cylinder Count : {}, VMAX2 volume Capacity : {}", cylinderCount, targetVolume.getCapacity());
             }
         }
-        // Source : VMAX3 & Target : VMAX2 case
-        if (sourceSystem != null && targetSystem != null && sourceSystem.checkIfVmax3() && !targetSystem.checkIfVmax3() && !capacitySet) {
-            Long cylinderCount = (long) Math.ceil((double) targetVolume.getCapacity() / V3CYLINDERSIZE);
-            targetVolume.setCapacity(cylinderCount * V3CYLINDERSIZE);
-            _log.info("Cylinder Count : {}, VMAX2 volume Capacity : {}", cylinderCount, targetVolume.getCapacity());
-        }
+
     }
 
+    /**
+     * SRDF and its Operations between VMAX3 to VMAX2 Meta will sometimes fail due to Configuration mismatch
+     * As a workaround, calculate the volume size based on the VMAX2 cylinder size and number of Meta members.
+     * 
+     * @param sourceVolumeRecommendation
+     * @param targetVolumeRecommendation
+     * @param sourcePool
+     * @param targetPool
+     * @param sourceVolume
+     * @param targetVolume
+     * @return true/false
+     */
+    private boolean computeCapacityforSRDFV3ToV2Meta(final StoragePool sourcePool, final StoragePool targetPool,
+            Volume sourceVolume, Volume targetVolume,
+            final MetaVolumeRecommendation sourceVolumeRecommendation, final MetaVolumeRecommendation targetVolumeRecommendation) {
+        if (!sourceVolumeRecommendation.equals(targetVolumeRecommendation)) {
+            if (sourceVolumeRecommendation.isCreateMetaVolumes() &&
+                    targetPool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
+                // R1 is Meta and R2 is non meta
+                Long cylinderCount = (long) Math
+                        .ceil((double) sourceVolume.getCapacity()
+                                / (V2CYLINDERSIZE * sourceVolumeRecommendation.getMetaMemberCount()));
+                sourceVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * sourceVolumeRecommendation.getMetaMemberCount());
+                targetVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * sourceVolumeRecommendation.getMetaMemberCount());
+                _dbClient.updateObject(sourceVolume);
+                _log.info("VMAX2 Cylinder Count : {}, VMAX2 volume Capacity : {}", cylinderCount, targetVolume.getCapacity());
+                return true;
+            }
+            if (targetVolumeRecommendation.isCreateMetaVolumes() &&
+                    sourcePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
+                // R1 is non Meta and R2 is meta
+                Long cylinderCount = (long) Math
+                        .ceil((double) targetVolume.getCapacity()
+                                / (V2CYLINDERSIZE * targetVolumeRecommendation.getMetaMemberCount()));
+                targetVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * targetVolumeRecommendation.getMetaMemberCount());
+                sourceVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * targetVolumeRecommendation.getMetaMemberCount());
+                _dbClient.updateObject(sourceVolume);
+                _log.info("VMAX2 Cylinder Count : {}, VMAX2 volume Capacity : {}", cylinderCount, targetVolume.getCapacity());
+                return true;
+            }
+        }
+        return false;
+    }
     @Override
     public TaskList createVolumes(final VolumeCreate param, final Project project,
             final VirtualArray varray, final VirtualPool cos,

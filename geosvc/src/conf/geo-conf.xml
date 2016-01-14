@@ -75,6 +75,8 @@
         <property name="dependencyChecker" ref="dependencyChecker"/>
     </bean>
 
+    <bean id="ipsecService" class="com.emc.storageos.geo.service.impl.resource.IpsecService"/>
+
     <bean id="vdcConfService" class="com.emc.storageos.geo.service.impl.resource.VdcConfigService">
         <property name="service" ref="serviceinfo"/>
         <property name="sysUtils" ref="sysUtils" />

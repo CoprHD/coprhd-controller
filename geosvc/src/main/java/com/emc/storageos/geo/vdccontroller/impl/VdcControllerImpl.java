@@ -112,7 +112,7 @@ public class VdcControllerImpl implements VdcController {
                 vdc.getShortId(), task);
 
         RemoveVdcTaskOp vdcOp = new RemoveVdcTaskOp(dbClient, geoClientCache, helper,
-                serviceInfo, vdc, task, _keyStore);
+                serviceInfo, vdc, task, _keyStore, ipsecConfig);
         log.info("Initialize RemoveVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();
@@ -123,7 +123,7 @@ public class VdcControllerImpl implements VdcController {
 
         // TODO: during update, vip change needs reboot?
         UpdateVdcTaskOp vdcOp = new UpdateVdcTaskOp(dbClient, geoClientCache, helper,
-                serviceInfo, vdcToBeUpdated, task, params, apiSignatureGenerator, _keyStore);
+                serviceInfo, vdcToBeUpdated, task, params, apiSignatureGenerator, _keyStore, ipsecConfig);
         log.info("Initialize UpdateVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();
@@ -134,7 +134,7 @@ public class VdcControllerImpl implements VdcController {
         log.info("Starting to disconnect vdc {} info in the system, task id {}", vdcToBeDisconnected.getShortId(), task);
 
         DisconnectVdcTaskOp vdcOp = new DisconnectVdcTaskOp(dbClient, geoClientCache, helper, serviceInfo, vdcToBeDisconnected, task,
-                _keyStore);
+                _keyStore, ipsecConfig);
         log.info("Initialize DisconnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();
@@ -145,7 +145,7 @@ public class VdcControllerImpl implements VdcController {
         log.info("Starting to reconnect vdc {} info in the system, task id {}", vdcToBeReconnected.getShortId(), task);
 
         ReconnectVdcTaskOp vdcOp = new ReconnectVdcTaskOp(dbClient, geoClientCache, helper,
-                serviceInfo, vdcToBeReconnected, task, _keyStore);
+                serviceInfo, vdcToBeReconnected, task, _keyStore, ipsecConfig);
         log.info("Initialize ReconnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();

@@ -115,4 +115,9 @@ public interface ServiceParams {
     public String TENANT = "tenant";
     public String OWNER = "owner";
     public String BUCKET = "bucket";
+    
+    public String ADIVSORY_LIMIT="advisoryLimit";
+    public String SOFT_LIMIT="softLimit";
+    public String GRACE_PERIOD="gracePeriod";
+    
 }

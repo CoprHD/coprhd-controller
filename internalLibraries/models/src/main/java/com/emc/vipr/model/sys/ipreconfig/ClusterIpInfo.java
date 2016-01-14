@@ -182,9 +182,16 @@ public class ClusterIpInfo implements Serializable {
     }
 
     public boolean weakEqual(String vip, Map<String, String> ipv4Addresses, Map<String, String> ipv6Addresses) {
-        if (!ipv4_setting.getNetworkVip().equals(vip)) {
-            return false;
+        if (vip.contains("::")) {
+            if (!ipv6_setting.getNetworkVip6().equals(vip)) {
+                return false;
+            }
+        } else {
+            if (!ipv4_setting.getNetworkVip().equals(vip)) {
+                return false;
+            }
         }
+
         if (ipv4Addresses != null) {
             List<String> site_ipv4addrs = new LinkedList<String>();
             SortedSet<String> nodeIds = new TreeSet<String>(ipv4Addresses.keySet());
@@ -194,11 +201,7 @@ public class ClusterIpInfo implements Serializable {
             if (!ipv4_setting.getNetworkAddrs().equals(site_ipv4addrs))
                 return false;
         }
-/*
-        if (!ipv6_setting.getNetworkVip6().equals(vip6)) {
-            return false;
-        }
-*/
+
         if (ipv6Addresses != null) {
             List<String> site_ipv6addrs = new LinkedList<String>();
             SortedSet<String> nodeIds = new TreeSet<String>(ipv6Addresses.keySet());

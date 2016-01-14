@@ -783,8 +783,12 @@ public class IpReconfigManager implements Runnable {
                 return;
             }
 
-            site.setVip(localIpinfo.getIpv4Setting().getNetworkVip());
-            //site.setVip6(localIpinfo.getIpv6Setting().getNetworkVip());
+            if (site.getVip().contains("::")) {
+                site.setVip(localIpinfo.getIpv6Setting().getNetworkVip6());
+            } else {
+                site.setVip(localIpinfo.getIpv4Setting().getNetworkVip());
+            }
+
             Map<String, String> ipv4Addresses = new HashMap<>();
             Map<String, String> ipv6Addresses = new HashMap<>();
             int nodeIndex = 1;

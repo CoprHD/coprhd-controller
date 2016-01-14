@@ -57,14 +57,8 @@ public class BlockSnapshotSessionRestoreWorkflowCompleter extends BlockSnapshotS
         try {
             if (_updateOpStatus) {
                 BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-                BlockObject sourceObj = null;
-                if (snapSession.hasConsistencyGroup()) {
-                    BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-                    List<BlockObject> allSources = BlockConsistencyGroupUtils.getAllSources(cg, dbClient);
-                    sourceObj = allSources.get(0);
-                } else {
-                    sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
-                }
+                List<BlockObject> allSources = getAllSources(snapSession, dbClient);
+                BlockObject sourceObj = allSources.get(0);
 
                 // Record the results.
                 recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.RESTORE_SNAPSHOT_SESSION,

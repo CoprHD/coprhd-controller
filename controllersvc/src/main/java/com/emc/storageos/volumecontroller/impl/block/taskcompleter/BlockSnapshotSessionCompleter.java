@@ -7,8 +7,14 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,5 +150,45 @@ public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
      */
     protected String getDescriptionOfResults(Operation.Status status, BlockObject sourceObj, BlockSnapshotSession snapSession) {
         return null;
+    }
+
+    /**
+     * Returns all appropriate sources for a given BlockSnapshotSession. That is, VPLEX volumes if
+     * they exist or native backend volumes.
+     *
+     * For volumes that are not in any consistency group, the returned list shall contain only one element.
+     *
+     * @param snapSession   BlockSnapshotSession.
+     * @param dbClient      Database client.
+     * @return              List of one or more BlockObject instances.
+     */
+    protected List<BlockObject> getAllSources(BlockSnapshotSession snapSession, DbClient dbClient) {
+        if (snapSession.hasConsistencyGroup()) {
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
+            return BlockConsistencyGroupUtils.getAllSources(cg, dbClient);
+        }
+        return Lists.newArrayList(getSource(snapSession, dbClient));
+    }
+
+    /**
+     * Returns the appropriate source for a BlockSnapshotSession.  That is, a VPLEX volume if
+     * one exists or a native backend volume.
+     *
+     * @param snapshotSession   BlockSnapshotSession with a valid parent (no consistency group).
+     * @param dbClient          Database client.
+     * @return                  BlockObject representing the snapshot session source.
+     */
+    protected BlockObject getSource(BlockSnapshotSession snapshotSession, DbClient dbClient) {
+        URI parentURI = snapshotSession.getParent().getURI();
+        if (URIUtil.isNull(parentURI)) {
+            throw new IllegalArgumentException("Expected a BlockSnapshotSession with a non-null parent");
+        }
+
+        BlockObject object = BlockObject.fetch(dbClient, parentURI);
+        if (Volume.checkForVplexBackEndVolume(dbClient, (Volume) object)) {
+            return Volume.fetchVplexVolume(dbClient, (Volume) object);
+        }
+
+        return object;
     }
 }

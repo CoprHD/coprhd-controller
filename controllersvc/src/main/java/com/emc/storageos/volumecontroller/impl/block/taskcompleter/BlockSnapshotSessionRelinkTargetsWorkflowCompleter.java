@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +51,8 @@ public class BlockSnapshotSessionRelinkTargetsWorkflowCompleter extends BlockSna
         try {
             // Update the status map of the snapshot session.
             BlockSnapshotSession tgtSnapSession = dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
-            BlockObject sourceObj = BlockObject.fetch(dbClient, tgtSnapSession.getParent().getURI());
+            List<BlockObject> allSources = getAllSources(tgtSnapSession, dbClient);
+            BlockObject sourceObj = allSources.get(0);
 
             // Record the results.
             recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.RELINK_SNAPSHOT_SESSION_TARGET,

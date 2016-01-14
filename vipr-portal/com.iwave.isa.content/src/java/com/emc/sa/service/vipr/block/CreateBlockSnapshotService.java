@@ -61,7 +61,7 @@ public class CreateBlockSnapshotService extends ViPRService {
             volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
             // If trying to create a Snapshot Session and the optional linkedSnapshotName 
             // is populated, make sure that linkedSnapshotCount > 0.
-            if (type.equals(BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE)) {               
+            if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {               
                 if (linkedSnapshotName != null && !linkedSnapshotName.isEmpty()) {
                     if (linkedSnapshotCount == null || linkedSnapshotCount.intValue() <= 0) {
                         ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCount.precheck", new Object[] {}, new Object[] {});

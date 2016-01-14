@@ -130,7 +130,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         LOCAL, REMOTE, NONE;
         public static boolean lookup(final String name) {
             for (FileReplicationType value : values()) {
-                if (value.name().equals(name)) {
+                if (value.name().equalsIgnoreCase(name)) {
                     return true;
                 }
             }
@@ -850,7 +850,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("rpRpoValue")
     public Long getRpRpoValue() {
-        return _rpRpoValue;
+        // Return 0 if value is not set.  This helps with upgrade scenarios.
+        return _rpRpoValue == null ? 0 : _rpRpoValue;
     }
 
     public void setRpRpoValue(Long rpRpoValue) {

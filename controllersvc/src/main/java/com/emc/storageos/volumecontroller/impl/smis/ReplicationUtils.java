@@ -190,6 +190,22 @@ public class ReplicationUtils {
     }
 
     /**
+     * Refresh the given storagesystem.
+     * 
+     * @param helper reference to SmisCommandHelper
+     * @param storage reference to StorageSystem
+     * @param force flag to run refresh or not if threshold is not met
+     */
+    public static void callEMCRefresh(SmisCommandHelper helper, StorageSystem storage, boolean force) {
+        try {
+            _log.info("Refreshing storagesystem: {}", storage.getId());
+            helper.callRefreshSystem(storage, null, force);
+        } catch (Exception e) {
+            _log.error("Exception callEMCRefresh", e);
+        }
+    }
+
+    /**
      * Gets the default ReplicationSettingData object from the system and updates
      * the ConsistentPointInTime property to true.
      * 

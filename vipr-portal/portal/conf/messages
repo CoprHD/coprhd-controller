@@ -372,6 +372,7 @@ RegistrationStatus.REGISTERED=Registered
 
 RemoteCopyMode.ASYNCHRONOUS=Asynchronous
 RemoteCopyMode.SYNCHRONOUS=Synchronous
+RemoteCopyMode.ACTIVE=Active
 
 RpoType.SECONDS=Seconds
 RpoType.MINUTES=Minutes
@@ -706,6 +707,7 @@ CustomConfigs.configType.HDSHostModeOption=Host Mode Option
 CustomConfigs.configType.VPlexStorageViewName=Storage View Name
 CustomConfigs.configType.NasDynamicPerformancePlacementEnabled=Dynamic Performance Placement Enabled
 CustomConfigs.configType.NasUsePhysicalNASForProvisioning=Use Physical NAS For Provisioning
+CustomConfigs.configType.NasShareVNASWithMultipleProjects=Enable Association of Virtual NAS to Multiple Projects
 CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.scopeType.global=Global
@@ -1877,7 +1879,7 @@ StorageSystems.pools.description=Enter the information needed to edit a Storage 
 vNasServers.nasName=Name
 vNasServers.protocols=Protocols
 vNasServers.storagePorts=Storage Ports
-vNasServers.project=Project
+vNasServers.project=Project(s)
 vNasServers.parentNASURI= Parent NAS Server
 vNasServers.nasState= State
 vNasServers.storageDomain=Domain
@@ -1895,7 +1897,8 @@ vNasServers.usedStorageCapacity= Used Storage Capacity
 vNasServers.avgPercentagebusy=Average Percentage busy
 vNasServers.percentLoad=Percentage Load
 vNasServersDataTable.notApplicable=N/A
-vNasServers.associateToProject=Associate to a Project
+vNasServers.associateToProject=Associate to Project(s)
+vNasServers.dissociateFromProject=Dissociate from Project(s)
 vNasServers.dissociate.Confirm=Are you sure you want to dissociate these vNas Server(s) from the project?
 
 storageArrayPool.name=Name
@@ -2418,6 +2421,11 @@ configProperties.changePassword=Local Account Passwords
 configProperties.password.doesNotMatch=Passwords do not match
 configProperties.password.state=state
 
+configProperties.backup.scheduled=Scheduled Backup
+configProperties.backup.manual=Manual Backup
+configProperties.backup.server=External Server
+configProperties.backup.setToZero.scheduler=WARNING: Setting the value as zero would cause all scheduled backup sets being reclaimed without any guarantee that they have been successfully uploaded to external server.
+configProperties.backup.setToZero.manual=WARNING: Setting the value as zero would disable manual backup creation.
 
 #Upgrade
 upgrade.title=Software Upgrade
@@ -2950,6 +2958,14 @@ affectedResources.blockSnapshot.creationTime=Creation Time
 affectedResources.blockSnapshot.wwn=WWN
 affectedResources.blockSnapshot.volume=Volume
 affectedResources.blockSnapshot.varray=Virtual Array
+
+affectedResources.blockSnapshotSession=Block Snapshot Session
+affectedResources.blockSnapshotSession.image=serviceCatalog/Snapshot.png
+affectedResources.blockSnapshotSession.name=Name
+affectedResources.blockSnapshotSession.creationTime=Creation Time
+affectedResources.blockSnapshotSession.wwn=WWN
+affectedResources.blockSnapshotSession.volume=Volume
+affectedResources.blockSnapshotSession.varray=Virtual Array
 
 affectedResources.blockConsistencyGroup=Consistency Group
 affectedResources.blockConsistencyGroup.image=assets/Consistency_Group.png

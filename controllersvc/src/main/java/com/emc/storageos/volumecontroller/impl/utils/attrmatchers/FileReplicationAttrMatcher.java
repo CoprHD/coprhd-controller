@@ -219,7 +219,7 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
 
     private String getPoolCopyTypeFromCopyModes(String supportedCopyMode) {
     	String copyType = CopyTypes.ASYNC.name();
-    	if (SupportedCopyModes.SYNCHRONOUS.name().equals(supportedCopyMode)) {
+    	if (SupportedCopyModes.SYNCHRONOUS.name().equalsIgnoreCase(supportedCopyMode)) {
     		copyType = CopyTypes.SYNC.name();
     	} 
     	return copyType;

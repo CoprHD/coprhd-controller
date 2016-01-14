@@ -57,6 +57,7 @@ public abstract class VdcOpHandler {
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 20;
+    private static final int IPSEC_RESTART_DELAY = 1000 * 60; // 1 min
     // data revision time out - 5 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
     
@@ -821,13 +822,14 @@ public abstract class VdcOpHandler {
      */
     public static class DrFailoverHandler extends VdcOpHandler {
         private Factory postHandlerFactory;
+        private boolean isRebootNeeded;
         
         public DrFailoverHandler() {
         }
         
         @Override
         public boolean isRebootNeeded() {
-            return true;
+            return isRebootNeeded;
         }
         
         @Override
@@ -835,11 +837,14 @@ public abstract class VdcOpHandler {
             Site site = drUtil.getLocalSite();
 
             if (isNewActiveSiteForFailover(site)) {
+                isRebootNeeded = true;
                 coordinator.stopCoordinatorSvcMonitor();
                 reconfigVdc();
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
                 processFailover();
                 waitForAllNodesAndReboot(site);
+            } else {
+                reconfigVdc();
             }
         }
         
@@ -1015,7 +1020,21 @@ public abstract class VdcOpHandler {
         try {
             flushVdcConfigToLocal();
         } finally {
-            vdcBarrier.leave();
+            boolean allLeft = vdcBarrier.leave();
+
+            // the additional sleep is for addressing COP-19315 -- hangs at barrier.leave()
+            //
+            // without sleep here, which means to restart ipsec immediately even barrier.leave() returned
+            // as timed out, the first timed-out node restarting ipsec will cause ZK lose its quorum,
+            // because of that, the second node will never be able to return from leave() function.
+            //
+            // with 1 minute delay to restart ipsec, it can make sure all live nodes are returned from leave()
+            // function, as they are all enter() at the same time. the time difference among their leave() time
+            // will be in the range of seconds.
+            if (!allLeft) {
+                log.info("wait 1 minute, so all nodes be able to return from leave()");
+                Thread.sleep(IPSEC_RESTART_DELAY);
+            }
         }
     }
     

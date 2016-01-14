@@ -11,6 +11,7 @@ import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerMBean;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
+import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 
@@ -50,6 +51,10 @@ public class DbManager implements DbManagerMBean {
     private CoordinatorClient coordinator;
     private DbClientContext clientContext;
 
+    @Autowired
+    private JmxServerWrapper jmxServer;
+
+
     ScheduledFuture<?> scheduledRepairTrigger;
 
     // Max retry times after a db repair failure
@@ -84,7 +89,7 @@ public class DbManager implements DbManagerMBean {
      * @throws Exception
      */
     private boolean startNodeRepair(String keySpaceName, int maxRetryTimes, boolean crossVdc, boolean noNewReapir) throws Exception {
-        DbRepairRunnable runnable = new DbRepairRunnable(this.executor, this.coordinator, keySpaceName,
+        DbRepairRunnable runnable = new DbRepairRunnable(jmxServer, this.executor, this.coordinator, keySpaceName,
                 this.clientContext.isGeoDbsvc(), maxRetryTimes, noNewReapir);
         // call preConfig() here to set IN_PROGRESS for db repair triggered by schedule since we use it in getDbRepairStatus.
         runnable.preConfig();
@@ -255,6 +260,12 @@ public class DbManager implements DbManagerMBean {
             log.error("Failed to get node repair state from ZK", e);
             return null;
         }
+    }
+    
+    @Override
+    public void resetRepairState() {
+        DbRepairRunnable.resetRepairState(this.coordinator, this.clientContext.getKeyspaceName(),
+                this.clientContext.isGeoDbsvc());
     }
 
     private Integer getNumTokensToSet() {

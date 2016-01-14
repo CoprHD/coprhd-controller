@@ -7,6 +7,7 @@ package com.emc.storageos.geomodel;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -32,6 +33,8 @@ public class VdcConfig {
 
     private String geoCommandEndpoint;
     private String geoDataEndpoint;
+    
+    private String activeSiteId;
 
     public static enum ConfigChangeType {
         CONNECT_VDC,
@@ -174,6 +177,15 @@ public class VdcConfig {
 
     public void setRepStatus(String repStatus) {
         this.repStatus = repStatus;
+    }
+
+    @XmlElement(name = "active_site_id")
+    public String getActiveSiteId() {
+        return activeSiteId;
+    }
+
+    public void setActiveSiteId(String activeSiteId) {
+        this.activeSiteId = activeSiteId;
     }
 
     @Override

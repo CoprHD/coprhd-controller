@@ -614,6 +614,12 @@ public class ControllerUtils {
                     policyName = policy.getPolicyName();
                 }
             }
+        } else if (URIUtil.isType(uri, BlockMirror.class)) {
+            BlockMirror mirror = dbClient.queryObject(BlockMirror.class, uri);
+            if (!NullColumnValueGetter.isNullURI(mirror.getAutoTieringPolicyUri())) {
+                AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class, mirror.getAutoTieringPolicyUri());
+                policyName = policy.getPolicyName();
+            }
         }
 
         return policyName;

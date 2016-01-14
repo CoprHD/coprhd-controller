@@ -16,7 +16,7 @@
         			<tbody>
         				#{list items:drsites, as:'site'}
         				<tr>
-							<td>${site.name}</td>
+							<td><a href="http://${site.vip}">${site.name}</a></td>
 							<td>
 								#{if site.state == "ACTIVE"}
 									<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>
@@ -86,5 +86,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.table td:hover {
+  position:absolute;
+  max-width: none;
+  background:#fff;
+  z-index:100;
+  overflow: visible;
 }
 </style>

@@ -31,6 +31,7 @@ import com.emc.storageos.coordinator.client.model.SiteInfo.ActionScope;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -63,6 +64,8 @@ public class DrUtil {
     public static final String KEY_DATA_SYNC_TIMEOUT = "data_sync_timeout_millis";
     public static final String KEY_SWITCHOVER_TIMEOUT = "switchover_timeout_millis";
     public static final String KEY_STANDBY_DEGRADE_THRESHOLD = "degrade_standby_threshold_millis";
+    public static final String KEY_FAILOVER_STANDBY_SITE_TIMEOUT = "failover_standby_site_timeout_millis";
+    public static final String KEY_FAILOVER_ACTIVE_SITE_TIMEOUT = "failover_active_site_timeout_millis";
 
     private CoordinatorClient coordinator;
 
@@ -144,16 +147,25 @@ public class DrUtil {
      * @return uuid of the active site
      */
     public String getActiveSiteId(String vdcShortId) {
+        return getActiveSite(vdcShortId).getUuid();
+    }
+
+    /**
+     * Get active site object for specific VDC. 
+     * 
+     * @param vdcShortId
+     * @return site object.
+     */
+    public Site getActiveSite(String vdcShortId) {
         String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
         for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
             Site site = new Site(siteConfig);
             if (ACTIVE_SITE_STATES.contains(site.getState())) {
-                return site.getUuid();
+                return site;
             }
         }
-        return null;
+        throw CoordinatorException.retryables.cannotFindSite(vdcShortId);
     }
-
     /**
      * Get local site configuration
      *
@@ -335,8 +347,8 @@ public class DrUtil {
      * @param siteId site UUID
      * @param action action to take
      */
-    public void updateVdcTargetVersion(String siteId, String action) throws Exception {
-        updateVdcTargetVersion(siteId, action, null, null);
+    public void updateVdcTargetVersion(String siteId, String action, long vdcTargetVersion) throws Exception {
+        updateVdcTargetVersion(siteId, action, vdcTargetVersion, null, null);
     }
     
     /**
@@ -346,7 +358,7 @@ public class DrUtil {
      * @param sourceSiteUUID source site UUID
      * @param targetSiteUUID target site UUID
      */
-    public void updateVdcTargetVersion(String siteId, String action, String sourceSiteUUID, String targetSiteUUID) throws Exception {
+    public void updateVdcTargetVersion(String siteId, String action, long vdcTargetVersion, String sourceSiteUUID, String targetSiteUUID) throws Exception {
         SiteInfo siteInfo;
         SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
         String targetDataRevision = null;
@@ -357,13 +369,13 @@ public class DrUtil {
             targetDataRevision = SiteInfo.DEFAULT_TARGET_VERSION;
         }
         
-        siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision, ActionScope.SITE, sourceSiteUUID, targetSiteUUID);
+        siteInfo = new SiteInfo(vdcTargetVersion, action, targetDataRevision, ActionScope.SITE, sourceSiteUUID, targetSiteUUID);
         coordinator.setTargetInfo(siteId, siteInfo);
         log.info("VDC target version updated to {} for site {}", siteInfo, siteId);
     }
 
-    public void updateVdcTargetVersion(String siteId, String action, long dataRevision) {
-        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action, String.valueOf(dataRevision));
+    public void updateVdcTargetVersion(String siteId, String action, long vdcConfigVersion, long dataRevision) throws Exception {
+        SiteInfo siteInfo = new SiteInfo(vdcConfigVersion, action, String.valueOf(dataRevision));
         coordinator.setTargetInfo(siteId, siteInfo);
         log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
@@ -410,6 +422,19 @@ public class DrUtil {
     }
     
     /**
+     * Update current vdc short id to zk
+     * 
+     * @param vdcShortId
+     */
+    public void setLocalVdcShortId(String vdcShortId) {
+        ConfigurationImpl localVdc = new ConfigurationImpl();
+        localVdc.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
+        localVdc.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        localVdc.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, vdcShortId);
+        coordinator.persistServiceConfiguration(localVdc);
+    }
+    
+    /**
      * Use Zookeeper 4 letter command to check status of local coordinatorsvc. The return value could 
      * be one of the following - follower, leader, observer, read-only
      * 
@@ -449,6 +474,10 @@ public class DrUtil {
     public void removeSiteConfiguration(Site site) {
         coordinator.removeServiceConfiguration(site.toConfiguration());
         log.info("Removed site {} configuration from ZK", site.getUuid());
+    }
+
+    public static long newVdcConfigVersion() {
+        return System.currentTimeMillis();
     }
 
     /**
@@ -494,4 +523,14 @@ public class DrUtil {
 
         return lock;
     }
+    
+    /**
+     * Check if it is a multi-vdc configuration 
+     * 
+     * @return true if there are more than 1 vdc
+     */
+    public boolean isMultivdc() {
+        return getVdcSiteMap().keySet().size() > 1;
+    }
+
 }

@@ -21,12 +21,16 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.DataBindingException;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -5852,9 +5856,39 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Workflow workflow = _workflowService.getNewWorkflow(this, UNLINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId);
             _log.info("Created new workflow to unlink targets for snapshot session {} with operation id {}",
                     snapSessionURI, opId);
+            Set<URI> targetKeys = snapshotDeletionMap.keySet();
+            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
 
-            // Create a workflow step to unlink each target.
-            for (URI snapshotURI : snapshotDeletionMap.keySet()) {
+            // For CG's, ensure 1 target per ReplicationGroup
+            if (snapSession.hasConsistencyGroup()) {
+                Iterator<BlockSnapshot> snapshots =
+                        _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotDeletionMap.keySet());
+                final Set<String> replicationGroups = new HashSet<>();
+                final Map<URI, BlockSnapshot> uriToSnapshotCache = new HashMap<>();
+                while (snapshots.hasNext()) {
+                    BlockSnapshot snapshot = snapshots.next();
+                    uriToSnapshotCache.put(snapshot.getId(), snapshot);
+                }
+
+                Map<URI, Boolean> filtered = Maps.filterEntries(snapshotDeletionMap, new Predicate<Map.Entry<URI, Boolean>>() {
+                    @Override
+                    public boolean apply(Map.Entry<URI, Boolean> input) {
+                        BlockSnapshot blockSnapshot = uriToSnapshotCache.get(input.getKey());
+                        String repGrpInstance = blockSnapshot.getReplicationGroupInstance();
+                        if (replicationGroups.contains(repGrpInstance)) {
+                            return false;
+                        }
+
+                        replicationGroups.add(repGrpInstance);
+                        return true;
+                    }
+                });
+                // assign to targetKeys filtered keySet view of snapshotDeletionMap.
+                targetKeys = filtered.keySet();
+            }
+
+            // Create a workflow step to unlink each target specified in targetKeys
+            for (URI snapshotURI : targetKeys) {
                 workflow.createStep(UNLINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Unlinking target for snapshot session %s", snapSessionURI),
                         null, systemURI, getDeviceType(systemURI), getClass(),

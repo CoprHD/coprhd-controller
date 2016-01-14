@@ -33,9 +33,6 @@ import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.ResourceType;
-import com.emc.storageos.model.file.FileNfsACLUpdateParams;
-import com.emc.storageos.model.file.NfsACE;
-import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketDeleteParam;

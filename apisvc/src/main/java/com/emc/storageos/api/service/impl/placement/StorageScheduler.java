@@ -1194,16 +1194,15 @@ public class StorageScheduler implements Scheduler {
         volume.setStorageController(placement.getCandidateSystems().get(0));
         volume.setPool(poolId);
         if (consistencyGroup != null) {
-            volume.setConsistencyGroup(consistencyGroup.getId());
-            
+            volume.setConsistencyGroup(consistencyGroup.getId());            
             if (!consistencyGroup.isProtectedCG()) {
-	            volume.setReplicationGroupInstance(consistencyGroup.getLabel());
+                volume.setReplicationGroupInstance(consistencyGroup.getLabel());
 
-	            // if other volumes in the same CG are in an application, add this volume to the same application
-		        VolumeGroup volumeGroup = getApplicationForCG(dbClient, consistencyGroup, volume.getReplicationGroupInstance());
-		        if (volumeGroup != null) {
-		            volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
-		        }
+                // if other volumes in the same CG are in an application, add this volume to the same application
+                VolumeGroup volumeGroup = getApplicationForCG(dbClient, consistencyGroup, volume.getReplicationGroupInstance());
+                if (volumeGroup != null) {
+                    volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
+                }
             }
             
         }

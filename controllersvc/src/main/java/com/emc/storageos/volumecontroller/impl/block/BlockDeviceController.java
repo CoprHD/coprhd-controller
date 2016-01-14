@@ -598,7 +598,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // journal/target volume, we want to ignore its storage system. We do not want to
             // create backing array consistency groups for RP+VPlex target volumes. Only
             // source volume.
-            // We don't want to create backend CG if VPLEX CG arrayConsistency is false 
+            // We would create backend CG only if the volume's replicationGroupInstance is set when it is prepared in apisvc level.
             Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
             String rpName = volume.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNotNullValue(rpName)) {

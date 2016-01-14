@@ -77,7 +77,8 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     private StringSetMap systemConsistencyGroups;
     
     /**
-     * If create backend replication group for each volume created in the consistency group
+     * If adding volumes or VPLEX backend volumes to replication group for each volume created 
+     * in the consistency group.
      * By default it is set to true. It would be turned to false if one of the volumes in the CG
      * is added to an application (applicable to VPLEX/RP only)
      */

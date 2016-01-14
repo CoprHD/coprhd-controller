@@ -3579,7 +3579,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             for (Volume backingVol : backingVols) {
                 cgUri = backingVol.getConsistencyGroup();
                 rpName = backingVol.getReplicationGroupInstance();
-                if (!NullColumnValueGetter.isNullURI(cgUri) && !NullColumnValueGetter.isNullValue(rpName)) {
+                if (!NullColumnValueGetter.isNullURI(cgUri) && NullColumnValueGetter.isNotNullValue(rpName)) {
                     backingVolsAreInCG = true;
                     storageSystemUri = backingVol.getStorageController();
                     break;
@@ -3725,6 +3725,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         return result;
     }
     
+    /**
+     * Get all VPlex virtual volumes, whose backend volumes are in the same replication group and the same storage system
+     * @param groupName The replication group name
+     * @param storageSystemUri The backend storage system URI
+     * @return The list of Vplex virtual volume URI
+     */
     private List<URI> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri) {
         List<URI> volumeURIs = new ArrayList<URI>();
         // Get all backend volumes with the same replication group name
@@ -3734,7 +3740,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         for (Volume volume : volumes) {
         	URI system = volume.getStorageController();
             if (system.toString().equals(storageSystemUri.toString())) {
-            	//get the vplex virtual volume
+            	// Get the vplex virtual volume
                 List<Volume> vplexVolumes = CustomQueryUtility
                		.queryActiveResourcesByConstraint(_dbClient, Volume.class,
                				getVolumesByAssociatedId(volume.getId().toString()));

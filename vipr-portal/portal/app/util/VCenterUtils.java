@@ -145,7 +145,7 @@ public class VCenterUtils {
     }
 
     public static boolean canUpdateVcenterACLs() {
-        return Security.hasAnyRole(Security.SYSTEM_ADMIN);
+        return Security.hasAnyRole(Security.SYSTEM_ADMIN, Security.SECURITY_ADMIN);
     }
 
     public static boolean isValidAclAssignments (ACLAssignmentChanges aclAssignmentChanges) {

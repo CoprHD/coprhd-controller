@@ -1201,7 +1201,7 @@ public class StorageScheduler implements Scheduler {
         volume.setStorageController(placement.getCandidateSystems().get(0));
         volume.setPool(poolId);
         if (consistencyGroup != null) {
-            volume.setConsistencyGroup(consistencyGroup.getId());            
+            volume.setConsistencyGroup(consistencyGroup.getId());
             if (!consistencyGroup.isProtectedCG()) {
                 volume.setReplicationGroupInstance(consistencyGroup.getLabel());
 
@@ -1211,7 +1211,6 @@ public class StorageScheduler implements Scheduler {
                     volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
                 }
             }
-            
         }
 
         if (null != cosCapabilities.getAutoTierPolicyName()) {

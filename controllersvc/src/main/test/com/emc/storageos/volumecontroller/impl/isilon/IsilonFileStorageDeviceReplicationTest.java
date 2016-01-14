@@ -35,7 +35,7 @@ public class IsilonFileStorageDeviceReplicationTest {
 
     public static void testCreateReplicationPolicy() {
         IsilonFileStorageDeviceReplicationTest.setUp();
-        result = _isi.doCreateReplicationPolicy(_device, "mudit_policy", "/ifs/vipr/muditjainsource", "",
+        result = _isi.doCreateReplicationPolicy(_device, "mudit_policy", "/ifs/vipr/muditjainsource", "10.247.96.116",
                 "/ifs/vipr/mudtjaintarget", IsilonSyncPolicy.Action.copy, "this_is_mudit_policy", "");
         result.getCommandStatus();
     }
@@ -78,7 +78,7 @@ public class IsilonFileStorageDeviceReplicationTest {
         _isi.setIsilonApiFactory(factory);
         _device = new StorageSystem();
         _device.setSystemType("isilon");
-        _device.setIpAddress("");
+        _device.setIpAddress("10.247.96.116");
         _device.setPortNumber(8080);
         _device.setUsername(userName);
         _device.setPassword(password);
@@ -94,13 +94,13 @@ public class IsilonFileStorageDeviceReplicationTest {
         _isi.setIsilonApiFactory(factory);
         _device = new StorageSystem();
         _device.setSystemType("isilon");
-        _device.setIpAddress("");
+        _device.setIpAddress("10.247.96.111");
         _device.setPortNumber(8080);
         _device.setUsername(userName);
         _device.setPassword(password);
         StorageSystem _device2 = new StorageSystem();
         _device2.setSystemType("isilon");
-        _device2.setIpAddress("");
+        _device2.setIpAddress("10.247.96.116");
         _device2.setPortNumber(8080);
         _device2.setUsername(userName);
         _device2.setPassword(password);

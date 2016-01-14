@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.dbutils;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
@@ -745,7 +746,8 @@ public class DBClient {
         List<VdcConfig> newVdcConfigList = loadRecoverFileToRecoverInfo(recoverFileName);
         InternalDbClient geoDbClient = (InternalDbClient) ctx.getBean("geodbclient");
         geoDbClient.stopClusterGossiping();
-        vdcConfHelper.syncVdcConfig(newVdcConfigList, null, true);
+        // Don't recover version and ipsec key. Need to reconsider once all vdc data moving to ZK.
+        vdcConfHelper.syncVdcConfig(newVdcConfigList, null, true, DrUtil.newVdcConfigVersion(), "");
         try {
             Thread.sleep(30000);
         } catch (InterruptedException e) {

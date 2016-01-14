@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.systemservices.impl.resource;
 
-import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -30,9 +29,6 @@ public class IPsecService {
 
     @Autowired
     private AuditLogManager auditMgr;
-
-    @Autowired
-    private DrUtil drUtil;
 
     /**
      * Rotate the VIPR IPsec Pre-shared key.

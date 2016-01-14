@@ -48,6 +48,8 @@ public class DrSiteNetworkMonitor implements Runnable{
     private static final String NETWORK_HEALTH_BROKEN = "Broken";
     private static final String NETWORK_HEALTH_GOOD = "Good";
     private static final String NETWORK_HEALTH_SLOW = "Slow";
+    public static final String ZOOKEEPER_MODE_LEADER = "leader";
+    public static final String ZOOKEEPER_MODE_STANDALONE = "standalone";
 
     private static final int SOCKET_TEST_PORT = 443;
     private static final int NETWORK_SLOW_THRESHOLD = 150;
@@ -74,7 +76,7 @@ public class DrSiteNetworkMonitor implements Runnable{
             String zkState = drUtil.getLocalCoordinatorMode(myNodeId);
 
             //Check if this node is the leader
-            if (!drUtil.ZOOKEEPER_MODE_LEADER.equals(zkState) || !drUtil.ZOOKEEPER_MODE_STANDALONE.equals(zkState)) {
+            if (!ZOOKEEPER_MODE_LEADER.equals(zkState) && !ZOOKEEPER_MODE_STANDALONE.equals(zkState)) {
                 return;
             }
 

@@ -36,7 +36,11 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
     </div>
 </div>
 
-<script>
+<script type="text/javascript">
+    $(document).ready(function () {
+
+    });
+
 render.uploadAndRestoreBtn = function(o, val) {
 	var odata = o.aData;
 	var name= odata.name;
@@ -73,14 +77,16 @@ render.uploadProgressIcon = function(o, val) {
 	        'IN_PROGRESS': 'label-info',
 	        'FAILED':   'label-danger',
 	        'DONE':    'label-success',
-	        'CANCELLED': 'label-danger'
-	    }
+            'CANCELLED': 'label-danger',
+            'DOWNLOAD_FAILED':   'label-danger'
+        }
 	    var icons = {
 	        'NOT_STARTED':     'glyphicon glyphicon-time',
 	        'IN_PROGRESS': 'glyphicon glyphicon-refresh rotate',
 	        'DONE':    'glyphicon glyphicon-ok',
 	        'CANCELLED': 'glyphicon glyphicon-warning-sign',
-	        'FAILED':       'glyphicon glyphicon-remove'
+	        'FAILED':       'glyphicon glyphicon-remove',
+	        'DOWNLOAD_FAILED':       'glyphicon glyphicon-remove'
 	    };
 	    var label = defaultValue(labels[o.aData.status], 'label-default');
 	    var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
@@ -96,7 +102,8 @@ render.uploadProgressMessage = function(o, val) {
         'IN_PROGRESS':   Messages.get("renderFunctions.backupupload.status.progress"),
         'FAILED': Messages.get("renderFunctions.backupupload.status.failed"),
         'DONE':    Messages.get("renderFunctions.backupupload.status.done"),
-        'CANCELLED':    Messages.get("renderFunctions.backupupload.status.cancel")
+        'CANCELLED':    Messages.get("renderFunctions.backupupload.status.cancel"),
+        'DOWNLOAD_FAILED':    Messages.get("renderFunctions.restore.status.downloadfailed")
     };
 
     var errors = {
@@ -120,6 +127,7 @@ render.uploadProgressMessage = function(o, val) {
 render.uploadProgress = function(o, val) {
     return render.uploadProgressIcon(o, val) + " " + render.uploadProgressMessage(o, val);
 }
+
     table.backup.dataTable.afterCreate(function(table) {
         var dataTable = table.getDataTable();
         var itemsJson = #{jsAction @itemsJson(':ids')/};

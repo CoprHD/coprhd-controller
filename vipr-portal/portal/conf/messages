@@ -947,6 +947,7 @@ renderFunctions.backupupload.error.notexist=Can not find the target backup files
 renderFunctions.backupupload.error.invalid=Target backup is invalid
 renderFunctions.backupupload.error.failure=Internal failures during the upload
 renderFunction.backupupload.status.unknown=Unknown
+renderFunctions.restore.status.downloadfailed=Download Failed
 restore.title=Data Restore
 restore.from.version=Restore From Data Backup
 restore.download.progress=Download Progress

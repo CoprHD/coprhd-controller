@@ -1070,7 +1070,8 @@ public class DisasterRecoveryService {
         }
 
         if (!validSiteName(siteParam.getName())) {
-            throw APIException.internalServerErrors.updateSiteFailed(site.getName(), String.format("Site name should not be empty or longer than %d characters.", SITE_NAME_LENGTH_LIMIT));
+            throw APIException.internalServerErrors.updateSiteFailed(site.getName(),
+                    String.format("Site name should not be empty or longer than %d characters.", SITE_NAME_LENGTH_LIMIT));
         }
 
         for (Site eachSite : drUtil.listSites()) {
@@ -1105,6 +1106,7 @@ public class DisasterRecoveryService {
         }
         return false;
     }
+
     /**
      * Query the transition timings for specific standby site
      * 
@@ -1129,6 +1131,10 @@ public class DisasterRecoveryService {
                 standbyTimes.setPausedTime(new Date(standby.getLastStateUpdateTime()));
             }
             // Add last-synced time to lastUpdateTime when available
+
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());
+            standbyTimes.setClusterState(state.toString());
+
         } catch (CoordinatorException e) {
             log.error("Can't find site {} from ZK", uuid);
             throw APIException.badRequests.siteIdNotFound();
@@ -1138,14 +1144,13 @@ public class DisasterRecoveryService {
 
         return standbyTimes;
     }
-    
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/internal/list")
     public SiteList getSitesInternally() {
         return this.getSites();
-    } 
+    }
 
     /**
      * Record new DR operation
@@ -1423,7 +1428,8 @@ public class DisasterRecoveryService {
     protected void validateAddParam(SiteAddParam param, List<Site> existingSites) {
         String siteName = param.getName();
         if (!validSiteName(siteName)) {
-            throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Site name should not be empty or longer than %d characters.", SITE_NAME_LENGTH_LIMIT));
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
+                    "Site name should not be empty or longer than %d characters.", SITE_NAME_LENGTH_LIMIT));
         }
         for (Site site : existingSites) {
             if (site.getName().equals(siteName)) {
@@ -1538,14 +1544,14 @@ public class DisasterRecoveryService {
     public void setDbCommonInfo(Properties dbCommonInfo) {
         this.dbCommonInfo = dbCommonInfo;
     }
-    
+
     private void startLeaderSelector() {
         LeaderSelector leaderSelector = coordinator.getLeaderSelector(coordinator.getSiteId(), Constants.FAILBACK_DETECT_LEADER,
                 new FailbackLeaderSelectorListener());
         leaderSelector.autoRequeue();
         leaderSelector.start();
     }
-    
+
     private class FailbackLeaderSelectorListener extends LeaderSelectorListenerImpl {
 
         private static final int FAILBACK_DETECT_INTERNVAL_SECONDS = 60;
@@ -1573,7 +1579,7 @@ public class DisasterRecoveryService {
             }
         }
     }
-    
+
     private Runnable failbackDetectMonitor = new Runnable() {
 
         @Override
@@ -1582,7 +1588,7 @@ public class DisasterRecoveryService {
                 if (!needCheckFailback()) {
                     return;
                 }
-                
+
                 Site localSite = drUtil.getLocalSite();
                 for (Site site : drUtil.listStandbySites()) {
                     if (drUtil.isSiteUp(site.getUuid())) {
@@ -1598,19 +1604,19 @@ public class DisasterRecoveryService {
                         }
                     }
                 }
-                
+
                 log.info("No another active site detect for failback");
             } catch (Exception e) {
                 log.error("Error occurs during failback detect monitor", e);
             }
         }
-        
+
         private boolean needCheckFailback() {
             if (drUtil.getLocalSite().getState().equals(SiteState.ACTIVE)) {
                 log.info("Current site is active site, need to detail failback");
                 return true;
             }
-            
+
             Site localSite = drUtil.getLocalSite();
             if (localSite.getState().equals(SiteState.ACTIVE_DEGRADED)) {
                 log.info("Site is already ACTIVE_FAILBACK_DEGRADED");
@@ -1618,41 +1624,42 @@ public class DisasterRecoveryService {
                     log.info("there are some controller service alive, process to degrade");
                     return true;
                 }
-                
-                if (!coordinator.locateAllServices(localSite.getUuid(), "sasvc", "1", null, null).isEmpty() ) {
+
+                if (!coordinator.locateAllServices(localSite.getUuid(), "sasvc", "1", null, null).isEmpty()) {
                     log.info("there are some sa service alive, process to degrade");
                     return true;
                 }
-                
+
                 if (!coordinator.locateAllServices(localSite.getUuid(), "vasasvc", "1", null, null).isEmpty()) {
                     log.info("there are some vasa service alive, process to degrade");
                     return true;
                 }
             }
-            
+
             return false;
         }
-        
+
         private boolean hasActiveSiteInRemote(Site site, String localActiveSiteUUID) {
             try {
                 InternalSiteServiceClient client = new InternalSiteServiceClient(site);
                 client.setCoordinatorClient(coordinator);
                 client.setKeyGenerator(apiSignatureGenerator);
                 SiteList remoteSiteList = client.getSiteList();
-                
+
                 for (SiteRestRep siteResp : remoteSiteList.getSites()) {
-                    if (SiteState.ACTIVE.toString().equalsIgnoreCase(siteResp.getState()) && !localActiveSiteUUID.equals(siteResp.getUuid())) {
+                    if (SiteState.ACTIVE.toString().equalsIgnoreCase(siteResp.getState())
+                            && !localActiveSiteUUID.equals(siteResp.getUuid())) {
                         log.info("Remote site {} is active site, need to failback", siteResp);
                         return true;
                     }
                 }
-                
+
                 return false;
             } catch (Exception e) {
                 log.warn("Failed to check remote site information during failback detect", e);
                 return false;
             }
         }
-    
+
     };
 }

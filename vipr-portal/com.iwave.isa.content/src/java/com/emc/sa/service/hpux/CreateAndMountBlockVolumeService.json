@@ -41,24 +41,6 @@
       }
     },
     
-    blockSize:{
-        type: "choice",
-        initialValue: "Default",
-        select: "one",
-        options: {
-          "DEFAULT": "Default",
-          "1024": "1k",
-          "2048": "2k",
-          "4096": "4k",
-          "8192": "8k",
-          "16384": "16k",
-          "32768": "32k",
-          "65536": "64k"
-        },
-        required: false,
-        lockable: true
-    },
-    
     mountPoint:{
       type:"text",
       validation:{

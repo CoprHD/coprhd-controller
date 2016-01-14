@@ -2160,9 +2160,9 @@ rpvplex_clr()
 }
 
 # MetroPoint CDP
-mp_cdp()
+rpmp_cdp()
 {
-    run cos create block mp_cdp$1 $POOLS_AUTO_MATCH \
+    run cos create block rpmp_cdp$1 $POOLS_AUTO_MATCH \
         --description 'MetroPoint-Source-CDP'  \
         --protocols FC \
         --numpaths 2 \
@@ -2198,9 +2198,9 @@ mp_cdp()
 }
 
 # MetroPoint CRR
-mp_crr()
+rpmp_crr()
 {
-    run cos create block mp_crr$1 $POOLS_AUTO_MATCH \
+    run cos create block rpmp_crr$1 $POOLS_AUTO_MATCH \
         --description 'MetroPoint-Source-CRR'  \
         --protocols FC \
         --numpaths 2 \
@@ -2236,9 +2236,9 @@ mp_crr()
 }
 
 # MetroPoint CLR
-mp_clr()
+rpmp_clr()
 {
-    run cos create block mp_clr$1 $POOLS_AUTO_MATCH \
+    run cos create block rpmp_clr$1 $POOLS_AUTO_MATCH \
         --description 'MetroPoint-CLR'  \
         --protocols FC \
         --numpaths 2 \
@@ -2321,15 +2321,15 @@ rp_vpool_setup()
     rp_crr
     rp_clr
     rp_noprotection
-    if [ "${RPVPLEX_TESTS}" = "1" ]; then
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	rpvplex_targets
 	rpvplex_ha
 	rpvplex_cdp
 	rpvplex_crr
 	rpvplex_clr
-	mp_cdp
-	mp_crr
-	mp_clr
+	rpmp_cdp
+	rpmp_crr
+	rpmp_clr
 	rpvplexlocal_noprotection
 	rpvplexdist_noprotection
     fi
@@ -2393,7 +2393,7 @@ rp_smis_setup()
         fi
     done
 
-    if [ "${RPVPLEX_TESTS}" = "1" ]; then
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	rp_vplex_setup
     fi
 
@@ -2440,7 +2440,7 @@ rp_port_setup()
     # Override port to varray assigments for VPLEX clusters to prevent port mixing in clusters
     # Source Site
     # Cluster 1
-    if [ "${RPVPLEX_TESTS}" = "1" ]; then
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	if [ "$RECOVERPOINT_VPLEX_A_GUID" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_A_GUID" != "NONE" ]; then
 	    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY1
 	    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY1
@@ -2486,7 +2486,7 @@ rp_cg_setup()
     echo '*** Recoverpoint CG setup ***'
 
     run blockconsistencygroup create $PROJECT $RP_CONSISTENCY_GROUP
-    if [ "${RPVPLEX_TESTS}" = "1" ]; then
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	run blockconsistencygroup create $PROJECT $RP_VPLEX_CONSISTENCY_GROUP
 	run blockconsistencygroup create $PROJECT $RP_METROPOINT_CONSISTENCY_GROUP
     fi
@@ -2659,7 +2659,7 @@ recoverpoint_ingest_setup()
 	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
     fi	
 
-    if [ ${RPVPLEX_TESTS} = "1" ]; then
+    if [ ${RPVPLEX_TESTS} = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
 	run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
     fi
@@ -2719,7 +2719,8 @@ recoverpoint_ingest_test()
 	RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_V1TGT}
 	RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY3}
     fi
-    
+    exit;
+
     rpsnap=rpsnap_for_validation-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     if [ "${vpool}" = "rp${vplextag}_cdp" ]; then
 	# Make sure it fails against a different sync policy than what's on the RPA
@@ -2776,7 +2777,7 @@ recoverpoint_ingest_test()
 	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
     fi	
 
-    if [ ${RPVPLEX_TESTS} = "1" ]; then
+    if [ ${RPVPLEX_TESTS} = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
 	run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
     fi
@@ -3135,7 +3136,7 @@ recoverpoint_simulator_setup()
     run smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP $RP_VMAX_SMIS_SIM_PORT $SMIS_USER "$SMIS_PASSWD" false
     run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
     
-    if [ "${RPVPLEX_TESTS}" = "1" ]; then
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         # VPLEX
         VPLEX_DEV_NAME=$VPLEX_SIMULATOR
         VPLEX_IP=$SIMULATOR_IP
@@ -3172,12 +3173,14 @@ recoverpoint_simulator_setup()
     run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_3rp1 --addvarrays $RECOVERPOINT_VARRAY3
 
     run storagepool update $VMAX1_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
+    run storagepool update $VMAX2_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY2 --type block
     run storagepool update $VMAX3_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY3 --type block
 
     # Simulator adjustments to cos (shouldn't be needed but RP simulator only sees a subset of what's on the network)
     rp_vpool_setup
 
     run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
+    run cos update block rp_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
     run cos update block rp_targets --storage $VMAX3_SIMULATOR_NATIVEGUID
     run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
     run cos update block rp_cdp-sync --storage $VMAX1_SIMULATOR_NATIVEGUID
@@ -3185,7 +3188,7 @@ recoverpoint_simulator_setup()
     run cos update block rp_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
     run cos update block rp_clr --storage $VMAX1_SIMULATOR_NATIVEGUID
     run cos update block rp_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
-    if [ "${RPVPLEX_TESTS}" = "1" ]; then
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	run cos update block rpvplex_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
 	run cos update block rpvplex_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
 	run cos update block rpvplex_targets --storage $VMAX3_SIMULATOR_NATIVEGUID
@@ -3195,6 +3198,9 @@ recoverpoint_simulator_setup()
 	run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
 	run cos update block rpvplex_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
 	run cos update block rpvplex_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
+	run cos update block rpmp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
+	run cos update block rpmp_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
+	run cos update block rpmp_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
     fi
 
     # The simulator tends to need priming
@@ -3250,7 +3256,7 @@ recoverpoint_cleanup_cgs()
     # Cleanup CGs
     if [ "${RP_INGESTTEST}" = "0" ]; then
 	run blockconsistencygroup delete $RP_CONSISTENCY_GROUP
-	if [ "${RPVPLEX_TESTS}" = "1" ]; then
+	if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	    run blockconsistencygroup delete $RP_VPLEX_CONSISTENCY_GROUP
 	    run blockconsistencygroup delete $RP_METROPOINT_CONSISTENCY_GROUP
 	fi
@@ -3267,11 +3273,11 @@ recoverpoint_tests()
 
         rp_src_varray=$RECOVERPOINT_VARRAY1
         rpvplex_src_varray=$RECOVERPOINT_VARRAY1
-        mp_src_varray=$RECOVERPOINT_VARRAY1
+        rpmp_src_varray=$RECOVERPOINT_VARRAY1
 
         rp_noprotection_vpool='rp_noprotection'
         rpvplex_noprotection_vpool='rpvplexdist_noprotection'
-        mp_noprotection_vpool='rpvplexdist_noprotection'
+        rpmp_noprotection_vpool='rpvplexdist_noprotection'
 
         rp_type=''
 
@@ -3292,10 +3298,10 @@ recoverpoint_tests()
             rpvplex_noprotection_vpool='rpvplexlocal_noprotection'
 
             # MP
-            mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
-            mp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
-	    mp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2)
-            mp_tgt_vpool='rp_targets'
+            rpmp_active_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpmp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
+	    rpmp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2)
+            rpmp_tgt_vpool='rp_targets'
         fi
 
         if [ "$RP_CRR" = "1" ]; then
@@ -3313,10 +3319,10 @@ recoverpoint_tests()
             rpvplex_tgt_vpool='rpvplex_targets'
 
             # MP
-            mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
-	    mp_tgt_varrays=($RECOVERPOINT_VARRAY3)
-            mp_standby_tgt_varray=''
-            mp_tgt_vpool='rp_targets'
+            rpmp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+	    rpmp_tgt_varrays=($RECOVERPOINT_VARRAY3)
+            rpmp_standby_tgt_varray=''
+            rpmp_tgt_vpool='rp_targets'
         fi
 
         if [ "$RP_CLR" = "1" ]; then
@@ -3334,10 +3340,10 @@ recoverpoint_tests()
             rpvplex_tgt_vpool='rpvplex_targets'
 
             # MP
-            mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
-	    mp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3)
-            mp_standby_tgt_varray=''
-            mp_tgt_vpool='rp_targets'
+            rpmp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+	    rpmp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3)
+            rpmp_standby_tgt_varray=''
+            rpmp_tgt_vpool='rp_targets'
         fi
 
         # RP
@@ -3353,10 +3359,10 @@ recoverpoint_tests()
         rpvplexvolumetarget=${rpvplexvolume}'-target-'${rpvplex_tgt_varray}
 
         # MP
-        mp_src_vpool='mp_'$rp_type
-        mp_src_vpool_sync=${mp_src_vpool}'-sync'
+        rpmp_src_vpool='rpmp_'$rp_type
+        rpmp_src_vpool_sync=${rpmp_src_vpool}'-sync'
         mpvolume=${RP_METROPOINT_VOLUME}
-        mpvolumetarget=${mpvolume}'-target-'${mp_active_tgt_varray}
+        mpvolumetarget=${mpvolume}'-target-'${rpmp_active_tgt_varray}
 
         # Setup test volumes...
         # Either use volumes that have gone through the change vpool process or
@@ -3374,12 +3380,14 @@ recoverpoint_tests()
                 #recoverpoint_vpool_change_test ${rpvplexvolume} ${rpvplex_base_cvp1} ${rpvplex_src_varray} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
             fi
 
-            if [ "$MP_TESTS" = "1" ]; then
+            if [ "$RPMP_TESTS" = "1" ]; then
                 echo 'MP change vpool...NOT SUPPORTED YET!!'
             fi
 	else
 	    if [ "$RPVPLEX_TESTS" = "1" ]; then
-		vplextag="vplex"
+		vplextag="rpvplex"
+	    elif [ "${RPMP_TESTS}" = "1" ]; then
+		vplextag="mp"
 	    fi
 
 	    if [ "$RP_INGESTPRIME" = "1" ]; then
@@ -3422,9 +3430,9 @@ recoverpoint_tests()
                 run volume create ${rpvplexvolume} $PROJECT ${rpvplex_src_varray} ${rpvplex_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_VPLEX_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
             fi
 
-            if [ "$MP_TESTS" = "1" ]; then
+            if [ "$RPMP_TESTS" = "1" ]; then
                 echo 'MetroPoint volume create...'
-                run volume create ${mpvolume} $PROJECT ${mp_src_varray} ${mp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_METROPOINT_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+                run volume create ${mpvolume} $PROJECT ${rpmp_src_varray} ${rpmp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_METROPOINT_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
             fi
 	fi
 
@@ -3451,9 +3459,9 @@ recoverpoint_tests()
                 recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
             fi
 
-            if [ "$MP_TESTS" = "1" ]; then
+            if [ "$RPMP_TESTS" = "1" ]; then
                 echo 'MP change vpool'
-                recoverpoint_vpool_change_test ${mpvolume}${volume_name_modifier} ${mp_noprotection_vpool} ${mp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+                recoverpoint_vpool_change_test ${mpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
             fi
         fi
 
@@ -3472,10 +3480,10 @@ recoverpoint_tests()
 	done
 	
 	# Compile a list of target volume names that have been created for MetroPoint		
-	mp_tgt_volumes=()
-	for tgt in ${mp_tgt_varrays}
+	rpmp_tgt_volumes=()
+	for tgt in ${rpmp_tgt_varrays}
 	  do
-	  mp_tgt_volumes=("${mp_tgt_volumes[@]}" "${mpvolume}-target-${tgt}${volume_name_modifier}")
+	  rpmp_tgt_volumes=("${rpmp_tgt_volumes[@]}" "${mpvolume}-target-${tgt}${volume_name_modifier}")
 	done
 
         ### Begin Recoverpoint test cases ###
@@ -3530,19 +3538,19 @@ recoverpoint_tests()
             fi
 
             # MP test cases
-            if [ "$MP_TESTS" = "1" ]; then
+            if [ "$RPMP_TESTS" = "1" ]; then
                 echo 'MetroPoint tests...'
 		# Add Journal Test
-		recoverpoint_add_journal_volume ${mp_active_tgt_varray} ${mp_active_tgt_varray} ${mp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+		recoverpoint_add_journal_volume ${rpmp_active_tgt_varray} ${rpmp_active_tgt_varray} ${rpmp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
 		
                 # Snapshot/Bookmark Test
-                recoverpoint_auto_snapshot_cleanup_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier} ${mp_src_varray}
+                recoverpoint_auto_snapshot_cleanup_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier} ${rpmp_src_varray}
 
                 # Failover Test
                 recoverpoint_failover_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier}
 				
 		# CG Failover/Swap Test
-		recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${mp_src_varray} ${mp_tgt_volumes} ${mp_tgt_varrays}
+		recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${rpmp_src_varray} ${rpmp_tgt_volumes} ${rpmp_tgt_varrays}
             
                 # Change Replication Mode Test
                 echo 'RP change vpool - replication mode'
@@ -3565,7 +3573,7 @@ recoverpoint_tests()
             recoverpoint_cleanup_volumes ${rpvplexvolume} $RP_VOLUME_COUNT
         fi
 
-        if [ "$MP_TESTS" = "1" ]; then
+        if [ "$RPMP_TESTS" = "1" ]; then
             echo 'MP volume cleanup...'
             recoverpoint_cleanup_volumes ${mpvolume} $RP_VOLUME_COUNT
         fi

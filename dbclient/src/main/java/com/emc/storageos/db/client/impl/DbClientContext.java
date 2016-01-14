@@ -49,7 +49,6 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -386,7 +385,7 @@ public class DbClientContext {
                 schemaVersion = cluster.addKeyspace(update).getResult().getSchemaId();
             }
     
-            if (wait) {
+            if (wait && !hasUnreachableNodes) {
                 waitForSchemaAgreement(schemaVersion);
             }
         } catch (ConnectionException ex) {
@@ -458,8 +457,15 @@ public class DbClientContext {
                 continue;
             }
             if (schemas.size() == 1) {
-                return schemas.containsKey(StorageProxy.UNREACHABLE);
+                if (!schemas.containsKey(StorageProxy.UNREACHABLE)) {
+                    return false;
+                } else {
+                    // keep waiting if all nodes are unreachable
+                    continue;
+                }
             }
+            //schema.size() == 2
+            return schemas.containsKey(StorageProxy.UNREACHABLE);
         }
         log.error("Unable to converge schema versions {}", schemas);
         throw new IllegalStateException("Unable to converge schema versions");

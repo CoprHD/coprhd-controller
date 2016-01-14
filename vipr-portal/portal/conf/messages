@@ -911,6 +911,7 @@ disasterRecovery.error.message=Error Message
 disasterRecovery.error.creation.time=Creation Time
 disasterRecovery.paused.time=Paused Time
 disasterRecovery.lastOperation.time=Last Synced Time
+disasterRecovery.cluster.state=Cluster State
 disasterRecovery.switchover.failed.instruction=Please contact an administrator or EMC Support
 
 # About

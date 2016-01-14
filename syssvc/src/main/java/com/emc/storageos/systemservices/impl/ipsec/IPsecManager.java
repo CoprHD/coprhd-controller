@@ -10,6 +10,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.model.ipsec.IPsecStatus;
+import com.emc.storageos.model.ipsec.IpsecParam;
 import com.emc.storageos.security.geo.GeoClientCacheManager;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -87,7 +88,7 @@ public class IPsecManager {
             long vdcConfigVersion = DrUtil.newVdcConfigVersion();
 
             // send to other VDCs if has.
-            updateIPsecKeyToOtherVDCs(vdcConfigVersion, psk);
+            updateIPsecKeyToOtherVDCs(psk, vdcConfigVersion);
 
             // finally update local vdc
             ipsecConfig.setPreSharedKey(psk);
@@ -110,11 +111,18 @@ public class IPsecManager {
 
         List<String> vdcIds = drUtil.getOtherVdcIds();
         for (String peerVdcId : vdcIds) {
-            IpsecParam ipsecParam = buildIpsecParam(peerVdcId, vdcConfigVersion, psk);
-            geoClientManager.getGeoClient(peerVdcId).rotateIpsecKey(ipsecParam);
+            IpsecParam ipsecParam = buildIpsecParam(vdcConfigVersion, psk);
+            geoClientManager.getGeoClient(peerVdcId).rotateIpsecKey(peerVdcId, ipsecParam);
         }
 
         log.info("");
+    }
+
+    private IpsecParam buildIpsecParam(long vdcConfigVersion, String ipsecKey) {
+        IpsecParam param = new IpsecParam();
+        param.setIpsecKey(ipsecKey);
+        param.setVdcConfigVersion(vdcConfigVersion);
+        return param;
     }
 
     /**
@@ -135,7 +143,7 @@ public class IPsecManager {
         } else {
             throw APIException.badRequests.invalidIpsecStatus();
         }
-        String version = updateTargetSiteInfo();
+        String version = updateTargetSiteInfo(DrUtil.newVdcConfigVersion());
         log.info("ipsec state changed, and new config version is {}", version);
         return status;
     }
@@ -162,9 +170,7 @@ public class IPsecManager {
         return vdcConfigVersion;
     }
 
-    private String updateTargetSiteInfo() {
-        long vdcConfigVersion = System.currentTimeMillis();
-
+    private String updateTargetSiteInfo(long vdcConfigVersion) {
         for (Site site : drUtil.listSites()) {
             SiteInfo siteInfo;
             String siteId = site.getUuid();

@@ -517,4 +517,18 @@ public class DrUtil {
         return getVdcSiteMap().keySet().size() > 1;
     }
 
+    public List<String> getOtherVdcIds() {
+
+        List<String> vdcIds = new ArrayList<>();
+        String localVdcId = this.getLocalVdcShortId();
+
+        for(Configuration vdcConfig : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
+            if (vdcConfig.getId().equals(localVdcId)) {
+                continue;
+            }
+            vdcIds.add(vdcConfig.getId());
+        }
+
+        return vdcIds;
+    }
 }

@@ -17,6 +17,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.geomodel.*;
+import com.emc.storageos.model.ipsec.IpsecParam;
 import com.emc.storageos.security.geo.exceptions.*;
 
 import org.apache.commons.lang.StringUtils;
@@ -70,6 +71,7 @@ public class GeoServiceClient extends BaseServiceClient {
     public static final String VDCCONFIG_STABLE_CHECK = VDCCONFIG_URI + "/stablecheck";
     public static final String VERSION_URI = INTERVDC_URI + "/version";
     public static final String VDCCONFIG_RESET_BLACKLIST = VDCCONFIG_URI + "/resetblacklist";
+    public static final String VDCCONFIG_IPSEC_ROTATION_URI = "/ipsec/key";
 
     public static final int MAX_RETRIES = 12;
 
@@ -629,5 +631,19 @@ public class GeoServiceClient extends BaseServiceClient {
             throw GeoException.fatals.unableConnect(endPoint, e);
         }
 
+    }
+
+    public void rotateIpsecKey(String peerVdcId, IpsecParam ipsecParam) {
+        WebResource rRoot = createRequest(VDCCONFIG_IPSEC_ROTATION_URI);
+        rRoot.accept(MediaType.APPLICATION_XML);
+        try {
+            addSignature(rRoot).post(ipsecParam);
+        } catch (UnauthorizedException e) {
+            throw GeoException.fatals.remoteVdcAuthorizationFailed(peerVdcId, e);
+        } catch (GeoException e) {
+            throw e;
+        } catch (Exception e) {
+            throw GeoException.fatals.failedToSedPostCheckRequest(peerVdcId, e);
+        }
     }
 }

@@ -846,7 +846,7 @@ public class IsilonApi {
     }
 
     // If we want to provide the UI to enter quota we can re-use this
-    private IsilonSmartQuota constructIsilonSmartQuotaObjectWithThreshold(String path, boolean bThresholdsIncludeOverhead,
+    public IsilonSmartQuota constructIsilonSmartQuotaObjectWithThreshold(String path, boolean bThresholdsIncludeOverhead,
             boolean bIncludeSnapshots, Long... thresholds) {
         IsilonSmartQuota quota;
         switch (thresholds.length) {

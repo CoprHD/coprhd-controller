@@ -1175,7 +1175,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 // Isilon does not allow to update quota directory to zero.
                 if (qDirSize > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
-                    IsilonSmartQuota expandedQuota = new IsilonSmartQuota(qDirSize, quotaDir.getNotificationLimit() != null ? quotaDir.getNotificationLimit() : 0L,
+                     IsilonSmartQuota expandedQuota = isi.constructIsilonSmartQuotaObjectWithThreshold(null, false, true, quotaDir.getNotificationLimit() != null ? quotaDir.getNotificationLimit() : 0L,
                             quotaDir.getSoftLimit() != null ? quotaDir.getSoftLimit() : 0L, quotaDir.getSoftGrace() != null ? quotaDir.getSoftGrace() : 0L);
                     isi.modifyQuota(quotaId, expandedQuota);
                 }

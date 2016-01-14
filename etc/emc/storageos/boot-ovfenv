@@ -78,15 +78,16 @@ _isIPConsistent() {
       [ -z ${vdcpropMap[$vdc_ipv6key]} ] && vdcpropMap[$vdc_ipv6key]="::0"
       [ "${vdcpropMap[$vdc_ipv6key]}" != "${ovfenvpropMap[$ovfenv_ipv6key]}" ] && echo "false" && return
     done 
-    
+   
     vdc_vipkey="vdc_vdc1_"$site_myid"_network_vip";
-    ovfenv_vipkey="network_vip"
-    [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vipkey]}" ] && echo "false" && return
-    
-    vdc_vip6key="vdc_vdc1_"$site_myid"_network_vip6";
-    ovfenv_vip6key="network_vip6"
-    [ -z ${vdcpropMap[$vdc_vip6key]} ] && vdcpropMap[$vdc_vip6key]="::0"
-    [ "${vdcpropMap[$vdc_vip6key]}" != "${ovfenvpropMap[$ovfenv_vip6key]}" ] && echo "false" && return
+    if [[ ${vdcpropMap[$vdc_vipkey]} == *"::"* ]]; then
+        ovfenv_vip6key="network_vip6"
+        [ -z ${vdcpropMap[$vdc_vipkey]} ] && vdcpropMap[$vdc_vipkey]="::0"
+        [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vip6key]}" ] && echo "false" && return
+    else
+        ovfenv_vipkey="network_vip"
+        [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vipkey]}" ] && echo "false" && return
+    fi 
     
     echo "true" && return
 }

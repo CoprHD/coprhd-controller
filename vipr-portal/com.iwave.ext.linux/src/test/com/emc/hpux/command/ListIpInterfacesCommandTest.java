@@ -18,7 +18,7 @@ import com.iwave.ext.linux.model.IPInterface;
 
 public class ListIpInterfacesCommandTest {
 
-    static String output = "lo0: flags=849<UP,LOOPBACK,RUNNING,MULTICAST>" + "\n" +
+    private static String output = "lo0: flags=849<UP,LOOPBACK,RUNNING,MULTICAST>" + "\n" +
             "inet 127.0.0.1 netmask ff000000 " + "\n" +
             "\n" +
             "\n" +
@@ -37,7 +37,7 @@ public class ListIpInterfacesCommandTest {
             "lan0: flags=1843<UP,BROADCAST,RUNNING,MULTICAST,CKO>" + "\n" +
             "       inet 10.100.10.10 netmask ffffff00 broadcast 10.100.10.255" + "\n";
 
-    static ListIPInterfacesCommand ipInterfacesCommand = null;
+    private static ListIPInterfacesCommand ipInterfacesCommand = null;
 
     @BeforeClass
     public synchronized static void setup() {

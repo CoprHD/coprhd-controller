@@ -17,7 +17,7 @@ import com.iwave.ext.command.CommandOutput;
 
 public class ListMountpointsCommandTest {
 
-    static final String OUTPUT =
+    private static final String OUTPUT =
             "/ on /dev/vg00/lvol3 ioerror=mwdisable,largefiles,delaylog,nodatainlog,dev=40000003 on Wed Nov 18 13:00:16 2015"
                     + "\n"
                     +

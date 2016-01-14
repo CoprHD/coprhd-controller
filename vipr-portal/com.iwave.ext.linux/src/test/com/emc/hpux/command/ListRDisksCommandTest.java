@@ -17,7 +17,7 @@ import com.iwave.ext.command.CommandOutput;
 
 public class ListRDisksCommandTest {
 
-    static final String OUTPUT =
+    private static final String OUTPUT =
             "/dev/pt/pt0:" + "\n" +
                     "/dev/rdisk/disk3:0x5000c5007141fccf" + "\n" +
                     "/dev/rdisk/disk4:0x5000c50071420b87" + "\n" +
@@ -36,7 +36,7 @@ public class ListRDisksCommandTest {
                     "/dev/rdisk/disk39:0x514f0c594de0182b" + "\n" +
                     "/dev/rdisk/disk41:0x60000970000195701573533032433644";
 
-    static ListRDisksCommand command = null;
+    private static ListRDisksCommand command = null;
 
     @BeforeClass
     public synchronized static void setup() {

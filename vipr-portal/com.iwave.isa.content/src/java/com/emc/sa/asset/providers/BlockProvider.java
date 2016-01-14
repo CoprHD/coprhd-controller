@@ -8,8 +8,8 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalMirrorSupport
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
@@ -1617,7 +1617,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getApplications(AssetOptionsContext ctx) {
         final ViPRCoreClient client = api(ctx);
         VolumeGroupList applications = client.application().getApplications();
-        return createNamedResourceOptions(applications.getVolumeGroupss());
+        return createNamedResourceOptions(applications.getVolumeGroups());
     }
 
     @Asset("applicationBlockVolume")

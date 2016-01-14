@@ -23,6 +23,11 @@
      initialValue: "None"
     },
     
+    volume:{
+      type:"assetType.vipr.sourceBlockVolume",
+      select: "many"
+    },
+    
     replicationGroup:{
      type:"assetType.vipr.replicationGroup",
      required:"false"
@@ -33,9 +38,9 @@
      required:false
     },
     
-    volume:{
-      type:"assetType.vipr.sourceBlockVolume",
-      select: "many"
+    newConsistencyGroup:{
+     type:"assetType.vipr.consistencyGroupFilter",
+     initialValue: "None"
     }
   }
 }

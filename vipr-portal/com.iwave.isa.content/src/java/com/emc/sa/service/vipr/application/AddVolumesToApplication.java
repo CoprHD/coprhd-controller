@@ -18,11 +18,13 @@ public class AddVolumesToApplication extends WaitForTasks<TaskResourceRep> {
     private final List<URI> volumeIds;
     private final URI applicationId;
     private final String replicationGroup;
+    private final URI consistencyGroupId;
 
-    public AddVolumesToApplication(URI applicationId, List<URI> volumeIds, String replicationGroup) {
+    public AddVolumesToApplication(URI applicationId, List<URI> volumeIds, String replicationGroup, URI consistencyGroupId) {
         this.volumeIds = volumeIds;
         this.applicationId = applicationId;
         this.replicationGroup = replicationGroup;
+        this.consistencyGroupId = consistencyGroupId;
         provideDetailArgs(applicationId, volumeIds, replicationGroup);
     }
 
@@ -34,6 +36,7 @@ public class AddVolumesToApplication extends WaitForTasks<TaskResourceRep> {
         if (replicationGroup != null && !replicationGroup.isEmpty()) {
             addVolumesList.setReplicationGroupName(replicationGroup);
         }
+        addVolumesList.setConsistencyGroup(consistencyGroupId);
         input.setAddVolumesList(addVolumesList);
 
         TaskList taskList = getClient().application().updateApplication(applicationId, input);

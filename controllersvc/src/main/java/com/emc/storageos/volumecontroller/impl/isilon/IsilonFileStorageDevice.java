@@ -1097,7 +1097,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             // create directory for the file share
             isi.createDir(qDirPath, true);
 
-            String qid = createQuotaWithThreshold(qDirPath, qDirSize, quotaDir.getSoftLimit() != null ? Long.valueOf(quotaDir.getSoftLimit()) : 0L,
+            String qid = createQuotaWithThreshold(qDirPath, qDirSize,
+                    quotaDir.getSoftLimit() != null ? Long.valueOf(quotaDir.getSoftLimit()) : 0L,
                     quotaDir.getNotificationLimit() != null ? Long.valueOf(quotaDir.getNotificationLimit()) : 0L,
                     quotaDir.getSoftGrace() != null ? Long.valueOf(quotaDir.getSoftGrace()) : 0L, isi);
 
@@ -1175,14 +1176,17 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 // Isilon does not allow to update quota directory to zero.
                 if (qDirSize > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
-                     IsilonSmartQuota expandedQuota = isi.constructIsilonSmartQuotaObjectWithThreshold(null, false, true, quotaDir.getNotificationLimit() != null ? quotaDir.getNotificationLimit() : 0L,
-                            quotaDir.getSoftLimit() != null ? quotaDir.getSoftLimit() : 0L, quotaDir.getSoftGrace() != null ? quotaDir.getSoftGrace() : 0L);
+                    IsilonSmartQuota expandedQuota = isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, qDirSize,
+                            quotaDir.getNotificationLimit() != null ? quotaDir.getNotificationLimit() : 0L,
+                            quotaDir.getSoftLimit() != null ? quotaDir.getSoftLimit() : 0L,
+                            quotaDir.getSoftGrace() != null ? quotaDir.getSoftGrace() : 0L);
                     isi.modifyQuota(quotaId, expandedQuota);
                 }
 
             } else {
                 // Create a new Quota
-                String qid = createQuotaWithThreshold(qDirPath, qDirSize, quotaDir.getSoftLimit() != null ? Long.valueOf(quotaDir.getSoftLimit()) : 0L,
+                String qid = createQuotaWithThreshold(qDirPath, qDirSize,
+                        quotaDir.getSoftLimit() != null ? Long.valueOf(quotaDir.getSoftLimit()) : 0L,
                         quotaDir.getNotificationLimit() != null ? Long.valueOf(quotaDir.getNotificationLimit()) : 0L,
                         quotaDir.getSoftGrace() != null ? Long.valueOf(quotaDir.getSoftGrace()) : 0L, isi);
 

@@ -802,7 +802,7 @@ public class IsilonApi {
     public String createQuota(String path, Long... thresholds) throws IsilonException {
         IsilonSmartQuota quota;
         if (thresholds != null && thresholds.length > 0) {
-            quota = constructIsilonSmartQuotaObjectWithThreshold(path, false, false,thresholds);
+            quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", false, false,thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
                                       // cluster size.
         } else {
@@ -833,7 +833,7 @@ public class IsilonApi {
         IsilonSmartQuota quota;
         // Isilon does not allow to create zero quota directory.
         if (thresholds != null && thresholds.length > 0 && thresholds[0] > 0) {
-            quota = constructIsilonSmartQuotaObjectWithThreshold(path, bThresholdsIncludeOverhead, bIncludeSnapshots, thresholds);
+            quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", bThresholdsIncludeOverhead, bIncludeSnapshots, thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
                                       // cluster size.
         } else {
@@ -846,30 +846,30 @@ public class IsilonApi {
     }
 
     // If we want to provide the UI to enter quota we can re-use this
-    public IsilonSmartQuota constructIsilonSmartQuotaObjectWithThreshold(String path, boolean bThresholdsIncludeOverhead,
-            boolean bIncludeSnapshots, Long... thresholds) {
+    public IsilonSmartQuota constructIsilonSmartQuotaObjectWithThreshold(String path, String type, Boolean bThresholdsIncludeOverhead,
+            Boolean bIncludeSnapshots, Long... thresholds) {
         IsilonSmartQuota quota;
         switch (thresholds.length) {
             case 2:
-                quota = new IsilonSmartQuota(path, thresholds[0], 
+                quota = new IsilonSmartQuota(path, type, thresholds[0], 
                         (long) ((thresholds[1] * thresholds[0])/100), 0L, 0L, bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
             case 3:
-                quota = new IsilonSmartQuota(path, thresholds[0], 
+                quota = new IsilonSmartQuota(path, type, thresholds[0], 
                         (long) ((thresholds[1] * thresholds[0])/100),
                         (long) ((thresholds[2] * thresholds[0])/100), 0L, bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
             case 4:
-                quota = new IsilonSmartQuota(path, thresholds[0], 
+                quota = new IsilonSmartQuota(path, type, thresholds[0], 
                         (long) ((thresholds[1] * thresholds[0])/100),
                         (long) ((thresholds[2] * thresholds[0])/100),
                         (thresholds[3] * 60 * 60 * 24), bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
             default:
-                quota = new IsilonSmartQuota(path, thresholds[0], 0L, 0L, 0L, bThresholdsIncludeOverhead,
+                quota = new IsilonSmartQuota(path, type, thresholds[0], 0L, 0L, 0L, bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
         }

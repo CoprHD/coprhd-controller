@@ -174,9 +174,9 @@ public class IsilonSmartQuota {
         thresholds = new Thresholds(h, null, null, null);
     }
 
-    public IsilonSmartQuota(String p, long h, long a, long s, long sg, boolean bThresholdsIncludeOverhead, boolean bIncludeSnapshots) {
+    public IsilonSmartQuota(String p, String type, long h, long a, long s, long sg, Boolean bThresholdsIncludeOverhead, Boolean bIncludeSnapshots) {
         path = p;
-        type = "directory";
+        this.type = type;
         include_snapshots = bIncludeSnapshots;              // custom value
         thresholds_include_overhead = bThresholdsIncludeOverhead;     // custom value
         enforced = true;

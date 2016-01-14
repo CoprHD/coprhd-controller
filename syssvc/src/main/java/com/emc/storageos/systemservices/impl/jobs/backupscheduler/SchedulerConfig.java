@@ -103,11 +103,11 @@ public class SchedulerConfig {
 
     public String getExternalServerPassword() {
         PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
-        byte[] uploadPassword = getExternalServerPassword(propInfo);
-        if (uploadPassword == null) {
+        byte[] password = getExternalServerPassword(propInfo);
+        if (password == null) {
             return "";
         }
-        return this.encryptionProvider.decrypt(Base64.decodeBase64(uploadPassword));
+        return this.encryptionProvider.decrypt(Base64.decodeBase64(password));
     }
 
     public Calendar now() {
@@ -163,7 +163,7 @@ public class SchedulerConfig {
     }
 
     private int getStartOffsetMinutes(PropertyInfo propInfo) {
-        int startOffsetMinutes = 0;
+        int startOffset = 0;
         String startTimeStr = propInfo.getProperty(BackupConstants.SCHEDULE_TIME);
         if (startTimeStr != null && startTimeStr.length() > 0) {
             // Format is ...dddHHmm
@@ -173,31 +173,31 @@ public class SchedulerConfig {
             int hour = raw % 100;
             int day = raw / 100;
 
-            startOffsetMinutes = (day * 24 + hour) * 60 + minute;
+            startOffset = (day * 24 + hour) * 60 + minute;
         }
-        return startOffsetMinutes;
+        return startOffset;
     }
 
     private int getCopiesToKeep(PropertyInfo propInfo) {
-        int copiesToKeep = BackupConstants.DEFAULT_BACKUP_COPIES_TO_KEEP;
+        int retentionNumber = BackupConstants.DEFAULT_BACKUP_COPIES_TO_KEEP;
         String copiesStr = propInfo.getProperty(BackupConstants.COPIES_TO_KEEP);
         if (copiesStr != null && copiesStr.length() > 0) {
-            copiesToKeep = Integer.parseInt(copiesStr);
+            retentionNumber = Integer.parseInt(copiesStr);
         }
-        return copiesToKeep;
+        return retentionNumber;
     }
 
     private String getExternalServerUrl(PropertyInfo propInfo) {
-        String uploadUrl;
+        String url;
         String urlStr = propInfo.getProperty(BackupConstants.UPLOAD_URL);
         if (urlStr == null || urlStr.length() == 0) {
-            uploadUrl = null;
+            url = null;
         } else if (urlStr.endsWith("/")) {
-            uploadUrl = urlStr;
+            url = urlStr;
         } else {
-            uploadUrl = urlStr + "/";
+            url = urlStr + "/";
         }
-        return uploadUrl;
+        return url;
     }
 
     private String getExternalServerUserName(PropertyInfo propInfo) {
@@ -205,16 +205,16 @@ public class SchedulerConfig {
     }
 
     private byte[] getExternalServerPassword(PropertyInfo propInfo) {
-        byte[] uploadPassword = null;
+        byte[] password = null;
         String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWD);
         if (passwordStr != null && passwordStr.length() > 0) {
             try {
-                uploadPassword = passwordStr.getBytes("UTF-8");
+                password = passwordStr.getBytes("UTF-8");
             } catch (Exception ex) {
                 log.error("Failed to parse upload password: {}", passwordStr, ex);
             }
         }
-        return uploadPassword;
+        return password;
     }
 
     private void initRetainedAndUploadedBackups() {

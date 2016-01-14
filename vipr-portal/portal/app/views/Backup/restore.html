@@ -24,7 +24,15 @@
                 %{
                     style = "success"
                     }%
-                    #{progressBar name:"Status", percentage:getRestoreStatus, style:style/}
+                    #{progressBar name:"Status", percentage:checkProgress, style:style/}
+                </td>
+            </tr>
+            <tr>
+                <td width="300">
+		        <span id="errorInfo" hidden="hidden">
+                &{'upgrade.checkDb.failed'}
+                </span>
+                <div id="checkDetailMsg" style="color:#2c95dd"></div>
                 </td>
             </tr>
         </table>
@@ -60,7 +68,67 @@
 
     <div class="alert alert-info"> &{'restore.prompt'} </div>
 
-    #{Form.button 'button.ok', class:'primary', icon:'ok-sign', submit:'restoreForm'/}
+    #{Form.button 'button.ok', class:'primary', icon:'ok-sign', submit:'restoreForm', id:'restoreBtn' /}
     #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
 #{/form}
 </div>
+
+<script type="text/javascript">
+    var stop = false;
+    $(document).ready(function () {
+        type = "${type}";
+        REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
+        if (type == REMOTE) {
+            $("#restoreBtn").prop("disabled", true);
+            checkPullStatusUpdates();
+        }
+    });
+
+    function checkPullStatusUpdates() {
+        var checkUpdate = window.setInterval(function () {
+            if (stop) {
+                console.info("stop");
+                clearInterval(checkUpdate);
+            }
+            checkPullProgressUpdate()
+        }, 1000); // Check every 1 seconds
+    }
+
+    function checkPullProgressUpdate() {
+        $.ajax({
+            method: "get",
+            url: #{jsAction @getRestoreStatus(':id', ':type')/}({"id": "${id}", "type": REMOTE}),
+            dataType: "json",
+
+            success: function (result) {
+                var description = "";
+                for (var i in result) {
+                    var property = result[i];
+                    description += i + " = " + property + "\n";
+                }
+                console.info("in success");
+                var totalSize = result.backupSize;
+                var downloadSize = result.downloadSize;
+                var progress = downloadSize / totalSize > 100 ? 100 : parseInt(downloadSize / totalSize);
+                console.info("1=%s 2=%s 4=%s ", totalSize, downloadSize, description);
+                updateProgressBar("Status", progress);
+
+                if (result.status == "DOWNLOAD_SUCCESS") {
+                    updateProgressBar("Status", 100);
+                    $("#restoreBtn").prop("disabled", false);
+                    stop = true;
+                }
+                else if (result.status == "DOWNLOAD_FAILED") {
+                    updateProgressBar("Status",100);
+                    updateProgressBarStyle("Status", "danger");
+                    $("#errorInfo").removeAttr('hidden');
+                    stop = true;
+                }
+            },
+            error: function () {
+                console.info("in error");
+            }
+        });
+    }
+</script>
+

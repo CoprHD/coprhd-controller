@@ -8,6 +8,7 @@ import static controllers.Common.flashException;
 
 import java.util.List;
 
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import models.datatable.BackupDataTable;
 import models.datatable.BackupDataTable.Type;
 
@@ -133,6 +134,18 @@ public class Backup extends Controller {
     }
 
     public static void restore(String id, Type type) {
+        if (type == Type.REMOTE) { //pull first if remote backup set
+            BackupUtils.pullBackup(id);
+            BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, false);
+            long totalSize = status.getBackupSize();
+            long downloadSize = status.getDownoadSize();
+            int checkProgress = 0;
+            if (totalSize != 0) {
+                checkProgress = downloadSize / totalSize > 100 ? 100 : (int) (downloadSize / totalSize);
+            }
+            renderArgs.put("downloadStatus", status.getStatus().toString());
+            renderArgs.put("checkProgress", checkProgress);
+        }
         renderArgs.put("id", id);
         renderArgs.put("type", type);
         renderArgs.put("isGeo", false);
@@ -151,8 +164,9 @@ public class Backup extends Controller {
         list(type);
     }
 
-    public static void getRestoreStatus(String id) {
-
+    public static void getRestoreStatus(String id, Type type) {
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL ? true : false);
+        renderJSON(status);
     }
 
     private static void backToReferrer() {
@@ -191,7 +205,7 @@ public class Backup extends Controller {
             BackupUtils.createBackup(name, force);
         }
     }
-    
+
     public static class RestoreForm {
 
         @Required
@@ -207,7 +221,6 @@ public class Backup extends Controller {
         public void restore() throws ViPRException {
             BackupUtils.restore(name, StringUtils.trimToNull(password), isLocal, isGeoFromScratch);
         }
-
 
     }
 

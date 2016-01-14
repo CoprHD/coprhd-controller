@@ -61,7 +61,7 @@ public class BackupDataTable extends DataTable {
         public long creationtime;
         public long size;
         public String id;
-        public String upload;
+        public String action;
         public String status;
         public String error;
         public Integer progress = 0;
@@ -91,9 +91,9 @@ public class BackupDataTable extends DataTable {
             }
             if (status.equals(Status.NOT_STARTED.toString())
                     || status.equals(Status.FAILED.toString())) {
-                upload = backup.getName() + "_enable";
+                action = backup.getName() + "_enable";
             } else {
-                upload = backup.getName() + "_disable";
+                action = backup.getName() + "_disable";
             }
         }
 

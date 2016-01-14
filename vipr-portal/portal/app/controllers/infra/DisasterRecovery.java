@@ -278,8 +278,8 @@ public class DisasterRecovery extends ViprResourceController {
                 DateTime lastUpdateTime = new DateTime (disasterSiteDetails.getlastUpdateTime().getTime());
                 renderArgs.put("lastUpdateTime", lastUpdateTime);
             }
-            if(disasterSiteDetails.getLatency() != null) {
-                Double latency = disasterSiteDetails.getLatency();
+            if(disasterSiteDetails.getNetworkLatencyInMs() != null) {
+                Double latency = disasterSiteDetails.getNetworkLatencyInMs();
                 renderArgs.put("latency", latency);
             }
 

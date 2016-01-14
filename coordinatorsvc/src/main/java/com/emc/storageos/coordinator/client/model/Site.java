@@ -28,7 +28,7 @@ public class Site {
     private static final String KEY_CREATIONTIME = "creationTime";
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
     private static final String KEY_SITE_STATE = "state";
-    private static final String KEY_PING = "ping";
+    private static final String KEY_PING = "networkLatencyInMs";
     private static final String KEY_NETWORK_HEALTH = "networkHealth";
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
@@ -47,7 +47,7 @@ public class Site {
     private String siteShortId;
     private long creationTime;
     private long lastStateUpdateTime;
-    private double ping;
+    private double networkLatencyInMs;
     private String networkHealth;
     private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
@@ -141,12 +141,12 @@ public class Site {
         this.creationTime = creationTime;
     }
 
-    public double getPing() {
-        return ping;
+    public double getNetworkLatencyInMs() {
+        return networkLatencyInMs;
     }
 
-    public void setPing(double ping) {
-        this.ping = ping;
+    public void setNetworkLatencyInMs(double networkLatencyInMs) {
+        this.networkLatencyInMs = networkLatencyInMs;
     }
 
     public String getNetworkHealth() {
@@ -217,8 +217,8 @@ public class Site {
         if (lastStateUpdateTime != 0L) {
             config.setConfig(KEY_LASTSTATEUPDATETIME, String.valueOf(lastStateUpdateTime));
         }
-        if (ping != 0D) {
-            config.setConfig(KEY_PING, String.valueOf(ping));
+        if (networkLatencyInMs != 0D) {
+            config.setConfig(KEY_PING, String.valueOf(networkLatencyInMs));
         }
         if (networkHealth != null) {
             config.setConfig(KEY_NETWORK_HEALTH, networkHealth);
@@ -264,7 +264,7 @@ public class Site {
             }
             s = config.getConfig(KEY_PING);
             if (s != null) {
-                this.ping = Double.valueOf(s);
+                this.networkLatencyInMs = Double.valueOf(s);
             }
             s = config.getConfig(KEY_SITE_STATE);
             if (s != null) {
@@ -318,8 +318,8 @@ public class Site {
         builder.append(siteShortId);
         builder.append(", creationTime=");
         builder.append(creationTime);
-        builder.append(", ping=");
-        builder.append(ping);
+        builder.append(", networkLatencyInMs=");
+        builder.append(networkLatencyInMs);
         builder.append(", networkHealth=");
         builder.append(networkHealth);
         builder.append("]");

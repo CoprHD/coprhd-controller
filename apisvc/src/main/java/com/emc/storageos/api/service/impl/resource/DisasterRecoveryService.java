@@ -1101,7 +1101,7 @@ public class DisasterRecoveryService {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
-            standbyDetails.setLatency(standby.getPing());
+            standbyDetails.setNetworkLatencyInMs(standby.getNetworkLatencyInMs());
             if (standby.getState().equals(SiteState.STANDBY_PAUSED)) {
                 standbyDetails.setPausedTime(new Date(standby.getLastStateUpdateTime()));
             }

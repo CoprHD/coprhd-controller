@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.text.DecimalFormat;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -94,9 +95,9 @@ public class DrSiteNetworkMonitor implements Runnable{
 
         //Check that active site is set to good Network Health
         Site active = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
-        if (!NETWORK_HEALTH_GOOD.equals(active.getNetworkHealth()) || active.getPing() != 0) {
+        if (!NETWORK_HEALTH_GOOD.equals(active.getNetworkHealth()) || active.getNetworkLatencyInMs() != 0) {
             active.setNetworkHealth(NETWORK_HEALTH_GOOD);
-            active.setPing(0);
+            active.setNetworkLatencyInMs(0);
             coordinatorClient.persistServiceConfiguration(active.toConfiguration());
         }
 
@@ -105,18 +106,20 @@ public class DrSiteNetworkMonitor implements Runnable{
             String host = site.getVip();
             double ping = testPing(host,SOCKET_TEST_PORT);
 
-            //if ping successful get an average
+            //if ping successful get an average, format to 3 decimal places
             if( ping != -1){
                 ping = (ping + testPing(host,SOCKET_TEST_PORT) + testPing(host,SOCKET_TEST_PORT))/3;
+                DecimalFormat df = new DecimalFormat("#.###");
+                ping = Double.parseDouble(df.format(ping));
             }
 
             _log.info("Ping: "+ping);
-            site.setPing(ping);
+            site.setNetworkLatencyInMs(ping);
             if (ping > NETWORK_SLOW_THRESHOLD) {
                 site.setNetworkHealth(NETWORK_HEALTH_SLOW);
                 _log.warn("Network for standby {} is slow",site.getName());
             }
-            else if (ping == -1) {
+            else if (ping < 0) {
                 site.setNetworkHealth(NETWORK_HEALTH_BROKEN);
                 _log.error("Network for standby {} is broken",site.getName());
             }
@@ -162,9 +165,8 @@ public class DrSiteNetworkMonitor implements Runnable{
             return -1;
         }
 
-        //the ping suceeded, convert from ns to ms with 3 decimals
-        timeToRespond = timeToRespond/1000;
-        return timeToRespond/1000.0;
+        //the ping suceeded, convert from ns to ms
+        return timeToRespond/1000000.0;
     }
 
 };

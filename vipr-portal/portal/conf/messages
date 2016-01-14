@@ -914,7 +914,7 @@ disasterRecovery.error.message=Error Message
 disasterRecovery.error.creation.time=Creation Time
 disasterRecovery.paused.time=Paused Time
 disasterRecovery.lastOperation.time=Last Synced Time
-disasterRecovery.latency=Latency (ms)
+disasterRecovery.networkLatencyInMs=Latency (ms)
 disasterRecovery.switchover.failed.instruction=Please contact an administrator or EMC Support
 
 # About

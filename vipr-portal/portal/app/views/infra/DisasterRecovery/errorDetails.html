@@ -48,8 +48,8 @@
    		$('#lastUpdateTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocLastTime)));
   	</script>
   #{/if}
-  <dt>&{'disasterRecovery.latency'}</dt>
-  <dd>${latency}</dd>
+  <dt>&{'disasterRecovery.networkLatencyInMs'}</dt>
+  <dd>${networkLatencyInMs}</dd>
 </dl>
 #{/else}
 

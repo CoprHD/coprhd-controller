@@ -225,13 +225,13 @@ public class SRDFScheduler implements Scheduler {
      * 0. When we come into method, we already have a list of candidate source pools, which may be
      * in multiple arrays 1. Get matching pools for each of the target virtual arrays based on the
      * target virtual pool. 2. Make a map of virtual array to potential pools in step 1. 3. Find a
-     * pool from each entry in the map that belongs to a storage system that is connected via SRDF
-     * (with the same policy) to the specific candidate pool we're looking at. 4. Generate an SRDF
+     * pool from each entry in the map that belongs to a storage system that is connected via Mirror
+     * (with the same policy) to the specific candidate pool we're looking at. 4. Generate an Mirror
      * Recommendation object that reflects the combination we found.
      * 
      * @param varray
      *            varray requested for source
-     * @param srdfVarrays
+     * @param
      *            Varray to protect this volume to.
      * @param vpool
      *            vpool requested
@@ -1125,7 +1125,7 @@ public class SRDFScheduler implements Scheduler {
 
     /**
      * Gather matching pools for a collection of varrays
-     * 
+     *
      * @param varrays
      *            The target varrays
      * @param vpool
@@ -1135,7 +1135,7 @@ public class SRDFScheduler implements Scheduler {
      * @return A list of matching storage pools and varray mapping
      */
     private Map<VirtualArray, List<StoragePool>> getMatchingPools(final List<VirtualArray> varrays,
-            final VirtualPool vpool, final VirtualPoolCapabilityValuesWrapper capabilities) {
+                                                                  final VirtualPool vpool, final VirtualPoolCapabilityValuesWrapper capabilities) {
         Map<VirtualArray, List<StoragePool>> varrayStoragePoolMap = new HashMap<VirtualArray, List<StoragePool>>();
         Map<URI, VpoolRemoteCopyProtectionSettings> settingsMap = VirtualPool
                 .getRemoteProtectionSettings(vpool, _dbClient);

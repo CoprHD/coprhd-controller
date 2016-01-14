@@ -179,7 +179,7 @@ public class FileDescriptor implements Serializable {
      * @param descriptors List<FileDescriptors>
      * @return Map of device URI to List<FileDescriptors> in that device
      */
-    static public Map<URI, List<FileDescriptor>> getDeviceMap(List<FileDescriptor> descriptors) {
+    public static Map<URI, List<FileDescriptor>> getDeviceMap(List<FileDescriptor> descriptors) {
         HashMap<URI, List<FileDescriptor>> poolMap = new HashMap<URI, List<FileDescriptor>>();
         for (FileDescriptor desc : descriptors) {
             if (poolMap.get(desc._deviceURI) == null) {
@@ -196,7 +196,7 @@ public class FileDescriptor implements Serializable {
      * @param descriptors List<FileDescriptors>
      * @return Map of pool URI to List<FileDescriptors> in that pool
      */
-    static public Map<URI, List<FileDescriptor>> getPoolMap(List<FileDescriptor> descriptors) {
+    public static Map<URI, List<FileDescriptor>> getPoolMap(List<FileDescriptor> descriptors) {
         HashMap<URI, List<FileDescriptor>> poolMap = new HashMap<URI, List<FileDescriptor>>();
         for (FileDescriptor desc : descriptors) {
             if (poolMap.get(desc._poolURI) == null) {

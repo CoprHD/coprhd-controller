@@ -208,7 +208,7 @@ public class FileStorageScheduler implements Scheduler {
      * @param poolRecommendations
      * @return
      */
-    private List<FileRecommendation> getFileRecommendationsForVNAS(VirtualNAS vNAS,
+    public List<FileRecommendation> getFileRecommendationsForVNAS(VirtualNAS vNAS,
             URI vArrayURI, VirtualPool vPool, List<Recommendation> poolRecommendations) {
 
         List<FileRecommendation> fileRecommendations = new ArrayList<FileRecommendation>();
@@ -371,7 +371,7 @@ public class FileStorageScheduler implements Scheduler {
      * @return list of recommended storage ports for VNAS
      *
      */
-    private Map<VirtualNAS, List<StoragePool>> getRecommendedVirtualNASBasedOnCandidatePools(
+    public Map<VirtualNAS, List<StoragePool>> getRecommendedVirtualNASBasedOnCandidatePools(
             VirtualPool vPool, URI vArrayURI,
             List<StoragePool> candidatePools, Project project,
             List<VirtualNAS> invalidNasServers) {
@@ -594,7 +594,7 @@ public class FileStorageScheduler implements Scheduler {
      * @return spList
      * 
      */
-    private List<StoragePort> getAssociatedStoragePorts(VirtualNAS vNAS) {
+    public List<StoragePort> getAssociatedStoragePorts(VirtualNAS vNAS) {
 
         StringSet spIdSet = vNAS.getStoragePorts();
 

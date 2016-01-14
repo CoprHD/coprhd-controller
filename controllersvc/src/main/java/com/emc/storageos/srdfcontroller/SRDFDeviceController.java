@@ -67,8 +67,7 @@ import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowException;
-import com.emc.storageos.workflow.WorkflowService;
-import com.emc.storageos.workflow.WorkflowStepCompleter;
+import com.emc.storageos.workflow.performProtectionOperationWorkflowStepCompleter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 

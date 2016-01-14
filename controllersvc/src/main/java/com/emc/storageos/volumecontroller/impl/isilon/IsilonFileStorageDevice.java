@@ -2175,20 +2175,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
-    // local mirror related operations
-
     @Override
-    public void doCreateMirror(StorageSystem storage, URI mirror, Boolean createInactive,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        mirrorOperations.createSingleMirrorFileShare(storage, mirror, createInactive, taskCompleter);
+    public void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
+
     }
 
-    @Override
-    public void doDeleteMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
-        // TODO Auto-generated method stub
-        mirrorOperations.deleteSingleMirrorFileShare(storage, mirror, taskCompleter);
-
-    }
 	
 }

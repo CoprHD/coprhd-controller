@@ -235,13 +235,4 @@ public interface FileStorageDevice {
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj,
             FileDeviceInputOutput args);
     
-    
-    // file mirror related operations
-    public void doCreateMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
-
-    public void doDeleteMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
-    	
-    
 }

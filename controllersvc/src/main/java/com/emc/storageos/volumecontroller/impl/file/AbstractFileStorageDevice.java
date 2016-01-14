@@ -48,6 +48,12 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     }
 
     @Override
+    public void doRollbackMirrorLink(StorageSystem system, List<URI> sources,
+                                     List<URI> targets, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+    @Override
     public BiosCommandResult doCreateFS(StorageSystem storage,
             FileDeviceInputOutput fd) throws ControllerException {
         // TODO Auto-generated method stub
@@ -219,21 +225,6 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
-    @Override
-    public void doCreateMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        // TODO Auto-generated method stub
-        throw DeviceControllerException.exceptions.operationNotSupported();
 
-    }
-
-    @Override
-    public void doDeleteMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        // TODO Auto-generated method stub
-        throw DeviceControllerException.exceptions.operationNotSupported();
-    }
 
 }

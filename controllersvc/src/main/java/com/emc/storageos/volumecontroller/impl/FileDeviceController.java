@@ -83,6 +83,9 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
+
+import static java.util.Arrays.asList;
+
 /**
  * Generic File Controller Implementation that does all of the database
  * operations and calls methods on the array specific implementations
@@ -3383,19 +3386,25 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 		if(filesystems != null && !filesystems.isEmpty()) {
 			
 			List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
-	                FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE);
-			
-			FileDescriptor fileDescriptor = sourceDescriptors.get(0);
-			List<URI> fileURIs = FileDescriptor.getFileSystemURIs(sourceDescriptors);
-			
-			//create step
-			waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
-		                String.format("Creating File systems:%n%s", taskId),
-		                waitFor, fileDescriptor.getDeviceURI(), 
-		                getDeviceType(fileDescriptor.getDeviceURI()),
-		                this.getClass(),
-		                createFileSharesMethod(fileDescriptor),
-		                rollbackCreateFileSharesMethod(fileDescriptor.getDeviceURI(), fileURIs), null);
+	                FileDescriptor.Type.FILE_DATA,
+                    FileDescriptor.Type.FILE_EXISTING_SOURCE,
+                    FileDescriptor.Type.FILE_MIRROR_SOURCE,
+                    FileDescriptor.Type.FILE_MIRROR_TARGET,
+                    FileDescriptor.Type.FILE_LOCAL_MIRROR);
+
+            for(FileDescriptor descriptor : sourceDescriptors) {
+
+                List<URI> fileURIs = FileDescriptor.getFileSystemURIs(asList(descriptor));
+
+                //create step
+                waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
+                        String.format("Creating File systems:%n%s", taskId),
+                        waitFor, descriptor.getDeviceURI(),
+                        getDeviceType(descriptor.getDeviceURI()),
+                        this.getClass(),
+                        createFileSharesMethod(descriptor),
+                        rollbackCreateFileSharesMethod(descriptor.getDeviceURI(), fileURIs), null);
+            }
 		}
 		
 		//find out which value we should return
@@ -3409,7 +3418,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 		// TODO Auto-generated method stub
 		
 		List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
-                FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE);
+                FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
+                FileDescriptor.Type.FILE_MIRROR_SOURCE, FileDescriptor.Type.FILE_MIRROR_TARGET);
 		
 		// Segregate by device.
         Map<URI, List<FileDescriptor>> deviceMap = FileDescriptor.getDeviceMap(sourceDescriptors);

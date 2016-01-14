@@ -450,6 +450,7 @@ public class RecoverPointClient {
             // Go through all of the CGs and retrieve important pieces of information
             List<ConsistencyGroupUID> allCgs = functionalAPI.getAllConsistencyGroups();
             for (ConsistencyGroupUID cg : allCgs) {
+                
                 ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
                 ConsistencyGroupState state = functionalAPI.getGroupState(cg);
 
@@ -2206,7 +2207,8 @@ public class RecoverPointClient {
 
         for (ConsistencyGroupLinkState cgLinkState : cgLinkStateList) {
             // OK, this is our link that we just restored. Check the link state to see if it is active
-            if (PipeState.ACTIVE.equals(cgLinkState.getPipeState())) {
+            if (PipeState.ACTIVE.equals(cgLinkState.getPipeState()) || PipeState.SNAP_IDLE.equals(cgLinkState.getPipeState()) || 
+                    PipeState.SNAP_SHIPPING.equals(cgLinkState.getPipeState())) {
                 someCopiesNotPaused = true;
             } else {
                 someCopiesPaused = true;

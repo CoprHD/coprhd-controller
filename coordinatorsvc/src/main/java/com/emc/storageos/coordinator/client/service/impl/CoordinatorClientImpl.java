@@ -38,6 +38,8 @@ import java.util.regex.Pattern;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.DeleteBuilder;
+import org.apache.curator.framework.api.transaction.CuratorTransaction;
+import org.apache.curator.framework.api.transaction.CuratorTransactionFinal;
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
@@ -140,6 +142,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private NodeCacheWatcher nodeWatcher = new NodeCacheWatcher();
 
     private DistributedAroundHook ownerLockAroundHook;
+    
+    // ThreadLocal variable to hold zk transaction handler
+    private ThreadLocal<CuratorTransaction> zkTransactionHandler = new ThreadLocal<CuratorTransaction>();
     
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
@@ -541,6 +546,29 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public void startTransaction() {
+        CuratorTransaction tx = _zkConnection.curator().inTransaction();
+        zkTransactionHandler.set(tx);
+    }
+    
+    @Override
+    public void commitTransaction() throws CoordinatorException {
+        try {
+            CuratorTransaction handler = zkTransactionHandler.get();
+            CuratorTransactionFinal tx = (CuratorTransactionFinal) handler;
+            tx.commit();
+            zkTransactionHandler.remove();
+        } catch (Exception ex) {
+            throw CoordinatorException.fatals.unableToPersistTheConfiguration(ex);
+        }
+    }
+    
+    @Override
+    public void discardTransaction() {
+        zkTransactionHandler.remove();
+    }
+
+    @Override
     public void persistServiceConfiguration(Configuration... configs) throws CoordinatorException {
         persistServiceConfiguration(null, configs);
     }
@@ -556,10 +584,22 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
                 String servicePath = String.format("%1$s/%2$s", configParentPath, config.getId());
                 Stat stat = _zkConnection.curator().checkExists().forPath(servicePath);
+                
+                CuratorTransaction handler = zkTransactionHandler.get();
                 if (stat != null) {
-                    _zkConnection.curator().setData().forPath(servicePath, config.serialize());
+                    if (handler != null) {
+                        CuratorTransactionFinal tx = handler.setData().forPath(servicePath, config.serialize()).and();
+                        zkTransactionHandler.set(tx);
+                    } else {
+                        _zkConnection.curator().setData().forPath(servicePath, config.serialize());
+                    }
                 } else {
-                    _zkConnection.curator().create().forPath(servicePath, config.serialize());
+                    if (handler != null) {
+                        CuratorTransactionFinal tx = handler.create().forPath(servicePath, config.serialize()).and();
+                        zkTransactionHandler.set(tx);
+                    } else {
+                        _zkConnection.curator().create().forPath(servicePath, config.serialize());
+                    }
                 }
             }
         } catch (final Exception e) {
@@ -584,7 +624,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             String servicePath = String.format("%1$s%2$s/%3$s/%4$s", prefix, ZkPath.CONFIG, config.getKind(),
                     config.getId());
             try {
-                _zkConnection.curator().delete().forPath(servicePath);
+                CuratorTransaction handler = zkTransactionHandler.get();
+                if (handler != null) {
+                    CuratorTransactionFinal tx = handler.delete().forPath(servicePath).and();
+                    zkTransactionHandler.set(tx);
+                } else {
+                    _zkConnection.curator().delete().forPath(servicePath);
+                }
             } catch (KeeperException.NoNodeException ignore) {
                 // Ignore exception, don't re-throw
                 log.debug("Caught exception but ignoring it: " + ignore);

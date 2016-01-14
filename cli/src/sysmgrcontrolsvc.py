@@ -17,6 +17,10 @@ class ControlService(object):
     URI_CONTROL_NODE_REBOOT = '/control/node/reboot'
     URI_CONTROL_SERVICE_RESTART = '/control/service/restart'
     URI_TASK_DELETE = '/vdc/tasks/{0}/delete'
+    URI_DB_CONSISTENCY_TRIGGER = '/control/db/consistency'
+    URI_DB_CONSISTENCY_CANCEL = '/control/db/consistency/cancel'
+    DEFAULT_SYSMGR_PORT = "4443"
+    
     
     
     
@@ -99,13 +103,50 @@ class ControlService(object):
 
          (s,h) = common.service_json_request(self.__ipAddr,self.__port,
 	            "POST",ControlService.URI_TASK_DELETE.format(uri),None)
-         return s		 
+         return s	
+     
+     
+    def db_con_check(self):
+
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST", ControlService.URI_DB_CONSISTENCY_TRIGGER.format(),
+                                             None)
+        if(not s):
+            return None
+        o = common.json_decode(s)
+        return o	 
+    
+    
+    def db_con_check_status(self):
+
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "GET", ControlService.URI_DB_CONSISTENCY_TRIGGER.format(),
+                                             None)
+        if(not s):
+            return None
+        o = common.json_decode(s)
+        return o
+        
+           
+    
+    
+    def db_con_check_cancel(self):
+
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST", ControlService.URI_DB_CONSISTENCY_CANCEL,
+                                             None)
+        if(not s):
+            return None
+        o = common.json_decode(s)
+        return o     
 
 class Backup(object):
 
     URI_BACKUP_SET = "/backupset/backup?tag={0}"
     URI_BACKUP_SET_LIST = "/backupset/"
     URI_BACKUP_SET_DOWNLOAD = "/backupset/download?tag={0}"
+    URI_BACKUP_SET_UPLOAD = "/backupset/backup/upload?tag={0}"
+    
 
     def __init__(self, ipAddr, port):
         '''
@@ -176,6 +217,50 @@ class Backup(object):
             Backup.URI_BACKUP_SET_DOWNLOAD.format(
             name), None,
                 None, False, "application/octet-stream", filepath)
+        if(not s):
+            return None
+
+        o = common.json_decode(s)
+        return o
+    
+    
+    def upload(self, name):
+
+        
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Backup.URI_BACKUP_SET_UPLOAD.format(
+            name), None)
+        if(not s):
+            return None
+
+        o = common.json_decode(s)
+        return o
+    
+    def upload_status(self, name):
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            Backup.URI_BACKUP_SET_UPLOAD.format(
+            name), None)
+        if(not s):
+            return None
+
+        o = common.json_decode(s)
+        return o
+    
+    def backup_info(self, name):
+
+        
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            Backup.URI_BACKUP_SET.format(
+            name), None)
         if(not s):
             return None
 
@@ -499,3 +584,179 @@ def download_backup(args):
         common.format_err_msg_and_raise(
             'download', 'backup',
             e.err_text, e.err_code)
+        
+
+def upload_backup_parser(subcommand_parsers, common_parser):
+
+    upload_backup_parser = subcommand_parsers.add_parser(
+        'upload-backup',
+        description='ViPR upload backup CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help="Upload a ViPR backup set")
+    mandatory_args = upload_backup_parser.add_argument_group(
+        'mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of the backup',
+                                metavar='<backup name>',
+                                dest='name',
+                                required=True)
+    
+    upload_backup_parser.set_defaults(func=upload_backup)
+
+
+def upload_backup(args):
+
+    try:
+        obj = Backup(args.ip, args.port)
+        res = obj.upload(args.name)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            'upload', 'backup',
+            e.err_text, e.err_code)
+
+
+
+def upload_backup_status_parser(subcommand_parsers, common_parser):
+
+    upload_backup_status_parser = subcommand_parsers.add_parser(
+        'upload-backup-status',
+        description='ViPR upload backup status CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help="Upload Status a ViPR backup set")
+    mandatory_args = upload_backup_status_parser.add_argument_group(
+        'mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of the backup',
+                                metavar='<backup name>',
+                                dest='name',
+                                required=True)
+    upload_backup_status_parser.set_defaults(func=upload_backup_status)
+
+
+def upload_backup_status(args):
+
+    try:
+        obj = Backup(args.ip, args.port)
+        res = obj.upload_status(args.name)
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            'upload', 'backup',
+            e.err_text, e.err_code)
+
+
+def backup_info_parser(subcommand_parsers, common_parser):
+
+    backup_info_parser = subcommand_parsers.add_parser(
+        'backup-info',
+        description='ViPR upload backup status CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help="Get info of a ViPR backup set")
+    mandatory_args = backup_info_parser.add_argument_group(
+        'mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of the backup',
+                                metavar='<backup name>',
+                                dest='name',
+                                required=True)
+    backup_info_parser.set_defaults(func=backup_info)
+
+
+def backup_info(args):
+
+    try:
+        obj = Backup(args.ip, args.port)
+        res = obj.backup_info(args.name)
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            'info', 'backup',
+            e.err_text, e.err_code)
+        
+
+
+def trigger_dbconsistency_check_parser(subcommand_parsers, common_parser):
+
+    trigger_dbconsistency_check_parser = subcommand_parsers.add_parser('db-consistency-check',
+                                                       description='ViPR:' +
+                                                       ' CLI usage to' +
+                                                       ' trigger DB Consistency check',
+                                                       parents=[common_parser],
+                                                       conflict_handler='res' +
+                                                       'olve',
+                                                       help='TRIGGER DB Consistency check')
+
+    trigger_dbconsistency_check_parser.set_defaults(func=db_con_check)
+
+
+def db_con_check(args):
+    obj = ControlService(args.ip, ControlService.DEFAULT_SYSMGR_PORT)
+    try:
+        return obj.db_con_check()
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "db consistency check",
+            "trigger",
+            e.err_text,
+            e.err_code)
+
+
+def dbconsistency_check_status_parser(subcommand_parsers, common_parser):
+
+    dbconsistency_check_status_parser = subcommand_parsers.add_parser('db-consistency-check-status',
+                                                       description='ViPR:' +
+                                                       ' CLI usage to' +
+                                                       ' status on DB Consistency check',
+                                                       parents=[common_parser],
+                                                       conflict_handler='res' +
+                                                       'olve',
+                                                       help='Status on DB Consistency check')
+
+    dbconsistency_check_status_parser.set_defaults(func=db_con_check_status)
+
+
+def db_con_check_status(args):
+    obj = ControlService(args.ip, ControlService.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.db_con_check_status()
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "db consistency check",
+            "status",
+            e.err_text,
+            e.err_code)
+
+
+def dbconsistency_check_cancel_parser(subcommand_parsers, common_parser):
+
+    dbconsistency_check_cancel_parser = subcommand_parsers.add_parser('db-consistency-check-cancel',
+                                                       description='ViPR:' +
+                                                       ' CLI usage to' +
+                                                       ' cancel DB Consistency check',
+                                                       parents=[common_parser],
+                                                       conflict_handler='res' +
+                                                       'olve',
+                                                       help='Cancel DB Consistency check')
+
+    dbconsistency_check_cancel_parser.set_defaults(func=db_con_check_cancel)
+
+
+def db_con_check_cancel(args):
+    obj = ControlService(args.ip, ControlService.DEFAULT_SYSMGR_PORT)
+    try:
+        return obj.db_con_check_cancel()
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "db consistency check",
+            "cancel",
+            e.err_text,
+            e.err_code)
+
+
+
+
+

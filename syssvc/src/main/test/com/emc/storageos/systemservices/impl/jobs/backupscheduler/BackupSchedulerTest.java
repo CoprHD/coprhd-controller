@@ -326,7 +326,7 @@ class FakeConfiguration extends SchedulerConfig {
     }
 
     @Override
-    public String getUploadPassword() {
+    public String getExternalServerPassword() {
         return "Passwd";
     }
 

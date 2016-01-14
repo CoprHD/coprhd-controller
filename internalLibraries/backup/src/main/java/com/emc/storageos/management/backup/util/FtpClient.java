@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,10 +100,9 @@ public class FtpClient {
         return new ProcessOutputStream(builder.start());
     }
 
-     public List<String> listFiles(String prefix) throws Exception {
-        if (prefix == null) {
-            return null;
-        }
+    public List<String> listFiles(String prefix) throws Exception {
+        Pattern backupNamePattern = Pattern.compile(BackupConstants.COLLECTED_BACKUP_REGEX_PATTERN);
+
         ProcessBuilder builder = getBuilder();
         builder.command().add("-l");
         builder.command().add(uri);
@@ -113,8 +113,13 @@ public class FtpClient {
             processor.captureAllTextInBackground(processor.getStdErr(), errText);
 
             for (String line : processor.enumLines(processor.getStdOut())) {
-                if (line.startsWith(prefix)) {
+                log.info("File name: {}", line);
+                if (!backupNamePattern.matcher(line).find()) {
+                    continue;
+                }
+                if (prefix == null || line.startsWith(prefix)) {
                     fileList.add(line);
+                    log.info("Listing {}", line);
                 }
             }
 
@@ -126,6 +131,10 @@ public class FtpClient {
         }
 
         return fileList;
+    }
+
+    public List<String> listAllFiles() throws Exception {
+        return listFiles(null);
     }
 
      public void rename(String sourceFileName, String destFileName) throws Exception {

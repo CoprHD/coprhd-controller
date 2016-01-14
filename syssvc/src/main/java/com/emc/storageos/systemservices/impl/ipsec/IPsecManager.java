@@ -154,12 +154,11 @@ public class IPsecManager {
      * make sure cluster is in stable status
      */
     public void verifyClusterIsStable() {
-        IPsecStatus status = checkStatus();
-        if (status != null && status.getStatus().equals(STATUS_GOOD)) {
+        if (drUtil.isAllSitesStable()) {
             // cluster is stable for ipsec change
             return;
         } else {
-            throw APIException.serviceUnavailable.ipsecStatusNotGood();
+            throw APIException.serviceUnavailable.clusterStateNotStable();
         }
     }
 

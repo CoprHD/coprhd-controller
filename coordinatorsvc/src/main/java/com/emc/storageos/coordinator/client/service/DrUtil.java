@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -531,6 +532,27 @@ public class DrUtil {
      */
     public boolean isMultivdc() {
         return getVdcSiteMap().keySet().size() > 1;
+    }
+
+    /**
+     * Check if all sites of local vdc are
+     */
+    public boolean isAllSitesStable() {
+        boolean bStable = true;
+
+        for (Site site : listSites()) {
+            // skip checking node state for paused sites.
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                continue;
+            }
+            int nodeCount = site.getNodeCount();
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                log.info("Site {} is not stable {}", site.getUuid(), state);
+                bStable = false;
+            }
+        }
+        return bStable;
     }
 
 }

@@ -13,6 +13,9 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 
 final class HpuxUtils {
 
+    private HpuxUtils() {
+    }
+
     static MountPoint getMountPoint(URI hostId, List<MountPoint> results, BlockObjectRestRep volume) {
         String volumeMountPoint = KnownMachineTags.getBlockVolumeMountPoint(hostId, volume);
 

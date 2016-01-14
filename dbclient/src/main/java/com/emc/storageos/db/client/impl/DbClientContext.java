@@ -394,6 +394,15 @@ public class DbClientContext {
         }
     }
 
+    /**
+     * Update the keyspace definition using low-level thrift API
+     * This is to bypass the precheck logic in Astyanax that throws SchemaDisagreementException when there are
+     * unreachable nodes in the cluster. Refer to https://github.com/Netflix/astyanax/issues/443 for details.
+     *
+     * @param kd existing keyspace definition, could be null
+     * @param update new keyspace definition
+     * @return new schema version after the update
+     */
     private String alterKeyspaceWithThrift(KeyspaceDefinition kd, KeyspaceDefinition update) {
         try (TTransport tr = new TFramedTransport(new TSocket(LOCAL_HOST, getThriftPort()))) {
             TProtocol proto = new TBinaryProtocol(tr);

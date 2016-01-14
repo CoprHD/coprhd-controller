@@ -716,9 +716,10 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         }
     }
 
-    private void isiExpandFS(IsilonApi isi, String quotaId, Long capacity) throws ControllerException, IsilonException {
+    private void isiExpandFS(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
 
         // get quota from Isilon and check that requested capacity is larger than the current capacity
+        Long capacity = args.getNewFSCapacity();
         IsilonSmartQuota quota = isi.getQuota(quotaId);
         Long hard = quota.getThresholds().getHard();
         if (capacity.compareTo(hard) < 0) {
@@ -730,7 +731,10 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                     quota.getThresholds().getHard());
         }
         // Modify quota for file system.
-        IsilonSmartQuota expandedQuota = new IsilonSmartQuota(capacity);
+        IsilonSmartQuota expandedQuota = isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, capacity,
+                args.getFsNotificationLimit() != null ? Long.valueOf(args.getFsNotificationLimit()) : 0L,
+                args.getFsSoftLimit() != null ? Long.valueOf(args.getFsSoftLimit()) : 0L, 
+                args.getFsSoftGracePeriod() != null ? Long.valueOf(args.getFsSoftGracePeriod()) : 0L);
         isi.modifyQuota(quotaId, expandedQuota);
     }
 
@@ -872,8 +876,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 return BiosCommandResult.createErrorResult(serviceError);
             }
 
-            Long newCapacity = args.getNewFSCapacity();   // new capacity
-            isiExpandFS(isi, quotaId, newCapacity);
+            isiExpandFS(isi, quotaId, args);
             _log.info("IsilonFileStorageDevice doExpandFS {} - complete", args.getFsId());
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {

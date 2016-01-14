@@ -713,7 +713,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         if (targetDescriptors.isEmpty()) {
             for (VolumeDescriptor volumeDescriptor : descriptors) {
-                if (VolumeDescriptor.Type.SRDF_SOURCE.equals(volumeDescriptor.getType())) {
+                if (VolumeDescriptor.Type.SRDF_SOURCE.equals(volumeDescriptor.getType())
+                        || VolumeDescriptor.Type.SRDF_EXISTING_SOURCE.equals(volumeDescriptor.getType())) {
                     Volume source = uriVolumeMap.get(volumeDescriptor.getVolumeURI());
                     return getFirstTarget(source);
                 }

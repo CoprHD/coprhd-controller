@@ -88,7 +88,7 @@ public class SchedulerConfig {
         this.coordinator = coordinatorClient;
         this.encryptionProvider = encryptionProvider;
         this.dbClient = dbClient;
-        this.mailHelper = new MailHelper(coordinator.getCoordinatorClient());
+        this.mailHelper = new MailHelper(coordinator == null ? null : coordinator.getCoordinatorClient());
     }
 
     public String getUploadPassword() {
@@ -108,7 +108,7 @@ public class SchedulerConfig {
         
         getSofttwareWithRetry();
 
-        PropertyInfo propInfo = coordinator.getTargetProperties();
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
 
         this.nodeCount = coordinator.getNodeCount();
 
@@ -130,11 +130,7 @@ public class SchedulerConfig {
                 digitLen++;
             }
 
-            this.intervalMultiple = digitLen > 0 ? Integer.parseInt(intervalStr.substring(0, digitLen)) : 1;
-            if (this.intervalMultiple <= 0) {
-                log.warn("The interval string {} parse to non-positive ({}) multiple of intervals", intervalStr, this.intervalMultiple);
-                this.intervalMultiple = 1;
-            }
+            this.intervalMultiple = Integer.parseInt(intervalStr.substring(0, digitLen));
             this.interval = ScheduleTimeRange.parseInterval(intervalStr.substring(digitLen));
         } else {
             log.warn("The interval string is absent or empty, daily backup (\"1day\") is used as default.");

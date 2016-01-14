@@ -256,15 +256,10 @@ public class VirtualPoolMapper {
         fileReplicationParams.getSourcePolicy().setCopyMode(from.getFileReplicationCopyMode());
         fileReplicationParams.getSourcePolicy().setRpoValue(from.getFrRpoValue());
         fileReplicationParams.getSourcePolicy().setRpoType(from.getFrRpoType());
-        
-        
-        
+             
         // Remote copies!!
         if (null != fileRemoteCopySettings && !fileRemoteCopySettings.isEmpty()) {
-            //protection.setRemoteCopies(new VirtualPoolRemoteMirrorProtectionParam());
             fileReplicationParams.setCopies(new HashSet<VirtualPoolRemoteProtectionVirtualArraySettingsParam>());
-
-            //protection.getRemoteCopies().setRemoteCopySettings(new ArrayList<VirtualPoolRemoteProtectionVirtualArraySettingsParam>());
             for (Map.Entry<URI, VpoolRemoteCopyProtectionSettings> remoteSetting : fileRemoteCopySettings.entrySet()) {
             	VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteCopy = new VirtualPoolRemoteProtectionVirtualArraySettingsParam();
                 remoteCopy.setRemoteCopyMode(remoteSetting.getValue().getCopyMode());
@@ -272,8 +267,7 @@ public class VirtualPoolMapper {
                 remoteCopy.setVpool(remoteSetting.getValue().getVirtualPool());
                 fileReplicationParams.getCopies().add(remoteCopy);
             }
-        }
-        
+        }    
         return mapVirtualPoolFields(from, to, null);
     }
     

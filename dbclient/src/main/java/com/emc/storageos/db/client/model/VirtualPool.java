@@ -119,7 +119,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Long _frRpoValue;
     // File Replication RPO type
     private String _frRpoType;
- // File Replication RPO type
+    // File Replication RPO type
     private String _replicationCopyMode;
     
     
@@ -130,7 +130,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         LOCAL, REMOTE, NONE;
         public static boolean lookup(final String name) {
             for (FileReplicationType value : values()) {
-                if (value.name().equals(name)) {
+                if (value.name().equalsIgnoreCase(name)) {
                     return true;
                 }
             }
@@ -145,8 +145,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
     
     public static enum FileReplicationRPOType {
-        SECONDS("seconds"), MINUTES("minutes"), 
-        HOURS("hours"), DAYS("days");
+        MINUTES("minutes"), 
+        HOURS("hours");
         private final String _value;
 
         FileReplicationRPOType(String v) {
@@ -179,6 +179,10 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             return null;
         }
     };
+
+    //Minimum number of data centers in this virtual pool
+    //This is required only for object virtual pools
+    private Integer minDataCenters;
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
@@ -852,7 +856,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("rpRpoValue")
     public Long getRpRpoValue() {
-        return _rpRpoValue;
+        // Return 0 if value is not set.  This helps with upgrade scenarios.
+        return _rpRpoValue == null ? 0 : _rpRpoValue;
     }
 
     public void setRpRpoValue(Long rpRpoValue) {
@@ -1484,6 +1489,16 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setFileReplicationCopyMode(String replicationCopyMode) {
         this._replicationCopyMode = replicationCopyMode;
         setChanged("replicationCopyMode");
+    }
+
+    @Name("minDataCenters")
+    public Integer getMinDataCenters() {
+        return (minDataCenters==null) ? 0 : minDataCenters;
+    }
+
+    public void setMinDataCenters(Integer minDataCenters) {
+        this.minDataCenters = (null==minDataCenters || minDataCenters == 0) ? 0 : minDataCenters;
+        setChanged("minDataCenters");
     }
     
 }

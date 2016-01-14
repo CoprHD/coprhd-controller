@@ -56,7 +56,6 @@ public class FileReplicationPolicy {
     /**
      * Type of RPO unit
      * 
-     * @valid SECONDS = Seconds (time-based RPO)
      * @valid MINUTES = Minutes (time-based RPO)
      * @valid HOURS = Hours (time-based RPO)
      */

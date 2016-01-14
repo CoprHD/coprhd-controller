@@ -31,6 +31,34 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ListMultimap;
 
+/**
+ * FileReplicationAttrMatcher - is an attribute matcher to select storage pools does support file replication.
+ * This attribute matcher will execute only if the 'file_replication_type' key is set in attribute matcher.
+ * The replication matcher would call for either local or remote replication.
+ * 
+ * Local replication - The inputs would be replication type (Local) and copy mode (Synchronous or Asynchronous)
+ *   The matcher would filter the storage pools of storage system which does support LOCAL replication and 
+ *   then filter those storage pools which does support the given copy mode!!!.
+ * 
+ * Remote replication - 
+ *   Input : replication type - REMOTE
+ *           copyMode - Synchronous or Asynchronous
+ *           remoteCopies - file_replication copies in terms of virtual array and virtual pool pair
+ *           
+ *   1. Get the list of storage pools identified by source virtual pool.
+ *   2. Filter the source storage pools of storage system which does support REMOTE replication and 
+ *      storage pools which does support the given copy mode!!!.
+ *   3. Get the list of storage pools identified by target virtual pool.   
+ *   4. Filter the target storage pools of storage system which does support the given copy mode.
+ *   4. Filter the remote storage pools which are from the same source storage device type but they should belong
+ *      different storage array(cluster).
+ *   5. If remote storage pools found, then set the source storage pools as matched storage pools for source virtual pool.       
+ *          
+ *           
+ * @author lakhiv
+ *
+ */
+
 public class FileReplicationAttrMatcher extends AttributeMatcher {
     private static final Logger _logger = LoggerFactory.getLogger(FileReplicationAttrMatcher.class);
     private static final String STORAGE_DEVICE = "storageDevice";
@@ -39,14 +67,6 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
         return (null != attributeMap && attributeMap.containsKey(Attributes.file_replication_type.toString()));
-    }
-
-    private Set<String> getPoolUris(List<StoragePool> matchedPools) {
-        Set<String> poolUris = new HashSet<String>();
-        for (StoragePool pool : matchedPools) {
-            poolUris.add(pool.getId().toString());
-        }
-        return poolUris;
     }
 
     @Override
@@ -65,7 +85,7 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
         for (StoragePool pool : allPools) {
             storageToPoolMap.put(pool.getStorageDevice(), pool);
         }
-        _logger.info("Grouped Source Storage Devices : {}", storageToPoolMap.asMap().keySet());
+        _logger.debug("Grouped Source Storage Devices : {}", storageToPoolMap.asMap().keySet());
         
         Set<String> remotePoolUris = null;
         ListMultimap<String, URI> remotestorageToPoolMap = null;
@@ -155,9 +175,51 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
         return matchedPools;
     }
 
+
+    @Override
+    public Map<String, Set<String>> getAvailableAttribute(List<StoragePool> neighborhoodPools,
+            URI vArrayId) {
+        Map<String, Set<String>> availableAttrMap = new HashMap<String, Set<String>>(1);
+        try {
+            ListMultimap<URI, StoragePool> storageToPoolMap = ArrayListMultimap.create();
+            for (StoragePool pool : neighborhoodPools) {
+                storageToPoolMap.put(pool.getStorageDevice(), pool);
+            }
+            
+            for (Entry<URI, Collection<StoragePool>> storageToPoolsEntry : storageToPoolMap
+                    .asMap().entrySet()) {
+                StorageSystem system = _objectCache.queryObject(StorageSystem.class, storageToPoolsEntry.getKey());
+                if (null == system.getSupportedReplicationTypes() || 
+                		system.getSupportedReplicationTypes().isEmpty()) {
+                    continue;
+                }
+                Set<String> copyModes = new HashSet<String>();
+                if (system.getSupportedReplicationTypes().contains("REMOTE") || 
+                		system.getSupportedReplicationTypes().contains("LOCAL")) {
+                	copyModes.add(SupportedCopyModes.ASYNCHRONOUS.toString());
+                    if (availableAttrMap.get(Attributes.file_replication.toString()) == null) {
+                        availableAttrMap.put(Attributes.file_replication.toString(), new HashSet<String>());
+                    }
+                    availableAttrMap.get(Attributes.file_replication.toString()).addAll(copyModes);
+                }
+            }
+        } catch (Exception e) {
+            _logger.error("Available Attribute failed in FileReplicationAttrMatcher matcher", e);
+        }
+        return availableAttrMap;
+    }
+    
+    private Set<String> getPoolUris(List<StoragePool> matchedPools) {
+        Set<String> poolUris = new HashSet<String>();
+        for (StoragePool pool : matchedPools) {
+            poolUris.add(pool.getId().toString());
+        }
+        return poolUris;
+    }
+
     private String getPoolCopyTypeFromCopyModes(String supportedCopyMode) {
     	String copyType = CopyTypes.ASYNC.name();
-    	if (SupportedCopyModes.SYNCHRONOUS.name().equals(supportedCopyMode)) {
+    	if (SupportedCopyModes.SYNCHRONOUS.name().equalsIgnoreCase(supportedCopyMode)) {
     		copyType = CopyTypes.SYNC.name();
     	} 
     	return copyType;
@@ -240,38 +302,5 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
             storageToPoolMap.put(pool.getStorageDevice().toString(), pool.getId());
         }
         return storageToPoolMap;
-    }
-
-    @Override
-    public Map<String, Set<String>> getAvailableAttribute(List<StoragePool> neighborhoodPools,
-            URI vArrayId) {
-        Map<String, Set<String>> availableAttrMap = new HashMap<String, Set<String>>(1);
-        try {
-            ListMultimap<URI, StoragePool> storageToPoolMap = ArrayListMultimap.create();
-            for (StoragePool pool : neighborhoodPools) {
-                storageToPoolMap.put(pool.getStorageDevice(), pool);
-            }
-            
-            for (Entry<URI, Collection<StoragePool>> storageToPoolsEntry : storageToPoolMap
-                    .asMap().entrySet()) {
-                StorageSystem system = _objectCache.queryObject(StorageSystem.class, storageToPoolsEntry.getKey());
-                if (null == system.getSupportedReplicationTypes() || 
-                		system.getSupportedReplicationTypes().isEmpty()) {
-                    continue;
-                }
-                Set<String> copyModes = new HashSet<String>();
-                if (system.getSupportedReplicationTypes().contains("REMOTE") || 
-                		system.getSupportedReplicationTypes().contains("LOCAL")) {
-                	copyModes.add(SupportedCopyModes.ASYNCHRONOUS.toString());
-                    if (availableAttrMap.get(Attributes.file_replication.toString()) == null) {
-                        availableAttrMap.put(Attributes.file_replication.toString(), new HashSet<String>());
-                    }
-                    availableAttrMap.get(Attributes.file_replication.toString()).addAll(copyModes);
-                }
-            }
-        } catch (Exception e) {
-            _logger.error("Available Attribute failed in FileReplicationAttrMatcher matcher", e);
-        }
-        return availableAttrMap;
     }
 }

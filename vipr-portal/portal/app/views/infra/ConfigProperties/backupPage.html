@@ -1,26 +1,55 @@
 #{set 'moreScripts'}
 #{get 'moreScripts'/}
 <script type="text/javascript">
-  $(document).ready(function() {
-     $selector = $("#backup_scheduler_time");
-     for (var i = 0; i <24; i++) {
-         var hour = moment({hour:i});
-         var utcTime = parseInt(moment.utc(hour.toDate()).format("HHmm"));
-         var localTime = hour.format("HH:mm");
-         var $option = $("<option value="+utcTime+">"+localTime+"</option>");
-         var time = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
-         if (time === utcTime) {
-             $option.prop("selected", "selected");
-         }
-         $option.appendTo($selector);
-     }
-  });
+    $(document).ready(function () {
+        $schedulerTimeOffset = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
+        $copiesToKeep = $("#${util.ConfigProperty.BACKUP_SCHEDULER_COPIES}");
+        $copiesToKeep.on('change', function () {
+            checkIsZero(this.value, 'scheduler');
+        });
+        $maxManualCopies = $("#${util.ConfigProperty.BACKUP_MAX_MANUAL_COPIES}");
+        $maxManualCopies.on('change', function () {
+            checkIsZero(this.value, 'manual');
+        });
+
+        $backup_interval = $("#backup_scheduler_interval");
+        $backup_interval_num = $("#backup_scheduler_interval_num");
+        $backup_interval_num.val(parseInt($backup_interval.val()));
+        $selector_interval = $("#backup_scheduler_interval_unit");
+        var units = ["Day", "Week", "Month"];
+        for (var i in  units) {
+            var value = units[i].toLowerCase();
+            var $option = $("<option value=" + value + ">" + units[i] + "</option>");
+            if ($backup_interval.val().indexOf(value) > -1) {
+                $option.prop("selected", "selected");
+            }
+            $option.appendTo($selector_interval);
+        }
+    });
+
+    function setBackupSchedulerInterval() {
+        var value = $backup_interval_num.val() + $selector_interval.val();
+        $backup_interval.val(value);
+        checkForm();
+    }
+
+    function checkIsZero(value, type) {
+        if (value === '0') {
+            if (type === 'manual') {
+                alert("&{'configProperties.backup.setToZero.manual'}");
+            } else if (type === 'scheduler') {
+                alert("&{'configProperties.backup.setToZero.scheduler'}");
+            }
+        }
+    }
 </script>
 #{/set}
+<br/>
+#{ConfigProperties.propertySet titleKey:'configProperties.backup.scheduled'}
 #{ConfigProperties.property property:page.schedulerEnabled, disabled:unstable/}
 %{
   property = page.schedulerTime
-  id = property.name 
+  id = property.name
   name = property.name
   label = property.label
   originalValue = property.value
@@ -30,17 +59,70 @@
   disabled:unstable;
 }%
 #{set 'error'}#{error name /}#{/set}
+
 <div id="${id}ControlGroup" class="form-group">
-  <label class="control-label col-sm-3" for="${id}">${label}:</label>
-  <div class="col-sm-6">
-     <select id="${id}" name="${name}" class="form-control" #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}" data-reboot="${rebootRequired ? 'true' : 'false'}">
-     </select>
-     #{if description}<p class="help-block clear">${description}#{if rebootRequired} <span class="text-danger">&{'configProperties.rebootRequired'}</span>#{/if}</p>#{/if}
-  </div>
-  <div class="col-sm-3">
-    <span class="help-inline clearfix">${error}</span>
-  </div>
+    <label class="control-label col-sm-3" for="${id}">${label}:</label>
+
+    <div class="col-sm-6 controls" ng-controller="ConfigBackupCtrl">
+        <div class="row col-gap-sm" id="backup-time">
+            <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
+                <time-picker ng-model="backup_startTime"></time-picker>
+            <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
+        </div>
+    </div>
+
+    <div class="col-sm-3">
+        <span class="help-inline clearfix">${error}</span>
+    </div>
 </div>
+
+%{
+property = page.schedulerInterval
+id = property.name
+name = property.name
+label = property.label
+originalValue = property.value
+value = flash[name] ?: originalValue
+rebootRequired = property.rebootRequired
+description = property.description
+disabled:unstable;
+}%
+<div id="${id}ControlGroup" class="form-group">
+    <label class="control-label col-sm-3" for="${id}">${label}:</label>
+
+    <div class="col-sm-6 controls">
+        <div class="row col-gap-sm">
+            <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
+            <div class="col-md-6">
+                <input type="text" class="form-control" id="${id}_num" style="vertical-align: top"
+                       onkeyup="setBackupSchedulerInterval()"/>
+            </div>
+            <div class="col-md-6">
+                <select id="${id}_unit" class="form-control" onchange="setBackupSchedulerInterval()">
+                </select>
+            </div>
+            <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
+        </div>
+    </div>
+
+    <div class="col-sm-3">
+        <span class="help-inline clearfix">${error}</span>
+    </div>
+</div>
+
+#{ConfigProperties.property property:page.copiesToKeep, disabled:unstable/}
+#{/ConfigProperties.propertySet}
+#{ConfigProperties.propertySet titleKey:'configProperties.backup.manual'}
+#{ConfigProperties.property property:page.maxManualCopies, disabled:unstable/}
+#{/ConfigProperties.propertySet}
+#{ConfigProperties.propertySet titleKey:'configProperties.backup.server'}
 #{ConfigProperties.property property:page.externalLocationUrl, disabled:unstable/}
 #{ConfigProperties.property property:page.externalLocationUsername, disabled:unstable/}
 #{ConfigProperties.property property:page.externalLocationPassword, disabled:unstable/}
+#{/ConfigProperties.propertySet}
+
+<style type="text/css">
+    #backup-time .timepicker input[readonly]{
+        background-color: #fff;
+    }
+</style>

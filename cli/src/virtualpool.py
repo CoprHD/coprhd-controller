@@ -480,13 +480,11 @@ class VirtualPool(object):
                             " Please provide valid format " +
                             "varray:vpool") 
             copyEntry = dict()
-            remoteCopy = dict()
             if(len(copyParam) > 0):
                 varray = nh_obj.varray_query(copyParam[0])
                 copyEntry['varray'] = varray
                 if(len(copyParam) > 1):
                     copyEntry['vpool'] = self.vpool_query(copyParam[1], "file")
-                #remoteCopy['protection_varray_vpool'] = copyEntry
                 remoteCopies.append(copyEntry)
         return remoteCopies         
     
@@ -505,16 +503,16 @@ class VirtualPool(object):
             raise SOSError(SOSError.CMD_LINE_ERR,
                                " Please provide valid replication policy ")
         
-        replicationpolicy['replication_type'] = policyParams[0]
+        replicationpolicy['replication_type'] = policyParams[0].upper()
         if(len(policyParams) > 1):
-            replicationpolicy['copy_mode'] = policyParams[1]
+            replicationpolicy['copy_mode'] = policyParams[1].upper()
         if(len(policyParams) > 2):
             replicationpolicy['rpo_value'] = policyParams[2]
         if(len(policyParams) > 3):
             replicationpolicy['rpo_type'] = policyParams[3].upper()
         
         replicationParams = dict()
-        if(policy is not None):
+        if(policy is not None and replicationpolicy is not None):
             replicationParams['file_replication_policy'] = replicationpolicy
         if(copies is not None):
             replicationParams['copies'] = self.get_file_remote_copies(copies)
@@ -533,7 +531,8 @@ class VirtualPool(object):
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
                      thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-                     fr_policy, fr_copies):
+                     fr_policy, fr_copies, mindatacenters):
+
         '''
         This is the function will create the VPOOL with given name and type.
         It will send REST API request to ViPR instance.
@@ -595,6 +594,8 @@ class VirtualPool(object):
         
             if(maxretention is not None):
                 parms['max_retention'] = maxretention
+            if(mindatacenters is not None):
+                parms['min_datacenters'] = mindatacenters
 
         if(vpooltype == 'file'):
             file_vpool_protection_param = dict()
@@ -769,7 +770,8 @@ class VirtualPool(object):
             maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
             thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-            fr_policy, fr_addcopies, fr_removecopies):
+            fr_policy, fr_addcopies, fr_removecopies, mindatacenters):
+
         '''
         This is the function will update the VPOOL.
         It will send REST API request to ViPR instance.
@@ -928,6 +930,10 @@ class VirtualPool(object):
         
         if(longtermretention == "true" and vpooltype == "file"):
             parms["long_term_retention"] = longtermretention
+        
+        if(mindatacenters is not None and vpooltype == "object"):
+            parms["min_datacenters"] = mindatacenters
+            
 
         if(expandable):
             vpool = self.vpool_show_uri(vpooltype, vpooluri)
@@ -981,7 +987,6 @@ class VirtualPool(object):
                 parms['drive_type'] = drivetype
 
         body = json.dumps(parms)
-        print body
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "PUT",
                                              self.URI_VPOOL_SHOW.format(
@@ -1079,6 +1084,11 @@ def create_parser(subcommand_parsers, common_parser):
                                help='Maximum retention period',
                                metavar='<max_retention>',
                                dest='maxretention')
+    create_parser.add_argument('-mindatacenters', '-mndcs',
+                               help='Minimum Number of DataCenters',
+                               metavar='<min_datacemters>',
+                               type=int,
+                               dest='mindatacenters')
     create_parser.add_argument('-longtermretention', '-ltrtn',
                                help='Lomg term retention',
                                metavar='<long_term_retention>',
@@ -1276,7 +1286,8 @@ def vpool_create(args):
                                args.iopersec,
                                args.autoCrossConnectExport,
                                args.fr_policy,
-                               args.fr_copies)
+                               args.fr_copies,
+                               args.mindatacenters)
     except SOSError as e:
         if (e.err_code == SOSError.VALUE_ERR):
             raise SOSError(SOSError.VALUE_ERR, "VPool " + args.name +
@@ -1382,6 +1393,11 @@ def update_parser(subcommand_parsers, common_parser):
                                metavar='<multivolconsistency>',
                                dest='multivolconsistency',
                                choices=VirtualPool.BOOL_TYPE_LIST)
+    update_parser.add_argument('-mindatacenters', '-mndcs',
+                               help='Minimum Number of DataCenters',
+                               metavar='<min_datacemters>',
+                               type=int,
+                               dest='mindatacenters')
     update_parser.add_argument('-expandable', '-ex',
                                help='True/False Indicates if non disruptive ' +
                                'volume expansion should be supported',
@@ -1557,7 +1573,8 @@ def vpool_update(args):
                              args.iopersec,
                              args.autoCrossConnectExport,
                              args.fr_policy, args.fr_addcopies,
-                             args.fr_removecopies)
+                             args.fr_removecopies,
+                             args.mindatacenters)
         else:
             raise SOSError(SOSError.CMD_LINE_ERR,
                            "Please provide atleast one of parameters")

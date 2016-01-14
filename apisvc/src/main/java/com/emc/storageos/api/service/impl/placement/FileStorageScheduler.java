@@ -10,38 +10,29 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.placement.FileRecommendation.FileType;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.placement.FileRecommendation.FileType;
 import com.emc.storageos.api.service.impl.resource.utils.ProjectUtility;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NamedURI;
-
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -49,21 +40,14 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-
-import com.emc.storageos.db.client.util.SizeUtil;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
-import com.emc.storageos.model.tenant.UserMappingParam;
-import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -102,13 +86,13 @@ public class FileStorageScheduler implements Scheduler {
         return configInfo;
     }
 
-	public void setConfigInfo(Map<String, String> configInfo) {
-		this.configInfo = configInfo;
-	}
-	
-	public void setPermissionsHelper(PermissionsHelper permissionsHelper) {
-		this.permissionsHelper = permissionsHelper;
-	}
+    public void setConfigInfo(Map<String, String> configInfo) {
+        this.configInfo = configInfo;
+    }
+
+    public void setPermissionsHelper(PermissionsHelper permissionsHelper) {
+        this.permissionsHelper = permissionsHelper;
+    }
 
     /**
      * Schedule storage for fileshare in the varray with the given CoS
@@ -208,7 +192,7 @@ public class FileStorageScheduler implements Scheduler {
                     vArray.getId(), vPool.getId());
         } else { // add code for file for default recommendations for file data
             for (FileRecommendation recommendation : fileRecommendations) {
-                FileRecommendation fileRecommendation = (FileRecommendation) recommendation;
+                FileRecommendation fileRecommendation = recommendation;
                 fileRecommendation.setFileType(FileType.FILE_SYSTEM_DATA);
             }
         }
@@ -280,25 +264,26 @@ public class FileStorageScheduler implements Scheduler {
             // selection
             List<StoragePort> ports = getStorageSystemPortsInVarray(
                     fs.getStorageDevice(), fs.getVirtualArray());
-            
+
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-            
-            if(Type.isilon.name().equals(storageSystem.getSystemType())) {
-	            if (ports != null && !ports.isEmpty()) {
-		            //Check if these ports are associated with vNAS
-		            for (Iterator<StoragePort> iterator = ports.iterator(); iterator.hasNext();) {
-						StoragePort storagePort =  iterator.next();
-						List<VirtualNAS> vNASList = StoragePortAssociationHelper.getStoragePortVirtualNAS(storagePort, _dbClient);
-						if (vNASList != null && !vNASList.isEmpty()) {
-							/* Remove the associated port. Because during file system placement,
-							 * storage port will already be assigned to FS. In that case, this block won't
-							 * be executed.
-							 */
-							_log.info("Removing port {} as it is assigned to a vNAS.", storagePort.getNativeGuid());
-							iterator.remove();
-						}
-					}
-	            }
+
+            if (Type.isilon.name().equals(storageSystem.getSystemType())) {
+                if (ports != null && !ports.isEmpty()) {
+                    // Check if these ports are associated with vNAS
+                    for (Iterator<StoragePort> iterator = ports.iterator(); iterator.hasNext();) {
+                        StoragePort storagePort = iterator.next();
+                        List<VirtualNAS> vNASList = StoragePortAssociationHelper.getStoragePortVirtualNAS(storagePort, _dbClient);
+                        if (vNASList != null && !vNASList.isEmpty()) {
+                            /*
+                             * Remove the associated port. Because during file system placement,
+                             * storage port will already be assigned to FS. In that case, this block won't
+                             * be executed.
+                             */
+                            _log.info("Removing port {} as it is assigned to a vNAS.", storagePort.getNativeGuid());
+                            iterator.remove();
+                        }
+                    }
+                }
             }
 
             // Filter ports based on protocol (for example, if CIFS or NFS is
@@ -537,8 +522,10 @@ public class FileStorageScheduler implements Scheduler {
      */
     private List<VirtualNAS> getUnassignedVNASServers(URI vArrayURI,
             VirtualPool vpool, Project project,
-            List<VirtualNAS> invalidNasServers) {   	
-    	_log.info("Get vNAS servers from the unreserved list...");
+            List<VirtualNAS> invalidNasServers) {
+        _log.info("Get vNAS servers from the unreserved list...");
+
+        _log.info("Get vNAS servers from the unreserved list...");
 
         List<VirtualNAS> vNASList = new ArrayList<VirtualNAS>();
 
@@ -550,7 +537,7 @@ public class FileStorageScheduler implements Scheduler {
 
         vNASList = _dbClient.queryObject(VirtualNAS.class, vNASURIList);
         if (vNASList != null && !vNASList.isEmpty()) {
-        	Set<String> projectDomains = ProjectUtility.getDomainsOfProject(permissionsHelper, project);
+            Set<String> projectDomains = ProjectUtility.getDomainsOfProject(permissionsHelper, project);
             for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator
                     .hasNext();) {
                 VirtualNAS vNAS = iterator.next();
@@ -572,16 +559,16 @@ public class FileStorageScheduler implements Scheduler {
                             vNAS.getNasName(), vpool.getProtocols());
                     iterator.remove();
                     invalidNasServers.add(vNAS);
-                } else if (!NullColumnValueGetter.isNullURI(vNAS.getProject())) {
-                	if ( !project.getId().equals(vNAS.getProject()) ) {
-                		_log.info("Removing vNAS {} as it is assigned to project",
-                    			vNAS.getNasName());
-                		iterator.remove();
-                		invalidNasServers.add(vNAS);
-                	} 
+                } else if (!vNAS.isNotAssignedToProject()) {
+                    if (!vNAS.getAssociatedProjects().contains(project.getId())) {
+                        _log.info("Removing vNAS {} as it is assigned to project",
+                                vNAS.getNasName());
+                        iterator.remove();
+                        invalidNasServers.add(vNAS);
+                    }
                 } else if (!ProjectUtility.
-                		doesProjectDomainMatchesWithVNASDomain(projectDomains, vNAS)) {
-                	_log.info("Removing vNAS {} as its domain does not match with project's domain: {}",
+                        doesProjectDomainMatchesWithVNASDomain(projectDomains, vNAS)) {
+                    _log.info("Removing vNAS {} as its domain does not match with project's domain: {}",
                             vNAS.getNasName(), projectDomains);
                     iterator.remove();
                     invalidNasServers.add(vNAS);
@@ -761,8 +748,6 @@ public class FileStorageScheduler implements Scheduler {
         }
         return true;
     }
-    
-	
 
     /**
      * Fetches and returns all the storage ports for a given storage system that
@@ -1015,15 +1000,15 @@ public class FileStorageScheduler implements Scheduler {
 
             if (recommendation.getFileType().toString().equals(
                     FileRecommendation.FileType.FILE_SYSTEM_DATA.toString())) {
-                
-            	// Grab the existing fileshare and task object from the incoming task list
+
+                // Grab the existing fileshare and task object from the incoming task list
                 FileShare fileShare = getPrecreatedFile(taskList, param.getLabel());
 
                 // Set the recommendation
                 _log.info(String.format("createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
                         fileShare.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
                 setFileRecommendation(recommendation, fileShare, vpool, createInactive);
-                
+
                 preparedFileSystems.add(fileShare);
 
             } else if (recommendation.getFileType().toString().equals(

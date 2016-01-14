@@ -1609,13 +1609,16 @@ public class IsilonApi {
             // JSON response for the below should have service=on
             resp = _client.get(_baseUrl.resolve(URI_SYNCIQ_SERVICE_STATUS));
             JSONObject jsonResp = resp.getEntity(JSONObject.class);
-
-            String syncService = jsonResp.getJSONObject("settings").getString("service");
-            if (syncService != null && !syncService.isEmpty()) {
-                sLogger.info("IsilonApi - SyncIQ service status {} ", syncService);
-                if ("on".equalsIgnoreCase(syncService)) {
-                    isSyncIqEnabled = true;
-                }
+            if (jsonResp.has("settings") && jsonResp.getJSONObject("settings") != null) {
+            	if (jsonResp.getJSONObject("settings").has("service")) {
+            		 String syncService = jsonResp.getJSONObject("settings").getString("service");
+                     if (syncService != null && !syncService.isEmpty()) {
+                     	sLogger.info("IsilonApi - SyncIQ service status {} ", syncService);
+                     	if("on".equalsIgnoreCase(syncService)) {
+                     		isSyncIqEnabled = true;
+                     	}
+                     }
+            	}
             }
         } catch (Exception e) {
             throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
@@ -1636,9 +1639,13 @@ public class IsilonApi {
      */
 
     public String getReplicationLicenseInfo() throws IsilonException, JSONException {
+    	String licenseStatus = "Unknown";
         ClientResponse clientResp = _client.get(_baseUrl.resolve(URI_REPLICATION_LICENSE_INFO));
         JSONObject jsonResp = clientResp.getEntity(JSONObject.class);
-        String licenseStatus = jsonResp.get("status").toString();
+        if (jsonResp.has("status")) {
+        	licenseStatus = jsonResp.get("status").toString();
+        	return licenseStatus;
+        }
         return licenseStatus;
     }
 

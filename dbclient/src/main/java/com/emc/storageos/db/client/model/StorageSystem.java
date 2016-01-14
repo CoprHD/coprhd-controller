@@ -134,7 +134,7 @@ public class StorageSystem extends DiscoveredSystemObject {
     private Double averagePortMetrics;
     
     public static enum SupportedFileReplicationTypes {
-        REMOTE("remote"), LOCAL("local"), ALL("all");
+        REMOTE("remote"), LOCAL("local");
 
         private final String _replicationType;
 
@@ -168,7 +168,7 @@ public class StorageSystem extends DiscoveredSystemObject {
     }
 
     public static enum SupportedReplicationTypes {
-        SRDF("4,5"), LOCAL("");
+        SRDF("4,5"), LOCAL(""), SRDFMetro("");
 
         private final String _replicationType;
 

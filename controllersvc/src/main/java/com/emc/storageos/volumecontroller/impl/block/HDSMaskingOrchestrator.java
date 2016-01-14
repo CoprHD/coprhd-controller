@@ -166,8 +166,6 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
-            // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
-            refreshExportMask(storage, getDevice(), null);
             if (exportMasks != null && !exportMasks.isEmpty()) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
@@ -710,8 +708,6 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup,
                     storageURI);
-            // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
-            refreshExportMask(storage, getDevice(), null);
             if (exportMasks != null && !exportMasks.isEmpty()) {
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveVolumes", true,
@@ -791,8 +787,6 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
                     exportGroup, initiatorURIs);
-            // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
-            refreshExportMask(storage, getDevice(), null);
             _log.info("initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
@@ -946,9 +940,6 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
                     exportGroup, initiatorURIs);
 
-            // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
-            refreshExportMask(storage, getDevice(), null);
-
             _log.info("Host to initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
 
             if (exportMasks != null && !exportMasks.isEmpty()) {
@@ -1067,8 +1058,6 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     .queryObject(StorageSystem.class, storageURI);
             TaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI,
                     token);
-            // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
-            refreshExportMask(storage, getDevice(), null);
             if (exportGroup == null || exportGroup.getInactive()) {
                 exportGroup.getVolumes().clear();
                 taskCompleter.ready(_dbClient);

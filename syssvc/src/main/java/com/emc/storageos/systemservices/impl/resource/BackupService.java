@@ -73,7 +73,8 @@ public class BackupService {
     private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
     private final String restoreCmd="/opt/storageos/bin/restore-from-ui.sh";
     private final String restoreLog="/var/log/restore-internal.log";
-    private Thread downloadThread;
+    //private Thread downloadThread;
+    private DownloadExecutor downloadTask;
 
     @Autowired
     private AuditLogManager auditMgr;
@@ -367,10 +368,10 @@ public class BackupService {
     public Response downloadBackupFile(String backupName) {
         log.info("To download backupName={}", backupName);
 
-        DownloadExecutor downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
+        downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
                 backupName, backupOps, false); //false= notify other nodes
 
-        downloadThread = new Thread(downloadTask);
+        Thread downloadThread = new Thread(downloadTask);
         downloadThread.setDaemon(true);
         downloadThread.setName("backupDownloadThread");
         downloadThread.start();
@@ -391,12 +392,64 @@ public class BackupService {
     public Response pullBackup(@QueryParam("file") String backupName ) {
         log.info("The backup file {} to download", backupName);
 
+        /*
         DownloadExecutor downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
                 backupName, backupOps, true); //true = notify other nodes
-        downloadThread = new Thread(downloadTask);
+                */
+        downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
+                backupName, backupOps, true); //true = notify other nodes
+
+        Thread downloadThread = new Thread(downloadTask);
         downloadThread.setDaemon(true);
         downloadThread.setName("backupDownloadThread");
         downloadThread.start();
+
+        log.info("done");
+        return Response.status(202).build();
+    }
+
+    /**
+     *  Cancel the current download backup operation
+     *  If there are no downloading running, do nothing
+     *  Client should use query API to check if the download operation
+     *  has been canceled or not
+     *
+     * @return server response indicating if the operation succeeds.
+     */
+    @POST
+    @Path("pull/cancel")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public Response cancelDownloading() {
+        log.info("lbye To cancel the current download");
+
+        /*
+        if (downloadTask != null) {
+            downloadTask.cancel();
+        }
+        */
+        /*
+        Map<String, String> currentBackupInfo = backupOps.getCurrentBackupInfo();
+        log.info("lbya current backup info: {}", currentBackupInfo);
+
+        if (!currentBackupInfo.isEmpty()) {
+            String backupName = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
+            boolean isLocal = Boolean.parseBoolean(currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY));
+            BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(backupName, isLocal);
+
+            log.info("lbya current backup status={}", s);
+
+            if (s.getStatus().canBeCanceled()) {
+                log.info("lbya cancel download");
+                s.setStatus(BackupRestoreStatus.Status.DOWNLOAD_CANCELLED);
+                backupOps.persistBackupRestoreStatus(s, isLocal);
+            }
+        }
+        */
+        //backupOps.cancelDownload();
+        if (downloadTask != null) {
+            log.info("lbye to call cancelDownload()");
+            downloadTask.cancelDownload();
+        }
 
         log.info("done");
         return Response.status(202).build();

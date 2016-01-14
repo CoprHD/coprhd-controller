@@ -60,14 +60,7 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, getId());
-            List<BlockObject> allSources = null;
-
-            if (snapSession.hasConsistencyGroup()) {
-                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-                allSources = BlockConsistencyGroupUtils.getAllSources(cg, dbClient);
-            } else {
-                allSources = Lists.newArrayList(BlockObject.fetch(dbClient, snapSession.getParent().getURI()));
-            }
+            List<BlockObject> allSources = getAllSources(snapSession, dbClient);
 
             // Record the results.
             recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.CREATE_SNAPSHOT_SESSION,

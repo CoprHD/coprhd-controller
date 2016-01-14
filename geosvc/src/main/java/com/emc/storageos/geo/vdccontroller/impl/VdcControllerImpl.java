@@ -9,6 +9,7 @@ import java.security.KeyStore;
 import java.util.List;
 import java.util.Properties;
 
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,6 +78,9 @@ public class VdcControllerImpl implements VdcController {
 
     private KeyStore _keyStore;
 
+    @Autowired
+    private IPsecConfig ipsecConfig;
+
     @Override
     public void setKeystore(KeyStore keystore) {
         _keyStore = keystore;
@@ -95,7 +99,7 @@ public class VdcControllerImpl implements VdcController {
         // during connect vdc process, the whole system will rolling reboot to apply
         // the new system properity, we shall not redo the finished steps
         ConnectVdcTaskOp vdcOp = new ConnectVdcTaskOp(dbClient, geoClientCache, helper,
-                serviceInfo, localVdc, task, (Properties) taskParams.get(0), apiSignatureGenerator, _keyStore);
+                serviceInfo, localVdc, task, (Properties) taskParams.get(0), apiSignatureGenerator, _keyStore, ipsecConfig);
         log.info("Initialize ConnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.setBasePermissionHelper(permissionsHelper);

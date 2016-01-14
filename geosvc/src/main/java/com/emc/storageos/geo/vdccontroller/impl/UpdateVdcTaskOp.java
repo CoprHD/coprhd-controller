@@ -14,6 +14,7 @@ import java.net.URI;
 import java.util.Properties;
 
 import com.emc.storageos.security.geo.GeoServiceJob;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,8 +46,8 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
 
     public UpdateVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache,
             VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc,
-            String taskId, List<Object> taskParams, InternalApiSignatureKeyGenerator generator, KeyStore keystore) {
-        super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, null, keystore);
+            String taskId, List<Object> taskParams, InternalApiSignatureKeyGenerator generator, KeyStore keystore, IPsecConfig ipsecConfig) {
+        super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, null, keystore, ipsecConfig);
         params = taskParams;
         updateInfo = (Properties) taskParams.get(0);
         apiSignatureKeyGenerator = generator;
@@ -179,7 +180,8 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
             }
         }
         // notify local vdc to apply the new vdc config info
-        helper.syncVdcConfig(mergedVdcInfo.getVirtualDataCenters(), null);
+        helper.syncVdcConfig(mergedVdcInfo.getVirtualDataCenters(), null,
+                mergedVdcInfo.getVdcConfigVersion(), mergedVdcInfo.getIpsecKey());
 
     }
 

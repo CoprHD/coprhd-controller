@@ -8,7 +8,9 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.model.ipsec.IPsecStatus;
+import com.emc.storageos.security.geo.GeoClientCacheManager;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
@@ -42,6 +44,9 @@ public class IPsecManager {
     
     @Autowired
     DrUtil drUtil;
+
+    @Autowired
+    GeoClientCacheManager geoClientManager;
 
     /**
      * Checking ipsec status against the entire system.
@@ -77,15 +82,39 @@ public class IPsecManager {
      */
     public String rotateKey() {
         String psk = ipsecConfig.generateKey();
+
         try {
+            long vdcConfigVersion = DrUtil.newVdcConfigVersion();
+
+            // send to other VDCs if has.
+            updateIPsecKeyToOtherVDCs(vdcConfigVersion, psk);
+
+            // finally update local vdc
             ipsecConfig.setPreSharedKey(psk);
-            String version = updateTargetSiteInfo();
-            log.info("IPsec Key gets rotated successfully to the version {}", version);
-            return version;
+            updateTargetSiteInfo(vdcConfigVersion);
+
+            log.info("IPsec Key gets rotated successfully to the version {}", vdcConfigVersion);
+            return Long.toString(vdcConfigVersion);
         } catch (Exception e) {
             log.warn("Fail to rotate ipsec key due to: {}", e);
             throw SecurityException.fatals.failToRotateIPsecKey(e);
         }
+    }
+
+    private void updateIPsecKeyToOtherVDCs(String psk, long vdcConfigVersion) {
+
+        if (! drUtil.isMultivdc()) {
+            log.info("This is not Geo deployment. No need to update ipsec key to other VDCs");
+            return;
+        }
+
+        List<String> vdcIds = drUtil.getOtherVdcIds();
+        for (String peerVdcId : vdcIds) {
+            IpsecParam ipsecParam = buildIpsecParam(peerVdcId, vdcConfigVersion, psk);
+            geoClientManager.getGeoClient(peerVdcId).rotateIpsecKey(ipsecParam);
+        }
+
+        log.info("");
     }
 
     /**

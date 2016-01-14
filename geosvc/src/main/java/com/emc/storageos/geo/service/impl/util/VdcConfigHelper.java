@@ -24,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -110,6 +111,9 @@ public class VdcConfigHelper {
     @Autowired
     private DrUtil drUtil;
 
+    @Autowired
+    IPsecConfig ipsecConfig;
+
     public void setDbClient(InternalDbClient dbClient) {
         this.dbClient = dbClient;
     }
@@ -138,13 +142,13 @@ public class VdcConfigHelper {
     /**
      * This method should be invoked by VDC controller on the same node, since the VDC controller
      * cannot clean up the db of the current VDC, just need to sync the VDC records.
-     * 
+     *
      * @param newVdcConfigList a list of VDC records to sync up with.
      */
-    public void syncVdcConfig(List<VdcConfig> newVdcConfigList) {
+/*    public void syncVdcConfig(List<VdcConfig> newVdcConfigList) {
         syncVdcConfig(newVdcConfigList, null);
     }
-
+*/
     /**
      * Sync Vdc config to local db. It writes new vdc list to local db and triggers
      * vdc config properties update on each node.
@@ -152,11 +156,11 @@ public class VdcConfigHelper {
      * @param newVdcConfigList - new vdc config list
      * @param assignedVdcId - vdc short id for a newly joined vdc. Otherwise null
      */
-    public void syncVdcConfig(List<VdcConfig> newVdcConfigList, String assignedVdcId) {
-        syncVdcConfig(newVdcConfigList, assignedVdcId, false);
+    public void syncVdcConfig(List<VdcConfig> newVdcConfigList, String assignedVdcId, Long vdcConfigVersion, String ipsecKey) {
+        syncVdcConfig(newVdcConfigList, assignedVdcId, false, vdcConfigVersion, ipsecKey);
     }
 
-    public void syncVdcConfig(List<VdcConfig> newVdcConfigList, String assignedVdcId, boolean isRecover) {
+    public void syncVdcConfig(List<VdcConfig> newVdcConfigList, String assignedVdcId, boolean isRecover, Long vdcConfigVersion, String ipsecKey) {
         boolean vdcConfigChanged = false;
         
         // query existing vdc list from db
@@ -183,7 +187,7 @@ public class VdcConfigHelper {
                 if (newVdc.getLocal()) {
                     VdcUtil.invalidateVdcUrnCache();
                 }
-                createVdcConfigInZk(config);
+                createVdcConfigInZk(config, ipsecKey);
                 vdcConfigChanged = true;
                 if (newVdc.getLocal()) {
                     drUtil.setLocalVdcShortId(newVdc.getShortId());
@@ -227,11 +231,11 @@ public class VdcConfigHelper {
         }
 
         if (vdcConfigChanged) {
-            triggerVdcConfigUpdate();
+            triggerVdcConfigUpdate(vdcConfigVersion);
         }
     }
 
-    public void triggerVdcConfigUpdate() {
+    public void triggerVdcConfigUpdate(final long vdcVersion) {
         log.info("Vdc config change detected. Trigger a config change later");
         // trigger syssvc to update the vdc config to all the nodes in the current vdc
         // add a small deley so that sync process can finish
@@ -242,16 +246,17 @@ public class VdcConfigHelper {
                 SiteInfo siteInfo;
                 SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
                 if (currentSiteInfo != null) {
-                    siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE,
+                    siteInfo = new SiteInfo(vdcVersion, SiteInfo.NONE,
                             currentSiteInfo.getTargetDataRevision());
                 } else {
-                    siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
+                    siteInfo = new SiteInfo(vdcVersion, SiteInfo.NONE);
                 }
                 coordinator.setTargetInfo(siteId, siteInfo);
                 log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
             }
         }, WAKEUP_DELAY, TimeUnit.SECONDS);
     }
+
     public void syncVdcConfigPostSteps(VdcPostCheckParam checkParam) {
         // TODO: verify network strategy
         String type = checkParam.getConfigChangeType();
@@ -1033,7 +1038,7 @@ public class VdcConfigHelper {
         return geoClientCache.getGeoClient(vdcProp).getViPRVersion();
     }
     
-    public void createVdcConfigInZk(VdcConfig vdc) {
+    public void createVdcConfigInZk(VdcConfig vdc, String ipsecKey) {
         log.info("Update Vdc info to zk {}", vdc.getShortId());
         
         // Insert vdc info
@@ -1056,6 +1061,8 @@ public class VdcConfigHelper {
         site.setNodeCount(vdc.getHostCount());
         
         coordinator.persistServiceConfiguration(site.toConfiguration());
+
+        ipsecConfig.setPreSharedKey(ipsecKey);
     }
     
     public void deleteVdcConfigFromZk(VirtualDataCenter vdc) {

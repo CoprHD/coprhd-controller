@@ -366,7 +366,7 @@ public class VdcConfigService {
                         updateBlackListForReconnectedVdc();
                         log.info("Reconnect ops: new blacklist is {}", dbClient.getBlacklist());
 
-                        helper.syncVdcConfig(param.getVirtualDataCenters(), null);
+                        helper.syncVdcConfig(param.getVirtualDataCenters(), null, param.getVdcConfigVersion(), param.getIpsecKey());
 
                         log.info("Current strategy options is {}", dbClient.getGeoStrategyOptions());
                         log.info("Current schema version for Geo is {}", dbClient.getGeoSchemaVersions());
@@ -412,7 +412,7 @@ public class VdcConfigService {
                     throw GeoException.fatals.remoteVDCGeoEncryptionMissing();
                 }
 
-                helper.syncVdcConfig(param.getVirtualDataCenters(), assignedVdcId);
+                helper.syncVdcConfig(param.getVirtualDataCenters(), assignedVdcId, param.getVdcConfigVersion(), param.getIpsecKey());
 
                 if (isRemoveOp(param)) {
                     log.info("Disable grossip to avoid schema version disagreement errors");

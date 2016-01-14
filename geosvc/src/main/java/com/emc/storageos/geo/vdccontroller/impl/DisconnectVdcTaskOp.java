@@ -12,6 +12,7 @@ import java.util.List;
 
 import com.emc.storageos.geomodel.VdcPreCheckParam2;
 import com.emc.storageos.geomodel.VdcPreCheckResponse2;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,8 +36,8 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
 
     public DisconnectVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache,
             VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc, String taskId,
-            KeyStore keystore) {
-        super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, null, keystore);
+            KeyStore keystore, IPsecConfig ipsecConfig) {
+        super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, null, keystore, ipsecConfig);
     }
 
     @Override

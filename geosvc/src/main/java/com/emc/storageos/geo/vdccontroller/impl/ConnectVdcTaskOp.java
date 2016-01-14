@@ -23,12 +23,14 @@ import java.util.Set;
 
 import javax.crypto.SecretKey;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.geomodel.VdcNatCheckParam;
 import com.emc.storageos.geomodel.VdcNatCheckResponse;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.VdcUtil;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.security.geo.GeoServiceHelper;
 import com.emc.storageos.security.geo.GeoServiceJob;
@@ -78,8 +80,8 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
 
     public ConnectVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache,
             VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc, String taskId,
-            Properties vdcInfo, InternalApiSignatureKeyGenerator generator, KeyStore keystore) {
-        super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, vdcInfo, keystore);
+            Properties vdcInfo, InternalApiSignatureKeyGenerator generator, KeyStore keystore, IPsecConfig ipsecConfig) {
+        super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, vdcInfo, keystore, ipsecConfig);
         this.apiSignatureGenerator = generator;
         this.operatedVdc = dbClient.queryObject(VirtualDataCenter.class,
                 URI.create(vdcInfo.getProperty(GeoServiceJob.OPERATED_VDC_ID)));
@@ -124,12 +126,14 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
             throw GeoException.fatals.connectVdcRemoveRootRolesFailed(dbe);
         }
 
+        String currentVdcIpsecKey = ipsecConfig.getPreSharedKeyFromZK();
+
         URI newVdcId = URIUtil.uri(vdcInfo.getProperty(GeoServiceJob.OPERATED_VDC_ID));
         GeoServiceHelper.backupOperationVdc(dbClient, JobType.VDC_CONNECT_JOB, newVdcId, null);
         VirtualDataCenter newVdc = GeoServiceHelper.prepareVirtualDataCenter(newVdcId, VirtualDataCenter.ConnectionStatus.CONNECTING,
                 VirtualDataCenter.GeoReplicationStatus.REP_NONE, vdcInfo);
         dbClient.createObject(newVdc);
-        helper.createVdcConfigInZk(mergeVdcInfo(operatedVdcInfo));
+        helper.createVdcConfigInZk(mergeVdcInfo(operatedVdcInfo), currentVdcIpsecKey);
         
         // we should use uuid as cert name in trust store, but before we persist new vdc info
         // into db, we use vdc name as cert name, after we persist new vdc into db, persist uuid
@@ -154,7 +158,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         // sync the new certificate to all connected sites
         syncCerts(VdcCertListParam.CMD_ADD_CERT, certListParam);
 
-        VdcConfigSyncParam mergedVdcInfo = configMerge(operatedVdcInfo);
+        VdcConfigSyncParam mergedVdcInfo = configMerge(operatedVdcInfo, currentVdcIpsecKey);
         if (mergedVdcInfo == null) {
             log.error("merge the vdc config of all sites failed");
             throw GeoException.fatals.mergeConfigFail();
@@ -450,9 +454,10 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         }
     }
 
-    private VdcConfigSyncParam configMerge(VdcPreCheckResponse operatedVdcInfo) {
+    private VdcConfigSyncParam configMerge(VdcPreCheckResponse operatedVdcInfo, String ipsecKey) {
         // step 2: merge the vdc config info of all sites, as the initiator, we should has all current vdc config info
         VdcConfigSyncParam vdcConfigList = new VdcConfigSyncParam();
+        vdcConfigList.setVdcConfigVersion(DrUtil.newVdcConfigVersion());
         List<VdcConfig> list = vdcConfigList.getVirtualDataCenters();
 
         for (VirtualDataCenter vdc : getAllVdc()) {
@@ -465,6 +470,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         }
         VdcConfig operatedConfig = mergeVdcInfo(operatedVdcInfo);
         list.add(operatedConfig);
+        vdcConfigList.setIpsecKey(ipsecKey);
         return vdcConfigList;
     }
 
@@ -476,6 +482,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         // geoclient shall responsible to retry all retryable errors, we have no need retry here
 
         log.info("sync vdc config to all sites, total vdc entries {}", mergedVdcInfo.getVirtualDataCenters().size());
+
         List<VirtualDataCenter> vdcList = getToBeSyncedVdc();
         for (VirtualDataCenter vdc : vdcList) {
             log.info("Loop vdc {}:{} to sync the latest vdc config info", vdc.getShortId(), vdc.getApiEndpoint());
@@ -499,12 +506,13 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         helper.addVdcToCassandraStrategyOptions(mergedVdcInfo.getVirtualDataCenters(), operatedVdc, false);
 
         // notify local vdc to apply the new vdc config info
-        helper.syncVdcConfig(mergedVdcInfo.getVirtualDataCenters(), null);
+        helper.syncVdcConfig(mergedVdcInfo.getVirtualDataCenters(), null,
+                mergedVdcInfo.getVdcConfigVersion(), mergedVdcInfo.getIpsecKey());
 
         // update the current progress of connect vdc. the cluster would reboot later.
         updateOpStatus(ConnectionStatus.CONNECTING_SYNCED);
         
-        helper.triggerVdcConfigUpdate();
+        helper.triggerVdcConfigUpdate(mergedVdcInfo.getVdcConfigVersion());
     }
 
     private void postCheck() {

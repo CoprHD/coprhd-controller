@@ -110,7 +110,6 @@ import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowUtils;
 import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ApplicationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRestoreWorkflowCompleter;
@@ -251,6 +250,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESTORE_SNAP_SESSION_STEP = "restoreSnapshotSessionStep";
     private static final String REMOVE_VOLUMES_FROM_CG_STEP = "removeVolumesFromReplicationGropuStep";
     private static final String ADD_VOLUME_REPLICATION_GROUP_STEP = "addVolumesToReplicationGroup";
+    private static final String CREATE_REPLICATION_GROUP_STEP = "createReplicationGroup";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
@@ -10900,6 +10900,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         addVolumeToMap(backendHAVol, addHAVolsMap);
                     }
                 }
+                
                 waitFor = addStepsToAddVolumesToReplicationGroup(workflow, waitFor, addSrcVolsMap, replicationGroupName, cguri, opId);
                 if (!addHAVolsMap.isEmpty()) {
                     // Append ha to the replicationGroupName for HA part replication group name
@@ -10952,12 +10953,28 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         for (Map.Entry<URI, List<URI>> entry : addVolumes.entrySet()) {
             URI storageUri = entry.getKey();
             StorageSystem storage = getDataObject(StorageSystem.class, storageUri, _dbClient);
+            
+            String groupName = ControllerUtils.generateReplicationGroupName(storage, cguri, replicationGroupName, _dbClient);
+            
+            // check if cg is created, if not create it
+            BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cguri,_dbClient);
+            if (!cg.created(groupName, storageUri)) {
+                _log.info("Consistency group not created. Creating it");
+                waitFor = workflow.createStep(CREATE_REPLICATION_GROUP_STEP,
+                        String.format("Creating consistency group %s", cg.getLabel()),
+                        waitFor, storageUri, storage.getSystemType(),
+                        BlockDeviceController.class,
+                        createConsistencyGroupMethod(storageUri, cguri, groupName),
+                        // TODO for vplex and RP deleteConsistencyGroup needs to take replication group name as a parameter
+                        deleteConsistencyGroupMethod(storageUri, cguri), null);
+            }
+
             List<URI> addVolumesList = entry.getValue();
             waitFor = workflow.createStep(ADD_VOLUME_REPLICATION_GROUP_STEP,
-                    String.format("Adding volumes to replication group %s", replicationGroupName),
+                    String.format("Adding volumes to replication group %s", groupName),
                     waitFor, storageUri, storage.getSystemType(),
                     BlockDeviceController.class,
-                    addVolumeToCGMethod(storageUri, cguri, replicationGroupName, addVolumesList),
+                    addVolumeToCGMethod(storageUri, cguri, groupName, addVolumesList),
                     removeVolumeFromCGMethod(storageUri, cguri, addVolumesList), null);
 
             // call ReplicaDeviceController
@@ -10965,6 +10982,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         return waitFor;
 
+    }
+
+    private Workflow.Method createConsistencyGroupMethod(URI storage, URI consistencyGroup, String replicationGroupName) {
+        return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup, replicationGroupName);
+    }
+
+    private Workflow.Method deleteConsistencyGroupMethod(URI storage, URI consistencyGroup) {
+        return new Workflow.Method("deleteConsistencyGroup", storage, consistencyGroup, false);
     }
     
     private Workflow.Method removeVolumeFromCGMethod(URI storageUri, URI cguri, List<URI> removeVols) {
@@ -10974,5 +10999,4 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private Workflow.Method addVolumeToCGMethod(URI storageUri, URI cguri, String replicationGroupName, List<URI> addVols) {
         return new Workflow.Method(ADD_TO_CONSISTENCY_GROUP_METHOD_NAME, storageUri, cguri, replicationGroupName, addVols);
     }
-        
 }

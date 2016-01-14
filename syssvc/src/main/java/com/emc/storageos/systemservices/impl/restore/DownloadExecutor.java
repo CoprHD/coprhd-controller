@@ -43,9 +43,7 @@ public final class DownloadExecutor implements  Runnable {
     private boolean notifyOthers;
     private String localHostName;
     private BackupRestoreStatus restoreStatus;
-    //private DownloadListener downloadListener = new DownloadListener();
     private DownloadListener downloadListener;
-    private CancelListener  cancelListener;
     private boolean isGeo = false; // true if the backupset is from GEO env
     private volatile  boolean isCanceled2=false;
 
@@ -74,15 +72,9 @@ public final class DownloadExecutor implements  Runnable {
 
     public void registerListener() {
         try {
-            //log.info("lbyd add download and cancel listener");
             log.info("lbyd add download listener");
             downloadListener = new DownloadListener(Thread.currentThread());
-            //downloadListener = new DownloadListener();
             backupOps.addRestoreListener(downloadListener);
-            /*
-            cancelListener = new CancelListener(Thread.currentThread());
-            backupOps.addRestoreListener(cancelListener);
-            */
         }catch (Exception e) {
             log.error("Fail to add download listener e=", e);
             throw APIException.internalServerErrors.addListenerFailed();
@@ -95,11 +87,6 @@ public final class DownloadExecutor implements  Runnable {
         public DownloadListener(Thread t) {
             downloadingThread = t;
         }
-
-        /*
-        public DownloadListener() {
-        }
-        */
 
         @Override
         public String getPath() {
@@ -127,24 +114,14 @@ public final class DownloadExecutor implements  Runnable {
                 downloadingThread.interrupt();
             }
 
-            File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
             if (s.removeDownloadFiles()) {
-                //Remove downloaded backup data
-                log.info("lbye 2 To remove downloaded {} exist={}", downloadedDir, downloadedDir.exists());
-                try {
-                    FileUtils.deleteDirectory(downloadedDir);
-                }catch (IOException e) {
-                    log.error("Failed to remove {} e=", downloadedDir.getAbsolutePath(), e );
-                }
+                deleteDownloadedBackup();
             }
 
-            log.info("Removed downloaded {} exist={}", downloadedDir, downloadedDir.exists());
             if (s.removeListener()) {
                 try {
-                    //log.info("Remove download and restore listener");
                     log.info("Remove download listener");
                     backupOps.removeRestoreListener(downloadListener);
-                    // backupOps.removeRestoreListener(cancelListener);
                 }catch (Exception e) {
                     log.warn("Failed to remove download and restore listener");
                 }
@@ -160,56 +137,6 @@ public final class DownloadExecutor implements  Runnable {
             if (state.equals(State.CONNECTED)) {
                 log.info("Curator (re)connected.");
                 onRestoreStatusChange();
-            }
-        }
-    }
-
-    class CancelListener implements NodeListener {
-        private Thread downloadingThread;
-
-        public CancelListener(Thread t) {
-            downloadingThread = t;
-        }
-
-        @Override
-        public String getPath() {
-            String path = backupOps.getCurrentRestoreInfoPath();
-            log.info("lbyc cancel path={}", path);
-
-            return path;
-        }
-
-        /**
-         * called when user modify restore status, procedure or node status
-         */
-        @Override
-        public void nodeChanged() {
-            log.info("The current restore info changed");
-            onCurrentBackupInfoChange();
-        }
-
-        private void onCurrentBackupInfoChange() {
-            BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
-            Map<String, String> map  = backupOps.getCurrentBackupInfo();
-            log.info("lbyc current restore info: {}", map);
-            boolean isCanceled = Boolean.parseBoolean(map.get(BackupConstants.CURRENT_DOWNLOADING_IS_CANCELED_KEY));
-
-            if (isCanceled) {
-                isCanceled2 = true;
-                log.info("To stop downloading thread {} isCanceled=true", downloadingThread.getName());
-                downloadingThread.interrupt();
-            }
-        }
-
-        /**
-         * called when connection state changed.
-         */
-        @Override
-        public void connectionStateChanged(State state) {
-            log.info("Restore status connection state changed to {}", state);
-            if (state.equals(State.CONNECTED)) {
-                log.info("Curator (re)connected.");
-                onCurrentBackupInfoChange();
             }
         }
     }
@@ -283,10 +210,6 @@ public final class DownloadExecutor implements  Runnable {
             Status s = restoreStatus.getStatus();
             if (s.canBeCanceled()) {
                 log.info("lbye the downloading is canceled");
-                /*
-                restoreStatus.setStatus(Status.DOWNLOAD_CANCELLED);
-                backupOps.persistBackupRestoreStatus(restoreStatus, false);
-                */
                 setDownloadStatus(remoteBackupFileName, Status.DOWNLOAD_CANCELLED, 0, 0, false);
                 cleanCurrentBackupInfo = true;
             }
@@ -296,20 +219,10 @@ public final class DownloadExecutor implements  Runnable {
             Status s = Status.DOWNLOAD_FAILED;
             if (isCanceled2) {
                 s = Status.DOWNLOAD_CANCELLED;
-
-                File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
-                //Remove downloaded backup data
-                log.info("lbye 1 To remove downloaded {} exist={}", downloadedDir, downloadedDir.exists());
-                try {
-                    FileUtils.deleteDirectory(downloadedDir);
-                }catch (IOException ex) {
-                    log.error("Failed to remove {} e=", downloadedDir.getAbsolutePath(), ex);
-                }
+                deleteDownloadedBackup();
             }
 
-            // restoreStatus.setStatus(s);
             setDownloadStatus(remoteBackupFileName, s, 0, 0, false);
-            // backupOps.persistBackupRestoreStatus(restoreStatus, false);
             cleanCurrentBackupInfo = true;
             log.error("lbye Failed to download e=", e);
         }finally {
@@ -325,11 +238,22 @@ public final class DownloadExecutor implements  Runnable {
         }
     }
 
+    private void deleteDownloadedBackup() {
+        File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
+        //Remove downloaded backup data
+        log.info("lbye 1 To remove downloaded {} exist={}", downloadedDir, downloadedDir.exists());
+        try {
+            FileUtils.deleteDirectory(downloadedDir);
+        }catch (IOException ex) {
+            log.error("Failed to remove {} e=", downloadedDir.getAbsolutePath(), ex);
+        }
+    }
+
     private void download() throws IOException, InterruptedException {
         log.info("download start");
 
         log.info("lbya persist current backup info {}", remoteBackupFileName);
-        backupOps.persistCurrentBackupInfo(remoteBackupFileName, false, false);
+        backupOps.persistCurrentBackupInfo(remoteBackupFileName, false);
 
         ZipInputStream zin = getDownloadStream();
 
@@ -355,8 +279,7 @@ public final class DownloadExecutor implements  Runnable {
             zentry = zin.getNextEntry();
         }
 
-        // fix the download size
-        postDownload(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS);
+        postDownload();
 
         try {
             zin.closeEntry();
@@ -392,29 +315,16 @@ public final class DownloadExecutor implements  Runnable {
         return true;
     }
 
-    private void postDownload(BackupRestoreStatus.Status status) {
+    private void postDownload() {
         restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
-        /*
-        restoreStatus.increaseNodeCompleted();
-        int completedNodes = restoreStatus.getNodeCompleted();
-        */
-
         Status s = null;
         if (restoreStatus.getStatus() == BackupRestoreStatus.Status.DOWNLOADING) {
             long nodeNumber = backupOps.getHosts().size();
-            /*
-            if (completedNodes == nodeNumber) {
-                restoreStatus.setStatus(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS);
-            }
-            */
-
             if (restoreStatus.getNodeCompleted() == nodeNumber -1 ) {
-                //restoreStatus.setStatus(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS);
                 s = Status.DOWNLOAD_SUCCESS;
             }
         }
 
-        //backupOps.persistBackupRestoreStatus(restoreStatus, false);
         setDownloadStatus(remoteBackupFileName, s, 0, 0, true);
     }
 
@@ -434,19 +344,13 @@ public final class DownloadExecutor implements  Runnable {
             isGeo = backupOps.isGeoBackup(backupFileName);
 
             if (isGeo) {
-                /*
-                BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
-                status.setIsGeo(true);
-                log.info("This is a Geo backup status={}", status);
-                backupOps.persistBackupRestoreStatus(status, false);
-                */
                 backupOps.setGeoFlag(remoteBackupFileName, false);
             }
         }
 
         File file = new File(downloadDir, backupFileName);
         if (!file.exists()) {
-            log.info("lbyb create new file {}", file.getAbsolutePath());
+            log.info("create the new file {}", file.getAbsolutePath());
             file.getParentFile().mkdirs();
             file.createNewFile();
         }

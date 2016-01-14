@@ -329,29 +329,17 @@ public class BackupOps {
         return builder.toString();
     }
 
-    public String getCurrentRestoreInfoPath() {
-        StringBuilder builder = new StringBuilder("/sites/");
-        builder.append(coordinatorClient.getSiteId())
-                .append("/config/")
-                .append(BackupConstants.BACKUP_RESTORE_STATUS)
-                .append("/")
-                .append(Constants.GLOBAL_ID);
-
-        return builder.toString();
-    }
-
     public void clearCurrentBackupInfo() {
-        log.info("lbya clear current backup info");
-        persistCurrentBackupInfo("", false, false);
+        log.info("clear current backup info");
+        persistCurrentBackupInfo("", false);
     }
 
-    public void persistCurrentBackupInfo(String backupName, boolean isLocal, boolean isCanceled) {
+    public void persistCurrentBackupInfo(String backupName, boolean isLocal) {
         ConfigurationImpl config = new ConfigurationImpl();
         config.setKind(BackupConstants.BACKUP_RESTORE_STATUS);
         config.setId(Constants.GLOBAL_ID);
         config.setConfig(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY, backupName);
         config.setConfig(BackupConstants.CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY, Boolean.toString(isLocal));
-        config.setConfig(BackupConstants.CURRENT_DOWNLOADING_IS_CANCELED_KEY, Boolean.toString(isCanceled));
 
         coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
         log.info("Persist current backup info to zk successfully");
@@ -363,8 +351,8 @@ public class BackupOps {
 
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
 
-        // The map should has only 4 entries: _kind, _id, backupname isLocal and isCanceled
-        if (allItems.size() != 5) {
+        // The map should has only 4 entries: _kind, _id, backupname and isLocal
+        if (allItems.size() != 4) {
             log.error("Invalid current backup info from zk: {}", allItems);
             throw new RuntimeException("invalid current backup info from zk");
         }

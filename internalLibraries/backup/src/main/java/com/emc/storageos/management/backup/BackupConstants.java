@@ -100,7 +100,6 @@ public interface BackupConstants {
     String BACKUP_LOCK = "backup";
     String CURRENT_DOWNLOADING_BACKUP_NAME_KEY="name";
     String CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY="isLocal";
-    String CURRENT_DOWNLOADING_IS_CANCELED_KEY="isCanceled";
 
     public static final String SITE_ID_FILE_PATH = "/data/zk/siteid";
     public static final String SITE_ID_FILE_NAME = "siteid";

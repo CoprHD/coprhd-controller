@@ -8,91 +8,126 @@ package com.emc.storageos.systemservices.impl.util;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.nio.channels.SocketChannel;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+
+/**
+ * A thread started in syssvc to monitor network health between active and standby site.
+ * Network health is determined by checking socket connection latency to SOCKET_TEST_PORT
+ * If latency is less than 150ms then Network health is "Good", if it is greater then Network Health is "Slow"
+ * If the testPing times out or fails to connect then pin is -1 and NetworkHealth is "Broken""
+ */
 public class DrSiteNetworkMonitor implements Runnable{
 
     private static final Logger _log = LoggerFactory.getLogger(DrSiteNetworkMonitor.class);
 
-    private CoordinatorClient coordinatorClient;
-    private DrUtil drUtil;
-    private String myNodeId;
+    @Autowired
+    private CoordinatorClientExt coordinator;
+
+    @Autowired
     private MailHandler mailHandler;
 
-    private String ZOOKEEPER_MODE_LEADER = "leader";
-    private String NETWORK_HEALTH_BROKEN = "Broken";
-    private String NETWORK_HEALTH_GOOD = "Good";
-    private String NETWORK_HEALTH_SLOW = "Slow";
+    @Autowired
+    private DrUtil drUtil;
 
-    public DrSiteNetworkMonitor(String myNodeId, CoordinatorClient coordinatorClient, MailHandler mailHandler) {
-        this.coordinatorClient = coordinatorClient;
-        this.drUtil = new DrUtil(coordinatorClient);
-        this.myNodeId = myNodeId;
-        this.mailHandler = mailHandler;
+    private CoordinatorClient coordinatorClient;
+    private String myNodeId;
+
+
+    private static final int NETWORK_MONITORING_INTERVAL = 60; // in seconds
+    private static final String NETWORK_HEALTH_BROKEN = "Broken";
+    private static final String NETWORK_HEALTH_GOOD = "Good";
+    private static final String NETWORK_HEALTH_SLOW = "Slow";
+
+    private static final int SOCKET_TEST_PORT = 443;
+    private static final int NETWORK_SLOW_THRESHOLD = 150;
+    private static final int NETWORK_TIMEOUT = 10 * 1000;
+
+    public DrSiteNetworkMonitor() {
+    }
+
+    public void init() {
+        coordinatorClient = coordinator.getCoordinatorClient();
+        myNodeId = coordinator.getMyNodeId();
     }
 
     public void run() {
-
-        try {
-            checkPing();
-        } catch (Exception e) {
-            //try catch exception to make sure next scheduled run can be launched.
-            _log.error("Error occurs when monitor standby network", e);
-        }
-
+        _log.info("Start monitoring local networkMonitor status on active site");
+        ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+        exe.scheduleAtFixedRate(networkMonitor, 0, NETWORK_MONITORING_INTERVAL, TimeUnit.SECONDS);
     }
+
+    private Runnable networkMonitor = new Runnable(){
+        public void run() {
+
+            //Only leader on active site will test ping (no networking info if active down?)
+            String zkState = drUtil.getLocalCoordinatorMode(myNodeId);
+
+            //Check if this node is the leader
+            if (!drUtil.ZOOKEEPER_MODE_LEADER.equals(zkState) || !drUtil.ZOOKEEPER_MODE_STANDALONE.equals(zkState)) {
+                return;
+            }
+
+            try {
+                checkPing();
+            } catch (Exception e) {
+                //try catch exception to make sure next scheduled run can be launched.
+                _log.error("Error occurs when monitor standby network", e);
+            }
+
+        }
+    };
 
     private void checkPing() {
 
-        //Only leader on active site will test ping (no networking info if active down?)
-        String zkState = drUtil.getLocalCoordinatorMode(myNodeId);
+        //Check that active site is set to good Network Health
+        Site active = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+        if (!NETWORK_HEALTH_GOOD.equals(active.getNetworkHealth()) || active.getPing() != 0) {
+            active.setNetworkHealth(NETWORK_HEALTH_GOOD);
+            active.setPing(0);
+            coordinatorClient.persistServiceConfiguration(active.toConfiguration());
+        }
 
-        //Check if this node is the leader
-        if (ZOOKEEPER_MODE_LEADER.equals(zkState)) {
+        for (Site site : drUtil.listStandbySites()){
+            String previousState = site.getNetworkHealth();
+            String host = site.getVip();
+            double ping = testPing(host,SOCKET_TEST_PORT);
 
-            int testPort = 4443;
-
-            //Check that active site is set to good Network Health
-            Site active = drUtil.getLocalSite();
-            if (!active.getNetworkHealth().equals(NETWORK_HEALTH_GOOD) || active.getPing() != 0) {
-                active.setNetworkHealth(NETWORK_HEALTH_GOOD);
-                active.setPing(0);
-                coordinatorClient.persistServiceConfiguration(active.toConfiguration());
+            //if ping successful get an average
+            if( ping != -1){
+                ping = (ping + testPing(host,SOCKET_TEST_PORT) + testPing(host,SOCKET_TEST_PORT))/3;
             }
 
-            for (Site site : drUtil.listStandbySites()){
-                String previousState = site.getNetworkHealth();
-                String host = site.getVip();
-                double ping = testPing(host,4443);
-                _log.info("Ping: "+ping);
-                site.setPing(ping);
-                if (ping > 150) {
-                    site.setNetworkHealth(NETWORK_HEALTH_SLOW);
-                    _log.warn("Network for standby {} is slow",site.getName());
-                }
-                else if (ping < 0) {
-                    site.setNetworkHealth(NETWORK_HEALTH_BROKEN);
-                    _log.error("Network for standby {} is broken",site.getName());
-                }
-                else {
-                    site.setNetworkHealth(NETWORK_HEALTH_GOOD);
-                }
+            _log.info("Ping: "+ping);
+            site.setPing(ping);
+            if (ping > NETWORK_SLOW_THRESHOLD) {
+                site.setNetworkHealth(NETWORK_HEALTH_SLOW);
+                _log.warn("Network for standby {} is slow",site.getName());
+            }
+            else if (ping == -1) {
+                site.setNetworkHealth(NETWORK_HEALTH_BROKEN);
+                _log.error("Network for standby {} is broken",site.getName());
+            }
+            else {
+                site.setNetworkHealth(NETWORK_HEALTH_GOOD);
+            }
 
-                coordinatorClient.persistServiceConfiguration(site.toConfiguration());
+            coordinatorClient.persistServiceConfiguration(site.toConfiguration());
 
-                if (!NETWORK_HEALTH_BROKEN.equals(previousState)
-                        && NETWORK_HEALTH_BROKEN.equals(site.getNetworkHealth())){
-                    //send email alert
-                    mailHandler.sendSiteNetworkBrokenMail(site);
-                }
+            if (!NETWORK_HEALTH_BROKEN.equals(previousState)
+                    && NETWORK_HEALTH_BROKEN.equals(site.getNetworkHealth())){
+                //send email alert
+                mailHandler.sendSiteNetworkBrokenMail(site);
             }
         }
     }
@@ -111,35 +146,17 @@ public class DrSiteNetworkMonitor implements Runnable{
 
         try {
             inetAddress = InetAddress.getByName(hostAddress);
-        } catch (UnknownHostException e) {
-            _log.error("Problem, unknown host:",e);
-        }
 
-        try {
             socketAddress = new InetSocketAddress(inetAddress, port);
-        } catch (IllegalArgumentException e) {
-            _log.error("Problem, port may be invalid:",e);
-        }
 
-        // Open the channel, set it to non-blocking, initiate connect
-        try {
             start = System.nanoTime();
-            socket.connect(socketAddress,10000);
+            socket.connect(socketAddress,NETWORK_TIMEOUT);
             stop = System.nanoTime();
             timeToRespond = (stop - start);
 
-        } catch (IOException e) {
-            _log.error("Problem, connection could not be made:",e);
-        }
-
-        try {
             socket.close();
-        } catch (IOException e) {
-            _log.error("Error closing socket during latency test",e);
-        }
-
-        //The ping failed, return -1
-        if (timeToRespond == -1) {
+        } catch (Exception e) {
+            _log.error(String.format("Fail to check cross-site network latency to node {} with Exception: ",hostAddress),e);
             return -1;
         }
 

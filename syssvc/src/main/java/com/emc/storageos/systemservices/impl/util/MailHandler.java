@@ -20,6 +20,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -32,22 +33,16 @@ public class MailHandler {
 
     private static final Logger _log = LoggerFactory.getLogger(MailHandler.class);
 
+    @Autowired
     private DbClient dbClient;
+
+    @Autowired
     private AuditLogManager auditLogManager;
-    private CoordinatorClient coordinatorClient;
+
+    @Autowired
+    private CoordinatorClient coordinator;
+
     private MailHelper mailHelper;
-
-    public void setDbClient(DbClient dbClient) {
-        this.dbClient = dbClient;
-    }
-
-    public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
-        this.coordinatorClient = coordinatorClient;
-    }
-
-    public void setAuditLogManager(AuditLogManager auditLogManager) {
-        this.auditLogManager = auditLogManager;
-    }
 
     /**
      * Sends mail alert that site network is broken.
@@ -89,7 +84,7 @@ public class MailHandler {
 
     private MailHelper getMailHelper() {
         if (mailHelper == null) {
-            mailHelper = new MailHelper(coordinatorClient);
+            mailHelper = new MailHelper(coordinator);
         }
 
         return mailHelper;

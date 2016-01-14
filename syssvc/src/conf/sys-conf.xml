@@ -261,11 +261,9 @@
         </property>
     </bean>
 
-    <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler">
-        <property name="coordinatorClient" ref="coordinator"/>
-        <property name="dbClient" ref="dbclient"/>
-        <property name="auditLogManager" ref="auditLogManager"/>
-    </bean>
+    <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler"/>
+
+    <bean id="drSiteNetworkMonitor" class="com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor"/>
 
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
         <property name="softwareUpdate" ref="softwareUpdate" />
@@ -282,7 +280,6 @@
         <property name="serviceInfo" ref="serviceinfo"/>
         <property name="ciphersToInclude" ref="strongCiphers"/>
         <property name="coordinator" ref="coordinator"/>
-        <property name="mailHandler" ref="mailHandler"/>
         <property name="startDbClientInBackground" value="true"/>
     </bean>
 

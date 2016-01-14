@@ -43,10 +43,6 @@ import java.util.concurrent.TimeUnit;
 public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private static final Logger log = LoggerFactory.getLogger(SysSvcImpl.class);
 
-
-    private static final int NETWORK_MONITORING_INTERVAL = 60; // in seconds
-
-    private MailHandler _mailHandler;
     private UpgradeManager _upgradeMgr;
     private InternalApiSignatureKeyGenerator _keyGenerator;
     private Thread _upgradeManagerThread = null;
@@ -56,6 +52,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private Thread _ipreconfigManagerThread = null;
     private int _timeout;
     private SoftwareUpdate _softwareUpdate;
+
+    @Autowired
+    private MailHandler _mailHandler;
 
     @Autowired
     private SecretsManager _secretsMgr;
@@ -81,6 +80,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     @Autowired
     // used by data node to poll the ip address change of controller cluster
     private ClusterAddressPoller _clusterPoller;
+
+    @Autowired
+    private DrSiteNetworkMonitor _drSiteNetworkMonitor;
 
     public void setUpgradeManager(UpgradeManager upgradeMgr) {
         _upgradeMgr = upgradeMgr;
@@ -175,9 +177,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     }
 
     private void startNetworkMonitor() {
-        log.info("Start monitoring local networkMonitor status on active site");
-        ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
-        exe.scheduleAtFixedRate(new DrSiteNetworkMonitor(_coordinator.getMyNodeId(),_coordinator.getCoordinatorClient(),_mailHandler), 0, NETWORK_MONITORING_INTERVAL, TimeUnit.SECONDS);
+        _ipreconfigManagerThread = new Thread(_drSiteNetworkMonitor);
+        _ipreconfigManagerThread.setName("DrSiteNetworkMonitor");
+        _ipreconfigManagerThread.start();
     }
 
     @Override

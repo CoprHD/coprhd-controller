@@ -68,7 +68,7 @@
           options: {
             "USER": "User",
             "GROUP": "Group",
-            "CUSTOMGROUP: "Custom Group"
+            "CUSTOMGROUP": "Custom Group"
           }
         },
         

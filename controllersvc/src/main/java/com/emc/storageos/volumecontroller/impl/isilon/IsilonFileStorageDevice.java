@@ -1097,8 +1097,9 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             // create directory for the file share
             isi.createDir(qDirPath, true);
 
-            String qid = createQuotaWithThreshold(qDirPath, qDirSize, quotaDir.getSoftLimit(), quotaDir.getNotificationLimit(),
-                    quotaDir.getSoftGracePeriod(), isi);
+            String qid = createQuotaWithThreshold(qDirPath, qDirSize, quotaDir.getSoftLimit() != null ? Long.valueOf(quotaDir.getSoftLimit()) : 0L,
+                    quotaDir.getNotificationLimit() != null ? Long.valueOf(quotaDir.getNotificationLimit()) : 0L,
+                    quotaDir.getSoftGrace() != null ? Long.valueOf(quotaDir.getSoftGrace()) : 0L, isi);
 
             if (args.getQuotaDirExtensions() == null) {
                 args.initQuotaDirExtensions();
@@ -1174,15 +1175,16 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 // Isilon does not allow to update quota directory to zero.
                 if (qDirSize > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
-                    IsilonSmartQuota expandedQuota = new IsilonSmartQuota(qDirSize, quotaDir.getNotificationLimit(),
-                            quotaDir.getSoftLimit(), quotaDir.getSoftGracePeriod());
+                    IsilonSmartQuota expandedQuota = new IsilonSmartQuota(qDirSize, quotaDir.getNotificationLimit() != null ? quotaDir.getNotificationLimit() : 0L,
+                            quotaDir.getSoftLimit() != null ? quotaDir.getSoftLimit() : 0L, quotaDir.getSoftGrace() != null ? quotaDir.getSoftGrace() : 0L);
                     isi.modifyQuota(quotaId, expandedQuota);
                 }
 
             } else {
                 // Create a new Quota
-                String qid = createQuotaWithThreshold(qDirPath, qDirSize, quotaDir.getSoftLimit(), quotaDir.getNotificationLimit(),
-                        quotaDir.getSoftGracePeriod(), isi);
+                String qid = createQuotaWithThreshold(qDirPath, qDirSize, quotaDir.getSoftLimit() != null ? Long.valueOf(quotaDir.getSoftLimit()) : 0L,
+                        quotaDir.getNotificationLimit() != null ? Long.valueOf(quotaDir.getNotificationLimit()) : 0L,
+                        quotaDir.getSoftGrace() != null ? Long.valueOf(quotaDir.getSoftGrace()) : 0L, isi);
 
                 if (args.getQuotaDirExtensions() == null) {
                     args.initQuotaDirExtensions();

@@ -42,11 +42,11 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
 
     private Long _size; // Quota size in bytes- hard limit.
     
-    private Long _softLimit; //Soft limit in percentage of hard limit
+    private Integer _softLimit; //Soft limit in percentage of hard limit
     
-    private Long _notificationLimit; // notification limit in percentage of hardl limit
+    private Integer _notificationLimit; // notification limit in percentage of hardl limit
     
-    private Long _softGracePeriod; //soft grace period in days
+    private Integer _softGrace; //soft grace period in days
 
     // UNIX, NTFS, Mixed
     private String _securityStyle = SecurityStyles.parent.name();
@@ -130,33 +130,33 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
     }
 
     @Name("softLimit")
-    public Long getSoftLimit() {
+    public Integer getSoftLimit() {
         return _softLimit;
     }
 
-    public void setSoftLimit(Long softLimit) {
+    public void setSoftLimit(Integer softLimit) {
         this._softLimit = softLimit;
         setChanged("softLimit");
     }
 
     @Name("notificationLimit")
-    public Long getNotificationLimit() {
+    public Integer getNotificationLimit() {
         return _notificationLimit;
     }
 
-    public void setNotificationLimit(Long notificationLimit) {
+    public void setNotificationLimit(Integer notificationLimit) {
         this._notificationLimit = notificationLimit;
         setChanged("notificationLimit");
     }
 
-    @Name("softGracePeriod")
-    public Long getSoftGracePeriod() {
-        return _softGracePeriod;
+    @Name("softGrace")
+    public Integer getSoftGrace() {
+        return _softGrace;
     }
 
-    public void setSoftGracePeriod(Long softGracePeriod) {
-        this._softGracePeriod = softGracePeriod;
-        setChanged("softGracePeriod");
+    public void setSoftGrace(Integer softGrace) {
+        this._softGrace = softGrace;
+        setChanged("softGrace");
     }
 
     @Name("security_style")

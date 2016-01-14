@@ -34,8 +34,10 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1752,11 +1754,20 @@ public class CoordinatorClientExt {
      */
     public boolean isActiveSiteHealthy() {
         DrUtil drUtil = new DrUtil(_coordinator);
-        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
-
-        boolean isActiveSiteLeaderAlive = isActiveSiteZKLeaderAlive(activeSite);
-        boolean isActiveSiteStable =  isActiveSiteStable(activeSite);
-        _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
+        String activeSiteId = drUtil.getActiveSiteId();
+        
+        boolean isActiveSiteLeaderAlive = false;
+        boolean isActiveSiteStable = false;
+        
+        if (StringUtils.isEmpty(activeSiteId) || drUtil.getLocalSite().getUuid().equals(activeSiteId)) {
+            _log.info("Can't find active site id or local site is active, set active healthy as false");
+        } else {
+            Site activeSite = drUtil.getSiteFromLocalVdc(activeSiteId);
+            isActiveSiteLeaderAlive = isActiveSiteZKLeaderAlive(activeSite);
+            isActiveSiteStable =  isActiveSiteStable(activeSite);
+            _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
+        }
+        
         
         SiteMonitorResult monitorResult = _coordinator.getTargetInfo(SiteMonitorResult.class);
         if (monitorResult == null) {

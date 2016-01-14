@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -916,8 +915,12 @@ public class DisasterRecoveryService {
                 client.setCoordinatorClient(coordinator);
                 client.setKeyGenerator(apiSignatureGenerator);
                 FailoverPrecheckResponse precheckResponse = client.failoverPrecheck();
-                responseSiteFromRemote.add(precheckResponse.getSite());
-                clientCacheMap.put(site.getUuid(), client);
+                if (precheckResponse != null) {
+                    responseSiteFromRemote.add(precheckResponse.getSite());
+                    clientCacheMap.put(site.getUuid(), client);
+                } else {
+                    log.warn("Failed to do failover precheck for site {}, ignore it for failover", site.toBriefString());
+                }
             }
         }
 
@@ -930,9 +933,16 @@ public class DisasterRecoveryService {
 
         try {
             // set state
-            Site oldActiveSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
-            oldActiveSite.setState(SiteState.ACTIVE_FAILING_OVER);
-            coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
+            String activeSiteId = drUtil.getActiveSiteId();
+            Site oldActiveSite = new Site();
+            if (StringUtils.isEmpty(activeSiteId)) {
+                log.info("Cant't find active site id, go on to do failover");
+            } else {
+                oldActiveSite = drUtil.getSiteFromLocalVdc(activeSiteId);
+                oldActiveSite.setState(SiteState.ACTIVE_FAILING_OVER);
+                coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
+            }
+            
 
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
@@ -940,13 +950,13 @@ public class DisasterRecoveryService {
 
             // reconfig other standby sites
             for (Site site : allStandbySites) {
-                if (!site.getUuid().equals(uuid)) {
+                if (!site.getUuid().equals(uuid) && clientCacheMap.containsKey(site.getUuid())) {
                     InternalSiteServiceClient client = clientCacheMap.get(site.getUuid());
                     client.failover(uuid);
                 }
             }
 
-            drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_FAILOVER);
+            drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_FAILOVER, oldActiveSite.getUuid(), currentSite.getUuid());
 
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
                     oldActiveSite.toBriefString(), currentSite.toBriefString());
@@ -1385,7 +1395,7 @@ public class DisasterRecoveryService {
         }
 
         for (SiteRestRep site : responseSiteFromRemote) {
-            if (SiteState.STANDBY_SYNCED.toString().equalsIgnoreCase(site.getState())) {
+            if (site != null && SiteState.STANDBY_SYNCED.toString().equalsIgnoreCase(site.getState())) {
                 return site;
             }
         }

@@ -660,11 +660,13 @@ public abstract class VdcOpHandler {
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");
                 
-                coordinator.stopCoordinatorSvcMonitor();
                 Site oldActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getSourceSiteUUID());
                 log.info("Old active site is {}", oldActiveSite);
                 
                 waitForOldActiveSiteFinishOperations(oldActiveSite.getUuid());
+                
+                coordinator.stopCoordinatorSvcMonitor();
+                
                 notifyOldActiveSiteReboot(oldActiveSite, site);
                 waitForOldActiveZKLeaderDown(oldActiveSite);
                 
@@ -685,7 +687,12 @@ public abstract class VdcOpHandler {
             String restartBarrierPath = getSingleBarrierPath(site.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART);
             DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
                     restartBarrierPath);
-            restartBarrier.waitOnBarrier();
+            
+            if (restartBarrier.waitOnBarrier(MAX_WAIT_TIME_IN_MIN, TimeUnit.MINUTES)) {
+                log.info("Restart barrier has been removed, going to restart");
+            } else {
+                throw new IllegalStateException("Timeout when wait restart barrier");
+            }
         }
 
         private void stopActiveSiteRelatedServices() {
@@ -833,7 +840,6 @@ public abstract class VdcOpHandler {
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
                 processFailover();
                 waitForAllNodesAndReboot(site);
-
             }
         }
         
@@ -849,7 +855,8 @@ public abstract class VdcOpHandler {
             Site oldActiveSite = getOldActiveSiteForFailover();
             
             if (oldActiveSite == null) {
-                log.info("Not failover case, no action needed.");
+                log.info("Not old active site found.");
+                postHandlerFactory.initializeAllHandlers();
                 return;
             }
             
@@ -898,11 +905,10 @@ public abstract class VdcOpHandler {
             log.info("Wait for barrier to reboot cluster");
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, FAILOVER_BARRIER_TIMEOUT, site.getNodeCount(), true);
             barrier.enter();
-            try {
-                log.info("Reboot this node after failover");
-            } finally {
-                barrier.leave();
+            if (!barrier.leave()) {
+                throw new IllegalStateException("Not all nodes leave the barrier");
             }
+            log.info("Reboot this node after failover");
         }
     }
     
@@ -1138,9 +1144,9 @@ public abstract class VdcOpHandler {
 
             boolean allEntered = barrier.enter(timeout, TimeUnit.SECONDS);
             if (allEntered) {
-                log.info("All nodes entered VdcPropBarrier");
+                log.info("All nodes entered VdcPropBarrier at path {}", barrierPath);
             } else {
-                log.warn("Only Part of nodes entered within {} seconds", timeout);
+                log.warn("Only Part of nodes entered within {} seconds at path {}", timeout, barrierPath);
                 // we need clean our double barrier if not all nodes enter it, but not need to wait for all nodes to leave since error occurs
                 barrier.leave(); 
                 throw new Exception("Only Part of nodes entered within timeout");
@@ -1149,18 +1155,21 @@ public abstract class VdcOpHandler {
 
         /**
          * Waiting for all nodes leaving the VdcPropBarrier.
+         * @return true if all nodes left
          * @throws Exception
          */
-        public void leave() throws Exception {
+        public boolean leave() throws Exception {
             // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
             log.info("Waiting for all nodes leaving {}", barrierPath);
 
             boolean allLeft = barrier.leave(timeout, TimeUnit.SECONDS);
             if (allLeft) {
-                log.info("All nodes left VdcPropBarrier");
+                log.info("All nodes left VdcPropBarrier path {}", barrierPath);
             } else {
-                log.warn("Only Part of nodes left VdcPropBarrier before timeout");
+                log.warn("Only Part of nodes left VdcPropBarrier path {} before timeout", barrierPath);
             }
+            
+            return allLeft;
         }
 
         private String getBarrierPath(SiteInfo siteInfo) {

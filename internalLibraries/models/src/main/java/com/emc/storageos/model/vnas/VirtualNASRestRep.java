@@ -64,7 +64,7 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     private Set<String> nasTag;
 
     // Project name which this VNAS belongs to
-    private RelatedResourceRep project;
+    private Set<String> associatedProjects;
 
     // Base directory Path for the VNAS applicable in AccessZones & vFiler device types
     private String baseDirPath;
@@ -198,13 +198,13 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
         this.nasTag = nasTag;
     }
 
-    @XmlElement(name = "project")
-    public RelatedResourceRep getProject() {
-        return project;
+    @XmlElement(name = "associated_projects")
+    public Set<String> getAssociatedProjects() {
+        return associatedProjects;
     }
 
-    public void setProject(RelatedResourceRep project) {
-        this.project = project;
+    public void setAssociatedProjects(Set<String> projects) {
+        this.associatedProjects = projects;
     }
 
     @XmlElement(name = "base_dir_path")

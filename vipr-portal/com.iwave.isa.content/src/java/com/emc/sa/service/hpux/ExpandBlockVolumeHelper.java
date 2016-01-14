@@ -47,12 +47,6 @@ public class ExpandBlockVolumeHelper {
         hpuxSupport.resizeVolume(volume, newSizeInGB);
         hpuxSupport.rescan();
 
-        // logInfo("expand.block.volume.resize.partition", volume.getName());
-        // hpuxSupport.resizePartition(parentDevice);
-
-        // logInfo("expand.block.volume.resize.file", hpuxSupport.getHostName());
-        // hpuxSupport.resizeFileSystem(mountPoint.getDevice());
-
         logInfo("expand.block.volume.remounting", hpuxSupport.getHostName(), mountPoint.getPath());
         String rdisk = hpuxSupport.findRDisk(volume, usePowerPath);
         hpuxSupport.mount(rdisk, mountPoint.getPath());

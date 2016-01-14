@@ -2445,10 +2445,10 @@ def snapshot_resync(args):
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
-            args.filesystem, args.volume, args.consistencygroup)
+            None , args.volume, args.consistencygroup)
         resourceUri = obj.storageResource_query(
             storageresType,
-            args.filesystem,
+            None,
             args.volume,
             args.consistencygroup,
             args.project,

@@ -90,6 +90,7 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
                     break;
                 case ready:
                     setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
+                    break;
                 default:
                     String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
                     s_logger.info(errMsg);

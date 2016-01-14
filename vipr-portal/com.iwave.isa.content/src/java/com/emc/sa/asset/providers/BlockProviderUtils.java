@@ -236,6 +236,10 @@ public class BlockProviderUtils {
         PersonalityTypes personality = getVolumePersonality(volume);
         return personality != null && PersonalityTypes.TARGET.equals(personality);
     }
+    
+    public static boolean isSnapshotSessionSupportedForVolume(VolumeRestRep volume) {        
+        return ((volume.getSupportsSnapshotSessions() != null) && volume.getSupportsSnapshotSessions());
+    }
 
     public static RecoverPointRestRep getVolumeRPRep(VolumeRestRep volume) {
         if (volume.getProtection() != null &&
@@ -330,5 +334,4 @@ public class BlockProviderUtils {
     public static boolean isType(URI uri, String name) {
         return uri.toString().startsWith("urn:storageos:" + name);
     }
-
 }

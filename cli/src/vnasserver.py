@@ -342,13 +342,18 @@ def assign_parser(subcommand_parsers, common_parser):
                                dest='project',
                                help='Name of project',
                                required=True)
+    
+    mandatory_args.add_argument('-tenant', '-tn',
+                               metavar='<tenant>',
+                               dest='tenant',
+                               help='Name of tenant',
+                               required=True)
     assign_parser.set_defaults(func=vnasserver_assign)
 
 
 def vnasserver_assign(args):
     obj = VnasServer(args.ip, args.port)
-    tenant_name = obj.getTenantName()
-    project_name = tenant_name + "/" + args.project
+    project_name = args.tenant + "/" + args.project
     try:
         obj.assign(args.name, project_name)
     except SOSError as e:

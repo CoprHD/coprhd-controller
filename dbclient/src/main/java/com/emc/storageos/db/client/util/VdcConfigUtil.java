@@ -20,6 +20,7 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 
 /**
  * Utility class to generate VDC/Site property for syssvc.
@@ -117,12 +118,22 @@ public class VdcConfigUtil {
     }
 
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
-        String activeSiteId = drUtil.getActiveSiteId(vdcShortId);
+        String activeSiteId = null;
+        try {
+            activeSiteId = drUtil.getActiveSiteId(vdcShortId);
+        } catch (RetryableCoordinatorException e) {
+            log.warn("Failed to find active site id from ZK, go on since it maybe switchover case");
+        }
+        
         SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
         Site localSite = drUtil.getLocalSite();
         
         if (StringUtils.isEmpty(activeSiteId) && SiteInfo.DR_OP_SWITCHOVER.equals(siteInfo.getActionRequired())) {
             activeSiteId = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()).getUuid();
+        }
+        
+        if (StringUtils.isEmpty(activeSiteId)) {
+            throw new IllegalStateException("No valid active site UUID found");
         }
         
         Collections.sort(sites, new Comparator<Site>() {

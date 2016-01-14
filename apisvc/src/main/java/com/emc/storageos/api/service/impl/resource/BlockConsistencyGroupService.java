@@ -870,7 +870,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions/{sid}/restore")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList restoreConsistencyGroupSnapshotSession(
+    public TaskResourceRep restoreConsistencyGroupSnapshotSession(
             @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI snapSessionId) {
         // Get the consistency group and snapshot and verify the snapshot session
         // is actually associated with the consistency group.

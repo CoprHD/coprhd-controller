@@ -601,7 +601,7 @@ public class BlockSnapshotSessionManager {
      * 
      * @return TaskResourceRep representing the snapshot session task.
      */
-    public TaskList restoreSnapshotSession(URI snapSessionURI) {
+    public TaskResourceRep restoreSnapshotSession(URI snapSessionURI) {
         s_logger.info("START restore snapshot session {}", snapSessionURI);
 
         // Get the snapshot session.
@@ -629,14 +629,13 @@ public class BlockSnapshotSessionManager {
 
         // Create the task identifier.
         String taskId = UUID.randomUUID().toString();
-        TaskList taskList = new TaskList();
 
         // Create the operation status entry in the status map for the snapshot.
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION);
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSessionURI, taskId, op);
         snapSession.getOpStatus().put(taskId, op);
-        taskList.addTask(toTask(snapSession, taskId));
+        TaskResourceRep resourceRep = toTask(snapSession, taskId);
 
         // Restore the snapshot session.
         try {
@@ -649,7 +648,7 @@ public class BlockSnapshotSessionManager {
             } else {
                 sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
             }
-            cleanupFailure(taskList.getTaskList(), new ArrayList<DataObject>(), errorMsg, taskId, sc);
+            cleanupFailure(Lists.newArrayList(resourceRep), new ArrayList<DataObject>(), errorMsg, taskId, sc);
             throw e;
         }
 
@@ -659,7 +658,7 @@ public class BlockSnapshotSessionManager {
                         .getStorageController().toString());
 
         s_logger.info("FINISH restore snapshot session {}", snapSessionURI);
-        return taskList;
+        return resourceRep;
     }
 
     /**

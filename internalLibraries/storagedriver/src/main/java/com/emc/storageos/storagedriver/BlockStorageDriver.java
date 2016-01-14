@@ -184,6 +184,8 @@ public interface BlockStorageDriver extends StorageDriver {
      *
      * @param initiators Type: Input.
      * @param volumes    Type: Input.
+     * @param volumeToHLUMap map of volume nativeID to requested HLU. HLU value of -1 means that HLU is not defined and will be assigned by array.
+     *                       Type: Input/Output.
      * @param recommendedPorts list of storage ports recommended for the export. Optional. Type: Input.
      * @param availablePorts list of ports available for the export. Type: Input.
      * @param capabilities storage capabilities. Type: Input.
@@ -191,7 +193,7 @@ public interface BlockStorageDriver extends StorageDriver {
      * @param selectedPorts ports selected for the export (if recommended ports have not been used). Type: Output.
      * @return task
      */
-    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, List<StoragePort> recommendedPorts,
+    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts,
                                                 List<StoragePort> availablePorts, StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts,
                                                 List<StoragePort> selectedPorts);
 

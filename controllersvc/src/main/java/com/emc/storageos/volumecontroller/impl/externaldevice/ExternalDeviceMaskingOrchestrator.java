@@ -5,6 +5,17 @@
 package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -19,26 +30,16 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchest
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrchestrator {
 
+    public static final String EXTERNAL_STORAGE_DEVICE = "externalBlockStorageDevice";
+    public static final String STORAGE_DRIVER_MANAGER = "storageDriverManager";
     private static final Logger _log = LoggerFactory.getLogger(ExternalDeviceMaskingOrchestrator.class);
     private static final AtomicReference<StorageDriverManager> DRIVER_MANAGER = new AtomicReference<>();
     private static final AtomicReference<BlockStorageDevice> EXTERNAL_BLOCK_DEVICE = new AtomicReference<>();
-
-    public static final String EXTERNAL_STORAGE_DEVICE = "externalBlockStorageDevice";
-    public static final String STORAGE_DRIVER_MANAGER = "storageDriverManager";
 
     @Override
     public BlockStorageDevice getDevice()
@@ -87,13 +88,11 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 true, token);
 
         // Create two steps, one for the ExportGroup actions and one for Zoning.
-        boolean createdSteps = determineExportGroupCreateSteps(workflow, null,
+        String maskingStepId = generateExportGroupCreateSteps(workflow, null,
                 device, storage, exportGroup, initiatorURIs, volumeMap, false, token);
 
-        // zoning map update step
-        String zoningMapUpdateStep = generateZoningMapUpdateWorkflow(workflow,
-                EXPORT_GROUP_MASKING_TASK, exportGroup, storage);
-
+        // Have to store export group id to be available at device level/
+        WorkflowService.getInstance().storeStepData(maskingStepId, exportGroup.getId());
         /*
          * This step is for zoning. It is not specific to a single
          * NetworkSystem, as it will look at all the initiators and targets and
@@ -108,7 +107,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 workflow, EXPORT_GROUP_UPDATE_ZONING_MAP, exportGroup, null,
                 volumeMap);
 
-        if (createdSteps && null != zoningStep && null != zoningMapUpdateStep)
+        if (maskingStepId != null && null != zoningStep)
         {
             // Execute the plan and allow the WorkflowExecutor to fire the
             // taskCompleter.
@@ -118,15 +117,15 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
         }
     }
 
-    @Override
-    public boolean determineExportGroupCreateSteps(Workflow workflow,
-                                                   String previousStep, BlockStorageDevice device,
-                                                   StorageSystem storage, ExportGroup exportGroup,
-                                                   List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoneStepNeeded, String token)
+    public String generateExportGroupCreateSteps(Workflow workflow,
+                                                 String previousStep, BlockStorageDevice device,
+                                                 StorageSystem storage, ExportGroup exportGroup,
+                                                 List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoneStepNeeded, String token)
             throws Exception {
         Map<String, URI> portNameToInitiatorURI = new HashMap<>();
         List<URI> hostURIs = new ArrayList<>();
         List<String> portNames = new ArrayList<>();
+        String stepId;
         _log.info("Started export mask steps generation.");
         /*
          * Populate the port WWN/IQNs (portNames) and the mapping of the
@@ -155,7 +154,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     "No existing mask found w/ initiators { %s }",
                     Joiner.on(",").join(portNames)));
 
-            createNewExportMaskWorkflowForInitiators(initiatorURIs,
+            stepId = createNewExportMaskWorkflowForInitiators(initiatorURIs,
                     exportGroup, workflow, volumeMap, storage, token,
                     previousStep);
         } else {
@@ -170,7 +169,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
              */
             throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         }
-        return true;
+        return stepId;
     }
 
     @Override

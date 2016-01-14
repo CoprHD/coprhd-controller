@@ -327,10 +327,18 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     }
 
     @Override
-    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, List<StoragePort> recommendedPorts,
+    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, Map<String, String> volumeToHLUMap,
+                                                List<StoragePort> recommendedPorts,
                                                 List<StoragePort> availablePorts, StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts,
                                                 List<StoragePort> selectedPorts) {
-        return null;
+        String taskType = "export-volumes-to-initiators";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = String.format("StorageDriver: exportVolumesToInitiators - end");
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override

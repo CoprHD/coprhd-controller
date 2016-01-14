@@ -385,6 +385,6 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
             return getPortName();
         } else {
             return getPortGroup() + ":" + getPortName();
-}
+        }
     }
 }

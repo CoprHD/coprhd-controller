@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
-import com.emc.storageos.coordinator.client.model.ProductName;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -18,6 +16,9 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.management.backup.BackupConstants;
+
 /**
  * Class to manage backup file names (tags) using by Backup Scheduler
  */
@@ -25,14 +26,13 @@ public class ScheduledBackupTag {
 
     private static final Logger log = LoggerFactory.getLogger(ScheduledBackupTag.class);
 
-    private static final String DATE_PATTERN = "yyyyMMddHHmmss";
     private static final String BACKUP_TAG_TEMPLATE = "%s-%d-%s";
     private static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s-%s-%s-%s%s";
     private static final String SCHEDULED_BACKUP_TAG_REGEX_PATTERN = "^%s-(\\w+|\\.)*\\d+-\\d+-\\d{%d}$";
     private static final ThreadLocal<SimpleDateFormat> dateFormat = new ThreadLocal<SimpleDateFormat>() {
         @Override
         protected SimpleDateFormat initialValue() {
-            return new SimpleDateFormat(DATE_PATTERN);
+            return new SimpleDateFormat(BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT);
         }
     };
     private static final Date MIN_DATE = new Date(0);
@@ -58,7 +58,7 @@ public class ScheduledBackupTag {
             throw new ParseException("Can't parse backup date because tag is null", -1);
         }
 
-        int beginIndex = tag.length() - DATE_PATTERN.length();
+        int beginIndex = tag.length() - BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length();
         if (beginIndex < 0) {
             throw new ParseException("Can't parse backup date from wrong begin index for tag: " + tag, beginIndex);
         }
@@ -71,7 +71,7 @@ public class ScheduledBackupTag {
         // Typically, this pattern String could match all tags produced by toBackupTag method
         // also in consideration of extension, version part could be longer and node count could bigger
         String regex = String.format(SCHEDULED_BACKUP_TAG_REGEX_PATTERN, ProductName.getName(),
-                DATE_PATTERN.length());
+                BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length());
         Pattern backupNamePattern = Pattern.compile(regex);
         for (String tag : tags) {
             if (backupNamePattern.matcher(tag).find()) {

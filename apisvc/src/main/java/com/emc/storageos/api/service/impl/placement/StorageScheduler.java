@@ -1248,7 +1248,7 @@ public class StorageScheduler implements Scheduler {
         Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
         while (volumeIterator.hasNext()) {
             Volume volume = volumeIterator.next();
-            if (volume.getReplicationGroupInstance().equals(cgNameOnArray)) {
+            if (volume.getReplicationGroupInstance() != null && volume.getReplicationGroupInstance().equals(cgNameOnArray)) {
                 volumeGroup = volume.getApplication(dbClient);
                 if (volumeGroup != null) {
                     break;

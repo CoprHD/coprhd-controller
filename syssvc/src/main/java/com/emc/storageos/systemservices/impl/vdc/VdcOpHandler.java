@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +57,7 @@ public abstract class VdcOpHandler {
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 20;
+    private static final int IPSEC_RESTART_DELAY = 1000 * 60; // 1 min
     // data revision time out - 5 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
     
@@ -599,66 +601,188 @@ public abstract class VdcOpHandler {
 
     /**
      * Process DR config change for switchover
-     *  - old active site: flush new vdc config to disk, reconfig/reload coordinator(synchronized with new active site), 
-     *                     update site state to STANDBY_SYNCED
-     *  - new active : flush new vdc config to disk, reconfig/reload coordinator(synchronized with old active site), 
-     *                 update site state to ACTIVE
-     *  - other standby - flush new vdc config to disk, reconfig/reload coordinator
+     * On old active site:
+     * 1.Flush vdc config properties to local
+     * 2.Stop controller, sa, vasa services
+     * 3.All nodes enter double barrier (ZK path : /sites/{site_uuid}/switchoverBarrierActiveSite) and set site state to STANDBY_SYNCED
+     * 4.Set new active site state from "STANDBY_SYNCED" to "STANDBY_SWITCHING_OVER"
+     * 5.Wait for new active site's confirm to restart: wait for barrier created at step 3. All nodes will wait until restart barrier is
+     * removed by new active site.
+     * 6.Restart all nodes.
+     * 
+     * new active :
+     * 1.Wait for old active site's state has been changed to STANDBY_SYNCED
+     * 2.Check whether old active restart barrier exists (ZK path: /sites/{site_uuid}/switchoverRestartBarrier):
+     *  a.If NO, do thing. It means barrier has been removed
+     *  b. If Yes, all nodes enter barrier (ZK path: /sites/{site_uuid}/switchoverStandbySiteRemoveBarrier) and remove the barrier (created
+     *  at old active site's step 5).
+     * 3.Wait until there is no ZK leader
+     * 4.Flush vdc config properties to local
+     * 5.Reconfig ZK to participant
+     * 6.Make sure all nodes enter barrier (ZK path: /sites/{site_uuid}/switchoverBarrierStandbySite) and set site state to "ACTIVE"
+     * 7.Restart all nodes
+     * 
+     * other standby - flush new vdc config to disk, reconfig/reload coordinator
      */
     public static class DrSwitchoverHandler extends VdcOpHandler {
         
-        private int retry;
-
+        private static final int TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS = 1000 * 5;
+        private static final int MAX_WAIT_TIME_IN_MIN = 5;
+        private boolean isRebootNeeded = true;
+        
         public DrSwitchoverHandler() {
         }
         
         @Override
         public boolean isRebootNeeded() {
-            return true;
+            return isRebootNeeded;
         }
         
         @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
+            SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
             
-            // Reload coordinator configuration on all sites
-            flushVdcConfigToLocal();
+            // Update site state
+            if (site.getUuid().equals(siteInfo.getSourceSiteUUID())) {
+                log.info("This is switchover active site (old acitve)");
+
+                coordinator.stopCoordinatorSvcMonitor();
+                
+                flushVdcConfigToLocal();
+                proccessSingleNodeSiteCase();
+                stopActiveSiteRelatedServices();
+                
+                updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED, site.getNodeCount());
+                updateSwitchoverSiteState(drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()), SiteState.STANDBY_SWITCHING_OVER,
+                        Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER, site.getNodeCount());
+                
+                waitForBarrierRemovedToRestart(site);
+            } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
+                log.info("This is switchover standby site (new active)");
+                
+                Site oldActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getSourceSiteUUID());
+                log.info("Old active site is {}", oldActiveSite);
+                
+                waitForOldActiveSiteFinishOperations(oldActiveSite.getUuid());
+                
+                coordinator.stopCoordinatorSvcMonitor();
+                
+                notifyOldActiveSiteReboot(oldActiveSite, site);
+                waitForOldActiveZKLeaderDown(oldActiveSite);
+                
+                flushVdcConfigToLocal();
+                proccessSingleNodeSiteCase();
+                refreshCoordinator();
+                
+                updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE, site.getNodeCount());
+            } else {
+                isRebootNeeded = false;
+                flushVdcConfigToLocal();
+                proccessSingleNodeSiteCase();
+                refreshCoordinator();
+            }
+        }
+
+        private void waitForBarrierRemovedToRestart(Site site) throws Exception {
+            String restartBarrierPath = getSingleBarrierPath(site.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART);
+            DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
+                    restartBarrierPath);
             
-            coordinator.stopCoordinatorSvcMonitor();
+            if (restartBarrier.waitOnBarrier(MAX_WAIT_TIME_IN_MIN, TimeUnit.MINUTES)) {
+                log.info("Restart barrier has been removed, going to restart");
+            } else {
+                throw new IllegalStateException("Timeout when wait restart barrier");
+            }
+        }
+
+        private void stopActiveSiteRelatedServices() {
+            localRepository.stop("vasa");
+            localRepository.stop("sa");
+            localRepository.stop("controller");
+        }
+
+        private void proccessSingleNodeSiteCase() {
             if (hasSingleNodeSite()) {
                 log.info("Single node deployment detected. Need refresh firewall/ipsec");
                 refreshIPsec();
                 refreshFirewall();
             }
-            
-            refreshCoordinator();
-            
-            // Update site state
-            if (site.getState().equals(SiteState.ACTIVE_SWITCHING_OVER)) {
-                log.info("This is switchover acitve site (old acitve)");
-                
-                //stop related service to avoid accepting any provisioning operation
-                localRepository.stop("vasa");
-                localRepository.stop("sa");
-                localRepository.stop("controller");
-                
-                updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
-            } else if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-                log.info("This is switchover standby site (new active)");
-                updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_STANDBY_SITE);
-            } else {
-                // for those not directly participating in the switchover, re-enable the coordinatorsvc
-                // monitor thread that we've stopped earlier.
-                // Enabling the thread too soon might switch the current site to participant mode
-                coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
-                coordinator.startCoordinatorSvcMonitor();
+        }
+
+        private void waitForOldActiveZKLeaderDown(Site oldActiveSite) throws InterruptedException {
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < MAX_WAIT_TIME_IN_MIN * 60 * 1000) {
+                try {
+                    if (coordinator.isActiveSiteZKLeaderAlive(oldActiveSite)) {
+                        log.info("Old active site ZK leader is still alive, wait for another 10 seconds");
+                        Thread.sleep(TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS);
+                    } else {
+                        log.info("ZK leader is gone from old active site, reconfig local ZK to select new leader");
+                        return;
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to check active size ZK leader state, {}", e);
+                }
             }
+            
+            log.warn("Timeout reached when wait for old active site's ZK leader down");
+            throw new IllegalStateException("Timeout reached when wait for old active site's ZK leader down");
         }
         
-        private void updateSwitchoverSiteState(Site site, SiteState siteState, String barrierName) throws Exception {
+        private void notifyOldActiveSiteReboot(Site oldActiveSite, Site site) throws Exception {
+            String restartBarrierPath = getSingleBarrierPath(oldActiveSite.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART);
+            
+            if (!coordinator.getCoordinatorClient().nodeExists(restartBarrierPath)) {
+                log.info("Old active site restart barrier {} has been removed, no action needed", restartBarrierPath);
+                return;
+            }
+            
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_STANDBY_RESTART_OLD_ACTIVE,
+                    SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            barrier.enter();
+            
+            if (coordinator.isVirtualIPHolder()) {
+                log.info("This node is virtual IP holder, notify remote old active site to reboot");
+                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
+                        restartBarrierPath);
+                restartBarrier.removeBarrier();
+            }
+            
+            log.info("reboot remote old active site and go on");
+        }
+
+        private void waitForOldActiveSiteFinishOperations(String oldActiveSiteUUID) {
+            
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < MAX_WAIT_TIME_IN_MIN * 60 * 1000) {
+                try {
+                    Site oldActiveSite = drUtil.getSiteFromLocalVdc(oldActiveSiteUUID);
+                    if (!oldActiveSite.getState().equals(SiteState.STANDBY_SYNCED)) { 
+                        log.info("Old active site {} is still doing switchover, wait for another 5 seconds", oldActiveSite);
+                        Thread.sleep(TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS);
+                    } else {
+                        log.info("Old active site finish all switchover tasks, new active site begins to switchover");
+                        return;
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to check old active site status", e);
+                }
+            }
+            
+            log.warn("Timeout reached when wait for old active site finishing operations");
+            throw new IllegalStateException("Timeout reached when wait for old active site finishing operations");
+        }
+        
+        private void updateSwitchoverSiteState(Site site, SiteState siteState, String barrierName, int memberQty) throws Exception {
+            if (site.getState().equals(siteState)) {
+                log.info("Site state has been changed to {}, no actions needed.", siteState);
+                return;
+            }
+            
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
             
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(barrierName, SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(barrierName, SWITCHOVER_BARRIER_TIMEOUT, memberQty, false);
             barrier.enter();
             try {
                 log.info("Set state from {} to {}", site.getState(), siteState);
@@ -667,8 +791,10 @@ public abstract class VdcOpHandler {
             } finally {
                 barrier.leave();
             }
-
-            log.info("Reboot this node after switchover");
+        }
+        
+        private String getSingleBarrierPath(String siteID, String barrierName) {
+            return String.format("%s/%s/%s", ZkPath.SITES, siteID, barrierName);
         }
         
         // See coordinator hack for DR in CoordinatorImpl.java. If single node
@@ -734,7 +860,8 @@ public abstract class VdcOpHandler {
             Site oldActiveSite = getOldActiveSiteForFailover();
             
             if (oldActiveSite == null) {
-                log.info("Not failover case, no action needed.");
+                log.info("Not old active site found.");
+                postHandlerFactory.initializeAllHandlers();
                 return;
             }
             
@@ -783,11 +910,10 @@ public abstract class VdcOpHandler {
             log.info("Wait for barrier to reboot cluster");
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, FAILOVER_BARRIER_TIMEOUT, site.getNodeCount(), true);
             barrier.enter();
-            try {
-                log.info("Reboot this node after failover");
-            } finally {
-                barrier.leave();
+            if (!barrier.leave()) {
+                throw new IllegalStateException("Not all nodes leave the barrier");
             }
+            log.info("Reboot this node after failover");
         }
     }
     
@@ -894,7 +1020,21 @@ public abstract class VdcOpHandler {
         try {
             flushVdcConfigToLocal();
         } finally {
-            vdcBarrier.leave();
+            boolean allLeft = vdcBarrier.leave();
+
+            // the additional sleep is for addressing COP-19315 -- hangs at barrier.leave()
+            //
+            // without sleep here, which means to restart ipsec immediately even barrier.leave() returned
+            // as timed out, the first timed-out node restarting ipsec will cause ZK lose its quorum,
+            // because of that, the second node will never be able to return from leave() function.
+            //
+            // with 1 minute delay to restart ipsec, it can make sure all live nodes are returned from leave()
+            // function, as they are all enter() at the same time. the time difference among their leave() time
+            // will be in the range of seconds.
+            if (!allLeft) {
+                log.info("wait 1 minute, so all nodes be able to return from leave()");
+                Thread.sleep(IPSEC_RESTART_DELAY);
+            }
         }
     }
     
@@ -1023,9 +1163,9 @@ public abstract class VdcOpHandler {
 
             boolean allEntered = barrier.enter(timeout, TimeUnit.SECONDS);
             if (allEntered) {
-                log.info("All nodes entered VdcPropBarrier");
+                log.info("All nodes entered VdcPropBarrier at path {}", barrierPath);
             } else {
-                log.warn("Only Part of nodes entered within {} seconds", timeout);
+                log.warn("Only Part of nodes entered within {} seconds at path {}", timeout, barrierPath);
                 // we need clean our double barrier if not all nodes enter it, but not need to wait for all nodes to leave since error occurs
                 barrier.leave(); 
                 throw new Exception("Only Part of nodes entered within timeout");
@@ -1034,18 +1174,21 @@ public abstract class VdcOpHandler {
 
         /**
          * Waiting for all nodes leaving the VdcPropBarrier.
+         * @return true if all nodes left
          * @throws Exception
          */
-        public void leave() throws Exception {
+        public boolean leave() throws Exception {
             // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
             log.info("Waiting for all nodes leaving {}", barrierPath);
 
             boolean allLeft = barrier.leave(timeout, TimeUnit.SECONDS);
             if (allLeft) {
-                log.info("All nodes left VdcPropBarrier");
+                log.info("All nodes left VdcPropBarrier path {}", barrierPath);
             } else {
-                log.warn("Only Part of nodes left VdcPropBarrier before timeout");
+                log.warn("Only Part of nodes left VdcPropBarrier path {} before timeout", barrierPath);
             }
+            
+            return allLeft;
         }
 
         private String getBarrierPath(SiteInfo siteInfo) {

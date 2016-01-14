@@ -30,6 +30,7 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.SiteInfo.ActionScope;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -350,20 +351,35 @@ public class DrUtil {
      * @param siteId site UUID
      * @param action action to take
      */
-    public void updateVdcTargetVersion(String siteId, String action) {
+    public void updateVdcTargetVersion(String siteId, String action, long vdcTargetVersion) throws Exception {
+        updateVdcTargetVersion(siteId, action, vdcTargetVersion, null, null);
+    }
+    
+    /**
+     * Update SiteInfo's action and version for specified site id 
+     * @param siteId site UUID
+     * @param action action to take
+     * @param sourceSiteUUID source site UUID
+     * @param targetSiteUUID target site UUID
+     */
+    public void updateVdcTargetVersion(String siteId, String action, long vdcTargetVersion, String sourceSiteUUID, String targetSiteUUID) throws Exception {
         SiteInfo siteInfo;
         SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
+        String targetDataRevision = null;
+        
         if (currentSiteInfo != null) {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), action, currentSiteInfo.getTargetDataRevision());
+            targetDataRevision = currentSiteInfo.getTargetDataRevision();
         } else {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), action);
+            targetDataRevision = SiteInfo.DEFAULT_TARGET_VERSION;
         }
+        
+        siteInfo = new SiteInfo(vdcTargetVersion, action, targetDataRevision, ActionScope.SITE, sourceSiteUUID, targetSiteUUID);
         coordinator.setTargetInfo(siteId, siteInfo);
-        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
+        log.info("VDC target version updated to {} for site {}", siteInfo, siteId);
     }
 
-    public void updateVdcTargetVersion(String siteId, String action, long dataRevision) {
-        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action, String.valueOf(dataRevision));
+    public void updateVdcTargetVersion(String siteId, String action, long vdcConfigVersion, long dataRevision) throws Exception {
+        SiteInfo siteInfo = new SiteInfo(vdcConfigVersion, action, String.valueOf(dataRevision));
         coordinator.setTargetInfo(siteId, siteInfo);
         log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
@@ -464,6 +480,10 @@ public class DrUtil {
         log.info("Removed site {} configuration from ZK", site.getUuid());
     }
 
+    public static long newVdcConfigVersion() {
+        return System.currentTimeMillis();
+    }
+
     /**
      * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation, throw Exception otherwise
      */
@@ -507,4 +527,14 @@ public class DrUtil {
 
         return lock;
     }
+    
+    /**
+     * Check if it is a multi-vdc configuration 
+     * 
+     * @return true if there are more than 1 vdc
+     */
+    public boolean isMultivdc() {
+        return getVdcSiteMap().keySet().size() > 1;
+    }
+
 }

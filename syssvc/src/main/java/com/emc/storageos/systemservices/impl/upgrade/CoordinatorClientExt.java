@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
@@ -1501,7 +1502,7 @@ public class CoordinatorClientExt {
 
                 _log.info("Local zookeeper mode: {} ",state);
 
-                if(isLeadingMonitor()){
+                if(isVirtualIPHolder()){
                     _log.info("Local node has vip, monitor other node zk states");
                     checkLocalSiteZKModes();
                 }
@@ -1585,20 +1586,6 @@ public class CoordinatorClientExt {
             else if (readOnlyNodes.size() == numOnline && numOnline >= quorum){
                 _log.info("A quorum of nodes are read-only, Reconfiguring nodes to participant: {}",readOnlyNodes);
                 reconfigZKToWritable(observerNodes,readOnlyNodes);
-            }
-        }
-
-        /**
-         * Determine leader with vip when zk is read-only
-         */
-        private boolean isLeadingMonitor() {
-            try {
-                //standby node with vip will monitor all node states
-                InetAddress vip = InetAddress.getByName(getVip());
-                return (NetworkInterface.getByInetAddress(vip) != null);
-            } catch (Exception e) {
-                _log.error("Error occured while determining leading node for monitor",e);
-                return false;
             }
         }
 
@@ -1768,11 +1755,20 @@ public class CoordinatorClientExt {
      */
     public boolean isActiveSiteHealthy() {
         DrUtil drUtil = new DrUtil(_coordinator);
-        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
-
-        boolean isActiveSiteLeaderAlive = isActiveSiteZKLeaderAlive(activeSite);
-        boolean isActiveSiteStable =  isActiveSiteStable(activeSite);
-        _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
+        String activeSiteId = drUtil.getActiveSiteId();
+        
+        boolean isActiveSiteLeaderAlive = false;
+        boolean isActiveSiteStable = false;
+        
+        if (StringUtils.isEmpty(activeSiteId) || drUtil.getLocalSite().getUuid().equals(activeSiteId)) {
+            _log.info("Can't find active site id or local site is active, set active healthy as false");
+        } else {
+            Site activeSite = drUtil.getSiteFromLocalVdc(activeSiteId);
+            isActiveSiteLeaderAlive = isActiveSiteZKLeaderAlive(activeSite);
+            isActiveSiteStable =  isActiveSiteStable(activeSite);
+            _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
+        }
+        
         
         SiteMonitorResult monitorResult = _coordinator.getTargetInfo(SiteMonitorResult.class);
         if (monitorResult == null) {
@@ -1785,7 +1781,7 @@ public class CoordinatorClientExt {
         return isActiveSiteLeaderAlive && isActiveSiteStable;
     }
     
-    private boolean isActiveSiteZKLeaderAlive(Site activeSite) {
+    public boolean isActiveSiteZKLeaderAlive(Site activeSite) {
         // Check alive coordinatorsvc on active site
         Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();
         if (nodeAddrList.isEmpty()) {
@@ -1853,5 +1849,19 @@ public class CoordinatorClientExt {
             _log.warn("Unexpected IO errors when checking local coordinator state. {}", ex.toString());
         }
         return false;
+    }
+    
+    /**
+     * check whether current node is virtual IP holder
+     */
+    public boolean isVirtualIPHolder() {
+        try {
+            //standby node with vip will monitor all node states
+            InetAddress vip = InetAddress.getByName(getVip());
+            return (NetworkInterface.getByInetAddress(vip) != null);
+        } catch (Exception e) {
+            _log.error("Error occured while determining leading node for monitor",e);
+            return false;
+        }
     }
 }

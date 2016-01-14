@@ -116,13 +116,7 @@ public class DisasterRecovery extends ViprResourceController {
 
         // Get active site details
         SiteRestRep activesite = DisasterRecoveryUtils.getActiveSite();
-        if (activesite == null) {
-            flash.error(SWITCHOVER_ERROR, "Can't switchover");
-            list();
-        }
-        else {
-            active_name = activesite.getName();
-        }
+        active_name = activesite == null ? "N/A" : activesite.getName();
 
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {

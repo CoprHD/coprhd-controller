@@ -18,6 +18,7 @@ public class SiteDetailRestRep {
     private Date pausedTime;
     private Date lastUpdateTime;
     private Double networkLatencyInMs;
+    private String clusterState;
 
     @XmlElement(name = "creationTime")
     public Date getCreationTime() {
@@ -55,6 +56,15 @@ public class SiteDetailRestRep {
         this.networkLatencyInMs = networkLatencyInMs;
     }
 
+    @XmlElement(name = "clusterState")
+    public String getClusterState() {
+        return clusterState;
+    }
+
+    public void setClusterState(String clusterState) {
+        this.clusterState = clusterState;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -66,6 +76,8 @@ public class SiteDetailRestRep {
         builder.append(lastUpdateTime);
         builder.append(", networkLatencyInMs=");
         builder.append(networkLatencyInMs);
+        builder.append(", clusterState=");
+        builder.append(clusterState);
         builder.append("]");
         return builder.toString();
     }

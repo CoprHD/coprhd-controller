@@ -447,6 +447,11 @@ public class SchemaUtil {
         }
 
         if (!isGeoDbsvc()) {
+            // update local db strategy option in multivdc configuration only
+            if (!drUtil.isMultivdc()) {
+                return false;
+            }
+
             if (backCompatPreYoda) {
                 _log.info("Upgraded from preyoda release. Keep db strategy options unchanged.");
                 return false;

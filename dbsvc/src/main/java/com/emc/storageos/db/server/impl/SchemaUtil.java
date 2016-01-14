@@ -345,8 +345,10 @@ public class SchemaUtil {
             if (currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
                 // Ensure schema agreement before checking the strategy options,
                 // since the strategy options from the local site might be older than the active site
-                // and shouldn't be used any more.
-                clientContext.ensureSchemaAgreement();
+                // and shouldn't be relied on any more.
+                // Wait until there is at least one reachable node from the other site
+                // (which contains the latest db schema).
+                clientContext.ensureSchemaAgreement(2);
             }
             checkStrategyOptions();
             return true;

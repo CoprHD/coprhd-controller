@@ -9,6 +9,7 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -374,7 +375,7 @@ public class DbClientContext {
 
             // ensure a schema agreement before updating the strategy options
             // or else it's destined to fail due to SchemaDisagreementException
-            boolean hasUnreachableNodes = ensureSchemaAgreement();
+            boolean hasUnreachableNodes = ensureSchemaAgreement(1);
 
             String schemaVersion;
             if (hasUnreachableNodes) {
@@ -446,9 +447,10 @@ public class DbClientContext {
     /**
      * Try to reach a schema agreement among all the reachable nodes
      *
+     * @param minDcCount minimum number of data centers that must be reachable before this method returns, inclusive
      * @return true if there are unreachable nodes
      */
-    public boolean ensureSchemaAgreement() {
+    public boolean ensureSchemaAgreement(int minDcCount) {
         long start = System.currentTimeMillis();
         Map<String, List<String>> schemas = null;
         while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
@@ -473,11 +475,25 @@ public class DbClientContext {
                     continue;
                 }
             }
-            //schema.size() == 2
-            return schemas.containsKey(StorageProxy.UNREACHABLE);
+            // schema.size() == 2, if there are db nodes from more than minDcCount data centers then we are good
+            // otherwise continue waiting
+            if (schemas.containsKey(StorageProxy.UNREACHABLE) && getReachableDcCount() >= minDcCount) {
+                return true;
+            }
         }
         log.error("Unable to converge schema versions {}", schemas);
         throw new IllegalStateException("Unable to converge schema versions");
+    }
+
+    private int getReachableDcCount() {
+        Set<String> dcNames = new HashSet<>();
+        IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+        for (InetAddress nodeIp : liveNodes) {
+            dcNames.add(snitch.getDatacenter(nodeIp));
+        }
+        log.info("Number of reachable data centers: {}", dcNames.size());
+        return dcNames.size();
     }
 
     private void removeCassandraNode(InetAddress nodeIp) {

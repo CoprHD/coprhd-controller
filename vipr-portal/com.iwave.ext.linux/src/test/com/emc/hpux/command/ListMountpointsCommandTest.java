@@ -35,7 +35,7 @@ public class ListMountpointsCommandTest {
                     + "\n" +
                     "/net on -hosts ignore,indirect,nosuid,soft,nobrowse,dev=4000002 on Wed Nov 18 13:00:57 2015";
 
-    static ListMountPointsCommand command = null;
+    private static ListMountPointsCommand command = null;
 
     @BeforeClass
     public synchronized static void setup() {

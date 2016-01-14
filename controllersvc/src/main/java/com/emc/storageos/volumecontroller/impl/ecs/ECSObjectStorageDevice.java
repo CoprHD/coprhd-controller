@@ -24,7 +24,6 @@ import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.ecs.api.ECSBucketACL;
 import com.emc.storageos.ecs.api.ECSException;
-import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
@@ -155,14 +154,15 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
     
     @Override
-    public BiosCommandResult doUpdateBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, BucketACLUpdateParams param,
+    public BiosCommandResult doUpdateBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs,
+            BucketACLUpdateParams param,
             String taskId) throws ControllerException {
         List<BucketACE> aclToAdd = objectArgs.getBucketAclToAdd();
         List<BucketACE> aclToModify = objectArgs.getBucketAclToModify();
         List<BucketACE> aclToDelete = objectArgs.getBucketAclToDelete();
         // Get existing Acl for the Bucket
         List<BucketACE> aclsToProcess = objectArgs.getExistingBucketAcl();
-        
+
         aclsToProcess.addAll(aclToAdd);
         // Process ACLs to modify
         for (BucketACE existingAce : aclsToProcess) {
@@ -190,7 +190,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                         existingAce.setPermissions(aceToModify.getPermissions());
                     }
                 }
-                
+
                 if (aceToModify.getCustomGroup() != null && existingAce.getCustomGroup() != null) {
                     if (domainOfExistingAce.concat(existingAce.getCustomGroup()).equalsIgnoreCase(
                             domainOfmodifiedAce.concat(aceToModify.getCustomGroup()))) {
@@ -199,7 +199,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                 }
             }
         }
-        
+
         // Process ACLs to delete
         for (BucketACE aceToDelete : aclToDelete) {
 
@@ -231,7 +231,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                         iterator.remove();
                     }
                 }
-                
+
                 if (aceToDelete.getCustomGroup() != null
                         && existingAcl.getCustomGroup() != null) {
                     if (domainOfDeleteAce.concat(aceToDelete.getCustomGroup())
@@ -241,7 +241,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                 }
             }
         }
-        
+
         ECSApi objectAPI = getAPI(storageObj);
         try {
             String payload = toJsonString(objectArgs, aclsToProcess);
@@ -257,17 +257,19 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         completeTask(bucket.getId(), taskId, "Successfully updated Bucket ACL.");
         return BiosCommandResult.createSuccessfulResult();
     }
-    
+
     @Override
-    public BiosCommandResult doDeleteBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException {
-        
+    public BiosCommandResult doDeleteBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId)
+            throws ControllerException {
+
         ECSApi objectAPI = getAPI(storageObj);
         BucketACLUpdateParams param = new BucketACLUpdateParams();
         BucketACL aclForDeletion = new BucketACL();
         aclForDeletion.setBucketACL(objectArgs.getBucketAclToDelete());
         param.setAclToDelete(aclForDeletion);
         try {
-            String payload = "{\"bucket\":\""+ objectArgs.getName() +"\",\"namespace\":\"" + objectArgs.getNamespace() +"\",\"acl\":{}}\"";
+            String payload = "{\"bucket\":\"" + objectArgs.getName() + "\",\"namespace\":\"" + objectArgs.getNamespace()
+                    + "\",\"acl\":{}}\"";
             objectAPI.updateBucketACL(objectArgs.getName(), payload);
             updateBucketACLInDB(param, objectArgs, bucket);
 
@@ -345,7 +347,6 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
     private void copyToPersistBucketACL(BucketACE ace, ObjectBucketACL dbBucketAcl, ObjectDeviceInputOutput args, URI bucketId) {
 
-        
         dbBucketAcl.setNamespace(args.getNamespace());
         dbBucketAcl.setBucketId(bucketId);
 
@@ -391,14 +392,13 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         return null;
     }
 
-    private String toJsonString(ObjectDeviceInputOutput objectArgs,List<BucketACE> aclsToProcess) {
+    private String toJsonString(ObjectDeviceInputOutput objectArgs, List<BucketACE> aclsToProcess) {
         ECSBucketACL ecsBucketAcl = new ECSBucketACL();
 
         List<ECSBucketACL.UserAcl> user_acl = Lists.newArrayList();
         List<ECSBucketACL.GroupAcl> group_acl = Lists.newArrayList();
         List<ECSBucketACL.CustomGroupAcl> customgroup_acl = Lists.newArrayList();
         String PERMISSION_DELEMITER = "\\|";
-        
 
         for (BucketACE aceToAdd : aclsToProcess) {
             ECSBucketACL.UserAcl userAcl = ecsBucketAcl.new UserAcl();

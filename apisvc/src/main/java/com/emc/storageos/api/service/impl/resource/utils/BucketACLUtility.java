@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.model.file.NfsACE.NfsPermission;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
@@ -26,7 +25,6 @@ import com.emc.storageos.model.object.BucketACLUpdateParams.BucketACLOperationEr
 import com.emc.storageos.model.object.BucketACLUpdateParams.BucketACLOperationType;
 import com.emc.storageos.model.object.BucketACLUpdateParams.BucketPermissions;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.volumecontroller.ObjectControllerConstants;
 
 public class BucketACLUtility {
 
@@ -579,19 +577,19 @@ public class BucketACLUtility {
 
         String permissionsValue = bucketACE.getPermissions();
         String[] permissionsArray = permissionsValue.split("\\|");
-        
+
         for (String permission : permissionsArray) {
             if (isValidEnum(permission, BucketPermissions.class)) {
                 bucketACE.proceedToNextStep();
-            }else{
+            } else {
                 _log.error("Invalid value for permission: {}", permissionsValue);
                 bucketACE.cancelNextStep(BucketACLOperationErrorType.INVALID_PERMISSIONS);
                 return;
             }
         }
-        
+
     }
-    
+
     /**
      * Check the provided String value is a valid type of enum or not
      * 

@@ -563,12 +563,13 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doSuspendLink(StorageSystem system, Volume target, boolean consExempt, TaskCompleter completer) {
+    public void doSuspendLink(StorageSystem system, Volume target, boolean consExempt, boolean refreshVolumeProperties,
+            TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
-    public void doResumeLink(StorageSystem system, Volume target, TaskCompleter completer) {
+    public void doResumeLink(StorageSystem system, Volume target, boolean refreshVolumeProperties, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -631,6 +632,11 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void refreshStorageSystem(URI systemURI, List<URI> volumeURIs) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void refreshVolumeProperties(URI systemURI, List<URI> volumeURIs) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 

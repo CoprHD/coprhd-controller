@@ -317,9 +317,12 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException cgLinksFailedToBecomeActive(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToAddJournalVolumeToConsistencyGroup(final String cgName, Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToUpdateCgLinkPolicy(final String cgName, Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToLookupConsistencyGroups(final Throwable cause);

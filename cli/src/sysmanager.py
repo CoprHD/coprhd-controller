@@ -1262,8 +1262,7 @@ class Configuration(object):
             self.__ipAddr, self.__port,
             "POST",
             Configuration.URI_SITE_FAILOVER.format(siteuuid), None)
-        o = common.json_decode(s)
-        return o
+        return
     
 
 def skip_initial_setup_parser(subcommand_parsers, common_parser):

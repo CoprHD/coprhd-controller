@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +18,7 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Task completer invoked when SMI-S request to unlink a target from
@@ -109,5 +109,14 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends BlockSnapshotSess
      */
     public boolean getDeleteTarget() {
         return _deleteTarget;
+    }
+
+    /**
+     * Gets the URI of the snapshot representing the linked target.
+     * 
+     * @return The snapshot URI.
+     */
+    public URI getSnapshotURI() {
+        return _snapshotURI;
     }
 }

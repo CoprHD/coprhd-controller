@@ -67,7 +67,7 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
                 // as the device is no longer a snapshot target and so should
                 // not be represented by a BlockSnapshot instance in ViPR.
                 if (!deleteTarget) {
-                    BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, completer.getId());
+                    BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, completer.getSnapshotURI());
 
                     // We check to make sure there is not already a volume with the
                     // native GUID of the snapshot. This could be the case if we are

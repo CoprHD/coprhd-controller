@@ -21,7 +21,6 @@ import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.file.FileStorageUtils;
 
 @Service("CreateBucket")
 public class CreateBucketService extends ViPRService {
@@ -71,7 +70,7 @@ public class CreateBucketService extends ViPRService {
         this.bucketId = ObjectStorageUtils.createBucket(bucketName, virtualArray, virtualPool, project, softQuota, hardQuota, retention, owner);
         
         if (objectStorageACLs != null && objectStorageACLs.length > 0) {
-            ObjectStorageUtils.setObjectShareACL(bucketId, bucketName, objectStorageACLs);
+            ObjectStorageUtils.setObjectShareACL(bucketId, objectStorageACLs);
         }
     }
 }

@@ -17,9 +17,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
 import com.emc.sa.engine.bind.Param;
-import com.emc.sa.service.vipr.file.FileStorageUtils;
-import com.emc.sa.service.vipr.file.FileStorageUtils.FileSystemACLs;
-import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
 import com.emc.sa.service.vipr.object.tasks.CreateBucket;
 import com.emc.sa.service.vipr.object.tasks.DeactivateBucket;
 import com.emc.sa.service.vipr.object.tasks.GetBucketResource;
@@ -27,9 +24,6 @@ import com.emc.sa.service.vipr.object.tasks.SetObjectStorageACL;
 import com.emc.sa.service.vipr.object.tasks.UpdateBucket;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.file.FileShareRestRep;
-import com.emc.storageos.model.file.ShareACL;
-import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketRestRep;
@@ -100,10 +94,10 @@ public class ObjectStorageUtils {
         return String.valueOf(DiskSizeConversionUtils.gbToBytes(sizeInGB));
     }
     
-    public static void setObjectShareACL(URI bucketId, String shareName, ObjectStorageACLs[] acls) {
-        Task<BucketRestRep> task = execute(new SetObjectStorageACL(bucketId, shareName, acls));
+    public static void setObjectShareACL(URI bucketId, ObjectStorageACLs[] acls) {
+        Task<BucketRestRep> task = execute(new SetObjectStorageACL(bucketId, acls));
         addAffectedResource(task);
-        logInfo("object.bucket.acl", bucketId, shareName, task.getOpId());
+        logInfo("object.bucket.acl", bucketId, task.getOpId());
     }
     
     public static List<String> getInvalidObjectACLs(ObjectStorageACLs[] objectACLs) {

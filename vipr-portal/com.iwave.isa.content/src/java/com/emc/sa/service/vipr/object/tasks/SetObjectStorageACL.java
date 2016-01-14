@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2012-2016 EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.object.tasks;
 
 import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
@@ -13,15 +17,13 @@ import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.vipr.client.Task;
 
 public class SetObjectStorageACL extends WaitForTask<BucketRestRep> {
-    private final String shareName;
     private final URI bucketId;
     private final ObjectStorageACLs[] acls;
 
-    public SetObjectStorageACL(URI bucketId, String shareName, ObjectStorageACLs[] acls) {
-        this.shareName = shareName;
+    public SetObjectStorageACL(URI bucketId, ObjectStorageACLs[] acls) {
         this.bucketId = bucketId;
         this.acls = safeArrayCopy(acls);
-        provideDetailArgs(bucketId, shareName);
+        provideDetailArgs(bucketId);
     }
 
     @Override

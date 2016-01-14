@@ -1669,7 +1669,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             }
         }
 
-        if ((sourceVolume != null) && (!NullColumnValueGetter.isNotNullValue(sourceVolume.getReplicationGroupInstance()))) {
+        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getReplicationGroupInstance())) {
             targetVolume.setReplicationGroupInstance(sourceVolume.getReplicationGroupInstance());
         }
         

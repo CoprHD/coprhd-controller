@@ -173,6 +173,7 @@ public class ConfigProperties extends Controller {
             addPage(pages, new SmtpPropertyPage(properties));
             addPage(pages, new UpgradePropertyPage(properties));
             addPage(pages, new PasswordPropertyPage(properties));
+            addPage(pages, new BackupPropertyPage(properties));
         }
         else {
             if (PlatformUtils.isAppliance()) {
@@ -188,7 +189,6 @@ public class ConfigProperties extends Controller {
             addPage(excludePages, new PasswordPropertyPage(properties));
         }
 
-        addPage(pages, new BackupPropertyPage(properties));
         addDefaultPages(pages, properties.values(), excludePages, isActiveSite);
 
         return Lists.newArrayList(pages.values());

@@ -13,7 +13,6 @@ public class MountPoint {
     private String options;
 
     public MountPoint(String path, String device, String options) {
-        super();
         this.path = path;
         this.device = device;
         this.options = options;

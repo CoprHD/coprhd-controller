@@ -1336,10 +1336,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
         return true;
     }
-
-    
-
+   
     /**
+     * This method applies RP+VMAX best practices rules  
+     *
      * @param storage
      * @param exportGroup
      * @param existingMasksToUpdateWithNewVolumes

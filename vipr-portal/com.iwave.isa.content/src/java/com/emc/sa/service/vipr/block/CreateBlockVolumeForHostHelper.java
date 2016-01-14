@@ -37,6 +37,10 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
     
     private Host host;
     private Cluster cluster;
+    
+    public URI getHost() {
+    	return this.hostId;
+    }
 
     public void precheck() {
 

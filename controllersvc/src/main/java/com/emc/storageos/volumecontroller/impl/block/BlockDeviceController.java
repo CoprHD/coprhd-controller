@@ -2233,17 +2233,48 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         terminateRestoreSessionsMethod(system.getId(), volume.getId(), blockSnapshot.getId()),
                         rollbackMethodNullMethod(), null);
 
+                List<BlockSnapshot> allSnapshots = new ArrayList<>();
+                String replicationGroupId = blockSnapshot.getReplicationGroupInstance();
+                if (NullColumnValueGetter.isNullValue(replicationGroupId)) {
+                    allSnapshots.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupId, _dbClient));
+                } else {
+                    allSnapshots.add(blockSnapshot);
+                }
+
+                // snapshot.setLabel(label);
+                // snapshot.setVirtualArray(sourceObj.getVirtualArray());
+                // snapshot.setProtocol(new StringSet());
+                // snapshot.getProtocol().addAll(sourceObj.getProtocol());
+                // Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
+                // snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+                // snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
+                // snapsetLabel, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
+                // snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
+
                 // Create a BlockSnapshot to represent the passed source volume when it is
                 // it is linked to the snapshot session created in the previous step.
-                BlockSnapshot sourceSnapshot = new BlockSnapshot();
-                URI sourceSnapshotURI = URIUtil.createId(BlockSnapshot.class);
-                sourceSnapshot.setId(sourceSnapshotURI);
-                sourceSnapshot.setNativeId(volume.getNativeId());
-                sourceSnapshot.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
-                sourceSnapshot.setSourceNativeId(blockSnapshot.getNativeId());
-                sourceSnapshot.setStorageController(storage);
-                sourceSnapshot.addInternalFlags(Flag.INTERNAL_OBJECT);
-                _dbClient.createObject(sourceSnapshot);
+                StringSet linkedTargets = new StringSet();
+                List<BlockSnapshot> sourceSnapshots = new ArrayList<>();
+                List<URI> sourceSnapshotURIs = new ArrayList<>();
+                URI cgURI = blockSnapshot.getConsistencyGroup();
+                for (BlockSnapshot aSnapshot : allSnapshots) {
+                    BlockObject aSourceObj = BlockObject.fetch(_dbClient, aSnapshot.getParent().getURI());
+                    BlockSnapshot sourceSnapshot = new BlockSnapshot();
+                    URI sourceSnapshotURI = URIUtil.createId(BlockSnapshot.class);
+                    sourceSnapshot.setId(sourceSnapshotURI);
+                    sourceSnapshot.setNativeId(aSourceObj.getNativeId());
+                    sourceSnapshot.setParent(new NamedURI(aSnapshot.getId(), aSnapshot.getLabel()));
+                    sourceSnapshot.setSourceNativeId(aSnapshot.getNativeId());
+                    sourceSnapshot.setStorageController(storage);
+                    if (cgURI != null) {
+                        sourceSnapshot.setConsistencyGroup(cgURI);
+                    }
+                    sourceSnapshot.addInternalFlags(Flag.INTERNAL_OBJECT);
+                    sourceSnapshots.add(sourceSnapshot);
+                    sourceSnapshotURIs.add(sourceSnapshotURI);
+                    linkedTargets.add(sourceSnapshotURI.toString());
+                }
+                _dbClient.createObject(sourceSnapshots);
 
                 // Create a BlockSnapshotSession to represent this temporary snapshot session
                 // that will be created on the target volume of the passed BlockSnapshot.
@@ -2251,10 +2282,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
                 snapSession.setId(snapSessionURI);
                 snapSession.setLabel(blockSnapshot.getLabel() + System.currentTimeMillis());
-                snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
+                snapSession.setSessionLabel(snapSession.getLabel());
+                snapSession.setProject(blockSnapshot.getProject());
                 snapSession.addInternalFlags(Flag.INTERNAL_OBJECT);
-                StringSet linkedTargets = new StringSet();
-                linkedTargets.add(sourceSnapshotURI.toString());
+                if (NullColumnValueGetter.isNullURI(cgURI)) {
+                    snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
+                } else {
+                    snapSession.setConsistencyGroup(cgURI);
+                }
                 snapSession.setLinkedTargets(linkedTargets);
                 _dbClient.createObject(snapSession);
 
@@ -2272,20 +2307,28 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // volume. This is essentially the restore step so that the source will now
                 // reflect the data on the snapshot target volume. This step will not complete
                 // until the data is copied and the link has achieved the copied state.
+
+                Workflow.Method linkMethod;
+                if (NullColumnValueGetter.isNullURI(cgURI)) {
+                    linkMethod = linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0),
+                            BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
+                } else {
+                    linkMethod = linkBlockSnapshotSessionTargetGroupMethod(storage, snapSessionURI, sourceSnapshotURIs,
+                            BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
+                }
                 waitFor = workflow.createStep(
                         LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
-                        String.format("Link source volume %s to snapshot session for snapshot target volume %s", volumeURI, snapshot),
-                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
-                        linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI,
-                                BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE),
-                        unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI, Boolean.FALSE), null);
+                        String.format("Link source volume %s to snapshot session for snapshot target volume %s", volume, snapshot),
+                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class, linkMethod,
+                        unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0), Boolean.FALSE), null);
+
 
                 // Once the data is fully copied to the source, we can unlink the source from the session.
                 waitFor = workflow.createStep(
                         UNLINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Unlink source volume %s from snapshot session for snapshot target volume %s", volumeURI, snapshot),
                         waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
-                        unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI, Boolean.FALSE),
+                        unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0), Boolean.FALSE),
                         rollbackMethodNullMethod(), null);
 
                 // Finally create a step to delete the snapshot session we created on the snapshot
@@ -5688,7 +5731,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     @Override
     public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<List<URI>> snapshotURIs,
-                                                      String copyMode, String opId) throws InternalException {
+            String copyMode, String opId) throws InternalException {
         TaskCompleter completer = new BlockSnapshotSessionLinkTargetsWorkflowCompleter(snapSessionURI, snapshotURIs, opId);
         try {
             // Get a new workflow to execute the linking of the target volumes

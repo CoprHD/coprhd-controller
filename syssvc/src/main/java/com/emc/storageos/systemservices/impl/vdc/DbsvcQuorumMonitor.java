@@ -130,7 +130,7 @@ public class DbsvcQuorumMonitor implements Runnable {
             }
 
             try {
-                long vdcVersion = getCurrentVdcConfigVersion();
+                long vdcVersion = System.currentTimeMillis();
 
                 if ((System.currentTimeMillis() - monitorResult.getDbQuorumLostSince()) / 1000 >= gcGracePeriod
                         + drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD) / 1000) {
@@ -151,12 +151,6 @@ public class DbsvcQuorumMonitor implements Runnable {
                 }
             }
         }
-    }
-
-    private long getCurrentVdcConfigVersion() {
-        VdcConfigUtil vdcConfigUtil = new VdcConfigUtil(coordinatorClient);
-        PropertyInfoExt targetVdcProps = new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
-        return Long.parseLong(targetVdcProps.getProperty(Constants.VDC_CONFIG_VERSION));
     }
 
     private SiteMonitorResult updateSiteMonitorResult(Site standbySite) {

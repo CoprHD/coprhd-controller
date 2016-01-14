@@ -187,6 +187,7 @@ public class ConfigProperties extends Controller {
             addPage(excludePages, new UpgradePropertyPage(properties));
             addPage(excludePages, new DefaultPropertyPage(OTHER));
             addPage(excludePages, new PasswordPropertyPage(properties));
+            addPage(excludePages, new BackupPropertyPage(properties));
         }
 
         addDefaultPages(pages, properties.values(), excludePages, isActiveSite);

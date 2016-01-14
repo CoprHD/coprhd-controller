@@ -100,6 +100,10 @@
           "baseService": "ResynchronizeBlockSnapshot"
         },
         {
+          "image": "Service_Link_Block_Snapshot.png",
+          "baseService": "LinkBlockSnapshot"
+        },
+        {
           "image": "Service_Remove_Block_Snapshot.png",
           "baseService": "RemoveBlockSnapshot"
         },

@@ -2016,6 +2016,19 @@ rp_crr()
         --max_snapshots 10 \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
+
+    run cos create block rp_crr$1-sync $POOLS_AUTO_MATCH \
+        --description 'RP-Source-CRR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --max_snapshots 10 \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES
 }
 
 # RP CLR
@@ -2031,6 +2044,19 @@ rp_clr()
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES
+
+    run cos create block rp_clr$1-sync $POOLS_AUTO_MATCH \
+        --description 'RP-Source-CLR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
+        --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
 }
@@ -2050,6 +2076,19 @@ rpvplex_cdp()
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_local
+
+    run cos create block rpvplex_cdp$1-sync $POOLS_AUTO_MATCH \
+        --description 'RP+VPLEX-Source-CDP'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --highavailability vplex_local
 }
 
 # RP+VPLEX CRR
@@ -2064,6 +2103,21 @@ rpvplex_crr()
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha
+
+    run cos create block rpvplex_crr$1-sync $POOLS_AUTO_MATCH \
+        --description 'RP+VPLEX-Source-CRR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -2088,6 +2142,21 @@ rpvplex_clr()
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha
+
+    run cos create block rpvplex_clr$1-sync $POOLS_AUTO_MATCH \
+        --description 'RP+VPLEX-Source-CLR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha
 }
 
 # MetroPoint CDP
@@ -2102,6 +2171,23 @@ rpmp_cdp()
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha \
+        --metropoint true \
+        --activeProtectionAtHASite false
+
+    run cos create block mp_cdp$1-sync $POOLS_AUTO_MATCH \
+        --description 'MetroPoint-Source-CDP'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -2130,6 +2216,23 @@ rpmp_crr()
         --haCos rpvplex_ha \
         --metropoint true \
         --activeProtectionAtHASite false
+
+    run cos create block mp_crr$1-sync $POOLS_AUTO_MATCH \
+        --description 'MetroPoint-Source-CRR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha \
+        --metropoint true \
+        --activeProtectionAtHASite false
 }
 
 # MetroPoint CLR
@@ -2144,6 +2247,23 @@ rpmp_clr()
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha \
+        --metropoint true \
+        --activeProtectionAtHASite false
+
+    run cos create block mp_clr$1-sync $POOLS_AUTO_MATCH \
+        --description 'MetroPoint-CLR'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -2983,6 +3103,15 @@ recoverpoint_vpool_change_test()
     run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
 }
 
+recoverpoint_vpool_change_replication_mode_test()
+{
+    base_volume=${1}
+    target_vpool=${2}
+
+    echo 'Change Virtual Pool - Update Replication Mode'
+    run volume change_cos ${PROJECT}/${base_volume} ${target_vpool}
+}
+
 recoverpoint_add_journal_volume()
 {
    copy_name=${1}
@@ -3219,16 +3348,19 @@ recoverpoint_tests()
 
         # RP
         rp_src_vpool='rp_'$rp_type
+	rp_src_vpool_sync=${rp_src_vpool}'-sync'
         rpvolume=${RP_VOLUME}
         rpvolumetarget=${rpvolume}'-target-'${rp_tgt_varray}
 
         # RP+VPLEX
         rpvplex_src_vpool='rpvplex_'$rp_type
+        rpvplex_src_vpool_sync=${rpvplex_src_vpool}'-sync'
         rpvplexvolume=${RP_VPLEX_VOLUME}
         rpvplexvolumetarget=${rpvplexvolume}'-target-'${rpvplex_tgt_varray}
 
         # MP
         rpmp_src_vpool='rpmp_'$rp_type
+        rpmp_src_vpool_sync=${rpmp_src_vpool}'-sync'
         mpvolume=${RP_METROPOINT_VOLUME}
         mpvolumetarget=${mpvolume}'-target-'${rpmp_active_tgt_varray}
 
@@ -3282,8 +3414,8 @@ recoverpoint_tests()
 		if [ "$RP_CRR" = "1" ] ; then
 		    recoverpoint_ingest_test rp${vplextag}_crr
 		fi
-
-		if [ "$RP_CLR" = "1" ] ; then
+                
+                if [ "$RP_CLR" = "1" ] ; then
 		    recoverpoint_ingest_test rp${vplextag}_clr
 		fi
 	    fi
@@ -3377,7 +3509,12 @@ recoverpoint_tests()
 				
 		# CG Failover/Swap Test
 		recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
-	    fi
+	    
+                # Change Replication Mode Test
+                echo 'RP change vpool - replication mode'
+                recoverpoint_vpool_change_replication_mode_test ${rpvolume}${volume_name_modifier} ${rp_src_vpool_sync}
+                recoverpoint_vpool_change_replication_mode_test ${rpvolume}${volume_name_modifier} ${rp_src_vpool}
+            fi
 
             # RP+VPLEX test cases
             if [ "$RPVPLEX_TESTS" = "1" ]; then
@@ -3393,6 +3530,11 @@ recoverpoint_tests()
 				
 		# CG Failover/Swap Test
 		recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
+            
+                # Change Replication Mode Test
+                echo 'RP change vpool - replication mode'
+                recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool_sync}
+                recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool}
             fi
 
             # MP test cases
@@ -3409,6 +3551,11 @@ recoverpoint_tests()
 				
 		# CG Failover/Swap Test
 		recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${rpmp_src_varray} ${rpmp_tgt_volumes} ${rpmp_tgt_varrays}
+            
+                # Change Replication Mode Test
+                echo 'RP change vpool - replication mode'
+                recoverpoint_vpool_change_replication_mode_test ${mpvolume}${volume_name_modifier} ${mp_src_vpool_sync}
+                recoverpoint_vpool_change_replication_mode_test ${mpvolume}${volume_name_modifier} ${mp_src_vpool}
             fi
         fi
 

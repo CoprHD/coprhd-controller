@@ -1,0 +1,25 @@
+/* Bootstrap Overrides */
+
+/* Navbar */
+@navbar-height:                    40px;
+
+/* EMC Navbar colors */
+@navbar-inverse-color:             #fff;
+@navbar-inverse-bg:                #db5800;
+@navbar-inverse-link-color:                 @navbar-inverse-color;
+@navbar-inverse-link-disabled-color:        #ddd;
+@navbar-inverse-link-hover-bg:              darken(@navbar-inverse-bg, 10%);
+@navbar-inverse-toggle-hover-bg:            darken(@navbar-inverse-bg, 10%);
+@navbar-inverse-toggle-icon-bar-bg:         #fff;
+@navbar-inverse-toggle-border-color:        lighten(@navbar-inverse-bg, 10%);
+
+body {
+  padding-top: @navbar-height;
+  padding-bottom: @navbar-height / 2;
+}
+.navbar-brand {
+  font-family: Arial;
+}
+.navbar-nav.navbar-right:last-child {
+  margin-right: 0;
+}

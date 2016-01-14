@@ -26,9 +26,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -47,6 +49,7 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
@@ -73,6 +76,7 @@ import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.SysSvcBeaconImpl;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory.SysClient;
+import com.emc.storageos.systemservices.impl.vdc.DbsvcQuorumMonitor;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.google.common.collect.ImmutableSet;
@@ -82,11 +86,10 @@ public class CoordinatorClientExt {
 
     private static final Set<String> CONTROL_NODE_ROLES =
             new ImmutableSet.Builder<String>().add("sys").add("control").build();
-    private static final Set<String> EXTRA_NODE_ROLES =
-            new ImmutableSet.Builder<String>().add("sys").add("object").build();
     
     private static final String URI_INTERNAL_GET_CLUSTER_INFO = "/control/internal/cluster/info";
     private static final int COODINATOR_MONITORING_INTERVAL = 60; // in seconds
+    private static final int DB_MONITORING_INTERVAL = 60; // in seconds
     private static final String DR_SWITCH_TO_ZK_OBSERVER_BARRIER = "/config/disasterRecoverySwitchToZkObserver";
     private static final int DR_SWITCH_BARRIER_TIMEOUT = 180; // barrier timeout in seconds
     private static final int ZK_LEADER_ELECTION_PORT = 2888;
@@ -95,6 +98,7 @@ public class CoordinatorClientExt {
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
     private ServiceImpl _svc;
+    private Properties dbCommonInfo;
     private InterProcessLock _remoteDownloadLock = null;
     private volatile InterProcessLock _targetLock = null;
     private InterProcessLock _newVersionLock = null;
@@ -129,6 +133,10 @@ public class CoordinatorClientExt {
         _myNodeId= _svc.getNodeId();
         _myNodeName= _svc.getNodeName();
         mySvcId = _svc.getId();
+    }
+
+    public void setDbCommonInfo(Properties dbCommonInfo) {
+        this.dbCommonInfo = dbCommonInfo;
     }
 
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -185,11 +193,7 @@ public class CoordinatorClientExt {
      * Gets the roles associated with the current node.
      */
     public Set<String> getNodeRoles() {
-        if (isControlNode()) {
-            return CONTROL_NODE_ROLES;
-        } else {
-            return EXTRA_NODE_ROLES;
-        }
+        return CONTROL_NODE_ROLES;
     }
 
     /**
@@ -1432,13 +1436,30 @@ public class CoordinatorClientExt {
     }
     
     /**
-     * Initialization method. On standby site, start a thread to monitor local coordinatorsvc status
+     * Initialization method.
+     * On standby site, start a thread to monitor local coordinatorsvc status
+     * On active site, start a thread to monitor db quorum of each standby site
      */
     public void start() {
         if (drUtil.isStandby()) {
             _log.info("Start monitoring local coordinatorsvc status on standby site");
-            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "CoordinatorsvcMonitor");
+                }
+            });
             exe.scheduleAtFixedRate(coordinatorSvcMonitor, 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+        } else {
+            _log.info("Start monitoring db quorum on all standby sites");
+            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "DbsvcQuorumMonitor");
+                }
+            });
+            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(getMyNodeId(), _coordinator, dbCommonInfo)
+                    , 0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
     }
 
@@ -1485,11 +1506,12 @@ public class CoordinatorClientExt {
                     checkLocalSiteZKModes();
                 }
 
-                if (!DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state) &&
-                        !DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
+                if (DrUtil.ZOOKEEPER_MODE_LEADER.equals(state) ||
+                        DrUtil.ZOOKEEPER_MODE_FOLLOWER.equals(state)) {
+                    // node is in participant mode, update the local site state to PAUSED if it's SYNCED
+                    checkAndUpdateLocalSiteState();
 
-                    //node is in participant mode, check if active site is back
-
+                    // check if active site is back
                     if (isActiveSiteHealthy()) {
                         _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
                         reconnectZKToActiveSite();
@@ -1500,6 +1522,19 @@ public class CoordinatorClientExt {
             }catch(Exception e){
                 _log.error("Exception while monitoring node state: ",e);
             }
+        }
+
+        private void checkAndUpdateLocalSiteState() {
+            Site localSite = drUtil.getLocalSite();
+
+            if (!localSite.getState().equals(SiteState.STANDBY_SYNCED)) {
+                // nothing to do
+                return;
+            }
+
+            _log.info("Updating local site to STANDBY_PAUSED since active is unreachable");
+            localSite.setState(SiteState.STANDBY_PAUSED);
+            _coordinator.persistServiceConfiguration(localSite.toConfiguration());
         }
 
         /**
@@ -1737,8 +1772,13 @@ public class CoordinatorClientExt {
         boolean isActiveSiteStable =  isActiveSiteStable(activeSite);
         _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
         
-        SiteMonitorResult montiorResult = new SiteMonitorResult(isActiveSiteLeaderAlive, isActiveSiteStable);
-        _coordinator.setTargetInfo(montiorResult);
+        SiteMonitorResult monitorResult = _coordinator.getTargetInfo(SiteMonitorResult.class);
+        if (monitorResult == null) {
+            monitorResult = new SiteMonitorResult();
+        }
+        monitorResult.setActiveSiteLeaderAlive(isActiveSiteLeaderAlive);
+        monitorResult.setActiveSiteStable(isActiveSiteStable);
+        _coordinator.setTargetInfo(monitorResult);
         
         return isActiveSiteLeaderAlive && isActiveSiteStable;
     }

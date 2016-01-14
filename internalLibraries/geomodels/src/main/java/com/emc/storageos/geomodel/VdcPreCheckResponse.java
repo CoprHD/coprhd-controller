@@ -29,7 +29,8 @@ public class VdcPreCheckResponse {
     private boolean hasData = false;
     private boolean compatible = false;
     private boolean clusterStable;
-
+    private String activeSiteId;
+    
     // tenants which root has tenant role(s)
     private List<String> tenants;
     // projects which owned by root
@@ -204,4 +205,13 @@ public class VdcPreCheckResponse {
         this.projects = projects;
     }
 
+    @XmlElement(name = "active_site_id")
+    public String getActiveSiteId() {
+        return activeSiteId;
+    }
+
+    public void setActiveSiteId(String activeSiteId) {
+        this.activeSiteId = activeSiteId;
+    }
+    
 }

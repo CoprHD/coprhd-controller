@@ -595,7 +595,7 @@ public abstract class VdcOpHandler {
             // restart dbsvc/geodbsvc to start the data rebuild
             localRepository.restart(Constants.DBSVC_NAME);
             localRepository.restart(Constants.GEODBSVC_NAME);
-            
+
             flushVdcConfigToLocal();
         }
     }

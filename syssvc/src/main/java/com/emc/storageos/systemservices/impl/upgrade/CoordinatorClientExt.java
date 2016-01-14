@@ -1507,7 +1507,8 @@ public class CoordinatorClientExt {
                 }
 
                 if (DrUtil.ZOOKEEPER_MODE_LEADER.equals(state) ||
-                        DrUtil.ZOOKEEPER_MODE_FOLLOWER.equals(state)) {
+                        DrUtil.ZOOKEEPER_MODE_FOLLOWER.equals(state) ||
+                        DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state)) {
                     // node is in participant mode, update the local site state to PAUSED if it's SYNCED
                     checkAndUpdateLocalSiteState();
 

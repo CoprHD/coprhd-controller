@@ -6,7 +6,6 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
@@ -24,6 +23,13 @@ public class VirtualNAS extends NASServer {
     // Project name associated with VNAS
     private URI project;
 
+    // Project URI set name associated with VNAS
+    /*
+     * Note: Cannot remove or modify the data type of the attribute: 'project'.
+     * Because, that's not legal for a schema change.
+     */
+    private StringSet associatedProjects;
+
     // Base directory Path for the VNAS applicable in AccessZones & vFiler device types
     private String baseDirPath;
 
@@ -38,6 +44,31 @@ public class VirtualNAS extends NASServer {
     public void setProject(URI project) {
         this.project = project;
         setChanged("project");
+    }
+
+    @Name("associatedProjects")
+    public StringSet getAssociatedProjects() {
+        if (associatedProjects == null) {
+            associatedProjects = new StringSet();
+        }
+        return associatedProjects;
+    }
+
+    public void setAssociatedProjects(StringSet projects) {
+        this.associatedProjects = projects;
+        setChanged("associatedProjects");
+    }
+
+    public void associateProject(String projectURI) {
+        StringSet existingProjects = getAssociatedProjects();
+        existingProjects.add(projectURI);
+        setAssociatedProjects(existingProjects);
+    }
+
+    public void dissociateProject(String projectURI) {
+        StringSet existingProjects = getAssociatedProjects();
+        existingProjects.remove(projectURI);
+        setAssociatedProjects(existingProjects);
     }
 
     @Name("baseDirPath")
@@ -105,9 +136,9 @@ public class VirtualNAS extends NASServer {
     /**
      * Check whether VNAS is assigned to a project or not
      * 
-     * @return true if VNAS is not assigned to project else false
+     * @return true if VNAS is not assigned to project(s), false otherwise
      */
     public boolean isNotAssignedToProject() {
-        return NullColumnValueGetter.isNullURI(project);
+        return (associatedProjects == null || associatedProjects.isEmpty());
     }
 }

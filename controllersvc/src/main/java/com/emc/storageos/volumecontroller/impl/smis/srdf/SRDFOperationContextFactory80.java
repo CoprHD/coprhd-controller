@@ -4,15 +4,43 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.srdf;
 
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations;
-import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.ActiveSynchronizationsOnlyFilter;
-import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.CollectorStrategy;
-import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.*;
+import static com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory.SRDFOperation.DELETE_PAIR;
+import static com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory.SRDFOperation.SPLIT;
+import static com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory.SRDFOperation.SUSPEND;
+import static com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory.SRDFOperation.SUSPEND_CONS_EXEMPT;
 
 import java.util.Arrays;
 
-import static com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory.SRDFOperation.*;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations;
+import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.ActiveSynchronizationsOnlyFilter;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.CollectorStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.ChangeModeToAdaptiveStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.ChangeModeToAsyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.ChangeModeToSyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.DetachGroupSyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.DetachStorageSyncsStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.EstablishGroupSyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.EstablishStorageActiveStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.EstablishStorageSyncsStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.ExecutorStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.FailMechanismGroupSyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.FailMechanismStorageSyncsStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.FailbackGroupSyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.FailbackStorageSyncsStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.FailoverGroupSyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.FailoverStorageSyncsStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.RestoreGroupSyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.RestoreStorageSyncsStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SplitGroupSyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SplitStorageSyncsStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SuspendGroupSyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SuspendStorageActiveStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SuspendStorageSyncsStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SuspendWithConsExemptStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SwapGroupSyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SwapStorageSyncsStrategy;
 
 /**
  * Created by bibbyi1 on 4/8/2015.
@@ -62,7 +90,11 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
                 if (target.hasConsistencyGroup()) {
                     executorStrategy = new SuspendGroupSyncStrategy(helper);
                 } else {
-                    executorStrategy = new SuspendStorageSyncsStrategy(helper);
+                	if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
+                		executorStrategy = new SuspendStorageActiveStrategy(helper);
+                	} else {
+                		executorStrategy = new SuspendStorageSyncsStrategy(helper);
+                	}
                 }
                 break;
             case SUSPEND_CONS_EXEMPT:
@@ -79,7 +111,11 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
                 if (target.hasConsistencyGroup()) {
                     executorStrategy = new EstablishGroupSyncStrategy(helper);
                 } else {
-                    executorStrategy = new EstablishStorageSyncsStrategy(helper);
+                    if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
+                        executorStrategy = new EstablishStorageActiveStrategy(helper);
+                    } else {
+                        executorStrategy = new EstablishStorageSyncsStrategy(helper);
+                    }
                 }
                 break;
             case FAIL_OVER:

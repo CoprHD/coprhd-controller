@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -473,12 +474,18 @@ public class StorageScheduler implements Scheduler {
             Set<String> systemTypes = arrayInfo.get(AttributeMatcher.Attributes.system_type.name());
             if (null != systemTypes && !systemTypes.isEmpty()) {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.system_type.name(), systemTypes);
-                
-                //put quota value for ecs storage
+
+                // put quota value for ecs storage
                 if (systemTypes.contains("ecs") && capabilities.getQuota() != null) {
                     provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.quota.name(), capabilities.getQuota());
                 }
             }
+        }
+
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings = vpool.getRemoteProtectionSettings(vpool, _dbClient);
+        if (null != remoteProtectionSettings && !remoteProtectionSettings.isEmpty()) {
+            provMapBuilder.putAttributeInMap(Attributes.remote_copy.toString(),
+                    VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteProtectionSettings));
         }
 
         Map<String, Object> attributeMap = provMapBuilder.buildMap();

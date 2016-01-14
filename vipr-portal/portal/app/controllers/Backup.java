@@ -9,6 +9,7 @@ import static controllers.Common.flashException;
 import java.util.List;
 
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
 import models.datatable.BackupDataTable;
 import models.datatable.BackupDataTable.Type;
 
@@ -55,8 +56,8 @@ public class Backup extends Controller {
         render(dataTable);
     }
 
-    public static void listJson() {
-        List<BackupDataTable.Backup> backups = BackupDataTable.fetch();
+    public static void listJson(Type type) {
+        List<BackupDataTable.Backup> backups = BackupDataTable.fetch(type == null ? Type.LOCAL : type);
         renderJSON(DataTablesSupport.createJSON(backups, params));
     }
 
@@ -69,6 +70,24 @@ public class Backup extends Controller {
                     if (backup != null) {
                         results.add(new BackupDataTable.Backup(backup));
                     }
+                }
+            }
+        }
+        renderJSON(results);
+    }
+
+    public static void externalItemsJson(@As(",") String[] ids) {
+        List<BackupDataTable.Backup> results = Lists.newArrayList();
+        if (ids != null && ids.length > 0) {
+            for (String id : ids) {
+                if (StringUtils.isNotBlank(id)) {
+                    ExternalBackupInfo backupInfo = BackupUtils.getExternalBackup(id);
+                    BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
+                    if (backupInfo.getCreateTime() != null) {
+                        backup.creationtime = backupInfo.getCreateTime();
+                    }
+                    backup.status = backupInfo.getRestoreStatus().getStatus().name();
+                    results.add(backup);
                 }
             }
         }
@@ -134,7 +153,7 @@ public class Backup extends Controller {
     }
 
     public static void restore(String id, Type type) {
-        if (type == Type.REMOTE) { //pull first if remote backup set
+        if (type == Type.REMOTE) { // pull first if remote backup set
             BackupUtils.pullBackup(id);
             BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, false);
             long totalSize = status.getBackupSize();

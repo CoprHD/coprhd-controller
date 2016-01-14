@@ -6,6 +6,8 @@ package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_CREATE_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_EXTERNAL_DETAIL_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_EXTERNAL_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_UPLOAD_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_URL;
@@ -19,6 +21,8 @@ import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
+import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
+import com.emc.vipr.model.sys.backup.ExternalBackups;
 
 public class Backup {
 	protected final RestClient client;
@@ -35,9 +39,19 @@ public class Backup {
 		UriBuilder builder = client.uriBuilder(BACKUP_URL+"backup");
 		addQueryParam(builder, "tag", name);
 		return client.getURI(BackupSet.class, builder.build());
-	} 
-	
-	public void createBackup(String name, boolean force) {
+	}
+
+    public ExternalBackups getExternalBackups() {
+        return client.get(ExternalBackups.class, BACKUP_EXTERNAL_URL);
+    }
+
+    public ExternalBackupInfo getExternalBackup(String name) {
+        UriBuilder builder = client.uriBuilder(BACKUP_EXTERNAL_DETAIL_URL);
+        addQueryParam(builder, "name", name);
+        return client.getURI(ExternalBackupInfo.class, builder.build());
+    }
+
+    public void createBackup(String name, boolean force) {
 		UriBuilder builder = client.uriBuilder(BACKUP_CREATE_URL);
 		addQueryParam(builder, "tag", name);
 		if (force) {

@@ -8,6 +8,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.List;
 
+import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
 import play.Logger;
 import util.BackupUtils;
 import util.datatable.DataTable;
@@ -48,10 +49,16 @@ public class BackupDataTable extends DataTable {
         setRowCallback("createRowLink");
     }
 
-    public static List<Backup> fetch() {
+    public static List<Backup> fetch(Type type) {
         List<Backup> results = Lists.newArrayList();
-        for (BackupSet backup : BackupUtils.getBackups()) {
-            results.add(new Backup(backup));
+        if (type == Type.LOCAL) {
+            for (BackupSet backup : BackupUtils.getBackups()) {
+                results.add(new Backup(backup));
+            }
+        } else if (type == Type.REMOTE) {
+            for (String name : BackupUtils.getExternalBackups()) {
+                results.add(new Backup(name));
+            }
         }
         return results;
     }
@@ -67,10 +74,6 @@ public class BackupDataTable extends DataTable {
         public Integer progress = 0;
 
         public Backup(BackupSet backup) {
-            this(backup, Type.LOCAL);
-        }
-
-        public Backup(BackupSet backup, Type type) {
             try {
                 id = URLEncoder.encode(backup.getName(), "UTF-8");
             } catch (UnsupportedEncodingException e) {
@@ -95,6 +98,20 @@ public class BackupDataTable extends DataTable {
             } else {
                 action = backup.getName() + "_disable";
             }
+        }
+
+        public Backup(String externalBackupName) {
+            try {
+                id = URLEncoder.encode(externalBackupName, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                Logger.error("Could not encode backup name");
+            }
+            name = externalBackupName;
+            /*ExternalBackupInfo backupInfo = BackupUtils.getExternalBackup(externalBackupName);
+            if (backupInfo.getCreateTime() != null) {
+                creationtime = backupInfo.getCreateTime();
+            }
+            status = backupInfo.getRestoreStatus().getStatus().name();*/
         }
 
     }

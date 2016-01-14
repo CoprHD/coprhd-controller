@@ -16,6 +16,7 @@ import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
+import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
 
 /**
  * Utility for backup.
@@ -25,6 +26,10 @@ public class BackupUtils {
 
     public static List<BackupSet> getBackups() {
         return BourneUtil.getSysClient().backup().getBackups().getBackupSets();
+    }
+
+    public static List<String> getExternalBackups() {
+        return BourneUtil.getSysClient().backup().getExternalBackups().getBackups();
     }
 
     public static void createBackup(String name, boolean force) {
@@ -45,6 +50,10 @@ public class BackupUtils {
 
     public static BackupSet getBackup(String name) {
         return BourneUtil.getSysClient().backup().getBackup(name);
+    }
+
+    public static ExternalBackupInfo getExternalBackup(String name) {
+        return BourneUtil.getSysClient().backup().getExternalBackup(name);
     }
 
     public static void pullBackup(String name) {

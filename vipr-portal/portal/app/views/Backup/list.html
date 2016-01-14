@@ -29,7 +29,7 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
     #{if REMOTE.equals(type)}
         #{DataTable.table id:'backup',
         dataTable:dataTable,
-        source:@listJson()}
+        source:@listJson(type)}
         #{/DataTable.table}
     #{/if}
 

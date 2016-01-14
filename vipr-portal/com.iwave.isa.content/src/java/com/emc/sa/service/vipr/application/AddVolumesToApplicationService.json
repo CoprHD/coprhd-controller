@@ -1,0 +1,46 @@
+{
+  baseKey:"AddVolumesToApplication.Application",
+  serviceId:"AddVolumesToApplication",
+  fields:{
+  
+    application:{
+      type:"assetType.vipr.application"
+    },
+  
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    virtualPool:{
+     type:"assetType.vipr.blockVirtualPoolFilter",
+     lockable: true,
+     initialValue: "All"
+    },
+    
+    consistencyGroup:{
+     type:"assetType.vipr.consistencyGroupFilter",
+     initialValue: "None"
+    },
+    
+    volume:{
+      type:"assetType.vipr.sourceBlockVolume",
+      select: "many"
+    },
+    
+    replicationGroup:{
+     type:"assetType.vipr.replicationGroup",
+     required:"false"
+    },
+    
+    newReplicationGroup:{
+     type:"text",
+     required:false
+    },
+    
+    newConsistencyGroup:{
+     type:"assetType.vipr.consistencyGroupFilter",
+     initialValue: "None"
+    }
+  }
+}

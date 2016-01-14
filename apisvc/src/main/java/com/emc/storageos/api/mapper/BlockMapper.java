@@ -255,6 +255,7 @@ public class BlockMapper {
             }
             to.setVolumeGroups(volumeGroups);
         }
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
 
         return to;
     }

@@ -51,7 +51,7 @@ public class ApplicationTaskCompleter extends TaskCompleter{
         log.info("START ApplicationCompleter complete");
         super.setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
-        if (addVolumes != null && !addVolumes.isEmpty()) {
+        if (addVolumes != null) {
             for (URI voluri : addVolumes) {
                 Volume volume = getVolume(voluri, dbClient);
                 switch (status) {
@@ -64,7 +64,7 @@ public class ApplicationTaskCompleter extends TaskCompleter{
                 }
             }
         }
-        if (removeVolumes != null && !removeVolumes.isEmpty()) {
+        if (removeVolumes != null) {
             for (URI voluri : removeVolumes) {
                 Volume volume = getVolume(voluri, dbClient);
                switch (status) {

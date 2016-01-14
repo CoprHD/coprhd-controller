@@ -87,7 +87,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         final VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
         if (firstVolumeDescriptor != null) {
             Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
-            if (!(volume != null && volume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient))) {
+            if (!(volume != null && volume.isInCG() &&
+                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isInVNXVirtualRG(volume, _dbClient)))) {
                 return waitFor;
             }
             log.info("CG URI:{}", volume.getConsistencyGroup());
@@ -582,7 +583,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         final VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
         if (firstVolumeDescriptor != null) {
             Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
-            if (!(volume != null && volume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient))) {
+            if (!(volume != null && volume.isInCG() &&
+                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isInVNXVirtualRG(volume, _dbClient)))) {
                 return waitFor;
             }
         }

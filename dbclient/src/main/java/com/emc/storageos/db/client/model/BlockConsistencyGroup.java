@@ -210,7 +210,11 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     }
 
     public boolean isProtectedCG() {
-        return requestedTypes != null && (requestedTypes.contains(Types.RP.toString()) || requestedTypes.contains(Types.VPLEX.toString()));
+        if (requestedTypes == null || requestedTypes.isEmpty()) {
+            return false;
+        }
+        
+        return requestedTypes.contains(Types.RP.toString()) || requestedTypes.contains(Types.VPLEX.toString());
     }
 
     public void setRequestedTypes(StringSet requestedTypes) {
@@ -249,6 +253,31 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      */
     public boolean created() {
         return !getRequestedTypes().isEmpty() && getTypes().containsAll(getRequestedTypes());
+    }
+
+    /**
+     * Returns true if the given cg name(replicationGroupName) has been created on the given storage array.
+     * 
+     * @param replicationGroupName
+     * @param systemURI
+     * @return
+     */
+    public boolean created(String replicationGroupName, URI systemURI) {
+        boolean status = false;
+        if (getSystemConsistencyGroups() != null && replicationGroupName != null && systemURI != null) {
+            StringSet replicationNameSet = getSystemConsistencyGroups().get(systemURI.toString());
+            if (replicationNameSet != null) {
+                Iterator<String> replicationNameIterator = replicationNameSet.iterator();
+                while (replicationNameIterator.hasNext()) {
+                    String replicationName = replicationNameIterator.next();
+                    if (replicationGroupName.equals(replicationName)) {
+                        status = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return status;
     }
 
     /**

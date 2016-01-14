@@ -1,0 +1,15 @@
+{
+  baseKey:"RemoveVolumesFromApplication.Application",
+  serviceId:"RemoveVolumesFromApplication",
+  fields:{
+  
+    application:{
+      type:"assetType.vipr.application"
+    },
+    
+    volume:{
+      type:"assetType.vipr.applicationBlockVolume",
+      select: "many"
+    }
+  }
+}

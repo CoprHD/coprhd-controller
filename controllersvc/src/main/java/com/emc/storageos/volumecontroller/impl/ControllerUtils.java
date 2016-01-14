@@ -1284,6 +1284,18 @@ public class ControllerUtils {
     }
 
     /**
+     * Check whether the given volume is XtremIO volume
+     *
+     * @param volume
+     * @param dbClient
+     * @return
+     */
+    public static boolean isXtremIOVolume(Volume volume, DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+        return storage != null && storage.deviceIsType(Type.xtremio);
+    }
+
+    /**
      * Check whether the given volume is in VNX virtual replication group
      *
      * @param volume
@@ -1307,7 +1319,12 @@ public class ControllerUtils {
         String groupName = replicationGroupName;
         
         if (groupName == null && cg != null) {
-            groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+            // if there is only one system cg name for this storage system, use this; it may be different than the label
+            if (cg.getSystemConsistencyGroups() != null && cg.getSystemConsistencyGroups().get(storage.getId().toString()).size() == 1) {
+                groupName = cg.getSystemConsistencyGroups().get(storage.getId().toString()).iterator().next();
+            } else {
+                groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+            }
         }
         if (storage != null && storage.deviceIsType(Type.vnxblock) && !groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
             groupName = SmisConstants.VNX_VIRTUAL_RG + groupName;

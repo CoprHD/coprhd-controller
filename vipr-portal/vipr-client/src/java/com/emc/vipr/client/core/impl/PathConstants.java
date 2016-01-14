@@ -132,7 +132,7 @@ public class PathConstants {
     public static final String UNMANAGED_CGS_URL = "/vdc/unmanaged/cgs";
     public static final String UNMANAGED_CG_BY_PROTECTION_SYSTEM_URL = PROTECTION_SYSTEM_URL
             + "/{protectionSystemId}/unmanaged/cgs";
-    
+
     public static final String UNMANAGED_EXPORTS_URL = "/vdc/unmanaged/export-masks";
     public static final String UNMANAGED_EXPORTS_BY_HOST_URL = HOST_URL
             + "/{hostId}/unmanaged-export-masks";
@@ -159,6 +159,6 @@ public class PathConstants {
 
     public static final String APP_SUPPORT_CREATE_APP_URL = "/volume-groups/block";
     public static final String APP_SUPPORT_DELETE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/deactivate";
-    public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL +"/{id}";
-    public static final String APP_SUPPORT_VOLUME_URL = APP_SUPPORT_CREATE_APP_URL +"/{id}/volumes";
+    public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}";
+    public static final String APP_SUPPORT_VOLUME_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/volumes";
 }

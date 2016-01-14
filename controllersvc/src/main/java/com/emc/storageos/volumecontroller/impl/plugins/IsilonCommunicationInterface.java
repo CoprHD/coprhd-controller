@@ -17,6 +17,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -923,19 +924,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         List<StoragePool> existingPools = new ArrayList<StoragePool>();
 
         URI storageSystemId = storageSystem.getId();
-        Set<String> validSyncLicenceStatus = new HashSet<String>();
-    	validSyncLicenceStatus.add(SYNC_LICENCE_ACTIVATED);
-    	validSyncLicenceStatus.add(SYNC_LICENCE_EVALUATION);
-    	
         try {
             _log.info("discoverPools for storage system {} - start", storageSystemId);
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
-            boolean syncServiceEnabled = isilonApi.isSyncIQEnabled(storageSystem.getFirmwareVersion());
-            boolean syncLicenceValid = validSyncLicenceStatus.contains(isilonApi.getReplicationLicenseInfo());
+            boolean syncLicenceValid = validSyncIQLicence(isilonApi, storageSystem);
+            
             //Set file replication type for Isilon storage system!!!
-            if (syncLicenceValid && syncServiceEnabled) {
+            if (syncLicenceValid) {
             	StringSet supportReplicationTypes = new StringSet();
             	supportReplicationTypes.add(SupportedFileReplicationTypes.REMOTE.name());
             	supportReplicationTypes.add(SupportedFileReplicationTypes.LOCAL.name());
@@ -1006,7 +1003,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 // Add the Copy type ASYNC, if the Isilon is enabled with SyncIQ service!!
                 StringSet copyTypesSupported = new StringSet();
                 copyTypesSupported.add(CopyTypes.ASYNC.name());
-                if (syncLicenceValid && syncServiceEnabled) {
+                if (syncLicenceValid ) {
                     storagePool.setSupportedCopyTypes(copyTypesSupported);
                 } else {
                 	if (storagePool.getSupportedCopyTypes() != null && 
@@ -1153,6 +1150,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
     }
 
+    private boolean validSyncIQLicence(IsilonApi isilonApi, StorageSystem system)
+    		throws IsilonException, JSONException {
+    	Set<String> validSyncLicenceStatus = new HashSet<String>();
+     	validSyncLicenceStatus.add(SYNC_LICENCE_ACTIVATED);
+     	validSyncLicenceStatus.add(SYNC_LICENCE_EVALUATION);
+     	
+    	if (validSyncLicenceStatus.contains(isilonApi.getReplicationLicenseInfo())) {
+    		return true;
+    	}
+    	return false;
+    }
     /**
      * get the NAS Server object
      * 
@@ -1286,9 +1294,21 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         boolean alreadyExist = unManagedFs == null ? false : true;
                         unManagedFs = createUnManagedFileSystem(unManagedFs,
                                 fsUnManagedFsNativeGuid, storageSystem, storagePool, nasServer, fs);
+                        
+                        /*
+                         * Get all file exports with given file system
+                         */
+                        HashSet<String> fsExportPaths= new HashSet<String>();
+                        for(Entry<String, HashSet<Integer>> entry :expMap.entrySet()){
+                            if (entry.getKey().equalsIgnoreCase(fsPathName) || entry.getKey().startsWith(fsPathName + "/")) {
+                                _log.info("filesystem path : {} and export path: {}", fs.getPath(), entry.getKey());
+                                fsExportPaths.add(entry.getKey());
+                            }
+                        }
+                        
                         List<UnManagedNFSShareACL> tempUnManagedNfsShareACL = new ArrayList<UnManagedNFSShareACL>();
                         UnManagedNFSShareACL existingNfsACL = null;
-                        getUnmanagedNfsShareACL(unManagedFs, tempUnManagedNfsShareACL, storagePort, fs, isilonApi);
+                        getUnmanagedNfsShareACL(unManagedFs, tempUnManagedNfsShareACL, storagePort, fs, isilonApi, fsExportPaths);
 
                         if (tempUnManagedNfsShareACL != null && !tempUnManagedNfsShareACL.isEmpty()) {
                             unManagedFs.setHasNFSAcl(true);
@@ -1899,37 +1919,39 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private void getUnmanagedNfsShareACL(UnManagedFileSystem unManagedFileSystem,
             List<UnManagedNFSShareACL> unManagedNfsACLList,
             StoragePort storagePort,
-            FileShare fs, IsilonApi isilonApi) {
+            FileShare fs, IsilonApi isilonApi, HashSet<String> fsExportPaths) {
 
-        _log.info(
-                "getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start",
-                fs.getName());
-        IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(fs.getPath());
+        for (String exportPath : fsExportPaths) {
+            _log.info(
+                    "getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start",
+                    fs.getName());
+            IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(exportPath);
 
-        for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
+            for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
 
-            UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
+                UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
 
-            unmanagedNFSAcl.setFileSystemPath(fs.getPath());
+                unmanagedNFSAcl.setFileSystemPath(exportPath);
 
-            String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+                String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
 
-            if (tempUname.length > 1) {
-                unmanagedNFSAcl.setDomain(tempUname[0]);
-                unmanagedNFSAcl.setUser(tempUname[1]);
-            } else {
-                unmanagedNFSAcl.setUser(tempUname[0]);
+                if (tempUname.length > 1) {
+                    unmanagedNFSAcl.setDomain(tempUname[0]);
+                    unmanagedNFSAcl.setUser(tempUname[1]);
+                } else {
+                    unmanagedNFSAcl.setUser(tempUname[0]);
+                }
+
+                unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+                unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+                unmanagedNFSAcl.setPermissions(StringUtils.join(
+                        getIsilonAccessList(tempAcl.getAccessrights()), ","));
+
+                unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+                unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+
+                unManagedNfsACLList.add(unmanagedNFSAcl);
             }
-
-            unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
-            unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
-            unmanagedNFSAcl.setPermissions(StringUtils.join(
-                    getIsilonAccessList(tempAcl.getAccessrights()), ","));
-
-            unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
-            unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
-
-            unManagedNfsACLList.add(unmanagedNFSAcl);
 
         }
     }

@@ -77,9 +77,15 @@ public class ConfigServiceTest {
         email.setSmtpAuthType("login");
 
         PropertyInfoUpdate propInfo = null;
-        propInfo = ConfigService.ConfigureConnectEmc.configureEmail(email);
 
-        Assert.assertNull(propInfo);
+        try {
+            propInfo = ConfigService.ConfigureConnectEmc.configureEmail(email);
+        } catch (Exception e) {
+            Assert.assertNull(propInfo);
+            return;
+        }
+
+        Assert.fail();
     }
 
     @Test

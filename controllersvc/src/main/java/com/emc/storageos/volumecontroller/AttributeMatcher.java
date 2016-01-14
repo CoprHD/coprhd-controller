@@ -42,6 +42,8 @@ public abstract class AttributeMatcher {
 
     public static final String BASIC_PLACEMENT_MATCHERS = "basicPlacementMatchers";
 
+    public static final String CONNECTIVITY_PLACEMENT_MATCHERS = "connectivityMatchers";
+
     public static enum Attributes {
         vpool_type,
         varrays,
@@ -69,7 +71,12 @@ public abstract class AttributeMatcher {
         thin_volume_preallocation_percentage,
         unique_policy_names,
         remote_copy,
-        long_term_retention_policy
+        long_term_retention_policy,
+        file_replication_type,
+        file_replication_copy_mode,
+        file_replication,
+        min_datacenters,
+        quota
     }
 
     /**

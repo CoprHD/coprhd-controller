@@ -44,6 +44,6 @@ public class ModelTestSuite extends DbsvcTestBase {
     }
 
     public static DbVersionInfo getDbVersionInfo() {
-        return _dbVersionInfo;
+        return sourceVersion;
     }
 }

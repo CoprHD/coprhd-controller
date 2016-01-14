@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
 
+import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.management.backup.exceptions.FatalBackupException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -33,6 +34,7 @@ public class BackupOpsTest extends BackupTestBase {
         backupOps.setPorts(Arrays.asList(7199));
         backupOps.setCoordinatorClient(coordinatorClient);
         backupOps.setVdcList(Arrays.asList("vdc1"));
+        ProductName name = new DummyProductName("vipr");
     }
 
     @Test
@@ -135,5 +137,11 @@ public class BackupOpsTest extends BackupTestBase {
             expected = true;
         }
         Assert.assertTrue("Can't detect non-existing backup", expected);
+    }
+
+    static class DummyProductName extends ProductName {
+        public DummyProductName(String name) {
+            super.setName(name);
+        }
     }
 }

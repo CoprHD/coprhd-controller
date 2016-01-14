@@ -1662,7 +1662,7 @@ public class NetworkDeviceController implements NetworkController {
             ref.setZoneName(zoneName);
             ref.setId(URIUtil.createId(FCZoneReference.class));
             ref.setInactive(false);
-            ref.setLabel(ref.getPwwnKey());
+            ref.setLabel(FCZoneReference.makeLabel(ref.getPwwnKey(), volumeURI.toString()));
             ref.setExistingZone(existingZone);
             _dbClient.createObject(ref);
             newOrExisting[0] = "New";
@@ -2545,16 +2545,16 @@ public class NetworkDeviceController implements NetworkController {
      * @return an instance of FCZoneReference
      */
     private static FCZoneReference createFCZoneReference(ZoneInfo info,
-            URI volumeURi, ExportGroup exportGroup) {
+            URI volumeURI, ExportGroup exportGroup) {
         FCZoneReference ref = new FCZoneReference();
         ref.setPwwnKey(info.getZoneReferenceKey());
         ref.setFabricId(info.getFabricId());
         ref.setNetworkSystemUri(URI.create(info.getNetworkSystemId()));
-        ref.setVolumeUri(volumeURi);
+        ref.setVolumeUri(volumeURI);
         ref.setGroupUri(exportGroup.getId());
         ref.setZoneName(info.getZoneName());
         ref.setId(URIUtil.createId(FCZoneReference.class));
-        ref.setLabel(ref.getPwwnKey());
+        ref.setLabel(FCZoneReference.makeLabel(ref.getPwwnKey(), volumeURI.toString()));
         ref.setExistingZone(true);
         return ref;
     }

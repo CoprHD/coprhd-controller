@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.db.client.model;
 
+import com.emc.storageos.db.client.upgrade.CustomMigrationCallback;
+import com.emc.storageos.db.client.upgrade.callbacks.ComputeImageMigration;
 import com.emc.storageos.model.valid.EnumType;
 
 @Cf("ComputeImage")
@@ -76,6 +78,7 @@ public class ComputeImage extends DataObject {
         setChanged("imageType");
     }
 
+    @CustomMigrationCallback(callback = ComputeImageMigration.class)
     @Name("imageName")
     public String getImageName() {
         return imageName;
@@ -190,6 +193,13 @@ public class ComputeImage extends DataObject {
     /**********************************
      * Utility methods
      **********************************/
+    public boolean _isEsxi6x() {
+        if (osName.equals(ESXI) && osVersion.startsWith("6.")) {
+            return true;
+        }
+        return false;
+    }
+
     public boolean _isEsxi5x() {
         if (osName.equals(ESXI) && osVersion.startsWith("5.")) {
             return true;

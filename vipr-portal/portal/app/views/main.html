@@ -63,35 +63,41 @@
 </header>
 
 #{nav.mainMenu}
-
+<div style="margin-top:10px">
   *{ DASHBOARD }*
-  #{deadbolt.restrict roles:[['SYSTEM_AUDITOR'],['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'],['SYSTEM_MONITOR']]}
+  #{deadbolt.restrict roles:[['SYSTEM_AUDITOR'],['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'],['SYSTEM_MONITOR'],['SECURITY_ADMIN']]}
     #{nav.menu 'adminDashboard', icon:'vipricon-dashboard'}
-        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SYSTEM_AUDITOR']]}
+        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SYSTEM_AUDITOR'], ['SECURITY_ADMIN']]}
           #{nav.menuSection 'nav.adminDashboard'}
-            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
+              #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
               #{nav.item 'adminDashboardPage', href: @AdminDashboard.dashboard()/}
-              	#{nav.item 'systemHealthDashboard', href: @SystemHealth.systemHealth()/}
-              	#{nav.item 'backup', href: @Backup.list()/}
+              #{/deadbolt.restrict}
+              #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SECURITY_ADMIN']]}
+              #{nav.item 'systemHealthDashboard', href: @SystemHealth.systemHealth()/}
+              #{nav.item 'backup', href: @Backup.list()/}
               	#{if isActiveSite }
               		#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
                 		#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
               		#{/if}
               	#{/if}
-              	#{nav.item 'dbHealthDashboard', href: @SystemHealth.dbHealth()/}
-            #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}  
-            #{/deadbolt.restrict}
+              #{nav.item 'dbHealthDashboard', href: @SystemHealth.dbHealth()/}
+              #{/deadbolt.restrict}
+	
+              #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}  	
+              #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}  
+              #{/deadbolt.restrict}
+
             #{deadbolt.restrict roles:[['SYSTEM_AUDITOR']]}
               #{nav.item 'auditLog', href: @infra.AuditLog.list()/}
             #{/deadbolt.restrict}
           #{/nav.menuSection}
         #{/deadbolt.restrict}
     #{/nav.menu}
-  #{/deadbolt.restrict}      
+  #{/deadbolt.restrict}
   
   *{ PHSYICAL ASSETS }*
-  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
-  	#{if isActiveSite }
+  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
+  	#{if isActiveSite}
       #{nav.menu 'assets', icon:'vipricon-physicalassets'}
         #{nav.menuSection 'nav.assets'}  
           #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
@@ -116,7 +122,7 @@
               #{nav.item 'hosts', href: @compute.Hosts.list()/}
               #{nav.item 'hostClusters', href: @compute.HostClusters.list()/}
             #{/deadbolt.restrict}
-            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
+            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
               #{nav.item 'vcenters', href: @compute.VCenters.list()/}
             #{/deadbolt.restrict}
           #{/license.ifController}
@@ -290,6 +296,8 @@
       #{/nav.menuSection} 
     #{/nav.menu}
   #{/deadbolt.restrict}
+
+</div>
 
 #{/nav.mainMenu}
 #{get 'menu'/}

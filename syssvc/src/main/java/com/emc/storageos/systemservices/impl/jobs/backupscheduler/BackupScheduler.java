@@ -167,8 +167,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             this.cfg.reload();
 
             // If we made any new backup, notify uploader thread to perform upload
-            this.backupExec.runOnce();
-            this.uploadExec.runOnce();
+            this.backupExec.create();
+            this.uploadExec.upload();
+            this.backupExec.reclaim();
 
         } catch (Exception e) {
             log.error("Exception occurred in scheduler", e);
@@ -208,11 +209,11 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     }
 
     public void createBackup(String tag) {
-        this.backupOps.createBackup(tag, true);
+        this.backupService.createBackup(tag, true);
     }
 
     public void deleteBackup(String tag) {
-        this.backupOps.deleteBackup(tag);
+        this.backupService.deleteBackup(tag);
     }
 
     /**
@@ -265,11 +266,11 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             }
         }
 
-        String drSiteName = drUtil.getLocalSite().getName();
+        String drSiteId = drUtil.getLocalSite().getUuid();
         // Remove all non alphanumeric characters
-        drSiteName = drSiteName.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
+        drSiteId = drSiteId.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
         
-        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteName);
+        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteId);
     }
 
     public List<String> getDescParams(final String tag) {

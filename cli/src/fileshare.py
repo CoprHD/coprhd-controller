@@ -576,7 +576,7 @@ class Fileshare(object):
         fileshare_uri = self.fileshare_query(name)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "DELETE",
-            Fileshare.URI_NFS_ACL.format(fileshare_uri),
+            uri_nfs_qp.format(fileshare_uri),
             None)
         return 
     
@@ -1184,7 +1184,7 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
                                 required=True)
     mandatory_args.add_argument('-permissions', '-perms',
                                     dest='permissions',
-                                    choices=["Read", "Write", "Execute","Read,write" ,"Read,Execute","Write,Execute","Read,Write,Execute"],
+                                    choices=["Read", "Write", "Execute","Read,write" ,"Read,Execute","Write,Execute","Read,Write,Execute","FullControl"],
                                     metavar='<permissions>',
                                     help='Provide permissions for Acl',
                                     required=True)

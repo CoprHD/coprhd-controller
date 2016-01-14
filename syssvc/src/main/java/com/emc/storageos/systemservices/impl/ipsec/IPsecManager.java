@@ -17,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -160,7 +159,7 @@ public class IPsecManager {
             // cluster is stable for ipsec change
             return;
         } else {
-            throw APIException.serviceUnavailable.clusterStateNotStable();
+            throw APIException.serviceUnavailable.ipsecStatusNotGood();
         }
     }
 

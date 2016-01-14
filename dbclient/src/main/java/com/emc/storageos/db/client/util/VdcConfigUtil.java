@@ -16,9 +16,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 
 /**
  * Utility class to generate VDC/Site property for syssvc.
@@ -27,6 +29,22 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
  * /config/disasterRecoverySites/<vdc_short_id>/<site_uuid>     has all the VDC/site configurations
  * /config/disasterRecoveryActive/<vdc_short_id>               specifies which site is the acitve in each VDC
  * /config/geoLocalVDC/global                                   specifies the local VDC in the geo federation
+ * 
+ * The vdcconfig.properties includes the node IPs as the following
+ * vdc_vdc*_site*_node_count(e.g vdc_vdc1_site1_node_count)             - number of nodes in specified site of specified vdc
+ * vdc_vdc*_site*_network_*_ipaddr(e.g vdc_vdc1_site1_network_1_ipaddr) - IPv4 address of specified node in specified site of specified vdc 
+ * vdc_vdc*_site*_network_*_vip                                         - VIP of specific site of specified vdc
+ * vdc_vdc*_site*_network_*_ipaddr6                                     - IPv6 address of specified node in specified site of specified vdc
+ * vdc_vdc*_site*_network_vip6                                          - IPv6 VIP specific site of specified vdc
+ * vdc_ids  - all vdc ids (e.g vdc1, vdc2 .. )
+ * vdc_myid - current vdc short id
+ * site_ids - all site ids in current vdc
+ * site_active_id - active site id in current vdc
+ * site_myid   - current site id 
+ * 
+ * back_compat_preyoda - true/false. If it is upgraded from pre-yoda, we set it true so dbsvc/syssvc may keep 
+ *                       some features(e.g ssl encryption) for backward compatibility
+ * vdc_config_version  - timestamp for last vdc config change. It should be same for all instance in GEO/DR                      
  */
 public class VdcConfigUtil {
     private static final String DEFAULT_ACTIVE_SITE_ID = "site1";
@@ -49,9 +67,11 @@ public class VdcConfigUtil {
     
     private DrUtil drUtil;
     private Boolean backCompatPreYoda = false;
+    private CoordinatorClient coordinator;
     
     public VdcConfigUtil(CoordinatorClient coordinator) {
         drUtil = new DrUtil(coordinator);
+        this.coordinator = coordinator;
     }
 
     public void setBackCompatPreYoda(Boolean backCompatPreYoda) {
@@ -98,7 +118,23 @@ public class VdcConfigUtil {
     }
 
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
-        String activeSiteId = drUtil.getActiveSiteId(vdcShortId);
+        String activeSiteId = null;
+        try {
+            activeSiteId = drUtil.getActiveSiteId(vdcShortId);
+        } catch (RetryableCoordinatorException e) {
+            log.warn("Failed to find active site id from ZK, go on since it maybe switchover case");
+        }
+        
+        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
+        Site localSite = drUtil.getLocalSite();
+        
+        if (StringUtils.isEmpty(activeSiteId) && SiteInfo.DR_OP_SWITCHOVER.equals(siteInfo.getActionRequired())) {
+            activeSiteId = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()).getUuid();
+        }
+        
+        if (StringUtils.isEmpty(activeSiteId)) {
+            throw new IllegalStateException("No valid active site UUID found");
+        }
         
         Collections.sort(sites, new Comparator<Site>() {
             @Override
@@ -109,8 +145,7 @@ public class VdcConfigUtil {
         
         List<String> shortIds = new ArrayList<>();
         for (Site site : sites) {
-            boolean isActiveSite = site.getUuid().equals(activeSiteId);
-
+            
             if (shouldExcludeFromConfig(site)) {
                 log.info("Ignore site {} of vdc {}", site.getSiteShortId(), site.getVdcShortId());
                 continue;
@@ -166,9 +201,10 @@ public class VdcConfigUtil {
             // right now we assume that SITE_IDS and SITE_IS_STANDBY only makes sense for local VDC
             // moving forward this may or may not be the case.
             vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
-            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(drUtil.isStandby()));
-            vdcConfig.put(SITE_ACTIVE_ID,
-                    StringUtils.isEmpty(activeSiteId) ? DEFAULT_ACTIVE_SITE_ID : drUtil.getSiteFromLocalVdc(activeSiteId).getSiteShortId());
+            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(!localSite.getUuid().equals(activeSiteId)));
+            vdcConfig.put(SITE_ACTIVE_ID, StringUtils.isEmpty(activeSiteId) ?
+                    DEFAULT_ACTIVE_SITE_ID :
+                    drUtil.getSiteFromLocalVdc(activeSiteId).getSiteShortId());
         }
     }
 

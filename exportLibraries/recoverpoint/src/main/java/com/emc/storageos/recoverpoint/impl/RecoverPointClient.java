@@ -1339,11 +1339,12 @@ public class RecoverPointClient {
                         }
                     }
                     if (!found) {
+                        logger.warn(String.format("Could not find volume %s for copy %s and internal site %s on any RP site.  We will likely retry.", volumeParam.getWwn(), copy.getName(), volumeParam.getInternalSiteName()));
                         needsScan = true; // set that we still need to scan.
 
                         if (rescanTries <= 0) {
                             for (RPSite rpSite : allSites) {
-                                logger.error(String.format("Could not find volume %s on any RP site", volumeParam.getWwn()));
+                                logger.error(String.format("Could not find volume %s on any RP site.  Retries exhausted.", volumeParam.getWwn()));
                                 ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                                     logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(),
@@ -1384,12 +1385,14 @@ public class RecoverPointClient {
                             break;
                         }
                     }
+
                     if (!found) {
+                        logger.warn(String.format("Could not find volume %s for internal site %s on any RP site.  We will likely retry.", volumeParam.getWwn(), volumeParam.getInternalSiteName()));
                         needsScan = true; // set that we still need to scan
 
                         if (rescanTries <= 0) {
                             for (RPSite rpSite : allSites) {
-                                logger.error(String.format("Could not find volume %s on any RP site", volumeParam.getWwn()));
+                                logger.error(String.format("Could not find volume %s on any RP site.  Retries exhausted.", volumeParam.getWwn()));
                                 ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                                     logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(),

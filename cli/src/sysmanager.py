@@ -19,7 +19,7 @@ import sysmgrcontrolsvc
 import sys
 import getpass
 from common import SOSError
-from compiler.pycodegen import Delegator
+#from compiler.pycodegen import Delegator
 
 
 class Upgrade(object):
@@ -809,7 +809,7 @@ class Configuration(object):
     URI_SITE_TIME = '/site/{0}/time'
     URI_SITE_SWITCHOVER = '/site/{0}/switchover'
     URI_SITE_FAILOVER = '/site/{0}/failover'
-    URI_SITE_CONFIG = '/site/localconfig'
+
     
     URI_CONFIG_PROPERTY_TYPE = ['ovf', 'config', 'mutated', 'obsolete', 'all' , 'secrets']
     UPDATE_PROPERTY_IGNORE_LIST = [
@@ -1265,14 +1265,6 @@ class Configuration(object):
         o = common.json_decode(s)
         return o
     
-    def site_config(self):
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
-            "GET",
-            Configuration.URI_SITE_CONFIG, None)
-        o = common.json_decode(s)
-        return o
-        
 
 def skip_initial_setup_parser(subcommand_parsers, common_parser):
     skip_initial_setup_parser = subcommand_parsers.add_parser(
@@ -3003,27 +2995,6 @@ def failover_site(args):
             e.err_text,
             e.err_code)
 
-def site_config_parser(subcommand_parsers,common_parser):
-    site_config_parser = subcommand_parsers.add_parser(
-        'site-config',
-        description='ViPR: CLI usage to get standby site configuration',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Get standby site configuration')
-
-    site_config_parser.set_defaults(func=site_config)
-
-def site_config(args):
-    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
-    try:
-        res = obj.site_config()
-        return common.format_json_object(res)
-    except SOSError as e:
-        common.format_err_msg_and_raise(
-            "get config",
-            "site",
-            e.err_text,
-            e.err_code)
 
 def system_parser(parent_subparser, common_parser):
 
@@ -3144,5 +3115,3 @@ def system_parser(parent_subparser, common_parser):
     switchover_site_parser(subcommand_parsers,common_parser)
     
     failover_site_parser(subcommand_parsers,common_parser)
-    
-    site_config_parser(subcommand_parsers,common_parser)

@@ -44,7 +44,7 @@ public abstract class HpuxService extends ViPRService {
         }
 
         hosts = Lists.newArrayList();
-        logInfo("aix.service.target.host", host.getLabel());
+        logInfo("hpux.service.target.host", host.getLabel());
 
         hostPorts = getModelClient().initiators().findByHost(host.getId());
         hpuxSystem = convertHost(host);

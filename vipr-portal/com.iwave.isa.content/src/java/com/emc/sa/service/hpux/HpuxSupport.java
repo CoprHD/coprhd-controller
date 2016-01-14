@@ -163,7 +163,7 @@ public class HpuxSupport {
                     "Could not find hdisk for Volume %s: - PowerPath/MPIO or SAN connectivity may need attention from an administrator. ",
                     volume.getWwn().toLowerCase()));
         }
-        logInfo("aix.support.found.hdisk", rhdiskDevice, volume.getWwn());
+        logInfo("hpux.support.found.rdisk", rhdiskDevice, volume.getWwn());
         return rhdiskDevice.replaceAll("rhdisk", "hdisk");
     }
 

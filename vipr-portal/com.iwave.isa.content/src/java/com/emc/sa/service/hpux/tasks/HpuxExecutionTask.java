@@ -9,7 +9,6 @@ import javax.inject.Inject;
 import com.emc.hpux.HpuxSystem;
 import com.emc.hpux.command.HpuxCommand;
 import com.emc.hpux.command.HpuxResultsCommand;
-//import com.emc.aix.AIXSystem;
 import com.emc.sa.engine.ExecutionTask;
 import com.iwave.ext.linux.command.LinuxCommand;
 import com.iwave.ext.linux.command.LinuxResultsCommand;

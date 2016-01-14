@@ -310,10 +310,11 @@ public class IngestStrategyFactory {
                 SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString());
 
         String replicationStrategy;
-        if (!disregardProtection && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
-            replicationStrategy = ReplicationStrategy.RP.name();
-        } else if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
+        // order is actually important here because a VPLEX volume could also be RP-enabled
+        if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
             replicationStrategy = ReplicationStrategy.VPLEX.name();
+        } else if (!disregardProtection && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
+            replicationStrategy = ReplicationStrategy.RP.name();
         } else if (null == remoteMirrorEnabledInVolume || !Boolean.parseBoolean(remoteMirrorEnabledInVolume)) {
             replicationStrategy = ReplicationStrategy.LOCAL.name();
         } else {

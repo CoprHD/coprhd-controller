@@ -558,13 +558,12 @@ public class FileVirtualPoolService extends VirtualPoolService {
             			param.getProtection().getReplicationParam().getSourcePolicy();
             	if ( replPolicy != null) {
             		if (null != replPolicy.getReplicationType()) {
-            			//SupportedFileReplicationTypes.LOCAL.toString()
                         if (!FileReplicationType.lookup(replPolicy.getReplicationType())) {
                             throw APIException.badRequests.invalidReplicationType(replPolicy.getReplicationType());
                         }
-                        vPool.setFileReplicationType(replPolicy.getReplicationType());
+                        vPool.setFileReplicationType(replPolicy.getReplicationType().toUpperCase());
                         // Verify the remote copies given for remote replication!!!
-                        if (FileReplicationType.REMOTE.name().equals(replPolicy.getReplicationType())) {
+                        if (FileReplicationType.REMOTE.name().equalsIgnoreCase(replPolicy.getReplicationType())) {
                         	if (copies == null || copies.isEmpty()) {
                         		throw APIException.badRequests.noReplicationRemoteCopies(replPolicy.getReplicationType());
                         	}
@@ -577,7 +576,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                             throw APIException.badRequests.invalidCopyMode(replPolicy.getCopyMode());
                         }
                         copyMode = replPolicy.getCopyMode();
-                        vPool.setFileReplicationCopyMode(copyMode);
+                        vPool.setFileReplicationCopyMode(copyMode.toUpperCase());
                     }
             		if (null != replPolicy.getRpoValue()) {
             			vPool.setFrRpoValue(replPolicy.getRpoValue());
@@ -591,7 +590,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                     }           		
             	}
             	
-            	if (FileReplicationType.REMOTE.name().equals(vPool.getFileReplicationType()) && 
+            	if (FileReplicationType.REMOTE.name().equalsIgnoreCase(vPool.getFileReplicationType()) && 
             			copies != null && !copies.isEmpty()) {
             		if (copies.size() > 1) {
             			_log.error("Single remote copy supported, you have given {} copies ", copies.size());
@@ -809,13 +808,13 @@ public class FileVirtualPoolService extends VirtualPoolService {
         				if (!CopyModes.lookup(sourcePolicy.getCopyMode())) {
     						throw APIException.badRequests.invalidCopyMode(sourcePolicy.getCopyMode());
     					}
-        				virtualPool.setFileReplicationCopyMode(sourcePolicy.getCopyMode());
+        				virtualPool.setFileReplicationCopyMode(sourcePolicy.getCopyMode().toUpperCase());
         			}
         			if (sourcePolicy.getReplicationType() != null) {
         				if (!FileReplicationType.lookup(sourcePolicy.getReplicationType())) {
     						throw APIException.badRequests.invalidReplicationType(sourcePolicy.getCopyMode());
     					}
-        				virtualPool.setFileReplicationType(sourcePolicy.getReplicationType());
+        				virtualPool.setFileReplicationType(sourcePolicy.getReplicationType().toUpperCase());
         				if (FileReplicationType.LOCAL.name().equalsIgnoreCase(virtualPool.getFileReplicationType())) {
         					// Clear the remote copies!!
         					deleteRemoteCopies(virtualPool, param);

@@ -108,8 +108,8 @@ public class FileStorageUtils {
         return aclsToAdd;
     }
 
-    public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb) {
-        Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, virtualPool, virtualArray, project));
+    public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb,int advisoryLimit, int softLimit, int gracePeriod) {
+        Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb,advisoryLimit, softLimit, gracePeriod, virtualPool, virtualArray, project));
         addAffectedResource(task);
         URI fileSystemId = task.getResourceId();
         addRollback(new DeactivateFileSystem(fileSystemId, FileControllerConstants.DeleteTypeEnum.FULL));

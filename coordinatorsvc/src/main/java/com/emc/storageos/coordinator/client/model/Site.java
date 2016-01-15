@@ -28,6 +28,8 @@ public class Site {
     private static final String KEY_CREATIONTIME = "creationTime";
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
     private static final String KEY_SITE_STATE = "state";
+    private static final String KEY_PING = "networkLatencyInMs";
+    private static final String KEY_NETWORK_HEALTH = "networkHealth";
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
     private static final String KEY_NODECOUNT = "nodeCount";
@@ -45,6 +47,8 @@ public class Site {
     private String siteShortId;
     private long creationTime;
     private long lastStateUpdateTime;
+    private double networkLatencyInMs;
+    private String networkHealth;
     private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
 
@@ -137,6 +141,22 @@ public class Site {
         this.creationTime = creationTime;
     }
 
+    public double getNetworkLatencyInMs() {
+        return networkLatencyInMs;
+    }
+
+    public void setNetworkLatencyInMs(double networkLatencyInMs) {
+        this.networkLatencyInMs = networkLatencyInMs;
+    }
+
+    public String getNetworkHealth() {
+        return networkHealth;
+    }
+
+    public void setNetworkHealth(String networkHealth) {
+        this.networkHealth = networkHealth;
+    }
+
     public long getLastStateUpdateTime() {
         return lastStateUpdateTime;
     }
@@ -197,6 +217,12 @@ public class Site {
         if (lastStateUpdateTime != 0L) {
             config.setConfig(KEY_LASTSTATEUPDATETIME, String.valueOf(lastStateUpdateTime));
         }
+        if (networkLatencyInMs != 0D) {
+            config.setConfig(KEY_PING, String.valueOf(networkLatencyInMs));
+        }
+        if (networkHealth != null) {
+            config.setConfig(KEY_NETWORK_HEALTH, networkHealth);
+        }
 
         if (state != null) {
             config.setConfig(KEY_SITE_STATE, String.valueOf(state));
@@ -226,6 +252,7 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
+            this.networkHealth = config.getConfig(KEY_NETWORK_HEALTH);
             this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
@@ -234,6 +261,10 @@ public class Site {
             s = config.getConfig(KEY_LASTSTATEUPDATETIME);
             if (s != null) {
                 this.lastStateUpdateTime = Long.valueOf(s);
+            }
+            s = config.getConfig(KEY_PING);
+            if (s != null) {
+                this.networkLatencyInMs = Double.valueOf(s);
             }
             s = config.getConfig(KEY_SITE_STATE);
             if (s != null) {
@@ -287,6 +318,10 @@ public class Site {
         builder.append(siteShortId);
         builder.append(", creationTime=");
         builder.append(creationTime);
+        builder.append(", networkLatencyInMs=");
+        builder.append(networkLatencyInMs);
+        builder.append(", networkHealth=");
+        builder.append(networkHealth);
         builder.append("]");
         return builder.toString();
     }

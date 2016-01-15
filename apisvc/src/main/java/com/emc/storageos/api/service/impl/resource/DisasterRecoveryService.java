@@ -1108,7 +1108,7 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Query the transition timings for specific standby site
+     * Query the details, such as transition timings, for specific standby site
      * 
      * @param uuid site UUID
      * @return SiteActionsTime with detail information
@@ -1117,23 +1117,28 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
             Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    @Path("/{uuid}/time")
-    public SiteDetailRestRep getSiteTime(@PathParam("uuid") String uuid) {
+    @Path("/{uuid}/details")
+    public SiteDetailRestRep getSiteDetails(@PathParam("uuid") String uuid) {
         log.info("Begin to get site paused time by uuid {}", uuid);
 
-        SiteDetailRestRep standbyTimes = new SiteDetailRestRep();
+        SiteDetailRestRep standbyDetails = new SiteDetailRestRep();
         try {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 
-            standbyTimes.setCreationTime(new Date(standby.getCreationTime()));
-
+            standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
+            standbyDetails.setNetworkLatencyInMs(standby.getNetworkLatencyInMs());
             if (standby.getState().equals(SiteState.STANDBY_PAUSED)) {
-                standbyTimes.setPausedTime(new Date(standby.getLastStateUpdateTime()));
+                standbyDetails.setPausedTime(new Date(standby.getLastStateUpdateTime()));
             }
             // Add last-synced time to lastUpdateTime when available
 
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());
-            standbyTimes.setClusterState(state.toString());
+            ClusterInfo.ClusterState clusterState = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());
+            if(clusterState != null) {
+                standbyDetails.setClusterState(clusterState.toString());
+            }
+            else {
+                standbyDetails.setClusterState(ClusterInfo.ClusterState.UNKNOWN.toString());
+            }
 
         } catch (CoordinatorException e) {
             log.error("Can't find site {} from ZK", uuid);
@@ -1142,7 +1147,7 @@ public class DisasterRecoveryService {
             log.error("Find find site from ZK for UUID {} : {}" + uuid, e);
         }
 
-        return standbyTimes;
+        return standbyDetails;
     }
 
     @GET

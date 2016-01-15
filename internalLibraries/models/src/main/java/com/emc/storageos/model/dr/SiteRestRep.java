@@ -20,6 +20,7 @@ public class SiteRestRep extends DataObjectRestRep {
     private String description;
     private String vip;
     private String state;
+    private String networkHealth;
     
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -75,6 +76,14 @@ public class SiteRestRep extends DataObjectRestRep {
         this.description = description;
     }
 
+    @XmlElement(name = "network_health")
+    public String getNetworkHealth() {
+        return networkHealth;
+    }
+
+    public void setNetworkHealth(String networkHealth) {
+        this.networkHealth = networkHealth;
+    }
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -90,6 +99,8 @@ public class SiteRestRep extends DataObjectRestRep {
         builder.append(vip);
         builder.append(", state=");
         builder.append(state);
+        builder.append(", networkHealth=");
+        builder.append(networkHealth);
         builder.append("]");
         return builder.toString();
     }

@@ -206,6 +206,7 @@
 
     <bean id="permissionsFilterFactory" class="com.emc.storageos.systemservices.impl.security.SyssvcPermissionsFilterFactory">
         <property name="permissionsHelper" ref="permissionsHelper"/>
+        <property name="isStandby" ref="siteIsStandby"/>
     </bean>
 
     <bean id="serviceRunsDuringMigration" class="java.lang.Boolean">
@@ -260,6 +261,10 @@
         	</map>
         </property>
     </bean>
+
+    <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler"/>
+
+    <bean id="drSiteNetworkMonitor" class="com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor" init-method="init"/>
 
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
         <property name="softwareUpdate" ref="softwareUpdate" />

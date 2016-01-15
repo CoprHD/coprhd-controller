@@ -47,7 +47,7 @@ class Host(object):
     URI_HOST_LIST_UM_VOLUMES = "/compute/hosts/{0}/unmanaged-volumes"
 
     HOST_TYPE_LIST = ['Windows', 'HPUX', 'Linux',\
-                      'Esx', 'Other', 'AIXVIO', 'AIX', 'No_OS','SUN_VCS']
+                      'Esx', 'Other', 'AIXVIO', 'AIX', 'No_OS','SUNVCS']
 
     def __init__(self, ipAddr, port):
         '''

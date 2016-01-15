@@ -54,6 +54,9 @@ public class VolumesInCGMigration extends BaseCustomMigrationCallback {
                 if (cg == null || system == null) {
                     continue;
                 }
+                if (volume.getSrdfParent() != null || volume.getSrdfTargets() != null) {
+                    continue;
+                }
                 if (system.getSystemType().equals(DiscoveredDataObject.Type.vplex.name()) &&
                         cg.checkForType(Types.LOCAL)) {
                     // For VPLEX or VPLEX+RP source volume, update the backend volumes

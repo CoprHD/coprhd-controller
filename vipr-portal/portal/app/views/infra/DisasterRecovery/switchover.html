@@ -65,7 +65,7 @@ function checkFailoverProgressUpdate() {
         dataType: "json",
 
         success: function(result) {
-			if(result.state == "ACTIVE") {
+			if(result.state == "ACTIVE" || result.state == "STANDBY_SYNCED" ) {
 				$("#loadingStatus").text('&{'disasterRecovery.failover.complete'}');
  				$("#checkFailoverStatus").text('');
  				$("#failoverWarining").text('');

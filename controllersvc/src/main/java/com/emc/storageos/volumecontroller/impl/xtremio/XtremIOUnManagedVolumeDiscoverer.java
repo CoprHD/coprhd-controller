@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.codehaus.jackson.annotate.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +61,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.gson.annotations.SerializedName;
 
 public class XtremIOUnManagedVolumeDiscoverer {
 
@@ -80,6 +82,9 @@ public class XtremIOUnManagedVolumeDiscoverer {
     private List<UnManagedExportMask> unManagedExportMasksToCreate = null;
     private List<UnManagedExportMask> unManagedExportMasksToUpdate = null;
     private final Set<URI> allCurrentUnManagedExportMaskUris = new HashSet<URI>();
+    
+    private Map <String,UnManagedConsistencyGroup> unManagedCGToUpdateMap = null;
+    private Set<String> unSupportedCG = null;
 
     private XtremIOClientFactory xtremioRestClientFactory;
     private NetworkDeviceController networkDeviceController;
@@ -143,13 +148,33 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     system.getNativeGuid(), snap.getVolInfo().get(0));
 
             unManagedVolume = DiscoveryUtils.checkUnManagedVolumeExistsInDB(dbClient,
-                    unManagedVolumeNatvieGuid);
-
+                    unManagedVolumeNatvieGuid);            
+            
             unManagedVolume = createUnManagedVolume(unManagedVolume, unManagedVolumeNatvieGuid, snap, igUnmanagedVolumesMap, system, null,
                     dbClient);
             populateSnapInfo(unManagedVolume, snap, parentGUID, parentMatchedVPools);
             snaps.add(unManagedVolumeNatvieGuid);
             allCurrentUnManagedVolumeUris.add(unManagedVolume.getId());
+            
+            if (snap.getSnapSetList() != null && !snap.getSnapSetList().isEmpty()) {            	
+            	Object snapSetNameToProcess = null;
+            	if (snap.getSnapSetList().size() > 1) {
+            		// snaps that belong to multiple snap sets are not supported in ViPR
+            		log.warn("Skipping snapshot {} as it belongs to multiple snapSets and this is not supported", snap.getVolInfo().get(0));                	
+            		// add all the CGs that this volume belongs to to the list that are unsupported for ingestion
+            		for (List<Object> snapSet : snap.getSnapSetList()) {
+            			snapSetNameToProcess = snapSet.get(1);            			                		
+            			log.warn("Skipping SnapSet {} as it contains volumes belonging to multiple CGs and this is not supported", snapSetNameToProcess.toString());
+            		}
+            	} else {
+            		for (List<Object> snapSet : snap.getSnapSetList()) {
+            			snapSetNameToProcess = snapSet.get(1);
+            			XtremIOConsistencyGroup snapSetDetails = xtremIOClient.getSnapshotSetDetails(snapSetNameToProcess.toString(), xioClusterName);
+            			addObjectToUnManagedConsistencyGroup(xtremIOClient, unManagedVolume, snapSetDetails.getName(), system, xioClusterName, dbClient);
+            		}
+            	}
+            	
+            }                        
         }
 
         return snaps;
@@ -165,7 +190,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
         unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();                
         
-        Map <String,UnManagedConsistencyGroup> unManagedCGToUpdateMap = new HashMap<String, UnManagedConsistencyGroup>();
+        unManagedCGToUpdateMap = new HashMap<String, UnManagedConsistencyGroup>();
         
         // get the storage pool associated with the xtremio system
         StoragePool storagePool = getXtremIOStoragePool(storageSystem.getId(), dbClient);
@@ -186,7 +211,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         
         // Set containing cgs that cannot be ingested, for now that
         // means they contain volumes which belong to more than one cg
-        Set<String> unSupportedCG = new HashSet<String>();
+        unSupportedCG = new HashSet<String>();
         
         for (List<XtremIOObjectInfo> partition : volume_partitions) {
             List<XtremIOVolume> volumes = xtremIOClient.getXtremIOVolumesForLinks(partition, xioClusterName);
@@ -832,5 +857,52 @@ public class XtremIOUnManagedVolumeDiscoverer {
         }
 
         return unManagedVolume;
+    }
+    
+    private void addObjectToUnManagedConsistencyGroup(XtremIOClient xtremIOClient, UnManagedVolume unManagedVolume,
+    		String cgNameToProcess, StorageSystem storageSystem, String xioClusterName, DbClient dbClient) throws Exception {    	    		
+    		// Check if the current CG is in the list of unsupported CGs                		
+    		if (!unSupportedCG.isEmpty() && unSupportedCG.contains(cgNameToProcess.toString())) {
+    			// leave the for loop and do nothing
+    			log.warn("Skipping CG {} as it contains volumes belonging to multiple CGs and this is not supported", cgNameToProcess.toString());
+    			return;
+    		}
+    		log.info("Unmanaged volume {} belongs to consistency group {} on the array", unManagedVolume.getLabel(), cgNameToProcess);
+    		// Update the unManagedVolume object with CG information
+    		unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());                		              	
+    		// Get the unmanaged CG details from the array
+    		XtremIOConsistencyGroup xioCG = xtremIOClient.getConsistencyGroupDetails(cgNameToProcess.toString(), xioClusterName);                		                		
+    		// determine the native guid for the unmanaged CG (storage system id + xio cg guid)
+    		String unManagedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(storageSystem.getNativeGuid(), xioCG.getGuid());  
+    		// determine if the unmanaged CG already exists in the unManagedCGToUpdateMap or in the database
+    		// if the the unmanaged CG is not in either create a new one
+    		UnManagedConsistencyGroup unManagedCG = null;
+    		if (unManagedCGToUpdateMap.containsKey(unManagedCGNativeGuid)) {
+    			unManagedCG = unManagedCGToUpdateMap.get(unManagedCGNativeGuid);
+    			log.info("Unmanaged consistency group {} was previously added to the unManagedCGToUpdateMap", unManagedCG.getLabel());
+			} else {
+				unManagedCG = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient, unManagedCGNativeGuid);            				
+        		if (null == unManagedCG) {                			
+        			// unmanaged CG does not exist in the database, create it
+        			unManagedCG = createUnManagedCG(unManagedCGNativeGuid, xioCG, storageSystem.getId(), dbClient);
+        			log.info("Created unmanaged consistency group: {}", unManagedCG.getId().toString());
+        		} else {
+        			log.info("Unmanaged consistency group {} was previously added to the database", unManagedCG.getLabel());
+        			// clean out the list of unmanaged volumes if this unmanaged cg was already
+        			// in the database and its first time being used in this discovery operation
+        			// the list should be re-populated by the current discovery operation
+        			log.info("Cleaning out unmanaged volume map from unmanaged consistency group: {}", unManagedCG.getLabel());
+            			unManagedCG.getUnManagedVolumesMap().clear();
+        		}                    		
+			}
+    		log.info("Adding unmanaged volume {} to unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
+    		// set the uri of the unmanaged CG in the unmanaged volume object
+    		unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(), unManagedCG.getId().toString()); 
+    		// add the unmanaged volume object to the unmanaged CG
+    		unManagedCG.getUnManagedVolumesMap().put(unManagedVolume.getNativeGuid(), unManagedVolume.getId().toString());                		
+    		// add the unmanaged CG to the map of unmanaged CGs to be updated in the database once all volumes have been processed                		
+    		unManagedCGToUpdateMap.put(unManagedCGNativeGuid, unManagedCG);                		
+    		// add the unmanaged CG to the current set of CGs being discovered on the array.  This is for book keeping later.
+    		allCurrentUnManagedCgURIs.add(unManagedCG.getId());    	                	    
     }
 }

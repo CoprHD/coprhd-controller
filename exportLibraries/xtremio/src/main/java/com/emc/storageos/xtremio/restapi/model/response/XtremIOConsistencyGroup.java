@@ -21,6 +21,12 @@ public class XtremIOConsistencyGroup {
     @SerializedName("name")
     @JsonProperty(value = "name")
     private String name;
+    
+    // cg-name is the field which identifies the cg name in a snapshot set
+    // which also uses this class for a rest response
+    @SerializedName("cg-name")
+    @JsonProperty(value = "cg-name")
+    private String cgName;    
 
     @SerializedName("num-of-vols")
     @JsonProperty(value = "num-of-vols")
@@ -42,7 +48,15 @@ public class XtremIOConsistencyGroup {
         this.name = name;
     }
 
-    public String getNumOfVols() {
+    public String getCgName() {
+		return cgName;
+	}
+
+	public void setCgName(String cgName) {
+		this.cgName = cgName;
+	}
+
+	public String getNumOfVols() {
         return numOfVols;
     }
 

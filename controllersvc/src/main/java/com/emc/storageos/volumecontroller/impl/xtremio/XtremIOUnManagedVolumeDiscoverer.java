@@ -156,24 +156,32 @@ public class XtremIOUnManagedVolumeDiscoverer {
             snaps.add(unManagedVolumeNatvieGuid);
             allCurrentUnManagedVolumeUris.add(unManagedVolume.getId());
             
+            // determine the the snapsets associated with the snap and then determine if the snap set
+            // is associated with a cg, if it is process the snap same as any unmanaged volume
             if (snap.getSnapSetList() != null && !snap.getSnapSetList().isEmpty()) {            	
             	Object snapSetNameToProcess = null;
             	if (snap.getSnapSetList().size() > 1) {
             		// snaps that belong to multiple snap sets are not supported in ViPR
             		log.warn("Skipping snapshot {} as it belongs to multiple snapSets and this is not supported", snap.getVolInfo().get(0));                	
-            		// add all the CGs that this volume belongs to to the list that are unsupported for ingestion
+            		// add all the snap sets that this volume belongs to to the list that are unsupported for ingestion
             		for (List<Object> snapSet : snap.getSnapSetList()) {
-            			snapSetNameToProcess = snapSet.get(1);            			                		
+            			snapSetNameToProcess = snapSet.get(1);           			                		
             			log.warn("Skipping SnapSet {} as it contains volumes belonging to multiple CGs and this is not supported", snapSetNameToProcess.toString());
             		}
             	} else {
             		for (List<Object> snapSet : snap.getSnapSetList()) {
             			snapSetNameToProcess = snapSet.get(1);
             			XtremIOConsistencyGroup snapSetDetails = xtremIOClient.getSnapshotSetDetails(snapSetNameToProcess.toString(), xioClusterName);
-            			addObjectToUnManagedConsistencyGroup(xtremIOClient, unManagedVolume, snapSetDetails.getName(), system, xioClusterName, dbClient);
+            			if (snapSetDetails.getCgName() != null) {
+            				log.info("Snapshot {} belongs to consistency group {} on the array",
+            						snapSetNameToProcess.toString(), snapSetDetails.getCgName());
+            				addObjectToUnManagedConsistencyGroup(xtremIOClient, unManagedVolume, snapSetDetails.getCgName(), system, xioClusterName, dbClient);
+            			} else {
+            				log.info("Snapshot {} does not belong to a consistency group.",
+            						snapSetNameToProcess.toString());
+            			}
             		}
-            	}
-            	
+            	}            	
             }                        
         }
 
@@ -278,55 +286,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         storageSystem, storagePool, dbClient);
                 
                 // if the volume is associated with a CG, set up the unmanaged CG
-                if (hasCGs) {                	              	
+                if (hasCGs) {                	                	
                 	for (List<Object> cg : volume.getConsistencyGroups()) {
                 		// retrieve what should be the first and only consistency group from the list
                 		// volumes belonging to multiple cgs are not supported and were excluded above
                 		Object cgNameToProcess = cg.get(1);
-                		// Check if the current CG is in the list of unsupported CGs                		
-                		if (!unSupportedCG.isEmpty() && unSupportedCG.contains(cgNameToProcess.toString())) {
-                			// leave the for loop and do nothing
-                			log.warn("Skipping CG {} as it contains volumes belonging to multiple CGs and this is not supported", cgNameToProcess.toString());
-                			break;
-                		}
-                		log.info("Unmanaged volume {} belongs to consistency group {} on the array", unManagedVolume.getLabel(), cgNameToProcess);
-                		// Update the unManagedVolume object with CG information
-                		unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());                		              	
-                		// Get the unmanaged CG details from the array
-                		XtremIOConsistencyGroup xioCG = xtremIOClient.getConsistencyGroupDetails(cgNameToProcess.toString(), xioClusterName);                		                		
-                		// determine the native guid for the unmanaged CG (storage system id + xio cg guid)
-                		String unManagedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(storageSystem.getNativeGuid(), xioCG.getGuid());  
-                		// determine if the unmanaged CG already exists in the unManagedCGToUpdateMap or in the database
-                		// if the the unmanaged CG is not in either create a new one
-                		UnManagedConsistencyGroup unManagedCG = null;
-                		if (unManagedCGToUpdateMap.containsKey(unManagedCGNativeGuid)) {
-                			unManagedCG = unManagedCGToUpdateMap.get(unManagedCGNativeGuid);
-                			log.info("Unmanaged consistency group {} was previously added to the unManagedCGToUpdateMap", unManagedCG.getLabel());
-            			} else {
-            				unManagedCG = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient, unManagedCGNativeGuid);            				
-                    		if (null == unManagedCG) {                			
-                    			// unmanaged CG does not exist in the database, create it
-                    			unManagedCG = createUnManagedCG(unManagedCGNativeGuid, xioCG, storageSystem.getId(), dbClient);
-                    			log.info("Created unmanaged consistency group: {}", unManagedCG.getId().toString());
-                    		} else {
-                    			log.info("Unmanaged consistency group {} was previously added to the database", unManagedCG.getLabel());
-                    			// clean out the list of unmanaged volumes if this unmanaged cg was already
-                    			// in the database and its first time being used in this discovery operation
-                    			// the list should be re-populated by the current discovery operation
-                    			log.info("Cleaning out unmanaged volume map from unmanaged consistency group: {}", unManagedCG.getLabel());
-                        			unManagedCG.getUnManagedVolumesMap().clear();
-                    		}                    		
-            			}
-                		log.info("Adding unmanaged volume {} to unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
-                		// set the uri of the unmanaged CG in the unmanaged volume object
-                		unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(), unManagedCG.getId().toString()); 
-                		// add the unmanaged volume object to the unmanaged CG
-                		unManagedCG.getUnManagedVolumesMap().put(unManagedVolume.getNativeGuid(), unManagedVolume.getId().toString());                		
-                		// add the unmanaged CG to the map of unmanaged CGs to be updated in the database once all volumes have been processed                		
-                		unManagedCGToUpdateMap.put(unManagedCGNativeGuid, unManagedCG);                		
-                		// add the unmanaged CG to the current set of CGs being discovered on the array.  This is for book keeping later.
-                		allCurrentUnManagedCgURIs.add(unManagedCG.getId());
-                	}                	
+                		addObjectToUnManagedConsistencyGroup(xtremIOClient, unManagedVolume, cgNameToProcess.toString(),
+                				storageSystem, xioClusterName, dbClient);
+                	}   	
                 }           
 
                 if (hasSnaps) {

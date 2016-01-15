@@ -206,6 +206,7 @@
 
     <bean id="permissionsFilterFactory" class="com.emc.storageos.systemservices.impl.security.SyssvcPermissionsFilterFactory">
         <property name="permissionsHelper" ref="permissionsHelper"/>
+        <property name="isStandby" ref="siteIsStandby"/>
     </bean>
 
     <bean id="serviceRunsDuringMigration" class="java.lang.Boolean">

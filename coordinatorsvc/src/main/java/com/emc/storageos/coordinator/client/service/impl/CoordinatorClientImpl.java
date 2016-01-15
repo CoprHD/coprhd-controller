@@ -38,6 +38,7 @@ import java.util.regex.Pattern;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.DeleteBuilder;
+import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
@@ -1874,6 +1875,20 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             deleteOp.forPath(path);
         } catch (Exception ex) {
             CoordinatorException.fatals.unableToDeletePath(path, ex);
+        }
+    }
+
+    @Override
+    public DistributedBarrier getDistributedBarrier(String barrierPath) {
+        return new DistributedBarrier(_zkConnection.curator(), barrierPath); 
+    }
+
+    @Override
+    public boolean nodeExists(String path) {
+        try {
+            return this._zkConnection.curator().checkExists().forPath(path) != null;
+        } catch (Exception e) {
+            throw CoordinatorException.fatals.unableToCheckNodeExists(path, e);
         }
     }
 }

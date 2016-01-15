@@ -2268,7 +2268,6 @@
 		<property name="value" value="" />
 		<property name="controlNodeOnly" value="true" />
 		<property name="notifiers" value="backupscheduler" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_external_location_username" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="User Name" />
@@ -2282,7 +2281,6 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="" />
 		<property name="controlNodeOnly" value="true" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_external_location_password" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Password" />
@@ -2296,7 +2294,6 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="" />
 		<property name="controlNodeOnly" value="true" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_scheduler_enable" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Enable Scheduler" />
@@ -2310,7 +2307,6 @@
 		<property name="value" value="true" />
 		<property name="controlNodeOnly" value="true" />
 		<property name="notifiers" value="backupscheduler" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_scheduler_time" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup Time" />
@@ -2325,7 +2321,6 @@
 		<property name="value" value="100" />
 		<property name="controlNodeOnly" value="true" />
 		<property name="notifiers" value="backupscheduler" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_scheduler_interval" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup Interval" />
@@ -2341,7 +2336,6 @@
 		<property name="value" value="1day" />
 		<property name="controlNodeOnly" value="true" />
 		<property name="notifiers" value="backupscheduler" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_scheduler_copies_to_keep" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup Retention Number" />
@@ -2356,7 +2350,6 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="5" />
 		<property name="controlNodeOnly" value="true" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_max_used_disk_percentage" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup quota" />
@@ -2370,7 +2363,6 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="30" />
 		<property name="controlNodeOnly" value="true" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_threshold_disk_percentage" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup threshold" />
@@ -2384,7 +2376,6 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="80" />
 		<property name="controlNodeOnly" value="true" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_max_manual_copies" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup Max Copies" />
@@ -2399,7 +2390,6 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="5" />
 		<property name="controlNodeOnly" value="true" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="ldap_connection_timeout" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Ldap Connection Timeout" />

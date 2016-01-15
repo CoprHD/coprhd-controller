@@ -393,10 +393,10 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         List<Map<URI, BlockSnapshot>> snapshotMap = snapSessionImpl.prepareSnapshotsForSession(srcSideBackendVolumes, sourceCount,
                 newTargetCount, newTargetsName);
 
+        Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObjList.get(0), _dbClient);
         // However, the project is from the VPLEX volume.
         for (Map<URI, BlockSnapshot> snapshots : snapshotMap) {
             for (BlockSnapshot snapshot : snapshots.values()) {
-                Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObjList.get(0), _dbClient);
                 snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObjList.get(0).getLabel()));
                 _dbClient.updateObject(snapshot);
             }

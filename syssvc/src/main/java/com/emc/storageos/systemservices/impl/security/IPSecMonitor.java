@@ -33,8 +33,8 @@ public class IPSecMonitor implements Runnable {
 
     private static final Logger log = LoggerFactory.getLogger(IPSecMonitor.class);
 
-    public static int IPSEC_CHECK_INTERVAL = 1;  // minutes
-    public static int IPSEC_CHECK_INITIAL_DELAY = 1;  // minutes
+    public static int IPSEC_CHECK_INTERVAL = 10;  // minutes
+    public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
 
     public ScheduledExecutorService scheduledExecutorService;
 

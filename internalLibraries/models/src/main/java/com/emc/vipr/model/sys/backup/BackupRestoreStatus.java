@@ -75,7 +75,7 @@ public class BackupRestoreStatus {
     public enum Status {
         NOT_STARTED (true, false, false),
         DOWNLOADING (true, false, false),
-        DOWNLOAD_SUCCESS (false, true, true),
+        DOWNLOAD_SUCCESS (false, false, true),
         DOWNLOAD_FAILED (false, true, true),
         DOWNLOAD_CANCELLED (false, true, true),
         RESTORE_FAILED (false, false, false),

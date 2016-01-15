@@ -71,7 +71,8 @@ public class GeoServiceClient extends BaseServiceClient {
     public static final String VDCCONFIG_STABLE_CHECK = VDCCONFIG_URI + "/stablecheck";
     public static final String VERSION_URI = INTERVDC_URI + "/version";
     public static final String VDCCONFIG_RESET_BLACKLIST = VDCCONFIG_URI + "/resetblacklist";
-    public static final String VDCCONFIG_IPSEC_ROTATION_URI = "/ipsec/key";
+    public static final String INTERVDC_IPSEC_SERVICE = INTERVDC_URI + "/ipsec";
+    public static final String INTERVDC_IPSEC_KEY_ROTATION_URI = INTERVDC_IPSEC_SERVICE + "/key";
 
     public static final int MAX_RETRIES = 12;
 
@@ -634,7 +635,7 @@ public class GeoServiceClient extends BaseServiceClient {
     }
 
     public void rotateIpsecKey(String peerVdcId, IpsecParam ipsecParam) {
-        WebResource rRoot = createRequest(VDCCONFIG_IPSEC_ROTATION_URI);
+        WebResource rRoot = createRequest(INTERVDC_IPSEC_KEY_ROTATION_URI);
         rRoot.accept(MediaType.APPLICATION_XML);
         try {
             addSignature(rRoot).post(ipsecParam);

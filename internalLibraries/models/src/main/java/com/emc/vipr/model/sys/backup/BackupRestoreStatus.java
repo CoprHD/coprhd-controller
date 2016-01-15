@@ -73,13 +73,35 @@ public class BackupRestoreStatus {
      */
     @XmlType(name = "restore_Status")
     public enum Status {
-        NOT_STARTED,
-        DOWNLOADING,
-        DOWNLOAD_SUCCESS,
-        DOWNLOAD_FAILED,
-        RESTORE_FAILED,
-        RESTORE_SUCCESS,
-        RESTORE_CANCELLED
+        NOT_STARTED (true, false, false),
+        DOWNLOADING (true, false, false),
+        DOWNLOAD_SUCCESS (false, true, true),
+        DOWNLOAD_FAILED (false, true, true),
+        DOWNLOAD_CANCELLED (false, true, true),
+        RESTORE_FAILED (false, false, false),
+        RESTORE_SUCCESS (false, false ,false);
+
+        private boolean cancellable = false;
+        private boolean removeDownloadedFiles= false;
+        private boolean removeListener = false;
+
+        Status(boolean cancellable, boolean removeFiles, boolean removeListener) {
+            this.cancellable = cancellable;
+            this.removeDownloadedFiles = removeFiles;
+            this.removeListener = removeListener;
+        }
+
+        public boolean canBeCanceled() {
+            return cancellable;
+        }
+
+        public boolean removeDownloadFiles() {
+            return removeDownloadedFiles;
+        }
+
+        public boolean removeListener() {
+            return removeListener;
+        }
     }
 
     @XmlElement(name = "download_size")

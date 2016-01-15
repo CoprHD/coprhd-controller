@@ -79,7 +79,7 @@ public class BackupService {
     private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
     private final String restoreCmd="/opt/storageos/bin/restore-from-ui.sh";
     private final String restoreLog="/var/log/restore-internal.log";
-    private Thread downloadThread;
+    private DownloadExecutor downloadTask;
 
     @Autowired
     private AuditLogManager auditMgr;
@@ -463,10 +463,10 @@ public class BackupService {
     public Response downloadBackupFile(String backupName) {
         log.info("To download backupName={}", backupName);
 
-        DownloadExecutor downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
+        downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
                 backupName, backupOps, false); //false= notify other nodes
 
-        downloadThread = new Thread(downloadTask);
+        Thread downloadThread = new Thread(downloadTask);
         downloadThread.setDaemon(true);
         downloadThread.setName("backupDownloadThread");
         downloadThread.start();
@@ -487,12 +487,36 @@ public class BackupService {
     public Response pullBackup(@QueryParam("file") String backupName ) {
         log.info("The backup file {} to download", backupName);
 
-        DownloadExecutor downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
+        downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
                 backupName, backupOps, true); //true = notify other nodes
-        downloadThread = new Thread(downloadTask);
+
+        Thread downloadThread = new Thread(downloadTask);
         downloadThread.setDaemon(true);
         downloadThread.setName("backupDownloadThread");
         downloadThread.start();
+
+        log.info("done");
+        return Response.status(202).build();
+    }
+
+    /**
+     *  Cancel the current download backup operation
+     *  If there are no downloading running, do nothing
+     *  Client should use query API to check if the download operation
+     *  has been canceled or not
+     *
+     * @return server response indicating if the operation succeeds.
+     */
+    @POST
+    @Path("pull/cancel")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public Response cancelDownloading() {
+        log.info("To cancel the current download");
+
+        if (downloadTask != null) {
+            log.info("To stop current download task");
+            downloadTask.cancelDownload();
+        }
 
         log.info("done");
         return Response.status(202).build();

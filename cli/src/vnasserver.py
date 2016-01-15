@@ -368,7 +368,7 @@ def vnasserver_assign(args):
                 vnas_assign_failure = vnas_assign_failure + 1
     
     if(vnas_assign_failure == total_assignments):
-        print "All vnasservers assignemnt to all projects failed"
+        print "All vnasservers assignment to all projects failed"
     elif(vnas_assign_failure):
         print "Few vnasservers assignment to projects failed"
     
@@ -413,7 +413,7 @@ def vnasserver_unassign(args):
                 vnas_unassign_failure = vnas_unassign_failure + 1
 
     if(vnas_unassign_failure == total_unassignments):
-        print "All vnasservers unassignemnt to all projects failed"
+        print "All vnasservers unassignment to all projects failed"
     elif(vnas_unassign_failure):
         print "Few vnasservers unassignment to projects failed"
 

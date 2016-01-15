@@ -523,19 +523,6 @@ public class BackupService {
         return Response.status(202).build();
     }
 
-    class RestoreRunnable implements Runnable {
-        private String[] cmd;
-
-        RestoreRunnable(String[] cmd) {
-            this.cmd = cmd;
-        }
-
-        @Override
-        public void run() {
-            Exec.exec(120*1000, cmd);
-        }
-    }
-
     /**
      * Restore from a given backup
      *   The backup data has been copied to the nodes
@@ -563,12 +550,6 @@ public class BackupService {
         log.info("The restore command={}", restoreCommand);
 
         Exec.exec(120*1000, restoreCommand);
-        /*
-        RestoreRunnable restoreRunnable = new RestoreRunnable(restoreCommand);
-        Thread restoreThread = new Thread(restoreRunnable);
-        restoreThread.setName("restoreThread");
-        restoreThread.start();
-        */
 
         log.info("done");
         return Response.status(202).build();

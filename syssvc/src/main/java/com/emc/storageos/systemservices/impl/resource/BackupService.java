@@ -27,6 +27,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
+import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -561,10 +562,13 @@ public class BackupService {
                 restoreLog};
         log.info("The restore command={}", restoreCommand);
 
+        Exec.exec(120*1000, restoreCommand);
+        /*
         RestoreRunnable restoreRunnable = new RestoreRunnable(restoreCommand);
         Thread restoreThread = new Thread(restoreRunnable);
         restoreThread.setName("restoreThread");
         restoreThread.start();
+        */
 
         log.info("done");
         return Response.status(202).build();
@@ -588,6 +592,10 @@ public class BackupService {
     }
 
     private File getBackupDir(String backupName, boolean isLocal) {
+        if (backupName.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
+            backupName = FilenameUtils.removeExtension(backupName);
+        }
+
         File backupDir = isLocal ? new File(backupOps.getBackupDir(), backupName) : new File(BackupConstants.RESTORE_DIR, backupName);
         if (backupDir.exists()) {
             return backupDir;

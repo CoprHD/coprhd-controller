@@ -8,8 +8,8 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalMirrorSupport
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
@@ -47,6 +47,8 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
+import com.emc.storageos.model.application.VolumeGroupList;
+import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
@@ -198,6 +200,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getSourceVolumes(AssetOptionsContext ctx, URI project) {
         debug("getting source block volumes (project=%s)", project);
         return createVolumeOptions(null, listSourceVolumes(api(ctx), project));
+    }
+
+    @Asset("sourceBlockVolume")
+    @AssetDependencies({ "project", "blockVirtualPoolFilter", "consistencyGroupFilter" })
+    public List<AssetOption> getApplicationSourceVolumes(AssetOptionsContext ctx, URI project, URI vpool, URI cg) {
+        ResourceFilter<VolumeRestRep> virtualPoolFilter = vpool != null ? new VirtualPoolFilter(vpool)
+                : new DefaultResourceFilter<VolumeRestRep>();
+        ResourceFilter<VolumeRestRep> cgFilter = cg != null ? new BlockVolumeConsistencyGroupFilter(cg, false)
+                : new BlockVolumeConsistencyGroupFilter(null, true);
+
+        return createVolumeOptions(null, listSourceVolumes(api(ctx), project, virtualPoolFilter, cgFilter));
     }
 
     @Asset("sourceBlockVolumeInConsistencyGroup")
@@ -654,6 +667,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getBlockVirtualPools(AssetOptionsContext ctx) {
         debug("getting blockVirtualPools");
         return createBaseResourceOptions(api(ctx).blockVpools().getAll());
+    }
+
+    @Asset("blockVirtualPoolFilter")
+    public List<AssetOption> getBlockVirtualPoolFilters(AssetOptionsContext ctx) {
+        List<AssetOption> options = createBaseResourceOptions(api(ctx).blockVpools().getAll());
+        options.add(0, new AssetOption("All", "All"));
+        return options;
     }
 
     /**
@@ -1591,6 +1611,28 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         } else {
             return getConsistencyGroupFullCopies(ctx, volumeId);
         }
+    }
+
+    @Asset("application")
+    public List<AssetOption> getApplications(AssetOptionsContext ctx) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupList applications = client.application().getApplications();
+        return createNamedResourceOptions(applications.getVolumeGroups());
+    }
+
+    @Asset("applicationBlockVolume")
+    @AssetDependencies("application")
+    public List<AssetOption> getApplications(AssetOptionsContext ctx, URI application) {
+        final ViPRCoreClient client = api(ctx);
+        return createNamedResourceOptions(client.application().listVolumes(application));
+    }
+
+    @Asset("replicationGroup")
+    @AssetDependencies("application")
+    public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupRestRep application = client.application().getApplication(applicationId);
+        return createStringOptions(application.getReplicationGroupNames());
     }
 
     class VirtualPoolFilter extends DefaultResourceFilter<VolumeRestRep> {

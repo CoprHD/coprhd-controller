@@ -1319,9 +1319,19 @@ public class ControllerUtils {
         String groupName = replicationGroupName;
         
         if (groupName == null && cg != null) {
-            groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+            // if there is only one system cg name for this storage system, use this; it may be different than the label
+            if (cg.getSystemConsistencyGroups() != null && storage != null) {
+                StringSet cgsforStorage = cg.getSystemConsistencyGroups().get(storage.getId().toString());
+                if (cgsforStorage != null && cgsforStorage.size() == 1) {
+                    groupName = cgsforStorage.iterator().next();
+                } else {
+                    groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+                }
+            } else {
+                groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+            }
         }
-        if (storage != null && storage.deviceIsType(Type.vnxblock)) {
+        if (storage != null && storage.deviceIsType(Type.vnxblock) && !groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
             groupName = SmisConstants.VNX_VIRTUAL_RG + groupName;
             s_logger.info("VNX virtual replication group {}", groupName);
         }

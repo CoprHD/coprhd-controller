@@ -675,6 +675,7 @@ application.mirror=Mirrors
 application.save.success=Saved '%s'
 applications.deleted=Application(s) deleted successfully
 Application.unknown=Unknown Application with ID '%s'
+application.resources.title=Application
 
 # Custom Config
 CustomConfigs.list.title=Controller Configurations
@@ -3218,7 +3219,8 @@ volumeApplication.varray=Virtual Array
 volumeApplication.vpool=Virtual Pool
 volumeApplication.protocols=Protocols
 volumeApplication.wwn=WWN
-volumeApplication.consistencygroup=Consistency Group
+volumeApplication.consistencyGroup=Consistency Group
+volumeApplication.replicationGroup=Replication Group
 
 resources.snapshots=Block Snapshots
 resources.snapshots.none=No Snapshots

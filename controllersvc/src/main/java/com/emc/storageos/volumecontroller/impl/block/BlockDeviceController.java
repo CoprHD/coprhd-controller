@@ -19,7 +19,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -65,8 +64,8 @@ import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.factories.VolumeFactory;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -78,6 +77,7 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -130,11 +130,11 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVo
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneActivateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateWorkflowCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneFractureCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
@@ -596,12 +596,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // journal/target volume, we want to ignore its storage system. We do not want to
             // create backing array consistency groups for RP+VPlex target volumes. Only
             // source volume.
-            // We don't want to create backend CG if it is Vplex backend volume, and its replicationGroupInstance
-            // attribute is not set
+            // We would create backend CG only if the volume's replicationGroupInstance is set when it is prepared in apisvc level.
             Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
             String rpName = volume.getReplicationGroupInstance();
-            if (!(VPlexUtil.isVplexBackendVolume(volume, _dbClient) && NullColumnValueGetter.isNullValue(rpName)) &&
-                    !(volume.checkInternalFlags(Flag.INTERNAL_OBJECT) &&  NullColumnValueGetter.isNullValue(rpName))) {
+            if (NullColumnValueGetter.isNotNullValue(rpName)) {
+            	_log.info("Creating backend CG.");
                 URI deviceURI = descr.getDeviceURI();
                 if (!deviceURIs.contains(deviceURI)) {
                     deviceURIs.add(deviceURI);
@@ -3029,8 +3028,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Check if already created, if not create, if so just complete.
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
-            if (!cg.created(storage)) {
-                String groupName = ControllerUtils.generateReplicationGroupName(storageObj, cg, null);
+            String groupName = ControllerUtils.generateReplicationGroupName(storageObj, cg, null);
+            if (!cg.created(storage, groupName)) {
                 getDevice(storageObj.getSystemType()).doCreateConsistencyGroup(storageObj, consistencyGroup, groupName, completer);
             } else {
                 _log.info(String.format("Consistency group %s (%s) already created", cg.getLabel(), cg.getId()));
@@ -5198,15 +5197,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 URI cguri = addVolList.getConsistencyGroup();
                 cgs.add(cguri);
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+                
+                String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cguri, addVolList.getReplicationGroupName(), _dbClient);
 
                 // check if cg is created, if not create it
-                if (!cg.created(addVolList.getReplicationGroupName(), storageSystem.getId())) {
+                if (!cg.created(groupName, storageSystem.getId())) {
                     _log.info("Consistency group not created. Creating it");
                     waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                             String.format("Creating consistency group %s", cg.getLabel()),
                             waitFor, storage, storageSystem.getSystemType(),
                             this.getClass(),
-                            createConsistencyGroupMethod(storage, cguri, addVolList.getReplicationGroupName()),
+                            createConsistencyGroupMethod(storage, cguri, groupName),
                             rollbackMethodNullMethod(), null);
                 }
 
@@ -5214,7 +5215,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         String.format("Adding volumes to consistency group %s", cguri),
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
-                        addToConsistencyGroupMethod(storage, cguri, addVolList.getReplicationGroupName(), addVolumesList),
+                        addToConsistencyGroupMethod(storage, cguri, groupName, addVolumesList),
                         rollbackMethodNullMethod(), null);
 
                 // call ReplicaDeviceController

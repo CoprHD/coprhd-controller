@@ -16,6 +16,7 @@ usage() {
     echo "       $0 <Backup Zip File>"
     echo "For example:"
     echo "       $0 /tmp/test.zip"
+    echo "NOTE: restore on standby site is not supported."
 }
 
 validate_parameters() {
@@ -276,11 +277,20 @@ get_nodeid() {
     echo "$nodeId"
 }
 
+check_standby() {
+    local is_standby=$(/etc/systool --getvdcprops | awk '/^site_is_standby=/ {print substr($0, length("site_is_standby=") + 1)}')
+    if [ "$is_standby" == "true" ]; then
+        echo "Restore on standby site is not supported."
+        exit 2
+    fi
+}
+
 if [ $# -eq 1 ]; then
     if [ $1 == "--help" -o $1 == "-h" -o $1 == "-help" ]; then
         usage
         exit 0
     fi
+    check_standby
     BACKUP_ZIP=$(readlink -f $1)
     validate_parameters
     init_variables

@@ -27,11 +27,9 @@ import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.model.property.PropertyInfo;
-
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -81,6 +79,7 @@ public class BackupOps {
             throw BackupException.fatals.forbidBackupOnStandbySite();
         }
     }
+
     /**
      * Default constructor.
      */

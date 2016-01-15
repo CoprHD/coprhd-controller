@@ -11,7 +11,7 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "site_actions_time")
+@XmlRootElement(name = "site_details")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class SiteDetailRestRep {
     private Date creationTime;
@@ -47,7 +47,7 @@ public class SiteDetailRestRep {
         this.lastUpdateTime = lastUpdateTime;
     }
 
-    @XmlElement(name = "networkLatencyInMS")
+    @XmlElement(name = "networkLatencyInMs")
     public Double getNetworkLatencyInMs() {
         return networkLatencyInMs;
     }

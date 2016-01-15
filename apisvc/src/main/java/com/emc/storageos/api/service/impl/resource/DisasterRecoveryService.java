@@ -1133,7 +1133,7 @@ public class DisasterRecoveryService {
             // Add last-synced time to lastUpdateTime when available
 
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());
-            standbyTimes.setClusterState(state.toString());
+            standbyDetails.setClusterState(state.toString());
 
         } catch (CoordinatorException e) {
             log.error("Can't find site {} from ZK", uuid);

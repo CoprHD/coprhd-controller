@@ -284,19 +284,21 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                                         PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
                             BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
                                     volume.getConsistencyGroup());
-                            if (null != XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroupObj.getLabel(), clusterName)) {
+                            String cgName = volume.getReplicationGroupInstance();
+                            
+                            if (null != XtremIOProvUtils.isCGAvailableInArray(client, cgName, clusterName)) {
                                 // first remove the volume from cg if exists on array and then delete
                                 _log.info("Removing the volume {} from consistency group {}", volume.getLabel(),
-                                        consistencyGroupObj.getLabel());
-                                client.removeVolumeFromConsistencyGroup(volume.getLabel(), consistencyGroupObj.getLabel(), clusterName);
+                                		cgName);
+                                client.removeVolumeFromConsistencyGroup(volume.getLabel(), cgName, clusterName);
                                 XtremIOConsistencyGroup xioCG = XtremIOProvUtils.isCGAvailableInArray(client,
-                                        consistencyGroupObj.getLabel(), clusterName);
+                                		cgName, clusterName);
                                 // Check if there are no volumes in the CG
                                 if (null == xioCG.getVolList() || xioCG.getVolList().isEmpty()) {
-                                    client.removeConsistencyGroup(consistencyGroupObj.getLabel(), clusterName);
+                                    client.removeConsistencyGroup(cgName, clusterName);
                                     _log.info("CG is empty on array. Remove array association from the CG");
                                     consistencyGroupObj.removeSystemConsistencyGroup(storageSystem.getId().toString(),
-                                            consistencyGroupObj.getLabel());
+                                    		cgName);
                                     // clear the LOCAL type
                                     StringSet types = consistencyGroupObj.getTypes();
                                     if (types != null) {

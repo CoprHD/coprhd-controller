@@ -15,8 +15,8 @@ import java.io.IOException;
 import com.emc.storageos.management.backup.util.ValidationUtil;
 import com.emc.storageos.management.backup.util.ValidationUtil.*;
 
-//This test fails on public build servers and coverage servers because it is not "self-contained" and relies on external
-//services to be running.  Therefore it is Ignored by default
+// This test fails on public build servers and coverage servers because it is not "self-contained" and relies on external
+// services to be running.  Therefore it is Ignored by default.  COP-19800
 @Ignore
 public class ZkBackupHandlerTest extends BackupTestBase {
 

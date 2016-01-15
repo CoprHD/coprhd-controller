@@ -1132,8 +1132,13 @@ public class DisasterRecoveryService {
             }
             // Add last-synced time to lastUpdateTime when available
 
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());
-            standbyTimes.setClusterState(state.toString());
+            ClusterInfo.ClusterState clusterState = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());
+            if(clusterState != null) {
+                standbyTimes.setClusterState(clusterState.toString());
+            }
+            else {
+                standbyTimes.setClusterState(ClusterInfo.ClusterState.UNKNOWN.toString());
+            }
 
         } catch (CoordinatorException e) {
             log.error("Can't find site {} from ZK", uuid);

@@ -33,7 +33,7 @@ public class BackupDataTable extends DataTable {
         addColumn("creationtime").setCssClass("time").setRenderFunction(
                 "render.localDate");
         if (type == Type.LOCAL) {
-            addColumn("size");
+            addColumn("size").setRenderFunction("render.backupSize");
         }
         addColumn("actionstatus").setSearchable(false).setRenderFunction(
                 "render.uploadProgress");

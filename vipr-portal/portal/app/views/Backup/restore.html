@@ -5,7 +5,7 @@
 #{/set}
 
 #{breadcrumb.container}
-    #{breadcrumb.item @list()}&{'Backup.list.title'}#{/breadcrumb.item}
+    #{breadcrumb.item @list(type)}&{'Backup.list.title'}#{/breadcrumb.item}
     #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
@@ -106,7 +106,6 @@
                     var property = result[i];
                     description += i + " = " + property + "\n";
                 }
-                console.info("in success");
                 var totalSize = result.backupSize;
                 var downloadSize = result.downloadSize;
                 var progress = downloadSize / totalSize > 100 ? 100 : parseInt(downloadSize / totalSize);
@@ -126,7 +125,7 @@
                 }
             },
             error: function () {
-                console.info("in error");
+                console.info("Error happens");
             }
         });
     }

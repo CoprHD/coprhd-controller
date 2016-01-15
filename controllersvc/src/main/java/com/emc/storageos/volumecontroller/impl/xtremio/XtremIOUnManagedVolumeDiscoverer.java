@@ -826,6 +826,19 @@ public class XtremIOUnManagedVolumeDiscoverer {
         return unManagedVolume;
     }
     
+    /**
+     * Adds the passed in unmanaged volume or unmanaged snapshot 
+     * to an unmanaged consistency group object
+     * 
+     * @param xtremIOClient - connection to xtremio REST interface
+     * @param unManagedVolume - either and unmanaged volume or unmanaged snapshot
+     * associated with a consistency group
+     * @param cgNameToProcess - consistency group being processed
+     * @param storageSystem - storage system the objects are on
+     * @param xioClusterName - name of the xtremio cluster being managed by the xtremio XMS
+     * @param dbClient - dbclient
+     * @throws Exception
+     */
     private void addObjectToUnManagedConsistencyGroup(XtremIOClient xtremIOClient, UnManagedVolume unManagedVolume,
     		String cgNameToProcess, StorageSystem storageSystem, String xioClusterName, DbClient dbClient) throws Exception {    	    		
     		// Check if the current CG is in the list of unsupported CGs                		

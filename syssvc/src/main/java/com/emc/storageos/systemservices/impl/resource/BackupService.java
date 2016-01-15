@@ -13,6 +13,7 @@ import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.net.URI;
@@ -40,6 +41,7 @@ import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
+import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import com.emc.storageos.systemservices.impl.restore.DownloadExecutor;
 import com.emc.storageos.systemservices.impl.jobs.common.JobProducer;
 import com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil;
@@ -52,10 +54,13 @@ import com.emc.storageos.management.backup.BackupOps;
 import com.emc.storageos.management.backup.BackupSetInfo;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.BackupConstants;
+import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
+import com.emc.vipr.model.sys.backup.ExternalBackups;
 
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 
@@ -69,6 +74,7 @@ public class BackupService {
     private static final int ASYNC_STATUS = 202;
     private BackupOps backupOps;
     private BackupScheduler backupScheduler;
+    private SchedulerConfig backupConfig;
     private JobProducer jobProducer;
     private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
     private final String restoreCmd="/opt/storageos/bin/restore-from-ui.sh";
@@ -184,6 +190,96 @@ public class BackupService {
             }
         }
         return new BackupSets.BackupSet();
+    }
+
+    /**
+     * Get a list of backup files on external server
+     *
+     * @brief List current backup files on external server
+     * @prereq none
+     * @return A list of backup files info
+     */
+    @GET
+    @Path("external/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public ExternalBackups listExternalBackup() {
+        log.info("Received list backup files on external server request");
+        try {
+            backupConfig = backupScheduler.getCfg();
+            String externalServerUrl = backupConfig.getExternalServerUrl();
+            String userName = backupConfig.getExternalServerUserName();
+            String password = backupConfig.getExternalServerPassword();
+            if (externalServerUrl == null) {
+                log.warn("External server has not been configured");
+                throw new IllegalStateException("External server has not been configured");
+            }
+            FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
+            List<String> backupFiles = ftpClient.listAllFiles();
+            ExternalBackups backups = new ExternalBackups(backupFiles);
+            return backups;
+        } catch (Exception e) {
+            log.error("Failed to list backup files on external server", e);
+            throw APIException.internalServerErrors.listExternalBackupFailed(e);
+        }
+    }
+
+    /**
+     * Get info for a specific backup file on external server
+     *
+     * @brief Get a specific backup file info
+     * @param backupFileName The name of backup file
+     * @prereq none
+     * @return Info of a specific backup file
+     */
+    @GET
+    @Path("external/backup/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public ExternalBackupInfo queryExternalBackup(@QueryParam("name") String backupFileName) {
+        log.info("Received query backup on external server request, file name={}", backupFileName);
+        try {
+            ExternalBackupInfo externalBackupInfo = new ExternalBackupInfo();
+            externalBackupInfo.setFileName(backupFileName);
+            externalBackupInfo.setCreateTime(getBackupCreateTime(backupFileName));
+            externalBackupInfo.setRestoreStatus(queryRestoreStatus(backupFileName, false));
+            log.info("External Backup info: {}", externalBackupInfo);
+            return externalBackupInfo;
+        } catch (Exception e) {
+            log.error("Failed to query external backup info", e);
+            throw APIException.internalServerErrors.queryExternalBackupFailed(e);
+        }
+    }
+
+    private Long getBackupCreateTime(String backupName) {
+        if (backupName == null) {
+            log.error("Backup file name is empty");
+            throw new IllegalArgumentException("Backup file name is empty");
+        }
+        if (!backupName.contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
+            log.error("Backup file name should contain {}", BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
+            throw new IllegalArgumentException("Invalid backup file name: " + backupName);
+        }
+
+        String[] nameSegs = backupName.split(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
+        for (String segment : nameSegs) {
+            if (isTimeFormat(segment)) {
+                log.info("Backup({}) create time is: {}", backupName, segment);
+                return Long.parseLong(segment);
+            }
+        }
+        log.info("Could not get create time from backup name");
+        return null;
+    }
+
+    private boolean isTimeFormat(String nameSegment) {
+        String regex = String.format(BackupConstants.SCHEDULED_BACKUP_DATE_REGEX_PATTERN,
+                BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length());
+        Pattern backupNamePattern = Pattern.compile(regex);
+        if (backupNamePattern.matcher(nameSegment).find()) {
+            return true;
+        }
+        return false;
     }
 
     /**

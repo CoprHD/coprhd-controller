@@ -258,9 +258,9 @@ public class FileQuotaDirectoryService extends TaskResourceService {
             ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
         }
 
-        quotaDir.setSoftLimit(param.getSoftLimit());
-        quotaDir.setSoftGrace(param.getSoftGrace());
-        quotaDir.setNotificationLimit(param.getNotificationLimit());
+        quotaDir.setSoftLimit(param.getSoftLimit() != 0 ? param.getSoftLimit() : fs.getSoftLimit().intValue());
+        quotaDir.setSoftGrace(param.getSoftGrace() != 0 ? param.getSoftGrace() : fs.getSoftGracePeriod());
+        quotaDir.setNotificationLimit(param.getNotificationLimit() != 0 ? param.getNotificationLimit() : fs.getNotificationLimit().intValue());
         
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR);

@@ -27,6 +27,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
+import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -522,19 +523,6 @@ public class BackupService {
         return Response.status(202).build();
     }
 
-    class RestoreRunnable implements Runnable {
-        private String[] cmd;
-
-        RestoreRunnable(String[] cmd) {
-            this.cmd = cmd;
-        }
-
-        @Override
-        public void run() {
-            Exec.exec(120*1000, cmd);
-        }
-    }
-
     /**
      * Restore from a given backup
      *   The backup data has been copied to the nodes
@@ -561,10 +549,7 @@ public class BackupService {
                 restoreLog};
         log.info("The restore command={}", restoreCommand);
 
-        RestoreRunnable restoreRunnable = new RestoreRunnable(restoreCommand);
-        Thread restoreThread = new Thread(restoreRunnable);
-        restoreThread.setName("restoreThread");
-        restoreThread.start();
+        Exec.exec(120*1000, restoreCommand);
 
         log.info("done");
         return Response.status(202).build();
@@ -588,6 +573,10 @@ public class BackupService {
     }
 
     private File getBackupDir(String backupName, boolean isLocal) {
+        if (backupName.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
+            backupName = FilenameUtils.removeExtension(backupName);
+        }
+
         File backupDir = isLocal ? new File(backupOps.getBackupDir(), backupName) : new File(BackupConstants.RESTORE_DIR, backupName);
         if (backupDir.exists()) {
             return backupDir;

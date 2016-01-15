@@ -114,12 +114,13 @@ _gen_ipsec_conf() {
 
     local vdc_ids=$(echo ${_GENCONFIG_vdc_ids} | sed 's/,/ /g')
     local site_ids=$(echo ${_GENCONFIG_site_ids} | sed 's/,/ /g')
+    local content="${COMMON_SECTION}"
     for vdc in ${vdc_ids} ; do
         for site in ${site_ids} ; do
             local ips=$(_get_ips_in_specified_site "${vdc}" "${site}")
             connections=$(_gen_conn_sections "${ips}")
-            local content=$(cat << EOF
-${COMMON_SECTION}
+            content=$(cat << EOF
+${content}
 
 # ips in ${vdc}_${site}: ${ips}
 ${connections}

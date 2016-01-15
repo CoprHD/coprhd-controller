@@ -21,6 +21,7 @@ import com.emc.storageos.api.service.impl.resource.TenantsService;
 import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
@@ -102,11 +103,21 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 || vplexIngestionMethod.isEmpty()
                 || (!vplexIngestionMethod.equals(VplexBackendIngestionContext.INGESTION_METHOD_VVOL_ONLY));
 
-        VplexVolumeIngestionContext volumeContext = null;
-
         if (ingestBackend) {
 
-            volumeContext = (VplexVolumeIngestionContext) requestContext.getVolumeContext();
+            VplexVolumeIngestionContext volumeContext = null;
+
+            if (requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
+                // if this volume is RP/VPLEX, we need to get the volume context
+                // from the RpVplexVolumeIngestionContext
+                volumeContext = 
+                        ((RpVplexVolumeIngestionContext) 
+                                requestContext.getVolumeContext()).getVplexVolumeIngestionContext();
+            } else {
+                // this is just a plain VPLEX volume backend ingestion
+                volumeContext = (VplexVolumeIngestionContext) requestContext.getVolumeContext();
+            }
+
             volumeContext.setIngestionInProgress(true);
 
             //

@@ -775,6 +775,17 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Returns true if the UnManagedVolume represents a RP/VPLEX virtual volume.
+     * That is, a VPLEX volume that is RecoverPoint-enabled.
+     * 
+     * @param unManagedVolume the UnManagedVolume in question
+     * @return true if the volume is an RP/VPLEX virtual volume
+     */
+    public static boolean isRpVplexVolume(UnManagedVolume unManagedVolume) {
+        return isVplexVolume(unManagedVolume) && checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
+    }
+
+    /**
      * Returns true if the UnManagedVolume represents a VPLEX virtual volume.
      * 
      * @param volume the UnManagedVolume in question

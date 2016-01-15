@@ -21,7 +21,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.LinkBlockSnapshot;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 
 @Service("LinkBlockSnapshot")
 public class LinkBlockSnapshotService extends ViPRService {
@@ -71,12 +71,12 @@ public class LinkBlockSnapshotService extends ViPRService {
     }
 
     @Override
-    public void execute() {        
+    public void execute() {      
+        Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (String snapshotSessionId : snapshotSessionIds) {
-                Task<? extends DataObjectRestRep> task;
-                task = execute(new LinkBlockSnapshot(snapshotSessionId, existingLinkedSnapshotIds, linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode));
-                addAffectedResource(task);
+                tasks = execute(new LinkBlockSnapshot(snapshotSessionId, existingLinkedSnapshotIds, linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode));
+                addAffectedResources(tasks);
             }
         } else {
             // CG not supported for now

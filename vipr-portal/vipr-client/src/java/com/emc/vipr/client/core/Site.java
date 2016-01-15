@@ -84,8 +84,8 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.get(SiteErrorResponse.class, PathConstants.SITE_URL + "/" + uuid + "/error");
     }
 
-    public SiteDetailRestRep getSiteTime(String uuid) {
-        return client.get(SiteDetailRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/time");
+    public SiteDetailRestRep getSiteDetails(String uuid) {
+        return client.get(SiteDetailRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/details");
     }
 
     public ClientResponse doSwitchover(String uuid) {

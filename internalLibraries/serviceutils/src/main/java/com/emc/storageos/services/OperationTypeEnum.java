@@ -373,6 +373,8 @@ public enum OperationTypeEnum {
     DELETE_TASK("DELETE TASK", "", "Delete a Task"),
     SEND_PASSWORD_TO_BE_EXPIRE_MAIL("SEND PASSWORD TO BE EXPIRED MAIL SUCCESS", "SEND PASSWORD TO BE EXPIRED MAIL FAIL",
             "operation to send password to be expired mail"),
+    SEND_STANDBY_NETWORK_BROKEN_MAIL("SEND STANDBY NETWORK BROKEN MAIL SUCCESS", "SEND STANDBY NETWORK BROKEN MAIL FAIL",
+            "operation to send standby network broken mail"),
     DELETE_CONFIG("DELETE CONFIG", "", "operation to delete controller config"),
     CREATE_CONFIG("CREATE CONFIG", "", "operation to create controller config"),
     UPDATE_CONFIG("UPDATE CONFIG", "", "operation to update controller config"),

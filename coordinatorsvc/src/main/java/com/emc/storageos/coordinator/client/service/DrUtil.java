@@ -9,8 +9,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -51,6 +54,7 @@ public class DrUtil {
     public static final String ZOOKEEPER_MODE_READONLY = "read-only";
     public static final String ZOOKEEPER_MODE_LEADER = "leader";
     public static final String ZOOKEEPER_MODE_FOLLOWER = "follower";
+    public static final String ZOOKEEPER_MODE_STANDALONE = "standalone";
 
     private static final String DR_CONFIG_KIND = "disasterRecoveryConfig";
     private static final String DR_CONFIG_ID = "global";

@@ -511,10 +511,10 @@ public class BackupService {
     @Path("pull/cancel")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response cancelDownloading() {
-        log.info("lbye To cancel the current download");
+        log.info("To cancel the current download");
 
         if (downloadTask != null) {
-            log.info("lbye to call cancelDownload()");
+            log.info("To stop current download task");
             downloadTask.cancelDownload();
         }
 

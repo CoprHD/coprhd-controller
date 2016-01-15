@@ -77,6 +77,7 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -595,12 +596,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // journal/target volume, we want to ignore its storage system. We do not want to
             // create backing array consistency groups for RP+VPlex target volumes. Only
             // source volume.
-            // We don't want to create backend CG if it is Vplex backend volume, and its replicationGroupInstance
-            // attribute is not set
+            // We would create backend CG only if the volume's replicationGroupInstance is set when it is prepared in apisvc level.
             Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
             String rpName = volume.getReplicationGroupInstance();
-            if (!(VPlexUtil.isVplexBackendVolume(volume, _dbClient) && NullColumnValueGetter.isNullValue(rpName)) &&
-                    !(volume.checkInternalFlags(Flag.INTERNAL_OBJECT) &&  NullColumnValueGetter.isNullValue(rpName))) {
+            if (NullColumnValueGetter.isNotNullValue(rpName)) {
+            	_log.info("Creating backend CG.");
                 URI deviceURI = descr.getDeviceURI();
                 if (!deviceURIs.contains(deviceURI)) {
                     deviceURIs.add(deviceURI);
@@ -3026,8 +3026,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Check if already created, if not create, if so just complete.
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
-            if (!cg.created(storage)) {
-                String groupName = ControllerUtils.generateReplicationGroupName(storageObj, cg, null);
+            String groupName = ControllerUtils.generateReplicationGroupName(storageObj, cg, null);
+            if (!cg.created(storage, groupName)) {
                 getDevice(storageObj.getSystemType()).doCreateConsistencyGroup(storageObj, consistencyGroup, groupName, completer);
             } else {
                 _log.info(String.format("Consistency group %s (%s) already created", cg.getLabel(), cg.getId()));
@@ -4222,9 +4222,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             taskCompleter = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
-            String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, null, _dbClient);
+            String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, replicationGroupName, _dbClient);
             getDevice(storageSystem.getSystemType()).doCreateConsistencyGroup(
-                    storageSystem, consistencyGroup, replicationGroupName, taskCompleter);
+                    storageSystem, consistencyGroup, groupName, taskCompleter);
         } catch (Exception e) {
             _log.error("create consistency group job failed:", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

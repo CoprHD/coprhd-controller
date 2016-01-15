@@ -173,8 +173,10 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                         client.tagObject(volumesFolderName, XTREMIO_ENTITY_TYPE.Volume.name(), volume.getLabel(), clusterName);
                         // Do not add RP+VPlex journal or target backing volumes to consistency groups.
                         // This causes issues with local array snapshots of RP+VPlex volumes.
+                        String rpName = volume.getReplicationGroupInstance();
                         if (isCG && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
-                                        PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
+                                        PersonalityTypes.METADATA, PersonalityTypes.TARGET) &&
+                                NullColumnValueGetter.isNotNullValue(rpName)) {
                             client.addVolumeToConsistencyGroup(volume.getLabel(), cgObj.getLabel(), clusterName);
                         }
                     }

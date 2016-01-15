@@ -17,7 +17,7 @@
       type:"assetType.vipr.snapshotBlockVolume"
     },
     
-    type: {
+    type:{
       type: "assetType.vipr.blockSnapshotType",
       required: "false",
       lockable: true
@@ -58,6 +58,10 @@
           validation:{
               min:1
           }
+        },
+        linkedSnapshotCopyMode:{
+          type:"assetType.vipr.linkedSnapshotCopyMode",
+          required: "false"
         }
       }
     }

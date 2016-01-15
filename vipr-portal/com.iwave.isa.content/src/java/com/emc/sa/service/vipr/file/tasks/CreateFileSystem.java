@@ -25,6 +25,14 @@ public class CreateFileSystem extends WaitForTask<FileShareRestRep> {
     public CreateFileSystem(String label, double sizeInGB, int advisoryLimit, int softLimit, int gracePeriod, String vpoolId, String varrayId, String projectId) {
         this(label, sizeInGB, advisoryLimit, softLimit, gracePeriod,uri(vpoolId), uri(varrayId), uri(projectId));
     }
+    
+    public CreateFileSystem(String label, double sizeInGB, String vpoolId, String varrayId, String projectId) {
+        this(label, sizeInGB, uri(vpoolId), uri(varrayId), uri(projectId));
+    }
+    
+    public CreateFileSystem(String label, double sizeInGB, URI vpoolId, URI varrayId, URI projectId) {
+        this(label, sizeInGB, 0, 0, 0,vpoolId, varrayId, projectId);
+    }
 
     public CreateFileSystem(String label, double sizeInGB, int advisoryLimit, int softLimit, int gracePeriod, URI vpoolId, URI varrayId, URI projectId) {
         this.label = label;

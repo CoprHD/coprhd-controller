@@ -116,6 +116,15 @@ public class FileStorageUtils {
         logInfo("file.storage.filesystem.task", fileSystemId, task.getOpId());
         return fileSystemId;
     }
+    
+    public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb) {
+        Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, virtualPool, virtualArray, project));
+        addAffectedResource(task);
+        URI fileSystemId = task.getResourceId();
+        addRollback(new DeactivateFileSystem(fileSystemId, FileControllerConstants.DeleteTypeEnum.FULL));
+        logInfo("file.storage.filesystem.task", fileSystemId, task.getOpId());
+        return fileSystemId;
+    }
 
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
         if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {

@@ -10,9 +10,12 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroup;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumes;
 import com.emc.sa.service.vipr.block.tasks.MigrateBlockVolumes;
+import com.emc.sa.service.vipr.block.tasks.RemoveVolumesFromMobilityGroup;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
+import com.google.common.collect.Lists;
 
 @Service("MobilityGroupMigration")
 public class MobilityGroupMigrationService extends ViPRService {
@@ -35,9 +38,25 @@ public class MobilityGroupMigrationService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        List<URI> blockVolumes = execute(new GetMobilityGroupVolumes(mobilityGroupId));
-        Tasks<VolumeRestRep> tasks = execute(new MigrateBlockVolumes(blockVolumes, mobilityGroup.getSourceStorageSystem(),
+        Tasks<VolumeRestRep> tasks = execute(new MigrateBlockVolumes(getVolumes(), mobilityGroup.getSourceStorageSystem(),
                 targetVirtualPool, targetStorageSystem));
+        execute(new RemoveVolumesFromMobilityGroup(mobilityGroup.getId(), getVolumeList(tasks)));
+
         addAffectedResources(tasks);
+    }
+
+    private List<URI> getVolumeList(Tasks<VolumeRestRep> tasks) {
+        List<URI> volumes = Lists.newArrayList();
+        for (VolumeRestRep volume : tasks.get()) {
+            volumes.add(volume.getId());
+        }
+        return volumes;
+    }
+
+    private List<URI> getVolumes() {
+        if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.VOLUME.name())) {
+            return execute(new GetMobilityGroupVolumes(mobilityGroupId));
+        }
+        return Lists.newArrayList();
     }
 }

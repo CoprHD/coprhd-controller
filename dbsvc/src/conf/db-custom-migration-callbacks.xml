@@ -114,9 +114,8 @@
         <entry key="2.4.1">
             <list>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VplexVolumesInCGMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualNASMultipleProjectsAssociationMigration"/>
             </list>
         </entry>
-        
-
     </util:map>
 </beans>

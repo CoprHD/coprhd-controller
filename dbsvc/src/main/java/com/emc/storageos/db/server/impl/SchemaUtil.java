@@ -5,15 +5,18 @@
 
 package com.emc.storageos.db.server.impl;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.CassandraOperationType;
@@ -29,6 +32,9 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
+import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -346,13 +352,28 @@ public class SchemaUtil {
                 // Ensure schema agreement before checking the strategy options,
                 // since the strategy options from the local site might be older than the active site
                 // and shouldn't be relied on any more.
-                // Wait until there is at least one reachable node from the other site
-                // (which contains the latest db schema).
-                clientContext.ensureSchemaAgreement(2);
+                while (clientContext.ensureSchemaAgreement()) {
+                    // If there are unreachable nodes, wait until there is at least
+                    // one reachable node from the other site (which contains the latest db schema).
+                    if (getReachableDcCount() > 1) {
+                        break;
+                    }
+                }
             }
             checkStrategyOptions();
             return true;
         }
+    }
+
+    private int getReachableDcCount() {
+        Set<String> dcNames = new HashSet<>();
+        IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+        for (InetAddress nodeIp : liveNodes) {
+            dcNames.add(snitch.getDatacenter(nodeIp));
+        }
+        _log.info("Number of reachable data centers: {}", dcNames.size());
+        return dcNames.size();
     }
 
     public void rebuildDataOnStandby() {
@@ -754,9 +775,6 @@ public class SchemaUtil {
     /**
      * Check if node ip or vip is changed. VirtualDataCenter object should be updated
      * to reflect this change.
-     * 
-     * @param vdc
-     * @param dbClient
      */
     private void checkIPChanged() {
         Site site = drUtil.getLocalSite();

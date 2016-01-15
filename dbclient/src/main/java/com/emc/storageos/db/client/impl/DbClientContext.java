@@ -5,21 +5,14 @@
 
 package com.emc.storageos.db.client.impl;
 
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
@@ -37,11 +30,7 @@ import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.retry.RetryPolicy;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
-import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.gms.Gossiper;
-import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.service.StorageProxy;
-import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
@@ -76,8 +65,6 @@ public class DbClientContext {
     private static final int GEODB_THRIFT_PORT = 9260;
     private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
     private static final int DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC = 30;
-    // a normal node removal should succeed in 30s.
-    private static final int REMOVE_NODE_TIMEOUT_MILLIS = 1 * 60 * 1000; // 1 min
 
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
@@ -106,7 +93,6 @@ public class DbClientContext {
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
-    private ExecutorService removeNodeExecutor = Executors.newCachedThreadPool();
 
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
@@ -353,7 +339,6 @@ public class DbClientContext {
         }
 
         exe.shutdownNow();
-        removeNodeExecutor.shutdownNow();
     }
 
     /**
@@ -375,7 +360,7 @@ public class DbClientContext {
 
             // ensure a schema agreement before updating the strategy options
             // or else it's destined to fail due to SchemaDisagreementException
-            boolean hasUnreachableNodes = ensureSchemaAgreement(1);
+            boolean hasUnreachableNodes = ensureSchemaAgreement();
 
             String schemaVersion;
             if (hasUnreachableNodes) {
@@ -447,10 +432,9 @@ public class DbClientContext {
     /**
      * Try to reach a schema agreement among all the reachable nodes
      *
-     * @param minDcCount minimum number of data centers that must be reachable before this method returns, inclusive
      * @return true if there are unreachable nodes
      */
-    public boolean ensureSchemaAgreement(int minDcCount) {
+    public boolean ensureSchemaAgreement() {
         long start = System.currentTimeMillis();
         Map<String, List<String>> schemas = null;
         while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
@@ -475,72 +459,11 @@ public class DbClientContext {
                     continue;
                 }
             }
-            // schema.size() == 2, if there are db nodes from more than minDcCount data centers then we are good
-            // otherwise continue waiting
-            if (schemas.containsKey(StorageProxy.UNREACHABLE) && getReachableDcCount() >= minDcCount) {
-                return true;
-            }
+            // schema.size() == 2
+            return schemas.containsKey(StorageProxy.UNREACHABLE);
         }
         log.error("Unable to converge schema versions {}", schemas);
         throw new IllegalStateException("Unable to converge schema versions");
-    }
-
-    private int getReachableDcCount() {
-        Set<String> dcNames = new HashSet<>();
-        IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
-        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
-        for (InetAddress nodeIp : liveNodes) {
-            dcNames.add(snitch.getDatacenter(nodeIp));
-        }
-        log.info("Number of reachable data centers: {}", dcNames.size());
-        return dcNames.size();
-    }
-
-    private void removeCassandraNode(InetAddress nodeIp) {
-        Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
-        String guid = hostIdMap.get(nodeIp.getHostAddress());
-        log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
-        Gossiper.instance.convict(nodeIp, 0);
-        ensureRemoveNode(guid);
-    }
-
-    public void removeDataCenter(String dcName) {
-        log.info("Remove Cassandra data center {}", dcName);
-        List<InetAddress> allNodes = new ArrayList<>();
-        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
-        allNodes.addAll(liveNodes);
-        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
-        allNodes.addAll(unreachableNodes);
-        for (InetAddress nodeIp : allNodes) {
-            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
-            String dc = snitch.getDatacenter(nodeIp);
-            log.info("node {} belongs to data center {} ", nodeIp, dc);
-            if (dc.equals(dcName)) {
-                removeCassandraNode(nodeIp);
-            }
-        }
-    }
-
-    /**
-     * A safer method to remove Cassandra node. Calls forceRemoveCompletion after REMOVE_NODE_TIMEOUT_MILLIS
-     * This will help to prevent node removal from hanging due to CASSANDRA-6542.
-     *
-     * @param guid
-     */
-    public void ensureRemoveNode(final String guid) {
-        Future<?> future = removeNodeExecutor.submit(new Runnable() {
-            public void run() {
-                StorageService.instance.removeNode(guid);
-            }
-        });
-        try {
-            future.get(REMOVE_NODE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            log.warn("removenode timeout, calling forceRemoveCompletion()");
-            StorageService.instance.forceRemoveCompletion();
-        } catch (InterruptedException | ExecutionException e) {
-            log.warn("Exception calling removenode", e);
-        }
     }
 
     /**

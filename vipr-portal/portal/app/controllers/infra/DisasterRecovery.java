@@ -245,39 +245,40 @@ public class DisasterRecovery extends ViprResourceController {
     }
 
     public static void errorDetails(String id) {
-        SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
-        Boolean isError = false;
-        String uuid = id;
-        if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
-            SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
-            isError = true;
-            if (disasterSiteError.getCreationTime() != null) {
-                DateTime creationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
-                renderArgs.put("creationTime", creationTime);
+        if (DisasterRecoveryUtils.hasStandbySite(id)) {
+            SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
+            Boolean isError = false;
+            String uuid = id;
+            if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
+                SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
+                isError = true;
+                if (disasterSiteError.getCreationTime() != null) {
+                    DateTime creationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
+                    renderArgs.put("creationTime", creationTime);
+                }
+                render(isError, uuid, disasterSiteError);
             }
-            render(isError, uuid, disasterSiteError);
+            else {
+                SiteDetailRestRep disasterSiteTime = DisasterRecoveryUtils.getSiteTime(id);
+                isError = false;
+                if (disasterSiteTime.getCreationTime() != null) {
+                    DateTime creationTime = new DateTime(disasterSiteTime.getCreationTime().getTime());
+                    renderArgs.put("creationTime", creationTime);
+                }
+                if (disasterSiteTime.getPausedTime() != null) {
+                    DateTime pausedTime = new DateTime(disasterSiteTime.getPausedTime().getTime());
+                    renderArgs.put("pausedTime", pausedTime);
+                }
+                if (disasterSiteTime.getlastUpdateTime() != null) {
+                    DateTime lastUpdateTime = new DateTime(disasterSiteTime.getlastUpdateTime().getTime());
+                    renderArgs.put("lastUpdateTime", lastUpdateTime);
+                }
+
+                render(isError, uuid, disasterSiteTime);
+            }
         }
         else {
-            SiteDetailRestRep disasterSiteDetails = DisasterRecoveryUtils.getSiteDetails(id);
-            isError = false;
-            if(disasterSiteDetails.getCreationTime() != null) {
-                DateTime creationTime = new DateTime(disasterSiteDetails.getCreationTime().getTime());
-                renderArgs.put("creationTime", creationTime);
-            }
-            if(disasterSiteDetails.getPausedTime() != null) {
-                DateTime pausedTime = new DateTime (disasterSiteDetails.getPausedTime().getTime());
-                renderArgs.put("pausedTime", pausedTime);
-            }
-            if(disasterSiteDetails.getlastUpdateTime() != null) {
-                DateTime lastUpdateTime = new DateTime (disasterSiteDetails.getlastUpdateTime().getTime());
-                renderArgs.put("lastUpdateTime", lastUpdateTime);
-            }
-            if(disasterSiteDetails.getNetworkLatencyInMs() != null) {
-                Double latency = disasterSiteDetails.getNetworkLatencyInMs();
-                renderArgs.put("latency", latency);
-            }
-
-            render(isError, uuid, disasterSiteDetails);
+            flash.error(MessagesUtils.get(UNKNOWN, id));
         }
     }
 

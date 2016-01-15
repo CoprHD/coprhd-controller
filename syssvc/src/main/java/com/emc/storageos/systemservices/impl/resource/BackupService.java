@@ -79,7 +79,6 @@ public class BackupService {
     private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
     private final String restoreCmd="/opt/storageos/bin/restore-from-ui.sh";
     private final String restoreLog="/var/log/restore-internal.log";
-    //private Thread downloadThread;
     private DownloadExecutor downloadTask;
 
     @Autowired
@@ -488,10 +487,6 @@ public class BackupService {
     public Response pullBackup(@QueryParam("file") String backupName ) {
         log.info("The backup file {} to download", backupName);
 
-        /*
-        DownloadExecutor downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
-                backupName, backupOps, true); //true = notify other nodes
-                */
         downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
                 backupName, backupOps, true); //true = notify other nodes
 
@@ -518,30 +513,6 @@ public class BackupService {
     public Response cancelDownloading() {
         log.info("lbye To cancel the current download");
 
-        /*
-        if (downloadTask != null) {
-            downloadTask.cancel();
-        }
-        */
-        /*
-        Map<String, String> currentBackupInfo = backupOps.getCurrentBackupInfo();
-        log.info("lbya current backup info: {}", currentBackupInfo);
-
-        if (!currentBackupInfo.isEmpty()) {
-            String backupName = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
-            boolean isLocal = Boolean.parseBoolean(currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY));
-            BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(backupName, isLocal);
-
-            log.info("lbya current backup status={}", s);
-
-            if (s.getStatus().canBeCanceled()) {
-                log.info("lbya cancel download");
-                s.setStatus(BackupRestoreStatus.Status.DOWNLOAD_CANCELLED);
-                backupOps.persistBackupRestoreStatus(s, isLocal);
-            }
-        }
-        */
-        //backupOps.cancelDownload();
         if (downloadTask != null) {
             log.info("lbye to call cancelDownload()");
             downloadTask.cancelDownload();

@@ -45,7 +45,7 @@ public final class DownloadExecutor implements  Runnable {
     private BackupRestoreStatus restoreStatus;
     private DownloadListener downloadListener;
     private boolean isGeo = false; // true if the backupset is from GEO env
-    private volatile  boolean isCanceled2=false;
+    private volatile  boolean isCanceled =false;
 
     public static DownloadExecutor create(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps, boolean notifyOthers) {
 
@@ -72,7 +72,7 @@ public final class DownloadExecutor implements  Runnable {
 
     public void registerListener() {
         try {
-            log.info("lbyd add download listener");
+            log.info("Add download listener");
             downloadListener = new DownloadListener(Thread.currentThread());
             backupOps.addRestoreListener(downloadListener);
         }catch (Exception e) {
@@ -105,12 +105,12 @@ public final class DownloadExecutor implements  Runnable {
 
         private void onRestoreStatusChange() {
             BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
-            log.info("lbye Restore status={}", status);
+            log.info("New restore status={}", status);
             Status s = status.getStatus();
 
             if (s == Status.DOWNLOAD_CANCELLED) {
-                log.info("lbye cancel downloading thread");
-                isCanceled2 = true;
+                log.info("Stop downloading thread");
+                isCanceled = true;
                 downloadingThread.interrupt();
             }
 
@@ -177,13 +177,13 @@ public final class DownloadExecutor implements  Runnable {
 
     public void cancelDownload() {
         Map<String, String> map = backupOps.getCurrentBackupInfo();
-        log.info("lbye To cancel current download {}", map);
+        log.info("To cancel current download {}", map);
         String backupName = map.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
         boolean isLocal = Boolean.parseBoolean(map.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY));
-        log.info("lbye backupname={}, isLocal={}", backupName, isLocal);
+        log.info("backupname={}, isLocal={}", backupName, isLocal);
         if (isLocal == false) {
             setDownloadStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, 0, 0, false);
-            log.info("lbye Persist cancel flag into zk");
+            log.info("Persist the cancel flag into ZK");
         }
     }
 
@@ -205,26 +205,26 @@ public final class DownloadExecutor implements  Runnable {
             download();
             notifyOtherNodes();
         }catch (InterruptedException e) {
-            log.info("lbye the downloading thread has been interrupted");
+            log.info("The downloading thread has been interrupted");
             restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
             Status s = restoreStatus.getStatus();
             if (s.canBeCanceled()) {
-                log.info("lbye the downloading is canceled");
+                log.info("The downloading has been canceled");
                 setDownloadStatus(remoteBackupFileName, Status.DOWNLOAD_CANCELLED, 0, 0, false);
                 cleanCurrentBackupInfo = true;
             }
         }catch (Exception e) {
             restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
-            log.info("lbye isCanceled={}", isCanceled2);
+            log.info("isCanceled={}", isCanceled);
             Status s = Status.DOWNLOAD_FAILED;
-            if (isCanceled2) {
+            if (isCanceled) {
                 s = Status.DOWNLOAD_CANCELLED;
                 deleteDownloadedBackup();
             }
 
             setDownloadStatus(remoteBackupFileName, s, 0, 0, false);
             cleanCurrentBackupInfo = true;
-            log.error("lbye Failed to download e=", e);
+            log.error("Failed to download e=", e);
         }finally {
             try {
                 backupOps.releaseLock(lock);
@@ -241,7 +241,7 @@ public final class DownloadExecutor implements  Runnable {
     private void deleteDownloadedBackup() {
         File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
         //Remove downloaded backup data
-        log.info("lbye 1 To remove downloaded {} exist={}", downloadedDir, downloadedDir.exists());
+        log.info("To remove downloaded {} exist={}", downloadedDir, downloadedDir.exists());
         try {
             FileUtils.deleteDirectory(downloadedDir);
         }catch (IOException ex) {
@@ -252,7 +252,7 @@ public final class DownloadExecutor implements  Runnable {
     private void download() throws IOException, InterruptedException {
         log.info("download start");
 
-        log.info("lbya persist current backup info {}", remoteBackupFileName);
+        log.info("Persist current backup info {}", remoteBackupFileName);
         backupOps.persistCurrentBackupInfo(remoteBackupFileName, false);
 
         ZipInputStream zin = getDownloadStream();

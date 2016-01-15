@@ -7,6 +7,8 @@ package com.emc.storageos.db.client.model;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.model.valid.EnumType;
+
 /**
  * ECS object storage namespace configuration
  * 
@@ -38,6 +40,9 @@ public class ECSNamespace extends DiscoveredDataObject {
     // Allowed or not-allowed ECS replication groups. Its mutually exclusive
     private List<String> _replicationGroups;      
 
+    // Namespace visible or deleted in ECS
+    private String _discoveryStatus = DiscoveryStatus.VISIBLE.name();
+    
     public enum ECS_RepGroup_Type {
         ALLOWED,
         DISALLOWED,
@@ -55,11 +60,11 @@ public class ECSNamespace extends DiscoveredDataObject {
     }
 
     @Name("nativeId")
-    public String getNsId() {
+    public String getNativeId() {
         return _nativeId;
     }
     
-    public void setNsId(String nativeId) {
+    public void setNativeId(String nativeId) {
         this._nativeId = nativeId;
     }
 
@@ -110,5 +115,17 @@ public class ECSNamespace extends DiscoveredDataObject {
     
     public void setReplicationGroups(List<String> replicationGroups) {
         this._replicationGroups = replicationGroups;
-    }    
+    }
+    
+    @EnumType(DiscoveryStatus.class)
+    @Name("discoveryStatus")
+    public String getDiscoveryStatus() {
+        return _discoveryStatus;
+    }
+
+    public void setDiscoveryStatus(String discoveryStatus) {
+        this._discoveryStatus = discoveryStatus;
+        setChanged("discoveryStatus");
+    }
+
 }

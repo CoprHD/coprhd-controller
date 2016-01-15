@@ -42,6 +42,7 @@ import com.emc.storageos.plugins.metering.ecs.ECSCollectionException;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 /**
@@ -255,16 +256,20 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             Map<String, List<ECSNamespace>> namespaces = discoverNamespaces(storageSystem);
             _logger.info("No of newly discovered namespaces {}", namespaces.get(NEW).size());
             _logger.info("No of existing discovered namespaces {}", namespaces.get(EXISTING).size());
-            if (!namespaces.get(NEW).isEmpty()) {
+            if (namespaces != null && !namespaces.get(NEW).isEmpty()) {
                 allNamespaces.addAll(namespaces.get(NEW));
                 _dbClient.createObject(namespaces.get(NEW));
             }
 
-            if (!namespaces.get(EXISTING).isEmpty()) {
+            if (namespaces != null && !namespaces.get(EXISTING).isEmpty()) {
                 allNamespaces.addAll(namespaces.get(EXISTING));
                 _dbClient.updateObject(namespaces.get(EXISTING));
             }
-            
+            // Some namespaces might have been deleted
+            DiscoveryUtils.checkNamespacesNotVisible(allNamespaces,
+                    _dbClient, storageSystemId);
+            _completer.statusPending(_dbClient, "Completed namespace discovery");
+
             //Discovery success
             detailedStatusMessage = String.format("Discovery completed successfully for ECS: %s",
                     storageSystemId.toString());
@@ -320,7 +325,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             for (String nsId : namespaceIdList) {
                 // Check if this namespace was already discovered
                 ecsNamespace = null;
-                String nsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                String nsNativeGuid = NativeGUIDGenerator.generateNativeGuidForNamespace(
                         storageSystem, nsId, NativeGUIDGenerator.NAMESPACE);
 
                 URIQueryResultList uriQueryList = new URIQueryResultList();

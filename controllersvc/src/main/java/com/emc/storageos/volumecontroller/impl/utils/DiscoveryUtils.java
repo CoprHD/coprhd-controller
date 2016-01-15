@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ECSNamespace;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -730,4 +731,45 @@ public class DiscoveryUtils {
         return dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
     }
 
+    /**
+     * Dump & remove deleted namespaces in ECS
+     * 
+     * @param discoveredNamespaces
+     * @param dbClient
+     * @param storageSystemId
+     */
+    public static void checkNamespacesNotVisible(List<ECSNamespace> discoveredNamespaces,
+            DbClient dbClient, URI storageSystemId) {
+        // Get the namespaces previousy discovered
+        URIQueryResultList ECSNamespaceURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceECSNamespaceConstraint(storageSystemId),
+                ECSNamespaceURIs);
+        Iterator<URI> ECSNamespaceIter = ECSNamespaceURIs.iterator();
+
+        List<URI> existingNamespacesURI = new ArrayList<URI>();
+        while (ECSNamespaceIter.hasNext()) {
+            existingNamespacesURI.add(ECSNamespaceIter.next());
+        }
+
+        List<URI> discoveredNamespacesURI = new ArrayList<URI>();
+        for (ECSNamespace namespace : discoveredNamespaces) {
+            discoveredNamespacesURI.add(namespace.getId());
+        }
+
+        // Present in existing but not in discovered; remove them
+        Set<URI> namespacesDiff = Sets.difference(new HashSet<URI>(existingNamespacesURI), new HashSet<URI>(discoveredNamespacesURI));
+
+        if (!namespacesDiff.isEmpty()) {
+            Iterator<ECSNamespace> ECSNamespaceIt = dbClient.queryIterativeObjects(ECSNamespace.class, namespacesDiff, true);
+            while (ECSNamespaceIt.hasNext()) {
+                ECSNamespace namespace = ECSNamespaceIt.next();
+                _log.info("ECS Namespace deleted {} : {}", namespace.getNativeId(), namespace.getId());
+                namespace.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
+                namespace.setInactive(true);
+                dbClient.updateObject(namespace);
+            }
+        }
+    }
+    
 }

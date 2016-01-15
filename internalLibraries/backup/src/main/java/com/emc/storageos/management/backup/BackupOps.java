@@ -65,8 +65,15 @@ public class BackupOps {
     private List<String> vdcList;
     private File backupDir;
 
-    @Autowired
     private DrUtil drUtil;
+
+    public DrUtil getDrUtil() {
+        return drUtil;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
 
     private void checkOnStandby() {
         if (drUtil.isStandby()) {

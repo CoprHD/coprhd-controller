@@ -1566,12 +1566,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         List<BlockSnapshot> snapshots = newArrayList(_dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotUris));
         final Map<URI, BlockSnapshot> uriToSnapshot = new HashMap<>();
         BlockSnapshot sampleSnapshot = snapshots.get(0);
-        BlockObject sampleParent = _dbClient.queryObject(Volume.class, sampleSnapshot.getParent().getURI());
+        BlockObject sampleParent = BlockObject.fetch(_dbClient, sampleSnapshot.getParent().getURI());
 
         try {
             String sourceGroupName;
             String targetGroupName;
             if (!targetsExist) {
+                // This is the normal scenario for linking group targets to a group snapshot session.
                 sourceGroupName = _helper.getConsistencyGroupName(sampleParent, system);
                 // Group snapshots parent volumes by their pool and size
                 Map<String, List<Volume>> volumesBySizeMap = new HashMap<>();
@@ -1610,14 +1611,29 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 _log.info("Created target device group: {}", targetGroupPath);
                 targetGroupName = (String) targetGroupPath.getKeyValue(CP_INSTANCE_ID);
             } else {
+                // If the targets exist, this is the restore linked target scenario where we create
+                // a temporary group snapshot session on the linked target group and then linked the
+                // source volume group to this temporary session. The source volumes and source group
+                // already exist. First we setup of the snapshot map.
                 for (BlockSnapshot target : snapshots) {
                     uriToSnapshot.put(target.getId(), target);
                 }
-                sourceGroupName = ((BlockSnapshot) sampleParent).getReplicationGroupInstance(); // has system
+
+                // The parent in this case is a BlockSnapshot and the source group is the
+                // replication group for the snapshot. We eliminate the system prefix and
+                // serial number from the replication group, to get simply the group name
+                // as in the case above.
+                sourceGroupName = ((BlockSnapshot) sampleParent).getReplicationGroupInstance();
                 int index = sourceGroupName.indexOf("+");
                 sourceGroupName = sourceGroupName.substring(index + 1);
-                targetGroupName = _helper.getConsistencyGroupName(sampleParent, system);// the group for the volumes, which is the CG group.
-                                                                                        // no system
+
+                // The target in this case is actually a source volume and the target group
+                // is the source volume group, which we can get from the consistency group.
+                // Note that we can use the sample parent because it references the same
+                // consistency group as the source volume.
+                targetGroupName = _helper.getConsistencyGroupName(sampleParent, system);
+
+                // Get the CIM object path for the target group.
                 targetGroupPath = _cimPath.getReplicationGroupPath(system, targetGroupName);
             }
 

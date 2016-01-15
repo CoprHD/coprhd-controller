@@ -158,11 +158,17 @@ public class DrSiteNetworkMonitor implements Runnable{
             socket.connect(socketAddress,NETWORK_TIMEOUT);
             stop = System.nanoTime();
             timeToRespond = (stop - start);
-
-            socket.close();
         } catch (Exception e) {
             _log.error(String.format("Fail to check cross-site network latency to node {} with Exception: ",hostAddress),e);
             return -1;
+        } finally {
+            try {
+                if (socket.isConnected()) {
+                    socket.close();
+                }
+            } catch (Exception e) {
+                _log.error(String.format("Fail to close connection to node {} with Exception: ",hostAddress),e);
+            }
         }
 
         //the ping suceeded, convert from ns to ms

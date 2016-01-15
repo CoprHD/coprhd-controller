@@ -101,8 +101,6 @@ public class FtpClient {
     }
 
     public List<String> listFiles(String prefix) throws Exception {
-        Pattern backupNamePattern = Pattern.compile(BackupConstants.COLLECTED_BACKUP_REGEX_PATTERN);
-
         ProcessBuilder builder = getBuilder();
         builder.command().add("-l");
         builder.command().add(uri);
@@ -114,7 +112,7 @@ public class FtpClient {
 
             for (String line : processor.enumLines(processor.getStdOut())) {
                 log.info("File name: {}", line);
-                if (!backupNamePattern.matcher(line).find()) {
+                if (!line.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
                     continue;
                 }
                 if (prefix == null || line.startsWith(prefix)) {

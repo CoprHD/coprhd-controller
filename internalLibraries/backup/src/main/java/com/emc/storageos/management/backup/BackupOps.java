@@ -27,13 +27,16 @@ import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.model.property.PropertyInfo;
+
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
@@ -62,6 +65,15 @@ public class BackupOps {
     private List<String> vdcList;
     private File backupDir;
 
+    @Autowired
+    private DrUtil drUtil;
+
+    private void checkOnStandby() {
+        if (drUtil.isStandby()) {
+            log.error("Backup and restore operations on standby site are forbidden");
+            throw BackupException.fatals.forbidBackupOnStandbySite();
+        }
+    }
     /**
      * Default constructor.
      */
@@ -257,6 +269,7 @@ public class BackupOps {
      *            Ignore the errors during the creation
      */
     public void createBackup(String backupTag, boolean force) {
+        checkOnStandby();
         if (backupTag == null) {
             backupTag = createBackupName();
         } else {
@@ -520,6 +533,7 @@ public class BackupOps {
      *            The tag of the backup
      */
     public void deleteBackup(String backupTag) {
+        checkOnStandby();
         validateBackupName(backupTag);
         InterProcessLock lock = null;
         try {
@@ -679,6 +693,7 @@ public class BackupOps {
      * @return a list of backup sets info
      */
     public List<BackupSetInfo> listBackup() {
+        checkOnStandby();
         log.info("Listing backup sets");
         return listBackup(true);
     }
@@ -827,6 +842,7 @@ public class BackupOps {
      * Gets disk quota for backup files in gigabyte.
      */
     public int getQuotaGb() {
+        checkOnStandby();
         int quotaGb;
         JMXConnector conn = connect(getLocalHost(), ports.get(0));
         try {

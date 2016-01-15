@@ -38,7 +38,6 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
-import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -88,6 +87,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * APIs to view, create, modify and remove volume groups
@@ -414,7 +414,7 @@ public class VolumeGroupService extends TaskResourceService {
         TaskList taskList = new TaskList();
 
         // get all volumes
-        List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
         // validate that there should be some volumes in VolumeGroup
         if (volumes.isEmpty()) {
             throw APIException.badRequests.replicaOperationNotAllowedOnEmptyVolumeGroup(volumeGroup.getLabel(), FULL_COPY_STRING);
@@ -511,7 +511,7 @@ public class VolumeGroupService extends TaskResourceService {
         validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY_STRING);
 
         // get all volumes
-        List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
         // Cycle over the volumes in the volume group and
         // get the full copies for each volume in the group.
@@ -550,7 +550,7 @@ public class VolumeGroupService extends TaskResourceService {
         validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY_STRING);
 
         // get all volumes
-        List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
                 fullCopyURI, uriInfo, false, _dbClient);
@@ -591,12 +591,7 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
 
         // get all volumes
-        List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-
-        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
-        for (VolumeGroupUtils util : utils) {
-            //
-        }
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
         List<String> arrayGroupNames = new ArrayList<String>();
         List<Volume> fullCopyVolumesInRequest = new ArrayList<Volume>();
@@ -687,12 +682,7 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
 
         // get all volumes
-        List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-
-        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
-        for (VolumeGroupUtils util : utils) {
-            //
-        }
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
         List<String> arrayGroupNames = new ArrayList<String>();
         List<Volume> fullCopyVolumesInRequest = new ArrayList<Volume>();
@@ -782,12 +772,7 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
 
         // get all volumes
-        List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-
-        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
-        for (VolumeGroupUtils util : utils) {
-            //
-        }
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
         List<String> arrayGroupNames = new ArrayList<String>();
         List<Volume> fullCopyVolumesInRequest = new ArrayList<Volume>();
@@ -877,12 +862,7 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
 
         // get all volumes
-        List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-
-        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
-        for (VolumeGroupUtils util : utils) {
-            //
-        }
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
         List<String> arrayGroupNames = new ArrayList<String>();
         List<Volume> fullCopyVolumesInRequest = new ArrayList<Volume>();

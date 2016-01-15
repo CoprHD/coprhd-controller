@@ -69,6 +69,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Class that manages all aspects of full copies, also known as clones, for
@@ -271,9 +272,9 @@ public class BlockFullCopyManager {
         if (volumeGroup != null && !partialRequest) {
             s_logger.info("Volume {} is part of Application, Creating full copy for all volumes in the Application.", sourceURI);
             // get all volumes
-            List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             // group volumes by Array Group
-            Map<String, List<Volume>> arrayGroupToVolumesMap = BlockServiceUtils.groupVolumesByArrayGroup(volumes);
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumes);
             fcSourceObjList = new ArrayList<BlockObject>();
             for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
                 List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);

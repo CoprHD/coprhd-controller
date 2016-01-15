@@ -1509,4 +1509,21 @@ public class ControllerUtils {
         }
         return arrayGroupToVolumes;
     }
+
+    /**
+     * Gets all clones for the given set name.
+     */
+    public static List<Volume> getClonesBySetName(String cloneSetName, DbClient dbClient) {
+        List<Volume> setClones = new ArrayList<Volume>();
+        if (cloneSetName != null) {
+            URIQueryResultList list = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                    getFullCopiesBySetName(cloneSetName), list);
+            Iterator<Volume> iter = dbClient.queryIterativeObjects(Volume.class, list);
+            while (iter.hasNext()) {
+                setClones.add(iter.next());
+            }
+        }
+        return setClones;
+    }
 }

@@ -21,7 +21,6 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
-import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -119,7 +118,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                     fcSourceObj, vpool, count);
             List<VolumeRecommendation> placementRecommendations = getPlacementRecommendations(
                     fcSourceObj, capabilities, varray, vpool.getId());
-            volumesList.addAll(prepareClonesForEachRecommendation(copyName,
+            volumesList.addAll(prepareClonesForEachRecommendation(copyName, name,
                     fcSourceObj, capabilities, createInactive, placementRecommendations));
         }
 
@@ -171,6 +170,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * Prepares a ViPR volume instance for each full copy.
      * 
      * @param name The full copy name.
+     * @param cloneSetName
      * @param blockObject The full copy source.
      * @param capabilities The full copy capabilities.
      * @param createInactive true to create the full copies inactive, false otherwise.
@@ -179,20 +179,30 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @return A list of volumes representing the full copies.
      */
     private List<Volume> prepareClonesForEachRecommendation(String name,
-            BlockObject blockObject, VirtualPoolCapabilityValuesWrapper capabilities,
+            String cloneSetName, BlockObject blockObject, VirtualPoolCapabilityValuesWrapper capabilities,
             Boolean createInactive, List<VolumeRecommendation> placementRecommendations) {
 
         // Prepare clones for each recommendation
         List<Volume> volumesList = new ArrayList<Volume>();
+        List<Volume> toUpdate = new ArrayList<Volume>();
         int volumeCounter = (capabilities.getResourceCount() > 1) ? 1 : 0;
         for (VolumeRecommendation recommendation : placementRecommendations) {
 
             Volume volume = StorageScheduler.prepareFullCopyVolume(_dbClient, name,
                     blockObject, recommendation, volumeCounter, capabilities, createInactive);
+            // For Application, set the user provided clone name on all the clones to identify clone set
+            if (blockObject instanceof Volume && ((Volume) blockObject).getApplication(_dbClient) != null) {
+                volume.setFullCopySetName(cloneSetName);
+                toUpdate.add(volume);
+            }
             volumesList.add(volume);
             // set volume Id in the recommendation
             recommendation.setId(volume.getId());
             volumeCounter++;
+        }
+        // persist changes
+        if (!toUpdate.isEmpty()) {
+            _dbClient.updateObject(toUpdate);
         }
         return volumesList;
     }
@@ -233,7 +243,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
             
             // get all volumes to create tasks for all CGs involved
-            List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             addConsistencyGroupTasks(volumes, taskList, taskId,
                     ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
         } else {
@@ -291,17 +301,18 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         if (volumeGroup != null && !partialRequest) {
             s_logger.info("Volume {} is part of Application, restoring all full copies in the Application.", sourceVolume.getId());
             // get all volumes
-            volumeGroupVolumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             // group volumes by Array Group
-            Map<String, List<Volume>> arrayGroupToVolumesMap = BlockServiceUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
             fullCopyURIs = new HashSet<URI>();
             fullCopyMap = new HashMap<URI, Volume>();
+            String fullCopySetName = fullCopyVolume.getFullCopySetName();
+            List<Volume> fullCopySetVolumes = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
             for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
                 List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
                 Volume fcSourceObject = volumeList.iterator().next();
-                // TODO when there are multiple clone sets for a Volume, which one to take.?
-                // One way could to use the name of given clone or introduce new field for Set information
-                URI fullCopyURI = URI.create(fcSourceObject.getFullCopies().iterator().next());
+                // Get the full copy from source object belonging to same set
+                URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
 
                 fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));
@@ -389,17 +400,18 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         if (volumeGroup != null && !partialRequest) {
             s_logger.info("Volume {} is part of Application, resynchronizing all full copies in the Application.", sourceVolume.getId());
             // get all volumes
-            volumeGroupVolumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             // group volumes by Array Group
-            Map<String, List<Volume>> arrayGroupToVolumesMap = BlockServiceUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
             fullCopyURIs = new HashSet<URI>();
             fullCopyMap = new HashMap<URI, Volume>();
+            String fullCopySetName = fullCopyVolume.getFullCopySetName();
+            List<Volume> fullCopySetVolumes = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
             for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
                 List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
                 Volume fcSourceObject = volumeList.iterator().next();
-                // TODO when there are multiple clone sets for a Volume, which one to take.?
-                // One way could to use the name of given clone or introduce new field for Set information
-                URI fullCopyURI = URI.create(fcSourceObject.getFullCopies().iterator().next());
+                // Get the full copy from source object belonging to same set
+                URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
 
                 fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));

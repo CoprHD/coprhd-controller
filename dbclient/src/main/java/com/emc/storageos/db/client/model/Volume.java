@@ -194,6 +194,9 @@ public class Volume extends BlockObject implements ProjectResource {
     // When a volume is created as a full copy of another source volume, the source volume URI is
     // set here.
     private URI associatedSourceVolume;
+    // Full copy set name which user provided while creating full copies for volumes in an Application.
+    // There could be multiple array groups within an Application.
+    private String fullCopySetName;
 
     /*
      * when this is a full copy, this specifies the current relationship state with its source volume.
@@ -760,6 +763,17 @@ public class Volume extends BlockObject implements ProjectResource {
     public void setReplicaState(String state) {
         this.replicaState = state;
         setChanged("replicaState");
+    }
+
+    @AlternateId("AltIdIndex")
+    @Name("fullCopySetName")
+    public String getFullCopySetName() {
+        return fullCopySetName;
+    }
+
+    public void setFullCopySetName(String fullCopySetName) {
+        this.fullCopySetName = fullCopySetName;
+        setChanged("fullCopySetName");
     }
 
     /**

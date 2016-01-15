@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 import java.net.URI;
@@ -267,17 +268,18 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         if (volumeGroup != null && !partialRequest) {
             s_logger.info("Volume {} is part of Application, activating all full copies in the Application.", fcSourceObj.getId());
             // get all volumes
-            volumeGroupVolumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             // group volumes by Array Group
-            Map<String, List<Volume>> arrayGroupToVolumesMap = BlockServiceUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
             fullCopyURIs = new HashSet<URI>();
             fullCopyMap = new HashMap<URI, Volume>();
+            String fullCopySetName = fullCopyVolume.getFullCopySetName();
+            List<Volume> fullCopySetVolumes = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
             for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
                 List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
                 Volume fcSourceObject = volumeList.iterator().next();
-                // TODO when there are multiple clone sets for a Volume, which one to take.?
-                // One way could to use the name of given clone or introduce new field for Set information
-                URI fullCopyURI = URI.create(fcSourceObject.getFullCopies().iterator().next());
+                // Get the full copy from source object belonging to same set
+                URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
 
                 fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));
@@ -375,17 +377,18 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         if (volumeGroup != null && !partialRequest) {
             s_logger.info("Volume {} is part of Application, detaching all full copies in the Application.", fcSourceObj.getId());
             // get all volumes
-            volumeGroupVolumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             // group volumes by Array Group
-            Map<String, List<Volume>> arrayGroupToVolumesMap = BlockServiceUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
             fullCopyURIs = new HashSet<URI>();
             fullCopyMap = new HashMap<URI, Volume>();
+            String fullCopySetName = fullCopyVolume.getFullCopySetName();
+            List<Volume> fullCopySetVolumes = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
             for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
                 List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
                 Volume fcSourceObject = volumeList.iterator().next();
-                // TODO when there are multiple clone sets for a Volume, which one to take.?
-                // One way could to use the name of given clone or introduce new field for Set information
-                URI fullCopyURI = URI.create(fcSourceObject.getFullCopies().iterator().next());
+                // Get the full copy from source object belonging to same set
+                URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
 
                 fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));
@@ -548,6 +551,57 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         }
 
         return true;
+    }
+
+    /**
+     * Gets the full copy from source object for the given full copy set name.
+     *
+     * @param fcSourceObject the fc source object
+     * @param fullCopySetName the full copy set name
+     * @param fullCopySetVolumes the full copy set volumes
+     * @return the full copy for set
+     */
+    protected URI getFullCopyForSet(Volume fcSourceObject, String fullCopySetName, List<Volume> fullCopySetVolumes) {
+        /**
+         * Case-1: If Full copies are created for an array group within Application, we set clone Set name (setName = <NAME>)
+         * --> see which full copy for a Volume has this Set name
+         * Case-2: New full copy added for new volume added to Application
+         * -a. SetName in new full copy should be set if other full copies in the set has it
+         * --> see which full copy for a Volume has this Set name
+         * -b. If SetName information is not available
+         * --> check by label, Full copies label belonging to same set start with SetName
+         * Case-3: Existing full copies are moved into application (setName = null)
+         * --> return any full copy
+         */
+        URI fullCopyURI = null;
+        StringSet fullCopies = fcSourceObject.getFullCopies();
+        if (fullCopies != null) {
+            if (fullCopySetName != null) {
+                List<URI> fullCopySetURIs = new ArrayList<URI>(transform(fullCopySetVolumes, fctnDataObjectToID()));
+                for (String fc : fullCopies) {
+                    URI fcURI = URI.create(fc);
+                    if (fullCopySetURIs.contains(fcURI)) {
+                        fullCopyURI = fcURI;
+                        break;
+                    }
+                }
+                // full copy not found yet. check by label. Full copies label start with SetName
+                if (fullCopyURI == null) {
+                    for (String fc : fullCopies) {
+                        URI fcURI = URI.create(fc);
+                        Volume fcObject = _dbClient.queryObject(Volume.class, fcURI);
+                        if (fcObject.getLabel().startsWith(fullCopySetName)) {
+                            fullCopyURI =  fcURI;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // return first encountered
+                fullCopyURI = URI.create(fullCopies.iterator().next());
+            }
+        }
+        return fullCopyURI;
     }
 
     /**

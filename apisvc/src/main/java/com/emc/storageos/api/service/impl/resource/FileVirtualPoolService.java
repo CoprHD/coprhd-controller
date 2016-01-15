@@ -680,8 +680,8 @@ public class FileVirtualPoolService extends VirtualPoolService {
      */
     private boolean checkAttributeValuesChanged(FileVirtualPoolUpdateParam param, VirtualPool vpool) {
         return super.checkAttributeValuesChanged(param, vpool)
-                || checkLongTermRetentionChanged(param.getLongTermRetention(), vpool.getLongTermRetention()
-                        || checkProtectionChanged(vpool, param.getProtection()));
+                || checkLongTermRetentionChanged(param.getLongTermRetention(), vpool.getLongTermRetention())
+                || checkProtectionChanged(vpool, param.getProtection());
 
     }
 

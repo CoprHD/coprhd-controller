@@ -766,7 +766,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                 return true;
             }
             if (replPolicy.getRpoType() != null &&
-                    replPolicy.getRpoType().equalsIgnoreCase(vPool.getFrRpoType())) {
+                    !replPolicy.getRpoType().equalsIgnoreCase(vPool.getFrRpoType())) {
                 return true;
             }
             if (replPolicy.getRpoValue() != null && vPool.getFrRpoValue() != replPolicy.getRpoValue()) {

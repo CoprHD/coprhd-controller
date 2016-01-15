@@ -2332,7 +2332,11 @@ public class FileService extends TaskResourceService {
     private static FileServiceApi getFileServiceImpl(VirtualPool vpool, DbClient dbClient) {
         // Mutually exclusive logic that selects an implementation of the file service
         if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
-            return getFileServiceApis("mirror");
+            if( vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())){
+                return getFileServiceApis("localmirror");
+            } else if(vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())){
+                return getFileServiceApis("remotemirror");
+            }
         } 
 
         return getFileServiceApis("default");

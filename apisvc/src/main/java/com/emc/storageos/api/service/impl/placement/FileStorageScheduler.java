@@ -1011,10 +1011,6 @@ public class FileStorageScheduler implements Scheduler {
 
                 preparedFileSystems.add(fileShare);
 
-            } else if (recommendation.getFileType().toString().equals(
-                    FileRecommendation.FileType.FILE_SYSTEM_LOCAL_MIRROR.toString())) {
-                // prepare the local mirror file share
-                // TBD
             }
 
         }
@@ -1048,9 +1044,8 @@ public class FileStorageScheduler implements Scheduler {
                 fileShare.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
             }
         }
-        // need for protection support
-        // fileShare.setSyncActive(!Boolean.valueOf(createInactive));
-
+        
+        
         fileShare.setStorageDevice(placement.getSourceStorageSystem());
         fileShare.setPool(placement.getSourceStoragePool());
         if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {

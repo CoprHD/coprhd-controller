@@ -47,7 +47,7 @@ public class FileDescriptor implements Serializable {
          * be mindful when adding/removing/changing the list.
         */
         FILE_DATA(1),                   // user's data filesystem
-        FILE_LOCAL_MIRROR(2),           // array level mirror
+        FILE_LOCAL_MIRROR_TARGET(2),    // array level mirror
         FILE_SNAPSHOT(3),               // array level snapshot
         FILE_EXISTING_SOURCE(4),        //  existing source file
         FILE_MIRROR_SOURCE(5),          // remote mirror source

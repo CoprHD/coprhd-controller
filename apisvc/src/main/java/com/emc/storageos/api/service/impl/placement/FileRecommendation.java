@@ -17,9 +17,9 @@ public class FileRecommendation extends Recommendation {
 	
 	public enum FileType {
         FILE_SYSTEM_DATA,            // user's data file
-        FILE_SYSTEM_LOCAL_MIRROR,    // local mirror
-        FILE_SYSTEM_COPY,            // full copy
-        FILE_SYSTEM_REMOTE_MIRROR    // remote mirror file
+        FILE_SYSTEM_SOURCE,    // local mirror
+        FILE_SYSTEM_COPY,      // full copy
+        FILE_SYSTEM_TARGET     // remote mirror file
     };
 
     private static final long serialVersionUID = 1L;

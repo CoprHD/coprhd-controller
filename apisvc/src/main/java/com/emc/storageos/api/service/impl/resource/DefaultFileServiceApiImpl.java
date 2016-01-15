@@ -24,6 +24,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.base.Strings;
 
 /**
  * File Service subtask (parts of larger operations) default implementation.
@@ -98,7 +99,8 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
         }
         return fileDescriptors;
     }
-
+    
+    
     /**
      * {@inheritDoc}
      */
@@ -119,11 +121,11 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
 
     private void failFileShareCreateRequest(String task, TaskList taskList, List<FileShare> preparedFileShares, String errorMsg) {
         String errorMessage = String.format("Controller error: %s", errorMsg);
-        for (TaskResourceRep volumeTask : taskList.getTaskList()) {
-            volumeTask.setState(Operation.Status.error.name());
-            volumeTask.setMessage(errorMessage);
+        for (TaskResourceRep fileShareTask : taskList.getTaskList()) {
+            fileShareTask.setState(Operation.Status.error.name());
+            fileShareTask.setMessage(errorMessage);
             Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMessage);
-            _dbClient.updateTaskOpStatus(Volume.class, volumeTask.getResource()
+            _dbClient.updateTaskOpStatus(FileShare.class, fileShareTask.getResource()
                     .getId(), task, statusUpdate);
         }
         for (FileShare fileShare : preparedFileShares) {

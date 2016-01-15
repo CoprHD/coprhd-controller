@@ -1025,14 +1025,21 @@ public class DisasterRecoveryService {
 
         try {
             // set state
-            Site oldActiveSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
-            coordinator.removeServiceConfiguration(oldActiveSite.toConfiguration());
-
+            String activeSiteId = drUtil.getActiveSiteId();
+            Site oldActiveSite = new Site();
+            if (StringUtils.isEmpty(activeSiteId)) {
+                log.info("Cant't find active site id, go on to do failover");
+            } else {
+                oldActiveSite = drUtil.getSiteFromLocalVdc(activeSiteId);
+                oldActiveSite.setState(SiteState.ACTIVE_FAILING_OVER);
+                coordinator.removeServiceConfiguration(oldActiveSite.toConfiguration());
+            }
+            
             Site newActiveSite = drUtil.getSiteFromLocalVdc(newActiveSiteUUID);
             newActiveSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(newActiveSite.toConfiguration());
 
-            drUtil.updateVdcTargetVersion(currentSite.getUuid(), SiteInfo.DR_OP_FAILOVER, Long.parseLong(vdcTargetVersion));
+            drUtil.updateVdcTargetVersion(currentSite.getUuid(), SiteInfo.DR_OP_FAILOVER, Long.parseLong(vdcTargetVersion), oldActiveSite.getUuid(), currentSite.getUuid());
 
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
                     oldActiveSite.toBriefString(), newActiveSite.toBriefString());
@@ -1370,6 +1377,12 @@ public class DisasterRecoveryService {
                     String.format("Failover can only be executed in local site. Local site uuid %s is not matched with uuid %s",
                             standby.getUuid(), standbyUuid));
         }
+        
+        // should be SYNCED or PAUSED
+        if (standby.getState() != SiteState.STANDBY_SYNCED && standby.getState() != SiteState.STANDBY_PAUSED) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
+                    "Only paused or synced standby site can do failover");
+        }
 
         precheckForFailover();
     }
@@ -1382,12 +1395,6 @@ public class DisasterRecoveryService {
         // show be only standby
         if (drUtil.isActiveSite()) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Failover can't be executed in acitve site");
-        }
-
-        // should be SYNCED
-        if (standby.getState() != SiteState.STANDBY_SYNCED && standby.getState() != SiteState.STANDBY_PAUSED) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Only paused or synced standby site can do failover");
         }
 
         // Current site is stable

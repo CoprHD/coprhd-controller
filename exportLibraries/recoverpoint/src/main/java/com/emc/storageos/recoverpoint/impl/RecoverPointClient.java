@@ -6,6 +6,7 @@ package com.emc.storageos.recoverpoint.impl;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -2355,7 +2356,7 @@ public class RecoverPointClient {
         String bookmarkName = copyToFailoverTo.getBookmarkName();
         Date apitTime = copyToFailoverTo.getApitTime();
         if (bookmarkName != null) {
-            logger.info("Failver copy to bookmark : " + bookmarkName);
+            logger.info("Failover copy to bookmark : " + bookmarkName);
         } else if (apitTime != null) {
             logger.info("Failover copy to APIT : " + apitTime.toString());
         } else {
@@ -3533,5 +3534,10 @@ public class RecoverPointClient {
             return false;
         }
         return false;
+    }
+
+    public static void main(String[] args) {
+        Calendar c = Calendar.getInstance();
+        System.out.println(c.getTimeInMillis() * 1000);
     }
 }

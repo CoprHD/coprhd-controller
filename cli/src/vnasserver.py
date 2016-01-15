@@ -355,17 +355,23 @@ def assign_parser(subcommand_parsers, common_parser):
 def vnasserver_assign(args):
     obj = VnasServer(args.ip, args.port)
     vnas_assign_failure = 0
+    total_assignments = len(args.name) * len(args.project)
 
     for project in args.project:
-        project_name = args.tenant + "/" + project
-        try:
-            obj.assign(args.name, project_name)
-        except SOSError as e:
-            vnas_assign_failure = 1
-
-    if(vnas_assign_failure):
-        common.format_err_msg_and_raise("assign project", "vnasserver",
-                                            e.err_text, e.err_code)
+        for name in args.name:
+            vnas_server_list = []
+            vnas_server_list.append(name)
+            project_name = args.tenant + "/" + project
+            try:
+                obj.assign(vnas_server_list, project_name)
+            except SOSError as e:
+                vnas_assign_failure = vnas_assign_failure + 1
+    
+    if(vnas_assign_failure == total_assignments):
+        print "All vnasservers assignemnt to all projects failed"
+    elif(vnas_assign_failure):
+        print "Few vnasservers assignment to projects failed"
+    
     return
 
 
@@ -396,17 +402,23 @@ def unassign_parser(subcommand_parsers, common_parser):
 def vnasserver_unassign(args):
     obj = VnasServer(args.ip, args.port)
     vnas_unassign_failure = 0
-    
+    total_unassignments = len(args.name) * len(args.project)
     for project in args.project:
-        try:
-            obj.unassign(args.name, project)
-        except SOSError as e:
-            vnas_unassign_failure = 1
-    
-    if(vnas_unassign_failure):
-        common.format_err_msg_and_raise("unassign project", "vnasserver",
-                                            e.err_text, e.err_code)
-        
+        for name in args.name:
+            vnas_server_list = []
+            vnas_server_list.append(name)
+            try:
+                obj.unassign(vnas_server_list, project)
+            except SOSError as e:
+                vnas_unassign_failure = vnas_unassign_failure + 1
+
+    if(vnas_unassign_failure == total_unassignments):
+        print "All vnasservers unassignemnt to all projects failed"
+    elif(vnas_unassign_failure):
+        print "Few vnasservers unassignment to projects failed"
+
+    return
+
 def vnasserver_parser(parent_subparser, common_parser):
   
     parser = parent_subparser.add_parser('vnasserver',

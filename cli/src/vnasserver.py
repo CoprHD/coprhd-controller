@@ -147,7 +147,7 @@ class VnasServer(object):
         
         
         request =  {'vnas_server' : vnasserverList }
-                   
+
 
         if(project):
             proj_object = Project(self.__ipAddr, self.__port)
@@ -340,8 +340,9 @@ def assign_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-project', '-pr',
                                metavar='<project>',
                                dest='project',
-                               help='Name of project',
-                               required=True)
+                               help='Names of project',
+                               required=True,
+                               nargs='+')
     
     mandatory_args.add_argument('-tenant', '-tn',
                                metavar='<tenant>',
@@ -353,12 +354,19 @@ def assign_parser(subcommand_parsers, common_parser):
 
 def vnasserver_assign(args):
     obj = VnasServer(args.ip, args.port)
-    project_name = args.tenant + "/" + args.project
-    try:
-        obj.assign(args.name, project_name)
-    except SOSError as e:
+    vnas_assign_failure = 0
+
+    for project in args.project:
+        project_name = args.tenant + "/" + project
+        try:
+            obj.assign(args.name, project_name)
+        except SOSError as e:
+            vnas_assign_failure = 1
+
+    if(vnas_assign_failure):
         common.format_err_msg_and_raise("assign project", "vnasserver",
-                                        e.err_text, e.err_code)
+                                            e.err_text, e.err_code)
+    return
 
 
 def unassign_parser(subcommand_parsers, common_parser):
@@ -379,19 +387,25 @@ def unassign_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-project', '-pr',
                                metavar='<project>',
                                dest='project',
-                               help='Name of project',
-                               required=True)
+                               help='Names of project',
+                               required=True,
+                               nargs='+')
     unassign_parser.set_defaults(func=vnasserver_unassign)
 
 
 def vnasserver_unassign(args):
     obj = VnasServer(args.ip, args.port)
-    try:
-        obj.unassign(args.name, args.project)
-    except SOSError as e:
+    vnas_unassign_failure = 0
+    
+    for project in args.project:
+        try:
+            obj.unassign(args.name, project)
+        except SOSError as e:
+            vnas_unassign_failure = 1
+    
+    if(vnas_unassign_failure):
         common.format_err_msg_and_raise("unassign project", "vnasserver",
-                                        e.err_text, e.err_code)
-
+                                            e.err_text, e.err_code)
         
 def vnasserver_parser(parent_subparser, common_parser):
   

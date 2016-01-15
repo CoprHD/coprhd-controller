@@ -115,7 +115,16 @@ public class BackupCmd {
         }
     }
 
+    private static boolean isStandby() {
+        ApplicationContext context = new ClassPathXmlApplicationContext("sys-var.xml");
+        return context.getBean("siteIsStandby", Boolean.class);
+    }
+
     public static void main(String[] args) {
+        if (isStandby()) {
+            System.out.println("Backup and restore related operations are not allowed on standby site");
+            return;
+        }
         init(args);
 
         try {

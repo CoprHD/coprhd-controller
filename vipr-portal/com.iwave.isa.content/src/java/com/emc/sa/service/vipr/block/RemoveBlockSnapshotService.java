@@ -58,7 +58,11 @@ public class RemoveBlockSnapshotService extends ViPRService {
                     tasks = execute(new DeactivateBlockSnapshot(snapshotId));
                 }
             } else {
-                tasks = ConsistencyUtils.removeSnapshot(consistencyGroupId, uri(snapshotId));
+                if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {
+                    tasks = ConsistencyUtils.removeSnapshotSession(consistencyGroupId, uri(snapshotId));
+                } else {
+                    tasks = ConsistencyUtils.removeSnapshot(consistencyGroupId, uri(snapshotId));
+                }
             }
             addAffectedResources(tasks);
         }

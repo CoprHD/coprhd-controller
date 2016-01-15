@@ -8,14 +8,14 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.sa.service.vipr.tasks.WaitForTask;
+import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
-import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 
-public class LinkBlockSnapshot extends WaitForTask<BlockSnapshotSessionRestRep> {
+public class LinkBlockSnapshot extends WaitForTasks<BlockSnapshotSessionRestRep> {
     private URI snapshotSessionId;
     private SnapshotSessionLinkTargetsParam newLinkedTargetsParam;
     private SnapshotSessionRelinkTargetsParam relinkExistingLinkedTargetsParam;
@@ -46,7 +46,7 @@ public class LinkBlockSnapshot extends WaitForTask<BlockSnapshotSessionRestRep> 
     }
 
     @Override
-    protected Task<BlockSnapshotSessionRestRep> doExecute() throws Exception {  
+    protected Tasks<BlockSnapshotSessionRestRep> doExecute() throws Exception {  
         // Relink trumps linking new targets
         if (relinkExistingLinkedTargetsParam != null) {
             return getClient().blockSnapshotSessions().relinkTargets(snapshotSessionId, relinkExistingLinkedTargetsParam);

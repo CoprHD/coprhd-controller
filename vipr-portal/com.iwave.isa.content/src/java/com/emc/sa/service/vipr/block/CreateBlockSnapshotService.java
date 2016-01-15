@@ -95,7 +95,12 @@ public class CreateBlockSnapshotService extends ViPRService {
             }
         } else {
             for (String consistencyGroupId : volumeIds) {
-                tasks = ConsistencyUtils.createSnapshot(uri(consistencyGroupId), nameParam, readOnly);
+                if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {
+                    tasks = ConsistencyUtils.createSnapshotSession(uri(consistencyGroupId), nameParam, 
+                                                                    linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode);
+                } else {
+                    tasks = ConsistencyUtils.createSnapshot(uri(consistencyGroupId), nameParam, readOnly);
+                }
                 addAffectedResources(tasks);
             }
         }

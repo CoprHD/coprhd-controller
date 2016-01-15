@@ -47,7 +47,11 @@ public class RestoreBlockSnapshotService extends ViPRService {
                     task = execute(new RestoreBlockSnapshot(snapshotId));
                 }
             } else {
-                task = ConsistencyUtils.restoreSnapshot(consistencyGroupId, uri(snapshotId));
+                if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {
+                    task = ConsistencyUtils.restoreSnapshotSession(consistencyGroupId, uri(snapshotId));
+                } else {
+                    task = ConsistencyUtils.restoreSnapshot(consistencyGroupId, uri(snapshotId));   
+                }                
             }
             addAffectedResource(task);
         }

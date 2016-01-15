@@ -32,6 +32,7 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     private RelatedResourceRep virtualArray;
     private Set<String> types;
     private String linkStatus;
+    private Boolean supportsSnapshotSessions;
 
     // RecoverPoint fields
     private URI rpProtectionSystem;
@@ -173,5 +174,19 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
 
     public void setLinkStatus(String linkStatus) {
         this.linkStatus = linkStatus;
+    }
+    
+    /**
+     * Specifies whether this is volume supports Snapshot Sessions.
+     * 
+     * @return true if volume supports Snapshot Sessions, false otherwise
+     */
+    @XmlElement(name = "supports_snapshot_sessions")
+    public Boolean getSupportsSnapshotSessions() {
+        return supportsSnapshotSessions;
+    }
+
+    public void setSupportsSnapshotSessions(Boolean supportsSnapshotSessions) {
+        this.supportsSnapshotSessions = supportsSnapshotSessions;
     }
 }

@@ -9,6 +9,7 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.model.ipsec.IpsecParam;
+import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-@Path(value = "/ipsec")
+@Path(value = GeoServiceClient.INTERVDC_IPSEC_SERVICE)
 public class IpsecService {
 
     private final static Logger log = LoggerFactory.getLogger(IpsecService.class);

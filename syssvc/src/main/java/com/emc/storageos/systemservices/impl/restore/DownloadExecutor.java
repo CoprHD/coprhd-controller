@@ -181,7 +181,7 @@ public final class DownloadExecutor implements  Runnable {
         String backupName = map.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
         boolean isLocal = Boolean.parseBoolean(map.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY));
         log.info("backupname={}, isLocal={}", backupName, isLocal);
-        if (isLocal == false) {
+        if (!isLocal) {
             setDownloadStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, 0, 0, false);
             log.info("Persist the cancel flag into ZK");
         }

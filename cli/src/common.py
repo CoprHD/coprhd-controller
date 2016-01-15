@@ -907,11 +907,13 @@ def show_resource(ipAddr, port, componentType, uri,
 
 # Timeout handler for synchronous operations
 def timeout_handler():
+    global IS_TASK_TIMEOUT
     IS_TASK_TIMEOUT = True
 
 
 # Blocks the operation until the task is complete/error out/timeout
 def block_until_complete(componentType, resource_uri, task_id, ipAddr, port,sync):
+        global IS_TASK_TIMEOUT
         IS_TASK_TIMEOUT = False
         t = Timer(sync, timeout_handler)
         t.start()

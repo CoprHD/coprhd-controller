@@ -71,7 +71,7 @@ public class GeoServiceClient extends BaseServiceClient {
     public static final String VDCCONFIG_STABLE_CHECK = VDCCONFIG_URI + "/stablecheck";
     public static final String VERSION_URI = INTERVDC_URI + "/version";
     public static final String VDCCONFIG_RESET_BLACKLIST = VDCCONFIG_URI + "/resetblacklist";
-    public static final String VDCCONFIG_IPSEC_ROTATION_URI = "/ipsec/key";
+    public static final String VDCCONFIG_IPSEC_ROTATION_URI = INTERVDC_URI + "/ipsec/key";
 
     public static final int MAX_RETRIES = 12;
 

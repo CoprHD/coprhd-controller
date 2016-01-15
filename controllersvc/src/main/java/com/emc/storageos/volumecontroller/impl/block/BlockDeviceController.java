@@ -2235,7 +2235,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
                 List<BlockSnapshot> allSnapshots = new ArrayList<>();
                 String replicationGroupId = blockSnapshot.getReplicationGroupInstance();
-                if (NullColumnValueGetter.isNullValue(replicationGroupId)) {
+                if (!NullColumnValueGetter.isNullValue(replicationGroupId)) {
                     allSnapshots.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupId, _dbClient));
                 } else {
                     allSnapshots.add(blockSnapshot);

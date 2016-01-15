@@ -26,7 +26,7 @@ public class FileRecommendation extends Recommendation {
     private List<URI> _storagePortUris;
     private URI vNASURI;
     private URI _id;
-    private FileType fileType;
+    private FileType fileType; 
 
     
 	public FileRecommendation(Recommendation recommendation) {
@@ -35,6 +35,18 @@ public class FileRecommendation extends Recommendation {
         setSourceStoragePool(recommendation.getSourceStoragePool());
         setResourceCount(recommendation.getResourceCount());
     }
+	
+	public FileRecommendation(FileRecommendation fileRecommendation) {
+        setDeviceType(fileRecommendation.getDeviceType());
+        setSourceStorageSystem(fileRecommendation.getSourceStorageSystem());
+        setSourceStoragePool(fileRecommendation.getSourceStoragePool());
+        setResourceCount(fileRecommendation.getResourceCount());
+        
+        setvNAS(fileRecommendation.getvNAS());
+        setStoragePorts(fileRecommendation.getStoragePorts());
+        
+    }
+	
     public URI getId() {
         return _id;
     }

@@ -93,6 +93,7 @@ public class FileStorageScheduler implements Scheduler {
     public void setPermissionsHelper(PermissionsHelper permissionsHelper) {
         this.permissionsHelper = permissionsHelper;
     }
+    
 
     /**
      * Schedule storage for fileshare in the varray with the given CoS
@@ -106,7 +107,7 @@ public class FileStorageScheduler implements Scheduler {
      */
     public List<FileRecommendation> placeFileShare(VirtualArray vArray,
             VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities,
-            Project project) {
+            Project project, Map<String, Object> optionalAttributes) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.",
                 capabilities.getResourceCount(), capabilities.getSize());
@@ -115,7 +116,7 @@ public class FileStorageScheduler implements Scheduler {
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
         List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray,
-                vPool, capabilities);
+                vPool, capabilities, optionalAttributes);
 
         // Holds the invalid virtual nas servers from both
         // assigned and un-assigned list.
@@ -964,12 +965,18 @@ public class FileStorageScheduler implements Scheduler {
         }
         return result;
     }
+    public List<FileRecommendation> placeFileShare(VirtualArray vArray,
+            VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities,
+            Project project) {
+        return placeFileShare(vArray, vPool, capabilities, project, null);
+    }
 
     @Override
     public List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
             VirtualPoolCapabilityValuesWrapper capabilities) {
-        return placeFileShare(vArray, vPool, capabilities, project);
+        return placeFileShare(vArray, vPool, capabilities, project, null);
     }
+    
 
     /**
      * create fileshare from the Recommendation object

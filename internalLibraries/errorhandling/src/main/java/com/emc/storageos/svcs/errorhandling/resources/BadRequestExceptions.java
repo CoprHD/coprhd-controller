@@ -2077,7 +2077,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_CANNOT_DEREGISTER)
     public BadRequestException unableToDeregisterProvisionedComputeElement(final String resource, final String host);
 
-    @DeclareServiceCode(ServiceCode.API_INTERNAL_SERVER_ERROR)
+    @DeclareServiceCode(ServiceCode.API_INTERNAL_LOCK_ERROR)
     public BadRequestException unableToLockBladeReservation();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

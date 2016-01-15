@@ -6,12 +6,14 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.TaskMapper.toCompletedTask;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
 import static java.text.MessageFormat.format;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +28,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyz
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -53,6 +56,7 @@ import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
@@ -394,7 +398,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * Update volumes with volumeGroup Id, if the volumes are in the CG
      * @param volumesList The add volume list
      * @param application The application that the volumes are added to
-     * @return ApplicationVolumeList The volumes that are in the add volume list, but not in any consistency group yet.
+     * @return ApplicationVolumeList The volumes that are in the add volume list, but not in any consistency group yet,
+     *          or VNX CG volumes.
      */
     private ApplicationAddVolumeList addVolumesToApplication(VolumeGroupVolumeList volumeList, VolumeGroup application, String taskId) {
         Set<URI> cgVolumes = new HashSet<URI>();
@@ -452,7 +457,6 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                     volumesNotInCG.setConsistencyGroup(addingCgURI);
                 }
             }
-            
         }
 
         // Check if all CG volumes are adding into the application
@@ -463,6 +467,25 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         
         for (URI volumeUri : volumesInCG) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
+            if (ControllerUtils.isVnxVolume(volume, _dbClient) && !ControllerUtils.isInVNXVirtualRG(volume, _dbClient)) {
+                // VNX CG cannot have snapshots, user has to remove the snapshots first in order to add the CG to an application
+                URI cgUri = volume.getConsistencyGroup();
+                URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
+                _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(cgUri), cgSnapshotsResults);
+                Iterator<URI> cgSnapshotsIter = cgSnapshotsResults.iterator();
+                while (cgSnapshotsIter.hasNext()) {
+                    BlockSnapshot cgSnapshot = _dbClient.queryObject(BlockSnapshot.class, cgSnapshotsIter.next());
+                    if ((cgSnapshot != null) && (!cgSnapshot.getInactive())) {
+                        throw APIException.badRequests.notAllowedWhenVNXCGHasSnapshot();
+                    }
+                }
+
+                volumesNotInCG.setVolumes(new ArrayList<URI>(volumesInCG));
+                volumesNotInCG.setConsistencyGroup(cgUri);
+                volumesNotInCG.setReplicationGroupName(volume.getReplicationGroupInstance());
+                break;
+            }
+
             StringSet applications = volume.getVolumeGroupIds();
             if (applications == null) {
                 applications = new StringSet();

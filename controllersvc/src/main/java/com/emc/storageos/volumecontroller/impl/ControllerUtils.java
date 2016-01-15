@@ -1331,12 +1331,12 @@ public class ControllerUtils {
                 groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
             }
         }
-        if (storage != null && storage.deviceIsType(Type.vnxblock) && !groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
-            groupName = SmisConstants.VNX_VIRTUAL_RG + groupName;
-            s_logger.info("VNX virtual replication group {}", groupName);
-        }
 
         return groupName;
+    }
+
+    public static String generateVirtualReplicationGroupName(String groupName) {
+        return SmisConstants.VNX_VIRTUAL_RG + groupName;
     }
 
     /**

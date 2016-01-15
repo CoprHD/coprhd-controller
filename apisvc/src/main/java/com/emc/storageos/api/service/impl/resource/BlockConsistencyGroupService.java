@@ -1383,6 +1383,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
+
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
 
@@ -1413,8 +1416,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
-        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         // TODO check for cases - part of VPLEX/RP CG volumes are in Application and remaining are not
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
 
         // Get the full copy source.
@@ -1451,6 +1454,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
+
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
 
@@ -1480,6 +1486,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1511,6 +1520,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+
+        // TODO check deactivate case
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
 
         // Verify the full copy.
         verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);

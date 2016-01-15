@@ -26,6 +26,8 @@ public class VolumeGroupFullCopyOperationParam {
         this.fullCopies = fullCopies;
     }
 
+    // TODO update comments for clone operation
+
     /**
      * Boolean which indicates whether we need to detach clone for the entire Application or for subset of array replication groups.
      * By default it is set to false, and consider that clones to be detached for all array replication groups in an Application.

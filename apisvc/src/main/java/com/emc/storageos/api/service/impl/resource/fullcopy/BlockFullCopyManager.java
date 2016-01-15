@@ -613,7 +613,7 @@ public class BlockFullCopyManager {
         Map<URI, BlockObject> resourceMap = BlockFullCopyUtils.verifySourceAndFullCopy(
                 sourceURI, fullCopyURI, _uriInfo, _dbClient);
 
-        // We don't currently support resynchronize4 when the source
+        // We don't currently support resynchronize when the source
         // is a snapshot.
         if (URIUtil.isType(sourceURI, BlockSnapshot.class)) {
             throw APIException.badRequests.fullCopyResyncNotSupportedForSnapshot();

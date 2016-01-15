@@ -102,6 +102,8 @@ public interface BackupConstants {
     String REMOTE_RESTORE_KIND_PREFIX=BACKUP_RESTORE_STATUS + "/remote";
     String RESTORE_LOCK="restore";
     String BACKUP_LOCK = "backup";
+    String CURRENT_DOWNLOADING_BACKUP_NAME_KEY="name";
+    String CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY="isLocal";
 
     public static final String SITE_ID_FILE_PATH = "/data/zk/siteid";
     public static final String SITE_ID_FILE_NAME = "siteid";

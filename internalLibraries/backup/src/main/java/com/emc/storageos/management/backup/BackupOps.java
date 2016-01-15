@@ -329,19 +329,64 @@ public class BackupOps {
         return builder.toString();
     }
 
+    public void clearCurrentBackupInfo() {
+        log.info("clear current backup info");
+        persistCurrentBackupInfo("", false);
+    }
+
+    public void persistCurrentBackupInfo(String backupName, boolean isLocal) {
+        ConfigurationImpl config = new ConfigurationImpl();
+        config.setKind(BackupConstants.BACKUP_RESTORE_STATUS);
+        config.setId(Constants.GLOBAL_ID);
+        config.setConfig(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY, backupName);
+        config.setConfig(BackupConstants.CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY, Boolean.toString(isLocal));
+
+        coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
+        log.info("Persist current backup info to zk successfully");
+    }
+
+    public Map<String, String> getCurrentBackupInfo() {
+        Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
+                BackupConstants.BACKUP_RESTORE_STATUS, Constants.GLOBAL_ID);
+
+        Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
+
+        // The map should has only 4 entries: _kind, _id, backupname and isLocal
+        if (allItems.size() != 4) {
+            log.error("Invalid current backup info from zk: {}", allItems);
+            throw new RuntimeException("invalid current backup info from zk");
+        }
+
+        return allItems;
+    }
+
     /**
-     * Persist upload status to ZK
+     * Persist download status to ZK
      */
     public void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal) {
-        log.info("Persist backup restore status {}", status);
-        Map<String, String> allItems = (status != null) ? status.toMap(): null;
-
-        if (allItems == null || allItems.size() == 0){
-            return;
-        }
+        log.info("Persist backup restore status {} stack=", status, new Throwable());
+        Map<String, String> allItems = status.toMap();
 
         ConfigurationImpl config = new ConfigurationImpl();
         String backupName = status.getBackupName();
+        config.setKind(getBackupConfigKind(isLocal));
+        config.setId(backupName);
+
+        for (Map.Entry<String, String> entry : allItems.entrySet()) {
+            config.setConfig(entry.getKey(), entry.getValue());
+        }
+
+        coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
+        log.info("Persist backup restore status to zk successfully");
+    }
+
+    public synchronized  void setGeoFlag(String backupName, boolean isLocal) {
+        BackupRestoreStatus state = queryBackupRestoreStatus(backupName, isLocal);
+        state.setIsGeo(true);
+        log.info("Persist backup restore status {} stack=", state, new Throwable());
+        Map<String, String> allItems = state.toMap();
+
+        ConfigurationImpl config = new ConfigurationImpl();
         config.setKind(getBackupConfigKind(isLocal));
         config.setId(backupName);
 

@@ -69,7 +69,7 @@
     <div class="alert alert-info"> &{'restore.prompt'} </div>
 
     #{Form.button 'button.ok', class:'primary', icon:'ok-sign', submit:'restoreForm', id:'restoreBtn' /}
-    #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
+    #{Form.button 'button.cancel', icon:'primary', href: @cancelPullBackup(type)/}
 #{/form}
 </div>
 

@@ -8,6 +8,7 @@ import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_CREATE_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_EXTERNAL_DETAIL_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_EXTERNAL_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_CANCEL_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_UPLOAD_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_URL;
@@ -89,6 +90,11 @@ public class Backup {
     public void pullBackup(String name) {
         UriBuilder builder = client.uriBuilder(BACKUP_PULL_URL);
         addQueryParam(builder, "file", name);
+        client.postURI(String.class, builder.build());
+    }
+
+    public void cancelPullBackup() {
+        UriBuilder builder = client.uriBuilder(BACKUP_PULL_CANCEL_URL);
         client.postURI(String.class, builder.build());
     }
 

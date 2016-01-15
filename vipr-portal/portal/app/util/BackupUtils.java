@@ -60,6 +60,10 @@ public class BackupUtils {
         BourneUtil.getSysClient().backup().pullBackup(name);
     }
 
+    public static void cancelPullBackup() {
+        BourneUtil.getSysClient().backup().cancelPullBackup();
+    }
+
     public static void restore(String name, String password, boolean isLocal, boolean isGeoFromScratch) {
         BourneUtil.getSysClient().backup().restore(name, password, isLocal, isGeoFromScratch);
     }

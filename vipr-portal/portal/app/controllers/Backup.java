@@ -22,6 +22,7 @@ import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.BackupUtils;
+import util.BourneUtil;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
@@ -169,6 +170,11 @@ public class Backup extends Controller {
         renderArgs.put("type", type);
         renderArgs.put("isGeo", false);
         render();
+    }
+
+    public static void cancelPullBackup(Type type) {
+        BackupUtils.cancelPullBackup();
+        list(type);
     }
 
     @FlashException(keep = true, referrer = { "restore" })

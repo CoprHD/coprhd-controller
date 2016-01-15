@@ -1199,12 +1199,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // If the export group already exists, add the volumes to it, otherwise create a brand new
                 // export group.
                 StringBuilder buffer = new StringBuilder();
+                buffer.append(String.format("---------------------------------%n"));
                 if (!addExportGroupToDB) {
+                	
                     buffer.append(String.format(
                             "Adding volumes to existing Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]%n",
                             storageSystem.getLabel(), rpSiteName, varray.getLabel()));
                     buffer.append(String.format("Export Group name is : [%s]%n", exportGroup.getGeneratedName()));
                     buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
+                    buffer.append(String.format("---------------------------------%n"));
                     _log.info(buffer.toString());
 
                     waitFor = _exportWfUtils.
@@ -1220,6 +1223,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     buffer.append(String.format("Export Group name is: [%s]%n", exportGroup.getGeneratedName()));
                     buffer.append(String.format("Export Group will have these initiators: [%s]%n", Joiner.on(',').join(initiatorSet)));
                     buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
+                    buffer.append(String.format("---------------------------------%n"));
                     _log.info(buffer.toString());
 
                     String exportStep = workflow.createStepId();
@@ -1781,39 +1785,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private Collection<RPExport> generateStorageSystemExportMaps(CGRequestParams cgParams, List<VolumeDescriptor> volumeDescriptors) {
         _log.info("Generate the storage system exports");
         Map<String, RPExport> rpExportMap = new HashMap<String, RPExport>();
-
-        // First, iterate through the journal volumes (via the copies)
-        for (CreateCopyParams copy : cgParams.getCopies()) {
-            _log.info("Copy: " + copy.getName());
-            for (CreateVolumeParams journalVolume : copy.getJournals()) {
-                // Retrieve the volume
-                Volume volume = _dbClient.queryObject(Volume.class, journalVolume.getVolumeURI());
-
-                URI storageSystem = journalVolume.getStorageSystem();
-                String rpSiteName = volume.getInternalSiteName();
-                URI varray = volume.getVirtualArray();
-                String volumeLabel = volume.getLabel();
-                URI volumeId = volume.getId();
-
-                // Generate a unique key based on Storage System + Internal Site + Virtual Array
-                String key = storageSystem.toString() + rpSiteName + varray.toString() + "Journal";
-
-                // Try and get an existing rp export object from the map using the key
-                RPExport rpExport = rpExportMap.get(key);
-
-                // If it doesn't exist, create the entry and add it to the map with the key
-                if (rpExport == null) {
-                    rpExport = new RPExport(storageSystem, rpSiteName, varray);
-                    rpExportMap.put(key, rpExport);
-                }
-                rpExport.setIsJournalExport(true);
-
-                _log.info(String.format("Add Journal Volume: [%s] to export : [%s]", volumeLabel, rpExport));
-
-                rpExport.getVolumes().add(volumeId);
-            }
-        }
-
+        
         // Second, iterate through source/target volumes (via the replication set). This will be slightly
         // different than the journals since we need to consider that we might have a MetroPoint source
         // volume.
@@ -1911,6 +1883,39 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                     rpExport.getVolumes().add(volumeId);
                 }
+            }
+        }
+
+        // Iterate through the journal volumes (via the copies)
+        for (CreateCopyParams copy : cgParams.getCopies()) {
+            _log.info("Copy: " + copy.getName());
+            for (CreateVolumeParams journalVolume : copy.getJournals()) {
+                // Retrieve the volume
+                Volume volume = _dbClient.queryObject(Volume.class, journalVolume.getVolumeURI());
+
+                URI storageSystem = journalVolume.getStorageSystem();
+                String rpSiteName = volume.getInternalSiteName();
+                URI varray = volume.getVirtualArray();
+                String volumeLabel = volume.getLabel();
+                URI volumeId = volume.getId();
+
+                // Generate a unique key based on Storage System + Internal Site + Virtual Array
+                String key = storageSystem.toString() + rpSiteName + varray.toString();
+
+                // Try and get an existing rp export object from the map using the key
+                RPExport rpExport = rpExportMap.get(key);
+
+                // If it doesn't exist, create the entry and add it to the map with the key
+                if (rpExport == null) {
+                	_log.info("RPExport is for journals only");
+                    rpExport = new RPExport(storageSystem, rpSiteName, varray);
+                    rpExport.setIsJournalExport(true);
+                    rpExportMap.put(key, rpExport);
+                }
+                
+                _log.info(String.format("Add Journal Volume: [%s] to export : [%s]", volumeLabel, rpExport));
+
+                rpExport.getVolumes().add(volumeId);
             }
         }
 

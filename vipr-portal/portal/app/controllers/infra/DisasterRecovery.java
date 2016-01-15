@@ -259,7 +259,7 @@ public class DisasterRecovery extends ViprResourceController {
                 render(isError, uuid, disasterSiteError);
             }
             else {
-                SiteDetailRestRep disasterSiteTime = DisasterRecoveryUtils.getSiteTime(id);
+                SiteDetailRestRep disasterSiteTime = DisasterRecoveryUtils.getSiteDetails(id);
                 isError = false;
                 if (disasterSiteTime.getCreationTime() != null) {
                     DateTime creationTime = new DateTime(disasterSiteTime.getCreationTime().getTime());

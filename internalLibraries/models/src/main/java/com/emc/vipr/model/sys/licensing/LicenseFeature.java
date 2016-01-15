@@ -23,6 +23,8 @@ public class LicenseFeature implements Serializable {
     private String version;
     private String dateIssued;
     private String dateExpires;
+
+    // Format: ViPR_Controller_<LicenseType>  LicenseType could be TIER1/2/3 or any array type (VMAX3 etc.)
     private String modelId;
     private String productId;
     private String siteId = "UNKNOWN";

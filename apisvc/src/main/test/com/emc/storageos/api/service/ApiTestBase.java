@@ -304,7 +304,7 @@ public class ApiTestBase {
         }
 
         for (LicenseFeature feature : features) {
-            if (feature.getModelId().equals("ViPR_Controller") && feature.isLicensed()) {
+            if (feature.getModelId().startsWith("ViPR_Controller") && feature.isLicensed()) {
                 return true;
             }
         }

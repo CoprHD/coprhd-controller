@@ -60,7 +60,7 @@ public class FileMirrorSchedular implements Scheduler {
     protected PermissionsHelper _permissionsHelper = null;
 
     /**
-     * get list mirror recommendation for mirror file shares
+     * get list mirror recommendation for mirror file shares(local or remote)
      */
     @Override
     public List getRecommendationsForResources(VirtualArray varray,
@@ -68,6 +68,7 @@ public class FileMirrorSchedular implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities) {
         List<FileRecommendation> recommendations = null;
         if( vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())){
+            //TBD -remote recommendation call
             
         } else {
             recommendations = getLocalMirrorRecommendationsForResources(varray, project, vpool, capabilities);
@@ -75,58 +76,70 @@ public class FileMirrorSchedular implements Scheduler {
         return recommendations;
     }
     
+    
+    
+    /*local mirror related functions*/
+    /**
+     * get list Recommendation for Local Mirror
+     * @param vArray
+     * @param project
+     * @param vPool
+     * @param capabilities
+     * @return
+     */
     public List getLocalMirrorRecommendationsForResources(VirtualArray vArray,
             Project project, VirtualPool vPool,
             VirtualPoolCapabilityValuesWrapper capabilities) {
-        
-        List<FileMirrorRecommendation> fileMirrorRecommendations = new ArrayList<FileMirrorRecommendation>();
+
         List<FileRecommendation> targetFileRecommendations = null;
-        FileMirrorRecommendation fileMirrorRecommendation = null;
+        List<FileMirrorRecommendation> fileMirrorRecommendations = new ArrayList<FileMirrorRecommendation>();
         
-        List<FileRecommendation> fileRecommendations = 
-                _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
-        
-        for(FileRecommendation fileRecommendation: fileRecommendations) {
-        
+        //get the recommendation for source -step1  
+        List<FileRecommendation> sourceFileRecommendations = 
+                                _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
+        //process the each recommendations for targets
+        for(FileRecommendation sourceFileRecommendation: sourceFileRecommendations) {
+            //set the source file recommendation
+            FileMirrorRecommendation fileMirrorRecommendation = new FileMirrorRecommendation(sourceFileRecommendation);
             
-            fileMirrorRecommendation = new FileMirrorRecommendation(fileRecommendation);
-            _fileScheduler.placeFileShare(vArray, vPool, capabilities, project, null);
-            
-            //attribute map
+            //attribute map of target storagesystem and varray
             Map<String, Object> attributeMap = new HashMap<String, Object>();
             Set<String> storageSystemSet = new HashSet<String>();
-            storageSystemSet.add(fileMirrorRecommendation.getSourceStorageSystem().toString());
+            storageSystemSet.add(sourceFileRecommendation.getSourceStorageSystem().toString());
             attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
-
+            
             Set<String> virtualArraySet = new HashSet<String>();
             virtualArraySet.add(vArray.getId().toString());
             attributeMap.put(AttributeMatcher.Attributes.varrays.name(), virtualArraySet);
             
-            //get target recommendations
+            //get target recommendations -step2
             targetFileRecommendations = _fileScheduler.placeFileShare(vArray, vPool, capabilities, project, attributeMap);
             
-            prepareTargetMirrorRecommendation(vPool.getFileReplicationCopyMode(), 
+            //prepare the target recommendation
+            prepareTargetFileRecommendation(vPool.getFileReplicationCopyMode(), 
                     vArray, targetFileRecommendations.get(0), fileMirrorRecommendation);
             
             fileMirrorRecommendations.add(fileMirrorRecommendation);
         }
-        
-        
-        
         return fileMirrorRecommendations;
     }
     
-    void prepareTargetMirrorRecommendation(final String fsCopyMode, final VirtualArray targetVarray, 
+    
+    void prepareTargetFileRecommendation(final String fsCopyMode, final VirtualArray targetVarray, 
                                                         final FileRecommendation targetFileRecommendation, 
                                                         FileMirrorRecommendation fileMirrorRecommendation) {
-        
         //set target recommendations
         Target target = new Target();
         
         target.setTargetPool(targetFileRecommendation.getSourceStoragePool());
         target.setTargetStorageDevice(targetFileRecommendation.getSourceStorageSystem());
-        target.setTargetStoragePortUris(targetFileRecommendation.getStoragePorts());
-        target.setTargetvNASURI(targetFileRecommendation.getvNAS());
+        if (targetFileRecommendation.getStoragePorts() != null) {
+            target.setTargetStoragePortUris(targetFileRecommendation.getStoragePorts());
+        }
+        
+        if(targetFileRecommendation.getvNAS() != null) {
+            target.setTargetvNASURI(targetFileRecommendation.getvNAS());
+        }
         
         fileMirrorRecommendation.getVirtualArrayTargetMap().put(targetVarray.getId(), target);
         
@@ -134,9 +147,6 @@ public class FileMirrorSchedular implements Scheduler {
         fileMirrorRecommendation.setCopyMode(fsCopyMode);
     }
     
-    
-    
-
     /**
      * Gets and verifies that the target varrays passed in the request are accessible to the tenant.
      *

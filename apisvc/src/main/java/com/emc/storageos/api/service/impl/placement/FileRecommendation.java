@@ -41,10 +41,18 @@ public class FileRecommendation extends Recommendation {
         setSourceStorageSystem(fileRecommendation.getSourceStorageSystem());
         setSourceStoragePool(fileRecommendation.getSourceStoragePool());
         setResourceCount(fileRecommendation.getResourceCount());
+        //set the file type
+        setFileType(fileRecommendation.getFileType());
         
-        setvNAS(fileRecommendation.getvNAS());
-        setStoragePorts(fileRecommendation.getStoragePorts());
+        //set vnas Server
+        if(fileRecommendation.getvNAS() != null) {
+            setvNAS(fileRecommendation.getvNAS());
+        }
         
+        //set the storageports
+        if(fileRecommendation.getStoragePorts() != null && !fileRecommendation.getStoragePorts().isEmpty()) {
+            setStoragePorts(fileRecommendation.getStoragePorts());
+        }
     }
 	
     public URI getId() {

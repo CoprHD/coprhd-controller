@@ -1609,16 +1609,21 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
 
-            inArgs = _helper.getCreateReplicationGroupInputArguments(groupName);
-            CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
-            _helper.invokeMethod(forProvider, replicationSvc, SmisConstants.CREATE_GROUP, inArgs, outArgs);
-            // Grab the generated name from the instance ID and store it in the db
-            final String instanceID = (String) _cimPath
-                    .getCimObjectPathFromOutputArgs(outArgs, CP_REPLICATION_GROUP)
-                    .getKey(CP_INSTANCE_ID).getValue();
+            if (forProvider.deviceIsType(Type.vnxblock) && groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
+                // nothing need to be done on array side
+                _log.info("VNX virtual replication group {}", groupName);
+            } else {
+                inArgs = _helper.getCreateReplicationGroupInputArguments(groupName);
+                CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
+                _helper.invokeMethod(forProvider, replicationSvc, SmisConstants.CREATE_GROUP, inArgs, outArgs);
+                // Grab the generated name from the instance ID and store it in the db
+                final String instanceID = (String) _cimPath
+                        .getCimObjectPathFromOutputArgs(outArgs, CP_REPLICATION_GROUP)
+                        .getKey(CP_INSTANCE_ID).getValue();
 
-            // VMAX instanceID, e.g., 000196700567+EMC_SMI_RG1414546375042 (8.0.2 provider)
-            deviceName = instanceID.split(Constants.PATH_DELIMITER_REGEX)[storage.getUsingSmis80() ? 1 : 0];
+                // VMAX instanceID, e.g., 000196700567+EMC_SMI_RG1414546375042 (8.0.2 provider)
+                deviceName = instanceID.split(Constants.PATH_DELIMITER_REGEX)[storage.getUsingSmis80() ? 1 : 0];
+            }
 
             consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), deviceName);
             if (srdfCG) {

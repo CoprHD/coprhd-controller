@@ -12,6 +12,7 @@ import static java.text.MessageFormat.format;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -402,12 +403,10 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      *          or VNX CG volumes.
      */
     private ApplicationAddVolumeList addVolumesToApplication(VolumeGroupVolumeList volumeList, VolumeGroup application, String taskId) {
-        Set<URI> cgVolumes = new HashSet<URI>();
-        String firstVolLabel = null;
-        List<URI> addVolumeURIs = volumeList.getVolumes();
-        Set<URI> volumesInCG = new HashSet<URI>();
-        ApplicationAddVolumeList volumesNotInCG = new ApplicationAddVolumeList() ;
-        for (URI voluri : addVolumeURIs) {
+        ApplicationAddVolumeList addVolumeList = new ApplicationAddVolumeList() ;
+
+        Map<URI, List<URI>> addCGVolsMap = new HashMap<URI, List<URI>>();
+        for (URI voluri : volumeList.getVolumes()) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
             if (volume == null || volume.getInactive()) {
                 _log.info(String.format("The volume %s does not exist or has been deleted", voluri));
@@ -415,15 +414,12 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             }
             URI cgUri = volume.getConsistencyGroup();
             if (!NullColumnValueGetter.isNullURI(cgUri)) {
-                volumesInCG.add(voluri);
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
-                List<Volume> cgvolumes = getActiveCGVolumes(cg);
-                for (Volume cgvol : cgvolumes) {
-                    cgVolumes.add(cgvol.getId());
+                List<URI> vols = addCGVolsMap.get(cgUri);
+                if (vols == null) {
+                    vols = new ArrayList<URI>();
                 }
-                if (firstVolLabel == null) {
-                    firstVolLabel = volume.getLabel();
-                }
+                vols.add(voluri);
+                addCGVolsMap.put(cgUri, vols);
             } else {
                 // The volume is not in CG
                 URI addingCgURI = volumeList.getConsistencyGroup();
@@ -434,7 +430,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                             String.format("The specified consistency group %s is not valid", addingCgURI.toString()));
                 }
                 // Check if the volume is from the same storage system as others.
-                List<URI> checkedVolumes = volumesNotInCG.getVolumes();
+                List<URI> checkedVolumes = addVolumeList.getVolumes();
                 if (!checkedVolumes.isEmpty()) {
                     Volume firstVol = _dbClient.queryObject(Volume.class, checkedVolumes.get(0));
                     if (!volume.getStorageController().toString().equals(firstVol.getStorageController().toString())) {
@@ -453,23 +449,35 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                             String.format("the volumes %s has replica. please remove all replicas from the volume", volume.getLabel()));
                 }
                 checkedVolumes.add(voluri);
-                if (volumesNotInCG.getConsistencyGroup()== null) {
-                    volumesNotInCG.setConsistencyGroup(addingCgURI);
+                if (addVolumeList.getConsistencyGroup()== null) {
+                    addVolumeList.setConsistencyGroup(addingCgURI);
                 }
+                addVolumeList.setReplicationGroupName(volumeList.getReplicationGroupName());
             }
         }
-
-        // Check if all CG volumes are adding into the application
-        if(!volumesInCG.isEmpty() && !cgVolumes.containsAll(volumesInCG) || volumesInCG.size() != cgVolumes.size()) {
-            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel, 
-                    "not all volumes in consistency group are in the add volume list");
-        }
         
-        for (URI volumeUri : volumesInCG) {
-            Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
-            if (ControllerUtils.isVnxVolume(volume, _dbClient) && !ControllerUtils.isInVNXVirtualRG(volume, _dbClient)) {
+        Set<URI> vnxCGVols = new HashSet<URI>();
+        for (Map.Entry<URI, List<URI>> entry : addCGVolsMap.entrySet()) {
+            URI cgUri = entry.getKey();
+            List<URI> cgVolsToAdd = entry.getValue();
+
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+            List<Volume> cgVolumes = getActiveCGVolumes(cg);
+            Volume firstVolume = cgVolumes.get(0);
+
+            Set<URI> cgVolumeURIs = new HashSet<URI>();
+            for (Volume cgVol : cgVolumes) {
+                cgVolumeURIs.add(cgVol.getId());
+            }
+
+            // Check if all CG volumes are adding into the application
+            if(!cgVolsToAdd.isEmpty() && !cgVolumeURIs.containsAll(cgVolsToAdd) || cgVolsToAdd.size() != cgVolumeURIs.size()) {
+                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolume.getLabel(),
+                        "not all volumes in consistency group are in the add volume list");
+            }
+
+            if (ControllerUtils.isVnxVolume(firstVolume, _dbClient) && !ControllerUtils.isInVNXVirtualRG(firstVolume, _dbClient)) {
                 // VNX CG cannot have snapshots, user has to remove the snapshots first in order to add the CG to an application
-                URI cgUri = volume.getConsistencyGroup();
                 URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
                 _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(cgUri), cgSnapshotsResults);
                 Iterator<URI> cgSnapshotsIter = cgSnapshotsResults.iterator();
@@ -480,25 +488,27 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                     }
                 }
 
-                volumesNotInCG.setVolumes(new ArrayList<URI>(volumesInCG));
-                volumesNotInCG.setConsistencyGroup(cgUri);
-                volumesNotInCG.setReplicationGroupName(volume.getReplicationGroupInstance());
-                break;
+                vnxCGVols.addAll(cgVolumeURIs);
+            } else {
+                for (Volume cgVol : cgVolumes) {
+                    StringSet applications = cgVol.getVolumeGroupIds();
+                    if (applications == null) {
+                        applications = new StringSet();
+                    }
+                    applications.add(application.getId().toString());
+                    cgVol.setVolumeGroupIds(applications);
+                    Operation op = cgVol.getOpStatus().get(taskId);
+                    op.ready();
+                    cgVol.getOpStatus().updateTaskStatus(taskId, op);
+                }
+                _dbClient.updateObject(cgVolumes);
             }
 
-            StringSet applications = volume.getVolumeGroupIds();
-            if (applications == null) {
-                applications = new StringSet();
-            }
-            applications.add(application.getId().toString());
-            volume.setVolumeGroupIds(applications);
-            Operation op = volume.getOpStatus().get(taskId);
-            op.ready();
-            volume.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(volume);
+            addVolumeList.getVolumes().addAll(vnxCGVols);
         }
+
         _log.info("Added volumes in CG to the application" );
-        return volumesNotInCG;
+        return addVolumeList;
     }
     
     /**

@@ -150,7 +150,7 @@ public class ApplicationTaskCompleter extends TaskCompleter{
         volume.setVolumeGroupIds(applications);
         dbClient.updateObject(volume);
 
-        // Once one of volume in a VNX CG is added to an application, the CG's arrayConsistency
+        // Once volumes in VNX CG are added to an application, the CG's arrayConsistency
         // should turn to false
         if (volume.isInCG() && ControllerUtils.isVnxVolume(volume, dbClient)) {
             URI cguri = volume.getConsistencyGroup();

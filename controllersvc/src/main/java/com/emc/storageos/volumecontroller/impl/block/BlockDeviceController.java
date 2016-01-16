@@ -5156,12 +5156,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         List<URI> cgs = new ArrayList<URI>();
         TaskCompleter completer = null;
         String waitFor = null;
-        List<URI> addVolumesList = new ArrayList<URI>();
+        List<URI> addVolumesList = new ArrayList<URI>(); // non CG volumes
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false, opId);
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
 
             if (removeVolumeList!= null && !removeVolumeList.isEmpty()) {
                 Map<URI, List<URI>> removeVolsMap = new HashMap<URI, List<URI>>();
@@ -5196,18 +5195,34 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             }
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
-                _log.info("Creating workflows for adding volumes to CG and application");
-                addVolumesList = addVolList.getVolumes();
-                URI voluri = addVolumesList.get(0);
-                Volume vol = _dbClient.queryObject(Volume.class, voluri);
-                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
-
-                URI cguri = addVolList.getConsistencyGroup();
-                cgs.add(cguri);
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+                Map<URI, List<URI>> addVolsMap = new HashMap<URI, List<URI>>();
+                for (URI voluri : addVolList.getVolumes()) {
+                    Volume vol = _dbClient.queryObject(Volume.class, voluri);
+                    if (ControllerUtils.isVnxVolume(vol, _dbClient) && vol.isInCG() && !ControllerUtils.isInVNXVirtualRG(vol, _dbClient)) {
+                        URI cguri = vol.getConsistencyGroup();
+                        List<URI> vols = addVolsMap.get(cguri);
+                        if (vols == null) {
+                            vols = new ArrayList<URI>();
+                        }
+                        vols.add(voluri);
+                        addVolsMap.put(cguri, vols);
+                    } else { // must be non CG Volumes
+                        addVolumesList.add(voluri);
+                    }
+                }
+                cgs.addAll(addVolsMap.keySet());
                 
-                String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cguri, addVolList.getReplicationGroupName(), _dbClient);
-                if (ControllerUtils.isVnxVolume(vol, _dbClient) && vol.isInCG() && !ControllerUtils.isInVNXVirtualRG(vol, _dbClient)) {
+                for (Map.Entry<URI, List<URI>> entry : addVolsMap.entrySet()) {
+                    _log.info("Creating workflows for adding CG volumes to application");
+                    URI cguri = entry.getKey();
+                    List<URI> cgVolsToAdd = entry.getValue();
+
+                    URI voluri = cgVolsToAdd.get(0);
+                    Volume vol = _dbClient.queryObject(Volume.class, voluri);
+                    StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+                    String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cguri, vol.getReplicationGroupInstance(), _dbClient);
+
                     // migrate real replication group to virtual replication group
                     _log.info("Modify consistency group %s to use virtual replication group", cg.getLabel());
                     // remove volumes from original replication group
@@ -5215,7 +5230,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             String.format("Removing volumes from consistency group %s", cg.getLabel()),
                             waitFor, storage, storageSystem.getSystemType(),
                             this.getClass(),
-                            removeFromConsistencyGroupMethod(storage, cg.getId(), addVolList.getVolumes()),
+                            removeFromConsistencyGroupMethod(storage, cguri, cgVolsToAdd),
                             rollbackMethodNullMethod(), null);
 
                     // remove replication group
@@ -5224,7 +5239,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             String.format("Deleting replication group for consistency group %s", cg.getLabel()),
                             waitFor, storage, storageSystem.getSystemType(),
                             this.getClass(),
-                            deleteConsistencyGroupMethod(storage, cg.getId(), groupName, newGroupName, false),
+                            deleteConsistencyGroupMethod(storage, cguri, groupName, newGroupName, false),
                             rollbackMethodNullMethod(), null);
 
                     // add volumes to virtual replication group
@@ -5232,9 +5247,22 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             String.format("Update VNX consistency group %s to use virtual replicatin group", cg.getLabel()),
                             waitFor, storage, storageSystem.getSystemType(),
                             this.getClass(),
-                            addVolumesToReplicationGroupMethod(storage, application, cguri, newGroupName, addVolList.getVolumes()),
+                            addVolumesToReplicationGroupMethod(storage, application, cguri, newGroupName, cgVolsToAdd),
                             rollbackMethodNullMethod(), null);
-                } else {
+                }
+
+                if (!addVolumesList.isEmpty()) {
+                    _log.info("Creating workflows for adding volumes to CG and application");
+                    URI voluri = addVolumesList.get(0);
+                    Volume vol = _dbClient.queryObject(Volume.class, voluri);
+                    StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
+                    URI cguri = addVolList.getConsistencyGroup();
+                    cgs.add(cguri);
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+                    String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cguri, addVolList.getReplicationGroupName(), _dbClient);
+                    if (ControllerUtils.isVnxVolume(vol, _dbClient)) {
+                        groupName = ControllerUtils.generateVirtualReplicationGroupName(groupName);
+                    }
                     // check if cg is created, if not create it
                     if (!cg.created(groupName, storageSystem.getId())) {
                         _log.info("Consistency group not created. Creating it");
@@ -5257,6 +5285,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, cguri, addVolumesList, opId);
                 }
             }
+
             completer = new ApplicationTaskCompleter(application, addVolumesList, removeVolumeList, cgs, opId);
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);

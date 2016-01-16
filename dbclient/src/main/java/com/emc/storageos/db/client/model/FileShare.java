@@ -140,28 +140,36 @@ public class FileShare extends FileObject implements ProjectResource {
         SOURCE, // Source fileShare
         TARGET, // Target fileShare
     }
+    
+    @Name("mirrorfsTargets")
     public StringSet getMirrorfsTargets() {
         return _mirrorfsTargets;
     }
 
     public void setMirrorfsTargets(StringSet _mirrorfsTargets) {
         this._mirrorfsTargets = _mirrorfsTargets;
+        setChanged("mirrorfsTargets");
+        
     }
 
+    @Name("parentFileShare")
     public NamedURI getParentFileShare() {
         return _parentFileShare;
     }
-
+    
     public void setParentFileShare(NamedURI _parentFileShare) {
         this._parentFileShare = _parentFileShare;
+        setChanged("parentFileShare");
     }
-
+    
+    @Name("accessState")
     public String getAccessState() {
         return _accessState;
     }
 
     public void setAccessState(String _accessState) {
         this._accessState = _accessState;
+        setChanged("accessState");
     }
 
     public String getMirrorStatus() {
@@ -172,12 +180,15 @@ public class FileShare extends FileObject implements ProjectResource {
         this._mirrorStatus = _mirrorStatus;
     }
     
+    @Name("personality")
+    @AlternateId("AltIdIndex")
     public String getPersonality() {
         return _personality;
     }
-
+    
     public void setPersonality(String _personality) {
         this._personality = _personality;
+        setChanged("personality");
     }
 
 

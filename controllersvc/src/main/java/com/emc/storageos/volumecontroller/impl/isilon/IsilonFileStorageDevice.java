@@ -2528,7 +2528,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
         // TODO Auto-generated method stub
-
+        
     }
 
     @Override

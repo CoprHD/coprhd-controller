@@ -28,8 +28,8 @@ public class FileCreateWorkflowCompleter extends FileWorkflowCompleter{
         this._fileDescriptors = fileDescriptors;
     }
 	
-	public FileCreateWorkflowCompleter(URI volUri, String task) {
-        super(volUri, task);
+	public FileCreateWorkflowCompleter(URI fileUri, String task) {
+        super(fileUri, task);
     }
 	
 	@Override

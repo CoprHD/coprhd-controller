@@ -70,6 +70,8 @@ import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
  * Isilon specific file controller implementation.
  */
 public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
+    
+
     private static final Logger _log = LoggerFactory.getLogger(IsilonFileStorageDevice.class);
 
     private static final String IFS_ROOT = "/ifs";
@@ -2540,6 +2542,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // TODO Auto-generated method stub
 
     }
+    
+    @Override
+    public void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
+        // TODO Auto-generated method stub
+        
+    }
 
     // local mirror related operations
 
@@ -2556,5 +2564,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         mirrorOperations.deleteSingleMirrorFileShare(storage, mirror, taskCompleter);
 
     }
+    
+    
 
 }

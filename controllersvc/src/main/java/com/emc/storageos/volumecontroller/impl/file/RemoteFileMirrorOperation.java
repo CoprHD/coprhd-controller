@@ -40,6 +40,16 @@ public interface RemoteFileMirrorOperation {
      * @param completer
      */
     void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer);
+    
+    /**
+     * Rollback replication links.
+     *
+     * @param system
+     * @param sources
+     * @param targets
+     * @param completer
+     */
+    void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer);
 
 
 }

@@ -184,6 +184,13 @@
         <property name ="defaultFileServiceApiImpl" ref="defaultFileServiceApiImpl"/>
     </bean>
     
+    <bean id="fileRemoteMirrorServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.FileRemoteMirrorServiceApiImpl">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="fileScheduler" ref="fileMirrorSchedular" />
+        <property name ="fileMirrorServiceApiImpl" ref="fileMirrorServiceApiImpl"/>
+    </bean>
+    
     <bean id="filePlacementManager" class="com.emc.storageos.api.service.impl.placement.FilePlacementManager">
         <property name="storageSchedulers">
             <map>
@@ -203,7 +210,8 @@
         <property name="fileServiceApis">
         <map>
             <entry key="default" value-ref="defaultFileServiceApiImpl"/>
-            <entry key="mirror" value-ref="fileMirrorServiceApiImpl" />
+            <entry key="localmirror" value-ref="fileMirrorServiceApiImpl" />
+            <entry key="remotemirror" value-ref="fileRemoteMirrorServiceApiImpl" />
         </map>
         </property>
     </bean>

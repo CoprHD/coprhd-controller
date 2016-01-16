@@ -100,15 +100,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
      */
     static private Map<String, AbstractFileServiceApiImpl> s_protectionImplementations = new HashMap<String, AbstractFileServiceApiImpl>();
 
-    /**
-     * Constructor used to keep track of the various implementations of this class.
-     * In particular, we are interested in "protection" implementations, that we need to
-     * compute connectivity for.
-     *
-     * @param protectionType -- Should be null for regular Block implementation,
-     *            or the DiscoveredDataObject.Type.name() value for "protection" implementations,
-     *            so far RP and VPLEX.
-     */
+   
     public AbstractFileServiceApiImpl(String protectionType) {
         if (protectionType != null) {
             s_protectionImplementations.put(protectionType, this);

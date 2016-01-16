@@ -7,10 +7,12 @@ package com.emc.storageos.api.service.impl.resource.fullcopy;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+import static com.google.common.collect.Collections2.transform;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -577,7 +579,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         StringSet fullCopies = fcSourceObject.getFullCopies();
         if (fullCopies != null) {
             if (fullCopySetName != null) {
-                List<URI> fullCopySetURIs = new ArrayList<URI>(transform(fullCopySetVolumes, fctnDataObjectToID()));
+                Collection<URI> fullCopySetURIs = transform(fullCopySetVolumes, fctnDataObjectToID());
                 for (String fc : fullCopies) {
                     URI fcURI = URI.create(fc);
                     if (fullCopySetURIs.contains(fcURI)) {

@@ -375,20 +375,17 @@ public class VdcManager extends AbstractManager {
         opHandler.setLocalVdcPropInfo(localVdcPropInfo);
         opHandler.execute();
         
-        if (isGeoConfigChange) {
-            log.info("Step3: Geo config change detected");
-            opHandler.setRebootNeeded(true); // always reboot for geo config change 
-        }
-        
         //Flush vdc properties includes VDC_CONFIG_VERSION to disk
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
         vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
         localRepository.setVdcPropertyInfo(vdcProperty);
-        if (opHandler.isRebootNeeded()) {
-            log.info("Reboot for operation handler {}", opHandler.getClass().getName());
-            if (isGeoConfigChange) {
-                rollingReboot(svcId); // keep same behaviour as previous releases. do rolling reboot
-            } else {
+        
+        if (isGeoConfigChange) {
+            log.info("Step3: Geo config change detected");
+            rollingReboot(svcId); // keep same behaviour as previous releases. always do rolling reboot
+        } else {
+            if (opHandler.isRebootNeeded()) {
+                log.info("Reboot for operation handler {}", opHandler.getClass().getName());
                 reboot();
             }
         }

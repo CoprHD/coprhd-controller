@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,7 +119,7 @@ public class VdcConfigUtil {
         Collections.sort(sites, new Comparator<Site>() {
             @Override
             public int compare(Site a, Site b) {
-                return (int) (a.getCreationTime() - b.getCreationTime());
+                return (int)(a.getCreationTime() - b.getCreationTime());
             }
         });
         

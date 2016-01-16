@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.net.InetAddresses;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
@@ -264,7 +265,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         if (!isRemoteVdcVersionCompatible(vdcInfo)) {
             throw GeoException.fatals.connectVdcPrecheckFail(myVdcId, "Software version from remote vdc is lower than v2.3.");
         }
-
+        
         log.info("Send vdc precheck to remote vdc");
         // step 1: 2 way communication to verify if link should be permitted
         VdcPreCheckResponse vdcResp = sendVdcPrecheckRequest(vdcInfo, true);
@@ -512,7 +513,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         // update the current progress of connect vdc. the cluster would reboot later.
         updateOpStatus(ConnectionStatus.CONNECTING_SYNCED);
         
-        helper.triggerVdcConfigUpdate(mergedVdcInfo.getVdcConfigVersion());
+        helper.triggerVdcConfigUpdate(mergedVdcInfo.getVdcConfigVersion(), SiteInfo.NONE);
     }
 
     private void postCheck() {

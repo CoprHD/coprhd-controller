@@ -231,11 +231,17 @@ public class VdcConfigHelper {
         }
 
         if (vdcConfigChanged) {
-            triggerVdcConfigUpdate(vdcConfigVersion);
+            String action = SiteInfo.NONE;
+            // on newly added vdc, rotate the ipsec key first before reboot.. otherwise first rebooted node
+            // loses connection with other nodes
+            if (assignedVdcId != null) {
+                action = SiteInfo.IPSEC_OP_ROTATE_KEY;
+            }
+            triggerVdcConfigUpdate(vdcConfigVersion, action);
         }
     }
 
-    public void triggerVdcConfigUpdate(final long vdcVersion) {
+    public void triggerVdcConfigUpdate(final long vdcVersion, final String action) {
         log.info("Vdc config change detected. Trigger a config change later");
         // trigger syssvc to update the vdc config to all the nodes in the current vdc
         // add a small deley so that sync process can finish
@@ -246,10 +252,10 @@ public class VdcConfigHelper {
                 SiteInfo siteInfo;
                 SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
                 if (currentSiteInfo != null) {
-                    siteInfo = new SiteInfo(vdcVersion, SiteInfo.NONE,
+                    siteInfo = new SiteInfo(vdcVersion, action,
                             currentSiteInfo.getTargetDataRevision());
                 } else {
-                    siteInfo = new SiteInfo(vdcVersion, SiteInfo.NONE);
+                    siteInfo = new SiteInfo(vdcVersion, action);
                 }
                 coordinator.setTargetInfo(siteId, siteInfo);
                 log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
@@ -1061,7 +1067,6 @@ public class VdcConfigHelper {
         site.setNodeCount(vdc.getHostCount());
         
         coordinator.persistServiceConfiguration(site.toConfiguration());
-
         ipsecConfig.setPreSharedKey(ipsecKey);
     }
     

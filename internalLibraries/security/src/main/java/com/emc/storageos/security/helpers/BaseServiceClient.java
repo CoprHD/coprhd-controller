@@ -174,7 +174,6 @@ public abstract class BaseServiceClient {
      */
     protected Builder addSignature(WebResource webResource, SecretKey key) {
         ensureInitialization();
-        log.info("the secret key is {} ", key);
         return clientRequestHelper.addSignature(webResource, key);
     }
 

@@ -354,6 +354,10 @@ public class VdcManager extends AbstractManager {
                 || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",");
     }
     
+    private boolean isGeoConfigChange() {
+        return isGeoConfig() && !StringUtils.equals(targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS), localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS));
+    }
+    
     /**
      * Update vdc properties and reboot the node if
      *
@@ -361,45 +365,32 @@ public class VdcManager extends AbstractManager {
      * @throws Exception
      */
     private void updateVdcProperties(String svcId) throws Exception {
-        // If the change is being done to create a multi VDC configuration or to reduce to a
-        // multi VDC configuration a reboot is needed. If only operating on a single VDC
-        // do not reboot the nodes.
         String action = targetSiteInfo.getActionRequired();
-        if (isGeoConfig()) {
-            log.info("Step3: Acquiring reboot lock for vdc properties change.");
-            if (!getRebootLock(svcId)) {
-                retrySleep();
-            } else if (!isQuorumMaintained()) {
-                releaseRebootLock(svcId);
-                retrySleep();
-            } else {
-                log.info("Step3: Setting vdc properties and reboot");
-                targetVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
-                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-                if (backCompatPreYoda) {
-                    log.info("Back compatiblilty to preyoda flag detected. Skip the reboot until all vdcs are upgraded to yoda");
-                } else {
-                    reboot();
-                }
-            }
-            return;
-        }
-
-        log.info("Step3: Setting vdc properties not rebooting for single VDC change, action = {}", action);
+        boolean isGeoConfigChange = isGeoConfigChange();
+        
+        log.info("Step3: Process vdc op handlers, action = {}", action);
         VdcOpHandler opHandler = getOpHandler(action);
         opHandler.setTargetSiteInfo(targetSiteInfo);
         opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
         opHandler.setLocalVdcPropInfo(localVdcPropInfo);
         opHandler.execute();
         
+        if (isGeoConfigChange) {
+            log.info("Step3: Geo config change detected");
+            opHandler.setRebootNeeded(true); // always reboot for geo config change 
+        }
+        
         //Flush vdc properties includes VDC_CONFIG_VERSION to disk
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
         vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
         localRepository.setVdcPropertyInfo(vdcProperty);
-        
         if (opHandler.isRebootNeeded()) {
-            log.info("Reboot machine for operation handler {}", opHandler.getClass().getName());
-            localRepository.reboot();
+            log.info("Reboot for operation handler {}", opHandler.getClass().getName());
+            if (isGeoConfigChange) {
+                rollingReboot(svcId); // keep same behaviour as previous releases. do rolling reboot
+            } else {
+                reboot();
+            }
         }
     }
     
@@ -689,5 +680,19 @@ public class VdcManager extends AbstractManager {
         localRepository.reconfig();
         localRepository.restart("db");
         localRepository.restart("geodb");
+    }
+    
+    private void rollingReboot(String svcId) {
+        while (doRun) {
+            log.info("Acquiring reboot lock for geo config change.");
+            if (!getRebootLock(svcId)) {
+                retrySleep();
+            } else if (!isQuorumMaintained()) {
+                releaseRebootLock(svcId);
+                retrySleep();
+            } else {
+                reboot();
+            }
+        }
     }
 }

@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
@@ -517,18 +518,17 @@ public class DrUtil {
         return getVdcSiteMap().keySet().size() > 1;
     }
 
+    /**
+     * Get all vdc ids except local vdc
+     * 
+     * @return list of vdc ids
+     */
     public List<String> getOtherVdcIds() {
-
-        List<String> vdcIds = new ArrayList<>();
+        Set<String> vdcIdSet = getVdcSiteMap().keySet();
         String localVdcId = this.getLocalVdcShortId();
-
-        for(Configuration vdcConfig : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
-            if (vdcConfig.getId().equals(localVdcId)) {
-                continue;
-            }
-            vdcIds.add(vdcConfig.getId());
-        }
-
+        vdcIdSet.remove(localVdcId);
+        List<String> vdcIds = new ArrayList<>();
+        vdcIds.addAll(vdcIdSet);
         return vdcIds;
     }
 }

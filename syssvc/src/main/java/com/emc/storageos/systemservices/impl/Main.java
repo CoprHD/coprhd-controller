@@ -24,10 +24,9 @@ public class Main {
             ctx.getEnvironment().setActiveProfiles(System.getProperty(BUILD_TYPE));
             ctx.load(args);
 
-            SpringApplicationContextManager.setApplicationContext(ctx);
-
             // start ipsec monitor
             IPSecMonitor ipsecMonitor = (IPSecMonitor) ctx.getBean(IPSEC_MONITOR_BEAN);
+            ipsecMonitor.setApplicationContext(ctx);
             ipsecMonitor.start();
 
             ctx.refresh();

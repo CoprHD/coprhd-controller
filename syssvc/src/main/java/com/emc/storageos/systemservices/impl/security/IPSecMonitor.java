@@ -9,18 +9,11 @@ package com.emc.storageos.systemservices.impl.security;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.security.geo.GeoClientCacheManager;
-import com.emc.storageos.systemservices.impl.SpringApplicationContextManager;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
-import com.sun.jersey.spi.inject.Inject;
-import javafx.application.Application;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 
 import java.net.InetAddress;
 import java.util.Arrays;
@@ -37,7 +30,8 @@ public class IPSecMonitor implements Runnable {
     public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
 
     public ScheduledExecutorService scheduledExecutorService;
-
+    private static ApplicationContext appCtx;
+    
     DbClient dbClient;
 
     public void start() {
@@ -49,23 +43,25 @@ public class IPSecMonitor implements Runnable {
                 IPSEC_CHECK_INTERVAL,
                 TimeUnit.MINUTES);
         log.info("scheduled IPSecMonitor.");
-
-        log.info("=== the dbclient instance is {}",  dbClient);
     }
 
     public void shutdown() {
         scheduledExecutorService.shutdown();
     }
 
+    public static void setApplicationContext(ApplicationContext ctx) {
+        appCtx = ctx;
+    }
+
+    public static ApplicationContext getApplicationContext() {
+        return appCtx;
+    }
+    
     @Override
     public void run() {
-
-        ApplicationContext ctx = SpringApplicationContextManager.getApplicationContext();
-
-
         try {
             // geo checking
-            log.info("the dbclient instance is {}", ctx.getBean("dbclient"));
+            log.info("the dbclient instance is {}", appCtx.getBean("dbclient"));
 
             log.info("step 1: start checking ipsec connections");
             String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();

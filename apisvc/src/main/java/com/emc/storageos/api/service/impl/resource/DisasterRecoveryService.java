@@ -1648,6 +1648,8 @@ public class DisasterRecoveryService {
 
         private boolean hasActiveSiteInRemote(Site site, String localActiveSiteUUID) {
             try {
+                boolean hasActiveSite = false;
+                
                 InternalSiteServiceClient client = new InternalSiteServiceClient(site);
                 client.setCoordinatorClient(coordinator);
                 client.setKeyGenerator(apiSignatureGenerator);
@@ -1657,11 +1659,19 @@ public class DisasterRecoveryService {
                     if (SiteState.ACTIVE.toString().equalsIgnoreCase(siteResp.getState())
                             && !localActiveSiteUUID.equals(siteResp.getUuid())) {
                         log.info("Remote site {} is active site, need to failback", siteResp);
-                        return true;
+                        hasActiveSite = true;
+                    }
+                    
+                    //these codes will handle the case:
+                    //A as old active is down. B is up and C is down too.
+                    //Failover to B successfully. Power up A and C. B may query C and found there is another active site A and B failback
+                    if (localActiveSiteUUID.equals(siteResp.getUuid())) {
+                        log.info("Remote standby still reconganize me, no failback");
+                        return false;
                     }
                 }
 
-                return false;
+                return hasActiveSite;
             } catch (Exception e) {
                 log.warn("Failed to check remote site information during failback detect", e);
                 return false;

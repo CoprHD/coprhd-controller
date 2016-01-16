@@ -172,12 +172,14 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("accessState");
     }
 
+    @Name("mirrorStatus")
     public String getMirrorStatus() {
         return _mirrorStatus;
     }
 
     public void setMirrorStatus(String _mirrorStatus) {
         this._mirrorStatus = _mirrorStatus;
+        setChanged("mirrorStatus");
     }
     
     @Name("personality")

@@ -4082,6 +4082,8 @@ renderFunctions.disasterRecovery.status.standby.removing=Removing Standby
 renderFunctions.disasterRecovery.status.standby.resuming=Resuming Standby
 renderFunctions.disasterRecovery.status.standby.error=Standby Error
 renderFunctions.disasterRecovery.status.standby.failbackDegraded=Active Degraded
+renderFunctions.disasterRecovery.status.standby.degrading=Degrading Standby
+renderFunctions.disasterRecovery.status.standby.degraded=Standby Degraded
 renderFunctions.disasterRecovery.status.unknown=Unknown
 
 renderFunctions.disasterRecovery.networkHealth.good=Good

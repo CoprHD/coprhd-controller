@@ -245,10 +245,10 @@ public class DisasterRecovery extends ViprResourceController {
     }
 
     public static void errorDetails(String id) {
+        Boolean isError = false;
+        String uuid = id;
         if (DisasterRecoveryUtils.hasStandbySite(id)) {
             SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
-            Boolean isError = false;
-            String uuid = id;
             if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
                 SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
                 isError = true;
@@ -278,7 +278,9 @@ public class DisasterRecovery extends ViprResourceController {
             }
         }
         else {
-            flash.error(MessagesUtils.get(UNKNOWN, id));
+            SiteDetailRestRep disasterSiteTime = new SiteDetailRestRep();
+            uuid = "Unknown Standby site id: " + id;
+            render(isError, uuid, disasterSiteTime);
         }
     }
 

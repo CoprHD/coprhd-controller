@@ -45,6 +45,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
         // TODO Auto-generated method stub
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
+    
 
     @Override
     public void doStartMirrorLink(StorageSystem system, FileShare target,
@@ -52,6 +53,19 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
         // TODO Auto-generated method stub
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
+    
+    /**
+     * Cancel a replication link.
+     *
+     * @param system
+     * @param target
+     * @param completer
+     */
+    @Override
+    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer){
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+    
 
     @Override
     public BiosCommandResult doCreateFS(StorageSystem storage,

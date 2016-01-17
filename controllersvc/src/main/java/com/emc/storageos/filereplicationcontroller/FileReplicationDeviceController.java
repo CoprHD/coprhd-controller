@@ -340,8 +340,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return new Method(DETACH_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI);
     }
 
-    public boolean detachMirrorFilePairStep(final URI systemURI, final URI sourceURI,
-                                        final URI targetURI, final String opId) {
+    public boolean detachMirrorFilePairStep(URI systemURI, URI sourceURI, URI targetURI, String opId) {
         log.info("START Detach Pair ={}", sourceURI.toString());
         TaskCompleter completer = null;
         try {

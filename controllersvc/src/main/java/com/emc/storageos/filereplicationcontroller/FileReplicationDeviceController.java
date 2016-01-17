@@ -22,6 +22,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorCancelTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FileMirrorDetachTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorRollbackCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileCreateTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileTaskCompleter;
@@ -353,7 +354,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
-            completer = new MirrorFileTaskCompleter(sourceURI, targetURI, opId);
+            completer = new FileMirrorDetachTaskCompleter(sourceURI, opId);
             getRemoteMirrorDevice(system).doDetachMirrorLink(system, sourceURI, targetURI, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);

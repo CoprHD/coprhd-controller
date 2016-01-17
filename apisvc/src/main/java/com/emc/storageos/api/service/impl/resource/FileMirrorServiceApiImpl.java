@@ -332,6 +332,9 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             sourceFileShare.getMirrorfsTargets().add(sourceFileShare.getId().toString());
 
             targetFileShare.setParentFileShare(new NamedURI(sourceFileShare.getId(), sourceFileShare.getLabel()));
+            _dbClient.updateObject(sourceFileShare);
+            _dbClient.updateObject(targetFileShare);
+            
         }
     }
     

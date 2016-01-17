@@ -285,6 +285,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                
                //set mirror target and parents
                setMirrorFileShareAttributes(sourceFileShare, targetFileShare);
+               preparedFileSystems.add(sourceFileShare);
+               preparedFileSystems.add(targetFileShare);
                
            } else {
                Map<URI, VpoolRemoteCopyProtectionSettings> settingMap = VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient);
@@ -306,6 +308,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                    
                    //set mirror target and parents
                    setMirrorFileShareAttributes(sourceFileShare, targetFileShare);
+                   preparedFileSystems.add(sourceFileShare);
+                   preparedFileSystems.add(targetFileShare);
                }
            }
         }

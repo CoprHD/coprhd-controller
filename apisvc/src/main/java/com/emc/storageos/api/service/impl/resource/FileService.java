@@ -138,10 +138,8 @@ import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 @Path("/file/filesystems")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        readAcls = { ACL.OWN, ACL.ALL },
-        writeRoles = { Role.TENANT_ADMIN },
-        writeAcls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+        Role.TENANT_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 public class FileService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(FileService.class);
@@ -268,11 +266,11 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
         ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
-        
-        if(param.getSoftLimit() != 0L) {
+
+        if (param.getSoftLimit() != 0L) {
             ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
         }
-        
+
         // verify quota
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, fsSize, "filesystem");
 
@@ -1422,13 +1420,13 @@ public class FileService extends TaskResourceService {
 
         fs.setStorageDevice(placement.getSourceStorageSystem());
         fs.setPool(placement.getSourceStoragePool());
-        if(param.getSoftLimit() != 0) {
+        if (param.getSoftLimit() != 0) {
             fs.setSoftLimit(new Long(param.getSoftLimit()));
         }
-        if(param.getNotificationLimit() != 0) {
+        if (param.getNotificationLimit() != 0) {
             fs.setNotificationLimit(new Long(param.getNotificationLimit()));
         }
-        if(param.getSoftGrace() > 0) {
+        if (param.getSoftGrace() > 0) {
             fs.setSoftGracePeriod(new Integer(param.getSoftGrace()));
         }
         if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
@@ -1534,11 +1532,11 @@ public class FileService extends TaskResourceService {
         _log.info("FileService::createQtree Request recieved {}", id);
         String origQtreeName = param.getQuotaDirName();
         ArgValidator.checkQuotaDirName(origQtreeName, "name");
-        
+
         ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
         ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
-        
-        if(param.getSoftLimit() != 0L) {
+
+        if (param.getSoftLimit() != 0L) {
             ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
         }
 
@@ -1565,9 +1563,9 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setOpStatus(new OpStatusMap());
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
         quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
-        quotaDirectory.setSoftLimit(param.getSoftLimit());
-        quotaDirectory.setSoftGrace(param.getSoftGrace());
-        quotaDirectory.setNotificationLimit(param.getNotificationLimit());
+        quotaDirectory.setSoftLimit(param.getSoftLimit() != 0 ? param.getSoftLimit() : fs.getSoftLimit().intValue());
+        quotaDirectory.setSoftGrace(param.getSoftGrace() != 0 ? param.getSoftGrace() : fs.getSoftGracePeriod());
+        quotaDirectory.setNotificationLimit(param.getNotificationLimit() != 0 ? param.getNotificationLimit() : fs.getNotificationLimit().intValue());
 
         String convertedName = origQtreeName.replaceAll("[^\\dA-Za-z_]", "");
         _log.info("FileService::QuotaDirectory Original name {} and converted name {}", origQtreeName, convertedName);
@@ -2058,7 +2056,7 @@ public class FileService extends TaskResourceService {
         NfsACLs acls = util.getNfsAclFromDB(allDirs);
 
         if (acls.getNfsACLs() != null && !acls.getNfsACLs().isEmpty()) {
-            _log.info("Found {} Acl rules for filesystem {}", acls.getNfsACLs().size(), fs.getId() );
+            _log.info("Found {} Acl rules for filesystem {}", acls.getNfsACLs().size(), fs.getId());
         } else {
             _log.info("No Acl rules found for filesystem  {}", fs.getId());
         }

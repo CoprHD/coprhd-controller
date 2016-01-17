@@ -176,11 +176,11 @@ public class ECSApiFactory {
       
       //ecsApi.getStoragePools();
       
-      ecsApi.getNamespaces();
-      ECSNamespaceRepGroup ns = ecsApi.getNamespaceDetails("globalns");
-      int dummy = 2;
-      dummy = ns.getReplicationGroups().size();
-      
+//      ecsApi.getNamespaces();
+//      ECSNamespaceRepGroup ns = ecsApi.getNamespaceDetails("globalns");
+//      int dummy = 2;
+//      dummy = ns.getReplicationGroups().size();
+//      
       
       //ecsApi.getStoragePools();
       //ecsApi.getStoragePort("10.32.4.98");

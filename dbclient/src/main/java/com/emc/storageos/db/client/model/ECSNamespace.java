@@ -38,7 +38,7 @@ public class ECSNamespace extends DiscoveredDataObject {
     private ECS_RepGroup_Type _rgType;
     
     // Allowed or not-allowed ECS replication groups. Its mutually exclusive
-    private List<String> _replicationGroups;      
+    private StringSet _replicationGroups;      
 
     // Namespace visible or deleted in ECS
     private String _discoveryStatus = DiscoveryStatus.VISIBLE.name();
@@ -109,11 +109,11 @@ public class ECSNamespace extends DiscoveredDataObject {
     }
 
     @Name("replicationGroups")
-    public List<String> getReplicationGroups() {
+    public StringSet getReplicationGroups() {
         return _replicationGroups;
     }
     
-    public void setReplicationGroups(List<String> replicationGroups) {
+    public void setReplicationGroups(StringSet replicationGroups) {
         this._replicationGroups = replicationGroups;
     }
     

@@ -500,6 +500,7 @@ public class ECSApi {
             NamespaceDetailsCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
                     NamespaceDetailsCommandResult.class);
             nsRepGroup.setNamespaceName(ecsNsResult.getName());
+            nsRepGroup.setRgType(ECSNamespace.ECS_RepGroup_Type.NONE);
 
             if (ecsNsResult.getAllowed_vpools_list().size() != 0) {
                 for (int index = 0; index < ecsNsResult.getAllowed_vpools_list().size(); index++) {

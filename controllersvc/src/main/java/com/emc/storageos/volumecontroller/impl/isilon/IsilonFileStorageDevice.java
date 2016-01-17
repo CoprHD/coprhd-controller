@@ -2600,7 +2600,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), targetFileShare.getLabel());
         BiosCommandResult cmdResult = dodeleteReplicationPolicy(system, policyName);
         if(cmdResult.getCommandSuccess()) {
-            completer.ready(_dbClient);
             WorkflowStepCompleter.stepSucceded(completer.getOpId());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());

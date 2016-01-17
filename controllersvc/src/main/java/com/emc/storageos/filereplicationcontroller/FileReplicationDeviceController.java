@@ -293,7 +293,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 } else {
                     system = dbClient.queryObject(StorageSystem.class, source.getStorageDevice());
                     
-                    Workflow.Method cancelMethod = cancelMirrorLinkMethod(system.getId(), source.getId(), targetURI, true);
+                    Workflow.Method cancelMethod = cancelMirrorLinkMethod(system.getId(), source.getId(), targetURI);
                     String cancelStep = workflow.createStep(DELETE_FILE_MIRRORS_STEP,
                             CANCEL_FILE_MIRRORS_STEP_DESC, waitFor, system.getId(),
                             system.getSystemType(), getClass(), cancelMethod, null, null);
@@ -315,12 +315,12 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     
     
     
-    private Workflow.Method cancelMirrorLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt) {
-        return new Workflow.Method(CANCEL_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI, consExempt);
+    private Workflow.Method cancelMirrorLinkMethod(URI systemURI, URI sourceURI, URI targetURI) {
+        return new Workflow.Method(CANCEL_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI);
     }
 
 
-    public boolean cancelMirrorFilePairStep(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt, String opId) {
+    public boolean cancelMirrorFilePairStep(URI systemURI, URI sourceURI, URI targetURI, String opId) {
         log.info("START Suspend SRDF link");
         TaskCompleter completer = null;
 
@@ -344,7 +344,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     }
     
     private Method detachMirrorPairMethod(URI systemURI, URI sourceURI, URI targetURI) {
-        return new Workflow.Method(DETACH_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI, false);
+        return new Workflow.Method(DETACH_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI, true);
     }
 
     public boolean detachMirrorFilePairStep(final URI systemURI, final URI sourceURI,

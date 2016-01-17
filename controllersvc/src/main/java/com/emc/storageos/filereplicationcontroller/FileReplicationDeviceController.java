@@ -293,15 +293,11 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 } else {
                     system = dbClient.queryObject(StorageSystem.class, source.getStorageDevice());
                     
-                    Workflow.Method cancelMethod = cancelMirrorLinkMethod(system.getId(), source.getId(), targetURI);
-                    String cancelStep = workflow.createStep(DELETE_FILE_MIRRORS_STEP,
-                            CANCEL_FILE_MIRRORS_STEP_DESC, waitFor, system.getId(),
-                            system.getSystemType(), getClass(), cancelMethod, null, null);
                     
                  // Second we detach the mirrors...
                     Workflow.Method detachMethod = detachMirrorPairMethod(system.getId(), source.getId(), targetURI);
                     String detachStep = workflow.createStep(DELETE_FILE_MIRRORS_STEP,
-                            DETACH_FILE_MIRRORS_STEP_DESC, cancelStep, system.getId(),
+                            DETACH_FILE_MIRRORS_STEP_DESC, waitFor, system.getId(),
                             system.getSystemType(), getClass(), detachMethod, null, null);
                     waitFor = detachStep;
                     

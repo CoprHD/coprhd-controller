@@ -47,28 +47,28 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
     protected List<FileShare> fileshareCache;
 
 	
-	@Override
-	protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
-			throws DeviceControllerException {
-		// TODO Auto-generated method stub
-        setStatus(dbClient, status, coded);
-        updateWorkflowStatus(status, coded);
-        updateFileSystemStatus(dbClient, status);
-	}
-	
-    protected void updateFileSystemStatus(DbClient dbClient, Operation.Status status) {
-        try {
-            if (Operation.Status.ready.equals(status)) {
-                List<FileShare> fileshares = dbClient.queryObject(FileShare.class, getIds());
-                for (FileShare fileshare : fileshares) {
-                                    }
-                dbClient.persistObject(fileshares);
-                _logger.info("Updated Mirror link status for fileshares: {}", getIds());
-            }
-        } catch (Exception e) {
-            _logger.info("Not updating file Mirror link status for fileshares: {}", getIds(), e);
-        }
-    }
+//	@Override
+//	protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
+//			throws DeviceControllerException {
+//		// TODO Auto-generated method stub
+//        setStatus(dbClient, status, coded);
+//        updateWorkflowStatus(status, coded);
+//        updateFileSystemStatus(dbClient, status);
+//	}
+//	
+//    protected void updateFileSystemStatus(DbClient dbClient, Operation.Status status) {
+//        try {
+//            if (Operation.Status.ready.equals(status)) {
+//                List<FileShare> fileshares = dbClient.queryObject(FileShare.class, getIds());
+//                for (FileShare fileshare : fileshares) {
+//                                    }
+//                dbClient.persistObject(fileshares);
+//                _logger.info("Updated Mirror link status for fileshares: {}", getIds());
+//            }
+//        } catch (Exception e) {
+//            _logger.info("Not updating file Mirror link status for fileshares: {}", getIds(), e);
+//        }
+//    }
 
 
 }

@@ -292,8 +292,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 } else {
                     system = dbClient.queryObject(StorageSystem.class, source.getStorageDevice());
                     
-                    Workflow.Method cancelMethod = cancelMirrorLinkMethod(system.getId(),
-                            source.getId(), targetURI, true);
+                    Workflow.Method cancelMethod = cancelMirrorLinkMethod(system.getId(), source.getId(), targetURI, true);
                     String cancelStep = workflow.createStep(DELETE_FILE_MIRRORS_STEP,
                             CANCEL_FILE_MIRRORS_STEP_DESC, waitFor, system.getId(),
                             system.getSystemType(), getClass(), cancelMethod, null, null);
@@ -310,7 +309,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             }
         }
         
-        return waitFor;
+        return waitFor = DELETE_FILE_MIRRORS_STEP;
     }
     
     

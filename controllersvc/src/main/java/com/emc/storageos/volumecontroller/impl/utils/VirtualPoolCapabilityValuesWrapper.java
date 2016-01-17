@@ -38,6 +38,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String RP_MAX_SNAPS = "rp_max_snaps";
     public static final String QUOTA = "quota";
     
+    public static final String FILE_RP_RPO_VALUE = "fileRpRpoValue";
+    public static final String FILE_RP_RPO_TYPE  = "fileRpRpoType";
+    public static final String FILE_RP_COPY_MODE = "fileRpCopyMode";
+
+    
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
     public static final String META_VOLUME_MEMBER_SIZE = "metaVolumeMemberSize";
@@ -154,6 +159,19 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(QUOTA)) {
             _vpoolCapabilities.put(QUOTA, capabilities.getQuota());
         }
+        
+        if (capabilities.contains(FILE_RP_RPO_TYPE)) {
+            _vpoolCapabilities.put(FILE_RP_RPO_TYPE, capabilities.getRpRpoType());
+        }
+
+        if (capabilities.contains(FILE_RP_RPO_TYPE)) {
+            _vpoolCapabilities.put(FILE_RP_RPO_TYPE, capabilities.getRpCopyMode());
+        }
+        
+        if (capabilities.contains(FILE_RP_COPY_MODE)) {
+            _vpoolCapabilities.put(FILE_RP_COPY_MODE, capabilities.getRpCopyMode());
+        }
+
 
     }
 
@@ -284,4 +302,20 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(QUOTA);
         return value != null ? (String) value : null;
     }
+    
+    public Long getFileRpRpoValue() {
+        Object value = _vpoolCapabilities.get(FILE_RP_RPO_VALUE);
+        return value != null ? (Long) value : 0L;
+    }
+
+    public String getFileRpRpoType() {
+        Object value = _vpoolCapabilities.get(FILE_RP_RPO_TYPE);
+        return value != null ? (String) value : null;
+    }
+    
+    public String getFileRpCopyMode() {
+        Object value = _vpoolCapabilities.get(FILE_RP_COPY_MODE);
+        return value != null ? (String) value : null;
+    }
+
 }

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
 
@@ -20,7 +21,7 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer);
+    void doCreateMirrorLink(StorageSystem system, URI source, URI target, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper, TaskCompleter completer);
 
     /**
      * Detach a source and target from their replication link.

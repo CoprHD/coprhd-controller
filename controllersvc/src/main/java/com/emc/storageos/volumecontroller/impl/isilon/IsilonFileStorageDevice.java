@@ -66,6 +66,7 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 /**
@@ -2556,7 +2557,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+    public void doCreateMirrorLink(StorageSystem system, URI source, URI target, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper, TaskCompleter completer) {
         // TODO Auto-generated method stub
 
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source); 
@@ -2565,11 +2566,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice()); 
         StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice()); 
         String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), targetFileShare.getLabel());
+         
+        
+        String rpoValue = null;
+        if(vpoolCapWrapper != null) {
+            if(vpoolCapWrapper.getFileRpRpoValue() != null) {
+                rpoValue = vpoolCapWrapper.getFileRpRpoValue().toString();
+            }
+        }
 
         BiosCommandResult cmdResult = doCreateReplicationPolicy(sourceStorageSystem, 
                 policyName, 
                 sourceFileShare.getPath(), 
-                targetStorageSystem.getIpAddress(), targetFileShare.getPath(), IsilonSyncPolicy.Action.sync, "", null);
+                targetStorageSystem.getIpAddress(), targetFileShare.getPath(), IsilonSyncPolicy.Action.sync, rpoValue , null);
         if(cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
         } else {

@@ -18,6 +18,7 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /*
  * Default implementation of FileStorageDevice, so that subclass can just overwrite necessary methods.
@@ -27,7 +28,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
 
     @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target,
-            TaskCompleter completer) {
+            VirtualPoolCapabilityValuesWrapper vpoolCapWrapper, TaskCompleter completer) {
         // TODO Auto-generated method stub
         throw DeviceControllerException.exceptions.operationNotSupported();
 

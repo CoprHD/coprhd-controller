@@ -27,6 +27,7 @@ import com.emc.storageos.volumecontroller.impl.file.FileMirrorRollbackCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileCreateTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.RemoteFileMirrorOperation;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowService;
@@ -193,7 +194,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                         source.getStorageDevice());
 
                 Workflow.Method createMethod = createMirrorFilePairStep(system.getId(),
-                        source.getId(), targetURI, null);
+                        source.getId(), targetURI, null, sourceDescriptor.getCapabilitiesValues());
                 Workflow.Method rollbackMethod = rollbackMirrorFilePairMethod(system.getId(),
                         source.getId(), targetURI);
                 // Ensure CreateElementReplica steps are executed sequentially (CQ613404)
@@ -207,8 +208,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     }
     
     private Workflow.Method createMirrorFilePairStep(final URI systemURI,
-            final URI sourceURI, final URI targetURI, final URI vpoolChangeUri) {
-        return new Workflow.Method(CREATE_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI, vpoolChangeUri);
+            final URI sourceURI, final URI targetURI, final URI vpoolChangeUri, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper) {
+        return new Workflow.Method(CREATE_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI, vpoolChangeUri, vpoolCapWrapper);
     }
     
     public boolean createMirrorSession(final URI systemURI, final URI sourceURI,

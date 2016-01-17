@@ -290,6 +290,17 @@ public class FileService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
         }
         
+        if(cos.getFileReplicationType() != null) {
+            if(cos.getRpRpoType() != null) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_VALUE, cos.getRpRpoType());
+            }
+            if(cos.getRpCopyMode() != null) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_TYPE, cos.getFileReplicationCopyMode());
+            }
+            if(cos.getFrRpoValue() != null) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_VALUE, cos.getFrRpoValue());
+        }
+        
 
         // verify quota
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, fsSize, "filesystem");

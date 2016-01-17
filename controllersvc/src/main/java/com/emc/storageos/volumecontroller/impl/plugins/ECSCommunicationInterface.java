@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
@@ -89,7 +90,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         StorageSystem storageSystem = null;
         String detailedStatusMessage = "Unknown Status";
         long startTime = System.currentTimeMillis();
-
+        
         _logger.info("ECSCommunicationInterface:discover Access Profile Details :" + accessProfile.toString());
         try {
             storageSystemId = accessProfile.getSystemId();
@@ -253,25 +254,12 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
 
             // Discover ECS Namespaces
-            Map<String, List<ECSNamespace>> bothNamespaces1 = new HashMap<String, List<ECSNamespace>>();
+/*            Map<String, List<ECSNamespace>> bothNamespaces1 = new HashMap<String, List<ECSNamespace>>();
             List<ECSNamespace> newNamespaces1 = new ArrayList<ECSNamespace>();
             List<ECSNamespace> existingNamespaces1 = new ArrayList<ECSNamespace>();
             ECSNamespace ecsNamespace1 = null;
-            String nsNativeGuid1 = NativeGUIDGenerator.generateNativeGuidForNamespace(
-                    storageSystem, "myns", NativeGUIDGenerator.NAMESPACE);
-
-            ecsNamespace1 = new ECSNamespace();
-            ecsNamespace1.setId(URIUtil.createId(ECSNamespace.class));
-            ecsNamespace1.setNativeId(nsNativeGuid1);
-            ecsNamespace1.setNativeGuid(nsNativeGuid1);
-            ecsNamespace1.setLabel(nsNativeGuid1);
-            ecsNamespace1.setStorageDevice(storageSystemId);
-            ecsNamespace1.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
-            newNamespaces1.add(ecsNamespace1);
-            bothNamespaces1.put(NEW, newNamespaces1);
-            //
             ecsNamespace1 = null;
-            nsNativeGuid1 = NativeGUIDGenerator.generateNativeGuidForNamespace(
+            String nsNativeGuid1 = NativeGUIDGenerator.generateNativeGuidForNamespace(
                     storageSystem, "myns", NativeGUIDGenerator.NAMESPACE);
 
             ecsNamespace1 = new ECSNamespace();
@@ -286,61 +274,9 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             bothNamespaces1.put(EXISTING, existingNamespaces1);
             _dbClient.createObject(bothNamespaces1.get(NEW));
             _logger.info("Creating new namespace with NativeGuid : {}", nsNativeGuid1);            
-
+*/
             List<ECSNamespace> allNamespaces = new ArrayList<ECSNamespace>();
-            //Map<String, List<ECSNamespace>> bothNamespaces = discoverNamespaces(storageSystem);
-            ///////////////////////////////////
-            Map<String, List<ECSNamespace>> bothNamespaces = new HashMap<String, List<ECSNamespace>>();
-            List<ECSNamespace> newNamespaces = new ArrayList<ECSNamespace>();
-            List<ECSNamespace> existingNamespaces = new ArrayList<ECSNamespace>();
-            List<String> namespaceIdList = new ArrayList<String>();
-
-                _logger.info("discover namespace information for storage system {} - start", storageSystemId);
-                //ECSApi ecsApi = getECSDevice(storageSystem);
-                ECSNamespace ecsNamespace = null;
-
-                // Discover list of all namespaces 
-                //namespaceIdList = ecsApi.getNamespaces();
-
-                String nsId = "myns2"; //namespaceIdList.get(0);
-                //for (String nsId : namespaceIdList) {
-                    // Check if this namespace was already discovered
-                    ecsNamespace = null;
-                    String nsNativeGuid = NativeGUIDGenerator.generateNativeGuidForNamespace(
-                            storageSystem, nsId, NativeGUIDGenerator.NAMESPACE);
-                    
-                    if (ecsNamespace == null) {
-                        // New namespace, not discovered
-                        ecsNamespace = new ECSNamespace();
-                        ecsNamespace.setId(URIUtil.createId(ECSNamespace.class));
-                        ecsNamespace.setNativeGuid(nsNativeGuid);
-                        ecsNamespace.setLabel(nsNativeGuid);
-                        ecsNamespace.setStorageDevice(storageSystemId);
-                        
-                        // Now obtain the complete namespace details
-                        //ECSNamespaceRepGroup nsGroup = ecsApi.getNamespaceDetails(nsId);
-                        ecsNamespace.setRgType(ECS_RepGroup_Type.NONE);
-                        //ecsNamespace.setReplicationGroups(nsGroup.getReplicationGroups());
-                        List<String> nsRg = new ArrayList<String>();
-                        nsRg.add("first");
-                        nsRg.add("second");
-                        StringSet repGroups = new StringSet();
-                        for (String rg : nsRg) {
-                            repGroups.add(rg);
-                        }
-                        ecsNamespace.setReplicationGroups(repGroups);
-                        ecsNamespace.setName("myns2");
-                        _logger.info("Creating new namespace with NativeGuid : {}", nsNativeGuid);
-                        newNamespaces.add(ecsNamespace);
-                    } else {
-                        existingNamespaces.add(ecsNamespace);
-                    }
-                //}
-                bothNamespaces.put(NEW, newNamespaces);
-                bothNamespaces.put(EXISTING, existingNamespaces);
-                _logger.info("discoverNamespaces for storage system {} - complete", storageSystemId);
-                //return bothNamespaces;
-            //////////////////////////////////////////
+            Map<String, List<ECSNamespace>> bothNamespaces = discoverNamespaces(storageSystem);
             _logger.info("No of newly discovered namespaces {}", bothNamespaces.get(NEW).size());
             _logger.info("No of existing discovered namespaces {}", bothNamespaces.get(EXISTING).size());
             if (bothNamespaces != null && !bothNamespaces.get(NEW).isEmpty()) {
@@ -428,21 +364,12 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                         break;
                     }
                 }
-
-                //earlier code
-                while (uriQueryList.iterator().hasNext()) {
-                    URI nsUri = uriQueryList.iterator().next();
-                    ECSNamespace ns1 = _dbClient.queryObject(ECSNamespace.class, nsUri);
-                    if (ns1.getStorageDevice().equals(storageSystemId)) {
-                        ecsNamespace = ns1;
-                        break;
-                    }
-                }
                 
                 if (ecsNamespace == null) {
                     // New namespace, not discovered
                     ecsNamespace = new ECSNamespace();
                     ecsNamespace.setId(URIUtil.createId(ECSNamespace.class));
+                    ecsNamespace.setNativeId(nsId);
                     ecsNamespace.setNativeGuid(nsNativeGuid);
                     ecsNamespace.setLabel(nsNativeGuid);
                     ecsNamespace.setStorageDevice(storageSystemId);
@@ -456,6 +383,22 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     }
                     ecsNamespace.setReplicationGroups(repGroups);
                     ecsNamespace.setName(nsGroup.getNamespaceName());
+                    ecsNamespace.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+                    
+                    // Check if this newly discovered namespace is already mapped with a tenant
+                    // Upgrade from 2.4 to 2.5
+                    ecsNamespace.setMapped(false);
+                    List<URI> allTenantURI = _dbClient.queryByType(TenantOrg.class, true);
+                    Iterator<TenantOrg> tnItr = _dbClient.queryIterativeObjects(TenantOrg.class, allTenantURI);
+                    while (tnItr.hasNext()) {
+                        TenantOrg ten = tnItr.next();
+                        if (ten.getNamespace().equalsIgnoreCase(nsId)) {
+                            ecsNamespace.setTenant(ten.getId());
+                            ecsNamespace.setMapped(true);
+                            break;
+                        }
+                    }
+                    
                     _logger.info("Creating new namespace with NativeGuid : {}", nsNativeGuid);
                     newNamespaces.add(ecsNamespace);
                 } else {
@@ -502,5 +445,4 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         }
 
     }
-
 }

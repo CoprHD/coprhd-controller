@@ -29,7 +29,7 @@ public class ECSNamespace extends DiscoveredDataObject {
     private Boolean _mapped;
     
     // Tenant to which this namepsace is mapped;
-    private NamedURI _tenantOrg;
+    private URI _tenant;
     
     // storage controller where this pool is located
     private URI _storageDevice;
@@ -41,7 +41,7 @@ public class ECSNamespace extends DiscoveredDataObject {
     private StringSet _replicationGroups;      
 
     // Namespace visible or deleted in ECS
-    private String _discoveryStatus = DiscoveryStatus.VISIBLE.name();
+    private String _discoveryStatus;
     
     public enum ECS_RepGroup_Type {
         ALLOWED,
@@ -78,14 +78,14 @@ public class ECSNamespace extends DiscoveredDataObject {
     }
     
     @NamedRelationIndex(cf = "NamedRelationIndex", type = TenantOrg.class)
-    @Name("tenantOrg")
-    public NamedURI getTenantOrg() {
-        return _tenantOrg;
+    @Name("tenant")
+    public URI getTenant() {
+        return _tenant;
     }
 
-    public void setTenantOrg(NamedURI tenantOrg) {
-        _tenantOrg = tenantOrg;
-        setChanged("tenantOrg");
+    public void setTenant(URI tenant) {
+        _tenant = tenant;
+        setChanged("tenant");
     }
 
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)

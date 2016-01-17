@@ -324,9 +324,9 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             
             if (sourceFileShare.getMirrorfsTargets() == null) {
                 sourceFileShare.setMirrorfsTargets(new StringSet());
-            } else {
-                sourceFileShare.getMirrorfsTargets().add(sourceFileShare.getId().toString());
-            }
+            } 
+            sourceFileShare.getMirrorfsTargets().add(sourceFileShare.getId().toString());
+
             targetFileShare.setParentFileShare(new NamedURI(sourceFileShare.getId(), sourceFileShare.getLabel()));
         }
     }

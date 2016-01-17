@@ -2585,6 +2585,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         BiosCommandResult cmdResult = doCancelReplicationPolicy(system, policyName);
         if(cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
+            WorkflowStepCompleter.stepSucceded(completer.getOpId());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
@@ -2600,6 +2601,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         BiosCommandResult cmdResult = dodeleteReplicationPolicy(system, policyName);
         if(cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
+            WorkflowStepCompleter.stepSucceded(completer.getOpId());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }

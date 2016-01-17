@@ -66,6 +66,7 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 /**
  * Isilon specific file controller implementation.
@@ -2336,13 +2337,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
             JobState policyState = policy.getLast_job_state();
-
-            if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName, policyState);
-                IsilonSshApi sshDmApi = getIsilonDeviceSsh(system);
-                sshDmApi.executeSsh("sync jobs" + " " + "cancel" + " " + policyName, "");
-                return BiosCommandResult.createSuccessfulResult();
-            } else if(policyState.equals(JobState.canceled) || policyState.equals(JobState.paused)) {
+            
+            if(policy != null) {
+                if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
+                    _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName, policyState);
+                    IsilonSshApi sshDmApi = getIsilonDeviceSsh(system);
+                    sshDmApi.executeSsh("sync jobs" + " " + "cancel" + " " + policyName, "");
+                    return BiosCommandResult.createSuccessfulResult();
+                }
                 return BiosCommandResult.createSuccessfulResult();
             } else {
                 _log.error("Replication Policy - {} can't be CANCEL because policy's last job is in {} state", policyName,

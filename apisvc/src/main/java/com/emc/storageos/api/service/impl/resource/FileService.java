@@ -299,6 +299,7 @@ public class FileService extends TaskResourceService {
             }
             if(cos.getFrRpoValue() != null) {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_VALUE, cos.getFrRpoValue());
+            }
         }
         
 

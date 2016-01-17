@@ -207,13 +207,13 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return waitFor = CREATE_FILE_MIRRORS_STEP;
     }
     
-    private Workflow.Method createMirrorFilePairStep(final URI systemURI,
-            final URI sourceURI, final URI targetURI, final URI vpoolChangeUri, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper) {
+    private Workflow.Method createMirrorFilePairStep(URI systemURI,
+            URI sourceURI, URI targetURI, URI vpoolChangeUri, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper) {
         return new Workflow.Method(CREATE_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI, vpoolChangeUri, vpoolCapWrapper);
     }
     
-    public boolean createMirrorSession(final URI systemURI, final URI sourceURI,
-            final URI targetURI, final URI vpoolChangeUri, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper, final String opId) {
+    public boolean createMirrorSession(URI systemURI, URI sourceURI,
+            URI targetURI, URI vpoolChangeUri, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper, String opId) {
         
         log.info("Create Mirror Session between source and Target Pair");
         TaskCompleter completer = null;

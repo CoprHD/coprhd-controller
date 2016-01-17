@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -35,6 +34,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -291,6 +291,17 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                                 // Check if there are no volumes in the CG
                                 if (null == xioCG.getVolList() || xioCG.getVolList().isEmpty()) {
                                     client.removeConsistencyGroup(consistencyGroupObj.getLabel(), clusterName);
+                                    _log.info("CG is empty on array. Remove array association from the CG");
+                                    consistencyGroupObj.removeSystemConsistencyGroup(storageSystem.getId().toString(),
+                                            consistencyGroupObj.getLabel());
+                                    // clear the LOCAL type
+                                    StringSet types = consistencyGroupObj.getTypes();
+                                    if (types != null) {
+                                        types.remove(Types.LOCAL.name());
+                                        consistencyGroupObj.setTypes(types);
+                                    }
+
+                                    dbClient.updateObject(consistencyGroupObj);
                                 }
                             }
                         }
@@ -564,7 +575,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 }
                 // Set the consistency group to inactive
                 consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storage.getId()), consistencyGroup.getLabel());
-                client.deleteTag(cgProject.getLabel(), XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
+
+                if (null != XtremIOProvUtils.isTagAvailableInArray(client, cgProject.getLabel(),
+                        XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName)) {
+                    client.deleteTag(cgProject.getLabel(), XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
+                }
+
                 if (markInactive) {
                     consistencyGroup.setInactive(true);
                 }

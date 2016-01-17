@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation;
+import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation.Target;
 import com.emc.storageos.api.service.impl.placement.FileMirrorSchedular;
 import com.emc.storageos.api.service.impl.placement.FileRecommendation;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
@@ -276,10 +277,11 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
            
            if(vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name())){
                fileLabelBuilder = new StringBuilder(sourceFileShare.toString()).append("-target-" + varray.getLabel());
+               
                targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(), 
                        project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
                //set target file vnas and storageport and access state
-               setFileMirrorRecommendation(recommendation, vpool, targetVpool, false, false, sourceFileShare);
+               setFileMirrorRecommendation(recommendation, vpool, targetVpool, true, false, sourceFileShare);
                
                //set mirror target and parents
                setMirrorFileShareAttributes(sourceFileShare, targetFileShare);
@@ -445,29 +447,52 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
      * @param placement
      * @param vpoolSource
      * @param vpoolTarget
-     * @param remote
+     * @param isTargetFS
      * @param createInactive
      * @param fileShare
      */
-    public void setFileMirrorRecommendation(final FileMirrorRecommendation placement,
-            final VirtualPool vpoolSource, final VirtualPool vpoolTarget, final boolean remote, final Boolean createInactive, FileShare fileShare) {
+    public void setFileMirrorRecommendation(FileMirrorRecommendation placement,
+            final VirtualPool vpoolSource, final VirtualPool vpoolTarget, final boolean isTargetFS, final Boolean createInactive, FileShare fileShare) {
         StoragePool pool = null;
         VirtualPool virtualPool;
-        if (!remote) {
+        if (isTargetFS == false) {
             virtualPool = vpoolSource;
             if (null != placement.getSourceStoragePool()) {
                 pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
                 fileShare.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
                 fileShare.setAccessState(FileAccessState.READWRITE.name());
-                
+            }
+           //set the storage ports
+            if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
+                fileShare.setStoragePort(placement.getStoragePorts().get(0));
+            }
+            
+            //set vnas server
+            if (placement.getvNAS() != null) {
+                fileShare.setVirtualNAS(placement.getvNAS());
             }
         } else {
             virtualPool = vpoolTarget;
-            URI uriPool = placement.getVirtualArrayTargetMap().get(vpoolTarget.getId()).getTargetStoragePool();  
-            pool = _dbClient.queryObject(StoragePool.class, uriPool);
-            
-            fileShare.setPersonality(FileShare.PersonalityTypes.TARGET.toString());
-            fileShare.setAccessState(FileAccessState.READABLE.name());
+            Map<URI, FileMirrorRecommendation.Target> targetMap = placement.getVirtualArrayTargetMap();
+            if (targetMap != null && !targetMap.isEmpty()) {
+                Target target = targetMap.get(vpoolTarget.getId());
+                if (target != null) {
+                    pool = _dbClient.queryObject(StoragePool.class, target.getTargetStoragePool());
+                    fileShare.setPersonality(FileShare.PersonalityTypes.TARGET.toString());
+                    fileShare.setAccessState(FileAccessState.READABLE.name());
+                    
+                    //set the target ports
+                    if(target.getTargetStoragePortUris() != null && !target.getTargetStoragePortUris().isEmpty()) {
+                        fileShare.setStoragePort(target.getTargetStoragePortUris().get(0));
+                    }
+                    
+                    //set the target vNAS
+                    if (target.getTargetvNASURI() != null) {
+                        fileShare.setVirtualNAS(target.getTargetvNASURI());
+                    }
+                }
+
+            }
         }
         
         //set vpool
@@ -477,16 +502,6 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             
             fileShare.setProtocol(new StringSet());
             fileShare.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(virtualPool.getProtocols(), virtualPool.getProtocols()));
-        }
-        
-        //set the storage ports
-        if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
-            fileShare.setStoragePort(placement.getStoragePorts().get(0));
-        }
-        
-        //set vnas server
-        if (placement.getvNAS() != null) {
-            fileShare.setVirtualNAS(placement.getvNAS());
         }
     
         _dbClient.updateObject(fileShare);

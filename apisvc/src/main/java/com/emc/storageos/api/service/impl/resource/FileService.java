@@ -334,8 +334,7 @@ public class FileService extends TaskResourceService {
      * @param token
      * @return
      */
-    private FileShare
-    prepareEmptyFileSystem(FileSystemParam param, Project project, TenantOrg tenantOrg,
+    private FileShare prepareEmptyFileSystem(FileSystemParam param, Project project, TenantOrg tenantOrg,
             VirtualArray varray, VirtualPool vpool, DataObject.Flag[] flags, String task) {
         _log.debug("prepareEmptyFileSystem start...");
         StoragePool pool = null;

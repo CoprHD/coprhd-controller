@@ -77,7 +77,7 @@ public class ECSNamespace extends DiscoveredDataObject {
         this._mapped = mapped;
     }
     
-    @NamedRelationIndex(cf = "NamedRelationIndex", type = TenantOrg.class)
+    @RelationIndex(cf = "RelationIndex", type = TenantOrg.class)
     @Name("tenant")
     public URI getTenant() {
         return _tenant;

@@ -392,7 +392,8 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     Iterator<TenantOrg> tnItr = _dbClient.queryIterativeObjects(TenantOrg.class, allTenantURI);
                     while (tnItr.hasNext()) {
                         TenantOrg ten = tnItr.next();
-                        if (ten.getNamespace().equalsIgnoreCase(nsId)) {
+                        if (ten.getNamespace() != null && !ten.getNamespace().isEmpty() 
+                                && ten.getNamespace().equalsIgnoreCase(nsId)) {
                             ecsNamespace.setTenant(ten.getId());
                             ecsNamespace.setMapped(true);
                             break;

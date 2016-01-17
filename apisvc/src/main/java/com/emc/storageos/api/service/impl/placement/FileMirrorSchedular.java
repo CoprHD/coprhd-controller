@@ -15,9 +15,7 @@ import java.util.Iterator;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.db.client.DbClient;
-
 import com.emc.storageos.db.client.model.Project;
-
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
@@ -145,6 +143,11 @@ public class FileMirrorSchedular implements Scheduler {
         
         if(targetFileRecommendation.getvNAS() != null) {
             target.setTargetvNASURI(targetFileRecommendation.getvNAS());
+        }
+        
+        if (fileMirrorRecommendation.getVirtualArrayTargetMap() == null) {
+            
+            fileMirrorRecommendation.setVirtualArrayTargetMap(new HashMap<URI, FileMirrorRecommendation.Target>());
         }
         
         fileMirrorRecommendation.getVirtualArrayTargetMap().put(targetVarray.getId(), target);

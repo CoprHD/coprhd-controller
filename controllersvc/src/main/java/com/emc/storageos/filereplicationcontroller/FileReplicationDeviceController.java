@@ -213,7 +213,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     }
     
     public boolean createMirrorSession(final URI systemURI, final URI sourceURI,
-            final URI targetURI, final URI vpoolChangeUri, final String opId) {
+            final URI targetURI, final URI vpoolChangeUri, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper, final String opId) {
         
         log.info("Create Mirror Session between source and Target Pair");
         TaskCompleter completer = null;
@@ -222,7 +222,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             StorageSystem system = getStorageSystem(systemURI);
             
             completer = new MirrorFileCreateTaskCompleter(sourceURI, targetURI, vpoolChangeUri, opId);
-            getRemoteMirrorDevice(system).doCreateMirrorLink(system, sourceURI, targetURI, completer);
+            getRemoteMirrorDevice(system).doCreateMirrorLink(system, sourceURI, targetURI, vpoolCapWrapper, completer);
             log.info("Source: {}", sourceURI);
             log.info("Target: {}", targetURI);
             log.info("OpId: {}", opId);

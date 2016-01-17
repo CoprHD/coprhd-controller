@@ -118,7 +118,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    DELETE_FILESYSTEMS_WF_NAME, true, taskId);
+                    DELETE_FILESYSTEMS_WF_NAME, false, taskId);
 
             // Call the FileReplicationDeviceController to add its delete methods if there are Mirror FileShares.
             waitFor = _fileReplicationDeviceController.addStepsForDeleteFileSystems(workflow,

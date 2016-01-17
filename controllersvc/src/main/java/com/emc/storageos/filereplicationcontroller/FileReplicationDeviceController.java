@@ -276,14 +276,14 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             final List<FileDescriptor> fileDescriptors) {
         log.info("START create element replica steps");
         StorageSystem system = null;
-        List<FileDescriptor> sourceDescriptors =
-        FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE);
         
         Map<URI, FileShare> uriFileShareMap = queryFileShares(fileDescriptors);
         
         for (FileShare source : uriFileShareMap.values()) {
             StringSet mirrorTargets = source.getMirrorfsTargets();
+            system = dbClient.queryObject(StorageSystem.class, source.getStorageDevice());
             for (String mirrorTarget : mirrorTargets) {
+                
                 URI targetURI = URI.create(mirrorTarget);
                 FileShare target = dbClient.queryObject(FileShare.class, targetURI);
                 if (null == target) {
@@ -291,10 +291,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     // We need to proceed with the operation, as it could be because of a left over from last operation.
                     return waitFor;
                 } else {
-                    system = dbClient.queryObject(StorageSystem.class, source.getStorageDevice());
-                    
-                    
-                 // Second we detach the mirrors...
+
                     Workflow.Method detachMethod = detachMirrorPairMethod(system.getId(), source.getId(), targetURI);
                     String detachStep = workflow.createStep(DELETE_FILE_MIRRORS_STEP,
                             DETACH_FILE_MIRRORS_STEP_DESC, waitFor, system.getId(),
@@ -340,7 +337,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     }
     
     private Method detachMirrorPairMethod(URI systemURI, URI sourceURI, URI targetURI) {
-        return new Workflow.Method(DETACH_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI, true);
+        return new Method(DETACH_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI);
     }
 
     public boolean detachMirrorFilePairStep(final URI systemURI, final URI sourceURI,

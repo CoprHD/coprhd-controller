@@ -116,7 +116,7 @@ public class FileMirrorSchedular implements Scheduler {
             targetFileRecommendations = _fileScheduler.placeFileShare(vArray, vPool, capabilities, project, attributeMap);
             
             String copyMode = vPool.getFileReplicationCopyMode();
-            if(targetFileRecommendations != null && targetFileRecommendations.isEmpty()) {
+            if(targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
               //prepare the target recommendation
                 FileRecommendation targetRecommendation = targetFileRecommendations.get(0);
                 prepareTargetFileRecommendation(copyMode, 

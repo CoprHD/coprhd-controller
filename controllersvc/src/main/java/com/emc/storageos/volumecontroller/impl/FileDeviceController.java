@@ -83,6 +83,8 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
+
+import static java.util.Arrays.asList;
 /**
  * Generic File Controller Implementation that does all of the database
  * operations and calls methods on the array specific implementations
@@ -3380,26 +3382,32 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 			String waitFor, List<FileDescriptor> filesystems, String taskId)
 			throws InternalException {
 		
-		if(filesystems != null && !filesystems.isEmpty()) {
-			
-			List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
-	                FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE);
-			
-			FileDescriptor fileDescriptor = sourceDescriptors.get(0);
-			List<URI> fileURIs = FileDescriptor.getFileSystemURIs(sourceDescriptors);
-			
-			//create step
-			waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
-		                String.format("Creating File systems:%n%s", taskId),
-		                waitFor, fileDescriptor.getDeviceURI(), 
-		                getDeviceType(fileDescriptor.getDeviceURI()),
-		                this.getClass(),
-		                createFileSharesMethod(fileDescriptor),
-		                rollbackCreateFileSharesMethod(fileDescriptor.getDeviceURI(), fileURIs), null);
-		}
-		
+	    if(filesystems != null && !filesystems.isEmpty()) {
+            
+            List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
+                    FileDescriptor.Type.FILE_DATA,
+                    FileDescriptor.Type.FILE_EXISTING_SOURCE,
+                    FileDescriptor.Type.FILE_MIRROR_SOURCE,
+                    FileDescriptor.Type.FILE_MIRROR_TARGET);
+
+            for(FileDescriptor descriptor : sourceDescriptors) {
+
+                List<URI> fileURIs = FileDescriptor.getFileSystemURIs(asList(descriptor));
+
+                //create step
+                waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
+                        String.format("Creating File systems:%n%s", taskId),
+                        waitFor, descriptor.getDeviceURI(),
+                        getDeviceType(descriptor.getDeviceURI()),
+                        this.getClass(),
+                        createFileSharesMethod(descriptor),
+                        rollbackCreateFileSharesMethod(descriptor.getDeviceURI(), fileURIs), null);
+            }
+        }
+        
+       		
 		//find out which value we should return
-		return waitFor;
+		return waitFor = CREATE_FILESYSTEMS_STEP;
 	}
 	
 	@Override
@@ -3408,8 +3416,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 			throws InternalException {
 		// TODO Auto-generated method stub
 		
-		List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
-                FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE);
+	    List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
+                FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
+                FileDescriptor.Type.FILE_MIRROR_SOURCE, FileDescriptor.Type.FILE_MIRROR_TARGET);
 		
 		// Segregate by device.
         Map<URI, List<FileDescriptor>> deviceMap = FileDescriptor.getDeviceMap(sourceDescriptors);
@@ -3427,7 +3436,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     		filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
                     null, null);
         }
-        return DELETE_FILESYSTEMS_STEP;
+        return waitFor = DELETE_FILESYSTEMS_STEP;
 	}
 
 	@Override

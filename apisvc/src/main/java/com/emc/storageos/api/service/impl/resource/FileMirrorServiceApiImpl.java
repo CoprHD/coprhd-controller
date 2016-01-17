@@ -276,7 +276,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
            VirtualPool targetVpool = vpool;
            
            if(vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name())){
-               fileLabelBuilder = new StringBuilder(sourceFileShare.toString()).append("-target-" + varray.getLabel());
+               fileLabelBuilder = new StringBuilder(sourceFileShare.getLabel()).append("-target-" + varray.getLabel());
                
                targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(), 
                        project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
@@ -304,7 +304,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                            project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
                    
                    //set target file vnas and storageport and access state
-                   setFileMirrorRecommendation(recommendation, vpool, targetVArray, true, false, targetFileShare);
+                   setFileMirrorRecommendation(recommendation, targetVpool, targetVArray, true, false, targetFileShare);
                    
                    //set mirror target and parents
                    setMirrorFileShareAttributes(sourceFileShare, targetFileShare);

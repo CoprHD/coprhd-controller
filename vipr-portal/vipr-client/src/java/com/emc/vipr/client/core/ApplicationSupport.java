@@ -6,6 +6,7 @@ package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DELETE_APP_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_HOSTS_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_VOLUMES_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 
@@ -21,6 +22,7 @@ import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.host.HostList;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
@@ -90,5 +92,10 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
     public List<NamedRelatedResourceRep> getVolumes(URI id) {
         NamedVolumesList response = client.get(NamedVolumesList.class, APP_SUPPORT_GET_VOLUMES_APP_URL, id);
         return response.getVolumes();
+    }
+
+    public List<NamedRelatedResourceRep> getHosts(URI id) {
+        HostList response = client.get(HostList.class, APP_SUPPORT_GET_HOSTS_APP_URL, id);
+        return response.getHosts();
     }
 }

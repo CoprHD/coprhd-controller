@@ -55,7 +55,7 @@ public class Licensing extends Controller {
         License license = LicenseUtils.getLicense();
 
         // Creating mockup data. Remove me when the backend is ready.
-        List<LicenseFeature> licenseFeatures = new ArrayList<>();
+        List<LicenseFeature> licenseFeatures = new ArrayList<LicenseFeature>();
         LicenseFeature licenseFeature = new LicenseFeature();
         licenseFeature.setLicensed(true);
         licenseFeature.setVersion("1.0");

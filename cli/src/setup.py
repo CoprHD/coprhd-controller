@@ -67,6 +67,7 @@ distutils.core.setup(
 		      'computeimageserver.py',
                       'quotadirectory.py',
                       'volumegroup.py',
-                      'ipsecmanager.py']
+                      'ipsecmanager.py',
+                      'snapshotsession.py']
                  )]
 )

@@ -10,7 +10,7 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.VOLUME_NAME;
 import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
-import static com.emc.sa.service.ServiceParams.ADIVSORY_LIMIT;
+import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
 import static com.emc.sa.service.ServiceParams.SOFT_LIMIT;
 import java.net.URI;
 
@@ -38,7 +38,7 @@ public class CreateFileSystemService extends ViPRService {
     @Param(SOFT_LIMIT)
     protected Integer softLimit;
     
-    @Param(ADIVSORY_LIMIT)
+    @Param(ADVISORY_LIMIT)
     protected Integer advisoryLimit;
     
     @Param(GRACE_PERIOD)

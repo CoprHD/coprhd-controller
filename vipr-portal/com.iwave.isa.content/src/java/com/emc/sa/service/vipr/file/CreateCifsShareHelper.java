@@ -4,7 +4,7 @@
  */
 package com.emc.sa.service.vipr.file;
 
-import static com.emc.sa.service.ServiceParams.ADIVSORY_LIMIT;
+import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
 import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SHARE_COMMENT;
@@ -45,7 +45,7 @@ public class CreateCifsShareHelper {
     @Param(SOFT_LIMIT)
     protected Integer softLimit;
     
-    @Param(ADIVSORY_LIMIT)
+    @Param(ADVISORY_LIMIT)
     protected Integer advisoryLimit;
     
     @Param(GRACE_PERIOD)

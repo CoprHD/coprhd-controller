@@ -116,7 +116,7 @@ public interface ServiceParams {
     public String OWNER = "owner";
     public String BUCKET = "bucket";
     
-    public String ADIVSORY_LIMIT="advisoryLimit";
+    public String ADVISORY_LIMIT="advisoryLimit";
     public String SOFT_LIMIT="softLimit";
     public String GRACE_PERIOD="gracePeriod";
     

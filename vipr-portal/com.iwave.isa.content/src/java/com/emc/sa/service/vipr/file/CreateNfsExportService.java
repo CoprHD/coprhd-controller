@@ -31,7 +31,7 @@ public class CreateNfsExportService extends ViPRService {
     protected String exportName;
     @Param(SOFT_LIMIT)
     protected Integer softLimit;
-    @Param(ADIVSORY_LIMIT)
+    @Param(ADVISORY_LIMIT)
     protected Integer advisoryLimit;
     @Param(GRACE_PERIOD)
     protected Integer gracePeriod;

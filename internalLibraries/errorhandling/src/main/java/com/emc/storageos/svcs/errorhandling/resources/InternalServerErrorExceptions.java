@@ -9,7 +9,6 @@ import java.net.URI;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 /**
  * This interface holds all the methods used to create an error condition that
@@ -157,12 +156,12 @@ public interface InternalServerErrorExceptions {
             final String uris);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
-    public InternalServerErrorException storagePoolNotMatchingVirtualPoolNicer(final String storagePool, 
+    public InternalServerErrorException storagePoolNotMatchingVirtualPoolNicer(final String storagePool,
             final String type, final String volume);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
-    public InternalServerErrorException virtualPoolNotMatchingStoragePoolNicer(final String virtualPool, 
-            final String storagePool, final String type, final String volume, final String vpoolList);
+    public InternalServerErrorException virtualPoolNotMatchingStoragePoolNicer(final String virtualPool,
+            final String type, final String volume, final String vpoolList);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException objectAlreadyManaged(final String parameter, final String guid);
@@ -232,10 +231,10 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_IPRECONFIG_TRIGGER_FAILED)
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_PRECHECK_FAILED)
     public InternalServerErrorException addStandbyPrecheckFailed(String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_NAT_CHECK_FAILED)
     public InternalServerErrorException invalidNatCheckCall(String clientIP, String directClientIp);
 
@@ -244,19 +243,19 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_FAILED)
     public InternalServerErrorException addStandbyFailed(String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_TIMEOUT)
     public InternalServerErrorException addStandbyFailedTimeout(final long timeoutValue);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_CONFIG_STANDBY_FAILED)
     public InternalServerErrorException configStandbyFailed(String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_PRECHECK_FAILED)
     public InternalServerErrorException removeStandbyPrecheckFailed(String siteNames, String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
     public InternalServerErrorException removeStandbyFailed(final String siteNames, String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_RECONFIG_FAILED)
     public InternalServerErrorException removeStandbyReconfigFailed(String errMsg);
 
@@ -286,7 +285,7 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_DATA_SYNC_TIMEOUT)
     public InternalServerErrorException dataSyncFailedTimeout(final long timeoutValue);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_PRECHECK_FAILED)
     public InternalServerErrorException switchoverPrecheckFailed(final String siteName, String errMsg);
 
@@ -310,16 +309,16 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedErrorExportGroupPlacement(Exception ex);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED)
     public InternalServerErrorException failoverFailed(String siteName, String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_PRECHECK_FAILED)
     public InternalServerErrorException failoverPrecheckFailed(final String siteName, String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_RECONFIG_FAIL)
     public InternalServerErrorException failoverReconfigFailed(String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_UPDATE_SITE_FAILED)
     public InternalServerErrorException updateSiteFailed(String siteName, String errMsg);
 }

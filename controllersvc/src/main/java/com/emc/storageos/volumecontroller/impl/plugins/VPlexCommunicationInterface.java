@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.emc.storageos.db.client.model.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1901,7 +1902,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
-        StringMap stats = _statsCollector.collect(accessProfile);
+        initializeContext(accessProfile);
+        StringMap stats = _statsCollector.collect(accessProfile, _keyMap);
         processVPlexStats(stats);
         dumpStatRecords();
         injectStats();
@@ -2245,5 +2247,17 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     private void processVPlexStats(StringMap stats) {
 
+    }
+
+    private void initializeContext(AccessProfile accessProfile) {
+        _keyMap.put(Constants._serialID, accessProfile.getserialID());
+        _keyMap.put(Constants.dbClient, _dbClient);
+        if (_networkDeviceController != null) {
+            _keyMap.put(Constants.networkDeviceController, _networkDeviceController);
+        }
+        _keyMap.put(Constants._nativeGUIDs, Sets.newHashSet());
+        _keyMap.put(Constants._Stats, new LinkedList<Stat>());
+        _keyMap.put(Constants.ACCESSPROFILE, accessProfile);
+        _keyMap.put(Constants.PROPS, accessProfile.getProps());
     }
 }

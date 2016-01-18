@@ -10,6 +10,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class to hold data collected from a VPlex perpetual performance data file
@@ -18,6 +20,11 @@ public class VPlexPerpetualCSVFileData {
     // Constants
     public static final String ZERO = "0";
     public static final String NO_DATA = "no data";
+    private static final Pattern FILENAME_PATTERN = Pattern.compile(".*?/([\\w\\-_]+)_PERPETUAL_vplex_sys_perf_mon.log");
+    // Total number of lines in the file
+    private final int totalLines;
+    // Name of the director to which this file applies
+    private String directorName;
     // Name of the file
     private String name;
     // Headers
@@ -25,8 +32,40 @@ public class VPlexPerpetualCSVFileData {
     // Structure to hold the data. Each entry in the list is a data line that has a map of key-values representing the data points
     private List<Map<String, String>> data;
 
-    public VPlexPerpetualCSVFileData(String name) {
+    public VPlexPerpetualCSVFileData(String name, int totalLines) {
         this.name = name;
+        this.totalLines = totalLines;
+        Matcher matcher = FILENAME_PATTERN.matcher(this.name);
+        if (matcher.matches()) {
+            this.directorName = matcher.group(1);
+        }
+    }
+
+    /**
+     * Total lines that are in the file
+     * 
+     * @return int
+     */
+    public int getTotalLines() {
+        return totalLines;
+    }
+
+    /**
+     * Returns the name of the director to which this file applies
+     *
+     * @return String name
+     */
+    public String getDirectorName() {
+        return directorName;
+    }
+
+    /**
+     * Return the name and path of the file
+     * 
+     * @return String name
+     */
+    public String getName() {
+        return name;
     }
 
     /**
@@ -54,9 +93,14 @@ public class VPlexPerpetualCSVFileData {
     /**
      * Reset object's data collections
      */
-    public void resetData() {
+    public void close() {
         if (this.data != null) {
             this.data.clear();
+            this.data = null;
+        }
+        if (this.headers != null) {
+            this.headers.clear();
+            this.headers = null;
         }
     }
 
@@ -66,27 +110,27 @@ public class VPlexPerpetualCSVFileData {
      * @param values [IN] - Data values
      */
     public void addDataLine(String[] values) {
-        assert(headers != null && headers.isEmpty());
+        assert(headers != null && !headers.isEmpty() && headers.size() == values.length);
 
         // Create data if it doesn't exist
         if (data == null) {
-            data = new ArrayList<>();
+            data = new ArrayList<>(totalLines);
         }
 
         // Iterate through the passed in values. The number of values should match the number
         // of header entries, which specify what the value represents (time, Kb/sec, etc.)
         Map<String, String> dataMap = new HashMap<>();
-        for (String value : values) {
-            for (String header : headers) {
-                String toAdd = value;
-                // For possibly very common values, use a static String reference
-                if (value.equals(ZERO)) {
-                    toAdd = ZERO;
-                } else if (value.equals(NO_DATA)) {
-                    toAdd = NO_DATA;
-                }
-                dataMap.put(header, toAdd);
+        int numHeaders = headers.size();
+        for (int index = 0; index < numHeaders; index++) {
+            String header = headers.get(index);
+            String value = values[index];
+            // For possibly very common values, use a static String reference
+            if (value.equals(ZERO)) {
+                value = ZERO;
+            } else if (value.equals(NO_DATA)) {
+                value = NO_DATA;
             }
+            dataMap.put(header, value);
         }
         // Add the mapping to the data line structure
         data.add(dataMap);
@@ -99,5 +143,10 @@ public class VPlexPerpetualCSVFileData {
      */
     public List<Map<String, String>> getDataLines() {
         return Collections.unmodifiableList(data);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("VPlexPerpetualCSVFileData{name='%s', totalLines=%d}", name, totalLines);
     }
 }

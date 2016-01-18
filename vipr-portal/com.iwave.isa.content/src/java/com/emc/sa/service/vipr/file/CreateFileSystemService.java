@@ -35,13 +35,13 @@ public class CreateFileSystemService extends ViPRService {
     @Param(VOLUME_NAME)
     protected String shareName;
     
-    @Param(SOFT_LIMIT)
+    @Param(value=SOFT_LIMIT,required=false)
     protected Integer softLimit;
     
-    @Param(ADVISORY_LIMIT)
+    @Param(value=ADVISORY_LIMIT,required=false)
     protected Integer advisoryLimit;
     
-    @Param(GRACE_PERIOD)
+    @Param(value=GRACE_PERIOD,required=false)
     protected Integer gracePeriod;
 
 

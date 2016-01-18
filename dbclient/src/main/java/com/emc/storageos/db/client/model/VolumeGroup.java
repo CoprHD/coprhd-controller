@@ -30,9 +30,9 @@ public class VolumeGroup extends DataObject {
     private String migrationGroupBy;
 
     public static enum MigrationGroupBy {
-        VOLUME,
-        HOST,
-        CLUSTER
+        VOLUMES,
+        HOSTS,
+        CLUSTERS
     }
 
     public static enum VolumeGroupRole {

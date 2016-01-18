@@ -36,7 +36,6 @@ public final class DownloadExecutor implements  Runnable {
     private FtpClient client;
     private String remoteBackupFileName;
     private BackupOps backupOps;
-    private BackupRestoreStatus restoreStatus;
     private DownloadListener downloadListener;
     private boolean isGeo = false; // true if the backupset is from GEO env
     private volatile  boolean isCanceled =false;
@@ -132,33 +131,33 @@ public final class DownloadExecutor implements  Runnable {
         log.info("Set download status backupName={} status={} backupSize={} increasedSize={} increaseCompletedNodeNumber={}",
                 new Object[] {backupName, status, backupSize, increasedSize, increaseCompletedNodeNumber});
 
-        restoreStatus = backupOps.queryBackupRestoreStatus(backupName, false);
+        BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(backupName, false);
         if (status != null && status == Status.DOWNLOAD_CANCELLED ) {
-            if (!restoreStatus.getStatus().canBeCanceled()) {
+            if (!s.getStatus().canBeCanceled()) {
                 return;
             }
         }
 
-        restoreStatus.setBackupName(backupName);
+        s.setBackupName(backupName);
 
         if (status != null) {
-            restoreStatus.setStatus(status);
+            s.setStatus(status);
         }
 
         if (backupSize > 0) {
-            restoreStatus.setBackupSize(backupSize);
+            s.setBackupSize(backupSize);
         }
 
         if (increasedSize > 0) {
-            long newSize = restoreStatus.getDownoadSize() + increasedSize;
-            restoreStatus.setDownoadSize(newSize);
+            long newSize = s.getDownoadSize() + increasedSize;
+            s.setDownoadSize(newSize);
         }
 
         if (increaseCompletedNodeNumber) {
-            restoreStatus.increaseNodeCompleted();
+            s.increaseNodeCompleted();
         }
 
-        backupOps.persistBackupRestoreStatus(restoreStatus, false);
+        backupOps.persistBackupRestoreStatus(s, false);
     }
 
     public void cancelDownload() {
@@ -190,7 +189,7 @@ public final class DownloadExecutor implements  Runnable {
             download();
         }catch (InterruptedException e) {
             log.info("The downloading thread has been interrupted");
-            restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
+            BackupRestoreStatus restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
             Status s = restoreStatus.getStatus();
             if (s.canBeCanceled()) {
                 log.info("The downloading has been canceled");
@@ -198,7 +197,6 @@ public final class DownloadExecutor implements  Runnable {
                 cleanCurrentBackupInfo = true;
             }
         }catch (Exception e) {
-            restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
             log.info("isCanceled={}", isCanceled);
             Status s = Status.DOWNLOAD_FAILED;
             if (isCanceled) {
@@ -272,7 +270,7 @@ public final class DownloadExecutor implements  Runnable {
         FilenameFilter filter = new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return name.endsWith(".zip");
+                return name.endsWith(BackupConstants.COMPRESS_SUFFIX);
             }
         };
 
@@ -293,7 +291,7 @@ public final class DownloadExecutor implements  Runnable {
     }
 
     private void postDownload() {
-        restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
+        BackupRestoreStatus restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
         log.info("status={}", restoreStatus);
         Status s = null;
         if (restoreStatus.getStatus() == BackupRestoreStatus.Status.DOWNLOADING) {

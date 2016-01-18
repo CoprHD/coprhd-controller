@@ -2566,7 +2566,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         
         StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice()); 
         StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice()); 
-        String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), targetFileShare.getLabel());
+        
+        String policyName = targetFileShare.getLabel();
          
         VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
         String rpoValue = null;
@@ -2607,7 +2608,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // TODO Auto-generated method stub
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source); 
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target); 
-        String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), targetFileShare.getLabel());
+        String policyName = targetFileShare.getLabel();
         BiosCommandResult cmdResult = dodeleteReplicationPolicy(system, policyName);
         if(cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);

@@ -80,6 +80,7 @@
       items:{
           adivsoryLimit:{
             type:"text",
+            required: false,
             validation:{
               min:0,
               max:100
@@ -88,6 +89,7 @@
           
           softLimit:{
             type:"text",
+            required: false,
             validation:{
               min:0,
               max:100
@@ -96,6 +98,7 @@
           
           gracePeriod:{
             type:"text",
+            required: false,
             validation:{
               min:1
             }

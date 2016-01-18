@@ -95,6 +95,15 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     }
 
     public SchedulerConfig getCfg() {
+        if (cfg.uploadUrl == null) {
+            try {
+                cfg.reload();
+            }catch(Exception e) {
+                log.error("Failed to reload cfg e=", e);
+                throw new RuntimeException(e);
+            }
+        }
+
         return cfg;
     }
 

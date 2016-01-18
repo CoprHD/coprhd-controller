@@ -600,7 +600,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
             String rpName = volume.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNotNullValue(rpName)) {
-            	_log.info("Creating backend CG.");
+                _log.info("Creating backend CG.");
                 URI deviceURI = descr.getDeviceURI();
                 if (!deviceURIs.contains(deviceURI)) {
                     deviceURIs.add(deviceURI);

@@ -18,6 +18,7 @@ import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
@@ -25,6 +26,7 @@ import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
@@ -378,6 +380,27 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
         BlockSnapshotSessionList response = client.get(BlockSnapshotSessionList.class, url, consistencyGroupId);
         return response.getSnapSessionRelatedResourceList();
     } 
+    
+//    
+//    /**
+//     * List snapshot sessions in the consistency group
+//     * <p>
+//     * API Call: <tt>GET /block/consistency-groups/{id}/protection/snapshot-sessions</tt>
+//     *
+//     * @param consistencyGroupId
+//     *            the ID of the consistency group
+//     * @return The list of snapshot sessions in the consistency group
+//     */
+//    public List<BlockSnapshotSessionRestRep> getSnapshotSessions(URI consistencyGroupId, ResourceFilter<BlockSnapshotSessionRestRep> filter) {
+//        //final String url = getIdUrl() + "/protection/snapshot-sessions";
+//        //BlockSnapshotSessionList response = client.get(BlockSnapshotSessionList.class, url, consistencyGroupId);
+//        return getByRefs(getSnapshotSessions(consistencyGroupId), filter);
+//    } 
+//    
+    
+    
+    
+    
     
     /**
      * Create consistency group snapshot session

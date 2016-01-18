@@ -72,14 +72,10 @@ public class LinkBlockSnapshotService extends ViPRService {
 
     @Override
     public void execute() {      
-        Tasks<? extends DataObjectRestRep> tasks;
-        if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-            for (String snapshotSessionId : snapshotSessionIds) {
-                tasks = execute(new LinkBlockSnapshot(snapshotSessionId, existingLinkedSnapshotIds, linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode));
-                addAffectedResources(tasks);
-            }
-        } else {
-            // CG not supported for now
-        }
+        Tasks<? extends DataObjectRestRep> tasks;        
+        for (String snapshotSessionId : snapshotSessionIds) {
+            tasks = execute(new LinkBlockSnapshot(snapshotSessionId, existingLinkedSnapshotIds, linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode));
+            addAffectedResources(tasks);
+        }        
     }
 }

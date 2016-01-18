@@ -41,13 +41,13 @@ public class RestoreBlockSnapshotService extends ViPRService {
         for (String snapshotId : snapshotIds) {
             Task<? extends DataObjectRestRep> task;
             if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-                if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {
+                if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
                     task = execute(new RestoreBlockSnapshotSession(snapshotId));
                 } else {
                     task = execute(new RestoreBlockSnapshot(snapshotId));
                 }
             } else {
-                if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {
+                if (BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
                     task = ConsistencyUtils.restoreSnapshotSession(consistencyGroupId, uri(snapshotId));
                 } else {
                     task = ConsistencyUtils.restoreSnapshot(consistencyGroupId, uri(snapshotId));   

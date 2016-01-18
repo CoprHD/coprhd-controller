@@ -187,7 +187,7 @@ public abstract class DataObject implements Serializable {
 
     //current we only output the error message, exception should be thrown out if all issues fixed in upper layer.
     private void validateInactive(Boolean preInactive, Boolean curInactive) {
-    	if ((preInactive!=null && preInactive==true) && (curInactive==null || curInactive==false)) {
+    	if ((preInactive!=null && preInactive) && (curInactive==null || !curInactive)) {
     		String errMsg = String.format("%s invalid inactive set from %s to %s", this.getId().toString(), preInactive, curInactive);
     		_log.error(errMsg, new IllegalArgumentException());
     	}

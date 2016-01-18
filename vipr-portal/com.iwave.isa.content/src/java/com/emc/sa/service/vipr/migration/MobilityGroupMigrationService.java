@@ -67,9 +67,9 @@ public class MobilityGroupMigrationService extends ViPRService {
     }
 
     private List<URI> getVolumes() {
-        if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
+        if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
             return execute(new GetMobilityGroupVolumes(mobilityGroupId));
-        } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
+        } else if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
             List<NamedRelatedResourceRep> hosts = execute(new GetMobilityGroupHosts(mobilityGroupId));
             return execute(new GetMobilityGroupVolumesByHost(mobilityGroup, hosts));
         }

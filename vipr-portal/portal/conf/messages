@@ -707,6 +707,7 @@ CustomConfigs.configType.HDSHostModeOption=Host Mode Option
 CustomConfigs.configType.VPlexStorageViewName=Storage View Name
 CustomConfigs.configType.NasDynamicPerformancePlacementEnabled=Dynamic Performance Placement Enabled
 CustomConfigs.configType.NasUsePhysicalNASForProvisioning=Use Physical NAS For Provisioning
+CustomConfigs.configType.NasShareVNASWithMultipleProjects=Enable Association of Virtual NAS to Multiple Projects
 CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.scopeType.global=Global
@@ -1878,7 +1879,7 @@ StorageSystems.pools.description=Enter the information needed to edit a Storage 
 vNasServers.nasName=Name
 vNasServers.protocols=Protocols
 vNasServers.storagePorts=Storage Ports
-vNasServers.project=Project
+vNasServers.project=Project(s)
 vNasServers.parentNASURI= Parent NAS Server
 vNasServers.nasState= State
 vNasServers.storageDomain=Domain
@@ -1896,7 +1897,8 @@ vNasServers.usedStorageCapacity= Used Storage Capacity
 vNasServers.avgPercentagebusy=Average Percentage busy
 vNasServers.percentLoad=Percentage Load
 vNasServersDataTable.notApplicable=N/A
-vNasServers.associateToProject=Associate to a Project
+vNasServers.associateToProject=Associate to Project(s)
+vNasServers.dissociateFromProject=Dissociate from Project(s)
 vNasServers.dissociate.Confirm=Are you sure you want to dissociate these vNas Server(s) from the project?
 
 storageArrayPool.name=Name
@@ -2059,10 +2061,11 @@ vpool.systemType=System Type
 vpool.poolAssignment=Pool Assignment
 vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a subset of the storage pools matching the criteria
 
-#Object Specefic
+#Object Specific
 vpool.maxRetention=Maximum Retention (Days)
 vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
+storagePools.numOfDataCenters=Data Center(s)
 
 # Block Specific
 vpool.minPaths=Minimum Paths
@@ -2956,6 +2959,14 @@ affectedResources.blockSnapshot.creationTime=Creation Time
 affectedResources.blockSnapshot.wwn=WWN
 affectedResources.blockSnapshot.volume=Volume
 affectedResources.blockSnapshot.varray=Virtual Array
+
+affectedResources.blockSnapshotSession=Block Snapshot Session
+affectedResources.blockSnapshotSession.image=serviceCatalog/Snapshot.png
+affectedResources.blockSnapshotSession.name=Name
+affectedResources.blockSnapshotSession.creationTime=Creation Time
+affectedResources.blockSnapshotSession.wwn=WWN
+affectedResources.blockSnapshotSession.volume=Volume
+affectedResources.blockSnapshotSession.varray=Virtual Array
 
 affectedResources.blockConsistencyGroup=Consistency Group
 affectedResources.blockConsistencyGroup.image=assets/Consistency_Group.png

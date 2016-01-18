@@ -9,6 +9,7 @@ import com.emc.storageos.management.backup.exceptions.FatalBackupException;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+//This suite requires external services to be running, which is not the case on public build servers.
+//For examples of a self-contained unit test, see DbServiceTestBase.  COP-19800
+@Ignore
 public class BackupManagerTest extends BackupTestBase {
 
     private static final Logger log = LoggerFactory.getLogger(BackupManagerTest.class);

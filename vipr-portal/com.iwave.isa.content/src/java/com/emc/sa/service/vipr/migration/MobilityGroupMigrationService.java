@@ -9,10 +9,13 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroup;
+import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupHosts;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumes;
+import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByHost;
 import com.emc.sa.service.vipr.block.tasks.MigrateBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.RemoveVolumesFromMobilityGroup;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Task;
@@ -66,6 +69,9 @@ public class MobilityGroupMigrationService extends ViPRService {
     private List<URI> getVolumes() {
         if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
             return execute(new GetMobilityGroupVolumes(mobilityGroupId));
+        } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
+            List<NamedRelatedResourceRep> hosts = execute(new GetMobilityGroupHosts(mobilityGroupId));
+            return execute(new GetMobilityGroupVolumesByHost(mobilityGroup, hosts));
         }
         return Lists.newArrayList();
     }

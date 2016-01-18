@@ -47,7 +47,9 @@ public class MobilityGroupMigrationService extends ViPRService {
                 targetVirtualPool, targetStorageSystem));
 
         if (!tasks.getTasks().isEmpty()) {
-            execute(new RemoveVolumesFromMobilityGroup(mobilityGroup.getId(), getVolumeList(tasks)));
+            if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
+                execute(new RemoveVolumesFromMobilityGroup(mobilityGroup.getId(), getVolumeList(tasks)));
+            }
             addAffectedResources(tasks);
         } else {
             ExecutionUtils.fail("failTask.mobilityGroupMigration.noVolumesMigrated", new Object[] {}, new Object[] {});

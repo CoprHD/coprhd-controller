@@ -194,7 +194,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                         source.getStorageDevice());
 
                 Workflow.Method createMethod = createMirrorFilePairStep(system.getId(),
-                        source.getId(), targetURI, null, sourceDescriptor.getCapabilitiesValues());
+                        source.getId(), targetURI, null);
                 Workflow.Method rollbackMethod = rollbackMirrorFilePairMethod(system.getId(),
                         source.getId(), targetURI);
                 // Ensure CreateElementReplica steps are executed sequentially (CQ613404)
@@ -207,13 +207,14 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return waitFor = CREATE_FILE_MIRRORS_STEP;
     }
     
-    private Workflow.Method createMirrorFilePairStep(URI systemURI,
-            URI sourceURI, URI targetURI, URI vpoolChangeUri, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper) {
-        return new Workflow.Method(CREATE_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI, vpoolChangeUri, vpoolCapWrapper);
+    private Workflow.Method createMirrorFilePairStep(
+            URI systemURI, URI sourceURI, URI targetURI, URI vpoolChangeUri) {
+        return new Workflow.Method(CREATE_FILE_MIRROR_PAIR_METH, 
+                systemURI, sourceURI, targetURI, vpoolChangeUri);
     }
     
-    public boolean createMirrorSession(URI systemURI, URI sourceURI,
-            URI targetURI, URI vpoolChangeUri, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper, String opId) {
+    public boolean createMirrorSession(
+            URI systemURI, URI sourceURI, URI targetURI, URI vpoolChangeUri, String opId) {
         
         log.info("Create Mirror Session between source and Target Pair");
         TaskCompleter completer = null;
@@ -222,7 +223,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             StorageSystem system = getStorageSystem(systemURI);
             
             completer = new MirrorFileCreateTaskCompleter(sourceURI, targetURI, vpoolChangeUri, opId);
-            getRemoteMirrorDevice(system).doCreateMirrorLink(system, sourceURI, targetURI, vpoolCapWrapper, completer);
+            getRemoteMirrorDevice(system).doCreateMirrorLink(system, sourceURI, targetURI, completer);
             log.info("Source: {}", sourceURI);
             log.info("Target: {}", targetURI);
             log.info("OpId: {}", opId);

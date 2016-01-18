@@ -27,8 +27,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
         RemoteFileMirrorOperation {
 
     @Override
-    public void doCreateMirrorLink(StorageSystem system, URI source, URI target,
-            VirtualPoolCapabilityValuesWrapper vpoolCapWrapper, TaskCompleter completer) {
+    public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
         // TODO Auto-generated method stub
         throw DeviceControllerException.exceptions.operationNotSupported();
 

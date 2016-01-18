@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
@@ -2557,7 +2558,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doCreateMirrorLink(StorageSystem system, URI source, URI target, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper, TaskCompleter completer) {
+    public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
         // TODO Auto-generated method stub
 
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source); 
@@ -2567,18 +2568,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice()); 
         String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), targetFileShare.getLabel());
          
-        
+        VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
         String rpoValue = null;
-        if(vpoolCapWrapper != null) {
-            if(vpoolCapWrapper.getFileRpRpoValue() != null) {
-                rpoValue = vpoolCapWrapper.getFileRpRpoValue().toString();
+        if(virtualPool != null) {
+            if(virtualPool.getFrRpoValue() != null) {
+                rpoValue = virtualPool.getFrRpoValue().toString();
             }
         }
 
         BiosCommandResult cmdResult = doCreateReplicationPolicy(sourceStorageSystem, 
                 policyName, 
                 sourceFileShare.getPath(), 
-                targetStorageSystem.getIpAddress(), targetFileShare.getPath(), IsilonSyncPolicy.Action.sync, rpoValue , null);
+                targetStorageSystem.getIpAddress(), targetFileShare.getPath(), IsilonSyncPolicy.Action.sync, rpoValue, null);
         if(cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
         } else {

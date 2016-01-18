@@ -21,7 +21,7 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doCreateMirrorLink(StorageSystem system, URI source, URI target, VirtualPoolCapabilityValuesWrapper vpoolCapWrapper, TaskCompleter completer);
+    void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer);
 
     /**
      * Detach a source and target from their replication link.

@@ -15,6 +15,7 @@ import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -85,6 +86,8 @@ public class BackupSchedulerTest {
                 aliveBackupsAt20141231.length, cli.localBackups.size());
     }
 
+    // The following test requires a secure ftp server, which public/external build machines may not have.  Therefore, ignoring by default. 
+    @Ignore
     @Test
     public void testUpload() throws Exception {
         new TestProductName();

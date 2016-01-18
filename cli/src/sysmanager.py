@@ -2453,5 +2453,16 @@ def system_parser(parent_subparser, common_parser):
 
     cluster_ipinfo_parser(subcommand_parsers,common_parser)
     
+    sysmgrcontrolsvc.dbconsistency_check_cancel_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.dbconsistency_check_status_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.trigger_dbconsistency_check_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.upload_backup_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.upload_backup_status_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.backup_info_parser(subcommand_parsers, common_parser)
     
 

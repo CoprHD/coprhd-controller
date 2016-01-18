@@ -1,0 +1,80 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          RP
+# Required-Start:    SimService ECOM80 ECOM462
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:
+# Description:       starts RP simulator
+### END INIT INFO
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+. /etc/rc.status
+
+RETVAL=0
+RP_HOME=/data/simulators/rp-sim
+DELAY=60
+
+start() {
+        echo -n $"Starting RP:..hold on 10sec .."
+		cd ${RP_HOME}
+        java -jar rp-simulators-*.jar >/var/log/RP.log 2>&1 &
+        RETVAL=$?
+
+        while [ $DELAY -gt 0 ]; do
+        #echo "delay $DELAY"
+	if [ -f "/var/log/RP.log" ] ; then 
+	 START=`grep -r "com\.emc\.fapi\.version.*\.impl\.RpSite" /var/log/RP.log`
+         if [ "${START}" != "" ] ; then
+           echo "${START}" >> /var/log/RP.log 2>&1  
+           echo "..OK"
+           return
+         fi
+        fi
+        sleep 2
+        DELAY=$((DELAY -1))
+       done
+
+       echo "Failed to start in 60 sec..try manual start" >> /var/log/RP.log 2>&1
+}
+
+stop() {
+
+        echo -n $"Stopping RP: "
+	#rm -f ${RP_HOME}/log/* >>/var/log/RP.log 2>&1
+        pkill -9 -f rp-simulators- >> /var/log/RP.log 2>&1
+        RETVAL=$?
+	echo  "..Done"
+}
+
+
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+    	cnt=`pgrep -f RPSimulator.jar | wc -l`
+	if(test $cnt -eq 1) ;
+	then
+		echo "RP simulator already running..."
+	else
+		echo "RP simulator not running."
+	fi 
+    #    rc_status -v
+        ;;
+  *)
+        echo $"Usage: RP {start|stop|status}"
+        exit 1
+        exit 1
+esac
+
+
+exit $RETVAL
+
+

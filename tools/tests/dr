@@ -130,7 +130,7 @@ except:
 
 # dr <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
-parser.add_argument('cmd', help = 'cmd = (add|list|get|delete|pause|resume|waitforstate|waitforstable|switchover|failover|find|checkstandby|poweroffcluster)')
+parser.add_argument('cmd', help = 'cmd = (add|list|get|delete|pause|resume|waitforstate|waitforstable|switchover|failover|find|checkstandby|poweroffcluster|details)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # add dr standby
@@ -221,7 +221,7 @@ elif (cmd == "list"):
 elif (cmd == "get"):
     args = drgetstandby.parse_args()
     dr_get_standby(args)
-elif (cmd == "getdetails"):
+elif (cmd == "details"):
     args = drgetstandbydetails.parse_args()
     dr_get_standby_details(args)
 elif (cmd == "delete"):

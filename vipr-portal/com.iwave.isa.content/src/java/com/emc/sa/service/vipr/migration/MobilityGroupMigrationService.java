@@ -47,8 +47,11 @@ public class MobilityGroupMigrationService extends ViPRService {
 
     private List<URI> getVolumeList(Tasks<VolumeRestRep> tasks) {
         List<URI> volumes = Lists.newArrayList();
-        for (VolumeRestRep volume : tasks.get()) {
-            volumes.add(volume.getId());
+        for (Task<VolumeRestRep> task : tasks.getTasks()) {
+
+            if (task.getResourceId() != null) {
+                volumes.add(task.getResourceId());
+            }
         }
         return volumes;
     }

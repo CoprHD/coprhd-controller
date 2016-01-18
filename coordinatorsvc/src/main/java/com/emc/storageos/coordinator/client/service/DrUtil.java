@@ -9,8 +9,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -28,6 +32,7 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.SiteInfo.ActionScope;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -51,6 +56,7 @@ public class DrUtil {
     public static final String ZOOKEEPER_MODE_READONLY = "read-only";
     public static final String ZOOKEEPER_MODE_LEADER = "leader";
     public static final String ZOOKEEPER_MODE_FOLLOWER = "follower";
+    public static final String ZOOKEEPER_MODE_STANDALONE = "standalone";
 
     private static final String DR_CONFIG_KIND = "disasterRecoveryConfig";
     private static final String DR_CONFIG_ID = "global";
@@ -348,15 +354,30 @@ public class DrUtil {
      * @param action action to take
      */
     public void updateVdcTargetVersion(String siteId, String action, long vdcTargetVersion) throws Exception {
+        updateVdcTargetVersion(siteId, action, vdcTargetVersion, null, null);
+    }
+    
+    /**
+     * Update SiteInfo's action and version for specified site id 
+     * @param siteId site UUID
+     * @param action action to take
+     * @param sourceSiteUUID source site UUID
+     * @param targetSiteUUID target site UUID
+     */
+    public void updateVdcTargetVersion(String siteId, String action, long vdcTargetVersion, String sourceSiteUUID, String targetSiteUUID) throws Exception {
         SiteInfo siteInfo;
         SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
+        String targetDataRevision = null;
+        
         if (currentSiteInfo != null) {
-            siteInfo = new SiteInfo(vdcTargetVersion, action, currentSiteInfo.getTargetDataRevision());
+            targetDataRevision = currentSiteInfo.getTargetDataRevision();
         } else {
-            siteInfo = new SiteInfo(vdcTargetVersion, action);
+            targetDataRevision = SiteInfo.DEFAULT_TARGET_VERSION;
         }
+        
+        siteInfo = new SiteInfo(vdcTargetVersion, action, targetDataRevision, ActionScope.SITE, sourceSiteUUID, targetSiteUUID);
         coordinator.setTargetInfo(siteId, siteInfo);
-        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
+        log.info("VDC target version updated to {} for site {}", siteInfo, siteId);
     }
 
     public void updateVdcTargetVersion(String siteId, String action, long vdcConfigVersion, long dataRevision) throws Exception {
@@ -530,5 +551,26 @@ public class DrUtil {
         List<String> vdcIds = new ArrayList<>();
         vdcIds.addAll(vdcIdSet);
         return vdcIds;
+    }
+
+    /**
+     * Check if all sites of local vdc are
+     */
+    public boolean isAllSitesStable() {
+        boolean bStable = true;
+
+        for (Site site : listSites()) {
+            // skip checking node state for paused sites.
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                continue;
+            }
+            int nodeCount = site.getNodeCount();
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                log.info("Site {} is not stable {}", site.getUuid(), state);
+                bStable = false;
+            }
+        }
+        return bStable;
     }
 }

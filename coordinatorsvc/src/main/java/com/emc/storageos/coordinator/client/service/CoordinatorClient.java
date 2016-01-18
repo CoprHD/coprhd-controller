@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -645,6 +646,14 @@ public interface CoordinatorClient {
      * @return
      */
     public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty);
+    
+    /**
+     * Create a Curator recipe - distributed barrier 
+     * 
+     * @param barrierPath Znode path for this barrier
+     * @return
+     */
+    public DistributedBarrier getDistributedBarrier(String barrierPath);
 
     /**
      * Checks for the existence of a lock (znode) at the given path.  The lock is available
@@ -677,4 +686,11 @@ public interface CoordinatorClient {
      * @param path full path on zk tree
      */
     void deletePath(String path);
+    
+    /**
+     * check whether specified ZK node exists
+     * @param path
+     * @return true if node exists
+     */
+    boolean nodeExists(String path);
 }

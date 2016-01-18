@@ -16,13 +16,10 @@ import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.security.exceptions.SecurityException;
-import com.emc.vipr.model.sys.ClusterInfo;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -192,11 +189,8 @@ public class IPsecManager {
      * make sure cluster is in stable status
      */
     public void verifyClusterIsStable() {
-        ClusterInfo.ClusterState state = coordinator.getControlNodesState();
-        if (state != null &&
-                (state.equals(ClusterInfo.ClusterState.STABLE)
-                     || state.equals(ClusterInfo.ClusterState.INITIALIZING))){
-            // cluster is stable
+        if (drUtil.isAllSitesStable()) {
+            // cluster is stable for ipsec change
             return;
         } else {
             throw APIException.serviceUnavailable.clusterStateNotStable();

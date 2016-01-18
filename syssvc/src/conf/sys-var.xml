@@ -51,4 +51,8 @@
     <bean id="backCompatPreYoda" class="java.lang.Boolean">
         <constructor-arg type="java.lang.String" value="false" />
     </bean>
+
+    <bean id="siteIsStandby" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="false" />
+    </bean>
 </beans>

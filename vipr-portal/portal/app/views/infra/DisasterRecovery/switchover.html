@@ -1,25 +1,30 @@
-#{extends 'main.html'/}
-#{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
-#{if iamActiveSite }
-	#{set 'title'}&{'disasterRecovery.switchover'}#{/set}
-#{/if}
-#{else}
-	#{set 'title'}&{'disasterRecovery.failover'}#{/set}
-#{/else}
+%{
+  titleKey = 'disasterRecovery.title';
+}%
+#{extends 'nonav-wide-layout.html' /}
+#{set 'title'}&{titleKey}#{/set}
+
 #{Form.header titleKey:'disasterRecovery.title' /}
 #{alerts/}
 
 <div>
-   	<b style="font-size:13px">&{'disasterRecovery.switchover.active'}:</b>
-   	<span id="bourne-version">${active_name}</span><br/>
-</div>
-<br/>
+#{if iamActiveSite }
+	<span>&{'disasterRecovery.switchover.unstable'}</span>
+#{/if}
+#{else}	
+	<span>&{'disasterRecovery.failover.unstable'}</span>
+#{/else}
+</div><br/>
+
 <div>
-   	<b style="font-size:13px">&{'disasterRecovery.switchover.standby'}:</b>
-   	<span id="bourne-version">${standby_name}</span><br/>
-</div>
-<br/>
-<br/>
+   	<b style="font-size:14px">&{'disasterRecovery.switchover.active'}:</b>
+   	<span>${active_name}</span>
+</div><br/>
+<div>
+   	<b style="font-size:14px">&{'disasterRecovery.switchover.standby'}:</b>
+   	<span>${standby_name}</span>
+</div><br/><br/>
+
 #{if iamActiveSite }
 	#{Form.subheader titleKey:"disasterRecovery.switchover.subtitle" /}
 #{/if}
@@ -28,15 +33,19 @@
 #{/else}
 <br/>
 <div id="switchdesc">
-	<span> &{'disasterRecovery.switchover.setting'} <b style="font-size:14px">${standby_name}</b> &{'disasterRecovery.switchover.active.to'}</span>
+	<div style="background-color:#ADE0C2; width:100%;height:52px;">
+		<br/>
+		<span>&nbsp;&nbsp;&{'disasterRecovery.switchover.setting'} <b>${standby_name}</b> &{'disasterRecovery.switchover.active.to'}</span>
+	</div>
 	<br/><br/>
 	<dl>
-  		<dt id="loadingStatus"> #{loading/}</dt>
   		#{if iamActiveSite }
-			<dd id="checkFailoverStatus">&{'disasterRecovery.switchover.progress'} </dd>
+  			<dt id="loadingStatus"><b>&{'disasterRecovery.SwitchoverButton'}</b></dt>
+			<dd id="checkFailoverStatus">&{'disasterRecovery.switchover.progress'} #{loading/}</dd>
 		#{/if}
 		#{else}
-			<dd id="checkFailoverStatus">&{'disasterRecovery.failover.progress'} </dd>
+			<dt id="loadingStatus"><b>&{'disasterRecovery.FailoverButton'}</b></dt>
+			<dd id="checkFailoverStatus">&{'disasterRecovery.failover.progress'} #{loading/}</dd>
 		#{/else}
 	</dl>
 	<span id="failoverWarining">&{'disasterRecovery.failover.progress.warning'}</span>

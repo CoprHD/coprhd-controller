@@ -16,7 +16,13 @@
         			<tbody>
         				#{list items:drsites, as:'site'}
         				<tr>
-							<td><a href="http://${site.vip}">${site.name}</a></td>
+							<td>
+								<form action="#{./vdcLink host:site.vip, path:''/}" method="POST" accept-charset="utf-8" enctype="application/x-www-form-urlencoded" id="StandbySite${site.uuid}">
+      								#{authenticityToken /}
+	  								<input type="hidden" name="auth-token" value="${token}">
+ 								</form>
+								<a href="#" onclick="$('#StandbySite${site.uuid}').submit(); return false;">${site.name}</a>
+							</td>
 							<td>
 								#{if site.state == "ACTIVE"}
 									<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>
@@ -64,7 +70,17 @@
 									<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png"><span> &{'renderFunctions.disasterRecovery.status.standby.error'}</span>
 								#{/if}
 							</td>
-							<td>--</td>
+							<td>
+								#{if site.networkHealth == "Good"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png" alt="Good">
+								#{/if}
+								#{if site.networkHealth == "Slow"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png" alt="Slow">
+								#{/if}
+								#{if site.networkHealth == "Broken"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png" alt="Broken">
+								#{/if}
+							</td>
 						</tr>
 						#{/list}
         			</tbody>

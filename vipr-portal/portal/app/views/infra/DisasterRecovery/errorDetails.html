@@ -24,11 +24,13 @@
 <dl class="dl-horizontal">
   <dt>&{'disasterRecovery.id'}</dt>
   <dd>${uuid}</dd>
+  <dt>&{'disasterRecovery.cluster.state'}</dt>
+  <dd>${disasterSiteDetails.clusterState}</dd>
   <dt>&{'disasterRecovery.error.creation.time'}</dt>
   <dd id="creationTime-${uuid}">--</dd>
   #{if creationTime }
   	<script>
-  		var epocCreateTime = '${creationTime}';
+  		var epocCreateTime = '${disasterSiteDetails.creationTime}';
    		$('#creationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateTime)));
   	</script>
   #{/if}
@@ -36,7 +38,7 @@
   <dd id="pausedTime-${uuid}">--</dd>
   #{if pausedTime }
   	<script>
-  		var epocPauseTime = '${pausedTime}';
+  		var epocPauseTime = '${disasterSiteDetails.pausedTime}';
    		$('#pausedTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocPauseTime)));
   	</script>
   #{/if}
@@ -44,10 +46,12 @@
   <dd id="lastUpdateTime">--</dd>
   #{if lastUpdateTime }
   	<script>
-  		var epocLastTime = '${lastUpdateTime}';
+  		var epocLastTime = '${disasterSiteDetails.lastUpdateTime}';
    		$('#lastUpdateTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocLastTime)));
   	</script>
-  #{/if}  
+  #{/if}
+  <dt>&{'disasterRecovery.networkLatencyInMs'}</dt>
+  <dd>${disasterSiteDetails.networkLatencyInMs}</dd>
 </dl>
 #{/else}
 

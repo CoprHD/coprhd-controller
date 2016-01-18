@@ -122,6 +122,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupService.class);
     private static final int CG_MAX_LIMIT = 64;
+    private static final String FULL_COPY = "Full copy";
 
     // A reference to the placement manager.
     private PlacementManager _placementManager;
@@ -1352,7 +1353,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
 
         // Grab the first volume and call the block full copy
         // manager to create the full copies for the volumes
@@ -1384,7 +1385,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1418,7 +1419,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // TODO check for cases - part of VPLEX/RP CG volumes are in Application and remaining are not
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
 
         // Get the full copy source.
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
@@ -1455,7 +1456,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1488,7 +1489,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1523,7 +1524,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // TODO check deactivate case
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
 
         // Verify the full copy.
         verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);

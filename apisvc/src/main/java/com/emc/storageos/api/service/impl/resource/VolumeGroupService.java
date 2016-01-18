@@ -71,8 +71,8 @@ import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeGroupFullCopyActivateParam;
+import com.emc.storageos.model.block.VolumeGroupFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeGroupFullCopyDetachParam;
 import com.emc.storageos.model.block.VolumeGroupFullCopyRestoreParam;
 import com.emc.storageos.model.block.VolumeGroupFullCopyResynchronizeParam;
@@ -117,7 +117,7 @@ public class VolumeGroupService extends TaskResourceService {
             DiscoveredDataObject.Type.ibmxiv.name(),
             DiscoveredDataObject.Type.srdf.name()));
     private static final String BLOCK = "block";
-    private static final String FULL_COPY_STRING = "Full copy";
+    private static final String FULL_COPY = "Full copy";
 
     static final Logger log = LoggerFactory.getLogger(VolumeGroupService.class);
 
@@ -386,14 +386,17 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Creates a volume group fullcopy
-     * TODO update doc
-     *
+     * Creates a volume group full copy
+     * - Creates full copy for all the array replication groups within this Application.
+     * - If partial flag is specified, it creates full copy only for set of array replication groups.
+     * A Volume from each array replication group can be provided to indicate which array replication
+     * groups are required to take full copy.
+     * 
      * @prereq none
      *
      * @param volumeGroupId the URI of the Volume Group
      *            - Volume group URI
-     * @param param VolumeFullCopyCreateParam
+     * @param param VolumeGroupFullCopyCreateParam
      *
      * @brief Create volume group fullcopy
      * @return TaskList
@@ -403,13 +406,13 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
     public TaskList createVolumeGroupFullCopy(@PathParam("id") final URI volumeGroupId,
-            final VolumeFullCopyCreateParam param) {
+            final VolumeGroupFullCopyCreateParam param) {
         ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
         // Query Volume Group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
         // validate replica operation for volume group
-        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY_STRING);
+        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY);
 
         TaskList taskList = new TaskList();
 
@@ -417,7 +420,7 @@ public class VolumeGroupService extends TaskResourceService {
         List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
         // validate that there should be some volumes in VolumeGroup
         if (volumes.isEmpty()) {
-            throw APIException.badRequests.replicaOperationNotAllowedOnEmptyVolumeGroup(volumeGroup.getLabel(), FULL_COPY_STRING);
+            throw APIException.badRequests.replicaOperationNotAllowedOnEmptyVolumeGroup(volumeGroup.getLabel(), FULL_COPY);
         }
 
         List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
@@ -455,7 +458,7 @@ public class VolumeGroupService extends TaskResourceService {
                 // validate that provided volumes are part of Volume Group
                 if (!volumeGroupId.equals(volume.getApplication(_dbClient).getId())) {
                     throw APIException.badRequests
-                            .replicaOperationNotAllowedVolumeNotInVolumeGroup(FULL_COPY_STRING, volume.getLabel());
+                            .replicaOperationNotAllowedVolumeNotInVolumeGroup(FULL_COPY, volume.getLabel());
                 }
 
                 volumesInRequest.add(volume);
@@ -508,7 +511,7 @@ public class VolumeGroupService extends TaskResourceService {
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
         // validate replica operation for volume group
-        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY_STRING);
+        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY);
 
         // get all volumes
         List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
@@ -547,7 +550,7 @@ public class VolumeGroupService extends TaskResourceService {
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
         // validate replica operation for volume group
-        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY_STRING);
+        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY);
 
         // get all volumes
         List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
@@ -562,7 +565,10 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Activate the specified Volume group full copy.
-     * TODO update doc
+     * - Activates full copy for all the array replication groups within this Application.
+     * - If partial flag is specified, it activates full copy only for set of array replication groups.
+     * A Full Copy from each array replication group can be provided to indicate which array replication
+     * groups's full copies needs to be activated.
      *
      * @prereq Create Volume group full copy as inactive.
      *
@@ -585,7 +591,7 @@ public class VolumeGroupService extends TaskResourceService {
         TaskList taskList = new TaskList();
 
         // validate replica operation for volume group
-        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY_STRING);
+        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY);
 
         // validate that at least one full copy URI is provided
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
@@ -653,8 +659,11 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Detach the specified Volume group full copy.
-     * TODO update doc
-     *
+     * - Detaches full copy for all the array replication groups within this Application.
+     * - If partial flag is specified, it detaches full copy only for set of array replication groups.
+     * A Full Copy from each array replication group can be provided to indicate which array replication
+     * groups's full copies needs to be detached.
+     * 
      * @prereq Create Volume group full copy as active.
      *
      * @param volumeGroupId The URI of the Volume group.
@@ -676,7 +685,7 @@ public class VolumeGroupService extends TaskResourceService {
         TaskList taskList = new TaskList();
 
         // validate replica operation for volume group
-        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY_STRING);
+        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY);
 
         // validate that at least one full copy URI is provided
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
@@ -743,7 +752,10 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Restore the specified Volume group full copy.
-     * TODO update doc
+     * - Restores full copy for all the array replication groups within this Application.
+     * - If partial flag is specified, it restores full copy only for set of array replication groups.
+     * A Full Copy from each array replication group can be provided to indicate which array replication
+     * groups's full copies needs to be restored.
      *
      * @prereq Create Volume group full copy as active.
      *
@@ -766,7 +778,7 @@ public class VolumeGroupService extends TaskResourceService {
         TaskList taskList = new TaskList();
 
         // validate replica operation for volume group
-        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY_STRING);
+        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY);
 
         // validate that at least one full copy URI is provided
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
@@ -833,7 +845,10 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Resynchronize the specified Volume group full copy.
-     * TODO update doc
+     * - Resynchronizes full copy for all the array replication groups within this Application.
+     * - If partial flag is specified, it resynchronizes full copy only for set of array replication groups.
+     * A Full Copy from each array replication group can be provided to indicate which array replication
+     * groups's full copies needs to be resynchronized.
      *
      * @prereq Create Volume group full copy as active.
      *
@@ -856,7 +871,7 @@ public class VolumeGroupService extends TaskResourceService {
         TaskList taskList = new TaskList();
 
         // validate replica operation for volume group
-        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY_STRING);
+        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY);
 
         // validate that at least one full copy URI is provided
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
@@ -1572,7 +1587,7 @@ public class VolumeGroupService extends TaskResourceService {
             replicaType = "Continuous copy";
         } else if (replica instanceof Volume) {
             sourceURI = ((Volume) replica).getAssociatedSourceVolume();
-            replicaType = FULL_COPY_STRING;
+            replicaType = FULL_COPY;
         }
 
         if (NullColumnValueGetter.isNullURI(sourceURI)) {

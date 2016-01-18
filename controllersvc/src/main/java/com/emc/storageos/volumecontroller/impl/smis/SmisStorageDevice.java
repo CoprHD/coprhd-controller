@@ -2358,7 +2358,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (null != replicas && !replicas.isEmpty()) {
                 for (URI replicaURI : replicas) {
                     BlockObject blockObj = _dbClient.queryObject(BlockObject.class, replicaURI);
-                    blockObj.setReplicationGroupInstance(null);
+                    blockObj.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
                     _dbClient.updateObject(blockObj);
                 }
             }
@@ -2411,6 +2411,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 if (blockObject != null) {
                     blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                     blockObject.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+                    // unset the Set name on clones
+                    if (blockObject instanceof Volume && ((Volume) blockObject).getFullCopySetName() != null) {
+                        ((Volume) blockObject).setFullCopySetName(NullColumnValueGetter.getNullStr());
+                    }
                     objectsToUpdate.add(blockObject);
                 }
             }

@@ -3560,7 +3560,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    private static final String DETACH_CLONE_WF_NAME = "RESYNC_CLONE_WORKFLOW";
+    private static final String DETACH_CLONE_WF_NAME = "DETACH_CLONE_WORKFLOW";
 
     @Override
     public void detachFullCopy(URI storage, List<URI> fullCopyVolumes, String taskId)
@@ -4424,7 +4424,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(clones, completer);
 
             for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
-                _log.info("Activating full copy group {}", arrayGroupName);
+                _log.info("Restoring full copy group {}", arrayGroupName);
                 List<Volume> fullCopyObjects = arrayGroupToFullCopies.get(arrayGroupName);
                 List<URI> fullCopyURIs = new ArrayList<URI>(transform(fullCopyObjects, fctnDataObjectToID()));
                 Volume firstFullCopy = fullCopyObjects.get(0);
@@ -4606,7 +4606,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(clones, completer);
 
             for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
-                _log.info("Activating full copy group {}", arrayGroupName);
+                _log.info("Resynchronizing full copy group {}", arrayGroupName);
                 List<Volume> fullCopyObjects = arrayGroupToFullCopies.get(arrayGroupName);
                 List<URI> fullCopyURIs = new ArrayList<URI>(transform(fullCopyObjects, fctnDataObjectToID()));
                 Volume firstFullCopy = fullCopyObjects.get(0);

@@ -421,8 +421,11 @@ public abstract class DataObject implements Serializable {
         RECOVERPOINT(4),            // 0x10
         DELETION_IN_PROGRESS(5),    // 0x20
 
-        // Temporary Usage for replica operation on Volume Group
-        // TODO update more info
+        // We need to know if the user given request is for entire Application or set of Array replication groups.
+        // This Flag is temporarily used for replica operation on Volume Group.
+        // As an alternate, we can change the BlockFullCopyManager method signatures
+        // to accept multiple URIs but doing it will result in changes in too many Impl classes
+        // and the real meaning of those methods may not indicate the same.
         VOLUME_GROUP_PARTIAL_REQUEST(6);    // 0x40
 
         private final long mask;

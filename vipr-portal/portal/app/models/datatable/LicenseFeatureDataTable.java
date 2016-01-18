@@ -25,6 +25,7 @@ public class LicenseFeatureDataTable extends DataTable {
 
     public LicenseFeatureDataTable() {
         addColumn("name");
+        addColumn("type");
         addColumn("status").setRenderFunction("renderLicenseStatus");
         addColumn("serial");
         addColumn("expiry").setRenderFunction("render.expiryStatus");
@@ -41,13 +42,15 @@ public class LicenseFeatureDataTable extends DataTable {
     public static class FeatureInfo {
         private String id;
         private String name;
+        private String type;
         private String expiry;
         private String status;
         private String serial;
 
         public FeatureInfo(LicenseFeature lf, StorageStatsWrapper stats) {
-            this.id = lf.getModelId();
+            this.id = lf.getLicenseFeature();
             this.name = LicenseUtils.getLabel(lf);
+            this.type = lf.getLicenseType();
             this.serial = lf.getSerial();
 
             if (lf.getDateExpires() == null) {

@@ -107,7 +107,7 @@ public class LicenseUtils {
     }
 
     public static String getLabel(LicenseFeature feature) {
-        String modelKey = "license.model." + feature.getModelId();
+        String modelKey = "license.model." + feature.getLicenseFeature();
         String label = MessagesUtils.get(modelKey);
         if (modelKey.equals(label)) {
             label = feature.getModelId();

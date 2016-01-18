@@ -2345,6 +2345,7 @@ license.tier1=Enterprise
 license.tier2=Mid-Range
 license.tier3=Cloud
 licenseFeature.name=Feature
+licenseFeature.type=Type
 licenseFeature.status=Status
 licenseFeature.serial=Serial Number
 licenseFeature.expiry=Expiry

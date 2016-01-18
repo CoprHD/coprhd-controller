@@ -9,6 +9,7 @@ import static util.BourneUtil.getSysClient;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import models.datatable.LicenseFeatureDataTable;
@@ -53,13 +54,39 @@ public class Licensing extends Controller {
     public static void itemDetails(String id) {
         License license = LicenseUtils.getLicense();
 
-        LicenseFeature lf = null;
+        // Creating mockup data. Remove me when the backend is ready.
+        List<LicenseFeature> licenseFeatures = new ArrayList<>();
+        LicenseFeature licenseFeature = new LicenseFeature();
+        licenseFeature.setLicensed(true);
+        licenseFeature.setVersion("1.0");
+        licenseFeature.setIssuer("EMC");
+        licenseFeature.setNotice("Issued to ...");
+        licenseFeature.setDateExpires("9/99/9999");
+        licenseFeature.setExpired(false);
+        licenseFeature.setDateIssued("1/1/2016");
+        licenseFeature.setModelId("ViPR_Controller:TIER1");
+        licenseFeature.setStorageCapacity("10000000000");
+        licenseFeatures.add(licenseFeature);
+        licenseFeature = new LicenseFeature();
+        licenseFeature.setLicensed(true);
+        licenseFeature.setVersion("1.0");
+        licenseFeature.setIssuer("EMC");
+        licenseFeature.setNotice("Issued to ...");
+        licenseFeature.setDateExpires("9/99/9999");
+        licenseFeature.setExpired(false);
+        licenseFeature.setDateIssued("1/1/2016");
+        licenseFeature.setModelId("ViPR_Controller:VNX2");
+        licenseFeature.setStorageCapacity("20000000000");
+        licenseFeatures.add(licenseFeature);
+        license.setLicenseFeatures(licenseFeatures);
+
+        List<LicenseFeature> lfs = null;
         for (LicenseFeature feature : license.getLicenseFeatures()) {
-            if (StringUtils.equalsIgnoreCase(feature.getModelId(), id)) {
-                lf = feature;
+            if (StringUtils.equalsIgnoreCase(feature.getLicenseFeature(), id)) {
+                lfs.add(feature);
             }
         }
-        render(lf);
+        render(lfs);
     }
 
     private static StorageStatsWrapper getStats() {

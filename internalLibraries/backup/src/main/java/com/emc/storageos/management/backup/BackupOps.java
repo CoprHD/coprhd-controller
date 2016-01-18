@@ -360,7 +360,7 @@ public class BackupOps {
      * Persist download status to ZK
      */
     public void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal) {
-        log.info("Persist backup restore status {} stack=", status, new Throwable());
+        log.info("Persist backup restore status {}", status);
         Map<String, String> allItems = status.toMap();
 
         ConfigurationImpl config = new ConfigurationImpl();

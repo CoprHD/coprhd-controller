@@ -41,7 +41,7 @@ public class SysClientFactory {
     public static final URI URI_REBOOT_NODE = URI.create("/control/internal/node/reboot");
     public static final URI URI_SEND_POWEROFF_AGREEMENT = URI.create("/control/internal/node/poweroff-agreement");
     public static final URI URI_NODE_BACKUPS_DOWNLOAD = URI.create("/backupset/internal/node-backups/download");
-    public static final URI URI_NODE_BACKUPS_PUSH = URI.create("/backupset/internal/push");
+    public static final URI URI_NODE_BACKUPS_PULL = URI.create("/backupset/internal/pull");
     public static final URI URI_GET_PROPERTIES = URI.create("/config/internal/properties");
     public static final URI URI_GET_DBREPAIR_STATUS = URI.create("/control/internal/node/dbrepair-status");
     public static final String BASE_URL_FORMAT = "http://%1$s:%2$s";

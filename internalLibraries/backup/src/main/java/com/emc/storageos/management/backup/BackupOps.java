@@ -12,19 +12,11 @@ import java.net.MalformedURLException;
 import java.nio.charset.Charset;
 import java.text.Format;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import javax.management.JMX;
 import javax.management.MBeanServerConnection;
@@ -34,6 +26,9 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
+import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.model.property.PropertyInfo;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -282,16 +277,17 @@ public class BackupOps {
         } else {
             validateBackupName(backupTag);
         }
+        precheckForCreation(backupTag);
 
         InterProcessLock backupLock = null;
         InterProcessLock recoveryLock = null;
         try {
-            recoveryLock = getLock(RecoveryConstants.RECOVERY_LOCK, BackupConstants.LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
             backupLock = getLock(BackupConstants.BACKUP_LOCK, BackupConstants.LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            recoveryLock = getLock(RecoveryConstants.RECOVERY_LOCK, BackupConstants.LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
             createBackupWithoutLock(backupTag, force);
         } finally {
-            releaseLock(backupLock);
             releaseLock(recoveryLock);
+            releaseLock(backupLock);
         }
     }
 
@@ -646,6 +642,44 @@ public class BackupOps {
         return version;
     }
 
+    private void precheckForCreation(String backupTag) {
+        // Check "backup_max_manual_copies"
+        if (!isScheduledBackupTag(backupTag)) {
+            int currentManualBackupNumber = getCurrentManualBackupNumber();
+            int maxManualBackupNumber = getMaxManualBackupNumber();
+            if (currentManualBackupNumber >= maxManualBackupNumber) {
+                throw BackupException.fatals.manualBackupNumberExceedLimit(
+                        currentManualBackupNumber, maxManualBackupNumber);
+            }
+        }
+    }
+
+    private int getCurrentManualBackupNumber() {
+        int manualBackupNumber = 0;
+        Set<String> backups = listRawBackup(true).uniqueTags();
+        for (String backupTag : backups) {
+            if (!isScheduledBackupTag(backupTag)) {
+                manualBackupNumber++;
+                log.info("Backup({}) is manual created", backupTag);
+            }
+        }
+        return manualBackupNumber;
+    }
+
+    private int getMaxManualBackupNumber() {
+        PropertyInfo propInfo = coordinatorClient.getPropertyInfo();
+        return Integer.parseInt(propInfo.getProperty(BackupConstants.BACKUP_MAX_MANUAL_COPIES));
+    }
+
+    public static boolean isScheduledBackupTag(String tag) {
+        // This pattern need to consider extension, version part could be longer and node count could bigger
+        String regex = String.format(BackupConstants.SCHEDULED_BACKUP_TAG_REGEX_PATTERN, ProductName.getName(),
+                BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN.length());
+        log.info("Scheduler backup name pattern regex is {}", regex);
+        Pattern backupNamePattern = Pattern.compile(regex);
+        return backupNamePattern.matcher(tag).find();
+    }
+
     /**
      * Delete backup file on all nodes
      * 
@@ -769,19 +803,20 @@ public class BackupOps {
             lock = coordinatorClient.getLock(name);
             if (time >=0) {
                 boolean acquired = lock.acquire(time, unit);
-
                 if (!acquired) {
                     log.error("Unable to acquire lock: {}", name);
+                    if (name.equals(RecoveryConstants.RECOVERY_LOCK)) {
+                        throw BackupException.fatals.unableToGetRecoveryLock(name);
+                    }
                     throw BackupException.fatals.unableToGetLock(name);
                 }
-            }else {
+            } else {
                 lock.acquire(); // no timeout
             }
         } catch (Exception e) {
             log.error("Failed to acquire lock: {}", name);
             throw BackupException.fatals.failedToGetLock(name, e);
         }
-
         log.info("Got lock: {}", name);
         return lock;
     }

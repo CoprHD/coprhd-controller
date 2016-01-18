@@ -202,6 +202,7 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
         }
         if (Transport.IP.name().equals(transport)) {
             protocols.add(Block.iSCSI.name());
+            protocols.add(Block.RBD.name());
             protocols.add(File.NFS.name());
             protocols.add(File.CIFS.name());
             protocols.add(File.NFSv4.name());

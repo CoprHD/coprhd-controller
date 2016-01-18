@@ -116,6 +116,7 @@ public abstract class VirtualPoolService extends TaggedResource {
     protected static final String VPOOL_PROTOCOL_FC = "FC";
     protected static final String VPOOL_PROTOCOL_ISCSI = "iSCSI";
     protected static final String VPOOL_PROTOCOL_SCALEIO = "ScaleIO";
+    protected static final String VPOOL_PROTOCOL_RBD = "RBD";
 
     protected static final String VPOOL_PROVISIONING_TYPE = "provisioning_type";
     protected static final String VPOOL_PROTOCOLS = "protocols";
@@ -141,6 +142,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         blockProtocols.add(VPOOL_PROTOCOL_FC);
         blockProtocols.add(VPOOL_PROTOCOL_ISCSI);
         blockProtocols.add(VPOOL_PROTOCOL_SCALEIO);
+        blockProtocols.add(VPOOL_PROTOCOL_RBD);
     }
 
     @Autowired
@@ -215,7 +217,7 @@ public abstract class VirtualPoolService extends TaggedResource {
                 case block:
                     if (!blockProtocols.containsAll(protocols)) {
                         throw APIException.badRequests.invalidProtocolsForVirtualPool(type, protocols, VPOOL_PROTOCOL_FC,
-                                VPOOL_PROTOCOL_ISCSI, VPOOL_PROTOCOL_SCALEIO);
+                                VPOOL_PROTOCOL_ISCSI, VPOOL_PROTOCOL_SCALEIO, VPOOL_PROTOCOL_RBD);
                     }
                 default:
                     break;

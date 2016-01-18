@@ -122,6 +122,7 @@ public class NetworkUtils {
         }
         else if (TransportProtocols.isIp(network.getTransportType())) {
             protocols.add(BlockProtocols.iSCSI);
+            protocols.add(BlockProtocols.RBD);
             protocols.add(FileProtocols.CIFS);
             protocols.add(FileProtocols.NFS);
             protocols.add(FileProtocols.NFSV4);

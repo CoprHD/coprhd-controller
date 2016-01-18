@@ -459,8 +459,11 @@ public class DbClientContext {
                     continue;
                 }
             }
-            // schema.size() == 2
-            return schemas.containsKey(StorageProxy.UNREACHABLE);
+            // schema.size() == 2, if one of them is UNREACHABLE, return
+            if (schemas.containsKey(StorageProxy.UNREACHABLE)) {
+                return true;
+            }
+            // else continue waiting
         }
         log.error("Unable to converge schema versions {}", schemas);
         throw new IllegalStateException("Unable to converge schema versions");

@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Task completer for update application volumes
@@ -148,6 +149,17 @@ public class ApplicationTaskCompleter extends TaskCompleter{
         applications.add(getId().toString());
         volume.setVolumeGroupIds(applications);
         dbClient.updateObject(volume);
-        
+
+        // Once volumes in VNX CG are added to an application, the CG's arrayConsistency
+        // should turn to false
+        if (volume.isInCG() && ControllerUtils.isVnxVolume(volume, dbClient)) {
+            URI cguri = volume.getConsistencyGroup();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+            if (cg.getArrayConsistency()) {
+                log.info("Updated consistency group arrayConsistency");
+                cg.setArrayConsistency(false);
+                dbClient.updateObject(cg);
+            }
+        }
     }
 }

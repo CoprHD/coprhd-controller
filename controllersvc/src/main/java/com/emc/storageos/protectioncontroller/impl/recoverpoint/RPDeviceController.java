@@ -3452,7 +3452,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
                 else {
                     Volume vol = _dbClient.queryObject(Volume.class, volume.getVolumeURI());
-                    vol.setProtectionSet(new NamedURI(protectionSet.getId(), vol.getLabel()));
+                    vol.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
                     vol.setInternalSiteName(volume.getInternalSiteName());
                     vol.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                     _dbClient.updateObject(vol);

@@ -544,7 +544,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * Number of data centers for storage pool
      * 
-     * @valid Intergers
+     * Valid value: Intergers
      */
     @XmlElement(name = "dataCenters")
     public Integer getDataCenters() {

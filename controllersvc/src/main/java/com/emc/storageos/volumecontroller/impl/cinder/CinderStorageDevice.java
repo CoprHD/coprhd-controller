@@ -839,7 +839,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage,
-            URI consistencyGroup, Boolean markInactive, TaskCompleter taskCompleter)
+            URI consistencyGroup, String replicationGroupName, String newReplicationGroupName, Boolean markInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
         taskCompleter.ready(dbClient);

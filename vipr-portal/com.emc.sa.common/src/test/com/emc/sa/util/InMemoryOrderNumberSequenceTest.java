@@ -10,6 +10,7 @@ public class InMemoryOrderNumberSequenceTest {
     public void testIncrement() {
         InMemoryOrderNumberSequence sequence = new InMemoryOrderNumberSequence(null);
 
+        assertEquals(0, sequence.nextOrderNumber());
         assertEquals(1, sequence.nextOrderNumber());
     }
 

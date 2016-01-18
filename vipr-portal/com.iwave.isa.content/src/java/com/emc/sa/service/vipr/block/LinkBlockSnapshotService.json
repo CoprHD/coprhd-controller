@@ -1,0 +1,58 @@
+{
+  baseKey:"LinkBlockSnapshot.Block",
+  serviceId:"LinkBlockSnapshot",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+
+    storageType:{
+      type:"assetType.vipr.blockVolumeOrConsistencyType",
+      lockable:true,
+      initialValue:"volume"
+    },
+    
+    volumes:{
+      type:"assetType.vipr.snapshotSessionBlockVolume"
+    },
+    
+    snapshotSession:{
+      type:"assetType.vipr.snapshotSessionsByVolume"
+    },
+    
+    linkedSnapshot:{
+      type:"assetType.vipr.linkedSnapshotsForVolume",
+      select: "many",
+      required: "false"
+    },
+    
+    advanced:{
+      type:"group",
+      lockable: true,
+      collapsed:true,
+      items:{
+        linkedSnapshotName:{
+          type:"text",
+          required: "false",
+          validation:{
+            min:2,
+            max:128
+          }
+        },
+        linkedSnapshotCount:{
+          type:"number",
+          required: "false",
+          initialValue: "1",
+          validation:{
+              min:1
+          }
+        },
+        linkedSnapshotCopyMode:{
+          type:"assetType.vipr.linkedSnapshotCopyMode",
+          required: "false"
+        }
+      }
+    }
+  }
+}

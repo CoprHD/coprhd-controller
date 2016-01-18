@@ -850,7 +850,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("rpRpoValue")
     public Long getRpRpoValue() {
-        return _rpRpoValue;
+        // Return 0 if value is not set.  This helps with upgrade scenarios.
+        return _rpRpoValue == null ? 0 : _rpRpoValue;
     }
 
     public void setRpRpoValue(Long rpRpoValue) {

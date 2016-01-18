@@ -278,24 +278,27 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     if (null != XtremIOProvUtils.isVolumeAvailableInArray(client, volume.getLabel(), clusterName)) {
                         // If the volume is regular volume & in CG
                         // i.e. it's not RP or a backend volume for a RP+VPLEX Target or Journal
-                        if (client.isVersion2() && volume.getConsistencyGroup() != null && !volume.checkForRp()
+                        if (client.isVersion2() && volume.getConsistencyGroup() != null && 
+                        		volume.getReplicationGroupInstance() != null && !volume.checkForRp()
                                 && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
                                         PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
                             BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
                                     volume.getConsistencyGroup());
-                            if (null != XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroupObj.getLabel(), clusterName)) {
+                            String cgName = volume.getReplicationGroupInstance();
+                            
+                            if (null != XtremIOProvUtils.isCGAvailableInArray(client, cgName, clusterName)) {
                                 // first remove the volume from cg if exists on array and then delete
                                 _log.info("Removing the volume {} from consistency group {}", volume.getLabel(),
-                                        consistencyGroupObj.getLabel());
-                                client.removeVolumeFromConsistencyGroup(volume.getLabel(), consistencyGroupObj.getLabel(), clusterName);
+                                		cgName);
+                                client.removeVolumeFromConsistencyGroup(volume.getLabel(), cgName, clusterName);
                                 XtremIOConsistencyGroup xioCG = XtremIOProvUtils.isCGAvailableInArray(client,
-                                        consistencyGroupObj.getLabel(), clusterName);
+                                		cgName, clusterName);
                                 // Check if there are no volumes in the CG
                                 if (null == xioCG.getVolList() || xioCG.getVolList().isEmpty()) {
-                                    client.removeConsistencyGroup(consistencyGroupObj.getLabel(), clusterName);
+                                    client.removeConsistencyGroup(cgName, clusterName);
                                     _log.info("CG is empty on array. Remove array association from the CG");
                                     consistencyGroupObj.removeSystemConsistencyGroup(storageSystem.getId().toString(),
-                                            consistencyGroupObj.getLabel());
+                                    		cgName);
                                     // clear the LOCAL type
                                     StringSet types = consistencyGroupObj.getTypes();
                                     if (types != null) {
@@ -556,7 +559,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
-            Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
+            String replicationGroupName, String newReplicationGroupName, Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
         try {
             // Check if the consistency group exists

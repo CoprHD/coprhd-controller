@@ -67,7 +67,7 @@ public class SpringQuorumPeerConfigTest {
                 super.preprocessQuorumServers(zkProp);
 
                 // check whether server properties are removed
-                for (Object key : properties.keySet()) {
+                for (Object key : zkProp.keySet()) {
                     assertFalse(key.toString().trim().startsWith("server."));
                 }
             }

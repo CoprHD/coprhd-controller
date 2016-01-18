@@ -8,11 +8,13 @@ package com.emc.storageos.systemservices.impl.security;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.security.ipsec.IpUtils;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -30,6 +32,9 @@ public class IPSecMonitor implements Runnable {
     public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
 
     public ScheduledExecutorService scheduledExecutorService;
+    private static ApplicationContext appCtx;
+    
+    private DbClient dbClient;
 
     public void start() {
         log.info("start IPSecMonitor.");
@@ -46,9 +51,20 @@ public class IPSecMonitor implements Runnable {
         scheduledExecutorService.shutdown();
     }
 
+    public static void setApplicationContext(ApplicationContext ctx) {
+        appCtx = ctx;
+    }
+
+    public static ApplicationContext getApplicationContext() {
+        return appCtx;
+    }
+    
     @Override
     public void run() {
         try {
+            // geo checking
+            log.info("the dbclient instance is {}", appCtx.getBean("dbclient"));
+
             log.info("step 1: start checking ipsec connections");
             String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
 

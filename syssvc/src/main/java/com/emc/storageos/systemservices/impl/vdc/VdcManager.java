@@ -353,6 +353,10 @@ public class VdcManager extends AbstractManager {
                 || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",");
     }
     
+    private boolean isGeoConfigChange() {
+        return isGeoConfig() && !StringUtils.equals(targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS), localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS));
+    }
+    
     /**
      * Update vdc properties and reboot the node if
      *
@@ -360,10 +364,10 @@ public class VdcManager extends AbstractManager {
      * @throws Exception
      */
     private void updateVdcProperties(String svcId) throws Exception {
-        // If the change is being done to create a multi VDC configuration or to reduce to a
-        // multi VDC configuration a reboot is needed. If only operating on a single VDC
-        // do not reboot the nodes.
         String action = targetSiteInfo.getActionRequired();
+        boolean isGeoConfigChange = isGeoConfigChange();
+        
+        log.info("Step3: Process vdc op handlers, action = {}", action);
         if (isGeoConfig()) {
             log.info("Step5: Acquiring reboot lock for vdc properties change.");
             if (!getRebootLock(svcId)) {
@@ -396,9 +400,14 @@ public class VdcManager extends AbstractManager {
         vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
         localRepository.setVdcPropertyInfo(vdcProperty);
         
-        if (opHandler.isRebootNeeded()) {
-            log.info("Reboot machine for operation handler {}", opHandler.getClass().getName());
-            localRepository.reboot();
+        if (isGeoConfigChange) {
+            log.info("Step3: Geo config change detected");
+            rollingReboot(svcId); // keep same behaviour as previous releases. always do rolling reboot
+        } else {
+            if (opHandler.isRebootNeeded()) {
+                log.info("Reboot for operation handler {}", opHandler.getClass().getName());
+                reboot();
+            }
         }
     }
     
@@ -688,5 +697,19 @@ public class VdcManager extends AbstractManager {
         localRepository.reconfig();
         localRepository.restart("db");
         localRepository.restart("geodb");
+    }
+    
+    private void rollingReboot(String svcId) {
+        while (doRun) {
+            log.info("Acquiring reboot lock for geo config change.");
+            if (!getRebootLock(svcId)) {
+                retrySleep();
+            } else if (!isQuorumMaintained()) {
+                releaseRebootLock(svcId);
+                retrySleep();
+            } else {
+                reboot();
+            }
+        }
     }
 }

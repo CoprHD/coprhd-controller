@@ -11,6 +11,7 @@
 package com.emc.storageos.security.ipsec;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.security.exceptions.*;
 import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper;
@@ -56,8 +57,12 @@ public class IPsecConfig {
         return preSharedKey;
     }
 
-    public String getPreSharedKeyFromZK() throws Exception {
-        return getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
+    public String getPreSharedKeyFromZK() throws CoordinatorException {
+        try {
+            return getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
+        } catch (Exception e) {
+            throw CoordinatorException.fatals.unableToDecodeDataFromCoordinator(e);
+        }
     }
 
     /**
@@ -65,8 +70,12 @@ public class IPsecConfig {
      * @param preSharedKey
      * @throws Exception
      */
-    public void setPreSharedKey(String preSharedKey) throws Exception {
-        getCoordinatorHelper().createOrUpdateConfig(preSharedKey, IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
+    public void setPreSharedKey(String preSharedKey) throws CoordinatorException {
+        try {
+            getCoordinatorHelper().createOrUpdateConfig(preSharedKey, IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
+        } catch (Exception e) {
+            throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
+        }
     }
 
     /**

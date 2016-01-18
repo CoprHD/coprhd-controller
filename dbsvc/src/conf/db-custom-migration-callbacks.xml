@@ -113,12 +113,8 @@
         </entry>
         <entry key="2.4.1">
             <list>
-<<<<<<< HEAD
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VolumesInCGMigration"/>
-=======
-                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VplexVolumesInCGMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualNASMultipleProjectsAssociationMigration"/>
->>>>>>> FETCH_HEAD
             </list>
         </entry>
     </util:map>

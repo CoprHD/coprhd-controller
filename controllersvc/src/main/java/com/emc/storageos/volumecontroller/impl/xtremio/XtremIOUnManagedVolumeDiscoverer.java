@@ -341,7 +341,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         if (!unManagedCGToUpdateMap.isEmpty()) {
         	unManagedCGToUpdate = new ArrayList<UnManagedConsistencyGroup>(unManagedCGToUpdateMap.values());   
             partitionManager.updateAndReIndexInBatches(unManagedCGToUpdate,
-                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_CONSISTENCY_GROUP);
+            		unManagedCGToUpdate.size(), dbClient, UNMANAGED_CONSISTENCY_GROUP);
             unManagedCGToUpdate.clear();
         }
                 

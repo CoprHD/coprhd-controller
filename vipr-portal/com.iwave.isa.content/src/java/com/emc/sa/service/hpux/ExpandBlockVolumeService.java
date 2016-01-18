@@ -43,6 +43,7 @@ public class ExpandBlockVolumeService extends HpuxService {
 
     @Override
     public void execute() throws Exception {
+        volume = BlockStorageUtils.getVolume(uri(volumeId));
         expandBlockVolumeHelper.expandVolume(volume, newSizeInGB);
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());

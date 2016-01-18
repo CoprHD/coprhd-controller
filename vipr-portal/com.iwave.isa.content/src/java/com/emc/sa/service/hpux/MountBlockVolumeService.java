@@ -46,6 +46,7 @@ public class MountBlockVolumeService extends HpuxService {
     @Override
     public void execute() throws Exception {
         exportBlockVolumeHelper.exportVolumes();
+        volume = BlockStorageUtils.getBlockResource(volumeId);
         mountBlockVolumeHelper.mount(volume);
     }
 }

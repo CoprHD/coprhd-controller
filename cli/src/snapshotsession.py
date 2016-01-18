@@ -1,4 +1,4 @@
-# Copyright (c)2012 EMC Corporation
+# Copyright (c)2016 EMC Corporation
 # All Rights Reserved
 #
 # This software contains the intellectual property of EMC Corporation
@@ -22,7 +22,6 @@ class SnapshotSession(object):
     # The class definition for operations on 'Snapshot-Session'.
 
     # Commonly used URIs for the 'Snapshot-Session' module
-    URI_SNAPSHOT_SESSION_LIST = '/block/volumes/{0}/protection/snapshot-sessions'
     URI_SNAPSHOT_SESSION_CREATE = '/{0}/{1}/{2}/protection/snapshot-sessions'
     URI_SNAPSHOTS_SESSION = '/block/snapshot-sessions/{0}'
     URI_LINK_TARGET_TO_SNAPSHOT_SESSION = '/block/snapshot-sessions/{0}/link-targets'
@@ -83,22 +82,6 @@ class SnapshotSession(object):
         if(xml is False):
             return common.json_decode(s)
         return s
-    
-    
-    def snapshotsession_list_uri(self, ouri):
-        '''
-        Makes REST API call to list snapshot sessions under a volume
-         parameters:
-            ouri      : uri of volumes or consistency-group
-        Returns:
-            return list of snapshots sessions
-        '''
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
-            "GET",
-            SnapshotSession.URI_SNAPSHOT_SESSION_LIST.format(ouri), None)
-        o = common.json_decode(s)
-        return o['snapshot_session']
 
    
     def storageResource_query(self,

@@ -117,7 +117,7 @@ public class DbsvcQuorumMonitor implements Runnable {
     private List<Site> getOtherConnectedSites(List<Site> excludedSites) {
         List<Site> sites = new ArrayList<>();
 
-        for (Site site : drUtil.listSites()) {
+        for (Site site : drUtil.listStandbySites()) {
             if (!excludedSites.contains(site)) {
                 sites.add(site);
             }

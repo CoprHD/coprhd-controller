@@ -591,10 +591,12 @@ public abstract class VdcOpHandler {
                         log.error("Failed to release lock {}", LOCK_DEGRADE_STANDBY);
                     }
                 }
-
-                localRepository.restart(Constants.DBSVC_NAME);
-                localRepository.restart(Constants.GEODBSVC_NAME);
             }
+
+            // restart dbsvc/geodbsvc to start the data rebuild
+            localRepository.restart(Constants.DBSVC_NAME);
+            localRepository.restart(Constants.GEODBSVC_NAME);
+
             flushVdcConfigToLocal();
         }
     }

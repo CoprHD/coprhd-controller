@@ -224,7 +224,7 @@ public class LicenseManagerImpl implements LicenseManager {
                                 }
                             }
                         }
-                        licenseFeature.setModelId(featureDetail.getFeatureName() + "_" + subModelId);
+                        licenseFeature.setModelId(featureDetail.getFeatureName() + ":" + subModelId);
                         setVendorStringFields(featureDetail, licenseFeature, p);
                     } else {
                         _log.info("The license file contains a feature which is in an expired state. The license was not added to the system.");

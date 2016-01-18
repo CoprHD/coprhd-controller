@@ -188,13 +188,7 @@ public class LicenseInfoExt extends LicenseInfo implements CoordinatorSerializab
                 }
             }
         }
-        // for migrating license from vipr 1.0 to vipr 1.1
-        if (_licenseType == null) {
-            _licenseType = LicenseConstants.getLicenseType(_modelId);
-            if (_licenseType == null) {
-                throw CoordinatorException.fatals.decodingError("invalid license type");
-            }
-        }
+
         return this;
     }
 

@@ -23,6 +23,13 @@
       }
     },
 
+    doFormat:{
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    },
+
     hlu: {
       type:"number",
       lockable: true,

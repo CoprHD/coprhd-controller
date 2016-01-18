@@ -19,8 +19,6 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 
 public final class MountBlockVolumeHelper {
 
-    private String hostname;
-
     @Param(MOUNT_POINT)
     protected String mountPoint;
 
@@ -37,7 +35,7 @@ public final class MountBlockVolumeHelper {
     private MountBlockVolumeHelper(HpuxSupport hpuxSupport) {
         this.hpuxSupport = hpuxSupport;
         this.hpux = hpuxSupport.getTargetSystem();
-        this.hostname = hpuxSupport.getHostName();
+        hpuxSupport.getHostName();
     }
 
     public static MountBlockVolumeHelper create(final HpuxSystem hpux, List<Initiator> ports) {

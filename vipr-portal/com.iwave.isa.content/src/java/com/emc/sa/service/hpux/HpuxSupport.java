@@ -11,11 +11,14 @@ import java.util.List;
 
 import com.emc.hpux.HpuxSystem;
 import com.emc.hpux.model.MountPoint;
+import com.emc.hpux.model.RDisk;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.service.hpux.tasks.CheckForPowerPath;
 import com.emc.sa.service.hpux.tasks.CreateDirectory;
 import com.emc.sa.service.hpux.tasks.DeleteDirectory;
+import com.emc.sa.service.hpux.tasks.FileSystemCheck;
+import com.emc.sa.service.hpux.tasks.FindDevicePathForVolume;
 import com.emc.sa.service.hpux.tasks.FindMountPoint;
 import com.emc.sa.service.hpux.tasks.FindMountPointsForVolumes;
 import com.emc.sa.service.hpux.tasks.FindRDiskForVolume;
@@ -152,12 +155,26 @@ public class HpuxSupport {
         execute(new UnmountPath(mountPoint));
     }
 
+    public void checkFilesystem(String rDisk) {
+        execute(new FileSystemCheck(rDisk));
+    }
+
     public void rescan() {
         execute(new Rescan());
     }
 
-    public String findRDisk(BlockObjectRestRep volume, boolean usePowerPath) {
-        String rhdiskDevice = execute(new FindRDiskForVolume(volume, usePowerPath));
+    public RDisk findRDisk(BlockObjectRestRep volume, boolean usePowerPath) {
+        RDisk rdisk = execute(new FindRDiskForVolume(volume, usePowerPath));
+        if (rdisk == null) {
+            throw new IllegalStateException(String.format(
+                    "Could not find hdisk for Volume %s: - PowerPath/MPIO or SAN connectivity may need attention from an administrator. ",
+                    volume.getWwn().toLowerCase()));
+        }
+        return rdisk;
+    }
+
+    public String findDevicePath(BlockObjectRestRep volume, boolean usePowerPath) {
+        String rhdiskDevice = execute(new FindDevicePathForVolume(volume, usePowerPath));
         if (rhdiskDevice == null) {
             throw new IllegalStateException(String.format(
                     "Could not find hdisk for Volume %s: - PowerPath/MPIO or SAN connectivity may need attention from an administrator. ",
@@ -169,30 +186,6 @@ public class HpuxSupport {
 
     protected <T extends BlockObjectRestRep> void getDeviceFailed(T volume, String errorMessage, IllegalStateException exception) {
         ExecutionUtils.fail("failTask.getDeviceName", volume.getWwn(), errorMessage, exception.getMessage());
-    }
-
-    public String getDevice(BlockObjectRestRep volume, boolean usePowerPath) {
-        try {
-            // we will retry this up to 5 times
-            int remainingAttempts = 5;
-            while (remainingAttempts-- >= 0) {
-                try {
-                    return findRDisk(volume, usePowerPath);
-                } catch (IllegalStateException e) {
-                    String errorMessage = String.format("Unable to find device for WWN %s. %s more attempts will be made.",
-                            volume.getWwn(), remainingAttempts);
-                    if (remainingAttempts == 0) {
-                        getDeviceFailed(volume, errorMessage, e);
-                    }
-                    logWarn(errorMessage);
-                    Thread.sleep(5000);
-                }
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        return null;
     }
 
     public void addRollback(HpuxExecutionTask<?> rollbackTask) {

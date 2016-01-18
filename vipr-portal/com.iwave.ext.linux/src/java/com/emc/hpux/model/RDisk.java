@@ -6,22 +6,33 @@ package com.emc.hpux.model;
 
 public class RDisk {
 
-    private String path;
+    private String devicePath;
+
+    private String rdiskPath;
 
     private String wwn;
 
-    public RDisk(String path, String wwn) {
+    public RDisk(String devicePath, String rdiskPath, String wwn) {
         super();
-        this.path = path;
+        this.devicePath = devicePath;
+        this.rdiskPath = rdiskPath;
         this.wwn = wwn;
     }
 
-    public String getPath() {
-        return path;
+    public String getDevicePath() {
+        return devicePath;
     }
 
-    public void setPath(String path) {
-        this.path = path;
+    public void setDevicePath(String path) {
+        this.devicePath = path;
+    }
+
+    public String getRdiskPath() {
+        return rdiskPath;
+    }
+
+    public void setRdiskPath(String rdiskPath) {
+        this.rdiskPath = rdiskPath;
     }
 
     public String getWwn() {
@@ -34,6 +45,6 @@ public class RDisk {
 
     @Override
     public String toString() {
-        return "RDisk [path=" + path + ", wwn=" + wwn + "]";
+        return "RDisk [devicePath=" + devicePath + ", rdiskPath=" + rdiskPath + ", wwn=" + wwn + "]";
     }
 }

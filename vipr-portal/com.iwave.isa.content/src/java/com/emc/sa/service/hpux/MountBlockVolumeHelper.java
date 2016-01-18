@@ -11,6 +11,7 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 import java.util.List;
 
 import com.emc.hpux.HpuxSystem;
+import com.emc.hpux.model.RDisk;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.bind.Param;
@@ -60,14 +61,17 @@ public final class MountBlockVolumeHelper {
             hpuxSupport.updatePowerPathEntries();
         }
 
-        String rdisk = hpuxSupport.findRDisk(volume, usePowerPath);
+        // String rdisk = hpuxSupport.findDevicePath(volume, usePowerPath);
+
+        RDisk rDisk = hpuxSupport.findRDisk(volume, usePowerPath);
 
         if (doFormat) {
-            hpuxSupport.makeFilesystem(rdisk);
+            hpuxSupport.makeFilesystem(rDisk.getDevicePath());
         }
 
         hpuxSupport.createDirectory(mountPoint);
-        hpuxSupport.mount(rdisk, mountPoint);
+        hpuxSupport.checkFilesystem(rDisk.getRdiskPath());
+        hpuxSupport.mount(rDisk.getDevicePath(), mountPoint);
 
         hpuxSupport.setVolumeMountPointTag(volume, mountPoint);
     }

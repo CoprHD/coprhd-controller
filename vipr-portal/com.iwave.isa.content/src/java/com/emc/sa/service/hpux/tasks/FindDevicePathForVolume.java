@@ -12,22 +12,22 @@ import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.command.CommandException;
 
-public class FindRDiskForVolume extends RetryableCommandTask<RDisk, CommandException> {
+public class FindDevicePathForVolume extends RetryableCommandTask<String, CommandException> {
 
     private boolean usePowerPath;
     private BlockObjectRestRep volume;
 
-    public FindRDiskForVolume(BlockObjectRestRep volume, boolean usePowerPath) {
+    public FindDevicePathForVolume(BlockObjectRestRep volume, boolean usePowerPath) {
         this.usePowerPath = usePowerPath;
         this.volume = volume;
     }
 
     @Override
-    protected RDisk tryExecute() {
+    protected String tryExecute() {
         List<RDisk> devices = executeCommand(new ListRDisksCommand());
         for (RDisk device : devices) {
             if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume)) {
-                return device;
+                return device.getDevicePath();
             }
         }
 

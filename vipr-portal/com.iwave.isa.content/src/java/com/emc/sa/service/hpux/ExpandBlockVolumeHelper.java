@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.emc.hpux.HpuxSystem;
 import com.emc.hpux.model.MountPoint;
+import com.emc.hpux.model.RDisk;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.storageos.db.client.model.Initiator;
@@ -48,8 +49,8 @@ public class ExpandBlockVolumeHelper {
         hpuxSupport.rescan();
 
         logInfo("expand.block.volume.remounting", hpuxSupport.getHostName(), mountPoint.getPath());
-        String rdisk = hpuxSupport.findRDisk(volume, usePowerPath);
-        hpuxSupport.mount(rdisk, mountPoint.getPath());
+        RDisk rdisk = hpuxSupport.findRDisk(volume, usePowerPath);
+        hpuxSupport.mount(rdisk.getDevicePath(), mountPoint.getPath());
         hpuxSupport.setVolumeMountPointTag(volume, mountPoint.getPath());
     }
 

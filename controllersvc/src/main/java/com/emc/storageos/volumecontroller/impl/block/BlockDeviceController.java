@@ -5244,7 +5244,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
                     // add volumes to virtual replication group
                     waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                            String.format("Update VNX consistency group %s to use virtual replicatin group", cg.getLabel()),
+                            String.format("Adding volumes to consistency group %s to use new replication group %s", cg.getLabel(), newGroupName),
                             waitFor, storage, storageSystem.getSystemType(),
                             this.getClass(),
                             addVolumesToReplicationGroupMethod(storage, application, cguri, newGroupName, cgVolsToAdd),
@@ -5286,7 +5286,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             }
 
-            completer = new ApplicationTaskCompleter(application, addVolumesList, removeVolumeList, cgs, opId);
+            completer = new ApplicationTaskCompleter(application, addVolList.getVolumes(), removeVolumeList, cgs, opId);
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);
             String successMessage = String.format(
@@ -5307,11 +5307,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public boolean addVolumesToReplicationGroupStep(URI storage, URI volumeGroupId, URI consistencyGroupId, String replicationGroupName, List<URI> volumesInCG, String opId)
             throws ControllerException {
-        TaskCompleter taskCompleter = null;
         try {
             List<URI> cgs = new ArrayList<URI>();
             cgs.add(consistencyGroupId);
-            taskCompleter = new ApplicationTaskCompleter(volumeGroupId, volumesInCG, null, cgs, opId);
 
             // update replication group instance
             List<Volume> volumesToUpdate = new ArrayList<Volume>();
@@ -5325,11 +5323,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             }
             _dbClient.updateObject(volumesToUpdate);
-            taskCompleter.ready(_dbClient);
+            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             _log.error("Modifying volume replication group failed:", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            taskCompleter.error(_dbClient, serviceError);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
             return false;
         }

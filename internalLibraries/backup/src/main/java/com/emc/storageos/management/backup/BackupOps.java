@@ -352,7 +352,7 @@ public class BackupOps {
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
 
         // The map should has only 4 entries: _kind, _id, backupname and isLocal
-        if (allItems.size() != 4) {
+        if (!allItems.isEmpty() && allItems.size() != 4) {
             log.error("Invalid current backup info from zk: {}", allItems);
             throw new RuntimeException("invalid current backup info from zk");
         }

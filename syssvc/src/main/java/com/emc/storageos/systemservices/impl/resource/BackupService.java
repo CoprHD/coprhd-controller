@@ -27,6 +27,8 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
+import com.emc.storageos.systemservices.exceptions.SyssvcException;
+import com.emc.storageos.systemservices.exceptions.SyssvcExceptions;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -487,12 +489,30 @@ public class BackupService {
     public Response pullBackup(@QueryParam("file") String backupName ) {
         log.info("The backup file {} to download", backupName);
 
+        if (hasDownloadingInProgress()) {
+            Map<String, String> currentBackupInfo = backupOps.getCurrentBackupInfo();
+            String errmsg = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY)+ " is downloading";
+            throw SyssvcException.syssvcExceptions.pullBackupFailed(backupName, errmsg);
+        }
         setBackupFileSize(backupName);
 
         notifyOtherNodes(backupName);
 
         log.info("done");
         return Response.status(202).build();
+    }
+
+    private boolean hasDownloadingInProgress() {
+        Map<String,String> info = backupOps.getCurrentBackupInfo();
+        log.info("The current downloading backup info ={}", info);
+
+        if (info.isEmpty()) {
+            return false;
+        }
+
+        String backupName = info.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
+
+        return !backupName.isEmpty();
     }
 
     private void setBackupFileSize(@QueryParam("file") String backupName) {

@@ -47,4 +47,7 @@ public interface SyssvcExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_INTERNAL_SERVICE_NAME_NOT_FOUND)
     public SyssvcInternalException serviceNameNotFoundException(final String parameter);
+
+    @DeclareServiceCode(ServiceCode.SYS_BACKUP_PULL_FAILED)
+    public SyssvcInternalException pullBackupFailed(final String backupName, final String details);
 }

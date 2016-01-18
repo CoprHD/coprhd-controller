@@ -42,13 +42,14 @@ public class MobilityGroupMigrationService extends ViPRService {
     public void execute() throws Exception {
         Tasks<VolumeRestRep> tasks = execute(new MigrateBlockVolumes(getVolumes(), mobilityGroup.getSourceStorageSystem(),
                 targetVirtualPool, targetStorageSystem));
-        execute(new RemoveVolumesFromMobilityGroup(mobilityGroup.getId(), getVolumeList(tasks)));
 
-        if (tasks.getTasks().isEmpty()) {
+        if (!tasks.getTasks().isEmpty()) {
+            execute(new RemoveVolumesFromMobilityGroup(mobilityGroup.getId(), getVolumeList(tasks)));
+            addAffectedResources(tasks);
+        } else {
             ExecutionUtils.fail("failTask.mobilityGroupMigration.noVolumesMigrated", new Object[] {}, new Object[] {});
         }
 
-        addAffectedResources(tasks);
     }
 
     private List<URI> getVolumeList(Tasks<VolumeRestRep> tasks) {

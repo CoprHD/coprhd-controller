@@ -36,15 +36,15 @@ public class IPsecManager {
     private static final String STATUS_DEGRADED = "degraded";
 
     @Autowired
-    IPsecConfig ipsecConfig;
+    private IPsecConfig ipsecConfig;
 
-    CoordinatorClient coordinator;
+    private CoordinatorClient coordinator;
     
     @Autowired
-    DrUtil drUtil;
+    private DrUtil drUtil;
 
     @Autowired
-    GeoClientCacheManager geoClientManager;
+    private GeoClientCacheManager geoClientManager;
 
     /**
      * Checking ipsec status against the entire system.

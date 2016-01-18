@@ -140,16 +140,6 @@ public class VdcConfigHelper {
     }
 
     /**
-     * This method should be invoked by VDC controller on the same node, since the VDC controller
-     * cannot clean up the db of the current VDC, just need to sync the VDC records.
-     *
-     * @param newVdcConfigList a list of VDC records to sync up with.
-     */
-/*    public void syncVdcConfig(List<VdcConfig> newVdcConfigList) {
-        syncVdcConfig(newVdcConfigList, null);
-    }
-*/
-    /**
      * Sync Vdc config to local db. It writes new vdc list to local db and triggers
      * vdc config properties update on each node.
      * 

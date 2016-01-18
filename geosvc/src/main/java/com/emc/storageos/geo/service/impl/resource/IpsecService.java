@@ -26,7 +26,7 @@ public class IpsecService {
     private final static Logger log = LoggerFactory.getLogger(IpsecService.class);
 
     @Autowired
-    CoordinatorClient coordinator;
+    private CoordinatorClient coordinator;
 
     @Autowired
     private IPsecConfig ipsecConfig;

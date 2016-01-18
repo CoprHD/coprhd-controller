@@ -1210,6 +1210,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 GenExportMaskCreateWorkflowResult result = generateDeviceSpecificExportMaskCreateWorkFlow(workflow, previousStep,
                         storage, exportGroup, computeInitiatorURIs, volumeMap, token);
                 previousStep = result.getStepId();
+
+                // Have to store export group id to be available at device level/
+                WorkflowService.getInstance().storeStepData(previousStep, exportGroup.getId());
             }
         }
         return previousStep;

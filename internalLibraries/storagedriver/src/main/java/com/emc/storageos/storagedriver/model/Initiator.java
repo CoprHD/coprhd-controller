@@ -34,7 +34,8 @@ public class Initiator {
         FC,
         iSCSI,
         IPV4,
-        IPV6
+        IPV6,
+        ScaleIO
     }
 
     /**
@@ -46,6 +47,17 @@ public class Initiator {
      * The FQDN of the cluster.
      */
     private String clusterName;
+
+    // Label of this object. Type: input/output. If not supplied, should be set by driver.
+    private String label;
+
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
+    }
 
     public String getPort() {
         return port;

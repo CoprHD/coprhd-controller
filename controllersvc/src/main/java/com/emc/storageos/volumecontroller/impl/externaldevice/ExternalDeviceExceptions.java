@@ -10,7 +10,7 @@ import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 /**
- * This interface holds all the methods used to create {@link ScaleIOException}s
+ * This interface holds all the methods used to create {@link ExternalDeviceException}s
  * <p/>
  * Remember to add the English message associated to the method in ExternalDeviceExceptions.properties and use the annotation
  * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there

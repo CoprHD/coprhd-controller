@@ -20,7 +20,7 @@ import com.emc.storageos.model.valid.EnumType;
 @Cf("ECSNamespace")
 public class ECSNamespace extends DiscoveredDataObject {
     // name of namespace; Its possible to have namespace name and id different
-    private String _name;
+    private String _nsName;
     
     // id of namespace is native id
     private String _nativeId;
@@ -50,13 +50,13 @@ public class ECSNamespace extends DiscoveredDataObject {
     };
     
     // get set methods
-    @Name("name")
-    public String getName() {
-        return _name;
+    @Name("nsName")
+    public String getNsName() {
+        return _nsName;
     }
     
-    public void setName(String name) {
-        this._name = name;
+    public void setNsName(String nsName) {
+        this._nsName = nsName;
     }
 
     @Name("nativeId")

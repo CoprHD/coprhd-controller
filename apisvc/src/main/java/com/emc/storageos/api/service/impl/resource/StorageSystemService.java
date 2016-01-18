@@ -1124,6 +1124,14 @@ public class StorageSystemService extends TaskResourceService {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/ecs-namespaces")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public String getAllECSNamespaces(@PathParam("id") URI id) {
+        return "ecsnamespacelist";
+    }
+    
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/rdf-groups")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public RDFGroupList getAllRAGroups(@PathParam("id") URI id) {

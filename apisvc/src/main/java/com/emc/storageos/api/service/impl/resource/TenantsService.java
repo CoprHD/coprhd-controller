@@ -311,7 +311,6 @@ public class TenantsService extends TaggedResource {
                 }
             }
             tenant.setNamespace(param.getNamespace());
-            //Namespace Will be retrieved from ECS in coming releases.
         }
 
         if (!isUserMappingEmpty(param)) {

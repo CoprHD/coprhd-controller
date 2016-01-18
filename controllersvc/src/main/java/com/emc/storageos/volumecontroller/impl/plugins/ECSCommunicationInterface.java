@@ -254,27 +254,6 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
 
             // Discover ECS Namespaces
-/*            Map<String, List<ECSNamespace>> bothNamespaces1 = new HashMap<String, List<ECSNamespace>>();
-            List<ECSNamespace> newNamespaces1 = new ArrayList<ECSNamespace>();
-            List<ECSNamespace> existingNamespaces1 = new ArrayList<ECSNamespace>();
-            ECSNamespace ecsNamespace1 = null;
-            ecsNamespace1 = null;
-            String nsNativeGuid1 = NativeGUIDGenerator.generateNativeGuidForNamespace(
-                    storageSystem, "myns", NativeGUIDGenerator.NAMESPACE);
-
-            ecsNamespace1 = new ECSNamespace();
-            ecsNamespace1.setId(URIUtil.createId(ECSNamespace.class));
-            ecsNamespace1.setNativeId(nsNativeGuid1);
-            ecsNamespace1.setNativeGuid(nsNativeGuid1);
-            ecsNamespace1.setLabel(nsNativeGuid1);
-            ecsNamespace1.setStorageDevice(storageSystemId);
-            ecsNamespace1.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
-            newNamespaces1.add(ecsNamespace1);
-            bothNamespaces1.put(NEW, newNamespaces1);
-            bothNamespaces1.put(EXISTING, existingNamespaces1);
-            _dbClient.createObject(bothNamespaces1.get(NEW));
-            _logger.info("Creating new namespace with NativeGuid : {}", nsNativeGuid1);            
-*/
             List<ECSNamespace> allNamespaces = new ArrayList<ECSNamespace>();
             Map<String, List<ECSNamespace>> bothNamespaces = discoverNamespaces(storageSystem);
             _logger.info("No of newly discovered namespaces {}", bothNamespaces.get(NEW).size());
@@ -382,7 +361,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                         repGroups.add(rg);
                     }
                     ecsNamespace.setReplicationGroups(repGroups);
-                    ecsNamespace.setName(nsGroup.getNamespaceName());
+                    ecsNamespace.setNsName(nsGroup.getNamespaceName());
                     ecsNamespace.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                     
                     // Check if this newly discovered namespace is already mapped with a tenant

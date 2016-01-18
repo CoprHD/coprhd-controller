@@ -1,0 +1,11 @@
+[Unit]
+Description=The VPLEX2 simulator
+After=ECOM80.service
+
+[Service]
+Type=forking
+ExecStart=/etc/init.d/VPLEX2 start
+ExecStop=/etc/init.d/VPLEX2 stop
+
+[Install]
+WantedBy=multi-user.target

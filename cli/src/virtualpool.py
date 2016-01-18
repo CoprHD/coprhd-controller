@@ -505,7 +505,7 @@ class VirtualPool(object):
         
         replicationpolicy['replication_type'] = policyParams[0].upper()
         if(len(policyParams) > 1):
-            replicationpolicy['copy_mode'] = policyParams[1]
+            replicationpolicy['copy_mode'] = policyParams[1].upper()
         if(len(policyParams) > 2):
             replicationpolicy['rpo_value'] = policyParams[2]
         if(len(policyParams) > 3):

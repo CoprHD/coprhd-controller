@@ -15,6 +15,8 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockSnapshotBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeSnapshotParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
@@ -195,6 +197,26 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
     public List<BlockSnapshotRestRep> getByVolume(URI volumeId, ResourceFilter<BlockSnapshotRestRep> filter) {
         List<NamedRelatedResourceRep> refs = listByVolume(volumeId);
         return getByRefs(refs, filter);
+    }
+    
+    /**
+     * Gets the block snapshots for a given consistency group, optionally filtering the results.
+     * 
+     * <p>
+     * API Call: <tt>GET /block/consistency-groups/{id}/protection/snapshots</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @param filter
+     *            the filter to apply (may be null, for no filtering).
+     * @return The list of snapshots in the consistency group.
+     * 
+     * @see #getByRefs(java.util.Collection, ResourceFilter)
+     */
+    public List<BlockSnapshotRestRep> getByCG(URI consistencyGroupId, ResourceFilter<BlockSnapshotRestRep> filter) {
+        final String url = "/block/consistency-groups/{id}/protection/snapshots";
+        SnapshotList response = client.get(SnapshotList.class, url, consistencyGroupId);
+        return getByRefs(response.getSnapList(), filter);
     }
 
     /**

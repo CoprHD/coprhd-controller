@@ -159,7 +159,7 @@ public class RemoteMirrorProtectionValidator extends
                 && null != createParam.getHighAvailability().getHaVirtualArrayVirtualPool()
                 && null != createParam.getHighAvailability().getHaVirtualArrayVirtualPool()
                         .getVirtualArray()) {
-            throw APIException.badRequests.parameterVPLEXNotSupportedWithSRDF();
+           // throw APIException.badRequests.parameterVPLEXNotSupportedWithSRDF();
         }
     }
 

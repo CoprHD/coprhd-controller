@@ -62,9 +62,15 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
             List<StoragePool> allPools, Map<String, Object> attributeMap) {
         Map<String, List<String>> remoteCopySettings = (Map<String, List<String>>)
                 attributeMap.get(Attributes.remote_copy.toString());
-       URI projectURI= (URI)
-                attributeMap.get(Attributes.project.toString());
-       Project project = _objectCache.getDbClient().queryObject(Project.class, projectURI);
+        URI projectURI = null;
+		Project project = null;
+		if (null != attributeMap.get(Attributes.project.toString())) {
+
+			projectURI = (URI) attributeMap.get(Attributes.project.toString());
+			project = _objectCache.getDbClient().queryObject(Project.class,
+					projectURI);
+		}
+      
        Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
        String copyMode = null;
        for (String cMode : copyModes) {
@@ -273,6 +279,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
 	private boolean findRAGroup(final StorageSystem sourceStorageSystem,
          final StorageSystem targetStorageSystem, final String copyMode, final Project project,
          final URI consistencyGroupUri) {
+		if (project == null) return true;
      URIQueryResultList raGroupsInDB = new URIQueryResultList();
 
      BlockConsistencyGroup cgObj = null;

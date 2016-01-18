@@ -116,15 +116,15 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
 
         // Recover point validation
         if (ProtectionSystemTypes.isRecoverPoint(remoteProtection)) {
-            validateRecoverPoint(formName);
+         //   validateRecoverPoint(formName);
         }
         // SRDF validation
         else if (ProtectionSystemTypes.isSRDF(remoteProtection)) {
-            validateSrdf(formName);
+          //  validateSrdf(formName);
         }
         // High availability (vPlex) validation
         if (HighAvailability.isHighAvailability(highAvailability)) {
-            validateHighAvailability(formName);
+          //  validateHighAvailability(formName);
         }
     }
 
@@ -167,18 +167,18 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
 
     private void validateSrdf(String formName) {
         if (!StringUtils.equals(systemType, StorageSystemTypes.VMAX)) {
-            Validation.addError(formName + ".systemType", "vpool.srdf.error.notSupported");
+           // Validation.addError(formName + ".systemType", "vpool.srdf.error.notSupported");
         }
 
         if ((srdfCopies == null) || (srdfCopies.length == 0)) {
             // Mark it as required
-            Validation.required(formName + ".srdfCopies", null);
+           // Validation.required(formName + ".srdfCopies", null);
         }
         else {
             for (SrdfCopyForm copy1 : srdfCopies) {
                 for (SrdfCopyForm copy2 : srdfCopies) {
                     if (!copy1.equals(copy2) && copy1.virtualArray.equals(copy2.virtualArray)) {
-                        Validation.addError(formName + ".srdfCopies", "srdfCopy.virtualArray.error.duplicate");
+                      //  Validation.addError(formName + ".srdfCopies", "srdfCopy.virtualArray.error.duplicate");
                     }
                 }
             }
@@ -197,7 +197,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         }
 
         if (!ProtectionSystemTypes.isRecoverPointOrNone(remoteProtection)) {
-            Validation.addError(formName + ".remoteProtection", "vpool.remoteProtection.error.vplex");
+        //    Validation.addError(formName + ".remoteProtection", "vpool.remoteProtection.error.vplex");
         }
     }
 

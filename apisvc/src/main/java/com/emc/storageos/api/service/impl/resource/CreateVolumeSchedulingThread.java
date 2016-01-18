@@ -92,22 +92,26 @@ class CreateVolumeSchedulingThread implements Runnable {
         		if (i ==0) {
         		
         		//fill in the cascaded capabilities
-            	this.blockService._placementManager.buildCascadedCapabilities(vPoolChild, capabilities);
+            	this.blockService._placementManager.buildCascadedCapabilities(vPoolChild, capabilities,project);
             	//Get Recommendations for root level virtual pool
                 List rootRecommendations = this.blockService._placementManager.getRecommendationsForVolumeCreateRequest(
                         varray, project, vPoolChild, capabilities);
                 _log.info("Root Recommendations : ",Joiner.on("@@@@#####").join(rootRecommendations));
+                
+                
                 List<VolumeDescriptor> volDescriptors =  blockServiceImpl.createVolumeDescriptors(param, project, varray, vPoolChild, rootRecommendations,
                 		taskList, task, capabilities);
+                
                 volume = (Volume) this.blockService._dbClient.queryObject(volDescriptors.get(0).getVolumeURI());
                 
         		} else {
         			//do change vpool
         			Scheduler scheduler = this.blockService._placementManager.getBlockServiceImpl(vPoolChild);
-        		   
-        			 List childRecommendations = scheduler.scheduleStorageForCosChangeUnprotected(volume, vPoolChild, 
+        		    //Build Capabilities if necessary
+        			List childRecommendations = scheduler.scheduleStorageForCosChangeUnprotected(volume, vPoolChild, 
         					SRDFScheduler.getTargetVirtualArraysForVirtualPool(project, vPoolChild, this.blockService._dbClient,
         		    		this.blockService._permissionsHelper), null);
+        			 
         			  _log.info("Child Recommendations : ",Joiner.on("@@@@#####").join(childRecommendations));
         		}
         		

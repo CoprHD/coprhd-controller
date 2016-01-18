@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -188,11 +189,12 @@ public class PlacementManager {
      * @param vPool
      * @param capabilities
      */
-    public void buildCascadedCapabilities(VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
+    public void buildCascadedCapabilities(VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities, Project project) {
     	//build capabilities for given virtual Pool's cascaded children
     	//SRDF Child- Attributes.Remote_Copy- Protection Settings
     	if (null != VirtualPool.getRemoteProtectionSettings(vPool, dbClient)) {
     		capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_COPY_SETTINGS, VirtualPool.getRemoteProtectionSettings(vPool, dbClient));
+    		capabilities.put(Attributes.project.toString(), project.getId());
     	}
     	if (null != VirtualPool.getHAVPool(vPool, dbClient)) {
     		//TODO

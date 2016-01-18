@@ -969,14 +969,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getBlockSnapshotType(AssetOptionsContext ctx, String storageType, URI blockVolumeOrCG) {
         // These are hard coded values for now. In the future, this may be available through an API
         List<AssetOption> options = Lists.newArrayList();
-        if (isConsistencyGroupType(blockVolumeOrCG)) {
+        if (isConsistencyGroupType(blockVolumeOrCG)) {                        
+            options.add(CG_SNAPSHOT_TYPE_OPTION);
+            // Only add cg session option if the CG selected supports it
             ViPRCoreClient client = api(ctx);
             BlockConsistencyGroupRestRep cg = client.blockConsistencyGroups().get(blockVolumeOrCG);
             if (isSnapshotSessionSupportedForCG(cg)) {
                 options.add(CG_SNAPSHOT_SESSION_TYPE_OPTION);
-            } else {
-                options.add(CG_SNAPSHOT_TYPE_OPTION);            
-            }
+            } 
         } else {
             debug("getting blockSnapshotTypes (blockVolume=%s)", blockVolumeOrCG);
             ViPRCoreClient client = api(ctx);
@@ -1023,17 +1023,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             warn("Inconsistent types, %s and %s, return empty results", volumeOrCGId, volumeOrConsistencyType);
             return new ArrayList<AssetOption>();
         }
+        List<BlockSnapshotRestRep> snapshots = new ArrayList<BlockSnapshotRestRep>();
+        List<BlockSnapshotSessionRestRep> snapshotSessions =  new ArrayList<BlockSnapshotSessionRestRep>();
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByVolume(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotRestRep>());
-            List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().getByVolume(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotSessionRestRep>());
-            return constructSnapshotWithSnapshotSessionOptions(snapshots, snapshotSessions);
+            snapshots = client.blockSnapshots().getByVolume(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotRestRep>());
+            snapshotSessions = client.blockSnapshotSessions().getByVolume(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotSessionRestRep>());            
         } else {
-//            List<NamedRelatedResourceRep> snapshots = client.blockConsistencyGroups().getSnapshots(volumeOrCGId);
-//            List<NamedRelatedResourceRep> snapshotSessions = client.blockConsistencyGroups().getSnapshotSessions(volumeOrCGId);
-//            getByRefs(snapshots);
-            return getConsistencyGroupSnapshots(ctx, volumeOrCGId);
+            snapshots = client.blockSnapshots().getByCG(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotRestRep>());
+            snapshotSessions = client.blockSnapshotSessions().getByCG(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotSessionRestRep>());            
         }
+        return constructSnapshotWithSnapshotSessionOptions(snapshots, snapshotSessions);
     }
 
     @Asset("linkedSnapshotCopyMode")

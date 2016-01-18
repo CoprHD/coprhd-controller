@@ -1609,7 +1609,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
 
-            if (forProvider.deviceIsType(Type.vnxblock) && groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
+            if (forProvider.deviceIsType(Type.vnxblock) && groupName != null && groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
                 // nothing need to be done on array side
                 _log.info("VNX virtual replication group {}", groupName);
             } else {

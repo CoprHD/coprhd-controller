@@ -1318,6 +1318,10 @@ public class ControllerUtils {
     public static String generateReplicationGroupName(StorageSystem storage, BlockConsistencyGroup cg, String replicationGroupName) {
         String groupName = replicationGroupName;
         
+        if (storage.deviceIsType(Type.vnxblock) && cg.getArrayConsistency()) {
+            return cg.getCgNameOnStorageSystem(storage.getId());
+        }
+        
         if (groupName == null && cg != null) {
             // if there is only one system cg name for this storage system, use this; it may be different than the label
             if (cg.getSystemConsistencyGroups() != null && storage != null) {

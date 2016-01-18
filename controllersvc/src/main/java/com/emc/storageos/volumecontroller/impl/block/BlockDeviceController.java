@@ -20,9 +20,11 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.DataBindingException;
 
@@ -154,7 +156,9 @@ import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Generic Block Controller Implementation that does all of the database
@@ -2155,45 +2159,76 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // do the following:
                 //
                 // 1. Terminate any stale restore sessions on the source.
-                // 2. Create a temporary snapshot session of the linked target volume.
-                // 3. Link the source volume of the BlockSnapshot to the temporary snapshot session in copy mode.
-                // 4. Wait for the data from the session to be copied to the source.
-                // 5. Unlink the source from the temporary session.
+                // 2. Create a temporary snapvx snapshot session of the linked target volume or target group.
+                // 3. Link the source volume(s) of the BlockSnapshot(s) to the temporary snapshot session in copy mode.
+                // 4. Wait for the data from the session to be copied to the source volume(s)
+                // 5. Unlink the source volume(s) from the temporary snapvx snapshot session.
                 // 6. Delete the temporary session.
+                //
+                // This is essentially restoring by creating a cascaded snapshot session or group
+                // snapshot session on the linked target volume associated with the passed block
+                // snapshot or associated linked target group in the case of a group operation.
 
-                // Create a workflow step to terminate stale restore sessions on the source.
+                // Create a workflow step to terminate stale restore sessions.
                 waitFor = workflow.createStep(BLOCK_VOLUME_RESTORE_GROUP,
                         String.format("Terminating VMAX restore session from %s to %s", blockSnapshot.getId(), sourceVolume.getId()),
                         waitFor, system.getId(), system.getSystemType(), BlockDeviceController.class,
                         terminateRestoreSessionsMethod(system.getId(), sourceVolume.getId(), blockSnapshot.getId()),
                         rollbackMethodNullMethod(), null);
 
-                // Create a BlockSnapshot to represent the passed source volume when it is
-                // it is linked to the snapshot session created in the previous step.
-                BlockSnapshot sourceSnapshot = new BlockSnapshot();
-                URI sourceSnapshotURI = URIUtil.createId(BlockSnapshot.class);
-                sourceSnapshot.setId(sourceSnapshotURI);
-                sourceSnapshot.setNativeId(sourceVolume.getNativeId());
-                sourceSnapshot.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
-                sourceSnapshot.setSourceNativeId(blockSnapshot.getNativeId());
-                sourceSnapshot.setStorageController(storage);
-                sourceSnapshot.addInternalFlags(Flag.INTERNAL_OBJECT);
-                _dbClient.createObject(sourceSnapshot);
+                // Get all snapshots if this is a group snapshot.
+                List<BlockSnapshot> allSnapshots = new ArrayList<>();
+                String replicationGroupId = blockSnapshot.getReplicationGroupInstance();
+                if (!NullColumnValueGetter.isNullValue(replicationGroupId)) {
+                    allSnapshots.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupId, _dbClient));
+                } else {
+                    allSnapshots.add(blockSnapshot);
+                }
 
-                // Create a BlockSnapshotSession to represent this temporary snapshot session
-                // that will be created on the target volume of the passed BlockSnapshot.
+                // Create a temporary BlockSnapshot instance to represent the parent source volumes
+                // for each block snapshot. Linking to a session required BlockSnapshot instances so
+                // we need to create some to represent the source volume(s).
+                StringSet linkedTargets = new StringSet();
+                List<BlockSnapshot> sourceSnapshots = new ArrayList<>();
+                List<URI> sourceSnapshotURIs = new ArrayList<>();
+                URI cgURI = blockSnapshot.getConsistencyGroup();
+                for (BlockSnapshot aSnapshot : allSnapshots) {
+                    BlockObject aSourceObj = BlockObject.fetch(_dbClient, aSnapshot.getParent().getURI());
+                    BlockSnapshot sourceSnapshot = new BlockSnapshot();
+                    URI sourceSnapshotURI = URIUtil.createId(BlockSnapshot.class);
+                    sourceSnapshot.setId(sourceSnapshotURI);
+                    sourceSnapshot.setNativeId(aSourceObj.getNativeId());
+                    sourceSnapshot.setParent(new NamedURI(aSnapshot.getId(), aSnapshot.getLabel()));
+                    sourceSnapshot.setSourceNativeId(aSnapshot.getNativeId());
+                    sourceSnapshot.setStorageController(storage);
+                    if (cgURI != null) {
+                        sourceSnapshot.setConsistencyGroup(cgURI);
+                    }
+                    sourceSnapshot.addInternalFlags(Flag.INTERNAL_OBJECT);
+                    sourceSnapshots.add(sourceSnapshot);
+                    sourceSnapshotURIs.add(sourceSnapshotURI);
+                    linkedTargets.add(sourceSnapshotURI.toString());
+                }
+                _dbClient.createObject(sourceSnapshots);
+
+                // Create a BlockSnapshotSession instance to represent the temporary snapshot session.
                 BlockSnapshotSession snapSession = new BlockSnapshotSession();
                 URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
                 snapSession.setId(snapSessionURI);
                 snapSession.setLabel(blockSnapshot.getLabel() + System.currentTimeMillis());
-                snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
+                snapSession.setSessionLabel(snapSession.getLabel());
+                snapSession.setProject(blockSnapshot.getProject());
                 snapSession.addInternalFlags(Flag.INTERNAL_OBJECT);
-                StringSet linkedTargets = new StringSet();
-                linkedTargets.add(sourceSnapshotURI.toString());
+                if (NullColumnValueGetter.isNullURI(cgURI)) {
+                    snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
+                } else {
+                    snapSession.setConsistencyGroup(cgURI);
+                }
                 snapSession.setLinkedTargets(linkedTargets);
                 _dbClient.createObject(snapSession);
 
                 // Now create a workflow step that will create the snapshot session.
+                // This will create a group session in the case of a group operation.
                 waitFor = workflow.createStep(CREATE_SNAPSHOT_SESSION_STEP_GROUP,
                         String.format("Create snapshot session %s for snapshot target volume %s", snapSessionURI, snapshot),
                         waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
@@ -2206,25 +2241,33 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // target volume represented by the snapshot session is copied to the source
                 // volume. This is essentially the restore step so that the source will now
                 // reflect the data on the snapshot target volume. This step will not complete
-                // until the data is copied and the link has achieved the copied state.
+                // until the data is copied and the link has achieved the copied state. If this
+                // is group operation the source target group will be linked to the created
+                // group session.
+                Workflow.Method linkMethod;
+                if (NullColumnValueGetter.isNullURI(cgURI)) {
+                    linkMethod = linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0),
+                            BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
+                } else {
+                    linkMethod = linkBlockSnapshotSessionTargetGroupMethod(storage, snapSessionURI, sourceSnapshotURIs,
+                            BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
+                }
                 waitFor = workflow.createStep(
                         LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Link source volume %s to snapshot session for snapshot target volume %s", volume, snapshot),
-                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
-                        linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI,
-                                BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE),
-                        unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI, Boolean.FALSE), null);
+                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class, linkMethod,
+                        unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0), Boolean.FALSE), null);
 
                 // Once the data is fully copied to the source, we can unlink the source from the session.
+                // Again, for a group operation, this will unlink the source group from the group session.
                 waitFor = workflow.createStep(
                         UNLINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Unlink source volume %s from snapshot session for snapshot target volume %s", volume, snapshot),
                         waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
-                        unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI, Boolean.FALSE),
+                        unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0), Boolean.FALSE),
                         rollbackMethodNullMethod(), null);
 
-                // Finally create a step to delete the snapshot session we created on the snapshot
-                // target volume.
+                // Finally create a step to delete the temporary snapshot session we created.
                 workflow.createStep(
                         DELETE_SNAPSHOT_SESSION_STEP_GROUP,
                         String.format("Delete snapshot session %s for snapshot target volume %s", snapSessionURI, snapshot),
@@ -5038,7 +5081,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     @Override
     public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<List<URI>> snapshotURIs,
-                                                      String copyMode, String opId) throws InternalException {
+            String copyMode, String opId) throws InternalException {
         TaskCompleter completer = new BlockSnapshotSessionLinkTargetsWorkflowCompleter(snapSessionURI, snapshotURIs, opId);
         try {
             // Get a new workflow to execute the linking of the target volumes
@@ -5159,9 +5202,39 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Workflow workflow = _workflowService.getNewWorkflow(this, UNLINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId);
             _log.info("Created new workflow to unlink targets for snapshot session {} with operation id {}",
                     snapSessionURI, opId);
+            Set<URI> targetKeys = snapshotDeletionMap.keySet();
+            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
 
-            // Create a workflow step to unlink each target.
-            for (URI snapshotURI : snapshotDeletionMap.keySet()) {
+            // For CG's, ensure 1 target per ReplicationGroup
+            if (snapSession.hasConsistencyGroup()) {
+                Iterator<BlockSnapshot> snapshots =
+                        _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotDeletionMap.keySet());
+                final Set<String> replicationGroups = new HashSet<>();
+                final Map<URI, BlockSnapshot> uriToSnapshotCache = new HashMap<>();
+                while (snapshots.hasNext()) {
+                    BlockSnapshot snapshot = snapshots.next();
+                    uriToSnapshotCache.put(snapshot.getId(), snapshot);
+                }
+
+                Map<URI, Boolean> filtered = Maps.filterEntries(snapshotDeletionMap, new Predicate<Map.Entry<URI, Boolean>>() {
+                    @Override
+                    public boolean apply(Map.Entry<URI, Boolean> input) {
+                        BlockSnapshot blockSnapshot = uriToSnapshotCache.get(input.getKey());
+                        String repGrpInstance = blockSnapshot.getReplicationGroupInstance();
+                        if (replicationGroups.contains(repGrpInstance)) {
+                            return false;
+                        }
+
+                        replicationGroups.add(repGrpInstance);
+                        return true;
+                    }
+                });
+                // assign to targetKeys filtered keySet view of snapshotDeletionMap.
+                targetKeys = filtered.keySet();
+            }
+
+            // Create a workflow step to unlink each target specified in targetKeys
+            for (URI snapshotURI : targetKeys) {
                 workflow.createStep(UNLINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Unlinking target for snapshot session %s", snapSessionURI),
                         null, systemURI, getDeviceType(systemURI), getClass(),

@@ -1564,46 +1564,76 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         List<BlockSnapshot> snapshots = newArrayList(_dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotUris));
         final Map<URI, BlockSnapshot> uriToSnapshot = new HashMap<>();
         BlockSnapshot sampleSnapshot = snapshots.get(0);
-        Volume sampleParent = _dbClient.queryObject(Volume.class, sampleSnapshot.getParent().getURI());
-        String sourceGroupName = _helper.getConsistencyGroupName(sampleParent, system);
+        BlockObject sampleParent = BlockObject.fetch(_dbClient, sampleSnapshot.getParent().getURI());
 
         try {
-            // Group snapshots parent volumes by their pool and size
-            Map<String, List<Volume>> volumesBySizeMap = new HashMap<>();
-            for (BlockSnapshot target : snapshots) {
-                uriToSnapshot.put(target.getId(), target);
-                Volume parent = _dbClient.queryObject(Volume.class, target.getParent().getURI());
-                String key = parent.getPool() + "-" + parent.getCapacity();
-                if (volumesBySizeMap.containsKey(key)) {
-                    volumesBySizeMap.get(key).add(parent);
-                } else {
-                    volumesBySizeMap.put(key, newArrayList(parent));
+            String sourceGroupName;
+            String targetGroupName;
+            if (!targetsExist) {
+                // This is the normal scenario for linking group targets to a group snapshot session.
+                sourceGroupName = _helper.getConsistencyGroupName(sampleParent, system);
+                // Group snapshots parent volumes by their pool and size
+                Map<String, List<Volume>> volumesBySizeMap = new HashMap<>();
+                for (BlockSnapshot target : snapshots) {
+                    uriToSnapshot.put(target.getId(), target);
+                    Volume parent = _dbClient.queryObject(Volume.class, target.getParent().getURI());
+                    String key = parent.getPool() + "-" + parent.getCapacity();
+                    if (volumesBySizeMap.containsKey(key)) {
+                        volumesBySizeMap.get(key).add(parent);
+                    } else {
+                        volumesBySizeMap.put(key, newArrayList(parent));
+                    }
                 }
+
+                // Create snapshot target volumes
+
+                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, (Volume) sampleParent, null);
+                for (Entry<String, List<Volume>> entry : volumesBySizeMap.entrySet()) {
+                    final List<Volume> volumes = entry.getValue();
+                    final Volume volume = volumes.get(0);
+                    final URI poolId = volume.getPool();
+
+                    // Create target devices based on the array model
+                    final List<String> newDeviceIds = kickOffTargetDevicesCreation(system, volumeGroupPath,
+                            sourceGroupName, null, false, true, volumes.size(), poolId,
+                            volume.getCapacity(), completer);
+
+                    targetDeviceIds.addAll(newDeviceIds);
+                }
+
+                // Create target device group
+                targetGroupPath = ReplicationUtils.createTargetDeviceGroup(system, sourceGroupName, targetDeviceIds, completer,
+                        _dbClient, _helper, _cimPath,
+                        SYNC_TYPE.SNAPSHOT);
+
+                _log.info("Created target device group: {}", targetGroupPath);
+                targetGroupName = (String) targetGroupPath.getKeyValue(CP_INSTANCE_ID);
+            } else {
+                // If the targets exist, this is the restore linked target scenario where we create
+                // a temporary group snapshot session on the linked target group and then linked the
+                // source volume group to this temporary session. The source volumes and source group
+                // already exist. First we setup of the snapshot map.
+                for (BlockSnapshot target : snapshots) {
+                    uriToSnapshot.put(target.getId(), target);
+                }
+
+                // The parent in this case is a BlockSnapshot and the source group is the
+                // replication group for the snapshot. We eliminate the system prefix and
+                // serial number from the replication group, to get simply the group name
+                // as in the case above.
+                sourceGroupName = ((BlockSnapshot) sampleParent).getReplicationGroupInstance();
+                int index = sourceGroupName.indexOf("+");
+                sourceGroupName = sourceGroupName.substring(index + 1);
+
+                // The target in this case is actually a source volume and the target group
+                // is the source volume group, which we can get from the consistency group.
+                // Note that we can use the sample parent because it references the same
+                // consistency group as the source volume.
+                targetGroupName = _helper.getConsistencyGroupName(sampleParent, system);
+
+                // Get the CIM object path for the target group.
+                targetGroupPath = _cimPath.getReplicationGroupPath(system, targetGroupName);
             }
-
-            // Create snapshot target volumes
-
-            CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, sampleParent, null);
-            for (Entry<String, List<Volume>> entry : volumesBySizeMap.entrySet()) {
-                final List<Volume> volumes = entry.getValue();
-                final Volume volume = volumes.get(0);
-                final URI poolId = volume.getPool();
-
-                // Create target devices based on the array model
-                final List<String> newDeviceIds = kickOffTargetDevicesCreation(system, volumeGroupPath,
-                        sourceGroupName, null, false, true, volumes.size(), poolId,
-                        volume.getCapacity(), completer);
-
-                targetDeviceIds.addAll(newDeviceIds);
-            }
-
-            // Create target device group
-            targetGroupPath = ReplicationUtils.createTargetDeviceGroup(system, sourceGroupName, targetDeviceIds, completer,
-                    _dbClient, _helper, _cimPath,
-                    SYNC_TYPE.SNAPSHOT);
-
-            _log.info("Created target device group: {}", targetGroupPath);
-            String targetGroupName = (String) targetGroupPath.getKeyValue(CP_INSTANCE_ID);
 
             // Now link the target group to the array snapshots represented by the session.
             CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);

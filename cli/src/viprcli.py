@@ -68,6 +68,7 @@ import computeimageserver
 import bucket
 import warnings
 import ipsecmanager
+import snapshotsession
 
 
 warnings.filterwarnings(
@@ -177,6 +178,7 @@ vnasserver.vnasserver_parser(module_parsers, common_parser)
 computeimageserver.computeimageserver_parser(module_parsers, common_parser)
 bucket.bucket_parser(module_parsers, common_parser)
 ipsecmanager.ipsec_parser(module_parsers, common_parser)
+snapshotsession.snapshotsession_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
 
 

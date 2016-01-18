@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ECSNamespace;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
@@ -85,6 +86,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.UnManagedVolumeList;
 import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.file.UnManagedFileSystemList;
+import com.emc.storageos.model.object.ECSNamespaceList;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
@@ -1126,8 +1128,27 @@ public class StorageSystemService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/ecs-namespaces")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public String getAllECSNamespaces(@PathParam("id") URI id) {
-        return "ecsnamespacelist";
+    public ECSNamespaceList getAllECSNamespaces(@PathParam("id") URI id) {
+        // Make sure storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+
+        ECSNamespaceList ecsNamespaceList = new ECSNamespaceList();
+        URIQueryResultList ecsNamespaceURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceStoragePoolConstraint(id),
+                ecsNamespaceURIs);
+        Iterator<URI> ecsNsIter = ecsNamespaceURIs.iterator();
+        while (ecsNsIter.hasNext()) {
+            URI nsURI = ecsNsIter.next();
+            ECSNamespace namespace = _dbClient.queryObject(ECSNamespace.class,
+                    nsURI);
+            if (namespace != null && !namespace.getInactive()) {
+                ecsNamespaceList.getNamespaces().add(toNamedRelatedResource(namespace, namespace.getNativeGuid()));
+            }
+        }
+        return ecsNamespaceList;
     }
     
     @GET

@@ -15,8 +15,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.KeyspaceTracerFactory;
+import com.netflix.astyanax.connectionpool.ConnectionContext;
+import com.netflix.astyanax.connectionpool.ConnectionPool;
 import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -28,17 +32,13 @@ import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.partitioner.Murmur3Partitioner;
 import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.retry.RetryPolicy;
+import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
+import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.KsDef;
-import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.protocol.TProtocol;
-import org.apache.thrift.transport.TFramedTransport;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -389,21 +389,27 @@ public class DbClientContext {
      * @param update new keyspace definition
      * @return new schema version after the update
      */
-    private String alterKeyspaceWithThrift(KeyspaceDefinition kd, KeyspaceDefinition update) {
-        try (TTransport tr = new TFramedTransport(new TSocket(LOCAL_HOST, getThriftPort()))) {
-            TProtocol proto = new TBinaryProtocol(tr);
-            Cassandra.Client client = new Cassandra.Client(proto);
-            tr.open();
-            KsDef def = ((ThriftKeyspaceDefinitionImpl) update).getThriftKeyspaceDefinition();
-            if (kd != null) {
-                return client.system_update_keyspace(def);
-            } else {
-                return client.system_add_keyspace(def);
-            }
-        } catch (TException e) {
-            log.error("Failed to update keyspace with thrift", e);
+    private String alterKeyspaceWithThrift(KeyspaceDefinition kd, KeyspaceDefinition update) throws ConnectionException {
+        final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
+        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) clusterContext.getConnectionPool();
+        final KsDef def = ((ThriftKeyspaceDefinitionImpl) update).getThriftKeyspaceDefinition();
+        if (kd != null) {
+            return pool.executeWithFailover(
+                    new AbstractOperationImpl<String>(ks.newTracer(CassandraOperationType.UPDATE_KEYSPACE)) {
+                        @Override
+                        public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
+                            return client.system_update_keyspace(def);
+                        }
+                    }, clusterContext.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
+        } else {
+            return pool.executeWithFailover(
+                    new AbstractOperationImpl<String>(ks.newTracer(CassandraOperationType.ADD_KEYSPACE)) {
+                        @Override
+                        public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
+                            return client.system_add_keyspace(def);
+                        }
+                    }, clusterContext.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
         }
-        return null;
     }
 
     /**

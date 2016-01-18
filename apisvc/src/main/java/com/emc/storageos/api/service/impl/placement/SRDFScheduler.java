@@ -724,7 +724,7 @@ public class SRDFScheduler implements Scheduler {
                 continue;
             }
             // Check that target pool can support required volume configuration.
-            if (!validateRequiredVolumeConfiguration(targetPool, vpoolChangeVolume,
+            if (!validateRequiredVolumeConfiguration(sourcePool, targetPool, vpoolChangeVolume,
                     destPoolStorageMap, sourceVolumeRecommendation, size, isThinlyProvisioned, vpool.getFastExpansion(),
                     sourceMaxVolumeSizeLimitKb)) {
                 continue;
@@ -742,6 +742,7 @@ public class SRDFScheduler implements Scheduler {
     /**
      * Check if target pool can support required volume configuration for srdf target volume.
      * 
+     * @param sourcePool
      * @param targetPool
      * @param vpoolChangeVolume source volume (null if not exists)
      * @param destPoolStorageMap map target pool to storage system
@@ -752,7 +753,7 @@ public class SRDFScheduler implements Scheduler {
      * @param sourceMaxVolumeSizeLimitKb
      * @return true/false
      */
-    private boolean validateRequiredVolumeConfiguration(StoragePool targetPool, Volume vpoolChangeVolume,
+    private boolean validateRequiredVolumeConfiguration(StoragePool sourcePool, StoragePool targetPool, Volume vpoolChangeVolume,
             Map<StoragePool, StorageSystem> destPoolStorageMap,
             MetaVolumeRecommendation sourceVolumeRecommendation, long size,
             boolean isThinlyProvisioned, boolean fastExpansion,
@@ -807,18 +808,50 @@ public class SRDFScheduler implements Scheduler {
             MetaVolumeRecommendation targetVolumeRecommendation =
                     MetaVolumeUtils.getCreateRecommendation(targetStorageSystem, targetPool, size, isThinlyProvisioned,
                             fastExpansion, null);
-            // compare source and target recommendations to make sure that source and target volumes have the same spec.
-            if (!sourceVolumeRecommendation.equals(targetVolumeRecommendation)) {
-                // this target pool does not match.
-                _log.debug(String
-                        .format("Target storage pool %s does not match. Target volume can not be created with the same configuration as the source volume.",
-                                targetPool.getNativeId()));
-                return false;
-            }
+            return validateMetaRecommednationsForSRDF(sourcePool, targetPool, sourceVolumeRecommendation, targetVolumeRecommendation);
         }
         return true;
     }
 
+    /**
+     * Validate the meta recommendations.
+     * 
+     * @param sourcePool
+     * @param targetPool
+     * @param sourceVolumeRecommendation
+     * @param targetVolumeRecommendation
+     * @return true/false
+     */
+    private boolean validateMetaRecommednationsForSRDF(final StoragePool sourcePool, final StoragePool targetPool,
+            final MetaVolumeRecommendation sourceVolumeRecommendation, final MetaVolumeRecommendation targetVolumeRecommendation) {
+        // compare source and target recommendations to make sure that source and target volumes have the same spec.
+        if (!sourceVolumeRecommendation.equals(targetVolumeRecommendation)) {
+            // this target pool does not match.
+            // If the sourceVolume is a V2 Meta and the Target Volume is from V3, do not return false..
+            if (sourceVolumeRecommendation.isCreateMetaVolumes()) {
+                if (targetPool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
+                    _log.debug(String
+                            .format("Source storage pool %s supports Meta Volume Creation. Target volume is a non Meta.",
+                                    sourcePool.getNativeId()));
+                    return true;
+                }
+            }
+            // HY: If V3 is the Source, we can Have a V2 Device that is a Meta
+            if (targetVolumeRecommendation.isCreateMetaVolumes()) {
+                if (sourcePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
+                    _log.debug(String
+                            .format("Target storage pool %s supports Meta Volume Creation. Source volume is a non Meta.",
+                                    targetPool.getNativeId()));
+                    return true;
+                }
+            }
+            _log.debug(String
+                    .format("Target storage pool %s does not match. Target volume can not be created with the same configuration as the source volume.",
+                            targetPool.getNativeId()));
+            return false;
+        }
+        return true;
+    }
     /**
      * Generate a list of storage pools for each varray that can provide a valid target path. The
      * seed data is the recommendedPool; the storage pool must have SRDF capability to the

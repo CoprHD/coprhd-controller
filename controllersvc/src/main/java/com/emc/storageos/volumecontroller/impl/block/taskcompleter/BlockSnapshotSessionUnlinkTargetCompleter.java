@@ -6,8 +6,10 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +30,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 public class BlockSnapshotSessionUnlinkTargetCompleter extends BlockSnapshotSessionCompleter {
 
     // The URI of the BlockSnapshotSession representing the array snapshot.
-    private final URI _snapshotURI;
+    private final List<URI> _snapshotURIs;
 
     // Whether or not the target is deleted when unlinked.
     private final Boolean _deleteTarget;
@@ -45,8 +47,20 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends BlockSnapshotSess
      * @param stepId The id of the WF step in which the target is being unlinked.
      */
     public BlockSnapshotSessionUnlinkTargetCompleter(URI snapSessionURI, URI snapshotURI, Boolean deleteTarget, String stepId) {
+        this(snapSessionURI, Lists.newArrayList(snapshotURI), deleteTarget, stepId);
+    }
+
+    /**
+     * Constructor
+     *
+     * @param snapSessionURI The id of the BlockSnapshotSession instance in the database.
+     * @param snapshotURIs The id of the BlockSnapshot instance representing the target.
+     * @param deleteTarget True if the target volume should be deleted.
+     * @param stepId The id of the WF step in which the target is being unlinked.
+     */
+    public BlockSnapshotSessionUnlinkTargetCompleter(URI snapSessionURI, List<URI> snapshotURIs, Boolean deleteTarget, String stepId) {
         super(snapSessionURI, stepId);
-        _snapshotURI = snapshotURI;
+        _snapshotURIs = snapshotURIs;
         _deleteTarget = deleteTarget;
     }
 
@@ -61,33 +75,10 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends BlockSnapshotSess
                     break;
                 case ready:
                     // Remove the linked targets from the linked targets for the session.
-                    List<BlockSnapshot> snapshots = new ArrayList<>();
-                    BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, _snapshotURI);
-                    BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, getId());
-                    StringSet linkedTargets = snapSession.getLinkedTargets();
-
-                    if (snapshotObj.hasConsistencyGroup()) {
-                        snapshots.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                                snapshotObj.getReplicationGroupInstance(), dbClient));
-                    } else {
-                        snapshots.add(snapshotObj);
+                    for (URI snapshotURI : _snapshotURIs) {
+                        processSnapshot(snapshotURI, dbClient);
                     }
 
-                    for (BlockSnapshot snapshot : snapshots) {
-                        snapshot.setInactive(true);
-                        if ((linkedTargets != null) && (linkedTargets.contains(snapshot.getId().toString()))) {
-                            linkedTargets.remove(snapshot.getId().toString());
-                        }
-                    }
-
-                    // Note that even if the target is not deleted, mark the associated
-                    // BlockSnapshot inactive. Since the target is no longer associated
-                    // with an array snapshot, it is really no longer a BlockSnapshot
-                    // instance in ViPR. In the unlink job we have created a ViPR Volume
-                    // to represent the former snapshot target volume. So here we mark the
-                    // BlockSnapshot inactive so it is garbage collected.
-                    dbClient.updateObject(snapshots);
-                    dbClient.updateObject(snapSession);
                     break;
                 default:
                     String errMsg = String.format("Unexpected status %s for completer for step %s", status.name(), getOpId());
@@ -102,6 +93,30 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends BlockSnapshotSess
         }
     }
 
+    private void processSnapshot(URI snapshotURI, DbClient dbClient) {
+        BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+        BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, getId());
+        StringSet linkedTargets = snapSession.getLinkedTargets();
+
+        List<BlockSnapshot> snapshots = getRelatedSnapshots(snapshotObj, dbClient);
+
+        for (BlockSnapshot snapshot : snapshots) {
+            snapshot.setInactive(true);
+            if ((linkedTargets != null) && (linkedTargets.contains(snapshot.getId().toString()))) {
+                linkedTargets.remove(snapshot.getId().toString());
+            }
+        }
+
+        // Note that even if the target is not deleted, mark the associated
+        // BlockSnapshot inactive. Since the target is no longer associated
+        // with an array snapshot, it is really no longer a BlockSnapshot
+        // instance in ViPR. In the unlink job we have created a ViPR Volume
+        // to represent the former snapshot target volume. So here we mark the
+        // BlockSnapshot inactive so it is garbage collected.
+        dbClient.updateObject(snapshots);
+        dbClient.updateObject(snapSession);
+    }
+
     /**
      * Gets if the target is to be deleted.
      * 
@@ -112,11 +127,39 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends BlockSnapshotSess
     }
 
     /**
-     * Gets the URI of the snapshot representing the linked target.
-     * 
-     * @return The snapshot URI.
+     * For non-CG snapshots, the returned list contains only the passed in snapshot.
+     * For CG snapshots, the returned list contains all snapshot members of the passed in snapshot's
+     * replication group.
+     *
+     * @param snapshot
+     * @param dbClient
+     * @return
      */
-    public URI getSnapshotURI() {
-        return _snapshotURI;
+    public List<BlockSnapshot> getRelatedSnapshots(BlockSnapshot snapshot, DbClient dbClient) {
+        List<BlockSnapshot> result = new ArrayList<>();
+        if (snapshot.hasConsistencyGroup()) {
+            result.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(
+                    snapshot.getReplicationGroupInstance(), dbClient));
+        } else {
+            result.add(snapshot);
+        }
+        return result;
+    }
+
+    /**
+     * When this completer is handling multiple snapshots from different replication groups,
+     * this method gathers all related snapshots for each snapshot and returns them in a list.
+     *
+     * @param dbClient  Database client.
+     * @return          List of all snapshots, including each of their related snapshots.
+     */
+    public List<BlockSnapshot> getAllSnapshots(DbClient dbClient) {
+        List<BlockSnapshot> result = new ArrayList<>();
+        Iterator<BlockSnapshot> iterator = dbClient.queryIterativeObjects(BlockSnapshot.class, _snapshotURIs);
+        while (iterator.hasNext()) {
+            BlockSnapshot snapshot = iterator.next();
+            result.addAll(getRelatedSnapshots(snapshot, dbClient));
+        }
+        return result;
     }
 }

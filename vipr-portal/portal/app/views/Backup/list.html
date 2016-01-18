@@ -37,9 +37,53 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
 </div>
 
 <script type="text/javascript">
-    $(document).ready(function () {
+    stop = false;
+    type = "${type}";
+    LOCAL = "${models.datatable.BackupDataTable.Type.LOCAL}";
+    REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
 
+    $(document).ready(function () {
+        //update remote backups detail info
+        if (type == REMOTE) {
+            var dataTable = table.backup.dataTable.getDataTable();
+            var itemsJson = #{jsAction @externalItemsJson(':ids')/};
+            var checkUpdate = window.setInterval(function () {
+                if (stop) {
+                    console.info("stop");
+                    clearInterval(checkUpdate);
+                    return;
+                }
+                updateRemoteListDetails(dataTable, itemsJson);
+            }, 1000); // Check every 1 seconds
+        }
     });
+
+    function updateRemoteListDetails(dataTable, itemsJson) {
+        var ids = new Array();
+        var data = dataTable.fnGetData();
+        for (var i = 0; i < data.length; i++) {
+            var row = data[i];
+            ids.push(row.id);
+        }
+
+        console.info("ids: %s", ids);
+        if (ids.length > 0) {
+            var update = function (table) {
+                var url = itemsJson({ids: ids.join(",")});
+                request = $.get(url, function (results) {
+                    console.info("request: %s", results);
+                    stop = true;
+                    var field = ['creationtime','actionstatus','error', 'status'];
+                    updateDatatableRows(table, results, field);
+                });
+            };
+            update(dataTable);
+            if(stop) {
+                request.abort();
+            }
+        }
+
+    }
 
 render.uploadAndRestoreBtn = function(o, val) {
 	var odata = o.aData;
@@ -68,7 +112,7 @@ render.restoreBtn = function (o, val) {
     return "<a id='" + val + "BtnId" + "' href='" + href + "' " + "  class=\"btn btn-default btn-xs\">" + "Restore" + "</a>";
 }
 
-render.uploadProgressIcon = function(o, val) {
+render.uploadAndRestoreProgressIcon = function(o, val) {
 	 if (!o) {
 	        return "";
 	    }
@@ -105,7 +149,7 @@ render.uploadProgressIcon = function(o, val) {
 	    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span>';
 }
 
-render.uploadProgressMessage = function(o, val) {
+render.uploadAndRestoreProgressMessage = function(o, val) {
     if (!o) {
         return "";
     }
@@ -142,8 +186,8 @@ render.uploadProgressMessage = function(o, val) {
     return '<span>' + messages[o.aData.status] + '</span>';
 }
 
-render.uploadProgress = function(o, val) {
-    return render.uploadProgressIcon(o, val) + " " + render.uploadProgressMessage(o, val);
+render.uploadAndRestoreProgress = function(o, val) {
+    return render.uploadAndRestoreProgressIcon(o, val) + " " + render.uploadAndRestoreProgressMessage(o, val);
 }
 
 render.backupSize = function (o, val) {
@@ -160,9 +204,11 @@ render.backupSize = function (o, val) {
 }
 
     table.backup.dataTable.afterCreate(function(table) {
-        var dataTable = table.getDataTable();
-        var itemsJson = #{jsAction @itemsJson(':ids')/};
-        watchUploadState(dataTable, itemsJson, ['actionstatus','error','action']);
+        if (type == LOCAL) {
+            var dataTable = table.getDataTable();
+            var itemsJson = #{jsAction @itemsJson(':ids')/};
+            watchUploadState(dataTable, itemsJson, ['actionstatus', 'error', 'action']);
+        }
     });
 
 

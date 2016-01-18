@@ -76,6 +76,14 @@
 <script type="text/javascript">
     var stop = false;
     $(document).ready(function () {
+        $('#restoreForm').on('keyup keypress', function(e) {
+            var code = e.keyCode || e.which;
+            if (code == 13) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
         type = "${type}";
         REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
         if (type == REMOTE) {
@@ -89,8 +97,9 @@
             if (stop) {
                 console.info("stop");
                 clearInterval(checkUpdate);
+                return;
             }
-            checkPullProgressUpdate()
+            checkPullProgressUpdate();
         }, 1000); // Check every 1 seconds
     }
 

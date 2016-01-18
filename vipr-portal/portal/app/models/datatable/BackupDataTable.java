@@ -36,7 +36,7 @@ public class BackupDataTable extends DataTable {
             addColumn("size").setRenderFunction("render.backupSize");
         }
         addColumn("actionstatus").setSearchable(false).setRenderFunction(
-                "render.uploadProgress");
+                "render.uploadAndRestoreProgress");
         if (type == Type.LOCAL) {
             addColumn("action").setSearchable(false).setRenderFunction(
                     "render.uploadAndRestoreBtn");
@@ -107,11 +107,11 @@ public class BackupDataTable extends DataTable {
                 Logger.error("Could not encode backup name");
             }
             name = externalBackupName;
-            ExternalBackupInfo backupInfo = BackupUtils.getExternalBackup(externalBackupName);
+            /*ExternalBackupInfo backupInfo = BackupUtils.getExternalBackup(externalBackupName);
             if (backupInfo.getCreateTime() != null) {
                 creationtime = backupInfo.getCreateTime();
             }
-            status = backupInfo.getRestoreStatus().getStatus().name();
+            status = backupInfo.getRestoreStatus().getStatus().name();*/
         }
 
     }

@@ -47,6 +47,9 @@ public class CreateFileSystemService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb, softLimit, advisoryLimit, gracePeriod);
+        int tempSoftLimit=(softLimit!=null)?softLimit:0;
+        int tempAdvisoryLimit=(advisoryLimit!=null)?advisoryLimit:0; 
+        int tempGracePeriod=(gracePeriod!=null)?gracePeriod:0;
+        FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb, tempSoftLimit, tempAdvisoryLimit, tempGracePeriod);
     }
 }

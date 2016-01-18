@@ -74,11 +74,11 @@
       }
     },
     
-	smartQuota:{
+    smartQuota:{
       type:"group",
       collapsed:"true",
       items:{
-          adivsoryLimit:{
+          advisoryLimit:{
             type:"text",
             required: false,
             validation:{

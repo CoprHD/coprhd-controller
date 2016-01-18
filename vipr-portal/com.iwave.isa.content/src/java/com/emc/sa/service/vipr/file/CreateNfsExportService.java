@@ -48,7 +48,11 @@ public class CreateNfsExportService extends ViPRService {
 
     @Override
     public void execute() {
-        URI fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, exportName, sizeInGb, softLimit, advisoryLimit, gracePeriod);
+        int tempSoftLimit=(softLimit!=null)?softLimit:0;
+        int tempAdvisoryLimit=(advisoryLimit!=null)?advisoryLimit:0; 
+        int tempGracePeriod=(gracePeriod!=null)?gracePeriod:0;
+        
+        URI fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, exportName, sizeInGb, tempSoftLimit, tempAdvisoryLimit, tempGracePeriod);
         if (exportRules != null) {
             FileStorageUtils.createFileSystemExport(fileSystemId, comment, exportRules[0], null);
             if (exportRules.length > 1) {

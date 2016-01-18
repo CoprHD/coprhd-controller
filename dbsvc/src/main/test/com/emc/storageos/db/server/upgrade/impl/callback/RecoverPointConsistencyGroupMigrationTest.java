@@ -198,7 +198,7 @@ public class RecoverPointConsistencyGroupMigrationTest extends DbSimpleMigration
         sourceVolumeJournal.setId(sourceVolumeJournalURI);
         sourceVolumeJournal.setLabel(volumeName + RP_SRC_JOURNAL_APPEND);
         sourceVolumeJournal.setPersonality(Volume.PersonalityTypes.METADATA.toString());
-        sourceVolumeJournal.setProtectionSet(new NamedURI(protectionSet.getId(), sourceVolumeJournal.getLabel()));
+        sourceVolumeJournal.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
         _dbClient.createObject(sourceVolumeJournal);
 
         for (int i = 1; i <= numTargets; i++) {
@@ -210,7 +210,7 @@ public class RecoverPointConsistencyGroupMigrationTest extends DbSimpleMigration
             sourceVolumeTarget.setLabel(volumeName + RP_TGT_APPEND + "vArray" + i);
             sourceVolumeTarget.setPersonality(Volume.PersonalityTypes.TARGET.toString());
             sourceVolumeTarget.setRSetName(rsetName);
-            sourceVolumeTarget.setProtectionSet(new NamedURI(protectionSet.getId(), sourceVolumeTarget.getLabel()));
+            sourceVolumeTarget.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
             _dbClient.createObject(sourceVolumeTarget);
 
             Volume sourceVolumeTargetJournal = new Volume();
@@ -220,7 +220,7 @@ public class RecoverPointConsistencyGroupMigrationTest extends DbSimpleMigration
             sourceVolumeTargetJournal.setId(sourceVolumeTargetJournalURI);
             sourceVolumeTargetJournal.setLabel(volumeName + RP_TGT_JOURNAL_APPEND + "vArray" + i);
             sourceVolumeTargetJournal.setPersonality(Volume.PersonalityTypes.METADATA.toString());
-            sourceVolumeTargetJournal.setProtectionSet(new NamedURI(protectionSet.getId(), sourceVolumeTargetJournal.getLabel()));
+            sourceVolumeTargetJournal.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
             _dbClient.createObject(sourceVolumeTargetJournal);
         }
 

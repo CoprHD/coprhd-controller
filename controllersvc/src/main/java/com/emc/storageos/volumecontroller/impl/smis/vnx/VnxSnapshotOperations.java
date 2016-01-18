@@ -330,7 +330,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                     String.format("Generic exception when trying to delete snapshots from consistency group on array %s",
                             storage.getSerialNumber());
             _log.error(message, e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("deleteGorupSnapshots", e.getMessage());
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("deleteGroupSnapshots", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
     }

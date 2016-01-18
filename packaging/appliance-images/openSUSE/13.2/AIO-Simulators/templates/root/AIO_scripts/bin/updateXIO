@@ -1,0 +1,14 @@
+#!/bin/bash
+
+systemctl stop XIO
+systemctl stop XIO2
+cd /tmp
+LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?xio | grep -oP '"queryResult":"\K.*?jar'`
+VERSION=${LATEST_URL##*-}
+echo "Downloading $LATEST_URL"
+wget $LATEST_URL || exit 1
+cp xio-simulators-*.jar /data/simulators/xio/
+cp xio-simulators-*.jar /data/simulators/xio_2/xio-simulators2-$VERSION
+rm xio-simulators*.jar
+systemctl start XIO
+systemctl start XIO2

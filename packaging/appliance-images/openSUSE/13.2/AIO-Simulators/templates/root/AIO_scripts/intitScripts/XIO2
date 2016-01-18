@@ -1,0 +1,82 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          XIO2
+# Required-Start:    SimService
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:
+# Description:       starts XIO2 simulator
+### END INIT INFO
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+. /etc/rc.status
+
+RETVAL=0
+XIO_HOME=/data/simulators/xio_2
+DELAY=60
+
+start() {
+        echo -n $"Starting XIO2:..hold on 10sec .."
+		cd ${XIO_HOME}
+        java -jar xio-simulators2-*.jar >/var/log/XIO2.log 2>&1 &
+        RETVAL=$?
+
+        while [ $DELAY -gt 0 ]; do
+        #echo "delay $DELAY"
+	if [ -f "${XIO_HOME}/xio_simulator.log" ] ; then 
+	 STARTSSL=`grep "Started ServerConnector.*{SSL.*}{0.0.0.0" /var/log/XIO2.log`
+         if [ "${STARTSSL}" != "" ] ; then
+           echo "${STARTSSL}" >> /var/log/XIO2.log 2>&1  
+           echo "..OK"
+           return
+         fi
+        fi
+        sleep 2
+        DELAY=$((DELAY -1))
+       done
+
+       echo "Failed to start in 60 sec..try manual start" >> /var/log/XIO2.log 2>&1
+}
+
+stop() {
+
+        echo -n $"Stopping XIO2: "
+	#rm -f ${VPLEX_HOME}/log/* >>/var/log/VPLEX.log 2>&1
+        #killproc -TERM vplexRestSimulator.jar >> /var/log/VPLEX.log 2>&1
+		pkill -9 -f xio-simulators2- >> /var/log/XIO2.log 2>&1
+        RETVAL=$?
+	echo  "..Done"
+}
+
+
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+    cnt=`pgrep -f xio-simulator2.jar |wc -l`
+	if(test $cnt -eq 1) ;
+	then
+		echo "XIO2 simulator already running..."
+	else
+		echo "XIO2 simulator not running."
+	fi 
+    #    rc_status -v
+
+        ;;
+  *)
+        echo $"Usage: XIO {start|stop|status}"
+        exit 1
+        exit 1
+esac
+
+
+exit $RETVAL
+
+

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+./updateECOM
+./updateVPLEX
+./updateRP
+./updateCISCO
+./updateXIO
+./updateHDS
+./updateWIN
+./updateLDAP

@@ -1,0 +1,11 @@
+[Unit]
+Description=The CISCO simulator server
+After=SimService.service
+
+[Service]
+Type=forking
+ExecStart=/etc/init.d/CISCO start
+ExecStop=/etc/init.d/CISCO stop
+
+[Install]
+WantedBy=multi-user.target

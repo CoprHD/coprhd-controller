@@ -62,7 +62,7 @@ public class CreateBlockSnapshotService extends ViPRService {
             volumes = new ArrayList<>();
             volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
             
-            if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {               
+            if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {               
                 if (linkedSnapshotName != null && !linkedSnapshotName.isEmpty()) {
                     // If trying to create a Snapshot Session and the optional linkedSnapshotName 
                     // is populated, make sure that linkedSnapshotCount > 0.
@@ -85,7 +85,7 @@ public class CreateBlockSnapshotService extends ViPRService {
         Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {
-                if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {
+                if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
                     tasks = execute(new CreateBlockSnapshotSession(volume.getId(), nameParam, 
                                                                     linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode));
                 } else {
@@ -95,7 +95,7 @@ public class CreateBlockSnapshotService extends ViPRService {
             }
         } else {
             for (String consistencyGroupId : volumeIds) {
-                if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {
+                if (BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
                     tasks = ConsistencyUtils.createSnapshotSession(uri(consistencyGroupId), nameParam, 
                                                                     linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode);
                 } else {

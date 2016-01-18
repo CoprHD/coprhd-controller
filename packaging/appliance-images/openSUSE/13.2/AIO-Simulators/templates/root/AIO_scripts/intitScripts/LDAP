@@ -1,0 +1,80 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          LDAP
+# Required-Start:    SimService
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:
+# Description:       starts LDAP simulator
+### END INIT INFO
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+. /etc/rc.status
+
+RETVAL=0
+LDAP_HOME=/data/simulators/ldap-sim
+DELAY=60
+
+start() {
+        echo -n $"Starting LDAP:..hold on 10sec .."
+		cd ${LDAP_HOME}/bin
+        ./run.sh >/var/log/LDAP.log 2>&1 &
+        RETVAL=$?
+
+        while [ $DELAY -gt 0 ]; do
+        #echo "delay $DELAY"
+	if [ -f "/var/log/LDAP.log" ] ; then 
+	 START=`grep "LDAP Server started successfully" /var/log/LDAP.log`
+         if [ "${START}" != "" ] ; then
+           echo "${START}" >> /var/log/LDAP.log 2>&1  
+           echo "..OK"
+           return
+         fi
+        fi
+        sleep 2
+        DELAY=$((DELAY -1))
+       done
+
+       echo "Failed to start in 60 sec..try manual start" >> /var/log/LDAP.log 2>&1
+}
+
+stop() {
+
+        echo -n $"Stopping LDAP: "
+		kill -9 `jps -mlV | grep LDAPServiceApplication | awk '{print $1}'` >> /var/log/VPLEX.log 2>&1
+        RETVAL=$?
+	echo  "..Done"
+}
+
+
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+    cnt=`jps -mlV | grep LDAPServiceApplication |wc -l`
+	if(test $cnt -eq 1) ;
+	then
+		echo "LDAP simulator already running..."
+	else
+		echo "LDAP simulator not running."
+	fi 
+    #    rc_status -v
+
+        ;;
+  *)
+        echo $"Usage: LDAP {start|stop|status}"
+        exit 1
+        exit 1
+esac
+
+
+exit $RETVAL
+
+

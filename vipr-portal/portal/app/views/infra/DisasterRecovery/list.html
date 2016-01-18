@@ -97,7 +97,7 @@ function renderLink(o, val) {
 function watchLoadStatus(datatable, itemsJson) {
     var fields = ['status','VirtualIP','name'];
     var fieldToWatch = 'status';
-    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING','STANDBY_SWITCHING_OVER','STANDBY_FAILING_OVER','ACTIVE_SWITCHING_OVER','ACTIVE_FAILING_OVER'];
+    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING','STANDBY_SWITCHING_OVER','STANDBY_FAILING_OVER','ACTIVE_SWITCHING_OVER','ACTIVE_FAILING_OVER','STANDBY_DEGRADING'];
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
 }
 $(document).ready(function() {
@@ -127,6 +127,8 @@ function standbyStatusIcon(o, val) {
         'STANDBY_REMOVING': 'label-danger',
         'STANDBY_RESUMING': 'label-info',
         'ACTIVE_DEGRADED': 'label-danger',
+        'STANDBY_DEGRADING': 'label-danger',
+        'STANDBY_DEGRADED': 'label-danger',
         'STANDBY_ERROR':  'label-danger'
     }
     var icons = {
@@ -144,6 +146,8 @@ function standbyStatusIcon(o, val) {
         'STANDBY_REMOVING': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_RESUMING': 'glyphicon glyphicon-refresh rotate',
         'ACTIVE_DEGRADED': 'glyphicon glyphicon-remove',
+        'STANDBY_DEGRADING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_DEGRADED': 'glyphicon glyphicon-remove',
         'STANDBY_ERROR':  'glyphicon glyphicon-remove'
     }
 
@@ -162,6 +166,8 @@ function standbyStatusIcon(o, val) {
             'STANDBY_REMOVING': Messages.get("renderFunctions.disasterRecovery.status.standby.removing"),
             'STANDBY_RESUMING': Messages.get("renderFunctions.disasterRecovery.status.standby.resuming"),
             'ACTIVE_DEGRADED': Messages.get("renderFunctions.disasterRecovery.status.standby.failbackDegraded"),
+        	'STANDBY_DEGRADING': Messages.get("renderFunctions.disasterRecovery.status.standby.degrading"),
+        	'STANDBY_DEGRADED': Messages.get("renderFunctions.disasterRecovery.status.standby.degraded"),
             'STANDBY_ERROR':  Messages.get("renderFunctions.disasterRecovery.status.standby.error")
 	};
 
@@ -169,6 +175,37 @@ function standbyStatusIcon(o, val) {
     var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
 
     var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
+
+    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
+}
+</script>
+
+<script type="text/javascript">
+function networkHealthIcon(o, val) {
+    if (!o) {
+        return "";
+    }
+    var labels = {
+        'Good': 'label-success',
+        'Slow': 'label-warning',
+        'Broken': 'label-danger'
+    }
+    var icons = {
+        'Good': 'glyphicon glyphicon-ok',
+        'Slow': 'glyphicon glyphicon-warning-sign',
+        'Broken':  'glyphicon glyphicon-remove'
+    }
+
+	var messages = {
+            'Good': Messages.get("renderFunctions.disasterRecovery.networkHealth.good"),
+            'Slow': Messages.get("renderFunctions.disasterRecovery.networkHealth.slow"),
+            'Broken': Messages.get("renderFunctions.disasterRecovery.networkHealth.broken")
+	};
+
+    var label = defaultValue(labels[o.aData.networkHealth], 'label-default');
+    var icon = defaultValue(icons[o.aData.networkHealth], 'glyphicon glyphicon-question-sign');
+
+    var message = defaultValue(messages[o.aData.networkHealth], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
 
     return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
 }

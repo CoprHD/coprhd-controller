@@ -263,6 +263,10 @@
         </property>
     </bean>
 
+    <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler"/>
+
+    <bean id="drSiteNetworkMonitor" class="com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor" init-method="init"/>
+
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
         <property name="softwareUpdate" ref="softwareUpdate" />
         <property name="application" ref="syssvcApp" />

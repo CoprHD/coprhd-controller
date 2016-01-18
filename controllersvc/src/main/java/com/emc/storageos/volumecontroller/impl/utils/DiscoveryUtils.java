@@ -728,7 +728,7 @@ public class DiscoveryUtils {
                 unManagedCGTobeDeleted.add(cg);
             }
             if (!unManagedCGTobeDeleted.isEmpty()) {
-                partitionManager.updateAndReIndexInBatches(unManagedCGTobeDeleted, 1000,
+                partitionManager.updateAndReIndexInBatches(unManagedCGTobeDeleted, unManagedCGTobeDeleted.size(),
                         dbClient, UNMANAGED_CONSISTENCY_GROUP);
             }
         }
@@ -769,7 +769,7 @@ public class DiscoveryUtils {
                 unManagedExportMasksToBeDeleted.add(uem);
             }
             if (!unManagedExportMasksToBeDeleted.isEmpty()) {
-                partitionManager.updateAndReIndexInBatches(unManagedExportMasksToBeDeleted, Constants.DEFAULT_PARTITION_SIZE,
+                partitionManager.updateAndReIndexInBatches(unManagedExportMasksToBeDeleted, unManagedExportMasksToBeDeleted.size(),
                         dbClient, UNMANAGED_EXPORT_MASK);
             }
         }

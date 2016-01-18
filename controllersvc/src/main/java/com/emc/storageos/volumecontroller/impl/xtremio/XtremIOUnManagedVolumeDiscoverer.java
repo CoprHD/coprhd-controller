@@ -294,7 +294,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 		addObjectToUnManagedConsistencyGroup(xtremIOClient, unManagedVolume, cgNameToProcess.toString(),
                 				storageSystem, xioClusterName, dbClient);
                 	}   	
-                }           
+                } else {
+                	// Make sure the unManagedVolume object does not contain CG information from previous discovery
+            		unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.FALSE.toString());
+                	// set the uri of the unmanaged CG in the unmanaged volume object to empty
+            		unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(), "");
+                }
 
                 if (hasSnaps) {
                     StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();

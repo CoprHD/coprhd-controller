@@ -206,7 +206,7 @@ public class ImplicitUnManagedObjectsMatcher {
             // Verify whether unmanaged volume SRDF properties with the Vpool
             boolean srdfSourceVpool = (null != virtualPool.getProtectionRemoteCopySettings() && !virtualPool
                     .getProtectionRemoteCopySettings().isEmpty());
-            boolean srdfTargetVpool = (srdfEnabledTargetVPools.contains(virtualPool.getId()));
+            boolean srdfTargetVpool = srdfEnabledTargetVPools == null ? false : (srdfEnabledTargetVPools.contains(virtualPool.getId()));
             StringSet remoteVolType = unManagedObjectInfo.get(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString());
             boolean isRegularVolume = (null == remoteVolType);
             boolean isSRDFSourceVolume = (null != remoteVolType && remoteVolType.contains(RemoteMirrorObject.Types.SOURCE.toString()));
@@ -229,7 +229,7 @@ public class ImplicitUnManagedObjectsMatcher {
             // Verify whether unmanaged volume RP properties with the Vpool
             boolean isRPSourceVpool = (null != virtualPool.getProtectionRemoteCopySettings() && !virtualPool
                     .getProtectionRemoteCopySettings().isEmpty());
-            boolean isRPTargetVpool = (rpEnabledTargetVPools.contains(virtualPool.getId()));
+            boolean isRPTargetVpool = rpEnabledTargetVPools == null ? false : (rpEnabledTargetVPools.contains(virtualPool.getId()));
             remoteVolType = unManagedObjectInfo.get(SupportedVolumeInformation.RP_PERSONALITY.toString());
             isRegularVolume = (null == remoteVolType);
             boolean isRPSourceVolume = (null != remoteVolType && remoteVolType.contains(Volume.PersonalityTypes.SOURCE.toString()));

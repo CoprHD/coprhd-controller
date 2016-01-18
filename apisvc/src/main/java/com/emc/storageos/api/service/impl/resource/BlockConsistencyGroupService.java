@@ -457,22 +457,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Set snapshot type.
         String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
-        if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
-            snapshotType = BlockSnapshot.TechnologyType.RP.toString();
-        }
 
-        // Determine the snapshot volume for RP.
         Volume snapVolume = null;
-        if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
-            for (Volume volumeToSnap : volumeList) {
-                // Get the RP source volume.
-                if (volumeToSnap.getPersonality() != null
-                        && volumeToSnap.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-                    snapVolume = volumeToSnap;
-                    break;
-                }
-            }
-        } else if (!volumeList.isEmpty()) {
+        if (!volumeList.isEmpty()) {
             // Any volume.
             snapVolume = volumeList.get(0);
         }

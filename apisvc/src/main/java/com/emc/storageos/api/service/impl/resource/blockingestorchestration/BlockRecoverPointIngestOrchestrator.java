@@ -30,8 +30,6 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -56,10 +54,8 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedPro
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGCharacteristics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
-import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Collections2;
 
 /**
  * RecoverPoint Ingestion
@@ -105,7 +101,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
     // We want to allow customers to inventory-only delete volumes of volumes whose CG isn't fully ingested yet.
     public static final DataObject.Flag[] RP_INTERNAL_VOLUME_FLAGS = new DataObject.Flag[] { Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE,
-            Flag.NO_METERING };
+            Flag.NO_METERING, Flag.NO_PUBLIC_ACCESS };
 
     // The ingest strategy factory, used for ingesting the volumes using the appropriate orchestrator (VPLEX, block, etc)
     private IngestStrategyFactory ingestStrategyFactory;
@@ -505,12 +501,29 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         List<DataObject> updatedObjects = new ArrayList<DataObject>();
 
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient);
-        updateVolumeReplicas(volumes, updatedObjects);
+        clearPersistedReplicaFlags(volumes, updatedObjects);
+        clearReplicaFlagsInIngestionContext(volumeContext);
 
         for (DataObject volume : updatedObjects) {
             if (!volumeContext.getManagedBlockObject().getId().equals(volume.getId())) {
                 // add all volumes except the newly ingested one to the update list
                 volumeContext.addObjectToUpdate(volume);
+            }
+        }
+    }
+
+    /**
+     * Clear the flags of replicas which have been updated during the ingestion process
+     * 
+     * @param volumeContext
+     */
+    private void clearReplicaFlagsInIngestionContext(RecoverPointVolumeIngestionContext volumeContext) {
+        for (List<DataObject> updatedObjects : volumeContext.getObjectsToBeUpdatedMap().values()) {
+            for (DataObject updatedObject : updatedObjects) {
+                if (updatedObject instanceof BlockMirror || updatedObject instanceof BlockSnapshot
+                        || (updatedObject instanceof Volume && ((Volume) updatedObject).getAssociatedSourceVolume() != null)) {
+                    updatedObject.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
+                }
             }
         }
     }
@@ -992,101 +1005,4 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
         super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
     }
-
-    /**
-     * Make the snaps/mirrors/clones of the RP volume to be visible after the RP CG is fully ingested
-     * 
-     * @param volumes a List of Volume Objects to check
-     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion 
-     */
-    private void updateVolumeReplicas(List<Volume> volumes, List<DataObject> updatedObjects) {
-        for (Volume volume : volumes) {
-            clearAssociatedVolumesFlags(volume, updatedObjects);
-            clearFullCopiesFlags(volume, updatedObjects);
-            clearMirrorsFlags(volume, updatedObjects);
-            clearSnapshotsFlags(volume, updatedObjects);
-            volume.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
-        }
-    }
-
-    /**
-     * Clear the flags of the snapshots of the RP volume
-     * 
-     * @param volumes the Volume Objects to clear flags on
-     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion 
-     */
-    private void clearSnapshotsFlags(Volume volume, List<DataObject> updatedObjects) {
-        URIQueryResultList snapshotURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-                volume.getId()), snapshotURIs);
-        Iterator<BlockSnapshot> snapshotsIterator = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
-        while (snapshotsIterator.hasNext()) {
-            BlockSnapshot snap = snapshotsIterator.next();
-            _logger.info("Clearing internal volume flag of snapshot {} of RP volume {}", snap.getLabel(), volume.getLabel());
-            snap.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
-            updatedObjects.add(snap);
-        }
-    }
-
-    /**
-     * Clear the flags of the mirrors of the RP volume
-     * 
-     * @param volumes the Volume Objects to clear flags on
-     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion 
-     */
-    private void clearMirrorsFlags(Volume volume, List<DataObject> updatedObjects) {
-        if (volume.getMirrors() != null) {
-            List<URI> mirrorUris = new ArrayList<URI>(Collections2.transform(volume.getMirrors(),
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            Iterator<BlockMirror> mirrorIterator = _dbClient.queryIterativeObjects(BlockMirror.class, mirrorUris);
-            while (mirrorIterator.hasNext()) {
-                BlockMirror mirror = mirrorIterator.next();
-                _logger.info("Clearing internal volume flag of mirror {} of RP volume {}", mirror.getLabel(), volume.getLabel());
-                mirror.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
-                updatedObjects.add(mirror);
-            }
-        }
-    }
-
-    /**
-     * Clear the flags of the full copies of the RP volume
-     * 
-     * @param volumes the Volume Objects to clear flags on
-     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion 
-     */
-    private void clearFullCopiesFlags(Volume volume, List<DataObject> updatedObjects) {
-        if (volume.getFullCopies() != null) {
-            List<URI> fullCopiesUris = new ArrayList<URI>(Collections2.transform(volume.getFullCopies(),
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            Iterator<Volume> fullCopiesIterator = _dbClient.queryIterativeObjects(Volume.class, fullCopiesUris);
-            while (fullCopiesIterator.hasNext()) {
-                Volume fullCopy = fullCopiesIterator.next();
-                _logger.info("Clearing internal volume flag of full copy {} of RP volume {}", fullCopy.getLabel(), volume.getLabel());
-                fullCopy.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
-                updatedObjects.add(fullCopy);
-            }
-        }
-    }
-
-    /**
-     * Clear the flags of the associated volumes of the RP volume
-     * 
-     * @param volumes the Volume Objects to clear flags on
-     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion 
-     */
-    private void clearAssociatedVolumesFlags(Volume volume, List<DataObject> updatedObjects) {
-        if (volume.getAssociatedVolumes() != null) {
-            List<URI> associatedVolumesUris = new ArrayList<URI>(Collections2.transform(volume.getAssociatedVolumes(),
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            Iterator<Volume> associatedVolumesIterator = _dbClient.queryIterativeObjects(Volume.class, associatedVolumesUris);
-            while (associatedVolumesIterator.hasNext()) {
-                Volume associatedVolume = associatedVolumesIterator.next();
-                _logger.info("Clearing internal volume flag of associated volume {} of RP volume {}", associatedVolume.getLabel(),
-                        volume.getLabel());
-                associatedVolume.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
-                updatedObjects.add(associatedVolume);
-            }
-        }
-    }
-
 }

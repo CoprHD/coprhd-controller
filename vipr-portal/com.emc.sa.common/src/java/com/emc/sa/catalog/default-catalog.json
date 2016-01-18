@@ -41,6 +41,10 @@
           "baseService": "UnexportVolume"
         },
         {
+          "image": "icon_host_multi_remove.png",
+          "baseService": "UnexportMultiVolume"
+        },
+        {
           "image": "Service_Discover_Unmanaged_Volumes.png",
           "baseService": "DiscoverUnmanagedVolumes"
         },

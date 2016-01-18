@@ -54,7 +54,11 @@ public class DisasterRecoveryUtils {
     }
 
     public static SiteRestRep getSite(String uuid) {
-        return getViprClient().site().getSite(uuid);
+        try {
+            return getViprClient().site().getSite(uuid);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public static boolean hasStandbySite(String id) {

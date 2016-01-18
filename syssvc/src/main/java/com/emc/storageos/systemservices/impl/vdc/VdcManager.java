@@ -199,37 +199,35 @@ public class VdcManager extends AbstractManager {
             } catch (Exception e) {
                 log.error("Step2: Failed to poweroff. {}", e);
             }
+            
+            // Step3: set site error state if on active
+            try {
+                updateSiteErrors();
+            } catch (Exception e) {
+                log.error("Step3: Failed to set site errors. {}", e);
+            }
+            
+            // Step4: record DR operation audit log if on active
+            try {
+                auditCompletedDrOperation();
+            } catch (RuntimeException e) {
+                log.error("Step4: Failed to record DR operation audit log. {}", e);
+            }
 
-            // Step3: update vdc configuration if changed
-            log.info("Step3: If VDC configuration is changed update");
+            // Step5: update vdc configuration if changed
+            log.info("Step5: If VDC configuration is changed update");
             if (vdcPropertiesChanged()) {
-                log.info("Step3: Current vdc properties are not same as target vdc properties. Updating.");
+                log.info("Step5: Current vdc properties are not same as target vdc properties. Updating.");
                 log.debug("Current local vdc properties: " + localVdcPropInfo);
                 log.debug("Target vdc properties: " + targetVdcPropInfo);
 
                 try {
                     updateVdcProperties(svcId);
                 } catch (Exception e) {
-                    log.info("Step3: VDC properties update failed and will be retried:", e);
+                    log.info("Step5: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
                     continue;
                 }
-                continue;
-            }
-            
-            // Step4: set site error state if on active
-            try {
-                updateSiteErrors();
-            } catch (Exception e) {
-                log.error("Step4: Failed to set site errors. {}", e);
-                continue;
-            }
-            
-            // Step5: record DR operation audit log if on active
-            try {
-                auditCompletedDrOperation();
-            } catch (RuntimeException e) {
-                log.error("Step5: Failed to record DR operation audit log. {}", e);
                 continue;
             }
             
@@ -341,6 +339,7 @@ public class VdcManager extends AbstractManager {
         long localVdcConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null ? 0 :
                 Long.parseLong(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
         long targetVdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
+        log.info("local vdc config version: {}, target vdc config version: {}", localVdcConfigVersion, targetVdcConfigVersion);
         return localVdcConfigVersion != targetVdcConfigVersion;
     }
 
@@ -366,14 +365,14 @@ public class VdcManager extends AbstractManager {
         // do not reboot the nodes.
         String action = targetSiteInfo.getActionRequired();
         if (isGeoConfig()) {
-            log.info("Step3: Acquiring reboot lock for vdc properties change.");
+            log.info("Step5: Acquiring reboot lock for vdc properties change.");
             if (!getRebootLock(svcId)) {
                 retrySleep();
             } else if (!isQuorumMaintained()) {
                 releaseRebootLock(svcId);
                 retrySleep();
             } else {
-                log.info("Step3: Setting vdc properties and reboot");
+                log.info("Step5: Setting vdc properties and reboot");
                 targetVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
                 if (backCompatPreYoda) {
@@ -385,7 +384,7 @@ public class VdcManager extends AbstractManager {
             return;
         }
 
-        log.info("Step3: Setting vdc properties not rebooting for single VDC change, action = {}", action);
+        log.info("Step5: Setting vdc properties not rebooting for single VDC change, action = {}", action);
         VdcOpHandler opHandler = getOpHandler(action);
         opHandler.setTargetSiteInfo(targetSiteInfo);
         opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
@@ -538,7 +537,7 @@ public class VdcManager extends AbstractManager {
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
 
         if (!drUtil.isActiveSite()) {
-            log.info("Step5: current site is a standby, nothing to do");
+            log.info("Step3: current site is a standby, nothing to do");
             return;
         }
 
@@ -563,7 +562,7 @@ public class VdcManager extends AbstractManager {
             case STANDBY_ADDING:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_ADD_STANDBY_TIMEOUT, ADD_STANDBY_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: Site {} set to error due to add standby timeout", site.getName());
+                    log.info("Step3: Site {} set to error due to add standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(
                             drOpTimeoutMillis / 60 / 1000));
                 }
@@ -571,7 +570,7 @@ public class VdcManager extends AbstractManager {
             case STANDBY_PAUSING:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_PAUSE_STANDBY_TIMEOUT, PAUSE_STANDBY_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: Site {} set to error due to pause standby timeout", site.getName());
+                    log.info("Step3: Site {} set to error due to pause standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.pauseStandbyFailedTimeout(
                             drOpTimeoutMillis / 60 / 1000));
                 }
@@ -579,7 +578,7 @@ public class VdcManager extends AbstractManager {
             case STANDBY_RESUMING:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_RESUME_STANDBY_TIMEOUT, RESUME_STANDBY_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: Site {} set to error due to resume standby timeout", site.getName());
+                    log.info("Step3: Site {} set to error due to resume standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.resumeStandbyFailedTimeout(
                             drOpTimeoutMillis / 60 / 1000));
                 }
@@ -587,7 +586,7 @@ public class VdcManager extends AbstractManager {
             case STANDBY_SYNCING:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_DATA_SYNC_TIMEOUT, DATA_SYNC_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: Site {} set to error due to data sync timeout", site.getName());
+                    log.info("Step3: Site {} set to error due to data sync timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.dataSyncFailedTimeout(
                             drOpTimeoutMillis / 60 / 1000));
                 }
@@ -595,7 +594,7 @@ public class VdcManager extends AbstractManager {
             case STANDBY_REMOVING:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_REMOVE_STANDBY_TIMEOUT, REMOVE_STANDBY_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: Site {} set to error due to remove standby timeout", site.getName());
+                    log.info("Step3: Site {} set to error due to remove standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.removeStandbyFailedTimeout(
                             drOpTimeoutMillis / 60 / 1000));
                 }
@@ -603,7 +602,7 @@ public class VdcManager extends AbstractManager {
             case ACTIVE_SWITCHING_OVER:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_SWITCHOVER_TIMEOUT, SWITCHOVER_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: site {} set to error due to switchover timeout", site.getName());
+                    log.info("Step3: Site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverActiveFailedTimeout(
                             site.getName(), drOpTimeoutMillis / 60 / 1000));
                 }
@@ -611,7 +610,7 @@ public class VdcManager extends AbstractManager {
             case STANDBY_SWITCHING_OVER:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_SWITCHOVER_TIMEOUT, SWITCHOVER_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: site {} set to error due to switchover timeout", site.getName());
+                    log.info("Step3: Site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverStandbyFailedTimeout(
                             site.getName(), drOpTimeoutMillis / 60 / 1000));
                 }
@@ -619,7 +618,7 @@ public class VdcManager extends AbstractManager {
             case STANDBY_FAILING_OVER:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_FAILOVER_STANDBY_SITE_TIMEOUT, FAILOVER_STANDBY_SITE_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: site {} set to error due to failover timeout", site.getName());
+                    log.info("Step3: Site {} set to error due to failover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.failoverFailedTimeout(
                             site.getName(), drOpTimeoutMillis / 60 / 1000));
                 }
@@ -627,7 +626,7 @@ public class VdcManager extends AbstractManager {
             case ACTIVE_FAILING_OVER:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_FAILOVER_ACTIVE_SITE_TIMEOUT, FAILOVER_ACTIVE_SITE_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: site {} set to error due to failover timeout", site.getName());
+                    log.info("Step3: Site {} set to error due to failover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.failoverFailedTimeout(
                             site.getName(), drOpTimeoutMillis / 60 / 1000));
                 }

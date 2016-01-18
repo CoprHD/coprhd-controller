@@ -394,7 +394,7 @@ public class ViPRCoreClient {
     }
     
     public Site site(){
-        return new Site(this, client);
+        return new Site(client);
     }
 
     public IPsec ipsec() {

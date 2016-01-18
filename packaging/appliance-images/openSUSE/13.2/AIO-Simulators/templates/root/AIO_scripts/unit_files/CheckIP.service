@@ -1,0 +1,14 @@
+[Unit]
+Description=Service to wait for network to be setup
+After=network.service
+
+[Service]
+Type=fork
+ExecStart=/etc/init.d/CheckIP start
+ExecStop=/etc/init.d/CheckIP stop
+
+[Install]
+WantedBy=multi-user.target
+
+
+

@@ -64,10 +64,12 @@ public class VolumesInCGMigration extends BaseCustomMigrationCallback {
                     if (NullColumnValueGetter.isNullValue(personality) || 
                             personality.equals(PersonalityTypes.SOURCE.name())) {
                         StringSet associatedVolumeIds = volume.getAssociatedVolumes();
-                        for (String associatedVolumeId : associatedVolumeIds) {
-                            Volume backendVol = dbClient.queryObject(Volume.class,
-                                    URI.create(associatedVolumeId));
-                            updateBackendVolume(cg, backendVol, dbClient);
+                        if(associatedVolumeIds != null) {
+                            for (String associatedVolumeId : associatedVolumeIds) {
+                                Volume backendVol = dbClient.queryObject(Volume.class,
+                                        URI.create(associatedVolumeId));
+                                updateBackendVolume(cg, backendVol, dbClient);
+                            }
                         }
                     }
                  

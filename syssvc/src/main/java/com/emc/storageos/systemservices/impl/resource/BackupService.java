@@ -517,7 +517,7 @@ public class BackupService {
     }
 
     private void notifyOtherNodes(String backupName) {
-        URI pushUri = SysClientFactory.URI_NODE_BACKUPS_PUSH;
+        URI pushUri = SysClientFactory.URI_NODE_BACKUPS_PULL;
 
         List<Service> sysSvcs = backupOps.getAllSysSvc();
         for (Service svc : sysSvcs) {

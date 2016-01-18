@@ -1,0 +1,81 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          santander
+# Required-Start:    SimService
+# Required-Stop:
+# Should-Stop:
+# Default-Start:
+# Default-Stop:
+# Description:       setup vplex with rp
+### END INIT INFO
+
+#Don't change these
+SIMULATORS=/data/simulators
+CISCO_DB=$SIMULATORS/cisco-sim/db
+RP_CONFIG=$SIMULATORS/rp/rp_config.properties
+VPLEX_CONFIG=$SIMULATORS/vplex-sim/vplex_config.properties
+VPLEX2_CONFIG=$SIMULATORS/vplex-sim_2/vplex_config.properties
+ip="$(/sbin/ifconfig | grep -A 1 'eth0' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
+hostname="$(host $ip| cut -d ' ' -f 5 |cut -d '.' -f 1)"
+
+setupVPLEXRP(){
+	service VPLEX stop
+	service VPLEX2 stop
+	service RP stop
+	
+	#VPLEX
+        sed -i "s/^emcArrays1=.*/emcArrays1=SYMMETRIX+999595867618,SYMMETRIX+999334388821,XTREMIO+APM99990000241,CLARIION+APM12310359509,CLARIION+APM12346547795/" $VPLEX_CONFIG
+        sed -i "s/^emcArrays2=.*/emcArrays2=SYMMETRIX+999316031302,SYMMETRIX+999024668923,CLARIION+APM12380127239/" $VPLEX_CONFIG
+
+        #VPLEX2
+        sed -i "s/^emcArrays1=.*/emcArrays1=SYMMETRIX+999000414197,XTREMIO+APM99990000251,CLARIION+APM12391522735/" $VPLEX2_CONFIG
+        sed -i "s/^emcArrays2=.*/emcArrays2=/" $VPLEX2_CONFIG
+	
+	#CISCO
+	cp $CISCO_DB/fcns.db.rp $CISCO_DB/fcns.db
+	
+	service RP start
+	service VPLEX2 start
+	service VPLEX start
+}
+
+setupDefault(){
+        service VPLEX stop
+        service VPLEX2 stop
+        service RP stop
+
+        #VPLEX
+        sed -i "s/^emcArrays1=.*/emcArrays1=SYMMETRIX+999024668923,SYMMETRIX+999334388821,SYMMETRIX+999000414197,XTREMIO+APM99990000241,CLARIION+APM12310359509,CLARIION+APM12346547795/" $VPLEX_CONFIG
+        sed -i "s/^emcArrays2=.*/emcArrays2=SYMMETRIX+999316031302,SYMMETRIX+999595867618,CLARIION+APM12380127239,CLARIION+APM12391522735/" $VPLEX_CONFIG
+
+        #VPLEX2
+        sed -i "s/^emcArrays1=.*/emcArrays1=SYMMETRIX+999024668923,SYMMETRIX+999334388821,SYMMETRIX+999000414197,XTREMIO+APM99990000251,CLARIION+APM12310359509,CLARIION+APM12346547795/" $VPLEX2_CONFIG
+        sed -i "s/^emcArrays2=.*/emcArrays2=SYMMETRIX+999316031302,SYMMETRIX+999595867618,CLARIION+APM12380127239,CLARIION+APM12391522735/" $VPLEX2_CONFIG
+
+        #CISCO
+        cp $CISCO_DB/fcns.db.default $CISCO_DB/fcns.db
+
+        service RP start
+        service VPLEX2 start
+        service VPLEX start
+}
+
+case "$1" in
+  --setup-vplex-rp)
+        setupVPLEXRP
+        ;;
+  --setup-default)
+        setupDefault
+        ;;
+  *)
+        echo $"Usage: service santander [OPTIONS]...
+	--setup-vplex-rp	Used to have simulators setup specifically for Santander case VPLEX recoverpoint testing. 
+					This contains 2 VPLEXs, 2 XIOs, and 3 VSANs.
+					Setup is still automatic, there are two VPLEX services now VPLEX and VPLEX2.
+					See RP Simulator Use Guide for configuration details.
+	 --setup-default	Used for the default AIO simulator setup.
+					This contains 1 VPLEX of choice accompanied with 1 XIO and all VMAXs, VNXs and HDSs."
+        exit 1
+        exit 1
+esac
+              

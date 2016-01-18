@@ -1,0 +1,12 @@
+[Unit]
+Description=The XIO simulator
+After=CISCO.service
+
+[Service]
+Type=forking
+ExecStart=/etc/init.d/XIO start
+ExecStop=/etc/init.d/XIO stop
+
+[Install]
+WantedBy=multi-user.target
+

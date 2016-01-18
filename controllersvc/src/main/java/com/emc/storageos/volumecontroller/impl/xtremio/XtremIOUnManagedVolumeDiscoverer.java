@@ -172,7 +172,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
             		for (List<Object> snapSet : snap.getSnapSetList()) {
             			snapSetNameToProcess = snapSet.get(1);
             			XtremIOConsistencyGroup snapSetDetails = xtremIOClient.getSnapshotSetDetails(snapSetNameToProcess.toString(), xioClusterName);
-            			if (snapSetDetails.getCgName() != null) {
+            			if (snapSetDetails != null && snapSetDetails.getCgName() != null) {
             				log.info("Snapshot {} belongs to consistency group {} on the array",
             						snapSetNameToProcess.toString(), snapSetDetails.getCgName());
             				addObjectToUnManagedConsistencyGroup(xtremIOClient, unManagedVolume, snapSetDetails.getCgName(), system, xioClusterName, dbClient);

@@ -28,14 +28,10 @@ public final class MountBlockVolumeHelper {
     /** The flag which indicates whether we're using EMC PowerPath for multipathing or not. */
     protected boolean usePowerPath;
 
-    private HpuxSystem hpux;
-
     private HpuxSupport hpuxSupport;
 
     private MountBlockVolumeHelper(HpuxSupport hpuxSupport) {
         this.hpuxSupport = hpuxSupport;
-        this.hpux = hpuxSupport.getTargetSystem();
-        hpuxSupport.getHostName();
     }
 
     public static MountBlockVolumeHelper create(final HpuxSystem hpux, List<Initiator> ports) {

@@ -50,7 +50,7 @@ public class LicenseFeatureDataTable extends DataTable {
         public FeatureInfo(LicenseFeature lf, StorageStatsWrapper stats) {
             this.id = lf.getModelId();
             this.name = LicenseUtils.getLabel(lf);
-            this.type = lf.getLicenseType();
+            this.type = LicenseUtils.getType(lf);
             this.serial = lf.getSerial();
 
             if (lf.getDateExpires() == null) {

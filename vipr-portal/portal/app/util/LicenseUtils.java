@@ -94,7 +94,7 @@ public class LicenseUtils {
         try {
             License license = BourneUtil.getSysClient().license().get();
 
-            // Creating mockup data. Remove me when the backend is ready.
+            //TODO: Creating mockup data. Remove me when the backend is ready.
             List<LicenseFeature> licenseFeatures = new ArrayList<LicenseFeature>();
             LicenseFeature licenseFeature = new LicenseFeature();
             licenseFeature.setLicensed(true);
@@ -142,7 +142,16 @@ public class LicenseUtils {
         String modelKey = "license.model." + feature.getLicenseFeature();
         String label = MessagesUtils.get(modelKey);
         if (modelKey.equals(label)) {
-            label = feature.getModelId();
+            label = feature.getLicenseFeature();
+        }
+        return label;
+    }
+
+    public static String getType(LicenseFeature feature) {
+        String typeKey = "license.type." + feature.getLicenseType().toLowerCase();
+        String label = MessagesUtils.get(typeKey);
+        if (typeKey.equals(label)) {
+            label = feature.getLicenseType();
         }
         return label;
     }

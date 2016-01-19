@@ -48,7 +48,7 @@ public class LicenseFeatureDataTable extends DataTable {
         private String serial;
 
         public FeatureInfo(LicenseFeature lf, StorageStatsWrapper stats) {
-            this.id = lf.getLicenseFeature();
+            this.id = lf.getModelId();
             this.name = LicenseUtils.getLabel(lf);
             this.type = lf.getLicenseType();
             this.serial = lf.getSerial();

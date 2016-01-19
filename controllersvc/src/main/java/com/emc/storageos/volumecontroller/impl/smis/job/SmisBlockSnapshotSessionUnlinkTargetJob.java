@@ -12,18 +12,18 @@ import java.util.Map;
 
 import javax.cim.CIMObjectPath;
 
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StringSetMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.volumecontroller.JobContext;
@@ -100,19 +100,17 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
     }
 
     /**
-     * Promotes a list of BlockSnapshot instances to their Volume equivalents.  For BlockSnapshot
+     * Promotes a list of BlockSnapshot instances to their Volume equivalents. For BlockSnapshot
      * instances that are part of a target ReplicationGroup, a BlockConsistencyGroup shall be created
      * as part of the promotion.
-     *
+     * 
      * @param snapshots List of BlockSnapshot instances.
-     * @param dbClient  Database client.
+     * @param dbClient Database client.
      */
     private void promoteSnapshotsToVolume(List<BlockSnapshot> snapshots, DbClient dbClient) {
         Map<String, BlockConsistencyGroup> groupCache = new HashMap<>();
 
         for (BlockSnapshot snapshot : snapshots) {
-            URI cgId = getBlockConsistencyGroupForPromotedSnapshot(snapshot, groupCache, dbClient);
-
             // We check to make sure there is not already a volume with the
             // native GUID of the snapshot. This could be the case if we are
             // unlinking a target after restoring a source volume from a
@@ -121,6 +119,7 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
             // linked target. The volume in this case already exists.
             List<Volume> volumesWithNativeId = CustomQueryUtility.getActiveVolumeByNativeGuid(dbClient, snapshot.getNativeGuid());
             if (volumesWithNativeId.isEmpty()) {
+                URI cgId = getBlockConsistencyGroupForPromotedSnapshot(snapshot, groupCache, dbClient);
                 URI sourceObjURI = snapshot.getParent().getURI();
                 if (URIUtil.isType(sourceObjURI, Volume.class)) {
                     Volume sourceVolume = dbClient.queryObject(Volume.class, sourceObjURI);
@@ -162,15 +161,16 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
 
     /**
      * Given a CG snapshot that is to be promoted, create a new BlockConsistencyGroup based on its
-     * ReplicationGroup.  A group cache parameter is accepted and serves to cache BlockConsistencyGroup
+     * ReplicationGroup. A group cache parameter is accepted and serves to cache BlockConsistencyGroup
      * instances that have already been created.
-     *
-     * @param snapshot      BlockSnapshot being promoted.
-     * @param groupCache    Cache mapping of ReplicationGroup name to BlockConsistencyGroup instances.
-     * @param dbClient      Database client.
-     * @return              BlockConsistencyGroup URI or null.
+     * 
+     * @param snapshot BlockSnapshot being promoted.
+     * @param groupCache Cache mapping of ReplicationGroup name to BlockConsistencyGroup instances.
+     * @param dbClient Database client.
+     * @return BlockConsistencyGroup URI or null.
      */
-    private URI getBlockConsistencyGroupForPromotedSnapshot(BlockSnapshot snapshot, Map<String, BlockConsistencyGroup> groupCache, DbClient dbClient) {
+    private URI getBlockConsistencyGroupForPromotedSnapshot(BlockSnapshot snapshot, Map<String, BlockConsistencyGroup> groupCache,
+            DbClient dbClient) {
         if (!snapshot.hasConsistencyGroup()) {
             return null;
         }

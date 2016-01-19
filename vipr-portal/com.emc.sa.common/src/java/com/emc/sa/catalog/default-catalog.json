@@ -219,7 +219,7 @@
           "baseService": "RemoveFileSystemQuotaDirectory"
         },
         {
-          "image": "icon_folder_NFS_remove.png",
+          "image": "Service_Change_File_Virtual_Pool.png",
           "baseService": "ChangeFileVirtualPool"
         }    
       ]
@@ -258,16 +258,16 @@
           "baseService": "DeleteFileSnapshotExport"
         },
         {
-          "image": "icon_folder_NFS_remove.png",
+          "image": "Service_Create_File_Continuous_Copy.png",
           "baseService": "CreateFileContinuousCopy"
         }
         ,
         {
-          "image": "icon_folder_NFS_remove.png",
+          "image": "Service_Remove_File_Continuous_Copy.png",
           "baseService": "RemoveFileContinuousCopy"
         },
         {
-          "image": "icon_folder_NFS_remove.png",
+          "image": "Service_Failover_File_System.png",
           "baseService": "FailoverFileSystem"
         }
       ]

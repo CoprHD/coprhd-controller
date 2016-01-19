@@ -73,12 +73,12 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
                 request = $.get(url, function (results) {
                     console.info("request: %s", results);
                     stop = true;
-                    var field = ['creationtime','actionstatus','error', 'status'];
+                    var field = ['creationtime', 'actionstatus', 'error', 'status'];
                     updateDatatableRows(table, results, field);
                 });
             };
             update(dataTable);
-            if(stop) {
+            if (stop) {
                 request.abort();
             }
         }

@@ -9,9 +9,11 @@ import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -69,12 +71,27 @@ public class IsilonApi {
     private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
 
+    private static final URI URI_SMARTQUOTA_LICENSE_INFO = URI.create("/platform/1/quota/license");
+
+    public enum IsilonLicenseType {
+        SMARTQUOTA,
+    }
+
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
+
+    private static final Map<IsilonLicenseType, URI> licenseMap;
+
+    static {
+        Map<IsilonLicenseType, URI> result = new HashMap<IsilonLicenseType, URI>();
+        result.put(IsilonLicenseType.SMARTQUOTA, URI_SMARTQUOTA_LICENSE_INFO);
+        licenseMap = Collections.unmodifiableMap(result);
+    }
 
     /**
      * Class representing Isilon list API return value
      * 
-     * @param <T> type of object in the list
+     * @param <T>
+     *            type of object in the list
      */
     public static class IsilonList<T> {
         // list of objects returned
@@ -190,7 +207,8 @@ public class IsilonApi {
     /**
      * Get list of all sub directories of fspath
      * 
-     * @param fspath directory path to lookup
+     * @param fspath
+     *            directory path to lookup
      * @return ArrayList<String> list of names of sub directories
      * @throws IsilonException
      */
@@ -236,7 +254,8 @@ public class IsilonApi {
     /**
      * Checks to see if the dir with the given path exists on the isilon device
      * 
-     * @param fspath directory path to chek
+     * @param fspath
+     *            directory path to chek
      * @return boolean true if exists, false otherwise
      */
     public boolean existsDir(String fspath) throws IsilonException {
@@ -267,7 +286,8 @@ public class IsilonApi {
      * Create a directory with the path specified, will fail if parent does not
      * exist
      * 
-     * @param fspath Dir path to be created
+     * @param fspath
+     *            Dir path to be created
      * @throws IsilonException
      */
     public void createDir(String fspath) throws IsilonException {
@@ -277,8 +297,10 @@ public class IsilonApi {
     /**
      * Create a directory with the path specified
      * 
-     * @param fspath Dir path to be created
-     * @param recursive if true, will create parent recursively if it doesn't
+     * @param fspath
+     *            Dir path to be created
+     * @param recursive
+     *            if true, will create parent recursively if it doesn't
      *            exist
      * @throws IsilonException
      */
@@ -322,7 +344,8 @@ public class IsilonApi {
     /**
      * Delete directory on isilon, will fail if any sub directories exist
      * 
-     * @param fspath directory path
+     * @param fspath
+     *            directory path
      * @throws IsilonException
      */
     public void deleteDir(String fspath) throws IsilonException {
@@ -332,8 +355,10 @@ public class IsilonApi {
     /**
      * Delete directory on isilon
      * 
-     * @param fspath directory path
-     * @param recursive if true, will delete all sub directories also
+     * @param fspath
+     *            directory path
+     * @param recursive
+     *            if true, will delete all sub directories also
      * @throws IsilonException
      */
     public void deleteDir(String fspath, boolean recursive) throws IsilonException {
@@ -358,10 +383,13 @@ public class IsilonApi {
     /**
      * Generic list resources implementation
      * 
-     * @param url url to get from
-     * @param key key representing the array in the response, also represents
+     * @param url
+     *            url to get from
+     * @param key
+     *            key representing the array in the response, also represents
      *            the type of object to be listed
-     * @param c Class of the object to parse from the list
+     * @param c
+     *            Class of the object to parse from the list
      * @return IsilonList<T> ArrayList of objects parsed
      * @throws IsilonException
      */
@@ -423,10 +451,13 @@ public class IsilonApi {
     /**
      * Generic create resource implementation
      * 
-     * @param url url to post the create to
-     * @param key reference string used in error reporting, representing the
+     * @param url
+     *            url to post the create to
+     * @param key
+     *            reference string used in error reporting, representing the
      *            object type
-     * @param obj Object to post for the create
+     * @param obj
+     *            Object to post for the create
      * @return String identifier returns from the server
      * @throws IsilonException
      */
@@ -468,9 +499,12 @@ public class IsilonApi {
     /**
      * Generic delete resource
      * 
-     * @param url url to delete
-     * @param id identifier to be deleted
-     * @param key reference string representing the object type being deleted
+     * @param url
+     *            url to delete
+     * @param id
+     *            identifier to be deleted
+     * @param key
+     *            reference string representing the object type being deleted
      * @throws IsilonException
      */
     private void delete(URI url, String id, String key) throws IsilonException {
@@ -498,10 +532,14 @@ public class IsilonApi {
     /**
      * Generic get resource
      * 
-     * @param url url to get from
-     * @param id identifier for the object
-     * @param key reference string representing the object type being deleted
-     * @param c Class of object representing the return value
+     * @param url
+     *            url to get from
+     * @param id
+     *            identifier for the object
+     * @param key
+     *            reference string representing the object type being deleted
+     * @param c
+     *            Class of object representing the return value
      * @return T Object parsed from the response, on success
      * @throws IsilonException
      */
@@ -546,10 +584,14 @@ public class IsilonApi {
     /**
      * Generic modify resource with 204 as HTTP response code.
      * 
-     * @param url url to PUT the modify request
-     * @param id identifier for the object to modify
-     * @param key object type represented as string for error reporting
-     * @param obj modified object to put
+     * @param url
+     *            url to PUT the modify request
+     * @param id
+     *            identifier for the object to modify
+     * @param key
+     *            object type represented as string for error reporting
+     * @param obj
+     *            modified object to put
      * @throws IsilonException
      */
     private <T> void modify(URI url, String id, String key, T obj) throws IsilonException {
@@ -583,10 +625,14 @@ public class IsilonApi {
     /**
      * Generic modify resource with 200 as HTTP response code.
      * 
-     * @param url url to PUT the modify request
-     * @param id identifier for the object to modify
-     * @param key object type represented as string for error reporting
-     * @param obj modified object to put
+     * @param url
+     *            url to PUT the modify request
+     * @param id
+     *            identifier for the object to modify
+     * @param key
+     *            object type represented as string for error reporting
+     * @param obj
+     *            modified object to put
      * @throws IsilonException
      */
     private <T> void put(URI url, String id, String key, T obj) throws IsilonException {
@@ -667,7 +713,8 @@ public class IsilonApi {
     /**
      * Create export
      * 
-     * @param exp IsilonExport object with paths and clients set
+     * @param exp
+     *            IsilonExport object with paths and clients set
      * @return String identifier for the export created
      * @throws IsilonException
      */
@@ -679,7 +726,8 @@ public class IsilonApi {
     /**
      * Create export on access zone
      * 
-     * @param exp IsilonExport object with paths and clients set
+     * @param exp
+     *            IsilonExport object with paths and clients set
      * @return String identifier for the export created
      * @throws IsilonException
      */
@@ -692,8 +740,10 @@ public class IsilonApi {
     /**
      * Modify export
      * 
-     * @param id identifier of the export to modify
-     * @param exp IsilonExport object with the modified properties
+     * @param id
+     *            identifier of the export to modify
+     * @param exp
+     *            IsilonExport object with the modified properties
      * @throws IsilonException
      */
     public void modifyExport(String id, IsilonExport exp) throws IsilonException {
@@ -703,8 +753,10 @@ public class IsilonApi {
     /**
      * Modify export in access zone
      * 
-     * @param id identifier of the export to modify
-     * @param exp IsilonExport object with the modified properties
+     * @param id
+     *            identifier of the export to modify
+     * @param exp
+     *            IsilonExport object with the modified properties
      * @throws IsilonException
      */
     public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
@@ -715,7 +767,8 @@ public class IsilonApi {
     /**
      * Get export
      * 
-     * @param id identifier of the export to get
+     * @param id
+     *            identifier of the export to get
      * @return IsilonExport object
      * @throws IsilonException
      */
@@ -726,7 +779,8 @@ public class IsilonApi {
     /**
      * Get export for given access zone
      * 
-     * @param id identifier of the export to get
+     * @param id
+     *            identifier of the export to get
      * @return IsilonExport object
      * @throws IsilonException
      */
@@ -738,7 +792,8 @@ public class IsilonApi {
     /**
      * Delete export
      * 
-     * @param id identifier for the export object to delete
+     * @param id
+     *            identifier for the export object to delete
      * @throws IsilonException
      */
     public void deleteExport(String id) throws IsilonException {
@@ -748,7 +803,8 @@ public class IsilonApi {
     /**
      * Delete export in access zone
      * 
-     * @param id identifier for the export object to delete
+     * @param id
+     *            identifier for the export object to delete
      * @throws IsilonException
      */
     public void deleteExport(String id, String zoneName) throws IsilonException {
@@ -792,8 +848,10 @@ public class IsilonApi {
     /**
      * Create a smartquota
      * 
-     * @param path directory to set quota for
-     * @param thresholds optional long values for the thresholds if none
+     * @param path
+     *            directory to set quota for
+     * @param thresholds
+     *            optional long values for the thresholds if none
      *            specified, an un-enforced quota will be created otherwise, the
      *            first value is used for hard limit and rest ignored for now
      * @return Identifier for the quota created
@@ -802,7 +860,7 @@ public class IsilonApi {
     public String createQuota(String path, long... thresholds) throws IsilonException {
         IsilonSmartQuota quota;
         if (thresholds != null && thresholds.length > 0) {
-            quota = constructIsilonSmartQuotaObjectWithThreshold(path, false, false,thresholds);
+            quota = constructIsilonSmartQuotaObjectWithThreshold(path, false, false, thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
                                       // cluster size.
         } else {
@@ -817,13 +875,17 @@ public class IsilonApi {
     /**
      * Create a smartquota
      * 
-     * @param path directory to set quota for
-     * @param thresholds optional long values for the thresholds if none
+     * @param path
+     *            directory to set quota for
+     * @param thresholds
+     *            optional long values for the thresholds if none
      *            specified, an un-enforced quota will be created otherwise, the
      *            first value is used for hard limit and rest ignored for now
-     * @param bThresholdsIncludeOverhead value to indicate if overhead is
+     * @param bThresholdsIncludeOverhead
+     *            value to indicate if overhead is
      *            to be included in the quota
-     * @param bIncludeSnapshots value to indicate if snapshot size is to be included
+     * @param bIncludeSnapshots
+     *            value to indicate if snapshot size is to be included
      *            in the quota
      * @return Identifier for the quota created
      * @throws IsilonException
@@ -851,42 +913,44 @@ public class IsilonApi {
         IsilonSmartQuota quota;
         switch (thresholds.length) {
             case 2:
-                quota = new IsilonSmartQuota(path, thresholds[0], 
-                        (long) ((thresholds[1] * thresholds[0])/100),
-                        (long) ((directorySoftQuotaDefaultSize * thresholds[0])/100),
+                quota = new IsilonSmartQuota(path, thresholds[0],
+                        (thresholds[1] * thresholds[0]) / 100,
+                        (directorySoftQuotaDefaultSize * thresholds[0]) / 100,
                         (directorySoftQuotaDefaultGracePeriod * 60 * 60 * 24), bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
             case 3:
-                quota = new IsilonSmartQuota(path, thresholds[0], 
-                        (long) ((thresholds[1] * thresholds[0])/100),
-                        (long) ((thresholds[2] * thresholds[0])/100),
+                quota = new IsilonSmartQuota(path, thresholds[0],
+                        (thresholds[1] * thresholds[0]) / 100,
+                        (thresholds[2] * thresholds[0]) / 100,
                         (directorySoftQuotaDefaultGracePeriod * 60 * 60 * 24), bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
             case 4:
-                quota = new IsilonSmartQuota(path, thresholds[0], 
-                        (long) ((thresholds[1] * thresholds[0])/100),
-                        (long) ((thresholds[2] * thresholds[0])/100),
+                quota = new IsilonSmartQuota(path, thresholds[0],
+                        (thresholds[1] * thresholds[0]) / 100,
+                        (thresholds[2] * thresholds[0]) / 100,
                         (thresholds[3] * 60 * 60 * 24), bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
             default:
-                quota = new IsilonSmartQuota(path, thresholds[0], 
-                        (long) ((directoryAdvisoryQuotaSize * thresholds[0])/100),
-                        (long) ((directorySoftQuotaDefaultSize * thresholds[0])/100),
+                quota = new IsilonSmartQuota(path, thresholds[0],
+                        (directoryAdvisoryQuotaSize * thresholds[0]) / 100,
+                        (directorySoftQuotaDefaultSize * thresholds[0]) / 100,
                         (directorySoftQuotaDefaultGracePeriod * 60 * 60 * 24), bThresholdsIncludeOverhead,
                         bIncludeSnapshots);
                 break;
         }
         return quota;
     }
-    
+
     /**
      * Modify a smartquota
      * 
-     * @param id Identifier for the quota to be modified
-     * @param q IsilonSmartQuota object with the modified values set
+     * @param id
+     *            Identifier for the quota to be modified
+     * @param q
+     *            IsilonSmartQuota object with the modified values set
      * @throws IsilonException
      */
     public void modifyQuota(String id, IsilonSmartQuota q) throws IsilonException {
@@ -896,7 +960,8 @@ public class IsilonApi {
     /**
      * Get smart quota
      * 
-     * @param id Identifier id the smartquota to get
+     * @param id
+     *            Identifier id the smartquota to get
      * @return IsilonSmartQuota object
      * @throws IsilonException
      */
@@ -907,7 +972,8 @@ public class IsilonApi {
     /**
      * Delete a smart quota
      * 
-     * @param id Identifier of the smart quota object to delete
+     * @param id
+     *            Identifier of the smart quota object to delete
      * @throws IsilonException
      */
     public void deleteQuota(String id) throws IsilonException {
@@ -950,8 +1016,10 @@ public class IsilonApi {
     /**
      * Create snapshot
      * 
-     * @param name String label to be used for the snapshot
-     * @param path directory path to snapshot
+     * @param name
+     *            String label to be used for the snapshot
+     * @param path
+     *            directory path to snapshot
      * @return String identifier for the snapshot created
      * @throws IsilonException
      */
@@ -963,8 +1031,10 @@ public class IsilonApi {
     /**
      * Modify snapshot
      * 
-     * @param id Identifier for the snapshot to be modified
-     * @param s IsilonSnapshot object with the modified values
+     * @param id
+     *            Identifier for the snapshot to be modified
+     * @param s
+     *            IsilonSnapshot object with the modified values
      * @throws IsilonException
      */
     public void modifySnapshot(String id, IsilonSnapshot s) throws IsilonException {
@@ -974,7 +1044,8 @@ public class IsilonApi {
     /**
      * Get snapshot
      * 
-     * @param id Identifier of the snapshot to get
+     * @param id
+     *            Identifier of the snapshot to get
      * @return IsilonSnapshot object
      * @throws IsilonException
      */
@@ -985,7 +1056,8 @@ public class IsilonApi {
     /**
      * Delete a snapshot
      * 
-     * @param id Identifier of the snapshot to delete
+     * @param id
+     *            Identifier of the snapshot to delete
      * @throws IsilonException
      */
     public void deleteSnapshot(String id) throws IsilonException {
@@ -1027,9 +1099,12 @@ public class IsilonApi {
      * Create SMB share
      * 
      * @param name
-     * @param path Path to create the share
-     * @param desc Description
-     * @param host Host for access
+     * @param path
+     *            Path to create the share
+     * @param desc
+     *            Description
+     * @param host
+     *            Host for access
      * @return Identifier of the SMB share created
      * @throws IsilonException
      */
@@ -1066,8 +1141,10 @@ public class IsilonApi {
     /**
      * Modify SMB share
      * 
-     * @param id Identifier for the SMB share to modify
-     * @param s IsilonSMBShare object with the modified values set
+     * @param id
+     *            Identifier for the SMB share to modify
+     * @param s
+     *            IsilonSMBShare object with the modified values set
      * @throws IsilonException
      */
     public void modifyShare(String id, IsilonSMBShare s) throws IsilonException {
@@ -1077,8 +1154,10 @@ public class IsilonApi {
     /**
      * Modify SMB share in access zone
      * 
-     * @param id Identifier for the SMB share to modify
-     * @param s IsilonSMBShare object with the modified values set
+     * @param id
+     *            Identifier for the SMB share to modify
+     * @param s
+     *            IsilonSMBShare object with the modified values set
      * @throws IsilonException
      */
     public void modifyShare(String id, String zoneName, IsilonSMBShare s) throws IsilonException {
@@ -1089,7 +1168,8 @@ public class IsilonApi {
     /**
      * Get SMB share properties
      * 
-     * @param id Identifier of the SMB share to get
+     * @param id
+     *            Identifier of the SMB share to get
      * @return IsilonSMBShare object
      * @throws IsilonException
      */
@@ -1100,7 +1180,8 @@ public class IsilonApi {
     /**
      * Get SMB share properties on access zone
      * 
-     * @param id Identifier of the SMB share to get
+     * @param id
+     *            Identifier of the SMB share to get
      * @return IsilonSMBShare object
      * @throws IsilonException
      */
@@ -1113,7 +1194,8 @@ public class IsilonApi {
     /**
      * Delete SMB share
      * 
-     * @param id Identifier of the SMB share to delete
+     * @param id
+     *            Identifier of the SMB share to delete
      * @throws IsilonException
      */
     public void deleteShare(String id) throws IsilonException {
@@ -1123,7 +1205,8 @@ public class IsilonApi {
     /**
      * Delete SMB share in access zone
      * 
-     * @param id Identifier of the SMB share to delete
+     * @param id
+     *            Identifier of the SMB share to delete
      * @throws IsilonException
      */
     public void deleteShare(String id, String zoneName) throws IsilonException {
@@ -1134,8 +1217,10 @@ public class IsilonApi {
     /**
      * Modify NFS ACL
      * 
-     * @param path path for the directory or file system to set ACL
-     * @param IsilonNFSACL object with the modified values set
+     * @param path
+     *            path for the directory or file system to set ACL
+     * @param IsilonNFSACL
+     *            object with the modified values set
      * @throws IsilonException
      */
     public void modifyNFSACL(String path, IsilonNFSACL acl) throws IsilonException {
@@ -1146,7 +1231,8 @@ public class IsilonApi {
     /**
      * Get NFS ACL properties
      * 
-     * @param path Identifier of the SMB share to get
+     * @param path
+     *            Identifier of the SMB share to get
      * @return IsilonNFSACL object
      * @throws IsilonException
      */
@@ -1265,7 +1351,8 @@ public class IsilonApi {
      * Get list of events from the url
      * 
      * @param url
-     * @param firmwareVersion : Isilon version
+     * @param firmwareVersion
+     *            : Isilon version
      * @return ArrayList of IsilonEvent objects
      * @throws IsilonException
      */
@@ -1310,10 +1397,13 @@ public class IsilonApi {
     /**
      * Get the list of events in the time range
      * 
-     * @param begin number of seconds relative to current (e.g. -3600 for 1hr
+     * @param begin
+     *            number of seconds relative to current (e.g. -3600 for 1hr
      *            back)
-     * @param end number of seconds relative to current
-     * @param firmwareVersion : Isilon version
+     * @param end
+     *            number of seconds relative to current
+     * @param firmwareVersion
+     *            : Isilon version
      * @return ArrayList of IsilonEvent objects
      * @throws IsilonException
      */
@@ -1352,7 +1442,8 @@ public class IsilonApi {
     /**
      * Get current statistics
      * 
-     * @param key Stats's key
+     * @param key
+     *            Stats's key
      * @return map of node number to IsilonStats.StatValueCurrent
      * @throws IsilonException
      */
@@ -1408,7 +1499,8 @@ public class IsilonApi {
     /**
      * Get statistic history
      * 
-     * @param key Stats's key
+     * @param key
+     *            Stats's key
      * @param valueType
      * @return IsilonStats.StatValueHistory
      * @throws IsilonException
@@ -1473,7 +1565,8 @@ public class IsilonApi {
      * Get statistic protocols
      * 
      * @return protocol list
-     * @throws Exception IsilonException
+     * @throws Exception
+     *             IsilonException
      */
     public ArrayList<IsilonStats.Protocol> getStatsProtocols() throws IsilonException {
 
@@ -1510,10 +1603,14 @@ public class IsilonApi {
     /**
      * Process http error response from Isilon
      * 
-     * @param operationKey opertaion key: list, create, delete, modify, etc
-     * @param objectKey object type: export, snapshot, smb share,...
-     * @param httpStatus http status
-     * @param errorEntity entity of error response
+     * @param operationKey
+     *            opertaion key: list, create, delete, modify, etc
+     * @param objectKey
+     *            object type: export, snapshot, smb share,...
+     * @param httpStatus
+     *            http status
+     * @param errorEntity
+     *            entity of error response
      * @throws IsilonException
      * @throws JSONException
      */
@@ -1579,4 +1676,34 @@ public class IsilonApi {
         return buffer.toString();
     }
 
+    /**
+     * Checks the status of a license on Isilon
+     * 
+     * @param licenseType
+     *            type of the license for which the activation status is required
+     * @return licenseStatus Status of license
+     * @throws IsilonException
+     * @throws JSONException
+     */
+    public String getLicenseInfo(IsilonLicenseType licenseType) throws IsilonException, JSONException {
+        ClientResponse resp = null;
+        String licenseStatus = "Unknown";
+
+        try {
+            // Verify whether specified license is activated on ISILON array or not
+            resp = _client.get(_baseUrl.resolve(licenseMap.get(licenseType)));
+            JSONObject jsonResp = resp.getEntity(JSONObject.class);
+            if (jsonResp.has("status")) {
+                licenseStatus = jsonResp.get("status").toString();
+                return licenseStatus;
+            }
+        } catch (Exception e) {
+            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+        return licenseStatus;
+    }
 }

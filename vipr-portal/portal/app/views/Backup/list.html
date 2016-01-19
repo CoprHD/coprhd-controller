@@ -38,6 +38,7 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
 
 <script type="text/javascript">
     stop = false;
+    request = null;
     type = "${type}";
     LOCAL = "${models.datatable.BackupDataTable.Type.LOCAL}";
     REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
@@ -77,8 +78,9 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
                     updateDatatableRows(table, results, field);
                 });
             };
-            update(dataTable);
-            if (stop) {
+            if (request == null) {
+                update(dataTable);
+            } else if (stop) {
                 request.abort();
             }
         }
@@ -123,6 +125,7 @@ render.uploadAndRestoreProgressIcon = function(o, val) {
 	        'DONE':    'label-success',
             'CANCELLED': 'label-danger',
             //Restore Status
+            'LOADING':    'label-info',
             'DOWNLOADING':    'label-info',
             'DOWNLOAD_SUCCESS':    'label-success',
             'DOWNLOAD_FAILED':    'label-danger',
@@ -137,6 +140,7 @@ render.uploadAndRestoreProgressIcon = function(o, val) {
 	        'CANCELLED': 'glyphicon glyphicon-warning-sign',
 	        'FAILED':       'glyphicon glyphicon-remove',
             //Restore Status
+            'LOADING':    'glyphicon glyphicon-refresh rotate',
             'DOWNLOADING':    'glyphicon glyphicon-refresh rotate',
             'DOWNLOAD_SUCCESS':    'glyphicon glyphicon-ok',
             'DOWNLOAD_FAILED':    'glyphicon glyphicon-remove',
@@ -160,6 +164,7 @@ render.uploadAndRestoreProgressMessage = function(o, val) {
         'DONE':    Messages.get("renderFunctions.backupupload.status.done"),
         'CANCELLED':    Messages.get("renderFunctions.backupupload.status.cancel"),
         //Restore Status
+        'LOADING':    Messages.get("renderFunctions.restore.status.loading"),
         'DOWNLOADING':    Messages.get("renderFunctions.restore.status.downloading"),
         'DOWNLOAD_SUCCESS':    Messages.get("renderFunctions.restore.status.downloadsuccess"),
         'DOWNLOAD_FAILED':    Messages.get("renderFunctions.restore.status.downloadfailed"),

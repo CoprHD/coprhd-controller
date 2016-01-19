@@ -170,6 +170,12 @@ public class DrUtil {
                 return site;
             }
         }
+        
+        Site localSite = getLocalSite();
+        if (localSite.getState() == SiteState.ACTIVE_DEGRADED) {
+            return localSite;
+        }
+        
         throw CoordinatorException.retryables.cannotFindSite(vdcShortId);
     }
     /**

@@ -182,7 +182,7 @@ public class ClusterIpInfo implements Serializable {
     }
 
     public boolean weakEqual(String vip, Map<String, String> ipv4Addresses, Map<String, String> ipv6Addresses) {
-        if (vip.contains("::")) {
+        if (vip.contains(":")) {
             if (!ipv6_setting.getNetworkVip6().equals(vip)) {
                 return false;
             }

@@ -1907,6 +1907,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 String key = storageSystem.toString() + rpSiteName + varray.toString();
 
                 // Try and get an existing rp export object from the map using the key
+                // If a separate varray is specified is for journals, a new entry will be created. 
                 RPExport rpExport = rpExportMap.get(key);
 
                 // If it doesn't exist, create the entry and add it to the map with the key

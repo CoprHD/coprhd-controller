@@ -922,6 +922,7 @@ db.healthdashboard.title=Database Housekeeping Status
 Backup.list.title=Data Backup
 backup.name=Name
 backup.size=Size
+backup.GB=%s GB
 backup.MB=%s MB
 backup.KB=%s KB
 backup.bytes=%s bytes

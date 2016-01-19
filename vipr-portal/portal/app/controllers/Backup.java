@@ -67,7 +67,7 @@ public class Backup extends Controller {
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void itemsJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
-        if (ids != null && ids.length > 0) {
+        if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
                     BackupSet backup = BackupUtils.getBackup(id);
@@ -82,7 +82,7 @@ public class Backup extends Controller {
 
     public static void externalItemsJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
-        if (ids != null && ids.length > 0) {
+        if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
                     ExternalBackupInfo backupInfo = BackupUtils.getExternalBackup(id);
@@ -167,7 +167,7 @@ public class Backup extends Controller {
             if (totalSize != 0) {
                 checkProgress = downloadSize / totalSize > 100 ? 100 : (int) (downloadSize / totalSize);
             }
-            renderArgs.put("downloadStatus", status.getStatus().toString());
+            renderArgs.put("downloadStatus", status.getStatus().name());
             renderArgs.put("checkProgress", checkProgress);
         }
         renderArgs.put("id", id);
@@ -188,13 +188,13 @@ public class Backup extends Controller {
         restoreForm.password = params.get("restoreForm.password");
         restoreForm.isGeoFromScratch = params.get("restoreForm.isGeoFromScratch", boolean.class);
         Type type = params.get("restoreForm.type", Type.class);
-        restoreForm.isLocal = type == Type.LOCAL ? true : false;
+        restoreForm.isLocal = type == Type.LOCAL;
         restoreForm.restore();
         list(type);
     }
 
     public static void getRestoreStatus(String id, Type type) {
-        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL ? true : false);
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
         renderJSON(status);
     }
 
@@ -250,7 +250,6 @@ public class Backup extends Controller {
         public void restore() throws ViPRException {
             BackupUtils.restore(name, StringUtils.trimToNull(password), isLocal, isGeoFromScratch);
         }
-
     }
 
 }

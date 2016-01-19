@@ -197,6 +197,10 @@ render.uploadAndRestoreProgress = function(o, val) {
 
 render.backupSize = function (o, val) {
     var size = o.aData.size;
+    if (size > 1024 * 1024 * 1024) {
+        size = Math.round(size / (1024 * 1024 * 1024));
+        return Messages.get("backup.GB", size);
+    }
     if (size > 1024 * 1024) {
         size = Math.round(size / (1024 * 1024));
         return Messages.get("backup.MB", size);

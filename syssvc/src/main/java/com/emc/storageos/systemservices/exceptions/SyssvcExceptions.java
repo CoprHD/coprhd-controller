@@ -50,4 +50,7 @@ public interface SyssvcExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_BACKUP_PULL_FAILED)
     public SyssvcInternalException pullBackupFailed(final String backupName, final String details);
+
+    @DeclareServiceCode(ServiceCode.SYS_BACKUP_EXTERNAL_SERVER_ERROR)
+    public SyssvcInternalException externalBackupServerError(final String details);
 }

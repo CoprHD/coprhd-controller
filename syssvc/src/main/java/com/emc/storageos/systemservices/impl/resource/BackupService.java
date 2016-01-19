@@ -489,6 +489,8 @@ public class BackupService {
     public Response pullBackup(@QueryParam("file") String backupName ) {
         log.info("The backup file {} to download", backupName);
 
+        checkExternalServer();
+
         if (hasDownloadingInProgress()) {
             Map<String, String> currentBackupInfo = backupOps.getCurrentBackupInfo();
             String errmsg = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY)+ " is downloading";
@@ -501,6 +503,13 @@ public class BackupService {
 
         log.info("done");
         return Response.status(202).build();
+    }
+
+    private void checkExternalServer() {
+        SchedulerConfig cfg = backupScheduler.getCfg();
+        if (cfg.uploadUrl == null) {
+            throw SyssvcException.syssvcExceptions.externalBackupServerError("The server is not set");
+        }
     }
 
     private boolean hasDownloadingInProgress() {

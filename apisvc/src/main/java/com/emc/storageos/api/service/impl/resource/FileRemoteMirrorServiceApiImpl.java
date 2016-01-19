@@ -12,8 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.FileMirrorSchedular;
-import com.emc.storageos.api.service.impl.placement.FileRecommendation;
-import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -23,19 +21,18 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
+import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.file.FileSystemParam;
 import com.google.common.base.Strings;
 
 public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMirrorSchedular> {
-    
+
     private static final Logger _log = LoggerFactory.getLogger(FileRemoteMirrorServiceApiImpl.class);
-    
+
     private FileMirrorServiceApiImpl _fileMirrorServiceApiImpl;
 
     public FileMirrorServiceApiImpl getFileMirrorServiceApiImpl() {
@@ -54,7 +51,7 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
         super(protectionType);
         // TODO Auto-generated constructor stub
     }
-    
+
     @Override
     public TaskList createFileSystems(FileSystemParam param, Project project, VirtualArray varray,
             VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags, List<Recommendation> recommendations,
@@ -64,14 +61,12 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
                 recommendations, taskList, taskId, vpoolCapabilities);
     }
 
-   
-    
     @Override
     public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType, boolean forceDelete, String task)
             throws InternalException {
         super.deleteFileSystems(systemURI, fileSystemURIs, deletionType, forceDelete, task);
     }
-    
+
     @Override
     protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(
             URI systemURI, List<URI> fileShareURIs, String deletionType, boolean forceDelete) {
@@ -100,7 +95,7 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
         }
         return fileDescriptors;
     }
-    
+
     private boolean isParentInactiveForTarget(FileShare fileShare) {
         NamedURI parent = fileShare.getParentFileShare();
         if (NullColumnValueGetter.isNullNamedURI(parent)) {
@@ -118,6 +113,5 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
         }
         return FileShare.PersonalityTypes.valueOf(fileShare.getPersonality());
     }
-
 
 }

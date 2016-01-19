@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,22 +18,17 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -95,8 +89,24 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
 
     /**
+     * Map of implementing class instances; used for iterating through them for
+     * connectivity purposes.
+     */
+    static private Map<String, AbstractFileServiceApiImpl> s_protectionImplementations = new HashMap<String, AbstractFileServiceApiImpl>();
+
+    public AbstractFileServiceApiImpl(String protectionType) {
+        if (protectionType != null) {
+            s_protectionImplementations.put(protectionType, this);
+        }
+    }
+
+    static protected Map<String, AbstractFileServiceApiImpl> getProtectionImplementations() {
+        return s_protectionImplementations;
+    }
+
+    /**
      * Check if a resource can be deactivated safely
-     *
+     * 
      * @return detail type of the dependency if exist, null otherwise
      * @throws InternalException
      */
@@ -111,7 +121,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
 
     /**
      * Looks up controller dependency for given hardware
-     *
+     * 
      * @param clazz controller interface
      * @param hw hardware name
      * @param <T>
@@ -137,7 +147,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         // Get volume descriptor for all volumes to be deleted.
         List<FileDescriptor> fileDescriptors = getDescriptorsOfFileShareDeleted(
                 systemURI, fileSystemURIs, deletionType, forceDelete);
-        //place request in queue
+        // place request in queue
         FileOrchestrationController controller = getController(
                 FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
@@ -156,5 +166,4 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     abstract protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
             List<URI> fileShareURIs, String deletionType, boolean forceDelete);
 
- 
 }

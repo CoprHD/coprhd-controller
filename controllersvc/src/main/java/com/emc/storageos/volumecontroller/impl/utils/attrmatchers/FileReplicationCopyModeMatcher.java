@@ -34,7 +34,7 @@ public class FileReplicationCopyModeMatcher extends AttributeMatcher {
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
-        return (null != attributeMap && attributeMap.containsKey(Attributes.file_replication_copy_mode.toString()));
+        return (null != attributeMap && attributeMap.containsKey(Attributes.remote_copy_mode.toString()));
     }
 
     @Override
@@ -47,7 +47,7 @@ public class FileReplicationCopyModeMatcher extends AttributeMatcher {
         // Group the storage pools by storage system
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         String copyMode = SupportedCopyModes.ASYNCHRONOUS.toString();
-        if (attributeMap.get(Attributes.file_replication_copy_mode.toString()) != null) {
+        if (attributeMap.get(Attributes.remote_copy_mode.toString()) != null) {
             copyMode = (String) attributeMap.get(Attributes.file_replication_copy_mode.toString());
         }
         String copyType = getPoolCopyTypeFromCopyModes(copyMode);

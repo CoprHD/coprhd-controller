@@ -5,12 +5,13 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
@@ -18,8 +19,6 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
-
-import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.model.TaskList;
@@ -28,7 +27,6 @@ import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-
 
 /**
  * File Service subtask (parts of larger operations) default implementation.
@@ -103,8 +101,7 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
         }
         return fileDescriptors;
     }
-    
-    
+
     /**
      * {@inheritDoc}
      */

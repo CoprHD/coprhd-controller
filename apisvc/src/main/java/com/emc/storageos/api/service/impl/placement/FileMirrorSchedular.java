@@ -126,8 +126,7 @@ public class FileMirrorSchedular implements Scheduler {
                     // Filter the target storage pools!!!
                     Map<String, Object> attributeMap = new HashMap<String, Object>();
                     attributeMap.put(Attributes.system_type.toString(), srcSystemType);
-                    attributeMap.put(Attributes.file_replication_copy_mode.toString(), targetCopy.getCopyMode());
-                    attributeMap.put(Attributes.file_replication_copy_mode.toString(), targetCopy.getCopyMode());
+                    attributeMap.put(Attributes.remote_copy_mode.toString(), targetCopy.getCopyMode());
                     attributeMap.put(Attributes.source_storage_system.name(), sourceFileRecommendation.getSourceStorageSystem().toString());
 
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY,

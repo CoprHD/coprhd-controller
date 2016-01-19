@@ -17,7 +17,6 @@ import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation;
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation.Target;
 import com.emc.storageos.api.service.impl.placement.FileMirrorSchedular;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
-
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
@@ -38,7 +37,6 @@ import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -112,6 +110,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
     /**
      * Prepare the file descriptors
+     * 
      * @param filesystems
      * @param cosCapabilities
      * @param suggestedId
@@ -193,10 +192,9 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         return fileDescriptors;
     }
 
-
-
     /**
      * Prepare the source and target filesystems
+     * 
      * @param param
      * @param task
      * @param taskList
@@ -281,7 +279,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         return preparedFileSystems;
     }
 
-    /**Set mirror object information
+    /**
+     * Set mirror object information
      * 
      * @param sourceFileShare
      * @param targetFileShare
@@ -304,6 +303,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
     /**
      * Validate the filesystem label
+     * 
      * @param placement
      * @param fileShare
      */

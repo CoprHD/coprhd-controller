@@ -13,18 +13,19 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import com.emc.storageos.db.client.util.CommonTransformerFunctions;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -41,6 +42,13 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
         else {
             return false;
         }
+    }
+
+    @Override
+    public void discoveryFailure(DiscoveredSystemObject target, String compatibilityStatus, String errorMessage) {
+        target.setCompatibilityStatus(compatibilityStatus);
+        target.setLastDiscoveryStatusMessage(errorMessage);
+        save(target);
     }
 
     @Override

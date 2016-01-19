@@ -91,6 +91,7 @@
 
     <bean id="srdfscheduler" class="com.emc.storageos.api.service.impl.placement.SRDFScheduler">
         <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
         <property name="blockScheduler" ref="storagescheduler" />
     </bean>
 
@@ -237,9 +238,15 @@
         <property name="maskPerHostIngestOrchestrator" ref="maskPerHostIngestOrchestrator"/>
         <property name="multipleMaskPerHostIngestOrchestrator" ref="multipleMaskPerHostIngestOrchestrator"/>
         <property name="unexportedVolumeIngestOrchestrator" ref="unexportedVolumeIngestOrchestrator"/>
+        <property name="blockRecoverPointIngestOrchestrator" ref="blockRecoverPointIngestOrchestrator"/>
     </bean>
     
     <bean id ="blockVolumeIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockVolumeIngestOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
+    </bean>
+
+    <bean id ="blockRecoverPointIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRecoverPointIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
         <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
     </bean>
@@ -352,16 +359,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
-    
-     <bean id="keystoneFactory" class="com.emc.storageos.keystone.restapi.KeystoneRestClientFactory"
-          init-method="init" destroy-method="shutdown">
-        <property name="connectionTimeoutMs" value="30000"/>
-        <property name="maxConnections" value="300"/>
-        <property name="maxConnectionsPerHost" value="100"/>
-        <property name="socketConnectionTimeoutMs" value="3600000" />
-        <property name="needCertificateManager" value="true"/>
-    </bean>
-    
+        
     <bean id="userGroupService" class="com.emc.storageos.api.service.impl.resource.UserGroupService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -421,6 +419,7 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.ProjectService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
+                    <property name="customConfigHandler" ref="customConfigHandler" />
                 </bean>
                 <ref bean="fileService"/>
                 <ref bean="bucketService"/>
@@ -564,6 +563,10 @@
                     </map>
                     </property>
                 </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.BlockSnapshotSessionService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                </bean>                
                 <bean class="com.emc.storageos.api.service.impl.resource.BlockFullCopyService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
@@ -661,7 +664,7 @@
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
                 <ref local="userGroupService"/>
 
-                <bean class="com.emc.storageos.api.service.impl.resource.DisasterRecoveryService">
+                <bean class="com.emc.storageos.api.service.impl.resource.DisasterRecoveryService" init-method="init">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
                     <property name="apiSignatureGenerator" ref="keyGenerator"/>

@@ -71,10 +71,43 @@ test {
     maxHeapSize = "1024m"
 }
 
-task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:':portal:unpackWebjars') {
-    sourceFile file('src/main/webapp/docs/login.less')
+
+
+/**
+ * Before the compileCss step takes place, we want OSS builds to replace 
+ * the import of the emc theme with the coprhd theme in the less file
+ */
+task transformLoginDotLess(type: Copy) {
+    outputs.upToDateWhen { false }
+    from file('src/main/webapp/docs/')
+    into file('src/main/webapp/docs/')
+    include ('login.less')
+    
+    rename ('login.less', 'transformed-login.less')
+
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+        println("Using CoprHD CSS theme")
+        // replace the import of the emc them with the import of the coprhd theme
+        filter { String line ->
+            line.contains('bootstrap-emc-theme.less') ? '@import "../../../../../vipr-portal/portal/public/stylesheets/bootstrap-coprhd-theme.less";' : line
+        }
+    } else {
+        println("Using ViPR CSS theme")
+    }
+}
+
+task renameBack(type: Copy){
+    
+}
+
+
+task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[':portal:unpackWebjars', transformLoginDotLess]) {
+    sourceFile file('src/main/webapp/docs/transformed-login.less')
     destinationFile file("${buildDir}/zipContent/docs/Login_files/stylesheets/login.css")
 }
+
+
+
 task prepareWar(type: Copy, dependsOn:':portal:unpackWebjars') {
     finalizedBy(compileCss)
     into ("${buildDir}/zipContent")
@@ -90,6 +123,17 @@ task prepareWar(type: Copy, dependsOn:':portal:unpackWebjars') {
             include "fonts/*"
         }
     }
+
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+        println("Using CoprHD in login file")
+        // replace the import of the emc them with the import of the coprhd theme
+        filter { String line ->
+            line.contains('<div class="navbar-brand">EMC ViPR</div>') ? '<div class="navbar-brand">CoprHD</div>' : line
+        }
+    } else {
+        println("Using regular EMC Vipr login page")
+    }
+
 }
 
 task buildWar(type: Zip, dependsOn: prepareWar) {

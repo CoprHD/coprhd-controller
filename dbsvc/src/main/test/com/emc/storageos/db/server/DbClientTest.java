@@ -106,7 +106,7 @@ public class DbClientTest extends DbsvcTestBase {
     public void setupTest() {
         DbClientImplUnitTester dbClient = new DbClientImplUnitTester();
         dbClient.setCoordinatorClient(_coordinator);
-        dbClient.setDbVersionInfo(_dbVersionInfo);
+        dbClient.setDbVersionInfo(sourceVersion);
         dbClient.setBypassMigrationLock(true);
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);

@@ -34,7 +34,7 @@
             </dd>
           #{/if}              
         </dl>  
-        #{if clusterInfo?.newVersions?.size > 0}
+        #{if !util.SetupUtils.isOssBuild() && clusterInfo?.newVersions?.size > 0}
           <div class="alert alert-info" #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}onclick="window.location.href = '@{infra.Upgrade.index()}';" style="cursor: pointer;"#{/deadbolt.restrict}>
               &{'upgrade.newVersionAvailable',clusterInfo.newVersions.getAt(0)}
           </div>

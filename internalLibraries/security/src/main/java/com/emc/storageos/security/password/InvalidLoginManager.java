@@ -39,9 +39,7 @@ public class InvalidLoginManager {
 
     private static final String MAX_AUTH_LOGIN_ATTEMPTS = "max_auth_login_attempts";
     private static final String AUTH_LOCKOUT_TIME_IN_MINUTES = "auth_lockout_time_in_minutes";
-	private static final int CLEANUP_THREAD_INITIAL_DELAY_IN_MINS = 10;
     private static final int MAX_AUTHN_LOGIN_ATTEMPTS_NODE_COUNT = 5000;
-    private static final int MAX_AUTHN_LOGIN_ATTEMPTS__LIFE_TIME_IN_MINS = 10;
     private static final int CLEANUP_THREAD_SCHEDULE_INTERVAL_IN_MINS = 10;
     private static final long MIN_TO_MSECS = 60 * 1000;
     private static final String INVALID_LOGIN_CLEANER_LOCK = "invalid_login_cleaner_lock";
@@ -54,29 +52,16 @@ public class InvalidLoginManager {
     protected DistributedDataManager _distDataManager;
 
     protected int _maxAuthnLoginAttemtsCount;
-    protected int _maxAuthnLoginAttemtsLifeTimeInMins = MAX_AUTHN_LOGIN_ATTEMPTS__LIFE_TIME_IN_MINS;
-    protected int _cleanupThreadInitialDelay = CLEANUP_THREAD_INITIAL_DELAY_IN_MINS;
+    protected int _maxAuthnLoginAttemtsLifeTimeInMins;
 
     public int getMaxAuthnLoginAttemtsCount() {
         return _maxAuthnLoginAttemtsCount;
     }
 
-    public void setMaxAuthnLoginAttemtsCount(int maxAuthnLoginAttemtsCount) {
-        this._maxAuthnLoginAttemtsCount = maxAuthnLoginAttemtsCount;
-    }
     public int getMaxAuthnLoginAttemtsLifeTimeInMins() {
         return _maxAuthnLoginAttemtsLifeTimeInMins;
     }
 
-    public void setCleanupThreadInitialDelay(int cleanupThreadInitialDelay) {
-        this._cleanupThreadInitialDelay = cleanupThreadInitialDelay;
-    }
-    public int getCleanupThreadInitialDelay() {
-        return _cleanupThreadInitialDelay;
-    }
-    public void setMaxAuthnLoginAttemtsLifeTimeInMins(int maxAuthnLoginAttemtsLifeTimeInMins) {
-        this._maxAuthnLoginAttemtsLifeTimeInMins = maxAuthnLoginAttemtsLifeTimeInMins;
-    }
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
         _distDataManager = _coordinator.createDistributedDataManager(
@@ -174,7 +159,7 @@ public class InvalidLoginManager {
 
     /**
      * check if zk contains the IP.
-     *
+     * 
      * @param clientIP
      * @return
      */
@@ -272,10 +257,10 @@ public class InvalidLoginManager {
 
     /**
      * @brief Invalid Login Records cleanup
-     *
-     * Walk through the list of records for Invalid Login Attempts,
-     * if bForce = false, for each record check the expiration time. If the record is expired, then delete that record.
-     * if bForce = true, clean up all records.
+     * 
+     *        Walk through the list of records for Invalid Login Attempts,
+     *        if bForce = false, for each record check the expiration time. If the record is expired, then delete that record.
+     *        if bForce = true, clean up all records.
      * 
      */
     public void invLoginCleanup(boolean bForce) {
@@ -342,7 +327,7 @@ public class InvalidLoginManager {
                 // Wait for random number of seconds to avoid all nodes in the cluster to access ZK at the same time
                 // move the wait code section out from invLoginCleanup to here, as waiting in lock is not a good practice.
                 Random random = new Random(System.currentTimeMillis());
-                long sleepInterval = (int)(random.nextDouble() * 100000); // interval is between 0 - 100,000 milliseconds
+                long sleepInterval = (int) (random.nextDouble() * 100000); // interval is between 0 - 100,000 milliseconds
                 _log.debug("Sleeping for milliseconds: {}", sleepInterval);
                 Thread.sleep(sleepInterval);
 
@@ -406,7 +391,7 @@ public class InvalidLoginManager {
             if (null != recordNames) {
                 for (String clientIP : recordNames) {
                     String zkPath = zkRoot + "/" + clientIP;
-                    InvalidLogins invLogins = (InvalidLogins)_distDataManager.getData(zkPath, false);
+                    InvalidLogins invLogins = (InvalidLogins) _distDataManager.getData(zkPath, false);
                     if (invLogins != null) {
                         blockedIPs.add(invLogins);
                     }
@@ -421,6 +406,7 @@ public class InvalidLoginManager {
 
     /**
      * check if lockout feature enabled
+     * 
      * @return
      */
     private boolean isLockoutEnabled() {
@@ -450,7 +436,7 @@ public class InvalidLoginManager {
 
     /**
      * check if ip block feature is disabled.
-     *
+     * 
      * @return
      */
     private boolean isDisabled() {
@@ -461,11 +447,10 @@ public class InvalidLoginManager {
         return false;
     }
 
-
     /**
      * get time difference in minutes, between current time and the specified client ip's last access time.
      * if specified ip is not recorded in zk, return 0.
-     *
+     * 
      * @param clientIP
      * @return
      */
@@ -482,7 +467,7 @@ public class InvalidLoginManager {
             return 0;
         } else {
             long lastAccesstime = invLogins.getLastAccessTimeInLong();  // number of minutes
-            int remainingTime = (int)(lastAccesstime + _maxAuthnLoginAttemtsLifeTimeInMins
+            int remainingTime = (int) (lastAccesstime + _maxAuthnLoginAttemtsLifeTimeInMins
                     - getCurrentTimeInMins());
             return remainingTime > 0 ? remainingTime : 0;
         }

@@ -10,6 +10,7 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import com.emc.aix.model.AixVersion;
+import com.emc.hpux.model.HpuxVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.util.VersionChecker;
 import com.iwave.ext.linux.model.LinuxVersion;
@@ -26,6 +27,7 @@ public class ComputeSystemDiscoveryVersionValidator {
     private static final String AIX_MIN_PROP = "compute_aix_version";
     private static final String AIXVIO_MIN_PROP = "compute_aixvio_version";
     private static final String VMWARE_ESX_MIN_PROP = "compute_vmware_esx_version";
+    private static final String HPUX_MIN_PROP = "compute_hpux_version";
 
     private CoordinatorClient coordinatorClient;
 
@@ -36,6 +38,7 @@ public class ComputeSystemDiscoveryVersionValidator {
     private AixVersion aixVersion;
     private AixVersion aixVioVersion;
     private EsxVersion esxVersion;
+    private HpuxVersion hpuxVersion;
 
     public boolean isValidVersionNumber(String versionNumber) {
         boolean result = false;
@@ -83,6 +86,21 @@ public class ComputeSystemDiscoveryVersionValidator {
 
         }
         return windowsVersion;
+    }
+
+    public HpuxVersion getHpuxMinimumVersion(boolean forceLookup) {
+        if (forceLookup || hpuxVersion == null) {
+            String versionProp = this.getSysProperty(HPUX_MIN_PROP);
+            if (isValidVersionNumber(versionProp)) {
+                hpuxVersion = new HpuxVersion(versionProp);
+            }
+            else {
+                hpuxVersion = null;
+                throw new IllegalStateException(String.format("System property for HPUX Version Number(%s) is invalid - value is '%s'",
+                        HPUX_MIN_PROP, versionProp));
+            }
+        }
+        return hpuxVersion;
     }
 
     public AixVersion getAixMinimumVersion(boolean forceLookup) {
@@ -181,6 +199,11 @@ public class ComputeSystemDiscoveryVersionValidator {
 
     public ComputeSystemDiscoveryVersionValidator() {
         super();
+    }
+
+    public boolean isValidHpuxVersion(HpuxVersion version) {
+        return (VersionChecker.verifyVersionDetails(
+                getHpuxMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
     }
 
     public boolean isValidAixVersion(AixVersion version) {

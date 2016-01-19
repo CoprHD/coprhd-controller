@@ -109,7 +109,7 @@ public class DataCollectionJobUtil {
         } else if (clazz == StorageSystem.class) {
             populateAccessProfile(profile, (StorageSystem) taskObject, nameSpace);
         } else if (clazz == ProtectionSystem.class) {
-            populateAccessProfile(profile, (ProtectionSystem) taskObject);
+            populateAccessProfile(profile, (ProtectionSystem) taskObject, nameSpace);
         } else if (clazz == ComputeSystem.class) {
             populateAccessProfile(profile, (ComputeSystem) taskObject);
         }
@@ -184,7 +184,7 @@ public class DataCollectionJobUtil {
         profile.setPassword(vcenter.getPassword());
     }
 
-    private void populateAccessProfile(AccessProfile profile, ProtectionSystem system) {
+    private void populateAccessProfile(AccessProfile profile, ProtectionSystem system, String nameSpace) {
         profile.setSystemId(system.getId());
         profile.setSystemClazz(system.getClass());
         profile.setSystemType(system.getSystemType());
@@ -195,6 +195,9 @@ public class DataCollectionJobUtil {
             profile.setPortNumber(system.getPortNumber());
             profile.setSslEnable(Boolean.TRUE.toString());
             profile.setserialID(system.getInstallationId());
+        }
+        if (!NullColumnValueGetter.isNullValue(nameSpace)) {
+            profile.setnamespace(nameSpace);
         }
     }
 
@@ -485,6 +488,9 @@ public class DataCollectionJobUtil {
             accessProfile.setPassword(storageDevice.getPassword());
             accessProfile.setPortNumber(storageDevice.getPortNumber());
             accessProfile.setLastSampleTime(0L);
+            if (null != nameSpace) {
+                accessProfile.setnamespace(nameSpace);
+            }
         } else if (storageDevice.getSystemType().equals(Type.datadomain.toString())) {
             injectDiscoveryProfile(accessProfile, storageDevice);
             accessProfile.setPortNumber(storageDevice.getSmisPortNumber());

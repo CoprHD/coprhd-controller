@@ -56,7 +56,7 @@ import com.emc.vipr.client.impl.RestClient;
  * <p>
  * Base URL: <tt>/block/volumes</tt>
  */
-public class BlockVolumes extends ProjectResources<VolumeRestRep> implements TaskResources<VolumeRestRep> {
+public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements TaskResources<VolumeRestRep> {
 
     public BlockVolumes(ViPRCoreClient parent, RestClient client) {
         super(parent, client, VolumeRestRep.class, PathConstants.BLOCK_VOLUMES_URL);
@@ -279,7 +279,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * @return the list of exports.
      */
     public ITLBulkRep getExports(BulkIdParam ids) {
-        return client.post(ITLBulkRep.class, ids, baseUrl + "/exports/bulk");
+        return getBulkExports(ids);
     }
 
     /**

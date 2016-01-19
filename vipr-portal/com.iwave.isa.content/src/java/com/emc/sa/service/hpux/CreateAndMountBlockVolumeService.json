@@ -1,0 +1,61 @@
+{
+  baseKey:"CreateAndMountBlockVolume.Block.Hpux",
+  serviceId:"Hpux-CreateAndMountBlockVolume",
+  fields:{
+    host:{
+      type:"assetType.vipr.hpuxHost"
+    },
+
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true
+    },
+    
+    virtualPool:{
+      type:"assetType.vipr.blockVirtualPool",
+      lockable: true
+    },
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+
+    name:{
+      type:"text",
+      validation:{
+        min:2,
+        max:128
+      }
+    },
+
+    consistencyGroup:{
+      type:"assetType.vipr.consistencyGroup",
+      required:false
+    },
+
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    },
+    
+    mountPoint:{
+      type:"text",
+      validation:{
+        regEx:"/[A-Za-z0-9/_\.\-]*"
+      }
+    },
+
+    hlu: {
+      type:"number",
+      lockable: true,
+      required: false,
+      initialValue: "-1",
+      validation: {
+        min:-1
+      }
+    }
+  }
+}

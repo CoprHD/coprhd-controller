@@ -6,10 +6,10 @@ CERT_OPTIONS_1=options
 # You can specialize this file for each language.
 # For example, for French create a messages.fr file
 #
-application.name=EMC ViPR
+application.name=EMC ViPR Controller
 # Validation messages
-#   Most of these are exact copies from the play framework and are here to make
-#   it easier to find and change validation messages for the entire application.
+# Most of these are exact copies from the play framework and are here to make
+# it easier to find and change validation messages for the entire application.
 validation.required=Required
 validation.minSize=Minimum size is %2$d
 validation.maxSize=Maximum size is %2$d
@@ -45,7 +45,7 @@ nav.viewOrders=My Orders
 nav.allOrders=All Orders
 nav.pendingOrders=Scheduled Orders
 nav.user=User Mode
-nav.catalog=Service Catalog
+nav.catalog=Catalog
 nav.viewCatalog=View Catalog
 nav.editCatalog=Edit Catalog
 nav.approvals=Approvals
@@ -54,7 +54,7 @@ nav.preferences=Preferences
 nav.password=Change Password
 nav.logout=Logout
 nav.storage=Resources
-nav.virtualStorage=Virtual Assets
+nav.virtualStorage=Virtual
 nav.object=Object
 nav.settings=Settings
 nav.block=Block
@@ -73,7 +73,7 @@ nav.computeVirtualPools=Compute Virtual Pools
 nav.system=System
 nav.tenant=Tenant
 nav.tenants=Tenants
-nav.assets=Physical Assets
+nav.assets=Physical
 nav.security=Security
 nav.status=About
 nav.upgrade=Upgrade
@@ -96,7 +96,7 @@ nav.vdcRoles=VDC Role Assignments
 nav.certificates=Trusted Certificates
 nav.help=Help
 nav.object.virtualPools=Object Virtual Pools
-nav.tenantsettings=Tenant Settings
+nav.tenantsettings=Tenants
 nav.project=Tenant Groups
 nav.consistencygroups=Consistency Groups
 nav.tasks=Tasks
@@ -137,7 +137,7 @@ nav.computeImageServers=Compute Image Servers
 nav.sites=Sites
 nav.userGroups=User Groups
 nav.object.buckets=Buckets
-nav.disasterRecovery=Disaster Recovery
+nav.disasterRecovery=System Disaster Recovery
 nav.ipsec=IPsec
 # Override messages in the Secure plugin
 secure.title=
@@ -372,6 +372,7 @@ RegistrationStatus.REGISTERED=Registered
 
 RemoteCopyMode.ASYNCHRONOUS=Asynchronous
 RemoteCopyMode.SYNCHRONOUS=Synchronous
+RemoteCopyMode.ACTIVE=Active
 
 RpoType.SECONDS=Seconds
 RpoType.MINUTES=Minutes
@@ -706,6 +707,7 @@ CustomConfigs.configType.HDSHostModeOption=Host Mode Option
 CustomConfigs.configType.VPlexStorageViewName=Storage View Name
 CustomConfigs.configType.NasDynamicPerformancePlacementEnabled=Dynamic Performance Placement Enabled
 CustomConfigs.configType.NasUsePhysicalNASForProvisioning=Use Physical NAS For Provisioning
+CustomConfigs.configType.NasShareVNASWithMultipleProjects=Enable Association of Virtual NAS to Multiple Projects
 CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.scopeType.global=Global
@@ -839,24 +841,26 @@ datetime.units.s=Seconds
 datetime.dayOfMonth.L=Last
 
 #DisasterRecovery
-disasterRecovery.title=Disaster Recovery
+disasterRecovery.title=System Disaster Recovery
 disasterRecovery.name=Site Name
-disasterRecovery.VirtualIP=Site Virtual IP
+disasterRecovery.VirtualIP=Site Virtual IP or FQDN
 disasterRecovery.status=Status
-disasterRecovery.id=Site UUId
+disasterRecovery.id=Site UUID
 disasterRecovery.actions=Actions
 disasterRecovery.userName=User Name
 disasterRecovery.userPassword=Password
 disasterRecovery.confirmPassword=Confirm Password
 disasterRecovery.description=Description
+disasterRecovery.networkHealth=Network Health
 disasterRecovery.confirmPassword.not.match=User Password and Confirm Password do not match.
-disasterRecovery.deleteConfirm=Are you sure you want to delete this standby cluster?
+disasterRecovery.deleteConfirm=WARNING: You are about to delete Standby Site. This action is unreversable. Are you sure want to delete this Standby Site?
 
 disasterRecovery.testButton=Test
 disasterRecovery.pauseButton=Pause
 disasterRecovery.resumeButton=Resume
 disasterRecovery.FailoverButton=Failover
-disasterRecovery.save.success=Added standby: '%s'
+disasterRecovery.SwitchoverButton=Switchover
+disasterRecovery.save.success=Standby add request initiated for site: '%s'
 disasterRecovery.pause.success=Pause request initiated...
 disasterRecovery.resume.success=Resume request initiated for site: '%s'
 disasterRecovery.test.success=Test Mode request initiated for site: '%s'
@@ -868,41 +872,53 @@ disasterRecovery.switchover.success=Switchover successful
 disasterRecovery.switchover.error=Switchover failed
 disasterRecovery.failover.success=Failover successful
 disasterRecovery.failover.error=Failover failed
-disasterRecovery.failover.progress=Failing over in Progress....
-disasterRecovery.switchover.progress=Switching over in Progress....
+disasterRecovery.failover.progress=In Progress
+disasterRecovery.switchover.progress=In Progress
+disasterRecovery.failover.progress.warning=Please note, this process will take several minutes....
+disasterRecovery.failover.complete=Completed
+disasterRecovery.failover.uncomplete=Failed
 disasterRecovery.resume.error=Failed to resume standby'%s'
 disasterRecovery.test.error=Failed to initiated test mode for site: '%s'
 disasterRecovery.delete.success=Standby removal initiated...
 disasterRecovery.delete.error='%s' of '%s' selected Standby deleted: '%s'.  Please check server log for more details.
-disasterRecovery.unknown=Unknown Standby with ID '%s'
+disasterRecovery.unknown=Unknown Standby site Id '%s'
 disasterRecovery.standby.testLink=Test Mode
 disasterRecovery.standby.pauseLink=Pause Synchronization
 disasterRecovery.standby.resumeLink=Resume Synchronization
-disasterRecovery.standby.deleteConfirm=Are you sure you want to delete this Standby cluster?
-disasterRecovery.standby.stopConfirm=Are you sure you want to pause standby synchronization?
+disasterRecovery.standby.deleteConfirm=WARNING: Are you sure you want to delete this Standby Site?
+disasterRecovery.standby.stopConfirm=Are you sure you want to Pause Standby Site?
 
 disasterRecovery.create.title=Add Standby
 disasterRecovery.edit.title=Edit Standby
-disasterRecovery.list.title=Disaster Recovery
+disasterRecovery.list.title=System Disaster Recovery
 disasterRecovery.edit.title=Edit Standby
-disasterRecovery.add.title=Enter the information needed to discover standby cluster.
-disasterRecovery.switchover=Switchover Site
-disasterRecovery.Failover=Failover Site
+disasterRecovery.add.title=Enter the information needed to discover Standby Site.
+disasterRecovery.switchover=Switchover
+disasterRecovery.failover=Failover
 disasterRecovery.switchover.active=Active Site
 disasterRecovery.switchover.standby=Standby Site
-disasterRecovery.switchover.subtitle=Site Switchover
-disasterRecovery.failover.subtitile=Site Failover
+disasterRecovery.switchover.subtitle=Switchover Status
+disasterRecovery.failover.subtitile=Failover Status
 disasterRecovery.switchover.description=Switching over to %s as the Active site...
-disasterRecovery.switchover.setting=Setting site
-disasterRecovery.switchover.active.to=as Active site and
+disasterRecovery.switchover.unstable=The system is performing switchover and is currently unstable
+disasterRecovery.failover.unstable=The system is performing failover and is currently unstable
+disasterRecovery.switchover.setting=Setting site:
+disasterRecovery.switchover.active.to=as the Active site
 disasterRecovery.switchover.standby.to= as Standby site
-disasterRecovery.switchover.login.instruction=Please click here for login to new Active site:
+disasterRecovery.switchover.login.instruction=To login to new Active Site, please click here:
 disasterRecovery.switchover.standby.vip= with site VIP:
-disasterRecovery.confirm.switchover=Are you sure you want to Failover?
+disasterRecovery.confirm.switchover=WARNING: Are you sure you want to Switchover to Standby site ?
+disasterRecovery.confirm.failover=WARNING: Failover could lead to Data Lost. Are you sure you want to Failover to Standby site ?
+disasterRecovery.confirm.pause=WARNING: Are you sure you want to Pause the Standby site ?
 disasterRecovery.error.code=Error Code
 disasterRecovery.error.code.name=Error Code Name
 disasterRecovery.error.message=Error Message
 disasterRecovery.error.creation.time=Creation Time
+disasterRecovery.paused.time=Paused Time
+disasterRecovery.lastOperation.time=Last Synced Time
+disasterRecovery.networkLatencyInMs=Latency (ms)
+disasterRecovery.cluster.state=Cluster State
+disasterRecovery.switchover.failed.instruction=Please contact an administrator or EMC Support
 
 # About
 system.about.introspection.title=Discovery
@@ -1246,7 +1262,7 @@ keystores.title=Update Keystore
 keystores.description=Enter the information needed to update the Keystore.
 keystore.saved=Keystore updated successfully.
 keystore.saved.reboot=Keystore updated successfully.  ViPR will reboot for the change to take effect.
-keystore.rebootRequiredMessage=ViPR will be rebooted automatically after save and will not be operational for few minutes. 
+keystore.rebootRequiredMessage=ViPR will be rebooted automatically after save.
 keystore.certChain=Certificate Chain
 keystore.certKey=Private Key
 keystore.viewChain = View Certificate Chain
@@ -1262,11 +1278,25 @@ keystore.task.message=Error Details
 keystore.task.code=Error Code
 
 ipsec.title=IPsec
-ipsec.description=Enables a secured communication between nodes in a ViPR cluster and between ViPR clusters and uses Pre-Shared Keys to secure the communication.
-ipsec.key.rotation.label=Rotate Pre-Shared keys
-ipsec.key.rotation.description=Generates a new set of Pre-Shared keys. The IPsec communication will be momentarily stopped while restarting the IPsec service.
-ipsec.key.rotation.error=Failed To rotate the IPsec Pre-Shared Keys. '%s'.
-ipsec.key.rotation.success=Successfully rotated the IPsec Pre-Shared Keys.
+ipsec.description=Enables secure communication between nodes in a ViPR cluster and between ViPR clusters and uses IPsec Key to secure the communication.
+ipsec.key.rotation.description=Generates a new IPsec key. The IPsec communication between the nodes in the cluster will be momentarily stopped while restarting the IPsec service.
+ipsec.key.rotation.error=Failed To rotate the IPsec Key. '%s'.
+ipsec.key.rotation.success=Successfully rotated the IPsec Key.
+ipsec.configuration=IPsec Configuration
+ipsec.configuration.keysGeneratedOn=IPsec Key Generated On
+ipsec.status=IPsec Status
+ipsec.status.refresh=Refresh status
+ipsec.auto.refresh=Auto Refresh page
+ipsec.status.stable=Stable
+ipsec.status.degraded=Degraded
+ipsec.status.disabled=Disabled
+ipsec.lastUpdated=Last Updated
+ipsecFailure.title=IPsec Failure Nodes
+ipsecFailure.description=List of all the nodes in which the IPsec is currently not working. IPsec service is trying to synchronize with other working nodes to enable the IPsec communication.
+ipsecFailure.node=Node
+ipsecFailure.keysGeneratedOn=IPsec Key Generated On
+ipsecFailure.status=Status
+
 
 disk.name=Name
 disk.status=Status
@@ -1877,7 +1907,7 @@ StorageSystems.pools.description=Enter the information needed to edit a Storage 
 vNasServers.nasName=Name
 vNasServers.protocols=Protocols
 vNasServers.storagePorts=Storage Ports
-vNasServers.project=Project
+vNasServers.project=Project(s)
 vNasServers.parentNASURI= Parent NAS Server
 vNasServers.nasState= State
 vNasServers.storageDomain=Domain
@@ -1895,7 +1925,8 @@ vNasServers.usedStorageCapacity= Used Storage Capacity
 vNasServers.avgPercentagebusy=Average Percentage busy
 vNasServers.percentLoad=Percentage Load
 vNasServersDataTable.notApplicable=N/A
-vNasServers.associateToProject=Associate to a Project
+vNasServers.associateToProject=Associate to Project(s)
+vNasServers.dissociateFromProject=Dissociate from Project(s)
 vNasServers.dissociate.Confirm=Are you sure you want to dissociate these vNas Server(s) from the project?
 
 storageArrayPool.name=Name
@@ -2058,9 +2089,11 @@ vpool.systemType=System Type
 vpool.poolAssignment=Pool Assignment
 vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a subset of the storage pools matching the criteria
 
-#Object Specefic
+#Object Specific
 vpool.maxRetention=Maximum Retention (Days)
+vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
+storagePools.numOfDataCenters=Data Center(s)
 
 # Block Specific
 vpool.minPaths=Minimum Paths
@@ -2122,6 +2155,17 @@ vpool.rpVplex.source=Source
 vpool.rpVplex.ha=HA
 vpool.activeSite=Active Site
 vpool.activeSite.help=Specifies the VPLEX site for active protection with RecoverPoint.  The link to the other VPLEX site is configured as stand-by.
+vpool.replicationMode=Replication Mode
+vpool.replicationRpo=Min RPO
+vpool.replicationCopies=Replication Copies
+vpool.remoteVirtualArray=Virtual Array
+vpool.remoteVirtualPool=Virtual Pool
+vpool.replicationType=Replication Type
+
+# File Replication
+replicationCopy.virtualArray=Virtual Array
+replicationCopy.virtualPool=Virtual Pool
+replicationCopy.title=Replication Copy
 
 # Recoverpoint
 vpool.rpJournalSize=RecoverPoint Source Journal Size
@@ -2406,6 +2450,11 @@ configProperties.changePassword=Local Account Passwords
 configProperties.password.doesNotMatch=Passwords do not match
 configProperties.password.state=state
 
+configProperties.backup.scheduled=Scheduled Backup
+configProperties.backup.manual=Manual Backup
+configProperties.backup.server=External Server
+configProperties.backup.setToZero.scheduler=WARNING: Setting the value as zero would cause all scheduled backup sets being reclaimed without any guarantee that they have been successfully uploaded to external server.
+configProperties.backup.setToZero.manual=WARNING: Setting the value as zero would disable manual backup creation.
 
 #Upgrade
 upgrade.title=Software Upgrade
@@ -2503,7 +2552,7 @@ adminDashboard.fileCapacity=File
 adminDashboard.blockCapacity=Block
 adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File/Object
-adminDashboard.disasterRecovery=Disaster Recovery
+adminDashboard.disasterRecovery=System Disaster Recovery
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object
@@ -2676,7 +2725,9 @@ computeImageServers.tftpBootDir=TFTPBOOT Directory
 computeImageServers.confirmPassword=Comfirm Password
 computeImageServers.computeImageServerStatus=Image Server Status
 computeImageServers.osInstallNetworkAddress=OS Install Network Address
-computeImageServers.osInstallTimeOut=OS Install Timeout
+computeImageServers.osInstallTimeOut=OS Install Timeout in seconds
+computeImageServers.sshTimeout=Timeout in seconds for SSH commands sent to Image Server
+computeImageServers.imageImportTimeout=Image Import Timeout in seconds
 computeImageServers.availableComputeImages=Available Images
 computeImageServers.failedComputeImages=Images Failed to import
 computeImageServers.confirmPassword.not.match=User Password and Confirm Password do not match
@@ -2793,7 +2844,7 @@ setup.no.proxy.password=Proxy User Password Not Set
 
 successfully.saved=Successfully Saved.
 
-dashboard.welcome=Welcome to EMC ViPR
+dashboard.welcome=Welcome to EMC ViPR Controller
 dashboard.welcomeMessage=To get started, browse the <a href="%s">Service Catalog</a> to order storage.
 dashboard.clusterState=state
 
@@ -2937,8 +2988,17 @@ affectedResources.blockSnapshot.wwn=WWN
 affectedResources.blockSnapshot.volume=Volume
 affectedResources.blockSnapshot.varray=Virtual Array
 
+affectedResources.blockSnapshotSession=Block Snapshot Session
+affectedResources.blockSnapshotSession.image=serviceCatalog/Snapshot.png
+affectedResources.blockSnapshotSession.name=Name
+affectedResources.blockSnapshotSession.creationTime=Creation Time
+affectedResources.blockSnapshotSession.wwn=WWN
+affectedResources.blockSnapshotSession.volume=Volume
+affectedResources.blockSnapshotSession.varray=Virtual Array
+
 affectedResources.blockConsistencyGroup=Consistency Group
-affectedResources.blockConsistencyGroup.image=serviceCatalog/Snapshot.png
+affectedResources.blockConsistencyGroup.image=assets/Consistency_Group.png
+affectedResources.blockConsistencyGroup.name=Name
 
 affectedResources.fileSnapshot=File Snapshot
 affectedResources.fileSnapshot.image=serviceCatalog/Snapshot.png
@@ -3249,7 +3309,7 @@ resources.filesystem.share.acl.deleted=Task initiated to delete selected ACEs.
 resources.filesystem.share.acl.deleteConfirm=Are you sure you want delete these access control setting(s)?
 resources.filesystem.share.acl.added=Task created to add Access Control Entry, You may need to refresh this view to see new  changes.
 resources.filesystem.share.acl.invalid.settings=Please Enter valid access control setting(s)
-resources.filesystem.share.acl.invalid.name=Name cannot be empty or cannot contain a backslash ('/') character.
+resources.filesystem.share.acl.invalid.name=Name cannot be empty or cannot contain a backslash ('\\') character.
 resources.filesystem.share.acl.add=Add Access Control Entry
 resources.filesystem.share.mountpoint=Mount Point
 resources.filesystem.share.description=Description
@@ -3540,7 +3600,7 @@ button.actions=Actions
 button.associate=Associate Project
 button.dissociate=Dissociate Project
 button.failover=Failover
-button.ipsec.rotate.keys=Rotate IPsec Keys
+button.ipsec.rotate.keys=Rotate IPsec Key
 selectOne.chooseOption=-- Please Choose --
 
 common.yes=Yes
@@ -4019,10 +4079,18 @@ renderFunctions.disasterRecovery.status.standby.paused=Standby Paused
 renderFunctions.disasterRecovery.status.standby.testing=Standby Testing
 renderFunctions.disasterRecovery.status.standby.switchingover=Standby Switching Over
 renderFunctions.disasterRecovery.status.standby.failingover=Standby Failing Over
-renderFunctions.disasterRecovery.status.standby.removing=Deleting Standby
+renderFunctions.disasterRecovery.status.standby.removing=Removing Standby
 renderFunctions.disasterRecovery.status.standby.resuming=Resuming Standby
 renderFunctions.disasterRecovery.status.standby.error=Standby Error
+renderFunctions.disasterRecovery.status.standby.failbackDegraded=Active Degraded
+renderFunctions.disasterRecovery.status.standby.degrading=Degrading Standby
+renderFunctions.disasterRecovery.status.standby.degraded=Standby Degraded
 renderFunctions.disasterRecovery.status.unknown=Unknown
+
+renderFunctions.disasterRecovery.networkHealth.good=Good
+renderFunctions.disasterRecovery.networkHealth.slow=Slow
+renderFunctions.disasterRecovery.networkHealth.broken=Broken
+
 
 templates.knob.label=%s of %s
 

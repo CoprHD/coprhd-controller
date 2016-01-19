@@ -38,6 +38,7 @@ import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation.VolumeType;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
@@ -54,7 +55,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -536,6 +537,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     if (!snapshots.isEmpty()) {
                         return BlockSnapshot.class.getSimpleName();
                     }
+
+                    // Also check for snapshot sessions.
+                    List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                            BlockSnapshotSession.class,
+                            ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(snapshotSourceVolume.getId()));
+                    if (!snapSessions.isEmpty()) {
+                        return BlockSnapshotSession.class.getSimpleName();
+                    }
                 }
             }
         }
@@ -987,7 +996,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class,
                     vplexRecommendation.getVirtualArray());
             createVolume = prepareVolumeForRequest(getVolumeCapacity(existingVolume), vplexProject,
-                    haVirtualArray, vpool, vplexRecommendation.getSourceStorageSystem(),
+                    haVirtualArray, requestedHaVirtualPool, vplexRecommendation.getSourceStorageSystem(),
                     vplexRecommendation.getSourceStoragePool(), vplexVolume.getLabel() + "-1",
                     ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
@@ -3023,23 +3032,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @return The number of snapshots on a VPLEX volume.
      */
     @Override
-    protected Integer getNumNativeSnapshots(Volume vplexVolume) {
-
-        Integer numSnapshots = 0;
+    protected int getNumNativeSnapshots(Volume vplexVolume) {
         Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
-        URI snapshotSourceVolumeURI = snapshotSourceVolume.getId();
-        URIQueryResultList snapshotURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-                snapshotSourceVolumeURI), snapshotURIs);
-        while (snapshotURIs.iterator().hasNext()) {
-            URI snapshotURI = snapshotURIs.iterator().next();
-            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-            if (snapshot != null && !snapshot.getInactive()
-                    && snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString())) {
-                numSnapshots++;
-            }
-        }
-        return numSnapshots;
+        return super.getNumNativeSnapshots(snapshotSourceVolume);
     }
 
     /**
@@ -3124,16 +3119,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     protected List<URI> getActiveMirrorsForVolume(Volume volume) {
-        List<URI> activeMirrorURIs = new ArrayList<>();
-        if (hasMirrors(volume)) {
-            List<VplexMirror> mirrors = _dbClient.queryObject(VplexMirror.class, StringSetUtil.stringSetToUriList(volume.getMirrors()));
-            for (VplexMirror mirror : mirrors) {
-                if (!mirror.getInactive()) {
-                    activeMirrorURIs.add(mirror.getId());
-                }
-            }
-        }
-        return activeMirrorURIs;
+        return BlockServiceUtils.getActiveMirrorsForVplexVolume(volume, _dbClient);
     }
 
     /**

@@ -16,7 +16,7 @@ import java.util.List;
  * 
  */
 @XmlRootElement(name = "bulk_unmanaged_volumes")
-public class UnManagedBulkRep extends BulkRestRep {
+public class UnManagedVolumesBulkRep extends BulkRestRep {
     private List<UnManagedVolumeRestRep> unManagedVolumes;
 
     /**
@@ -39,10 +39,10 @@ public class UnManagedBulkRep extends BulkRestRep {
         this.unManagedVolumes = unManagedVolumes;
     }
 
-    public UnManagedBulkRep() {
+    public UnManagedVolumesBulkRep() {
     }
 
-    public UnManagedBulkRep(List<UnManagedVolumeRestRep> unManagedVolumes) {
+    public UnManagedVolumesBulkRep(List<UnManagedVolumeRestRep> unManagedVolumes) {
         this.unManagedVolumes = unManagedVolumes;
     }
 }

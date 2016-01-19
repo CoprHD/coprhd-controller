@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2014 EMC Corporation
+ *  Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export;
@@ -45,6 +45,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -58,9 +59,10 @@ import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
  */
 public class ExportProcessor extends Processor {
 
-    private Logger _logger = LoggerFactory.getLogger(ExportProcessor.class);
+    private final Logger _logger = LoggerFactory.getLogger(ExportProcessor.class);
     protected Map<String, Object> _keyMap;
     protected Set<URI> _vplexPortInitiators;
+    protected Set<URI> _rpPortInitiators;
     protected DbClient _dbClient;
     protected List<Object> _args;
 
@@ -105,6 +107,12 @@ public class ExportProcessor extends Processor {
             _keyMap.put(Constants.UNMANAGED_EXPORT_MASKS_VPLEX_INITS_SET, _vplexPortInitiators);
         }
 
+        _rpPortInitiators =
+                (Set<URI>) _keyMap.get(Constants.UNMANAGED_EXPORT_MASKS_RECOVERPOINT_INITS_SET);
+        if (_rpPortInitiators == null) {
+            _rpPortInitiators = RPHelper.getBackendPortInitiators(_dbClient);
+            _keyMap.put(Constants.UNMANAGED_EXPORT_MASKS_RECOVERPOINT_INITS_SET, _rpPortInitiators);
+        }
     }
 
     /*
@@ -183,6 +191,7 @@ public class ExportProcessor extends Processor {
 
             updateVplexBackendVolumes(mask, matchedInitiators);
 
+            updateRecoverPointVolumes(mask, matchedInitiators);
         } catch (Exception e) {
             _logger.error("something failed", e);
         } finally {
@@ -254,6 +263,45 @@ public class ExportProcessor extends Processor {
             }
             _logger.info("adding mask {} to unmanaged vplex backend masks list", mask.getMaskName());
             unmanagedVplexBackendMasks.add(mask.getId().toString());
+        }
+    }
+
+    /**
+     * Marks any RecoverPoint volumes as such by looking at the initiators
+     * and determining if any of them represent RPA front-end ports
+     * 
+     * @param mask - the UnManagedExportMask
+     * @param initiators - the initiators to test for RPA ports status
+     */
+    private void updateRecoverPointVolumes(UnManagedExportMask mask, List<Initiator> initiators) {
+        StringBuilder nonRecoverPointInitiators = new StringBuilder();
+        int rpPortInitiatorCount = 0;
+        for (Initiator init : initiators) {
+            if (this._rpPortInitiators.contains(init.getId())) {
+                _logger.info("export mask {} contains RPA initiator {}",
+                        mask.getMaskName(), init.getInitiatorPort());
+                rpPortInitiatorCount++;
+            } else {
+                nonRecoverPointInitiators.append(init.getInitiatorPort()).append(" ");
+            }
+        }
+
+        if (rpPortInitiatorCount > 0) {
+            _logger.info("export mask {} contains {} RPA initiators",
+                    mask.getMaskName(), rpPortInitiatorCount);
+            if (rpPortInitiatorCount < initiators.size()) {
+                _logger.warn("   there are some ports in this mask that are not "
+                        + "RPA initiators: " + nonRecoverPointInitiators);
+            }
+
+            Set<String> unmanagedRecoverPointMasks =
+                    (Set<String>) _keyMap.get(Constants.UNMANAGED_RECOVERPOINT_MASKS_SET);
+            if (unmanagedRecoverPointMasks == null) {
+                unmanagedRecoverPointMasks = new HashSet<String>();
+                _keyMap.put(Constants.UNMANAGED_RECOVERPOINT_MASKS_SET, unmanagedRecoverPointMasks);
+            }
+            _logger.info("adding mask {} to unmanaged RP masks list", mask.getMaskName());
+            unmanagedRecoverPointMasks.add(mask.getId().toString());
         }
     }
 

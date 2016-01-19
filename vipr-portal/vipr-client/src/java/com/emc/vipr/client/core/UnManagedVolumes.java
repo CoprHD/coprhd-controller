@@ -13,9 +13,9 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.block.UnManagedBulkRep;
 import com.emc.storageos.model.block.UnManagedVolumeList;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
+import com.emc.storageos.model.block.UnManagedVolumesBulkRep;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.model.block.VolumeIngest;
 import com.emc.vipr.client.Tasks;
@@ -47,7 +47,7 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
 
     @Override
     protected List<UnManagedVolumeRestRep> getBulkResources(BulkIdParam input) {
-        UnManagedBulkRep response = client.post(UnManagedBulkRep.class, input, getBulkUrl());
+        UnManagedVolumesBulkRep response = client.post(UnManagedVolumesBulkRep.class, input, getBulkUrl());
         return defaultList(response.getUnManagedVolumes());
     }
 

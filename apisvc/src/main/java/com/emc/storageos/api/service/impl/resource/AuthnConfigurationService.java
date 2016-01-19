@@ -7,12 +7,14 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.AuthMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.map;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -25,33 +27,41 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
+
 import com.emc.storageos.api.mapper.AuthMapper;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.AuthnProvider.ProvidersType;
 import com.emc.storageos.db.client.model.AuthnProvider.SearchScope;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.UserGroup;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.keystone.KeystoneConstants;
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.auth.*;
+import com.emc.storageos.model.auth.AuthnCreateParam;
+import com.emc.storageos.model.auth.AuthnProviderBaseParam;
+import com.emc.storageos.model.auth.AuthnProviderList;
+import com.emc.storageos.model.auth.AuthnProviderParamsToValidate;
+import com.emc.storageos.model.auth.AuthnProviderRestRep;
+import com.emc.storageos.model.auth.AuthnUpdateParam;
+import com.emc.storageos.model.auth.RoleAssignmentEntry;
 import com.emc.storageos.security.authentication.AuthSvcEndPointLocator;
 import com.emc.storageos.security.authentication.AuthSvcInternalApiClientIterator;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -64,20 +74,6 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.sun.jersey.api.client.ClientResponse;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.CollectionUtils;
-
-import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.*;
-
-import static com.emc.storageos.api.mapper.AuthMapper.map;
-import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 
 /**
  * API for creating and manipulating authentication providers
@@ -92,7 +88,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
     @Autowired
     private AuthSvcEndPointLocator _authSvcEndPointLocator;
-	private KeystoneRestClientFactory _keystoneApiFactory;
+    private KeystoneRestClientFactory _keystoneApiFactory;
     private static final URI _URI_RELOAD = URI.create("/internal/reload");
 
     private static final String EVENT_SERVICE_TYPE = "authconfig";
@@ -101,9 +97,9 @@ public class AuthnConfigurationService extends TaggedResource {
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
-    public void setKeystoneFactory(KeystoneRestClientFactory factory)
-    {
-    	this._keystoneApiFactory = factory;
+
+    public void setKeystoneFactory(KeystoneRestClientFactory factory) {
+        this._keystoneApiFactory = factory;
     }
 
     /**
@@ -207,19 +203,16 @@ public class AuthnConfigurationService extends TaggedResource {
         provider.setId(URIUtil.createId(AuthnProvider.class));
 
         String mode = provider.getMode();
-    	if(null!=mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode))
-    	{
-    		 populateKeystoneToken(provider, null);
-    	}
-    	else
-    	{
-        // Now validate the authn provider to make sure
-        // either both group object classes and
-        // member attributes present or
-        // both of them empty. Throw bad request exception
-        // if only one of them presents.
-        validateLDAPGroupProperties(provider);
-    	}
+        if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
+            populateKeystoneToken(provider, null);
+        } else {
+            // Now validate the authn provider to make sure
+            // either both group object classes and
+            // member attributes present or
+            // both of them empty. Throw bad request exception
+            // if only one of them presents.
+            validateLDAPGroupProperties(provider);
+        }
 
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
         persistProfileAndNotifyChange(provider, true);
@@ -233,44 +226,42 @@ public class AuthnConfigurationService extends TaggedResource {
 
         return map(provider);
     }
-	
+
     /**
      * Populate or Modify the keystone token
      * in authentication provider.
      * 
      * @param provider
      */
-	private void populateKeystoneToken(AuthnProvider provider, String oldPassword) {
-		String managerDn = provider.getManagerDN();
+    private void populateKeystoneToken(AuthnProvider provider, String oldPassword) {
+        String managerDn = provider.getManagerDN();
         Set<String> uris = provider.getServerUrls();
         URI authUri = null;
-		for(String uri : uris)
-		{
-			authUri = URI.create(uri);
-			break; //There will be single URL only
-		}
-		String password = "";
-		if(null==oldPassword)
-		{//create case
-			password = provider.getManagerPassword();
-		}
-		else
-		{//Update case
-			String newPassword = provider.getManagerPassword();
-			password = (null==newPassword)?oldPassword:
-				                                (oldPassword.equals(newPassword)?oldPassword:newPassword);
-		}		                               
-		String username = managerDn.split(",")[0].split("=")[1];
-		String tenantName = managerDn.split(",")[1].split("=")[1];
+        for (String uri : uris) {
+            authUri = URI.create(uri);
+            break; // There will be single URL only
+        }
+        String password = "";
+        if (null == oldPassword) {
+            // create case
+            password = provider.getManagerPassword();
+        } else {
+            // Update case
+            String newPassword = provider.getManagerPassword();
+            password = (null == newPassword) ? oldPassword :
+                    (oldPassword.equals(newPassword) ? oldPassword : newPassword);
+        }
+        String username = managerDn.split(",")[0].split("=")[1];
+        String tenantName = managerDn.split(",")[1].split("=")[1];
         KeystoneApiClient keystoneApi = (KeystoneApiClient) _keystoneApiFactory.getRESTClient(
-        		                                                        authUri, username, password);
+                authUri, username, password);
         keystoneApi.setTenantName(tenantName);
         keystoneApi.authenticate_keystone();
         StringMap keystoneAuthKeys = new StringMap();
-		keystoneAuthKeys.put(KeystoneConstants.AUTH_TOKEN, keystoneApi.getAuthToken());
-		provider.setKeys(keystoneAuthKeys);
-	}
-	
+        keystoneAuthKeys.put(KeystoneConstants.AUTH_TOKEN, keystoneApi.getAuthToken());
+        provider.setKeys(keystoneAuthKeys);
+    }
+
     /**
      * Update the parameters of the target authentication provider. The ID is the URN of the authentication provider.
      * 
@@ -299,39 +290,37 @@ public class AuthnConfigurationService extends TaggedResource {
         AuthnProviderParamsToValidate validateP = AuthMapper.mapToValidateUpdate(param, provider);
         boolean wasAlreadyDisabled = provider.getDisable();
         String mode = provider.getMode();
-    	if(null!=mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode))
-    	{
-    		return updateKeystoneProvider(id, param, provider, validateP);
-    	}
-    	else
-    	{
-    		return updateAdOrLDAPProvider(id, allow, param, provider, validateP, wasAlreadyDisabled);
-    	}    	
+        if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
+            return updateKeystoneProvider(id, param, provider, validateP);
+        } else {
+            return updateAdOrLDAPProvider(id, allow, param, provider, validateP, wasAlreadyDisabled);
+        }
     }
-	private AuthnProviderRestRep updateKeystoneProvider(URI id, AuthnUpdateParam param,
-			AuthnProvider provider, AuthnProviderParamsToValidate validateP) 
-	{
-		String oldPassword = provider.getManagerPassword();
-		overlayProvider(provider, param);
+
+    private AuthnProviderRestRep updateKeystoneProvider(URI id, AuthnUpdateParam param,
+            AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
+        String oldPassword = provider.getManagerPassword();
+        overlayProvider(provider, param);
         if (!provider.getDisable()) {
             _log.debug("Validating provider before modification...");
             validateP.setUrls(new ArrayList<String>(provider.getServerUrls()));
             StringBuilder errorString = new StringBuilder();
             if (!Validator.isUsableAuthenticationProvider(validateP, errorString)) {
                 throw BadRequestException.badRequests.
-                authnProviderCouldNotBeValidated(errorString.toString());
+                        authnProviderCouldNotBeValidated(errorString.toString());
             }
         }
         populateKeystoneToken(provider, oldPassword);
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
         persistProfileAndNotifyChange(provider, false);
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,
-                    provider.getId().toString(), provider.toString());
+                provider.getId().toString(), provider.toString());
         return map(getProviderById(id, false));
-	}
-	private AuthnProviderRestRep updateAdOrLDAPProvider(URI id, boolean allow,
-			AuthnUpdateParam param, AuthnProvider provider,
-			AuthnProviderParamsToValidate validateP, boolean wasAlreadyDisabled) {
+    }
+
+    private AuthnProviderRestRep updateAdOrLDAPProvider(URI id, boolean allow,
+            AuthnUpdateParam param, AuthnProvider provider,
+            AuthnProviderParamsToValidate validateP, boolean wasAlreadyDisabled) {
         // copy existing domains in separate set
         StringSet existingDomains = new StringSet(provider.getDomains());
 
@@ -676,12 +665,11 @@ public class AuthnConfigurationService extends TaggedResource {
         AuthnProvider provider = getProviderById(id, false);
         ArgValidator.checkEntityNotNull(provider, id, isIdEmbeddedInURL(id));
         checkForActiveTenantsUsingDomains(provider.getDomains());
-        if(!AuthnProvider.ProvidersType.keystone.toString()
-        		.equalsIgnoreCase(provider.getMode()))
-        {        	
+        if (!AuthnProvider.ProvidersType.keystone.toString()
+                .equalsIgnoreCase(provider.getMode())) {
             checkForVdcRolesUsingDomains(provider.getDomains());
             checkForUserGroupsUsingDomains(provider.getDomains());
-        verifyDomainsIsNotInUse(provider.getDomains());
+            verifyDomainsIsNotInUse(provider.getDomains());
         }
         _dbClient.removeObject(provider);
         notifyChange();
@@ -739,7 +727,7 @@ public class AuthnConfigurationService extends TaggedResource {
             ArgValidator.checkFieldNotEmpty(param.getMode(), "mode");
             try {
                 ProvidersType.valueOf(param.getMode());
-            } catch(IllegalArgumentException ex) {
+            } catch (IllegalArgumentException ex) {
                 throw APIException.badRequests.invalidParameter("mode", param.getMode(), ex);
             }
         }
@@ -764,75 +752,70 @@ public class AuthnConfigurationService extends TaggedResource {
         if (param.getGroupAttribute() != null) {
             ArgValidator.checkFieldNotEmpty(param.getGroupAttribute(), "group_attribute");
         }
-                // Just validate that the mode is one of the enums
+        // Just validate that the mode is one of the enums
         if (group_whitelist_values != null) {
             for (String groupName : group_whitelist_values) {
                 ArgValidator.checkFieldNotEmpty(groupName, "group_whitelist_values");
             }
         }
-        if(!AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(param.getMode()))
-        {            
-        if (server_urls != null) {
-            boolean isNonSecure = false;
-            boolean isSecure = false;
-            for (String url : server_urls) {
-                ArgValidator.checkFieldNotEmpty(url, "server_urls");
-                String lowerCaseUrl = url.toLowerCase();
-                if (lowerCaseUrl.startsWith("ldap://")) {
-                    isNonSecure = true;
-                } else if (lowerCaseUrl.startsWith("ldaps://")) {
-                    isSecure = true;
-                } else {
-                    throw APIException.badRequests.invalidParameter("server_url", url);
-                }
-                if (isNonSecure && isSecure) {
-                    throw APIException.badRequests.cannotMixLdapAndLdapsUrls();
+        if (!AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(param.getMode())) {
+            if (server_urls != null) {
+                boolean isNonSecure = false;
+                boolean isSecure = false;
+                for (String url : server_urls) {
+                    ArgValidator.checkFieldNotEmpty(url, "server_urls");
+                    String lowerCaseUrl = url.toLowerCase();
+                    if (lowerCaseUrl.startsWith("ldap://")) {
+                        isNonSecure = true;
+                    } else if (lowerCaseUrl.startsWith("ldaps://")) {
+                        isSecure = true;
+                    } else {
+                        throw APIException.badRequests.invalidParameter("server_url", url);
+                    }
+                    if (isNonSecure && isSecure) {
+                        throw APIException.badRequests.cannotMixLdapAndLdapsUrls();
+                    }
                 }
             }
-        }
-        String searchFilter = param.getSearchFilter();
-        if (searchFilter != null) {
-            if (!searchFilter.contains("=")) {
-                throw APIException.badRequests.searchFilterMustContainEqualTo();
-            }
+            String searchFilter = param.getSearchFilter();
+            if (searchFilter != null) {
+                if (!searchFilter.contains("=")) {
+                    throw APIException.badRequests.searchFilterMustContainEqualTo();
+                }
 
-            String afterEqual = searchFilter.substring(searchFilter.indexOf("="));
-            if (!afterEqual.contains("%u") && !afterEqual.contains("%U")) {
-                throw APIException.badRequests.searchFilterMustContainPercentU();
+                String afterEqual = searchFilter.substring(searchFilter.indexOf("="));
+                if (!afterEqual.contains("%u") && !afterEqual.contains("%U")) {
+                    throw APIException.badRequests.searchFilterMustContainPercentU();
+                }
             }
-        }
-        String searchScope = param.getSearchScope();
-        if (searchScope != null) {
-            try {
-                // Just validate that the scope is one of the enums
-                SearchScope.valueOf(param.getSearchScope());
-            } catch (IllegalArgumentException ex) {
-                throw APIException.badRequests.invalidParameter("search_scope", param.getSearchScope(), ex);
+            String searchScope = param.getSearchScope();
+            if (searchScope != null) {
+                try {
+                    // Just validate that the scope is one of the enums
+                    SearchScope.valueOf(param.getSearchScope());
+                } catch (IllegalArgumentException ex) {
+                    throw APIException.badRequests.invalidParameter("search_scope", param.getSearchScope(), ex);
+                }
             }
-        }
             if (param.getSearchBase() != null) {
                 ArgValidator.checkFieldNotEmpty(param.getSearchBase(), "search_base");
-        }
-            if (param.getMaxPageSize() != null ) {
-            	if (param.getMaxPageSize() <= 0) {
-                    throw APIException.badRequests.parameterMustBeGreaterThan("max_page_size",0);
-        }
-        }
-        }
-        else
-        {
-        	String managerDn = param.getManagerDn();        	
-        	if (managerDn != null) 
-        	{
-                if (!managerDn.contains("=")) 
-                {
-                    throw APIException.badRequests.managerDNMustcontainEqualTo();
             }
-                if(!(managerDn.contains("username") || managerDn.contains("userName"))
-            			|| !(managerDn.contains("tenantName") || managerDn.contains("tenantname")) )
-            	{
-                	throw APIException.badRequests.managerDNMustcontainUserNameAndTenantName();
-        }
+            if (param.getMaxPageSize() != null) {
+                if (param.getMaxPageSize() <= 0) {
+                    throw APIException.badRequests.parameterMustBeGreaterThan("max_page_size", 0);
+                }
+            }
+        } else {
+            String managerDn = param.getManagerDn();
+            if (managerDn != null) {
+                if (!managerDn.contains("=")) {
+                    throw APIException.badRequests.managerDNMustcontainEqualTo();
+                }
+
+                if (!(managerDn.contains("username") || managerDn.contains("userName"))
+                        || !(managerDn.contains("tenantName") || managerDn.contains("tenantname"))) {
+                    throw APIException.badRequests.managerDNMustcontainUserNameAndTenantName();
+                }
             }
         }
     }
@@ -854,14 +837,11 @@ public class AuthnConfigurationService extends TaggedResource {
 
         // The domains tag must be present in any new profile
         ArgValidator.checkFieldNotNull(param.getDomains(), "domains");
-        if(!AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(param.getMode()))
-        {
-            ArgValidator.checkFieldNotNull(param.getSearchFilter(),  "search_filter");
-            ArgValidator.checkFieldNotNull(param.getSearchBase(),  "search_base");        
-        }  
-        else
-        {
-        	ensureSingleKeystoneProvider(param);
+        if (!AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(param.getMode())) {
+            ArgValidator.checkFieldNotNull(param.getSearchFilter(), "search_filter");
+            ArgValidator.checkFieldNotNull(param.getSearchBase(), "search_base");
+        } else {
+            ensureSingleKeystoneProvider(param);
         }
 
         checkIfCreateLDAPGroupPropertiesSupported(param);
@@ -869,29 +849,27 @@ public class AuthnConfigurationService extends TaggedResource {
         validateAuthnProviderParam(param, null, param.getServerUrls(), param.getDomains(),
                 param.getGroupWhitelistValues());
     }
+
     /**
-     * Ensures that there exists  a single keystone provider always.
+     * Ensures that there exists a single keystone provider always.
      * 
      * Requests for keystone authentication provider will be coming from OpenStack
      * environment, since it is not possible to figure out which keystone provider to
-     * use for which request, hence only single keystone authentication provider is 
+     * use for which request, hence only single keystone authentication provider is
      * supported.
      * 
      * @param param
      */
-    private void ensureSingleKeystoneProvider(AuthnCreateParam param) 
-    {
-		List<URI> allProviders = _dbClient.queryByType(AuthnProvider.class, true);
-		for(URI providerURI : allProviders)
-		{
-			AuthnProvider provider = getProviderById(providerURI, true);
-			if(AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(provider.getMode().toString()))
-			{
-				throw APIException.badRequests.keystoneProviderAlreadyPresent();
-			}
-		}
-		
-	}
+    private void ensureSingleKeystoneProvider(AuthnCreateParam param) {
+        List<URI> allProviders = _dbClient.queryByType(AuthnProvider.class, true);
+        for (URI providerURI : allProviders) {
+            AuthnProvider provider = getProviderById(providerURI, true);
+            if (AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(provider.getMode().toString())) {
+                throw APIException.badRequests.keystoneProviderAlreadyPresent();
+            }
+        }
+
+    }
 
     private void validateAuthnUpdateParam(AuthnUpdateParam param, AuthnProvider provider) {
         if (param == null) {

@@ -9,6 +9,7 @@ import java.util.Calendar;
 import java.util.List;
 
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
@@ -53,18 +54,18 @@ public class ExtensionService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public Version getVersion() {
-        return getV2();
-    }
-
-    // INTERNAL FUNCTIONS
-
-    private Version getV2() {
-        Version v2 = new Version();
-        v2.status = "CURRENT";
-        v2.id = "v2.0";
-        v2.updated = VolumeService.date(Calendar.getInstance().getTimeInMillis());
-        return v2;
+    public Version getVersion(@HeaderParam("X-Cinder-V1-Call") String isV1Call) {
+    	Version v = new Version();
+        v.status = "CURRENT";
+        if (isV1Call != null) {
+        	v.id = "v1.0";
+	        v.updated = VolumeService.date(Calendar.getInstance().getTimeInMillis());
+        }
+        else{
+        	v.id = "v2.0";
+	        v.updated = VolumeService.date(Calendar.getInstance().getTimeInMillis());        	
+        }
+        return v;	
     }
 
 }

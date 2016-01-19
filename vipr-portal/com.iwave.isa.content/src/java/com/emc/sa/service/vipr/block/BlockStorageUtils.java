@@ -75,6 +75,7 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetExportsForBlockObject;
 import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
+import com.emc.sa.service.vipr.block.tasks.PauseContinuousCopy;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
 import com.emc.sa.service.vipr.block.tasks.RestoreFromFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ResynchronizeBlockSnapshot;
@@ -499,6 +500,7 @@ public class BlockStorageUtils {
     }
 
     private static void removeContinuousCopy(URI volumeId, URI continuousCopyId) {
+        execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
         Tasks<VolumeRestRep> tasks = execute(new DeactivateContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
         addAffectedResources(tasks);
     }
@@ -542,7 +544,10 @@ public class BlockStorageUtils {
         List<ITLRestRep> bulkResponse = execute(new FindBlockVolumeHlus(volumeIds));
         Map<URI, Integer> volumeHLUs = Maps.newHashMap();
         for (ITLRestRep export : bulkResponse) {
-            volumeHLUs.put(export.getBlockObject().getId(), export.getHlu());
+            ExportGroupRestRep exportGroup = getExport(export.getExport().getId());
+            if (!exportGroup.getInternal()) {
+                volumeHLUs.put(export.getBlockObject().getId(), export.getHlu());
+            }
         }
         return volumeHLUs;
     }

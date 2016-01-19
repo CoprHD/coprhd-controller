@@ -70,6 +70,9 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     // A reference to a scheduler.
     protected Scheduler _scheduler = null;
 
+    // A reference to the full copy manager.
+    protected BlockFullCopyManager _fullCopyMgr;
+
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(AbstractBlockFullCopyApiImpl.class);
 
@@ -79,12 +82,14 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator.
      * @param scheduler A reference to the scheduler.
+     * @param fullCopyMgr A reference to the full copy manager.
      */
     public AbstractBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-            Scheduler scheduler) {
+            Scheduler scheduler, BlockFullCopyManager fullCopyMgr) {
         _dbClient = dbClient;
         _coordinator = coordinator;
         _scheduler = scheduler;
+        _fullCopyMgr = fullCopyMgr;
     }
 
     /**
@@ -414,7 +419,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
          * Delete volume api call will delete all its related replicas for VMAX using SMI 8.0.3.
          * Hence vmax using 8.0.3 can be delete even if volume has replicas.
          */
-        if (volume.isInCG() && BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+        if (volume.isInCG() && BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
             return true;
         }
 

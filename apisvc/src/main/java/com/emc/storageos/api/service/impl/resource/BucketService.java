@@ -206,6 +206,7 @@ public class BucketService extends TaskResourceService {
 
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, Integer.valueOf(1));
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.FALSE);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.QUOTA, hardQuota.toString());
 
         List<BucketRecommendation> placement = _bucketScheduler.placeBucket(neighborhood, cos, capabilities);
         if (placement.isEmpty()) {

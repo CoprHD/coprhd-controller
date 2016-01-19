@@ -80,6 +80,13 @@ public interface ContainmentPrefixConstraint extends Constraint {
             ColumnField field = doType.getColumnField(PROJECT);
             return new ContainmentPrefixConstraintImpl(project, blockSnapshotPrefix, field);
         }
+        
+        public static ContainmentPrefixConstraint getBlockSnapshotSessionUnderProjectConstraint(
+                URI project, String blockSnapshotSessionPrefix) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
+            ColumnField field = doType.getColumnField(PROJECT);
+            return new ContainmentPrefixConstraintImpl(project, blockSnapshotSessionPrefix, field);
+        }
 
         public static ContainmentPrefixConstraint getExportGroupUnderTenantConstraint(
                 URI tenant, String exportGroupPrefix) {

@@ -276,7 +276,7 @@ public class QuotaService extends TaskResourceService {
                         if (quotaUpdates.quota_set.containsKey("snapshots_" + vpoolName))
                             quotaObj.setSnapshotsLimit(new Long(quotaUpdates.quota_set.get("snapshots_" + vpoolName)));
                         noEntriesInDB = false;
-                        _dbClient.persistObject(quotaObj);
+                        _dbClient.updateObject(quotaObj);
                         return getQuotaDetailFormat(header, quotaUpdates);
                     }
                 }
@@ -290,7 +290,7 @@ public class QuotaService extends TaskResourceService {
                     if (quotaUpdates.quota_set.containsKey("snapshots"))
                         quotaObj.setSnapshotsLimit(new Long(quotaUpdates.quota_set.get("snapshots")));
                     noEntriesInDB = false;
-                    _dbClient.persistObject(quotaObj);
+                    _dbClient.updateObject(quotaObj);
                     return getQuotaDetailFormat(header, quotaUpdates);
                 }
 
@@ -339,7 +339,6 @@ public class QuotaService extends TaskResourceService {
             }
             objQuotaOfCinder.setId(URI.create(UUID.randomUUID().toString()));
             _dbClient.createObject(objQuotaOfCinder);
-            _dbClient.persistObject(objQuotaOfCinder);
             return getQuotaDetailFormat(header, quotaUpdates);
         }
         return getQuotaDetailFormat(header, quotaUpdates);
@@ -347,6 +346,9 @@ public class QuotaService extends TaskResourceService {
     }
 
     // internal function
+    /**
+     *Depending on mediatype either xml/json Quota details response is returned 
+     */
     private Response getQuotaDetailFormat(HttpHeaders header, CinderQuotaDetails respCinderQuota) {
         if (CinderApiUtils.getMediaType(header).equals("xml")) {
             return CinderApiUtils.getCinderResponse(CinderApiUtils
@@ -360,7 +362,11 @@ public class QuotaService extends TaskResourceService {
         }
 
     }
-
+    
+    /**
+     *This function will return true, if the user is updating the quota of a vpool w.r.t a project
+     * otherwise it will be set to false, if the user is updating the quota of the project
+     */
     private boolean isVpoolQuotaUpdate(Map<String, String> updateMap) {
         for (String iter : updateMap.keySet()) {
             if (iter.startsWith("volumes_") || iter.startsWith("snapshots_") || iter.startsWith("gigabytes_")) {
@@ -370,6 +376,10 @@ public class QuotaService extends TaskResourceService {
         return false;
     }
 
+    /**
+     * Vpool name for the passed quota set
+     * 
+     */
     private String getVpoolName(Map<String, String> updateMap) {
         for (String iter : updateMap.keySet()) {
             if (iter.startsWith("volumes_") || iter.startsWith("snapshots_") || iter.startsWith("gigabytes_")) {
@@ -379,7 +389,10 @@ public class QuotaService extends TaskResourceService {
         }
         return null;
     }
-
+    
+    /**
+     * returns tenant owner
+     */
     @Override
     protected URI getTenantOwner(URI id) {
         QuotaOfCinder objQuota = (QuotaOfCinder) queryResource(id);
@@ -394,12 +407,18 @@ public class QuotaService extends TaskResourceService {
     protected boolean isZoneLevelResource() {
         return false;
     }
-
+    
+    /**
+     * returns resource type
+     */
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.VOLUME;
     }
-
+    
+    /**
+     * returns service  type
+     */
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -416,6 +435,9 @@ public class QuotaService extends TaskResourceService {
         return new ProjOwnedResRepFilter(user, permissionsHelper, Volume.class);
     }
 
+    /**
+     * returns quota object
+     */
     @Override
     protected DataObject queryResource(URI id) {
         QuotaOfCinder objQuotaOfCinder = _dbClient.queryObject(QuotaOfCinder.class, id);

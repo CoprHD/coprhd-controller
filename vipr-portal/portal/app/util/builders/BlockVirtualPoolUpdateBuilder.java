@@ -39,8 +39,8 @@ import com.google.common.collect.Sets;
 
 public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
     private static final String NO_AUTO_TIER_POLICY = "none";
-    private BlockVirtualPoolRestRep oldVirtualPool;
-    private BlockVirtualPoolUpdateParam virtualPool;
+    private final BlockVirtualPoolRestRep oldVirtualPool;
+    private final BlockVirtualPoolUpdateParam virtualPool;
 
     public BlockVirtualPoolUpdateBuilder(BlockVirtualPoolRestRep oldVirtualPool) {
         this(oldVirtualPool, new BlockVirtualPoolUpdateParam());
@@ -247,26 +247,22 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
     }
 
     public BlockVirtualPoolUpdateBuilder setJournalVarrayAndVpool(URI journalVarray, URI journalVpool) {
-        if (journalVarray != null) {
-            if (getProtectionSourcePolicy() == null) {
-                getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
-            }
-
-            getProtectionSourcePolicy().setJournalVarray(journalVarray);
-            getProtectionSourcePolicy().setJournalVpool(journalVpool);
+        if (getProtectionSourcePolicy() == null) {
+            getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
         }
+
+        getProtectionSourcePolicy().setJournalVarray(journalVarray);
+        getProtectionSourcePolicy().setJournalVpool(journalVpool);
         return this;
     }
 
     public BlockVirtualPoolUpdateBuilder setStandByJournalVArrayVpool(URI standbyJournalVarray, URI standbyJournalVpool) {
-        if (standbyJournalVarray != null) {
-            if (getProtectionSourcePolicy() == null) {
-                getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
-            }
-
-            getProtectionSourcePolicy().setStandbyJournalVarray(standbyJournalVarray);
-            getProtectionSourcePolicy().setStandbyJournalVpool(standbyJournalVpool);
+        if (getProtectionSourcePolicy() == null) {
+            getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
         }
+
+        getProtectionSourcePolicy().setStandbyJournalVarray(standbyJournalVarray);
+        getProtectionSourcePolicy().setStandbyJournalVpool(standbyJournalVpool);
         return this;
     }
 

@@ -12,8 +12,8 @@
     if (open) navClass += ' selected'
 }%
 #{if open}#{set menuOpen:true/}#{/if}
-<a href="#" id="${id}" class="${navClass}" onclick="return false" data-toggle="tooltip" data-placement="right" title="&{title}" data-subnav="${subnav}"
->#{icon _icon/}</a>
+<a href="#" id="${id}" class="${navClass}" onclick="return false" data-subnav="${subnav}"
+>#{icon _icon/}<div style="color:white;font-family:Helvetica;text-align: center;font-weight:bold;font-size:11px;margin-top:-5px">&{title}</div></a>
 #{set 'menu'}
 #{get 'menu'/}
 <div id="${subnav}" class="navMenu ${open ? 'menu-open' : ''}">

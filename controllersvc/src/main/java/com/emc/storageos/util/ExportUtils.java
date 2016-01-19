@@ -53,8 +53,8 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
-import com.google.common.collect.Collections2;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.TreeMultimap;
 
 public class ExportUtils {
@@ -816,9 +816,7 @@ public class ExportUtils {
     }
 
     /**
-     * Check the list of passed in initiators and check if HostName is null or
-     * Host is not null, if so, these are NOT RecovePoing initiators so return
-     * false. Otherwise we can assume they are, return true.
+     * Check the list of passed in initiators and check if the RP flag is set.
      * 
      * @param initiatorList
      *            List of Initiators

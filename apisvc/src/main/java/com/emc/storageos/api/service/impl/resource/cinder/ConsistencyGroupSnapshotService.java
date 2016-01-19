@@ -106,7 +106,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     /**
      * Create consistency group snapshot
      * 
-     * @param openstack_tenant_id
+     * @param openstackTenantId
      *            openstack tenant Id
      * @param param
      *            Pojo class to bind request
@@ -120,11 +120,11 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response createConsistencyGroupSnapshot(@PathParam("tenant_id") String openstack_tenant_id,
+    public Response createConsistencyGroupSnapshot(@PathParam("tenant_id") String openstackTenantId,
             final ConsistencyGroupSnapshotCreateRequest param, @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header) {
         // Query Consistency Group
         final String consistencyGroupId = param.cgsnapshot.consistencygroup_id;
-        final BlockConsistencyGroup consistencyGroup = findConsistencyGroup(consistencyGroupId, openstack_tenant_id);
+        final BlockConsistencyGroup consistencyGroup = findConsistencyGroup(consistencyGroupId, openstackTenantId);
 
         // Ensure that the Consistency Group has been created on all of its defined
         // system types.
@@ -132,7 +132,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             CinderApiUtils.createErrorResponse(400, "No such consistency group created");
         }
 
-        Project project = getCinderHelper().getProject(openstack_tenant_id,
+        Project project = getCinderHelper().getProject(openstackTenantId,
                 getUserFromContext());
 
         URI cgStorageControllerURI = consistencyGroup.getStorageController();
@@ -227,7 +227,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                         ":", 3)));
 
             }
-            _dbClient.updateAndReindexObject(snap);
+            _dbClient.updateObject(snap);
             cgSnapshotCreateRes.id = CinderApiUtils.splitString(snapshotUri.toString(), ":", 3);
             cgSnapshotCreateRes.name = param.cgsnapshot.name;
         }
@@ -239,9 +239,9 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     /**
      * Get Consistency Group Snapshot info
      * 
-     * @param openstack_tenant_id
+     * @param openstackTenantId
      *            openstack tenant Id
-     * @param consistencyGroupSnapshot_id
+     * @param consistencyGroupSnapshotId
      *            Consistency Group Snapshot Id
      * @param isV1Call
      *            Cinder V1 api
@@ -255,12 +255,12 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{consistencyGroupSnapshot_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public Response getConsistencyGroupSnapshotDetail(@PathParam("tenant_id") String openstack_tenant_id,
-            @PathParam("consistencyGroupSnapshot_id") String consistencyGroupSnapshot_id, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
+    public Response getConsistencyGroupSnapshotDetail(@PathParam("tenant_id") String openstackTenantId,
+            @PathParam("consistencyGroupSnapshot_id") String consistencyGroupSnapshotId, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             @Context HttpHeaders header) {
-        final BlockSnapshot snapshot = findSnapshot(consistencyGroupSnapshot_id, openstack_tenant_id);
+        final BlockSnapshot snapshot = findSnapshot(consistencyGroupSnapshotId, openstackTenantId);
         ConsistencyGroupSnapshotDetail cgSnapshotDetail = new ConsistencyGroupSnapshotDetail();
-        cgSnapshotDetail.id = consistencyGroupSnapshot_id;
+        cgSnapshotDetail.id = consistencyGroupSnapshotId;
         cgSnapshotDetail.name = snapshot.getLabel();
         cgSnapshotDetail.created_at = CinderApiUtils.timeFormat(snapshot.getCreationTime());
         StringMap extensions = snapshot.getExtensions();
@@ -289,7 +289,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                             cgSnapshotDetail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
                             snapshot.getExtensions().put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
-                            _dbClient.persistObject(snapshot);
+                            _dbClient.updateObject(snapshot);
                         }
                         else if (tsk.getStatus().equals("pending")) {
                             if (tsk.getDescription().equals(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT.getDescription()))
@@ -305,7 +305,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                             cgSnapshotDetail.status = ComponentStatus.ERROR.getStatus().toLowerCase();
                             snapshot.getExtensions().put("status", ComponentStatus.ERROR.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
-                            _dbClient.persistObject(snapshot);
+                            _dbClient.updateObject(snapshot);
                         }
                         break;
                     }
@@ -317,7 +317,8 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             }
             else
             {
-                cgSnapshotDetail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase(); // "available";
+                // status is available
+                cgSnapshotDetail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase(); 
             }
         }
         cgSnapshotDetail.description = (description == null) ? "" : description;
@@ -328,7 +329,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     /**
      * Detail Info for Consistency group snapshot
      * 
-     * @param openstack_tenant_id
+     * @param openstackTenantId
      *            Openstack tenant id
      * @param isV1Call
      *            openstack V1 call
@@ -342,11 +343,11 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     @Path("/detail")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response getConsistencyGroupSnapshotDetailList(
-            @PathParam("tenant_id") String openstack_tenant_id,
+            @PathParam("tenant_id") String openstackTenantId,
             @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             @Context HttpHeaders header) {
         ConsistencyGroupSnapshotListDetail cgSnapshotDetailListResponse = new ConsistencyGroupSnapshotListDetail();
-        URIQueryResultList cgUris = getCinderHelper().getConsistencyGroupsUris(openstack_tenant_id, getUserFromContext());
+        URIQueryResultList cgUris = getCinderHelper().getConsistencyGroupsUris(openstackTenantId, getUserFromContext());
         if (null != cgUris) {
             for (URI cgUri : cgUris) {
                 URIQueryResultList uris = getCinderHelper().getConsistencyGroupSnapshotUris(cgUri);
@@ -368,7 +369,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     /**
      * Delete a consistency group snapshot
      * 
-     * @param openstack_tenant_id
+     * @param openstackTenantId
      *            openstack tenant id
      * @param consistencyGroupSnapshot_id
      *            consistency group snapshot id
@@ -384,13 +385,13 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     @Path("/{consistencyGroupSnapshot_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response deleteConsistencyGroupSnapshot(
-            @PathParam("tenant_id") String openstack_tenant_id,
+            @PathParam("tenant_id") String openstackTenantId,
             @PathParam("consistencyGroupSnapshot_id") String consistencyGroupSnapshot_id,
             @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             @Context HttpHeaders header) {
-        final BlockSnapshot snapshot = findSnapshot(consistencyGroupSnapshot_id, openstack_tenant_id);
+        final BlockSnapshot snapshot = findSnapshot(consistencyGroupSnapshot_id, openstackTenantId);
         final URI snapshotCgURI = snapshot.getConsistencyGroup();
-        URIQueryResultList uris = getCinderHelper().getConsistencyGroupsUris(openstack_tenant_id, getUserFromContext());
+        URIQueryResultList uris = getCinderHelper().getConsistencyGroupsUris(openstackTenantId, getUserFromContext());
         boolean isConsistencyGroupHasSnapshotId = false;
         if (uris != null && snapshotCgURI != null) {
             for (URI blockCGUri : uris) {
@@ -491,18 +492,18 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     /**
      * Find Snapshot based on snapshot id and tenant id
      * 
-     * @param snapshot_id
+     * @param snapshotId
      *            Snapshot id
-     * @param openstack_tenant_id
+     * @param openstackTenantId
      *            tenant Id
      * @return BlockSnapshot
      */
-    private BlockSnapshot findSnapshot(String snapshot_id,
-            String openstack_tenant_id) {
+    private BlockSnapshot findSnapshot(String snapshotId,
+            String openstackTenantId) {
         BlockSnapshot snapshot = getCinderHelper().querySnapshotByTag(
-                URI.create(snapshot_id), getUserFromContext());
+                URI.create(snapshotId), getUserFromContext());
         if (snapshot != null) {
-            Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
+            Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
             if ((project != null)
                     && (snapshot.getProject().getURI().toString()
                             .equalsIgnoreCase(project.getId().toString()))) {

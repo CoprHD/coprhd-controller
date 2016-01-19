@@ -51,15 +51,15 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
     /**
      * This function returns consistency group
      * 
-     * @param consistencyGroup_id
-     * @param openstack_tenant_id
+     * @param consistencyGroupId
+     * @param openstackTenantId
      * @return BlockConsistencyGroup
      */
     protected BlockConsistencyGroup findConsistencyGroup(
-            String consistencyGroup_id, String openstack_tenant_id) {
-        BlockConsistencyGroup blockConsistencyGroup = getCinderHelper().queryConsistencyGroupByTag(URI.create(consistencyGroup_id),
+            String consistencyGroupId, String openstackTenantId) {
+        BlockConsistencyGroup blockConsistencyGroup = getCinderHelper().queryConsistencyGroupByTag(URI.create(consistencyGroupId),
                 getUserFromContext());
-        Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
+        Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
         if (project == null) {
             CinderApiUtils.createErrorResponse(400, "Bad Request: Project not exist for the request");
         }
@@ -111,7 +111,7 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
      * 
      * @return True if the CG is active and not created.
      */
-    protected boolean deleteUncreatedConsistencyGroup(
+    protected boolean canDeleteConsistencyGroup(
             final BlockConsistencyGroup consistencyGroup) {
         return (!consistencyGroup.getInactive() && !consistencyGroup.created());
     }

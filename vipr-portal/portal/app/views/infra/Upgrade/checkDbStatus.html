@@ -123,7 +123,10 @@ function checkDbProgressUpdate() {
         		updateProgressBarStyle("Status", "danger");
         		$("#checkDbStatus").css("color", "#d9534f");
         		$("#checkDbStatus").css("font-weight", "bold");
-        		$("#checkDetailMsg").text('Please check the syssvc log during '+result.startTime+' and '+result.endTime+' for more details and contact EMC Support Engineer.');
+        		var startTime = formatLocalDateTime(moment.utc(moment(result.startTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
+        		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
+        		$("#checkDetailMsg").text('Please check the syssvc log during local time '+startTime+'('+result.startTime+' UTC) and '+endTime+'('+result.endTime+' UTC) for more details and contact EMC Support Engineer.');
+
         	}
         },
         error: function() {

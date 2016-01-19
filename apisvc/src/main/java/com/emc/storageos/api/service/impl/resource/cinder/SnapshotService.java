@@ -53,12 +53,10 @@ import com.emc.storageos.cinder.model.SnapshotCreateRequestGen;
 import com.emc.storageos.cinder.model.SnapshotCreateResponse;
 import com.emc.storageos.cinder.model.SnapshotUpdateRequestGen;
 import com.emc.storageos.cinder.model.UsageStats;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
@@ -72,10 +70,8 @@ import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -104,7 +100,7 @@ public class SnapshotService extends TaskResourceService {
             .getLogger(SnapshotService.class);
     private static final String EVENT_SERVICE_TYPE = "block";
 
-    private static final long halfGB = 512 * 1024 * 1024;
+    private static final long HALF_GB = 512 * 1024 * 1024;
     private static final long GB = 1024 * 1024 * 1024;
     private static final String ZERO_PERCENT_COMPLETION = "0%";
     private static final String HUNDRED_PERCENT_COMPLETION = "100%";
@@ -271,7 +267,8 @@ public class SnapshotService extends TaskResourceService {
 
                 String[] splits = snapshotUri.toString().split(":");
                 String tagName = splits[3];
-
+                
+                //this check will verify whether  retrieved data is not corrupted
                 if (tagName == null || tagName.isEmpty()
                         || tagName.length() < 2) {
                     throw APIException.badRequests
@@ -283,10 +280,10 @@ public class SnapshotService extends TaskResourceService {
                 ScopedLabel tagLabel = new ScopedLabel(
                         tenantOwner.toString(), tagName);
                 tagSet.add(tagLabel);
-                _dbClient.updateAndReindexObject(snap);
+                _dbClient.updateObject(snap);
 
                 snapCreateResp.snapshot = snapCreateResp.new Snapshot();
-                int sizeInGB = (int) ((snap.getProvisionedCapacity() + halfGB) / GB);
+                int sizeInGB = (int) ((snap.getProvisionedCapacity() + HALF_GB) / GB);
                 snapCreateResp.snapshot.size = sizeInGB;
                 snapCreateResp.snapshot.id = getCinderHelper().trimId(
                         snap.getId().toString());
@@ -367,6 +364,9 @@ public class SnapshotService extends TaskResourceService {
                 }
             }
 
+            //ToDo if the backend system is vplex, rp  
+            //we cannot use the default blockservice implemenation
+            //we need to use other APIs(for vplex adn RP), that need to be implemented
             BlockServiceApi api = BlockService.getBlockServiceImpl("default");
 
             List<Volume> volumesToSnap = new ArrayList<Volume>();
@@ -391,7 +391,7 @@ public class SnapshotService extends TaskResourceService {
             _log.debug("Update volume : stored description");
             snap.setExtensions(extensions);
         }
-        _dbClient.persistObject(snap);
+        _dbClient.updateObject(snap);
         return CinderApiUtils.getCinderResponse(
                 getSnapshotDetail(snap, isV1Call, openstack_tenant_id), header, true);
     }
@@ -418,7 +418,7 @@ public class SnapshotService extends TaskResourceService {
         }
 
         snap.getExtensions().put("status", actionRequest.updateStatus.status);
-        _dbClient.persistObject(snap);
+        _dbClient.updateObject(snap);
         return Response.status(202).build();
 
     }
@@ -469,7 +469,7 @@ public class SnapshotService extends TaskResourceService {
 
         _log.debug("Update snapshot metadata: stored metadata");
         snap.setExtensions(extensions);
-        _dbClient.persistObject(snap);
+        _dbClient.updateObject(snap);
 
         return getSnapshotMetadataDetail(snap);
     }
@@ -608,7 +608,7 @@ public class SnapshotService extends TaskResourceService {
         }
 
         snap.setExtensions(extensions);
-        _dbClient.persistObject(snap);
+        _dbClient.updateObject(snap);
 
         auditOp(OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, true,
                 AuditLogManager.AUDITOP_BEGIN, snapshot_id, snap.getLabel(),
@@ -695,7 +695,7 @@ public class SnapshotService extends TaskResourceService {
         detail.volume_id = getCinderHelper().trimId(snapshot.getParent().getURI().toString());
         detail.created_at = date(snapshot.getCreationTime().getTimeInMillis());
         detail.project_id = openstack_tenant_id;
-        detail.size = (int) ((snapshot.getProvisionedCapacity() + halfGB) / GB);
+        detail.size = (int) ((snapshot.getProvisionedCapacity() + HALF_GB) / GB);
 
         StringMap extensions = snapshot.getExtensions();
         String description = null;
@@ -720,7 +720,7 @@ public class SnapshotService extends TaskResourceService {
                             detail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
                             snapshot.getExtensions().put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
-                            _dbClient.persistObject(snapshot);
+                            _dbClient.updateObject(snapshot);
                         }
                         else if (tsk.getStatus().equals("pending")) {
                             if (tsk.getDescription().equals(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT.getDescription()))
@@ -736,7 +736,7 @@ public class SnapshotService extends TaskResourceService {
                             detail.status = ComponentStatus.ERROR.getStatus().toLowerCase();
                             snapshot.getExtensions().put("status", ComponentStatus.ERROR.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
-                            _dbClient.persistObject(snapshot);
+                            _dbClient.updateObject(snapshot);
                         }
                         break;
                     }
@@ -829,9 +829,9 @@ public class SnapshotService extends TaskResourceService {
         
         UsageStats stats = null;
         if (pool != null) {
-            stats = getCinderHelper().GetUsageStats(pool.getId(), proj.getId());
+            stats = getCinderHelper().getStorageStats(pool.getId(), proj.getId());
         } else {
-            stats = getCinderHelper().GetUsageStats(null, proj.getId());
+            stats = getCinderHelper().getStorageStats(null, proj.getId());
         }            
 
         totalSnapshotsUsed = stats.snapshots;

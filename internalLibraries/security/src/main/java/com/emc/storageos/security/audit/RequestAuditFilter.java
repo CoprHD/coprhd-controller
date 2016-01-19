@@ -63,11 +63,11 @@ public class RequestAuditFilter implements Filter {
                 req.getRequestURL(), (rqs == null ? "empty-query" : rqs), srcHost);
         _log.info(stripCookieToken(basicStr));
 
-        String detailsStr = String.format("Auth headers: Auth Token: %s - Proxy Token: %s - Basic Auth: %s - Keystone Token:%s",  
+        String detailsStr = String.format("Auth headers: Auth Token: %s - Proxy Token: %s - Basic Auth: %s - Keystone Token:%s",
                 req.getHeader(RequestProcessingUtils.AUTH_TOKEN_HEADER) == null ? "no" : "yes",
                 req.getHeader(RequestProcessingUtils.AUTH_PROXY_TOKEN_HEADER) == null ? "no" : "yes",
                 req.getHeader(HttpHeaders.AUTHORIZATION) == null ? "no" : "yes",
-                req.getHeader(RequestProcessingUtils.KEYSTONE_AUTH_TOKEN_HEADER)== null ? "no" : "yes"	);
+                req.getHeader(RequestProcessingUtils.KEYSTONE_AUTH_TOKEN_HEADER) == null ? "no" : "yes");
         _log.info(detailsStr);
 
         // Additional fine grained debugging

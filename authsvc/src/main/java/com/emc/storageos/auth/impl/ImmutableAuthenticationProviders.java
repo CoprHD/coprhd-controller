@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.auth.impl;
 
-import com.emc.storageos.auth.SystemPropertyUtil;
-import com.emc.storageos.auth.ldap.*;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -14,16 +12,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.naming.directory.SearchControls;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.AuthnProvider;
-import com.emc.storageos.db.client.model.AuthnProvider.ProvidersType;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.model.auth.AuthnProviderParamsToValidate;
-import com.emc.storageos.security.exceptions.SecurityException;
-import com.emc.storageos.security.ssl.ViPRSSLSocketFactory;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.AuthenticationException;
@@ -37,8 +28,7 @@ import org.springframework.ldap.core.support.AbstractContextMapper;
 import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.util.CollectionUtils;
 
-import javax.naming.directory.SearchControls;
-import java.text.MessageFormat;
+import com.emc.storageos.auth.SystemPropertyUtil;
 import com.emc.storageos.auth.ldap.ActiveDirectoryVersionMap;
 import com.emc.storageos.auth.ldap.GroupWhiteList;
 import com.emc.storageos.auth.ldap.LdapFilterUtil;
@@ -59,7 +49,6 @@ import com.emc.storageos.model.auth.AuthnProviderParamsToValidate;
 import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.ssl.ViPRSSLSocketFactory;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import java.util.*;
 
 /**
  * Utility class to encapsulate an immutable list of authentication providers.
@@ -88,7 +77,6 @@ public class ImmutableAuthenticationProviders {
         SEARCH_CTL_SCOPES.put(AuthnProvider.SearchScope.ONELEVEL.toString(), SearchControls.ONELEVEL_SCOPE);
         SEARCH_CTL_SCOPES.put(AuthnProvider.SearchScope.SUBTREE.toString(), SearchControls.SUBTREE_SCOPE);
     }
-
 
     private final List<AuthenticationProvider> _authenticationProviders;
     private static Logger _log = LoggerFactory.getLogger(ImmutableAuthenticationProviders.class);
@@ -167,13 +155,11 @@ public class ImmutableAuthenticationProviders {
             _log.debug("Auth handler is in LDAP mode");
             return getLDAPProvider(coordinator, authenticationConfiguration, dbclient);
 
-        }else if(AuthnProvider.ProvidersType.keystone.toString()
-        		      .equalsIgnoreCase(authenticationConfiguration.getMode()))
-        {
-        	_log.debug("Auth handler is in keystone mode");
-        	return getKeystoneProvider(coordinator, authenticationConfiguration, dbclient);
-        }
-        else {
+        } else if (AuthnProvider.ProvidersType.keystone.toString()
+                .equalsIgnoreCase(authenticationConfiguration.getMode())) {
+            _log.debug("Auth handler is in keystone mode");
+            return getKeystoneProvider(coordinator, authenticationConfiguration, dbclient);
+        } else {
             _log.error(
                     "Mode {} not known skipping this authN configuration",
                     authenticationConfiguration.getMode());
@@ -183,18 +169,18 @@ public class ImmutableAuthenticationProviders {
 
     /**
      * Add keystone authentication configuration
+     * 
      * @param coordinator
      * @param authenticationConfiguration
      * @param dbclient
      * @return
      */
     private static AuthenticationProvider getKeystoneProvider(CoordinatorClient coordinator,
-			AuthnProvider authenticationConfiguration, DbClient dbclient) 
-    {
-		//TODO - Construct the keystone authprovider and return
-		return null;
-	}
-    
+            AuthnProvider authenticationConfiguration, DbClient dbclient) {
+        // TODO - Construct the keystone authprovider and return
+        return null;
+    }
+
     /**
      * Add an LDAP authentication configuration
      * 
@@ -487,22 +473,19 @@ public class ImmutableAuthenticationProviders {
     public static boolean checkProviderStatus(CoordinatorClient coordinator,
             final AuthnProviderParamsToValidate param,
             KeystoneRestClientFactory keystoneFactory,
-            StringBuilder errorString, int timeout, DbClient dbClient) {
+            StringBuilder errorString, DbClient dbClient) {
         AuthnProvider authConfig = new AuthnProvider();
         authConfig.setManagerDN(param.getManagerDN());
         authConfig.setManagerPassword(param.getManagerPwd());
         StringSet urls = new StringSet();
         urls.addAll(param.getUrls());
         authConfig.setServerUrls(urls);
-        if(AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(param.getMode()))
-        {
-        	authConfig.setMode(AuthnProvider.ProvidersType.keystone.toString());
-        	checkKeystoneProviderConnectivity(authConfig, keystoneFactory);            		
-        	return true;
-        }
-        else
-        {
-        	authConfig.setMode(AuthnProvider.ProvidersType.ldap.toString()); // we don't need AD specifics here
+        if (AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(param.getMode())) {
+            authConfig.setMode(AuthnProvider.ProvidersType.keystone.toString());
+            checkKeystoneProviderConnectivity(authConfig, keystoneFactory);
+            return true;
+        } else {
+            authConfig.setMode(AuthnProvider.ProvidersType.ldap.toString()); // we don't need AD specifics here
         }
 
         LdapContextSource contextSource =
@@ -556,46 +539,39 @@ public class ImmutableAuthenticationProviders {
 
     /**
      * Checks the keystone provider status
+     * 
      * @param authConfig
      */
-	private static void checkKeystoneProviderConnectivity(AuthnProvider authConfig, 
-			                                                                                                   KeystoneRestClientFactory keystoneFactory) 
-	{
-		String managerDn = authConfig.getManagerDN();
-		String password = authConfig.getManagerPassword();
-		StringSet uris = authConfig.getServerUrls();
-		
-		String userName = "";
-		String tenantName ="";
-		
-		try
-		{
-			String[] managerdnArray = managerDn.split(",");
-			String firstEle = managerdnArray[0];
-			String secondEle = managerdnArray[1];
-			userName = firstEle.split("=")[1];
-			tenantName = secondEle.split("=")[1];
-		}
-		catch(Exception ex)
-		{
-			 throw APIException.badRequests.managerDNInvalid();
-		}
-		
-		
-		
-		URI authUri = null;
-		for(String uri : uris)
-		{
-			authUri = URI.create(uri);
-			break; //There will be single URL only
-		}
-		
-		KeystoneApiClient keystoneApi = (KeystoneApiClient) keystoneFactory.getRESTClient(
-				                                                        authUri, userName, password);
-		keystoneApi.setTenantName(tenantName);
-		keystoneApi.authenticate_keystone();
-	}
+    private static void checkKeystoneProviderConnectivity(AuthnProvider authConfig,
+            KeystoneRestClientFactory keystoneFactory) {
+        String managerDn = authConfig.getManagerDN();
+        String password = authConfig.getManagerPassword();
+        StringSet uris = authConfig.getServerUrls();
 
+        String userName = "";
+        String tenantName = "";
+
+        try {
+            String[] managerdnArray = managerDn.split(",");
+            String firstEle = managerdnArray[0];
+            String secondEle = managerdnArray[1];
+            userName = firstEle.split("=")[1];
+            tenantName = secondEle.split("=")[1];
+        } catch (Exception ex) {
+            throw APIException.badRequests.managerDNInvalid();
+        }
+
+        URI authUri = null;
+        for (String uri : uris) {
+            authUri = URI.create(uri);
+            break; // There will be single URL only
+        }
+
+        KeystoneApiClient keystoneApi = (KeystoneApiClient) keystoneFactory.getRESTClient(
+                authUri, userName, password);
+        keystoneApi.setTenantName(tenantName);
+        keystoneApi.authenticate_keystone();
+    }
 
     /**
      * Validates the connection to LDAP and manager DN credentials, search base

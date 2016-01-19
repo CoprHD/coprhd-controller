@@ -187,7 +187,7 @@ public class ControlService {
      */
     @POST
     @Path("service/restart")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
+    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public Response restartService(@QueryParam("node_id") String nodeId, @QueryParam("name") String name, @QueryParam("node_name") String nodeName) {
 
@@ -262,7 +262,7 @@ public class ControlService {
      */
     @POST
     @Path("node/reboot")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
+    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public Response rebootNode(@QueryParam("node_id") String nodeId, @QueryParam("node_name") String nodeName) {
 
@@ -330,7 +330,7 @@ public class ControlService {
      */
     @POST
     @Path("cluster/poweroff")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response powerOffCluster(@QueryParam("force") String forceSet) throws Exception {
         _log.debug("Poweroff cluster");
@@ -415,7 +415,7 @@ public class ControlService {
      */
     @POST
     @Path("cluster/recovery")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response clusterRecovery() throws Exception {
         _log.info("Received a cluster recovery request");
@@ -463,7 +463,7 @@ public class ControlService {
      */
     @GET
     @Path("cluster/dbrepair-status")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public DbRepairStatus getDbRepairStatus() throws Exception {
         _log.info("Received a getting db repair status request");

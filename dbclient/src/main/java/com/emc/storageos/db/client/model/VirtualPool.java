@@ -111,6 +111,72 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Boolean autoCrossConnectExport = false;
     // Max retention for a Virtual Pool
     private Integer maxRetention;
+    
+    // File Replication attributes.
+    // Replication type { Local or Remote}
+    private String fileReplicationType;
+    // File Replication RPO value
+    private Long _frRpoValue;
+    // File Replication RPO type
+    private String _frRpoType;
+    // File Replication RPO type
+    private String _replicationCopyMode;
+    
+    
+    // File Repilcation copies
+    private StringMap _fileRemoteCopySettings;
+    
+    public static enum FileReplicationType {
+        LOCAL, REMOTE, NONE;
+        public static boolean lookup(final String name) {
+            for (FileReplicationType value : values()) {
+                if (value.name().equalsIgnoreCase(name)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+    
+    public static enum FileReplicationRPOType {
+        MINUTES("minutes"), 
+        HOURS("hours");
+        private final String _value;
+
+        FileReplicationRPOType(String v) {
+            _value = v;
+        }
+
+        public String value() {
+            return _value;
+        }
+
+        public static FileReplicationRPOType fromValue(final String v) {
+        	FileReplicationRPOType returnVal = lookup(v);
+            if (returnVal == null) {
+                throw new IllegalArgumentException(v);
+            }
+            return returnVal;
+        }
+
+        public static final FileReplicationRPOType[] copyOfValues = values();
+
+        public static FileReplicationRPOType lookup(final String name) {
+            for (FileReplicationRPOType value : copyOfValues) {
+                if (value.name().equals(name)) {
+                    return value;
+                }
+                if (value.value().equals(name)) {
+                    return value;
+                }
+            }
+            return null;
+        }
+    };
+
+    //Minimum number of data centers in this virtual pool
+    //This is required only for object virtual pools
+    private Integer minDataCenters;
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
@@ -784,7 +850,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("rpRpoValue")
     public Long getRpRpoValue() {
-        return _rpRpoValue;
+        // Return 0 if value is not set.  This helps with upgrade scenarios.
+        return _rpRpoValue == null ? 0 : _rpRpoValue;
     }
 
     public void setRpRpoValue(Long rpRpoValue) {
@@ -1168,6 +1235,29 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return settings;
     }
+    
+    /**
+     * Return the remote protection setting objects associated with this virtual pool.
+     * 
+     * @param vpool
+     *            the virtual pool
+     * @return a mapping of virtual arrays to the protection settings for that copy
+     */
+    public static Map<URI, VpoolRemoteCopyProtectionSettings> getFileRemoteProtectionSettings(
+            final VirtualPool vpool, final DbClient dbClient) {
+        Map<URI, VpoolRemoteCopyProtectionSettings> settings = new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
+        if (vpool.getFileRemoteCopySettings() != null) {
+            for (String protectionVarray : vpool.getFileRemoteCopySettings().keySet()) {
+                settings.put(
+                        URI.create(protectionVarray),
+                        dbClient.queryObject(
+                                VpoolRemoteCopyProtectionSettings.class,
+                                URI.create(vpool.getFileRemoteCopySettings().get(
+                                        protectionVarray))));
+            }
+        }
+        return settings;
+    }
 
     public static Map<String, List<String>> groupRemoteCopyModesByVPool(final VirtualPool vpool,
             final DbClient dbClient) {
@@ -1332,4 +1422,65 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         this.maxRetention = (null==maxRetention || maxRetention == 0) ? 0 : maxRetention;
         setChanged("maxRetention");
     }
+    
+    @Name("fileReplicationType")
+    public String getFileReplicationType() {
+        return fileReplicationType;
+    }
+
+    public void setFileReplicationType(String fileReplicationType) {
+        this.fileReplicationType = fileReplicationType;
+        setChanged("fileReplicationType");
+    }
+    
+    @Name("fileRemoteCopySettings")
+    public StringMap getFileRemoteCopySettings() {
+        return _fileRemoteCopySettings;
+    }
+
+    public void setFileRemoteCopySettings(final StringMap fileRemoteCopySettings) {
+        this._fileRemoteCopySettings = fileRemoteCopySettings;
+        setChanged("fileRemoteCopySettings");
+    }
+    
+    @Name("frRpoValue")
+    public Long getFrRpoValue() {
+        return _frRpoValue;
+    }
+
+    public void setFrRpoValue(Long frRpoValue) {
+        this._frRpoValue = frRpoValue;
+        setChanged("frRpoValue");
+    }
+
+    @Name("frRpoType")
+    public String getFrRpoType() {
+        return _frRpoType;
+    }
+
+    public void setFrRpoType(String frRpoType) {
+        this._frRpoType = frRpoType;
+        setChanged("frRpoType");
+    }
+    
+    @Name("replicationCopyMode")
+    public String getFileReplicationCopyMode() {
+        return _replicationCopyMode;
+    }
+
+    public void setFileReplicationCopyMode(String replicationCopyMode) {
+        this._replicationCopyMode = replicationCopyMode;
+        setChanged("replicationCopyMode");
+    }
+
+    @Name("minDataCenters")
+    public Integer getMinDataCenters() {
+        return (minDataCenters==null) ? 0 : minDataCenters;
+    }
+
+    public void setMinDataCenters(Integer minDataCenters) {
+        this.minDataCenters = (null==minDataCenters || minDataCenters == 0) ? 0 : minDataCenters;
+        setChanged("minDataCenters");
+    }
+    
 }

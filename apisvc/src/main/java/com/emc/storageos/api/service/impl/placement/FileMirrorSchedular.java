@@ -225,4 +225,31 @@ public class FileMirrorSchedular implements Scheduler {
         // File replication copy mode
         fileMirrorRecommendation.setCopyMode(fsCopyMode);
     }
+
+    /**
+     * Gets and verifies that the target varrays passed in the request are accessible to the tenant.
+     * 
+     * @param project
+     *            A reference to the project.
+     * @param vpool
+     *            class of service, contains target varrays
+     * @return A reference to the varrays
+     * @throws java.net.URISyntaxException
+     * @throws com.emc.storageos.db.exceptions.DatabaseException
+     */
+    static public List<VirtualArray> getTargetVirtualArraysForVirtualPool(final Project project,
+            final VirtualPool vpool, final DbClient dbClient,
+            final PermissionsHelper permissionHelper) {
+        List<VirtualArray> targetVirtualArrays = new ArrayList<VirtualArray>();
+        if (VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient) != null) {
+            for (URI targetVirtualArray : VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient)
+                    .keySet()) {
+                VirtualArray nh = dbClient.queryObject(VirtualArray.class, targetVirtualArray);
+                targetVirtualArrays.add(nh);
+                permissionHelper.checkTenantHasAccessToVirtualArray(
+                        project.getTenantOrg().getURI(), nh);
+            }
+        }
+        return targetVirtualArrays;
+    }
 }

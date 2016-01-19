@@ -95,23 +95,6 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
 
     /**
-     * Map of implementing class instances; used for iterating through them for
-     * connectivity purposes.
-     */
-    static private Map<String, AbstractFileServiceApiImpl> s_protectionImplementations = new HashMap<String, AbstractFileServiceApiImpl>();
-
-   
-    public AbstractFileServiceApiImpl(String protectionType) {
-        if (protectionType != null) {
-            s_protectionImplementations.put(protectionType, this);
-        }
-    }
-
-    static protected Map<String, AbstractFileServiceApiImpl> getProtectionImplementations() {
-        return s_protectionImplementations;
-    }
-
-    /**
      * Check if a resource can be deactivated safely
      *
      * @return detail type of the dependency if exist, null otherwise
@@ -154,7 +137,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         // Get volume descriptor for all volumes to be deleted.
         List<FileDescriptor> fileDescriptors = getDescriptorsOfFileShareDeleted(
                 systemURI, fileSystemURIs, deletionType, forceDelete);
-
+        //place request in queue
         FileOrchestrationController controller = getController(
                 FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);

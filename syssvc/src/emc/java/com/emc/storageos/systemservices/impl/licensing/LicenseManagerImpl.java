@@ -82,14 +82,24 @@ public class LicenseManagerImpl implements LicenseManager {
                 // Step 2: parse the .license file on disk in root directory using the ELMS API. This is required by the
                 // ELMS API.
                 License fullLicense = buildLicenseObjectFromText(license.getLicenseText());
-
-                // Do not support the licenses of pre-yoda releases.
-                for (LicenseFeature licenseFeature : license.getLicenseFeatures()) {
-                    if (licenseFeature.getModelId().contains(LicenseConstants.OLD_LICENSE_SUBMODEL)) {
-                        _log.info("The license file contains a feature which is not supported any more. The license was not added to the system.");
-                        throw APIException.badRequests
-                                .licenseIsNotValid(
-                                        "The license file contains a feature which is not supported any more. The license was not added to the system.");
+                if (fullLicense != null) {
+                    boolean isTrial = false;
+                    for (LicenseFeature feature : fullLicense.getLicenseFeatures()) {
+                        if (feature.getModelId().startsWith(LicenseConstants.VIPR_CONTROLLER)
+                                && feature.isTrialLicense()) {
+                            isTrial = true;
+                        }
+                    }
+                    if (!isTrial) {
+                        // Do not support the licenses of pre-yoda releases unless it is trial license.
+                        for (LicenseFeature licenseFeature : license.getLicenseFeatures()) {
+                            if (licenseFeature.getModelId().contains(LicenseConstants.OLD_LICENSE_SUBMODEL)) {
+                                _log.info("The license file contains a feature which is not supported any more. The license was not added to the system.");
+                                throw APIException.badRequests
+                                        .licenseIsNotValid(
+                                                "The license file contains a feature which is not supported any more. The license was not added to the system.");
+                            }
+                        }
                     }
                 }
 

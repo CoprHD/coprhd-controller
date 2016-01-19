@@ -258,7 +258,7 @@
         		<entry key="ipsec_enable" value-ref="ipsecEnableHandler"/>
         		<entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
         		<entry key="dr_failbackDegrade" value-ref="vdcDrFailbackDegradeHandler" />
-                        <entry key="ip_change" value-ref="ipchangeHandler"/>
+                <entry key="ip_change" value-ref="ipchangeHandler"/>
         	</map>
         </property>
     </bean>

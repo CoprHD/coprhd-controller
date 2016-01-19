@@ -20,9 +20,11 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.DataBindingException;
 
@@ -588,9 +590,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
 
-        // Create the CG on each system it has yet to be created on. We do not want to create backend
-        // CG for VPLEX CG.
-        List<URI> deviceURIs = new ArrayList<URI>();
+        // Create the CG on each system it has yet to be created on.
+        Map<URI, Set<String>> deviceURIs = new HashMap<URI, Set<String>>();
         for (VolumeDescriptor descr : volumes) {
             // If the descriptor's associated volume is the backing volume for a RP+VPlex
             // journal/target volume, we want to ignore its storage system. We do not want to
@@ -602,25 +603,32 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (NullColumnValueGetter.isNotNullValue(rpName)) {
                 _log.info("Creating backend CG.");
                 URI deviceURI = descr.getDeviceURI();
-                if (!deviceURIs.contains(deviceURI)) {
-                    deviceURIs.add(deviceURI);
+                Set<String> rpNames = deviceURIs.get(deviceURI);
+                if (rpNames == null) {
+                    rpNames = new HashSet<String>(); 
                 }
+                rpNames.add(rpName);
+                deviceURIs.put(deviceURI, rpNames);
             }
         }
 
         boolean createdCg = false;
-        for (URI deviceURI : deviceURIs) {
-            // If the consistency group has already been created in the array, just return
-            if (!consistencyGroup.created(deviceURI)) {
-                // Create step to create consistency group
-                waitFor = workflow.createStep(stepGroup,
-                        String.format("Creating consistency group  %s", consistencyGroupURI), waitFor,
-                        deviceURI, getDeviceType(deviceURI),
-                        this.getClass(),
-                        createConsistencyGroupMethod(deviceURI, consistencyGroupURI),
-                        deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, null, null, false), null);
-                createdCg = true;
-                _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
+        for (Map.Entry<URI, Set<String>> entry : deviceURIs.entrySet()) {
+            URI deviceURI = entry.getKey();
+            Set<String> rpNames = entry.getValue();
+            for (String rpName : rpNames) {
+                // If the consistency group has already been created in the array, just return
+                if (!consistencyGroup.created(deviceURI, rpName)) {
+                    // Create step to create consistency group
+                    waitFor = workflow.createStep(stepGroup,
+                            String.format("Creating consistency group  %s", consistencyGroupURI), waitFor,
+                            deviceURI, getDeviceType(deviceURI),
+                            this.getClass(),
+                            createConsistencyGroupMethod(deviceURI, consistencyGroupURI, rpName),
+                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rpName, null, false), null);
+                    createdCg = true;
+                    _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
+                }
             }
         }
 

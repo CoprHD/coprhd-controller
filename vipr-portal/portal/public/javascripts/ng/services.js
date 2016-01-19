@@ -95,10 +95,7 @@ angular.module("services", []).directive({
                         tagAttrs["match-with"] = item.matchWith;
                         tagAttrs["match-error"] = item.matchError;
                     }
-                } else if (item.type.match(/^(number|storageSize)$/)) {
-                    type = '<input-text>';
-                    tagAttrs = {'maxlength': validation.max || 18}; //anything bigger can overflow a long
-                } else if (item.type.match(/^(number|expandSize)$/)) {
+                } else if (item.type.match(/^(number|storageSize|expandSize)$/)) {
                     type = '<input-text>';
                     tagAttrs = {'maxlength': validation.max || 18}; //anything bigger can overflow a long
                 } else if (item.type == "boolean") {

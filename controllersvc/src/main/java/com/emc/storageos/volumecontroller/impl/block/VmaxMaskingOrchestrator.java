@@ -359,9 +359,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                     updateZoningMap(exportGroup, mask, false);
 
-                    _dbClient.updateAndReindexObject(mask);
+                    _dbClient.updateObject(mask);
                     exportGroup.addExportMask(mask.getId());
-                    _dbClient.updateAndReindexObject(exportGroup);
+                    _dbClient.updateObject(exportGroup);
                 }
             }
 
@@ -720,7 +720,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
                             mask, null);
                     exportGroup.removeExportMask(mask.getId());
-                    _dbClient.updateAndReindexObject(exportGroup);
+                    _dbClient.updateObject(exportGroup);
                     anyOperationsToDo = true;
                 } else {
                     _log.info(String.format("mask %s - going to remove the "
@@ -753,7 +753,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     _log.info(String.format("removing reference to mask %s from export group %s", mask.getMaskName(),
                             exportGroup.getLabel()));
                     exportGroup.removeExportMask(mask.getId());
-                    _dbClient.updateAndReindexObject(exportGroup);
+                    _dbClient.updateObject(exportGroup);
                 } else {
                     for (URI initiatorToRemove : initiatorsToRemove) {
                         exportGroup.removeInitiator(initiatorToRemove);
@@ -835,10 +835,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         _log.info(String.format("removing reference to mask %s from export group %s", mask.getMaskName(),
                                 exportGroup.getLabel()));
                         exportGroup.removeExportMask(mask.getId());
-                        _dbClient.updateAndReindexObject(exportGroup);
+                        _dbClient.updateObject(exportGroup);
                     } else {
                         exportGroup.removeVolumes(volumesToRemove);
-                        _dbClient.updateAndReindexObject(exportGroup);
+                        _dbClient.updateObject(exportGroup);
                     }
                 }
             }
@@ -1158,7 +1158,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         (workflow, previousStep, storage, exportGroup, mask, volumesToAdd);
                 flowCreated = true;
                 exportGroup.addExportMask(mask.getId());
-                _dbClient.updateAndReindexObject(exportGroup);
+                _dbClient.updateObject(exportGroup);
             }
 
             // Put new initiators in existing masks that are missing them.
@@ -1174,7 +1174,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 updateZoningMap(exportGroup, mask, true);
 
                 exportGroup.addExportMask(mask.getId());
-                _dbClient.updateAndReindexObject(exportGroup);
+                _dbClient.updateObject(exportGroup);
                 Set<Initiator> initiatorsToAdd = entry.getValue();
                 if (!initiatorsToAdd.isEmpty()) {
                     List<URI> initiatorsURIs = new ArrayList<URI>();

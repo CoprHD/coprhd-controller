@@ -7,6 +7,7 @@
 package com.emc.storageos.api.service.impl.resource.cinder;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,9 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
+
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
@@ -36,8 +40,12 @@ import com.emc.storageos.cinder.model.CinderExtensionsRestResp;
 import com.emc.storageos.cinder.model.CinderLimits;
 import com.emc.storageos.cinder.model.CinderLimitsDetail;
 import com.emc.storageos.cinder.model.CinderOsServicesRestResp;
+import com.emc.storageos.cinder.model.CinderOsService;
 import com.emc.storageos.cinder.model.CinderOsVolumeTransferRestResp;
 import com.emc.storageos.cinder.model.UsageStats;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaOfCinder;
@@ -52,6 +60,11 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
+import com.emc.storageos.db.client.model.StorageSystem;
+import java.util.Iterator;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+
 @Path("/v2/{tenant_id}")
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR },
         readAcls = { ACL.USE }, writeRoles = {})
@@ -59,7 +72,20 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 public class MiscService extends TaskResourceService {
     private static final Logger _log = LoggerFactory.getLogger(MiscService.class);
     private CinderHelpers helper = null;
+    
+    @Autowired
+    private CoordinatorClient _coordinator;
 
+    /*
+    public void setCoordiantor(CoordinatorClient coordiantor)
+    {
+    	_coordinator = coordiantor;
+    }
+    public CoordinatorClient getCoordiantor()
+    {
+    	return _coordinator;
+    }
+*/
     @Override
     public Class<CinderLimitsDetail> getResourceClass() {
         return CinderLimitsDetail.class;
@@ -187,6 +213,7 @@ public class MiscService extends TaskResourceService {
     /**
      * Get os-services
      * This function returns the cinder services and their details.
+     * need to support system Information os-service
      * @prereq none
      * @param tenant_id the URN of the tenant
      * @return services
@@ -197,9 +224,57 @@ public class MiscService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response getOsServices(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
         _log.info("START getOsServices");
-        // ToDo
-        // need to support system Information os-service
+
         CinderOsServicesRestResp osServicesResp = new CinderOsServicesRestResp();
+        CinderOsService volumeService = new CinderOsService();
+        Date curDate = new Date();
+        SimpleDateFormat  format = new SimpleDateFormat("dd-M-yyyy hh:mm:ss:SSS");
+        
+        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();       
+        
+        volumeService.binary = "coprHD-volume";
+        volumeService.host = localNodeId;
+        volumeService.zone = "nova";     
+        //If Apisvc is running and any storage system is registered then coprHD-volume is up
+        List<URI> ids = _dbClient.queryByType(StorageSystem.class, true);
+        Iterator<StorageSystem> iter = _dbClient.queryIterativeObjects(StorageSystem.class, ids);
+        if (iter.hasNext())
+        {
+        	volumeService.state = "up";
+        	volumeService.status = "enabled";
+      	    volumeService.disabled_reason = null;
+        } else
+        {
+        	volumeService.state = "down";
+        	volumeService.status = "disabled";
+      	    volumeService.disabled_reason = "No storage system is discovered";
+        }
+        
+        curDate = new Date();
+        volumeService.updated_at = format.format(curDate);
+        osServicesResp.getServices().add(volumeService);
+              
+        List<Service> schedulerSvcs = _coordinator.locateAllSvcsAllVers("controllersvc");
+        CinderOsService schedulerService = new CinderOsService();
+        schedulerService.binary = "coprHD-scheduler";
+        schedulerService.host = localNodeId;
+        schedulerService.zone = "nova";
+        
+        if (schedulerSvcs.isEmpty())
+        {          
+            schedulerService.state = "down";
+            schedulerService.status = "disabled";
+            schedulerService.disabled_reason = "controller service is not available";              	
+        }else	
+        {        	
+        	schedulerService.state = "up";
+        	schedulerService.status = "enabled";
+        	schedulerService.disabled_reason = null;      
+        }  
+        curDate = new Date();
+        schedulerService.updated_at = format.format(curDate);
+        osServicesResp.getServices().add(schedulerService);
+               
         return CinderApiUtils.getCinderResponse(osServicesResp, header, false);
     }
 

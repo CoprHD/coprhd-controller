@@ -180,16 +180,15 @@ public abstract class DataObject implements Serializable {
      * @param inactive
      */
     public void setInactive(Boolean inactive) {
-    	validateInactive(this._inactive, inactive);
+    	validateInactive(inactive);
         _inactive = inactive;
         setChanged("inactive");
     }
 
     //current we only output the error message, exception should be thrown out if all issues fixed in upper layer.
-    private void validateInactive(Boolean preInactive, Boolean curInactive) {
-    	if ((preInactive!=null && preInactive) && (curInactive==null || !curInactive)) {
-    		String errMsg = String.format("%s invalid inactive set from %s to %s", this.getId().toString(), preInactive, curInactive);
-    		_log.error(errMsg, new IllegalArgumentException());
+    private void validateInactive(Boolean curInactive) {
+    	if ((_inactive!=null && _inactive) && (curInactive==null || !curInactive)) {
+    		_log.error(String.format("%s invalid inactive set from %s to %s", this.getId().toString(), _inactive, curInactive), new IllegalArgumentException());
     	}
     }
     /**

@@ -353,7 +353,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
      * {@inheritDoc}
      */
     @Override
-    public void createGroupSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void createGroupSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -369,7 +369,8 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
     }
 
     @Override
-    public void linkSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs, String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
+    public void linkSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
+            String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -404,7 +405,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
      * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

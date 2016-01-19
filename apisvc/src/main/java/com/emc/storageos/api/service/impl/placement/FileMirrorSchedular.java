@@ -127,6 +127,8 @@ public class FileMirrorSchedular implements Scheduler {
                     Map<String, Object> attributeMap = new HashMap<String, Object>();
                     attributeMap.put(Attributes.system_type.toString(), srcSystemType);
                     attributeMap.put(Attributes.file_replication_copy_mode.toString(), targetCopy.getCopyMode());
+                    attributeMap.put(Attributes.file_replication_copy_mode.toString(), targetCopy.getCopyMode());
+                    attributeMap.put(Attributes.source_storage_system.name(), sourceFileRecommendation.getSourceStorageSystem().toString());
 
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY,
                             VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET);

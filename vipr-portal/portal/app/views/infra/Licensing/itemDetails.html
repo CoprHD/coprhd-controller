@@ -5,21 +5,8 @@
 <dl class="dl-horizontal col-sm-8">
   <dt>&{'license.notice'}</dt>
   <dd>${lf.notice}</dd>
-  #{if util.LicenseUtils.hasCapacity(lf)}
-    <dt>&{'license.tier1'}</dt>
-    <dd><div style="width:100%">&{'license.raw.capacity',
-      com.emc.sa.util.SizeUtils.humanReadableByteCount(Double.parseDouble(lf.tier1StorageCapacity), true)}</div></dd>
-    <dt>&{'license.tier2'}</dt>
-    <dd><div style="width:100%">&{'license.raw.capacity',
-      com.emc.sa.util.SizeUtils.humanReadableByteCount(Double.parseDouble(lf.tier2StorageCapacity), true)}</div></dd>
-    <dt>&{'license.tier3'}</dt>
-    <dd><div style="width:100%">&{'license.raw.capacity',
-      com.emc.sa.util.SizeUtils.humanReadableByteCount(Double.parseDouble(lf.tier3StorageCapacity), true)}</div></dd>
-    #{list lf.arrayLicenses, as:'arrayLicense'}
-      <dt>${arrayLicense.arrayName}</dt>
-      <dd><div style="width:100%">&{'license.raw.capacity',
-        com.emc.sa.util.SizeUtils.humanReadableByteCount(Double.parseDouble(arrayLicense.storageCapacity), true)}
-        #{if arrayLicense?.serialNumber} Serial Number: ${arrayLicense.serialNumber}#{/if}</div></dd>
-    #{/list}
-  #{/if}
+    #{if util.LicenseUtils.hasCapacity(lf)}
+      <dt>&{'license.raw.capacity'}</dt>
+      <dd><div style="width:100%">${com.emc.sa.util.SizeUtils.humanReadableByteCount(Double.parseDouble(lf.storageCapacity), true)}</div></dd>
+    #{/if}
 </dl>

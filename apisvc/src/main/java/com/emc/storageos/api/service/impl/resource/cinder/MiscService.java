@@ -76,16 +76,6 @@ public class MiscService extends TaskResourceService {
     @Autowired
     private CoordinatorClient _coordinator;
 
-    /*
-    public void setCoordiantor(CoordinatorClient coordiantor)
-    {
-    	_coordinator = coordiantor;
-    }
-    public CoordinatorClient getCoordiantor()
-    {
-    	return _coordinator;
-    }
-*/
     @Override
     public Class<CinderLimitsDetail> getResourceClass() {
         return CinderLimitsDetail.class;

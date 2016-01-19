@@ -11,6 +11,7 @@ import java.util.*;
 
 import com.emc.storageos.db.common.*;
 import com.emc.storageos.services.util.AlertsLogger;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -271,7 +272,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 log.debug("Migration handler - Done.");
                 return true;
             } catch (Exception e) {
-                if (isUnRetryableException(e)) {
+            	if (e instanceof MigrationCallbackException) {
+            		markMigrationFailure(startTime, currentSchemaVersion, e);
+            	} else if (isUnRetryableException(e)) {
                     markMigrationFailure(startTime, currentSchemaVersion, e);
                     return false;
                 } else {
@@ -307,6 +310,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
         UpgradeFailureInfo failure = new UpgradeFailureInfo();
         failure.setVersion(targetVersion);
         failure.setStartTime(startTime);
+        if (e instanceof MigrationCallbackException) {
+        	failure.setSuggestion(((MigrationCallbackException)e).getMsg());
+        }
         failure.setMessage(String.format("Upgrade to %s failed:%s", targetVersion, e.getClass().getName()));
         List<String> callStack = new ArrayList<String>();
         for (StackTraceElement t : e.getStackTrace()){
@@ -426,8 +432,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
      * 
      * @param diff
      * @param checkpoint
+     * @throws MigrationCallbackException 
      */
-    private void runMigrationCallbacks(DbSchemasDiff diff, String checkpoint) {
+    private void runMigrationCallbacks(DbSchemasDiff diff, String checkpoint) throws MigrationCallbackException {
         List<MigrationCallback> callbacks = new ArrayList<>();
         // TODO: we are putting class annotations at the first place since that's where
         // @Keyspace belongs, but we probably need some explicit ordering to make sure
@@ -459,9 +466,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 log.info("Invoking migration callback: " + callback.getName());
                 try {
                     callback.process();
+                } catch (MigrationCallbackException ex) {
+                	throw ex;
                 } catch (Exception e) {
-                    failedCallbackName = callback.getName();
-                    throw e;
+                    throw new MigrationCallbackException(callback.getName(),null,null,"Please contract the EMC support team",e);
                 }
                 // Update checkpoint
                 schemaUtil.setMigrationCheckpoint(callback.getName());

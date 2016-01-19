@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Cleanup db config from pre-yoda release
@@ -20,7 +21,7 @@ public class VdcConfigMigration extends BaseCustomMigrationCallback {
             VdcConfigMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         coordinatorClient.deletePath(String.format("%s/%s", ZkPath.CONFIG, Constants.DB_CONFIG));
         coordinatorClient.deletePath(String.format("%s/%s", ZkPath.CONFIG, Constants.GEODB_CONFIG));
         log.info("Remove dbconfig/geodbconfig in zk global area successfully");

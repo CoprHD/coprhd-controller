@@ -8167,7 +8167,7 @@ application_tests()
     application_crud_test
     application_createvols
     application_volume_tests
-    #application_deleteall
+    application_deleteall
 }
 
 vplexsnap_setup()

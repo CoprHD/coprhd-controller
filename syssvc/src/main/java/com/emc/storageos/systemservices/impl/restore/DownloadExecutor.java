@@ -284,7 +284,7 @@ public final class DownloadExecutor implements  Runnable {
                 continue;
             }
 
-            if (backupOps.checkMD5(file) == false) {
+            if (!backupOps.checkMD5(file)) {
                 log.info("MD5 of {} does not match its md5 file", file.getAbsolutePath());
                 return false;
             }

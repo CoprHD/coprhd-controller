@@ -22,6 +22,7 @@ import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SE_REPL
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_SNAP_STORAGE_POOL;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_STORAGE_POOL_CAPABILITIES;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_STORAGE_POOL_SETTING;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
@@ -1607,6 +1608,11 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
                 _log.info("Created target device group: {}", targetGroupPath);
                 targetGroupName = (String) targetGroupPath.getKeyValue(CP_INSTANCE_ID);
+                // Update the snapshots with the ReplicationGroup InstanceID
+                for (BlockSnapshot snapshot : snapshots) {
+                    snapshot.setReplicationGroupInstance(targetGroupName);
+                }
+                _dbClient.updateObject(snapshots);
             } else {
                 // If the targets exist, this is the restore linked target scenario where we create
                 // a temporary group snapshot session on the linked target group and then linked the
@@ -1715,108 +1721,108 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     @Override
     public void unlinkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
-        if (system.checkIfVmax3()) {
-            // Only supported for VMAX3 storage systems.
-            try {
-                _log.info("Unlink target {} from snapshot session {} START", snapshotURI, snapSessionURI);
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                String targetDeviceId = snapshot.getNativeId();
-                if ((targetDeviceId == null) || (targetDeviceId.isEmpty())) {
-                    // The snapshot has no target device id. This means we must
-                    // have failed creating the target device for a link target
-                    // request and unlink target is being called in rollback.
-                    // Since the target was never created, we just return
-                    // success.
-                    _log.info("Snapshot target {} was never created.", snapshotURI);
-                    completer.ready(_dbClient);
-                    return;
-                }
+        // Only supported for VMAX3 storage systems.
+        if (!system.checkIfVmax3()) {
+            throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        }
 
-                // If the snapshot has a native id, then we at least
-                // know the target device was created. Now we try and get
-                // the sync object path representing the linked target so
-                // that it can be detached.
-                boolean syncObjectFound = false;
-                List<BlockSnapshot> snapshots = null;
-                CIMObjectPath syncObjectPath = SmisConstants.NULL_CIM_OBJECT_PATH;
-                if (snapshot.hasConsistencyGroup()) {
-                    String replicationGroupName = snapshot.getReplicationGroupInstance();
-                    List<CIMObjectPath> groupSyncs = getAllGroupSyncObjects(system, snapshot);
-                    if (groupSyncs != null && !groupSyncs.isEmpty()) {
-                        // Find the right one. We want the one where the replication groups for
-                        // the passed snapshot is the sync'd element.
-                        for (CIMObjectPath groupSynchronized : groupSyncs) {
-                            String syncElementPath = groupSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
-                            if (syncElementPath.contains(replicationGroupName)) {
-                                syncObjectPath = groupSynchronized;
-                                break;
-                            }
+        try {
+            _log.info("Unlink target {} from snapshot session {} START", snapshotURI, snapSessionURI);
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+            String targetDeviceId = snapshot.getNativeId();
+            if (isNullOrEmpty(targetDeviceId)) {
+                // The snapshot has no target device id. This means we must
+                // have failed creating the target device for a link target
+                // request and unlink target is being called in rollback.
+                // Since the target was never created, we just return
+                // success.
+                _log.info("Snapshot target {} was never created.", snapshotURI);
+                completer.ready(_dbClient);
+                return;
+            }
+
+            // If the snapshot has a native id, then we at least
+            // know the target device was created. Now we try and get
+            // the sync object path representing the linked target so
+            // that it can be detached.
+            boolean syncObjectFound = false;
+            List<BlockSnapshot> snapshots = null;
+            CIMObjectPath syncObjectPath = SmisConstants.NULL_CIM_OBJECT_PATH;
+            if (snapshot.hasConsistencyGroup()) {
+                String replicationGroupName = snapshot.getReplicationGroupInstance();
+                List<CIMObjectPath> groupSyncs = getAllGroupSyncObjects(system, snapshot);
+                if (groupSyncs != null && !groupSyncs.isEmpty()) {
+                    // Find the right one. We want the one where the replication groups for
+                    // the passed snapshot is the sync'd element.
+                    for (CIMObjectPath groupSynchronized : groupSyncs) {
+                        String syncElementPath = groupSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
+                        if (syncElementPath.contains(replicationGroupName)) {
+                            syncObjectPath = groupSynchronized;
+                            break;
                         }
                     }
-                    snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                            replicationGroupName, _dbClient);
-                } else {
-                    syncObjectPath = getSyncObject(system, snapshot);
-                    snapshots = Lists.newArrayList(snapshot);
                 }
-
-                if (!SmisConstants.NULL_CIM_OBJECT_PATH.equals(syncObjectPath)) {
-                    syncObjectFound = true;
-                    CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
-                    CIMArgument[] outArgs = new CIMArgument[5];
-                    CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                    SmisBlockSnapshotSessionUnlinkTargetJob job = new SmisBlockSnapshotSessionUnlinkTargetJob(null,
-                            system.getId(), completer);
-                    _helper.invokeMethodSynchronously(system, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
-                            outArgs, job);
-
-                    // Succeeded in unlinking the target from the snapshot.
-                    for (BlockSnapshot snapshotToUpdate : snapshots) {
-                        snapshotToUpdate.setSettingsInstance(NullColumnValueGetter.getNullStr());
-                    }
-                    _dbClient.updateObject(snapshots);
-                } else {
-                    // For some reason we could not find the path for the
-                    // CIM_StorageSychronized instance for the linked target.
-                    // If the settingsInstance for the snapshot is not set,
-                    // this may mean we just failed a link target request
-                    // and unlink target is being called in rollback. In this
-                    // case we successfully created the target volume, but
-                    // failed to link the target to the snapshot, in which
-                    // case the settingsInstance would be null. Otherwise,
-                    // we could be retrying a failed unlink request. In this
-                    // case, we must have succeeded in unlinking the target
-                    // from the array snapshot, but failed attempting to
-                    // delete the target volume. If the unlink is successful,
-                    // the settingsInstance is reset to null. So, if the
-                    // settingsInstance is null, we move on without failing.
-                    // Otherwise, we should throw an exception.
-                    String settingsInstance = snapshot.getSettingsInstance();
-                    if (NullColumnValueGetter.isNotNullValue(settingsInstance)) {
-                        throw DeviceControllerException.exceptions.couldNotFindSyncObjectToUnlinkTarget(targetDeviceId);
-                    }
-                }
-
-                if (deleteTarget) {
-                    _log.info("Delete target device {}:{}", targetDeviceId, snapshotURI);
-                    Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
-
-                    if (snapshot.hasConsistencyGroup()) {
-                        deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
-                    }
-                    deleteTargetDevices(system, nativeIds.toArray(new String[] {}), completer);
-                    _log.info("Delete target device complete");
-                } else if (!syncObjectFound) {
-                    // Need to be sure the completer is called.
-                    completer.ready(_dbClient);
-                }
-            } catch (Exception e) {
-                _log.info("Exception unlinking snapshot session target", e);
-                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
-                completer.error(_dbClient, error);
+                snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
+                        replicationGroupName, _dbClient);
+            } else {
+                syncObjectPath = getSyncObject(system, snapshot);
+                snapshots = Lists.newArrayList(snapshot);
             }
-        } else {
-            throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+
+            if (!SmisConstants.NULL_CIM_OBJECT_PATH.equals(syncObjectPath)) {
+                syncObjectFound = true;
+                CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
+                CIMArgument[] outArgs = new CIMArgument[5];
+                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+                SmisBlockSnapshotSessionUnlinkTargetJob job = new SmisBlockSnapshotSessionUnlinkTargetJob(null,
+                        system.getId(), completer);
+                _helper.invokeMethodSynchronously(system, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
+                        outArgs, job);
+
+                // Succeeded in unlinking the target from the snapshot.
+                for (BlockSnapshot snapshotToUpdate : snapshots) {
+                    snapshotToUpdate.setSettingsInstance(NullColumnValueGetter.getNullStr());
+                }
+                _dbClient.updateObject(snapshots);
+            } else {
+                // For some reason we could not find the path for the
+                // CIM_StorageSychronized instance for the linked target.
+                // If the settingsInstance for the snapshot is not set,
+                // this may mean we just failed a link target request
+                // and unlink target is being called in rollback. In this
+                // case we successfully created the target volume, but
+                // failed to link the target to the snapshot, in which
+                // case the settingsInstance would be null. Otherwise,
+                // we could be retrying a failed unlink request. In this
+                // case, we must have succeeded in unlinking the target
+                // from the array snapshot, but failed attempting to
+                // delete the target volume. If the unlink is successful,
+                // the settingsInstance is reset to null. So, if the
+                // settingsInstance is null, we move on without failing.
+                // Otherwise, we should throw an exception.
+                String settingsInstance = snapshot.getSettingsInstance();
+                if (NullColumnValueGetter.isNotNullValue(settingsInstance)) {
+                    throw DeviceControllerException.exceptions.couldNotFindSyncObjectToUnlinkTarget(targetDeviceId);
+                }
+            }
+
+            if (deleteTarget) {
+                _log.info("Delete target device {}:{}", targetDeviceId, snapshotURI);
+                Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
+
+                if (snapshot.hasConsistencyGroup()) {
+                    deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+                }
+                deleteTargetDevices(system, nativeIds.toArray(new String[] {}), completer);
+                _log.info("Delete target device complete");
+            } else if (!syncObjectFound) {
+                // Need to be sure the completer is called.
+                completer.ready(_dbClient);
+            }
+        } catch (Exception e) {
+            _log.info("Exception unlinking snapshot session target", e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+            completer.error(_dbClient, error);
         }
     }
 

@@ -4863,7 +4863,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     createBlockSnapshotSessionMethod(systemURI, snapSessionURI, groupName),
                     rollbackMethodNullMethod(), null);
 
-            // If necessary add a step for each session to create the new targets and link them to the session.
+            // Add steps to create any new targets and link them to the session, if necessary
             if ((sessionSnapshotURIs != null) && (!sessionSnapshotURIs.isEmpty())) {
 
                 if (isCG) {
@@ -4875,9 +4875,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 systemURI,
                                 getDeviceType(systemURI),
                                 getClass(),
-                                linkBlockSnapshotSessionTargetGroupMethod(systemURI, snapSessionURI, snapshotURIs, copyMode, Boolean.FALSE),
-                                null,
-                                null);
+                                linkBlockSnapshotSessionTargetGroupMethod(systemURI, snapSessionURI, snapshotURIs, copyMode,
+                                        Boolean.FALSE),
+                                rollbackLinkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURIs.get(0)), null);
                     }
                 } else {
                     for (List<URI> snapshotURIs : sessionSnapshotURIs) {
@@ -5052,11 +5052,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Create the workflow method that is invoked by the workflow service
      * to rollback a failed attempt to link a target volume to the array
      * snapshot.
-     * 
+     *
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
      * @param snapshotURI The URI of the BlockSnapshot instance.
-     * 
+     *
      * @return A reference to a Workflow.Method for rolling back a failed attempt to link
      *         a target volume to an array snapshot.
      */
@@ -5066,7 +5066,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Rollback a failed attempt to link a target volume to the array snapshot.
-     * 
+     *
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
      * @param snapshotURI The URI of the BlockSnapshot instance.

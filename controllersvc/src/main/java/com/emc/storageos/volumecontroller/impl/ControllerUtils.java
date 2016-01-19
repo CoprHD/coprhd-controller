@@ -1474,4 +1474,31 @@ public class ControllerUtils {
         }
         return arrayGroupToVolumes;
     }
+    
+    /*
+     * Check replicationGroup contains all and only volumes provided
+     *
+     * Assumption - all volumes provided are in the same replicationGroup
+     *
+     * @param dbClient
+     * @param rpName replication group name
+     * @param volumes volumes in the same replication group
+     * @return boolean
+     */
+    public static boolean replicationGroupHasNoOtherVolume(DbClient dbClient, String rpName, List<URI> volumes, URI storage) {
+        List<Volume> rpVolumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(rpName));
+        int rpVolumeCount = 0;
+        for (Volume rpVol : rpVolumes) {
+            URI storageUri = rpVol.getStorageController();
+            if (storageUri.toString().equals(storage.toString())) {
+                rpVolumeCount++;
+            }
+        }
+
+        s_logger.info("rpVolumeCount {} volume size {}", rpVolumeCount, volumes.size());
+        return rpVolumeCount == volumes.size();
+    }
+
 }

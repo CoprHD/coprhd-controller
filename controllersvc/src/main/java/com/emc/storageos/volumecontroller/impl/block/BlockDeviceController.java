@@ -5200,6 +5200,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             this.getClass(),
                             removeFromConsistencyGroupMethod(storageUri, cguri, removeVols),
                             addToConsistencyGroupMethod(storage, cguri, null, removeVols), null);
+                    // remove replication group if the CG will become empty
+                    String groupName = vol.getReplicationGroupInstance();
+                    if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, groupName, removeVols, storageUri)) {
+                        waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                                String.format("Deleting replication group for consistency group %s", cguri),
+                                waitFor, storage, storageSystem.getSystemType(),
+                                this.getClass(),
+                                deleteConsistencyGroupMethod(storage, cguri, groupName, null, false),
+                                rollbackMethodNullMethod(), null);
+                    }
                 }
             }
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {

@@ -299,6 +299,18 @@ public interface BadRequestExceptions {
     public BadRequestException invalidACLTypeMultipleNotAllowed();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidSchedulePolicyParam(final String policyName, final String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidSchedulePolicyType(final String policyType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidScheduleSnapshotExpireType(final String expireType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidScheduleSnapshotExpireValue(int expireValue);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidAutoTieringPolicy();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1108,25 +1120,25 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidCopyMode(String copyMode);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidReplicationRPOType(String rpoType);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidVirtualPoolFromVirtualArray(URI vpool, URI varray);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidReplicationType(String copyMode);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException noReplicationRemoteCopies(String replicationType);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException noReplicationTypesSpecified();
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException moreThanOneRemoteCopiesSpecified();
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException remoteCopyDoesNotExists(URI varray, URI vpool);
 
@@ -1576,7 +1588,7 @@ public interface BadRequestExceptions {
     // inactiveRemoteVArrayDetected
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException inactiveRemoteVArrayDetected(final URI vArray);
-    
+
     // inactiveRemoteVPoolDetected
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException inactiveRemoteVPoolDetected(final URI vPool);

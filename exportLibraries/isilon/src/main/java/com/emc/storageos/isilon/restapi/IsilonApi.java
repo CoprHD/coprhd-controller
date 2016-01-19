@@ -8,7 +8,6 @@ package com.emc.storageos.isilon.restapi;
 import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -65,6 +64,7 @@ public class IsilonApi {
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
     private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
     private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
+    private static final URI URI_SNAPSHOTIQ_LICENSE_INFO = URI.create("/platform/1/snapshot/license");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -544,7 +544,7 @@ public class IsilonApi {
             }
         }
     }
-    
+
     /**
      * Generic get resource when key is not applicable
      * 
@@ -741,7 +741,7 @@ public class IsilonApi {
     public void modifyExport(String id, IsilonExport exp) throws IsilonException {
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
-    
+
     /**
      * Modify export in access zone
      * 
@@ -750,7 +750,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
     }
 
@@ -773,7 +773,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonExport getExport(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         return get(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "exports", IsilonExport.class);
     }
 
@@ -786,7 +786,7 @@ public class IsilonApi {
     public void deleteExport(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export");
     }
-    
+
     /**
      * Delete export in access zone
      * 
@@ -794,7 +794,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteExport(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export");
     }
 
@@ -1078,7 +1078,7 @@ public class IsilonApi {
     public void modifyShare(String id, IsilonSMBShare s) throws IsilonException {
         modify(_baseUrl.resolve(URI_SMB_SHARES), id, "share", s);
     }
-    
+
     /**
      * Modify SMB share in access zone
      * 
@@ -1087,7 +1087,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyShare(String id, String zoneName, IsilonSMBShare s) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         modify(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share", s);
     }
 
@@ -1111,7 +1111,7 @@ public class IsilonApi {
      */
     public IsilonSMBShare getShare(String id, String zoneName) throws IsilonException {
 
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         return get(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "shares", IsilonSMBShare.class);
     }
 
@@ -1124,7 +1124,7 @@ public class IsilonApi {
     public void deleteShare(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_SMB_SHARES), id, "share");
     }
-    
+
     /**
      * Delete SMB share in access zone
      * 
@@ -1132,7 +1132,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteShare(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         delete(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share");
     }
 
@@ -1157,7 +1157,7 @@ public class IsilonApi {
      */
     public IsilonNFSACL getNFSACL(String path) throws IsilonException {
         String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
-        return getObj(_baseUrl.resolve(URI_IFS),aclUrl,IsilonNFSACL.class);
+        return getObj(_baseUrl.resolve(URI_IFS), aclUrl, IsilonNFSACL.class);
     }
 
     /**
@@ -1168,10 +1168,10 @@ public class IsilonApi {
      */
     public List<? extends IsilonPool> getStoragePools() throws IsilonException {
         IsilonList<IsilonStoragePool> pools = list(_baseUrl.resolve(URI_STORAGE_POOLS),
-        		"storagepools", IsilonStoragePool.class, null);
+                "storagepools", IsilonStoragePool.class, null);
         return pools.getList();
     }
-    
+
     /**
      * Get disk pools for OneFS version < 7.2
      * 
@@ -1180,7 +1180,7 @@ public class IsilonApi {
      */
     public List<? extends IsilonPool> getDiskPools() throws IsilonException {
         IsilonList<IsilonDiskPool> pools = list(_baseUrl.resolve(URI_DISK_POOLS),
-        		"diskpools", IsilonDiskPool.class, null);
+                "diskpools", IsilonDiskPool.class, null);
         return pools.getList();
     }
 
@@ -1588,8 +1588,7 @@ public class IsilonApi {
         }
         return isNfsv4Enabled;
     }
-    
-    
+
     /**
      * Checks to see if the SyncIQ service is enabled on the isilon device
      * 
@@ -1598,22 +1597,22 @@ public class IsilonApi {
     public boolean isSyncIQEnabled(String firmwareVersion) throws IsilonException {
         ClientResponse resp = null;
         boolean isSyncIqEnabled = false;
-        
+
         try {
             // Verify the Sync service is enable or not
-        	// JSON response for the below should have service=on
+            // JSON response for the below should have service=on
             resp = _client.get(_baseUrl.resolve(URI_SYNCIQ_SERVICE_STATUS));
             JSONObject jsonResp = resp.getEntity(JSONObject.class);
             if (jsonResp.has("settings") && jsonResp.getJSONObject("settings") != null) {
-            	if (jsonResp.getJSONObject("settings").has("service")) {
-            		 String syncService = jsonResp.getJSONObject("settings").getString("service");
-                     if (syncService != null && !syncService.isEmpty()) {
-                     	sLogger.info("IsilonApi - SyncIQ service status {} ", syncService);
-                     	if("on".equalsIgnoreCase(syncService)) {
-                     		isSyncIqEnabled = true;
-                     	}
-                     }
-            	}
+                if (jsonResp.getJSONObject("settings").has("service")) {
+                    String syncService = jsonResp.getJSONObject("settings").getString("service");
+                    if (syncService != null && !syncService.isEmpty()) {
+                        sLogger.info("IsilonApi - SyncIQ service status {} ", syncService);
+                        if ("on".equalsIgnoreCase(syncService)) {
+                            isSyncIqEnabled = true;
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
@@ -1624,7 +1623,7 @@ public class IsilonApi {
         }
         return isSyncIqEnabled;
     }
-    
+
     /**
      * Get SyncIq license information from the Isilon array
      * 
@@ -1634,22 +1633,51 @@ public class IsilonApi {
      */
 
     public String getReplicationLicenseInfo() throws IsilonException, JSONException {
-    	String licenseStatus = "Unknown";
+        String licenseStatus = "Unknown";
         ClientResponse clientResp = _client.get(_baseUrl.resolve(URI_REPLICATION_LICENSE_INFO));
         JSONObject jsonResp = clientResp.getEntity(JSONObject.class);
         if (jsonResp.has("status")) {
-        	licenseStatus = jsonResp.get("status").toString();
-        	return licenseStatus;
+            licenseStatus = jsonResp.get("status").toString();
+            return licenseStatus;
         }
         return licenseStatus;
     }
-    
+
     private String getURIWithZoneName(String id, String zoneName) {
         StringBuffer buffer = new StringBuffer(id);
         buffer.append("?zone=");
         String accesszoneName = zoneName.replace(" ", "%20");
         buffer.append(accesszoneName);
-    	return buffer.toString();
+        return buffer.toString();
+    }
+
+    /**
+     * Checks to see if the SnapshotIQ service is enabled on the isilon device
+     * 
+     * @return licenseStatus Status of SnapshotIQ license
+     * @throws IsilonException
+     * @throws JSONException
+     */
+    public String snapshotIQLicenseInfo() throws IsilonException, JSONException {
+        ClientResponse resp = null;
+        String licenseStatus = "Unknown";
+
+        try {
+            // Verify whether SnapshotIQ service is enabled on ISILON array or not
+            resp = _client.get(_baseUrl.resolve(URI_SNAPSHOTIQ_LICENSE_INFO));
+            JSONObject jsonResp = resp.getEntity(JSONObject.class);
+            if (jsonResp.has("status")) {
+                licenseStatus = jsonResp.get("status").toString();
+                return licenseStatus;
+            }
+        } catch (Exception e) {
+            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+        return licenseStatus;
     }
 
 }

@@ -419,7 +419,8 @@ public enum OperationTypeEnum {
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
     SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to switchover from acitve site to a standby site"),
     FAILOVER("FAILOVER TO A STANDBY", "", "operation to failover to a standby site"),
-    UPDATE_SITE("UPDATE SITE", "", "operation to update site information");
+    UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
+    CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
 
     private final String _evType;
     private final String _fail_evType;

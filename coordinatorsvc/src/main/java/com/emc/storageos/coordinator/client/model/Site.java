@@ -45,6 +45,7 @@ public class Site {
     private String siteShortId;
     private long creationTime;
     private long lastStateUpdateTime;
+    private SiteState lastOperation;
     private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
 
@@ -55,6 +56,14 @@ public class Site {
         if (config != null) {
             fromConfiguration(config);
         }
+    }
+
+    public SiteState getLastOperation() {
+        return lastOperation;
+    }
+
+    public void setLastOperation(SiteState lastOperation) {
+        this.lastOperation = lastOperation;
     }
     
     public String getUuid() {
@@ -150,6 +159,9 @@ public class Site {
     }
 
     public void setState(SiteState state) {
+        if (getState().isDROperationOngoing()) {
+            setLastOperation(this.state);
+        }
         this.state = state;
         setLastStateUpdateTime(System.currentTimeMillis());
     }

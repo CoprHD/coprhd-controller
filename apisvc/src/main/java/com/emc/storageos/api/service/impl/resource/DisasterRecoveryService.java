@@ -816,9 +816,62 @@ public class DisasterRecoveryService {
      * Query the latest error message for specific standby site
      * 
      * @param uuid site UUID
-     * @return site response with detail information
+     * @return updated standby site representation
      */
     @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @Path("/{uuid}/retry")
+    public SiteRestRep retryOperation(@PathParam("uuid") String uuid) {
+        log.info("Begin to get site error by uuid {}", uuid);
+
+        try {
+            Site standby = drUtil.getSiteFromLocalVdc(uuid);
+            int retryPeriod = DbConfigConstants.DEFAULT_RETRY_PERIOD;
+
+            if (!standby.getState().equals(SiteState.STANDBY_ERROR)) {
+                //throw APIException.badRequests.siteNotInErrorState();
+                throw APIException.badRequests.genericMessage("Standby site is not in STANDBY_ERROR state");
+            }
+            if ((System.currentTimeMillis() - standby.getLastStateUpdateTime()) / 1000 > retryPeriod){
+                //throw APIException.badRequests.siteInErrorStateForTooLong();
+                throw APIException.badRequests.genericMessage("Standby site has been in STANDBY_ERROR state too long");
+            }
+
+            coordinator.startTransaction();
+
+            standby.setState(standby.getLastOperation());
+            coordinator.persistServiceConfiguration(standby.toConfiguration());
+
+            log.info("Notify all sites for reconfig");
+            long vdcTargetVersion = DrUtil.newVdcConfigVersion();
+            String drOperation = standby.getState().getVdcOperation();
+            for (Site standbySite : drUtil.listSites()) {
+                drUtil.updateVdcTargetVersion(standbySite.getUuid(), drOperation, vdcTargetVersion);
+            }
+
+            coordinator.commitTransaction();
+
+            return siteMapper.map(standby);
+
+        } catch (CoordinatorException e) {
+            log.error("Can't find site {} from ZK", uuid);
+            throw APIException.badRequests.siteIdNotFound();
+        } catch (Exception e) {
+            //TODO fix this to be specific
+            log.error("Can't find site from ZK for UUID {} : {}" + uuid, e);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+    }
+
+    /**
+     * Retry last operation when in STANDBY_ERROR
+     *
+     * @param uuid site UUID
+     * @return site response with detail information
+     */
+    @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
             Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
@@ -1506,18 +1559,6 @@ public class DisasterRecoveryService {
             log.error(String.format("Fail to create vipr client, vip: %s, username: %s", vip, username), e);
             throw APIException.internalServerErrors.failToCreateViPRClient();
         }
-    }
-
-    private void setSiteError(String siteId, InternalServerErrorException exception) {
-        if (siteId == null || siteId.isEmpty())
-            return;
-
-        Site site = drUtil.getSiteFromLocalVdc(siteId);
-        site.setState(SiteState.STANDBY_ERROR);
-        coordinator.persistServiceConfiguration(site.toConfiguration());
-
-        SiteError error = new SiteError(exception);
-        coordinator.setTargetInfo(site.getUuid(), error);
     }
 
     public void setApiSignatureGenerator(InternalApiSignatureKeyGenerator apiSignatureGenerator) {

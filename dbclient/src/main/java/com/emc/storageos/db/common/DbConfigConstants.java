@@ -54,4 +54,7 @@ public abstract class DbConfigConstants {
 
     // Default GC grace period
     public static final int DEFAULT_GC_GRACE_PERIOD = 5 * 24 * 60 * 60; // 5 days, in seconds
+
+    // Default retry period
+    public static final int DEFAULT_RETRY_PERIOD = 20 * 60; // 20 minutes
 }

@@ -369,6 +369,9 @@ public interface BadRequestExceptions {
             final String parameterValue);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException genericMessage(final String parameterName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameter(final String parameterName,
             final String parameterValue, final Throwable cause);
 

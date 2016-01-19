@@ -331,6 +331,10 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
                                                 List<StoragePort> recommendedPorts,
                                                 List<StoragePort> availablePorts, StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts,
                                                 List<StoragePort> selectedPorts) {
+
+        usedRecommendedPorts.setValue(true);
+        selectedPorts.addAll(recommendedPorts);
+
         String taskType = "export-volumes-to-initiators";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
@@ -343,7 +347,14 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
-        return null;
+        String taskType = "unexport-volumes-from-initiators";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = String.format("StorageDriver: unexportVolumesFromInitiators - end");
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override

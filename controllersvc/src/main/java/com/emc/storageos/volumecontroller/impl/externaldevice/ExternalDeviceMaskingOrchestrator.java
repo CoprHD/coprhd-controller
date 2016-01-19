@@ -227,8 +227,9 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
         }
         else
         { // Todo: complete this .....
-            // This is the case when export group does not have export mask for storage array the volumes belongs.
-            // In this case we will create new export masks for storage array and each compute resource in the export group.
+            // This is the case when export group does not have export mask for storage array where the volumes belongs.
+            // In this case we will create new export masks for the storage array and each compute resource in the export group.
+            // Essentially for every existing mask we will add a new mask for the array and initiators in the existing mask.
             if (exportGroup.getInitiators() != null
                     && !exportGroup.getInitiators().isEmpty())
             {
@@ -242,12 +243,15 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     initiatorURIs.add(initiator.getId());
                 }
 
-                // Get new work flow to setup steps for export masks creation
+                // Get new workflow to setup steps for export masks creation
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
                         true, token);
                 String stepId;
 
+                // This call will create steps for a new mask for each compute resource
+                // and new volumes. For example if there are 3 compute resources in the group,
+                // the step will create 3 new masks for these resources and new volumes.
                 stepId = createNewExportMaskWorkflowForInitiators(initiatorURIs,
                         exportGroup, workflow, volumeMap, storage, token,
                         null);
@@ -267,7 +271,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                         volumeMap);
 
                 String successMessage = String
-                        .format("Initiators successfully added to export StorageArray %s",
+                        .format("Volumes successfully added to export StorageArray %s",
                                 storage.getLabel());
 
                 workflow.executePlan(taskCompleter, successMessage);
@@ -278,5 +282,17 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 taskCompleter.ready(_dbClient);
             }
         }
+    }
+
+    @Override
+    public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, String token)
+            throws Exception {
+        /* Map new intitiators to existing export masks in the export group based on common compute resource (each mask belongs to
+         * specific compute resource and there can be only one mask for storage array and compute resource).
+         * Add initiators to the corresponding export masks found in the mapping.
+         * For initiators which do not have corresponding export mask we will create new export mask for compute resource and
+         * each storage array in the grpoup.
+         *
+         */
     }
 }

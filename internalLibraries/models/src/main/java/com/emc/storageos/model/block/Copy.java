@@ -12,7 +12,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * Specifies the copy to be operated on
- * 
+ *
  * type: type of protection (rp, native, srdf)
  * sync: synchronize the mirror
  * copyID: the URI of the copy to be operated on, if none specified operate on all copies for that type
@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class Copy implements Serializable {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = -8250892549720042299L;
 
@@ -34,6 +34,7 @@ public class Copy implements Serializable {
     private Integer count;
     private String syncDirection;
     private String copyMode;
+    private String apitTime;
 
     public enum SyncDirection {
         SOURCE_TO_TARGET,
@@ -66,7 +67,7 @@ public class Copy implements Serializable {
 
     /**
      * Type of protection.
-     * 
+     *
      * @valid none
      */
     @XmlElement(name = "type", required = true)
@@ -92,7 +93,7 @@ public class Copy implements Serializable {
 
     /**
      * User provided name.
-     * 
+     *
      * @valid none
      */
     @XmlElement(name = "name", required = false)
@@ -106,7 +107,7 @@ public class Copy implements Serializable {
 
     /**
      * User provided number of copies.
-     * 
+     *
      * @valid none
      */
     @XmlElement(name = "count", required = false)
@@ -120,7 +121,7 @@ public class Copy implements Serializable {
 
     /**
      * User provided direction for the synchronization.
-     * 
+     *
      * @valid SOURCE_TO_TARGET
      * @valid TARGET_TO_SOURCE
      * @return The Sync Direction
@@ -136,7 +137,7 @@ public class Copy implements Serializable {
 
     /**
      * User provided SRDF copy mode for the synchronization.
-     * 
+     *
      * @valid SYNCHRONOUS - Change SRDF copy mode to SYNCHRONOUS
      * @valid ASYNCHRONOUS - Change SRDF copy mode to ASYNCHRONOUS
      * @valid ADAPTIVECOPY - Change SRDF copy mode to ADAPTIVE
@@ -149,6 +150,21 @@ public class Copy implements Serializable {
 
     public void setCopyMode(String copyMode) {
         this.copyMode = copyMode;
+    }
+
+    /**
+     * User provided any point-in-time for copy operations.
+     *
+     * @valid "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
+     * @return
+     */
+    @XmlElement(name = "apitTime", required = false)
+    public String getApitTime() {
+        return apitTime;
+    }
+
+    public void setApitTime(String apitTime) {
+        this.apitTime = apitTime;
     }
 
 }

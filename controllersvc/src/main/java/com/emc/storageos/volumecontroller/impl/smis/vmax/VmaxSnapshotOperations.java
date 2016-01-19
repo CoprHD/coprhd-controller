@@ -1434,7 +1434,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void createGroupSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void createGroupSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         if (system.checkIfVmax3()) {
             _log.info("Create snapshot session group operation START");
@@ -1449,7 +1449,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             final String label = _nameGenerator.generate(tenantName, snapSession.getLabel(),
                     snapSessionURI.toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
 
-            String groupName = _helper.getConsistencyGroupName(consistencyGroup, system);
             CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(system, groupName);
 
             try {
@@ -1624,8 +1623,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 // serial number from the replication group, to get simply the group name
                 // as in the case above.
                 sourceGroupName = ((BlockSnapshot) sampleParent).getReplicationGroupInstance();
-                int index = sourceGroupName.indexOf("+");
-                sourceGroupName = sourceGroupName.substring(index + 1);
+                int groupNameStartIndex = sourceGroupName.indexOf("+") + 1;
+                sourceGroupName = sourceGroupName.substring(groupNameStartIndex);
 
                 // The target in this case is actually a source volume and the target group
                 // is the source volume group, which we can get from the consistency group.
@@ -1740,16 +1739,24 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 // the sync object path representing the linked target so
                 // that it can be detached.
                 boolean syncObjectFound = false;
-                CIMObjectPath syncObjectPath = null;
                 List<BlockSnapshot> snapshots = null;
-
+                CIMObjectPath syncObjectPath = SmisConstants.NULL_CIM_OBJECT_PATH;
                 if (snapshot.hasConsistencyGroup()) {
+                    String replicationGroupName = snapshot.getReplicationGroupInstance();
                     List<CIMObjectPath> groupSyncs = getAllGroupSyncObjects(system, snapshot);
                     if (groupSyncs != null && !groupSyncs.isEmpty()) {
-                        syncObjectPath = groupSyncs.get(0);
+                        // Find the right one. We want the one where the replication groups for
+                        // the passed snapshot is the sync'd element.
+                        for (CIMObjectPath groupSynchronized : groupSyncs) {
+                            String syncElementPath = groupSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
+                            if (syncElementPath.contains(replicationGroupName)) {
+                                syncObjectPath = groupSynchronized;
+                                break;
+                            }
+                        }
                     }
                     snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                            snapshot.getReplicationGroupInstance(), _dbClient);
+                            replicationGroupName, _dbClient);
                 } else {
                     syncObjectPath = getSyncObject(system, snapshot);
                     snapshots = Lists.newArrayList(snapshot);
@@ -1904,7 +1911,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     @SuppressWarnings("rawtypes")
     @Override
-    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer) throws DeviceControllerException {
+    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
+            throws DeviceControllerException {
         if (system.checkIfVmax3()) {
             // Only supported for VMAX3 storage systems.
             try {
@@ -1917,30 +1925,19 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     _log.info("No session instance specified for snapshot session {}", snapSessionURI);
                     completer.ready(_dbClient);
                 } else {
-                    CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-
-                    BlockObject sourceObj = null;
-                    if (snapSession.hasConsistencyGroup()) {
-                        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-                        List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
-                        sourceObj = nativeVolumes.get(0);
-                    } else {
-                        sourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
-                    }
-
-                    CIMObjectPath sourcePath = _cimPath.getBlockObjectPath(system, sourceObj);
                     CIMObjectPath settingsStatePath = null;
-                    if (sourceObj.hasConsistencyGroup()) {
-                        String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
-                        settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName,
-                                syncAspectPath);
+                    if (snapSession.hasConsistencyGroup()) {
+                        settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, groupName, syncAspectPath);
                     } else {
+                        BlockObject sourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
+                        CIMObjectPath sourcePath = _cimPath.getBlockObjectPath(system, sourceObj);
                         settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
                     }
 
                     CIMArgument[] inArgs = null;
                     CIMArgument[] outArgs = new CIMArgument[5];
                     inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(settingsStatePath, false);
+                    CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                     _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                     CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                     ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionDeleteJob(jobPath,

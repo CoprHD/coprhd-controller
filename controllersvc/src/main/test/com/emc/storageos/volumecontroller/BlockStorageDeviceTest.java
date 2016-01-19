@@ -499,7 +499,7 @@ public class BlockStorageDeviceTest {
         BlockConsistencyGroupDeleteCompleter taskCompleter = new BlockConsistencyGroupDeleteCompleter(
                 consistencyGroup, token);
         _deviceController.doDeleteConsistencyGroup(_storageSystem,
-                consistencyGroup, true, taskCompleter);
+                consistencyGroup, null, null, true, taskCompleter);
     }
 
     @Test(expected = com.emc.storageos.exceptions.DeviceControllerException.class)

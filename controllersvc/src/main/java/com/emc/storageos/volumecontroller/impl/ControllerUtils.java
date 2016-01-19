@@ -1345,6 +1345,10 @@ public class ControllerUtils {
     public static String generateReplicationGroupName(StorageSystem storage, BlockConsistencyGroup cg, String replicationGroupName) {
         String groupName = replicationGroupName;
         
+        if (storage.deviceIsType(Type.vnxblock) && cg.getArrayConsistency()) {
+            return cg.getCgNameOnStorageSystem(storage.getId());
+        }
+        
         if (groupName == null && cg != null) {
             // if there is only one system cg name for this storage system, use this; it may be different than the label
             if (cg.getSystemConsistencyGroups() != null && storage != null) {
@@ -1358,12 +1362,12 @@ public class ControllerUtils {
                 groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
             }
         }
-        if (storage != null && storage.deviceIsType(Type.vnxblock) && !groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
-            groupName = SmisConstants.VNX_VIRTUAL_RG + groupName;
-            s_logger.info("VNX virtual replication group {}", groupName);
-        }
 
         return groupName;
+    }
+
+    public static String generateVirtualReplicationGroupName(String groupName) {
+        return SmisConstants.VNX_VIRTUAL_RG + groupName;
     }
 
     /**

@@ -674,7 +674,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
                 ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 mask.removeVolumes(volumeURIList);
-                _dbClient.updateAndReindexObject(mask);
+                _dbClient.updateObject(mask);
                 taskCompleter.error(_dbClient, DeviceControllerException.errors
                         .vmaxStorageGroupNameNotFound(maskingViewName));
                 return;
@@ -1056,7 +1056,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 if (null == parentGroupName) {
                     ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                     mask.removeVolumes(volumeURIList);
-                    _dbClient.updateAndReindexObject(mask);
+                    _dbClient.updateObject(mask);
                     taskCompleter.error(_dbClient, DeviceControllerException.errors
                             .vmaxStorageGroupNameNotFound(maskingViewName));
                     return;
@@ -1348,7 +1348,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     _log.info(String.format("Target ports already added to port group %s, likely by a previous operation.", pgGroupName));
                 }
 
-                _dbClient.updateAndReindexObject(exportMask);
+                _dbClient.updateObject(exportMask);
             }
             _log.info(String.format("addInitiator succeeded - maskName: %s", exportMaskURI.toString()));
             taskCompleter.ready(_dbClient);
@@ -1635,7 +1635,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     exportMask.addInitiator(existingInitiator);
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
-                        _dbClient.updateAndReindexObject(exportMask);
+                        _dbClient.updateObject(exportMask);
                     } else {
                         _dbClient.createObject(exportMask);
                     }
@@ -1861,7 +1861,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.getStoragePorts().addAll(storagePortsToAdd);
                     mask.getStoragePorts().removeAll(storagePortsToRemove);
                     ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
-                    _dbClient.updateAndReindexObject(mask);
+                    _dbClient.updateObject(mask);
                 } else {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }

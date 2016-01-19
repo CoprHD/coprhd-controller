@@ -47,6 +47,7 @@
         <ref bean="poolPreferenceBasedOnDriveMathcer"/>
         <ref bean="srdfMetroMatcher"/>
         <ref bean="fileReplicationMatcher" />
+        <ref bean="copyModeMatcher" />
         <ref bean="bucketquotaMatcher" />
 	</util:list>
 
@@ -99,6 +100,7 @@
     <bean id="longTermRetentionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.LongTermRetentionMatcher" />
     <bean id="hdsShadowImagePairCountMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HDSShadowImagePairCountMatcher"/>
     <bean id="fileReplicationMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileReplicationAttrMatcher" />
+    <bean id="copyModeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileReplicationCopyModeMatcher" />
     <bean id="minDataCenterMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MinDataCenterMatcher"/>
     <bean id="bucketquotaMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.BucketQuotaMatcher"/>
 	

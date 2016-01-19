@@ -489,20 +489,23 @@ public class StorageScheduler implements Scheduler {
                     VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteProtectionSettings));
         }
 
-        // Run the placement algorithm for file replication!!!
-        if (vpool.getFileReplicationType() != null &&
-                !FileReplicationType.NONE.name().equalsIgnoreCase(vpool.getFileReplicationType())) {
+        if (VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_SOURCE.equalsIgnoreCase(capabilities.getPersonality())) {
+            // Run the placement algorithm for file replication!!!
+            if (vpool.getFileReplicationType() != null &&
+                    !FileReplicationType.NONE.name().equalsIgnoreCase(vpool.getFileReplicationType())) {
 
-            provMapBuilder.putAttributeInMap(Attributes.file_replication_type.toString(), vpool.getFileReplicationType());
-            if (vpool.getFileReplicationCopyMode() != null) {
-                provMapBuilder.putAttributeInMap(Attributes.file_replication_copy_mode.toString(), vpool.getFileReplicationCopyMode());
-            }
-            Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings = VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient);
-            if (null != remoteCopySettings && !remoteCopySettings.isEmpty()) {
-                provMapBuilder.putAttributeInMap(Attributes.file_replication.toString(),
-                        VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteCopySettings));
-            }
+                provMapBuilder.putAttributeInMap(Attributes.file_replication_type.toString(), vpool.getFileReplicationType());
+                if (vpool.getFileReplicationCopyMode() != null) {
+                    provMapBuilder.putAttributeInMap(Attributes.file_replication_copy_mode.toString(), vpool.getFileReplicationCopyMode());
+                }
+                Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings = VirtualPool.getFileRemoteProtectionSettings(vpool,
+                        _dbClient);
+                if (null != remoteCopySettings && !remoteCopySettings.isEmpty()) {
+                    provMapBuilder.putAttributeInMap(Attributes.file_replication.toString(),
+                            VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteCopySettings));
+                }
 
+            }
         }
 
         Map<String, Object> attributeMap = provMapBuilder.buildMap();

@@ -222,4 +222,15 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
         execFS("deleteNFSAcls", storageURI, fsURI, subDir, opId);
 
     }
+
+    @Override
+    public void assignFileSystemSnapshotPolicy(URI storageURI, URI fsURI, URI policy, String opId) throws InternalException {
+        execFS("assignFileSystemSnapshotPolicy", storageURI, fsURI, policy, opId);
+
+    }
+
+    @Override
+    public void unassignFileSystemSnapshotPolicy(URI storageURI, URI fsURI, URI policy, String opId) throws InternalException {
+        execFS("unassignFileSystemSnapshotPolicy", storageURI, fsURI, policy, opId);
+    }
 }

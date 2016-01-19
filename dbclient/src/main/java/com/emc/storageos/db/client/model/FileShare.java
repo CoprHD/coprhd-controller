@@ -65,9 +65,13 @@ public class FileShare extends FileObject implements ProjectResource {
 
     // set when a file share is release from a project for internal object use
     private URI _originalProject;
-    
+
     private URI virtualNAS;
 
+    // policy associated with the file.
+    private StringSet filePolicies;
+
+    @Override
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
@@ -79,6 +83,7 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("project");
     }
 
+    @Override
     @NamedRelationIndex(cf = "NamedRelation")
     @Name("tenant")
     public NamedURI getTenant() {
@@ -252,14 +257,27 @@ public class FileShare extends FileObject implements ProjectResource {
         _originalProject = originalProject;
         setChanged("originalProject");
     }
-    
-    @Name("virtualNAS")
-	public URI getVirtualNAS() {
-		return virtualNAS;
-	}
 
-	public void setVirtualNAS(URI vituralNAS) {
-		this.virtualNAS = vituralNAS;
-		setChanged("virtualNAS");
-	}
+    @Name("virtualNAS")
+    public URI getVirtualNAS() {
+        return virtualNAS;
+    }
+
+    public void setVirtualNAS(URI vituralNAS) {
+        this.virtualNAS = vituralNAS;
+        setChanged("virtualNAS");
+    }
+
+    @Name("filePolicies")
+    public StringSet getFilePolicies() {
+        if (filePolicies == null) {
+            filePolicies = new StringSet();
+        }
+        return filePolicies;
+    }
+
+    public void setFilePolicies(StringSet filePolicies) {
+        this.filePolicies = filePolicies;
+        setChanged("filePolicies");
+    }
 }

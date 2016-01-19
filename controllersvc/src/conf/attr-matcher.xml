@@ -32,6 +32,7 @@
          <ref bean="longTermRetentionMatcher"/>
          <ref bean="hdsShadowImagePairCountMatcher"/>
          <ref bean="fileReplicationMatcher" />
+         <ref bean="fileScheduleSnapshotMatcher" />
          <ref bean="minDataCenterMatcher"/>
 	</util:list>
 	
@@ -47,6 +48,7 @@
         <ref bean="poolPreferenceBasedOnDriveMathcer"/>
         <ref bean="srdfMetroMatcher"/>
         <ref bean="fileReplicationMatcher" />
+        <ref bean="fileScheduleSnapshotMatcher" />
         <ref bean="bucketquotaMatcher" />
 	</util:list>
 
@@ -99,6 +101,7 @@
     <bean id="longTermRetentionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.LongTermRetentionMatcher" />
     <bean id="hdsShadowImagePairCountMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HDSShadowImagePairCountMatcher"/>
     <bean id="fileReplicationMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileReplicationAttrMatcher" />
+    <bean id="fileScheduleSnapshotMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileScheduleSnaphotMatcher" />
     <bean id="minDataCenterMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MinDataCenterMatcher"/>
     <bean id="bucketquotaMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.BucketQuotaMatcher"/>
 	

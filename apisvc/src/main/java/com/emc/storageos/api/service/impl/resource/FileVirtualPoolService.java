@@ -568,6 +568,12 @@ public class FileVirtualPoolService extends VirtualPoolService {
             if ((param.getProtection().getSnapshots() != null)
                     && (param.getProtection().getSnapshots().getMaxSnapshots() != null)) {
                 vPool.setMaxNativeSnapshots(param.getProtection().getSnapshots().getMaxSnapshots());
+
+                if (param.getProtection().getScheduleSnapshots() != null) {
+                    vPool.setScheduleSnapshots(param.getProtection().getScheduleSnapshots());
+                } else {
+                    vPool.setScheduleSnapshots(false);
+                }
             }
             if (param.getProtection().getReplicationParam() != null) {
                 String copyMode = CopyModes.ASYNCHRONOUS.name();
@@ -788,6 +794,12 @@ public class FileVirtualPoolService extends VirtualPoolService {
 
         // If the update specifies replication protection, we need to process the update.
         if (param != null) {
+            if (param.getScheduleSnapshots() != null) {
+                virtualPool.setScheduleSnapshots(param.getScheduleSnapshots());
+            } else {
+
+                virtualPool.setScheduleSnapshots(false);
+            }
             // Handle the protection snapshot updates
             if (param.getSnapshots() != null) {
                 // By default the maxSnapshots value should be 0 so this should never be null

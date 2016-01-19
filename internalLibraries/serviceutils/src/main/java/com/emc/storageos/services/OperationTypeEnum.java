@@ -121,6 +121,8 @@ public enum OperationTypeEnum {
 
     CREATE_FILE_SYSTEM_SHARE("FileSystemShared", "FileSystemShareFailed", "FileSystem shared"),
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "", "operation to tag a filesystem"),
+    ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyAssign", "FileSystemPolicyAssignFailed", "FileSystem Policy Assigned"),
+    UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyUnassign", "FileSystemPolicyUnassignFailed", "FileSystem Policy Unassigned"),
     DELETE_FILE_SYSTEM_SHARE("FileSystemShareDeleted", "FileSystemShareDeleteFailed", "FileSystem share deleted"),
 
     CREATE_FILE_SYSTEM_SNAPSHOT("FileSystemSnapshotCreated", "FileSystemSnapshotCreateFailed", "FileSystem snapshot created"),

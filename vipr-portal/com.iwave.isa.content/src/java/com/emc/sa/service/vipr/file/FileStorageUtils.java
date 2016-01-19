@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
+import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResources;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addRollback;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
@@ -22,6 +23,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.service.vipr.block.tasks.CreateContinuousCopy;
+import com.emc.sa.service.vipr.file.tasks.CreateFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshotShare;
@@ -55,6 +58,7 @@ import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -69,6 +73,7 @@ import com.emc.storageos.model.file.SnapshotExportUpdateParams;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -313,6 +318,12 @@ public class FileStorageUtils {
             }
         }
         return null;
+    }
+    
+    public static Task<FileShareRestRep> createFileContinuousCopy(URI fileId, String name) {
+        Task<FileShareRestRep> copies = execute(new CreateFileContinuousCopy(fileId, name));
+        addAffectedResource(copies);
+        return copies;
     }
 
     public static URI createFileSnapshot(URI fileSystemId, String name) {

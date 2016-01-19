@@ -13,6 +13,10 @@ import java.util.Properties;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.block.BlockMirrorRestRep;
+import com.emc.storageos.model.block.CopiesParam;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
@@ -504,5 +508,31 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> deleteShareACL(URI id, String shareName) {
         return deleteTask(getShareACLsUrl(), id, shareName);
+    }
+    
+    
+    /**
+     * Gets the base URL for file continuous copies: <tt>/block/volumes/{id}/protection/continuous-copies</tt>
+     * 
+     * @return the URL for continuous copies.
+     */
+    protected String getContinuousCopiesUrl() {
+        return getIdUrl() + "/protection/continuous-copies";
+    }
+    
+    /**
+     * Begins creating a continuous copies for the given file system.
+     * <p>
+     * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/start</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the configuration of the new continuous copies.
+     * @return tasks for monitoring the progress of the operation(s).
+     */
+    public Task<FileShareRestRep> startFileContinuousCopies(URI id, CopiesParam input) {
+        TaskList task = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/start", id);
+        return null;//new Task<FileShareRestRep>(client, task.getTaskList(), BlockMirrorRestRep.class);
     }
 }

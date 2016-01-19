@@ -1,0 +1,20 @@
+{
+  baseKey:"RemoveFileContinuousCopy.File",
+  serviceId:"RemoveFileContinuousCopy",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileWithContinuousCopies",
+      select: "one"
+    },
+
+    fileCopies:{
+      type:"assetType.vipr.fileContinuousCopies",
+      select: "many"
+    }
+  }
+}

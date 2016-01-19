@@ -23,6 +23,7 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
@@ -32,6 +33,7 @@ import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.client.core.filters.VirtualPoolProtocolFilter;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
@@ -254,6 +256,23 @@ public class FileProvider extends BaseAssetOptionsProvider {
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
+    }
+    
+    @Asset("fileWithContinuousCopies")
+    @AssetDependencies("project")
+    public List<AssetOption> getFileWithContinuousCopies(AssetOptionsContext ctx, URI project) {
+        final ViPRCoreClient client = api(ctx);
+        List<FileShareRestRep> fs = client.fileSystems().findByProject(project);
+        
+        // TODO: only add file system with continuous copies.
+        
+        return createFilesystemOptions(fs);
+    }
+    
+    @Asset("fileContinuousCopies")
+    @AssetDependencies("fileWithContinuousCopies")
+    public List<AssetOption> getFileContinuousCopies(AssetOptionsContext ctx, URI volume) {
+        return Lists.newArrayList(); //createBaseResourceOptions(api(ctx).fileSystems().getContinuousCopies(volume));
     }
 
     private List<SmbShareResponse> listFileShares(AssetOptionsContext ctx, URI filesystem) {

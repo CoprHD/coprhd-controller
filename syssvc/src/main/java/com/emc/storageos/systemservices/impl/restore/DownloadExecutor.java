@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import com.emc.storageos.management.backup.RestoreManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -39,6 +40,7 @@ public final class DownloadExecutor implements  Runnable {
     private DownloadListener downloadListener;
     private boolean isGeo = false; // true if the backupset is from GEO env
     private volatile  boolean isCanceled =false;
+    private File infoPropertiesFile = null;
 
     public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps) {
         if (cfg.uploadUrl == null) {
@@ -293,6 +295,18 @@ public final class DownloadExecutor implements  Runnable {
     private void postDownload() {
         BackupRestoreStatus restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
         log.info("status={}", restoreStatus);
+
+        try {
+            validBackup();
+        }catch (Exception e) {
+            log.error("Invalid backup e=", e);
+            Status s = Status.DOWNLOAD_FAILED;
+            s.setMessage("Invalid backup");
+            restoreStatus.setStatus(s);
+            backupOps.persistBackupRestoreStatus(restoreStatus, false);
+            return;
+        }
+
         Status s = null;
         if (restoreStatus.getStatus() == BackupRestoreStatus.Status.DOWNLOADING) {
             long nodeNumber = backupOps.getHosts().size();
@@ -302,6 +316,10 @@ public final class DownloadExecutor implements  Runnable {
         }
 
         setDownloadStatus(remoteBackupFileName, s, 0, 0, true);
+    }
+
+    private void validBackup() {
+        backupOps.validBackup(infoPropertiesFile, isGeo);
     }
 
     private boolean isMyBackupFile(ZipEntry backupEntry) throws UnknownHostException {
@@ -331,6 +349,10 @@ public final class DownloadExecutor implements  Runnable {
             file.createNewFile();
         }
 
+        if (backupFileName.contains(BackupConstants.BACKUP_INFO_SUFFIX)) {
+            infoPropertiesFile = file;
+        }
+
         byte[] buf = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
         int length;
 
@@ -342,8 +364,7 @@ public final class DownloadExecutor implements  Runnable {
             }
         } catch(IOException e) {
             log.error("Failed to download {} from server e=", backupFileName, e);
-            setDownloadStatus(remoteBackupFileName,
-                    BackupRestoreStatus.Status.DOWNLOAD_FAILED, 0, 0, false);
+            setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOAD_FAILED, 0, 0, false);
             throw e;
         }
 

@@ -291,6 +291,21 @@ public class BackupOps {
         }
     }
 
+    public void validBackup(File propertyInfoFile, boolean isGeo) {
+        RestoreManager manager = new RestoreManager();
+        CoordinatorClientImpl client = (CoordinatorClientImpl) coordinatorClient;
+        manager.setNodeCount(client.getNodeCount());
+
+        DualInetAddress addresses = coordinatorClient.getInetAddessLookupMap().getDualInetAddress();
+        String ipaddress4 = addresses.getInet4();
+        String ipaddress6 = addresses.getInet6();
+        manager.setIpAddress4(ipaddress4);
+        manager.setIpAddress6(ipaddress6);
+        manager.setEnableChangeVersion(false);
+
+        manager.checkBackupInfo(propertyInfoFile, isGeo);
+    }
+
     public void addRestoreListener(NodeListener listener) throws Exception {
         coordinatorClient.addNodeListener(listener);
     }

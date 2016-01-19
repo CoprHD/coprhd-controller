@@ -73,22 +73,24 @@ public class BackupRestoreStatus {
      */
     @XmlType(name = "restore_Status")
     public enum Status {
-        NOT_STARTED (true, false, false),
-        DOWNLOADING (true, false, false),
-        DOWNLOAD_SUCCESS (false, false, true),
-        DOWNLOAD_FAILED (false, true, true),
-        DOWNLOAD_CANCELLED (false, true, true),
-        RESTORE_FAILED (false, false, false),
-        RESTORE_SUCCESS (false, false ,false);
+        NOT_STARTED (true, false, false, "Not Started"),
+        DOWNLOADING (true, false, false, "Downloading"),
+        DOWNLOAD_SUCCESS (false, false, true, "Download success"),
+        DOWNLOAD_FAILED (false, true, true, "Download failed"),
+        DOWNLOAD_CANCELLED (false, true, true, "Download Canceled"),
+        RESTORE_FAILED (false, false, false, "Restore failed"),
+        RESTORE_SUCCESS (false, false ,false, "Restore success");
 
         private boolean cancellable = false;
         private boolean removeDownloadedFiles= false;
         private boolean removeListener = false;
+        private String message = "";
 
-        Status(boolean cancellable, boolean removeFiles, boolean removeListener) {
+        Status(boolean cancellable, boolean removeFiles, boolean removeListener, String msg) {
             this.cancellable = cancellable;
             this.removeDownloadedFiles = removeFiles;
             this.removeListener = removeListener;
+            message = msg;
         }
 
         public boolean canBeCanceled() {
@@ -101,6 +103,14 @@ public class BackupRestoreStatus {
 
         public boolean removeListener() {
             return removeListener;
+        }
+
+        public void setMessage(String msg) {
+            message = msg;
+        }
+
+        public String getMessage () {
+            return message;
         }
     }
 

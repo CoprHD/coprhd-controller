@@ -2177,10 +2177,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMethodNullMethod(), null);
 
                 // Get all snapshots if this is a group snapshot.
+                String replicationGroupName = null;
                 List<BlockSnapshot> allSnapshots = new ArrayList<>();
                 String replicationGroupId = blockSnapshot.getReplicationGroupInstance();
                 if (!NullColumnValueGetter.isNullValue(replicationGroupId)) {
                     allSnapshots.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupId, _dbClient));
+                    int nameStartIndex = replicationGroupId.indexOf("+") + 1;
+                    replicationGroupName = replicationGroupId.substring(nameStartIndex);
                 } else {
                     allSnapshots.add(blockSnapshot);
                 }
@@ -2201,7 +2204,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     sourceSnapshot.setParent(new NamedURI(aSnapshot.getId(), aSnapshot.getLabel()));
                     sourceSnapshot.setSourceNativeId(aSnapshot.getNativeId());
                     sourceSnapshot.setStorageController(storage);
-                    if (cgURI != null) {
+                    if (!NullColumnValueGetter.isNullURI(cgURI)) {
                         sourceSnapshot.setConsistencyGroup(cgURI);
                     }
                     sourceSnapshot.addInternalFlags(Flag.INTERNAL_OBJECT);
@@ -2232,8 +2235,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 waitFor = workflow.createStep(CREATE_SNAPSHOT_SESSION_STEP_GROUP,
                         String.format("Create snapshot session %s for snapshot target volume %s", snapSessionURI, snapshot),
                         waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
-                        createBlockSnapshotSessionMethod(storage, snapSessionURI),
-                        deleteBlockSnapshotSessionMethod(storage, snapSessionURI, Boolean.TRUE), null);
+                        createBlockSnapshotSessionMethod(storage, snapSessionURI, replicationGroupName),
+                        deleteBlockSnapshotSessionMethod(storage, snapSessionURI, replicationGroupName, Boolean.TRUE), null);
 
                 // Create a workflow step to link the source volume for the passed snapshot
                 // to the snapshot session create by the previous step. We link the source
@@ -2272,7 +2275,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         DELETE_SNAPSHOT_SESSION_STEP_GROUP,
                         String.format("Delete snapshot session %s for snapshot target volume %s", snapSessionURI, snapshot),
                         waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
-                        deleteBlockSnapshotSessionMethod(storage, snapSessionURI, Boolean.TRUE),
+                        deleteBlockSnapshotSessionMethod(storage, snapSessionURI, replicationGroupName, Boolean.TRUE),
                         rollbackMethodNullMethod(), null);
             } else {
                 waitFor = workflow.createStep(BLOCK_VOLUME_RESTORE_GROUP, description, waitFor,
@@ -4846,12 +4849,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_SAPSHOT_SESSION_WF_NAME, false, opId);
             _log.info("Created new workflow to create a new snapshot session for source with operation id {}", opId);
 
+            // When creating a group snapshot we need the name of the group.
+            String groupName = null;
             boolean isCG = checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
+            if (isCG) {
+                BlockConsistencyGroup cg = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
+                groupName = cg.getCgNameOnStorageSystem(systemURI);
+            }
 
             // Create a step to create the session.
             String waitFor = workflow.createStep(CREATE_SNAPSHOT_SESSION_STEP_GROUP, String.format("Creating block snapshot session"),
                     null, systemURI, getDeviceType(systemURI), getClass(),
-                    createBlockSnapshotSessionMethod(systemURI, snapSessionURI),
+                    createBlockSnapshotSessionMethod(systemURI, snapSessionURI, groupName),
                     rollbackMethodNullMethod(), null);
 
             // If necessary add a step for each session to create the new targets and link them to the session.
@@ -4902,12 +4911,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * to create block snapshot sessions.
      * 
      * @param systemURI The URI of the storage system on which the snapshot sessions are created.
-     * @param snapSessionURI The URIs of the sessions in ViPR
+     * @param snapSessionURI The URIs of the sessions in ViPR.
+     * @param groupName The group name when creating a group session.
      * 
      * @return A reference to a Workflow.Method for creating an array snapshot.
      */
-    public static Workflow.Method createBlockSnapshotSessionMethod(URI systemURI, URI snapSessionURI) {
-        return new Workflow.Method(CREATE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURI);
+    public static Workflow.Method createBlockSnapshotSessionMethod(URI systemURI, URI snapSessionURI, String groupName) {
+        return new Workflow.Method(CREATE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURI, groupName);
     }
 
     /**
@@ -4916,15 +4926,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * 
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URIs of the BlockSnapshotSessioninstances representing the array snapshots.
+     * @param groupName The group name when creating a group session.
      * @param stepId The unique id of the workflow step in which the snapshots are be created.
      */
-    public void createBlockSnapshotSession(URI systemURI, URI snapSessionURI, String stepId) {
+    public void createBlockSnapshotSession(URI systemURI, URI snapSessionURI, String groupName, String stepId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
             completer = new BlockSnapshotSessionCreateCompleter(snapSessionURI, stepId);
             WorkflowStepCompleter.stepExecuting(stepId);
-            getDevice(system.getSystemType()).doCreateSnapshotSession(system, snapSessionURI, completer);
+            getDevice(system.getSystemType()).doCreateSnapshotSession(system, snapSessionURI, groupName, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -5379,13 +5390,19 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _log.info("Created new workflow to delete snapshot session {} with operation id {}",
                     snapSessionURI, opId);
 
-            checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
+            // When deleting a group snapshot we need the name of the group.
+            String groupName = null;
+            boolean isCG = checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
+            if (isCG) {
+                BlockConsistencyGroup cg = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
+                groupName = cg.getCgNameOnStorageSystem(systemURI);
+            }
 
             // Create the workflow step to delete the snapshot session.
             workflow.createStep(DELETE_SNAPSHOT_SESSION_STEP_GROUP,
                     String.format("Delete snapshot session %s", snapSessionURI),
                     null, systemURI, getDeviceType(systemURI), getClass(),
-                    deleteBlockSnapshotSessionMethod(systemURI, snapSessionURI, Boolean.FALSE),
+                    deleteBlockSnapshotSessionMethod(systemURI, snapSessionURI, groupName, Boolean.FALSE),
                     null, null);
 
             // Execute the workflow.
@@ -5405,11 +5422,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
      * @param markInactive true if the step should mark the session inactive, false otherwise.
+     * @param groupName The group name when deleting a group snapshot session.
      * 
      * @return A reference to a Workflow.Method for deleting the array snapshot.
      */
-    public static Workflow.Method deleteBlockSnapshotSessionMethod(URI systemURI, URI snapSessionURI, Boolean markInactive) {
-        return new Workflow.Method(DELETE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURI, markInactive);
+    public static Workflow.Method deleteBlockSnapshotSessionMethod(URI systemURI, URI snapSessionURI, String groupName,
+            Boolean markInactive) {
+        return new Workflow.Method(DELETE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURI, groupName, markInactive);
     }
 
     /**
@@ -5419,15 +5438,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
      * @param stepId The unique id of the workflow step in which the session is deleted.
+     * @param groupName The group name when deleting a group snapshot session.
      * @param markInactive true if the step should mark the session inactive, false otherwise.
      */
-    public void deleteBlockSnapshotSession(URI systemURI, URI snapSessionURI, Boolean markInactive, String stepId) {
+    public void deleteBlockSnapshotSession(URI systemURI, URI snapSessionURI, String groupName, Boolean markInactive, String stepId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
             completer = new BlockSnapshotSessionDeleteCompleter(snapSessionURI, markInactive, stepId);
             WorkflowStepCompleter.stepExecuting(stepId);
-            getDevice(system.getSystemType()).doDeleteBlockSnapshotSession(system, snapSessionURI, completer);
+            getDevice(system.getSystemType()).doDeleteBlockSnapshotSession(system, snapSessionURI, groupName, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

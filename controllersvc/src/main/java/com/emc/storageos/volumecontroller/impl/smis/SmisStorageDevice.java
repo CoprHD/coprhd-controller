@@ -417,14 +417,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
         MetaVolumeTaskCompleter metaVolumeTaskCompleter = new MetaVolumeTaskCompleter(
                 volumeCompleter);
-        try {        	
-        	boolean tagSet = _helper.doApplyRecoverPointTag(storageSystem, volume, false);
-        	if (!tagSet) {
-        		TaskCompleter taskCompleter = metaVolumeTaskCompleter.getVolumeTaskCompleter();
-        		ServiceError error = DeviceControllerErrors.smis.errorSettingRecoverPointTag("disable");
+        try {
+            boolean tagSet = _helper.doApplyRecoverPointTag(storageSystem, volume, false);
+            if (!tagSet) {
+                TaskCompleter taskCompleter = metaVolumeTaskCompleter.getVolumeTaskCompleter();
+                ServiceError error = DeviceControllerErrors.smis.errorSettingRecoverPointTag("disable");
                 taskCompleter.error(_dbClient, error);
-                return;               
-        	}
+                return;
+            }
             // First of all check if we need to do cleanup of dangling meta volumes left from previous failed
             // expand attempt (may happen when rollback of expand failed due to smis connection issues -- typically cleanup
             // is done by expand rollback)
@@ -544,15 +544,15 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 ServiceError error = DeviceControllerErrors.smis.volumeExpandIsNotSupported(storageSystem.getNativeGuid());
                 taskCompleter.error(_dbClient, error);
                 return;
-            }            
-            
+            }
+
             boolean tagSet = _helper.doApplyRecoverPointTag(storageSystem, volume, false);
-        	if (!tagSet) {
-        		ServiceError error = DeviceControllerErrors.smis.errorSettingRecoverPointTag("disable");
+            if (!tagSet) {
+                ServiceError error = DeviceControllerErrors.smis.errorSettingRecoverPointTag("disable");
                 taskCompleter.error(_dbClient, error);
                 return;
-        	}
-            
+            }
+
             CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);
             CIMArgument[] inArgs = _helper.getExpandVolumeInputArguments(storageSystem, pool, volume,
                     size);
@@ -2663,6 +2663,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         _srdfOperations.refreshVolumeProperties(systemURI, volumeURIs);
     }
 
+    @Override
     public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
@@ -2698,7 +2699,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * {@inheritDoc}
      */
     @Override
-    public void doCreateSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void doCreateSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         try {
             if (checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer)) {
@@ -2706,7 +2707,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 // Because RP+VPLEX requires groups, even if we aren't really doing
                 // a group operation, it will be determined this is a group operation.
                 // For now we just call the single snapshot session create.
-                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURI, completer);
+                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURI, groupName, completer);
             } else {
                 _snapshotOperations.createSnapshotSession(system, snapSessionURI, completer);
             }
@@ -2735,9 +2736,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs, String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
+    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
+            String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         try {
-            _snapshotOperations.linkSnapshotSessionTargetGroup(system, snapshotSessionURI, snapSessionSnapshotURIs, copyMode, targetsExist, completer);
+            _snapshotOperations.linkSnapshotSessionTargetGroup(system, snapshotSessionURI, snapSessionSnapshotURIs, copyMode, targetsExist,
+                    completer);
         } catch (Exception e) {
             // TODO Fix error message
             _log.error(String.format("Exception trying to create and link new target to block snapshot session %s on array %s",
@@ -2800,10 +2803,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * {@inheritDoc}
      */
     @Override
-    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         try {
-            _snapshotOperations.deleteSnapshotSession(system, snapSessionURI, completer);
+            _snapshotOperations.deleteSnapshotSession(system, snapSessionURI, groupName, completer);
         } catch (Exception e) {
             _log.error(String.format("Exception trying to delete block snapshot session %s on array %s",
                     snapSessionURI, system.getSerialNumber()), e);

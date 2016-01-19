@@ -173,22 +173,5 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     abstract protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
             List<URI> fileShareURIs, String deletionType, boolean forceDelete);
 
-    @Override
-    public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
-            FileShare sourceFileShare, VirtualPool sourceVirtualPool,
-            VirtualPoolCapabilityValuesWrapper capabilities,
-            NativeContinuousCopyCreate param, String taskId)
-            throws ControllerException {
-        // TODO Auto-generated method stub
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-    @Override
-    public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
-            Volume sourceFileShare, List<URI> mirrorFSUris, String taskId)
-            throws ControllerException {
-        // TODO Auto-generated method stub
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
+ 
 }

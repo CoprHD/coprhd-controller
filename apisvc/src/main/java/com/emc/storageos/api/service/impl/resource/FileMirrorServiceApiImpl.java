@@ -211,27 +211,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         return fileDescriptors;
     }
 
-    @Override
-    public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
-            FileShare sourceFileShare, VirtualPool sourceVirtualPool,
-            VirtualPoolCapabilityValuesWrapper capabilities,
-            NativeContinuousCopyCreate param, String taskId)
-            throws ControllerException {
-        // TODO Auto-generated method stub
-        TaskList taskList = new TaskList();
-        // TBD call the FileReplicationDevice controller
-        return taskList;
-    }
-
-    @Override
-    public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
-            Volume sourceFileShare, List<URI> mirrorFSUris, String taskId)
-            throws ControllerException {
-        // TODO Auto-generated method stub
-        TaskList taskList = new TaskList();
-        // TBD call the FileReplicationDevice controller
-        return taskList;
-    }
+   
     
 
     
@@ -540,7 +520,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
      */
     protected void validateFileShareLabel(String label, Project project) {
         List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
-                ContainmentPrefixConstraint.Factory.getFullMatchConstraint(Volume.class, "project", project.getId(), label));
+                ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project", project.getId(), label));
         if (!fileShareList.isEmpty()) {
             throw APIException.badRequests.duplicateLabel(label);
         }

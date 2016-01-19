@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.file;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;

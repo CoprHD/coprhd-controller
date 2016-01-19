@@ -5244,11 +5244,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 targetKeys = filtered.keySet();
             }
 
+            // TODO Use ModifyListSettingsDefineState here and remove the for-loop.
+            String waitFor = null;
             // Create a workflow step to unlink each target specified in targetKeys
             for (URI snapshotURI : targetKeys) {
-                workflow.createStep(UNLINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
+                waitFor = workflow.createStep(UNLINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Unlinking target for snapshot session %s", snapSessionURI),
-                        null, systemURI, getDeviceType(systemURI), getClass(),
+                        waitFor, systemURI, getDeviceType(systemURI), getClass(),
                         unlinkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURI,
                                 snapshotDeletionMap.get(snapshotURI)), null, null);
             }

@@ -98,6 +98,9 @@ angular.module("services", []).directive({
                 } else if (item.type.match(/^(number|storageSize)$/)) {
                     type = '<input-text>';
                     tagAttrs = {'maxlength': validation.max || 18}; //anything bigger can overflow a long
+                } else if (item.type.match(/^(number|expandSize)$/)) {
+                    type = '<input-text>';
+                    tagAttrs = {'maxlength': validation.max || 18}; //anything bigger can overflow a long
                 } else if (item.type == "boolean") {
                     type = '<boolean-checkbox>';
                     item.value = item.value == 'true' ? true : false;

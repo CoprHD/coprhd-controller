@@ -87,6 +87,12 @@
                 }%
                 #{Form.inputText field:field/}
               #{/elseif}
+              #{elseif (['text', 'number', 'expandSize'] as java.util.Set).contains(serviceField.type)}
+                %{
+                  field.atts = [ maxlength: Math.min(serviceField?.max ?: 1024, 1024) ]
+                }%
+                #{Form.inputText field:field/}
+              #{/elseif}
               #{elseif serviceField.type == 'boolean'}
                 #{Form.booleanCheckBox field:field/}
               #{/elseif}

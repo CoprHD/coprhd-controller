@@ -19,7 +19,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -1017,6 +1016,24 @@ public class Volume extends BlockObject implements ProjectResource {
      */
     public boolean isInVolumeGroup() {
         return !getVolumeGroupIds().isEmpty();
+    }
+
+    /**
+     * gets the COPY type VolumeGroup.
+     *
+     * @param dbClient the db client
+     * @return COPY type VolumeGroup if Volume is part of any COPY type VolumeGroup; otherwise null.
+     */
+    public VolumeGroup getCopyTypeVolumeGroup(DbClient dbClient) {
+        VolumeGroup copyVolumeGroup = null;
+        for (String volumeGroupURI : getVolumeGroupIds()) {
+            VolumeGroup volumeGroup = dbClient.queryObject(VolumeGroup.class, URI.create(volumeGroupURI));
+            if (volumeGroup.getRoles().contains(VolumeGroupRole.COPY.name())) {
+                copyVolumeGroup = volumeGroup;
+                break; // A Volume can be part of only one 'Copy' type VolumeGroup
+            }
+        }
+        return copyVolumeGroup;
     }
 
 }

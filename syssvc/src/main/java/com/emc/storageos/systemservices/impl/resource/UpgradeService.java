@@ -29,6 +29,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.DownloadingInfo;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.vipr.model.sys.NodeProgress.DownloadStatus;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
@@ -62,6 +65,7 @@ public class UpgradeService {
     private static final String EVENT_SERVICE_TYPE = "upgrade";
     private CoordinatorClientExt _coordinator = null;
     private UpgradeManager _upgradeManager = null;
+    private DrUtil drUtil;
     private final static String FORCE = "1";
 
     @Autowired
@@ -80,6 +84,7 @@ public class UpgradeService {
 
     public void setProxy(CoordinatorClientExt proxy) {
         _coordinator = proxy;
+        drUtil = new DrUtil(_coordinator.getCoordinatorClient());
     }
 
     public void setUpgradeManager(UpgradeManager upgradeManager) {
@@ -102,7 +107,7 @@ public class UpgradeService {
     @PUT
     @Path("target-version/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public Response setTargetVersion(@QueryParam("version") String version, @QueryParam("force") String forceGeoUpgrade) throws IOException {
+    public Response setTargetVersion(@QueryParam("version") String version, @QueryParam("force") String forceUpgrade) throws IOException {
         SoftwareVersion targetVersion = null;
         try {
             targetVersion = new SoftwareVersion(version);
@@ -136,8 +141,8 @@ public class UpgradeService {
         }
 
         // Check if allowed from upgrade voter and force option can veto
-        if (FORCE.equals(forceGeoUpgrade)) {
-            _log.info("Force option supplied, skipping all multi-VDC pre-checks");
+        if (FORCE.equals(forceUpgrade)) {
+            _log.info("Force option supplied, skipping all geo/dr pre-checks");
         } else {
             for (UpgradeVoter voter : _upgradeVoters) {
                 voter.isOKForUpgrade(current.toString(), version);
@@ -238,6 +243,7 @@ public class UpgradeService {
         } catch (InvalidSoftwareVersionException e) {
             throw APIException.badRequests.parameterIsNotValid("version");
         }
+        checkClusterState();
         RepositoryInfo repoInfo = null;
         try {
             repoInfo = _coordinator.getTargetInfo(RepositoryInfo.class);
@@ -289,6 +295,22 @@ public class UpgradeService {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");
         }
         return toClusterResponse(clusterInfo);
+    }
+
+    private void checkClusterState() {
+        for (Site site : drUtil.listSites()) {
+            // don't check cluster state for paused sites.
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                continue;
+            }
+            int nodeCount = site.getNodeCount();
+            ClusterInfo.ClusterState state = _coordinator.getCoordinatorClient().getControlNodesState(site.getUuid(),
+                    nodeCount);
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                _log.error("Site {} is not stable: {}", site.getUuid(), state);
+                throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getUuid(), state.toString());
+            }
+        }
     }
 
     /**

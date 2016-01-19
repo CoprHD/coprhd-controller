@@ -1296,7 +1296,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         for (RPExport rpExport : rpExports) {
             Set<URI> rpSiteInitiatorUris = rpSiteInitiatorsMap.get(rpExport.getRpSite());
-            lockKeys.addAll(ControllerLockingUtil.getStorageLockKeysByHostName(_dbClient,
+            lockKeys.addAll(ControllerLockingUtil.getStorageLockKeysForRecoverPoint(_dbClient,
                     rpSiteInitiatorUris, rpExport.getStorageSystem()));
         }
 
@@ -1786,7 +1786,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         _log.info("Generate the storage system exports");
         Map<String, RPExport> rpExportMap = new HashMap<String, RPExport>();
         
-        // Second, iterate through source/target volumes (via the replication set). This will be slightly
+        // First, iterate through source/target volumes (via the replication set). This will be slightly
         // different than the journals since we need to consider that we might have a MetroPoint source
         // volume.
         for (CreateRSetParams rset : cgParams.getRsets()) {
@@ -1885,8 +1885,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
         }
-
-        // Iterate through the journal volumes (via the copies)
+        
+        // Second,  Iterate through the journal volumes (via the copies)
+        // We first build all the source/target copy volumes and the then journals. The order is reversed from the initial implementation.
+        // This is because, if dedicated export groups for journals are not required then we can piggyback on the export group created for the 
+        // source/target for the journal of that copy. 
+        // If the VirtualArray for the journal on a copy is different than the VirtualArray for that copy, then a new ExportGroup will be created for the journal.
         for (CreateCopyParams copy : cgParams.getCopies()) {
             _log.info("Copy: " + copy.getName());
             for (CreateVolumeParams journalVolume : copy.getJournals()) {

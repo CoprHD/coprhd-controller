@@ -432,11 +432,7 @@ public class ExportMaskUtils {
         }
     
         String alternateName = (cluster == null && host == null) ? exportGroup.getLabel() : null;
-        if (NullColumnValueGetter.isNullValue(alternateName) && exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL)) {
-        	_log.info("This is RP journal ExportGroup, set alternate name");
-        	alternateName = "journal";
-        }
-
+        
         return nameGenerator.generate(cluster, host, alternateName);
     }
 

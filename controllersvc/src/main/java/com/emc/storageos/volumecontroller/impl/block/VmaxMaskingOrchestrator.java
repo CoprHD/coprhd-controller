@@ -1302,7 +1302,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         boolean isVMAX3 = storage.checkIfVmax3();
         
         // Apply RP+VMAX best practice rules        
-        masksMap = applyVolumesToMasksUsingRPVMAXRules(storage, exportGroup, existingMasksToUpdateWithNewVolumes, volumesWithNoMask, masksMap, maskToInitiatorsMap, partialMasks, token);
+        masksMap = applyVolumesToMasksUsingRPVMAXRules(storage, exportGroup, masksMap);
         
         if (masksMap.isEmpty()) {        	
         	_log.info("No masks were found for RP that satisified the host rule, proceeding to create new masks");
@@ -1338,24 +1338,29 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
    
     /**
-     * This method applies RP+VMAX best practices rules  
+     * This method follows the RP+VMAX best practices rules.
+     * 
+     * If host information is specified in the ExportGroup (this is the case when "Create Block volume for host" service catalog is chosen):
+     * 	a) Determine all the host masking views corresponding to the host. 
+     *  b) Determine, if any, all the RP masking views corresponding to the RP site specified.
+     *  c) Compare the storage ports from the host masking view and the RP masking view and see if there is a match. If a match is found, then return all the matching RP masking views.
+     *  d) Returns an empty list of masks if there is no RP masking view that matches the given host masking view.
+     *  
+     * If no host information is specified in the ExportGroup, just returns an empty list of masks.
+     * 
+     * This method also looks at existing RP masking view to check if those masks are intended for JOURNAL volumes only, 
+     * If the ExportGroup is for RP_JOURNAL, then return the masking view with that contains the "journal" keyword in the mask name. 
+     * Returns an empty list if no such masks are found and the ExportGroup specifies RP_JOURNAL. 
+     *     
      *
-     * @param storage
-     * @param exportGroup
-     * @param existingMasksToUpdateWithNewVolumes
-     * @param volumesWithNoMask
-     * @param masksMap
-     * @param maskToInitiatorsMap
-     * @param partialMasks
-     * @param token
-     * @return
+     * @param storage Storage system
+     * @param exportGroup ExportGroup   
+     * @param masksMap Map of exportMask to policy
+     * @return Map of ExportMask to ExportPolicy, masks matching the above set of rules is returned based on whether ExportGroup specifies RP or RP_JOURNAL in the ExportGroup flags.
      */
-    private Map<ExportMask, ExportMaskPolicy> applyVolumesToMasksUsingRPVMAXRules(StorageSystem storage, ExportGroup exportGroup,
-	            Map<URI, Map<URI, Integer>> existingMasksToUpdateWithNewVolumes,
-	            Map<URI, Map<URI, Integer>> volumesWithNoMask,
-	            Map<ExportMask, ExportMaskPolicy> masksMap,
-	            Map<URI, Set<Initiator>> maskToInitiatorsMap,
-	            Set<URI> partialMasks, String token) {
+    private Map<ExportMask, ExportMaskPolicy> applyVolumesToMasksUsingRPVMAXRules(StorageSystem storage, 
+    												ExportGroup exportGroup,
+    												Map<ExportMask, ExportMaskPolicy> masksMap) {
     	
         Map<ExportMask, ExportMaskPolicy> matchingMaskMap = new HashMap<ExportMask, ExportMaskPolicy>();
     	

@@ -57,6 +57,7 @@ public class Licensing extends Controller {
         for (LicenseFeature feature : license.getLicenseFeatures()) {
             if (StringUtils.equalsIgnoreCase(feature.getModelId(), id)) {
                 lf = feature;
+                break;
             }
         }
         render(lf);

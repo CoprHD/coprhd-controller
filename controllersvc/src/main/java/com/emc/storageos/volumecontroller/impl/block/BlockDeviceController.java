@@ -5516,7 +5516,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     createBlockSnapshotSessionMethod(systemURI, snapSessionURI, groupName),
                     rollbackMethodNullMethod(), null);
 
-            // If necessary add a step for each session to create the new targets and link them to the session.
+            // Add steps to create any new targets and link them to the session, if necessary
             if ((sessionSnapshotURIs != null) && (!sessionSnapshotURIs.isEmpty())) {
 
                 if (isCG) {
@@ -5528,9 +5528,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 systemURI,
                                 getDeviceType(systemURI),
                                 getClass(),
-                                linkBlockSnapshotSessionTargetGroupMethod(systemURI, snapSessionURI, snapshotURIs, copyMode, Boolean.FALSE),
-                                null,
-                                null);
+                                linkBlockSnapshotSessionTargetGroupMethod(systemURI, snapSessionURI, snapshotURIs, copyMode,
+                                        Boolean.FALSE),
+                                rollbackLinkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURIs.get(0)), null);
                     }
                 } else {
                     for (List<URI> snapshotURIs : sessionSnapshotURIs) {

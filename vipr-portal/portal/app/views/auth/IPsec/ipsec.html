@@ -8,10 +8,9 @@ descriptionKey = 'ipsec.description';
 #{set 'title'}&{titleKey}#{/set}
 
 <div class="container">
-    #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+    #{Form.header titleKey:titleKey, descriptionKey:descriptionKey /}
+
     #{alerts/}
-    <fieldset>
-        #{Form.button name:'button.ipsec.rotate.keys', class:'primary', icon:'repeat', href:@rotateIPsecPreSharedKeys()/}
-        &nbsp;&nbsp;&nbsp;<span id="keyRotationDescription" class="text-danger">&{'ipsec.key.rotation.description'}</span>
-    </fieldset>
+
+    #{include 'auth/IPsec/ipsecStatus.html' /}
 </div>

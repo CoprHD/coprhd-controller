@@ -6,6 +6,7 @@ package com.emc.storageos.systemservices.impl.resource;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;
@@ -493,6 +494,7 @@ public class BackupService {
             String errmsg = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY)+ " is downloading";
             throw SyssvcException.syssvcExceptions.pullBackupFailed(backupName, errmsg);
         }
+
         setBackupFileSize(backupName);
 
         notifyOtherNodes(backupName);
@@ -515,6 +517,7 @@ public class BackupService {
     }
 
     private void setBackupFileSize(@QueryParam("file") String backupName) {
+        log.info("To set backup file size");
         SchedulerConfig cfg = backupScheduler.getCfg();
         long size = 0;
         try {
@@ -532,6 +535,8 @@ public class BackupService {
         status.setBackupName(backupName);
         status.setBackupSize(size);
         status.setStatus(BackupRestoreStatus.Status.DOWNLOADING);
+        status.resetNodeCompleted();
+        log.info("Set backup file size status={}", status);
         backupOps.persistBackupRestoreStatus(status, false);
     }
 
@@ -592,6 +597,7 @@ public class BackupService {
         log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
                 new Object[] {backupName, isLocal, password, isGeoFromScratch});
         File backupDir= getBackupDir(backupName, isLocal);
+
         String[] restoreCommand=new String[]{restoreCmd,
                 backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
                 restoreLog};

@@ -39,8 +39,8 @@ public final class DownloadExecutor implements  Runnable {
     private BackupOps backupOps;
     private DownloadListener downloadListener;
     private boolean isGeo = false; // true if the backupset is from GEO env
-    private volatile  boolean isCanceled =false;
-    private File infoPropertiesFile = null;
+    private volatile  boolean isCanceled = false;
+    private File infoPropertiesFile;
 
     public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps) {
         if (cfg.uploadUrl == null) {
@@ -182,7 +182,6 @@ public final class DownloadExecutor implements  Runnable {
     @Override
     public void run() {
         InterProcessLock lock = null;
-        boolean cleanCurrentBackupInfo = false;
         try {
             lock = backupOps.getLock(BackupConstants.RESTORE_LOCK,
                     -1, TimeUnit.MILLISECONDS); // -1= no timeout
@@ -196,7 +195,6 @@ public final class DownloadExecutor implements  Runnable {
             if (s.canBeCanceled()) {
                 log.info("The downloading has been canceled");
                 setDownloadStatus(remoteBackupFileName, Status.DOWNLOAD_CANCELLED, 0, 0, false);
-                cleanCurrentBackupInfo = true;
             }
         }catch (Exception e) {
             log.info("isCanceled={}", isCanceled);
@@ -207,7 +205,6 @@ public final class DownloadExecutor implements  Runnable {
             }
 
             setDownloadStatus(remoteBackupFileName, s, 0, 0, false);
-            cleanCurrentBackupInfo = true;
             log.error("Failed to download e=", e);
         }finally {
             try {
@@ -216,15 +213,11 @@ public final class DownloadExecutor implements  Runnable {
                 log.error("Failed to remove listener e=",e);
             }
         }
-
-        if (cleanCurrentBackupInfo) {
-            backupOps.clearCurrentBackupInfo();
-        }
     }
 
     private void deleteDownloadedBackup() {
         File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
-        //Remove downloaded backup data
+
         log.info("To remove downloaded {} exist={}", downloadedDir, downloadedDir.exists());
         try {
             FileUtils.deleteDirectory(downloadedDir);
@@ -245,6 +238,8 @@ public final class DownloadExecutor implements  Runnable {
 
         if (hasDownloaded(backupFolder)) {
             log.info("The backup {} for this node has already been downloaded", remoteBackupFileName);
+            postDownload();
+
             return; //already downloaded, no need to download again
         }
 
@@ -272,19 +267,25 @@ public final class DownloadExecutor implements  Runnable {
         FilenameFilter filter = new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return name.endsWith(BackupConstants.COMPRESS_SUFFIX);
+                return name.endsWith(BackupConstants.COMPRESS_SUFFIX) || name.endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
             }
         };
 
-        File[] zipFiles = backupFolder.listFiles(filter);
+        File[] backupFiles = backupFolder.listFiles(filter);
 
-        if (zipFiles == null) {
+        if (backupFiles == null) {
             return false;
         }
 
-        for (File zipFile : zipFiles) {
-            if (backupOps.checkMD5(zipFile) == false) {
-                log.info("MD5 of {} does not match its md5 file", zipFile.getAbsolutePath());
+        for (File file : backupFiles) {
+            if (file.getAbsolutePath().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+                // it's a property info file
+                infoPropertiesFile = file;
+                continue;
+            }
+
+            if (backupOps.checkMD5(file) == false) {
+                log.info("MD5 of {} does not match its md5 file", file.getAbsolutePath());
                 return false;
             }
         }
@@ -316,6 +317,10 @@ public final class DownloadExecutor implements  Runnable {
         }
 
         setDownloadStatus(remoteBackupFileName, s, 0, 0, true);
+
+        if (s == Status.DOWNLOAD_SUCCESS || s == Status.DOWNLOAD_CANCELLED || s == Status.DOWNLOAD_FAILED ) {
+            backupOps.clearCurrentBackupInfo();
+        }
     }
 
     private void validBackup() {

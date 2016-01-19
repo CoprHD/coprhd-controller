@@ -982,18 +982,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             ViPRCoreClient client = api(ctx);
             VolumeRestRep volume = client.blockVolumes().get(blockVolumeOrCG);
             BlockVirtualPoolRestRep virtualPool = client.blockVpools().get(volume.getVirtualPool());
+            if (isLocalSnapshotSupported(virtualPool)) {
+                options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
+            }
 
-            // Session Type trumps other types
+            if (isRPSourceVolume(volume)) {
+                options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
+            }
+            
             if (isSnapshotSessionSupportedForVolume(volume)) {
                 options.add(SNAPSHOT_SESSION_TYPE_OPTION);
-            } else {
-                if (isLocalSnapshotSupported(virtualPool)) {
-                    options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
-                }
-
-                if (isRPSourceVolume(volume)) {
-                    options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
-                }
             }
         }
         return options;

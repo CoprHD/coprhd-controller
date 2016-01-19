@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.emc.vipr.model.sys.ClusterInfo;
@@ -539,6 +540,20 @@ public class DrUtil {
     }
 
     /**
+     * Get all vdc ids except local vdc
+     * 
+     * @return list of vdc ids
+     */
+    public List<String> getOtherVdcIds() {
+        Set<String> vdcIdSet = getVdcSiteMap().keySet();
+        String localVdcId = this.getLocalVdcShortId();
+        vdcIdSet.remove(localVdcId);
+        List<String> vdcIds = new ArrayList<>();
+        vdcIds.addAll(vdcIdSet);
+        return vdcIds;
+    }
+
+    /**
      * Check if all sites of local vdc are
      */
     public boolean isAllSitesStable() {
@@ -558,5 +573,4 @@ public class DrUtil {
         }
         return bStable;
     }
-
 }

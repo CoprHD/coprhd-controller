@@ -111,38 +111,29 @@ _gen_ipsec_conf() {
         return 0;
     fi
 
-    # generating ipsec config files
-    # generate common section and connections of active site
-    local ips_in_active=$(_get_ips_in_active)
-    local connections_in_active=$(_gen_conn_sections "${ips_in_active}")
-    local content=$(cat << EOF
-${COMMON_SECTION}
 
-# ips in active site: ${ips_in_active}
-${connections_in_active}
-EOF
-)
-
-    if [ -n "${_GENCONFIG_site_ids}" ] ; then
-        local site_ids=$(echo ${_GENCONFIG_site_ids} | sed 's/,/ /g')
-        for standby in ${site_ids} ; do
-            local ips=$(_get_ips_in_standby "${standby}")
-            connections_in_standby=$(_gen_conn_sections "${ips}")
+    local vdc_ids=$(echo ${_GENCONFIG_vdc_ids} | sed 's/,/ /g')
+    local site_ids=$(echo ${_GENCONFIG_site_ids} | sed 's/,/ /g')
+    local content="${COMMON_SECTION}"
+    for vdc in ${vdc_ids} ; do
+        for site in ${site_ids} ; do
+            local ips=$(_get_ips_in_specified_site "${vdc}" "${site}")
+            connections=$(_gen_conn_sections "${ips}")
             content=$(cat << EOF
 ${content}
 
-# ips in ${standby} site: ${ips}
-${connections_in_standby}
+# ips in ${vdc}_${site}: ${ips}
+${connections}
 EOF
 )
         done
-    fi
+    done
 
-# retrieve ipsec_key
-# the priority sequence as:
-#   1. from vdcconfig.properties
-#   2. from ovfenv.properties
-#   3. from psk.default
+    # retrieve ipsec_key
+    # the priority sequence as:
+    #   1. from vdcconfig.properties
+    #   2. from ovfenv.properties
+    #   3. from psk.default
     local ipsec_key=$(cat /opt/storageos/conf/psk.default)
     if [ -n "${_GENCONFIG_ipsec_key}" ] ; then
         ipsec_key="${_GENCONFIG_ipsec_key}"

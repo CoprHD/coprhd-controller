@@ -247,15 +247,23 @@ def vnasserver_list(args):
                 rslt['parent_nas_server'] = rslt['parent_nas']['name']
                 
             pr_object = None
-            if ('project' in rslt) and ('id' in rslt['project']):
-                pr_object = Project(args.ip, args.port).project_show_by_uri(rslt['project']['id']) 
-            
+            project_list = ''
+            if ('associated_projects' in rslt):
+                for project_id in rslt['associated_projects']:
+                    pr_object = Project(args.ip, args.port).project_show_by_uri(project_id)
+                    if pr_object and ('name' in pr_object):
+                        if (project_list == ''):
+                            project_list = pr_object['name']
+                        else :
+                            project_list = project_list + ',' + pr_object['name']
+                
+
             st_object = None
             if ('storage_device' in rslt) and ('id' in rslt['storage_device']):
                 st_object = StorageSystem(args.ip, args.port).show_by_uri(rslt['storage_device']['id']) 
                 
             if pr_object and ('name' in pr_object):
-                rslt['project_name'] = pr_object['name']
+                rslt['project_name'] = project_list
                 
             if st_object and ('name' in st_object):
                 rslt['storage_system'] = st_object['name']
@@ -368,10 +376,14 @@ def vnasserver_assign(args):
                 vnas_assign_failure = vnas_assign_failure + 1
     
     if(vnas_assign_failure == total_assignments):
-        print "All vnasservers assignment to all projects failed"
+        print "No vnasserver was assigned to any project"
+        raise common.format_err_msg_and_raise("assign", "vnasserver",
+                                        e.err_text, e.err_code)
     elif(vnas_assign_failure):
-        print "Few vnasservers assignment to projects failed"
-    
+        print "Few vnasservers could not be assigned to some projects"
+        raise common.format_err_msg_and_raise("assign", "vnasserver",
+                                        e.err_text, e.err_code)
+        
     return
 
 
@@ -413,9 +425,13 @@ def vnasserver_unassign(args):
                 vnas_unassign_failure = vnas_unassign_failure + 1
 
     if(vnas_unassign_failure == total_unassignments):
-        print "All vnasservers unassignment to all projects failed"
+        print "No vnasserver could be unassigned from any of the projects"
+        raise common.format_err_msg_and_raise("unassign", "vnasserver",
+                                        e.err_text, e.err_code)
     elif(vnas_unassign_failure):
-        print "Few vnasservers unassignment to projects failed"
+        print "Few vnasservers could not be unassigned from some projects"
+        raise common.format_err_msg_and_raise("unassign", "vnasserver",
+                                        e.err_text, e.err_code)
 
     return
 

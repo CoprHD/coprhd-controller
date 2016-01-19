@@ -1,0 +1,84 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          VPLEX2
+# Required-Start:    SimService RP ECOM80 ECOM462 WIN XIO2
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:
+# Description:       starts VPLEX2 simulator
+### END INIT INFO
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+. /etc/rc.status
+
+RETVAL=0
+VPLEX_HOME=/data/simulators/vplex-sim_2
+DELAY=60
+
+start() {
+        echo -n $"Starting VPLEX2:..hold on 10sec .."
+		cd ${VPLEX_HOME}
+        java -Dproperty.file=vplex_config.properties -jar vplex-simulators2-*.jar >/var/log/VPLEX2.log 2>&1 &
+        RETVAL=$?
+
+        while [ $DELAY -gt 0 ]; do
+        #echo "delay $DELAY"
+	if [ -f "${VPLEX_HOME}/vplex.log" ] ; then 
+	 STARTSSL=`grep "Started ServerConnector.*{SSL.*}{0.0.0.0:" ${VPLEX_HOME}/vplex.log`
+	 STARTHTTP=`grep "Started ServerConnector@.*{HTTP.*}{0.0.0.0:" ${VPLEX_HOME}/vplex.log`
+         if [ "${STARTSSL}" != "" ] && [ "${STARTHTTP}" != "" ] ; then
+           echo "${STARTSSL}" >> /var/log/VPLEX2.log 2>&1  
+		   echo "${STARTHTTP}" >> /var/log/VPLEX2.log 2>&1
+           echo "..OK"
+           return
+         fi
+        fi
+        sleep 2
+        DELAY=$((DELAY -1))
+       done
+
+       echo "Failed to start in 60 sec..try manual start" >> /var/log/VPLEX2.log 2>&1
+}
+
+stop() {
+
+        echo -n $"Stopping VPLEX2: "
+	#rm -f ${VPLEX_HOME}/log/* >>/var/log/VPLEX2.log 2>&1
+        #killproc -TERM vplexRestSimulator.jar >> /var/log/VPLEX.log 2>&1
+		pkill -9 -f vplex-simulators2- >> /var/log/VPLEX2.log 2>&1
+        RETVAL=$?
+	echo  "..Done"
+}
+
+
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+    cnt=`pgrep -f vplexRestSimulator2.jar |wc -l`
+	if(test $cnt -eq 1) ;
+	then
+		echo "VPLEX2 simulator already running..."
+	else
+		echo "VPLEX2 simulator not running."
+	fi 
+    #    rc_status -v
+
+        ;;
+  *)
+        echo $"Usage: VPLEX {start|stop|status}"
+        exit 1
+        exit 1
+esac
+
+
+exit $RETVAL
+
+

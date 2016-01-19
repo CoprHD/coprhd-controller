@@ -36,6 +36,8 @@ public class VdcConfig {
     
     private String activeSiteId;
 
+    private String ipsecKey;
+
     public static enum ConfigChangeType {
         CONNECT_VDC,
         REMOVE_VDC,

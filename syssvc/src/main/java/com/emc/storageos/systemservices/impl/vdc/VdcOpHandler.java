@@ -80,6 +80,7 @@ public abstract class VdcOpHandler {
     protected PropertyInfoExt targetVdcPropInfo;
     protected PropertyInfoExt localVdcPropInfo;
     protected SiteInfo targetSiteInfo;
+    protected boolean isRebootNeeded = false;
     
     public VdcOpHandler() {
     }
@@ -87,11 +88,15 @@ public abstract class VdcOpHandler {
     public abstract void execute() throws Exception;
     
     public boolean isRebootNeeded() {
-        return false;
+        return isRebootNeeded;
     }
     
+    public void setRebootNeeded(boolean rebootRequired) {
+        this.isRebootNeeded = rebootRequired;
+    }
+
     /**
-     * No-op - flush vdc config to local only
+     * No-op - simply do nothing
      */
     public static class NoopOpHandler extends VdcOpHandler{
         public NoopOpHandler() {
@@ -99,15 +104,13 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() {
-            flushVdcConfigToLocal();
         }
     }
-
+    
     /**
      * Rotate IPSec key
      */
     public static class IPSecRotateOpHandler extends VdcOpHandler {
-
         public IPSecRotateOpHandler() {
         }
         
@@ -217,11 +220,7 @@ public abstract class VdcOpHandler {
      */
     public static class DrChangeDataRevisionHandler extends VdcOpHandler {
         public DrChangeDataRevisionHandler() {
-        }
-        
-        @Override
-        public boolean isRebootNeeded() {
-            return true;
+            setRebootNeeded(true);
         }
 
         @Override
@@ -591,10 +590,12 @@ public abstract class VdcOpHandler {
                         log.error("Failed to release lock {}", LOCK_DEGRADE_STANDBY);
                     }
                 }
-
-                localRepository.restart(Constants.DBSVC_NAME);
-                localRepository.restart(Constants.GEODBSVC_NAME);
             }
+
+            // restart dbsvc/geodbsvc to start the data rebuild
+            localRepository.restart(Constants.DBSVC_NAME);
+            localRepository.restart(Constants.GEODBSVC_NAME);
+
             flushVdcConfigToLocal();
         }
     }
@@ -631,6 +632,7 @@ public abstract class VdcOpHandler {
         private boolean isRebootNeeded = true;
         
         public DrSwitchoverHandler() {
+            isRebootNeeded = true;
         }
         
         @Override
@@ -822,14 +824,8 @@ public abstract class VdcOpHandler {
      */
     public static class DrFailoverHandler extends VdcOpHandler {
         private Factory postHandlerFactory;
-        private boolean isRebootNeeded;
-        
+
         public DrFailoverHandler() {
-        }
-        
-        @Override
-        public boolean isRebootNeeded() {
-            return isRebootNeeded;
         }
         
         @Override
@@ -923,11 +919,10 @@ public abstract class VdcOpHandler {
      * 
      */
     public static class DrFailbackDegradeHandler extends VdcOpHandler {
-        @Override
-        public boolean isRebootNeeded() {
-            return true;
+        public DrFailbackDegradeHandler() {
+            setRebootNeeded(true);
         }
-
+        
         @Override
         public void execute() throws Exception {
             //no need to wait any barrier and some nodes may not be up

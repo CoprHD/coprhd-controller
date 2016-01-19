@@ -238,7 +238,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             
             @Override
             public void uncaughtException(Thread t, Throwable e) {
-                log.error("Thread {} throws uncaught exception {}", t, e);
+                log.error("Current thread throws uncaught exception", e);
             }
         });
         

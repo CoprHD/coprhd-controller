@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
+import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.client.service.impl.GenericSerializer;
 import org.apache.curator.framework.recipes.queue.QueueSerializer;
@@ -26,8 +27,11 @@ public class GenericQueue<T> {
     private int workThreads = DEFAULT_WORK_THREADS;
     @Autowired
     private CoordinatorClient coordinatorClient;
+    @Autowired
+    private QueueCleanupHandler drQueueCleanupHandler;
+    
     private DistributedQueue<T> queue;
-
+    
     public void setWorkThreads(int workThreads) {
         this.workThreads = workThreads;
     }
@@ -51,6 +55,7 @@ public class GenericQueue<T> {
                 throw new RuntimeException("Error Starting Coordinator Client", e);
             }
         }
+        drQueueCleanupHandler.run();
     }
 
     @PreDestroy

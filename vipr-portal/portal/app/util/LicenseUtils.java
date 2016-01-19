@@ -94,34 +94,6 @@ public class LicenseUtils {
         try {
             License license = BourneUtil.getSysClient().license().get();
 
-            //TODO: Creating mockup data. Remove me when the backend is ready.
-            List<LicenseFeature> licenseFeatures = new ArrayList<LicenseFeature>();
-            LicenseFeature licenseFeature = new LicenseFeature();
-            licenseFeature.setLicensed(true);
-            licenseFeature.setVersion("1.0");
-            licenseFeature.setIssuer("EMC");
-            licenseFeature.setNotice("Issued to A");
-            licenseFeature.setDateExpires("12/30/2099");
-            licenseFeature.setExpired(false);
-            licenseFeature.setDateIssued("10-Jan-2014");
-            licenseFeature.setModelId("ViPR_Controller:TIER1");
-            licenseFeature.setSerial("AAAAAAAAA");
-            licenseFeature.setStorageCapacity("10000000000");
-            licenseFeatures.add(licenseFeature);
-            licenseFeature = new LicenseFeature();
-            licenseFeature.setLicensed(true);
-            licenseFeature.setVersion("1.0");
-            licenseFeature.setIssuer("EMC");
-            licenseFeature.setNotice("Issued to B");
-            licenseFeature.setDateExpires("12/30/2099");
-            licenseFeature.setExpired(false);
-            licenseFeature.setDateIssued("10-Jan-2014");
-            licenseFeature.setModelId("ViPR_Controller:VNX2");
-            licenseFeature.setSerial("AAAAAAAAA");
-            licenseFeature.setStorageCapacity("20000000000");
-            licenseFeatures.add(licenseFeature);
-            license.setLicenseFeatures(licenseFeatures);
-
             return license;
         } catch (RuntimeException e) {
             Logger.error(e, "Could not retrieve license");

@@ -8,6 +8,7 @@ package com.emc.storageos.systemservices.impl.util;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,10 +119,14 @@ public class DrSiteNetworkMonitor implements Runnable{
             if (ping > NETWORK_SLOW_THRESHOLD) {
                 site.setNetworkHealth(NETWORK_HEALTH_SLOW);
                 _log.warn("Network for standby {} is slow",site.getName());
+                AlertsLogger.getAlertsLogger().warn(String.format("Network for standby {} is Broken:" +
+                        "Latency was reported as {} ms",site.getName(),ping));
             }
             else if (ping < 0) {
                 site.setNetworkHealth(NETWORK_HEALTH_BROKEN);
                 _log.error("Network for standby {} is broken",site.getName());
+                AlertsLogger.getAlertsLogger().error(String.format("Network for standby {} is Broken:" +
+                        "Latency was reported as {} ms",site.getName(),ping));
             }
             else {
                 site.setNetworkHealth(NETWORK_HEALTH_GOOD);

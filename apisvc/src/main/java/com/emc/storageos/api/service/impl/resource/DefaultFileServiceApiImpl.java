@@ -46,7 +46,7 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
         List<FileShare> fileShares = new ArrayList<FileShare>();
 
         // Prepare the FileShares
-        fileList = _scheduler.prepareFileSystems(param, task, taskList, project,
+        fileList = getFileScheduler().prepareFileSystems(param, task, taskList, project,
                 varray, vpool, recommendations, vpoolCapabilities, false);
 
         fileShares.addAll(fileList);

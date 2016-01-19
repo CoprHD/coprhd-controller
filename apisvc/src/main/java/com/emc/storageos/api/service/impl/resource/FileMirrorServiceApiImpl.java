@@ -75,7 +75,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * it take mirror recommendation and then creates source and mirror fileshare
+     * It take mirror recommendation and then creates source and mirror fileshare
      */
 
     @Override
@@ -112,8 +112,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * prepare the file descriptors
-     * 
+     * Prepare the file descriptors
      * @param filesystems
      * @param cosCapabilities
      * @param suggestedId
@@ -198,7 +197,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
 
     /**
-     * 
+     * Prepare the source and target filesystems
      * @param param
      * @param task
      * @param taskList
@@ -283,7 +282,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         return preparedFileSystems;
     }
 
-    /**
+    /**Set mirror object information
      * 
      * @param sourceFileShare
      * @param targetFileShare
@@ -305,7 +304,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * 
+     * Validate the filesystem label
      * @param placement
      * @param fileShare
      */
@@ -345,7 +344,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * create fileSystem
+     * Create fileSystem
      * 
      * @param newFileLabel
      * @param fileshareSize
@@ -417,7 +416,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * prepare the source and target filesystem using Recommandations
+     * Prepare the source and target filesystem using Recommandations
      * 
      * @param placement
      * @param vpoolSource
@@ -500,7 +499,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * validate the given fileshare label is not a duplicate within given project. If so, throw exception
+     * Validate the given fileshare label is not a duplicate within given project. If so, throw exception
      * 
      * @param label - label to validate
      * @param project - project where label is being validate.

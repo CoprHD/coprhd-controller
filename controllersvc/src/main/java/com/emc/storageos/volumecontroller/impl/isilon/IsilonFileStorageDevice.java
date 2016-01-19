@@ -2212,7 +2212,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     // mirror related operation
-
+    /**
+     * Call to Isilon Device to Create Replication Session
+     * @param system
+     * @param name
+     * @param source_root_path
+     * @param target_host
+     * @param target_path
+     * @param action
+     * @param description
+     * @param schedule
+     * @return
+     */
     public BiosCommandResult doCreateReplicationPolicy(StorageSystem system, String name, String source_root_path,
             String target_host, String target_path, IsilonSyncPolicy.Action action, String description,
             String schedule) {
@@ -2235,7 +2246,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return BiosCommandResult.createErrorResult(e);
         }
     }
-
+    
+    /**
+     * Call to isilon to start replication session
+     * @param system
+     * @param policyName
+     * @return
+     */
     public BiosCommandResult doStartReplicationPolicy(StorageSystem system, String policyName) {
         try {
 

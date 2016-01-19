@@ -25,13 +25,13 @@ import com.emc.storageos.volumecontroller.impl.file.FileMirrorCancelTaskComplete
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorDetachTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorRollbackCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileCreateTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.RemoteFileMirrorOperation;
-import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
+
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -64,7 +64,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     private static final String CANCEL_FILE_MIRRORS_STEP_DESC = "Cancel MirrorFileShare Link";
 
     /**
-     * calls to remote mirror operations on devices
+     * Calls to remote mirror operations on devices
      * 
      * @param storageSystem
      * @return
@@ -98,10 +98,10 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         this.devices = devices;
     }
 
+   
     /**
-     * create mirror session or link between source fileshare and target fileshare
+     * Create mirror session or link between source fileshare and target fileshare
      */
-
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
@@ -123,7 +123,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     }
 
     /**
-     * delete mirror session or link between source filesystem and target fileshare
+     * Delete mirror session or link between source filesystem and target fileshare
      */
     @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
@@ -140,7 +140,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     }
 
     /**
-     * expand source file share and target fileshare
+     * Expand source file share and target fileshare
      */
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow,
@@ -165,7 +165,13 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         //TBD remote mirror operations
     }
     
-    
+    /**
+     * Create Replication Session Step
+     * @param workflow
+     * @param waitFor
+     * @param fileDescriptors
+     * @return
+     */
     private String createElementReplicaSteps(final Workflow workflow, String waitFor,
             final List<FileDescriptor> fileDescriptors) {
         log.info("START create element replica steps");
@@ -180,6 +186,14 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return waitFor;
     }
     
+    /**
+     * Create Mirror Work Flow Step - creates replication session between source and target
+     * @param workflow
+     * @param waitFor
+     * @param sourceDescriptors
+     * @param uriFileShareMap
+     * @return
+     */
     protected String createFileMirrorSession(Workflow workflow, String waitFor, List<FileDescriptor> sourceDescriptors,
             Map<URI, FileShare> uriFileShareMap) {
         
@@ -213,6 +227,15 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 systemURI, sourceURI, targetURI, vpoolChangeUri);
     }
     
+    /**
+     * Call to Create Mirror session on Storage Device
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param vpoolChangeUri
+     * @param opId
+     * @return
+     */
     public boolean createMirrorSession(
             URI systemURI, URI sourceURI, URI targetURI, URI vpoolChangeUri, String opId) {
         
@@ -240,7 +263,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     }
     
     //roll back mirror session
-    // Convenience method for singular usage of #rollbackSRDFLinksMethod
+   
     private Workflow.Method rollbackMirrorFilePairMethod(final URI systemURI, final URI sourceURI,
                                                    final URI targetURI) {
         return rollbackMirrorFilePairStep(systemURI, asList(sourceURI), asList(targetURI));
@@ -251,10 +274,17 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return new Workflow.Method(ROLLBACK_MIRROR_LINKS_METHOD, systemURI, sourceURIs, targetURIs);
     }
 
-
+    /**
+     * Roll back Mirror session between source and target
+     * @param systemURI
+     * @param sourceURIs
+     * @param targetURIs
+     * @param opId
+     * @return
+     */
     public boolean rollbackMirrorFileShareStep(URI systemURI, List<URI> sourceURIs,
                                          List<URI> targetURIs, String opId) {
-        log.info("START rollback multiple SRDF links");
+        log.info("START rollback Mirror links");
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -262,7 +292,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             completer = new FileMirrorRollbackCompleter(sourceURIs, opId);
             getRemoteMirrorDevice(system).doRollbackMirrorLink(system, sourceURIs, targetURIs, completer);
         } catch (Exception e) {
-            log.error("Ignoring exception while rolling back SRDF sources: {}", sourceURIs, e);
+            log.error("Ignoring exception while rolling back Mirror sources: {}", sourceURIs, e);
             // Succeed here, to allow other rollbacks to run
             if (null != completer) {
                 completer.ready(dbClient);
@@ -273,7 +303,13 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return true;
     }
     
-    
+    /**
+     * Delete Replication session 
+     * @param workflow
+     * @param waitFor
+     * @param fileDescriptors
+     * @return
+     */
     private String deleteElementReplicaSteps(final Workflow workflow, String waitFor,
             final List<FileDescriptor> fileDescriptors) {
         log.info("START create element replica steps");
@@ -314,9 +350,16 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return new Workflow.Method(CANCEL_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI);
     }
 
-
+    /**
+     * Cancel Mirror session 
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param opId
+     * @return
+     */
     public boolean cancelMirrorFilePairStep(URI systemURI, URI sourceURI, URI targetURI, String opId) {
-        log.info("START Suspend SRDF link");
+        log.info("START Suspend Mirror link");
         TaskCompleter completer = null;
 
         try {
@@ -342,6 +385,14 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return new Method(DETACH_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI);
     }
 
+    /**
+     * Detach Mirror session between between source and target
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param opId
+     * @return
+     */
     public boolean detachMirrorFilePairStep(URI systemURI, URI sourceURI, URI targetURI, String opId) {
         log.info("START Detach Pair ={}", sourceURI.toString());
         TaskCompleter completer = null;

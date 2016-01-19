@@ -11,5 +11,11 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 @JsonRootName(value="service")
 @XmlRootElement(name="service")
 public class CinderOsService {
-//ToDo Os Services attributes
+	public String status;
+	public String binary;
+	public String zone;
+	public String state;
+	public String updated_at;
+	public String host;
+	public String disabled_reason;
 }

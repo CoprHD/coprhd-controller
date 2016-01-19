@@ -566,6 +566,9 @@ public class XtremIOUnManagedVolumeDiscoverer {
             XtremIOVolume volume, Map<String, List<UnManagedVolume>> igVolumesMap, StorageSystem system,
             StoragePool pool, DbClient dbClient) {
         boolean created = false;
+        StringSetMap unManagedVolumeInformation = null;
+        Map<String, String> unManagedVolumeCharacteristics = null;
+
         if (null == unManagedVolume) {
             unManagedVolume = new UnManagedVolume();
             unManagedVolume.setId(URIUtil.createId(UnManagedVolume.class));
@@ -575,12 +578,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 unManagedVolume.setStoragePoolUri(pool.getId());
             }
             created = true;
+            unManagedVolumeInformation = new StringSetMap();
+            unManagedVolumeCharacteristics = new HashMap<String, String>();
+        } else {
+            unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
+            unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         }
 
         unManagedVolume.setLabel(volume.getVolInfo().get(1));
-
-        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
-        Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
 
         Boolean isVolumeExported = false;
         if (!volume.getLunMaps().isEmpty()) {
@@ -608,7 +613,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         }
 
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
-
+        
         // Set these default to false. The individual storage discovery will change them if needed.
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), FALSE);
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(), FALSE);
@@ -697,7 +702,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         }
 
-        unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
+        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
 
         if (unManagedVolume.getVolumeCharacterstics() == null) {
             unManagedVolume.setVolumeCharacterstics(new StringMap());

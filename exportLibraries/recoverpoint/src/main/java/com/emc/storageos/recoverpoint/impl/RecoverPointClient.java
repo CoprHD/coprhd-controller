@@ -450,6 +450,7 @@ public class RecoverPointClient {
             // Go through all of the CGs and retrieve important pieces of information
             List<ConsistencyGroupUID> allCgs = functionalAPI.getAllConsistencyGroups();
             for (ConsistencyGroupUID cg : allCgs) {
+                
                 ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
                 ConsistencyGroupState state = functionalAPI.getGroupState(cg);
 
@@ -2116,16 +2117,20 @@ public class RecoverPointClient {
                 // Enable the whole CG.
                 logger.info("Enabling consistency group " + cgName);
                 functionalAPI.enableConsistencyGroup(cgUID, true);
+                // Make sure the CG is ready
+                RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+                imageManager
+                        .waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
+                logger.info("Protection enabled on CG " + cgName);
             } else {
                 // Enable the CG copy associated with the target
                 logger.info("Enabling CG copy " + cgCopyName + " on CG " + cgName);
                 functionalAPI.enableConsistencyGroupCopy(cgCopyUID, true);
+                // Make sure the CG copy is stopped
+                RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+                imageManager.waitForCGCopyLinkState(functionalAPI, cgCopyUID, PipeState.ACTIVE);
+                logger.info("Protection enabled on CG copy " + cgCopyName + " on CG " + cgName);
             }
-            // Make sure the CG is ready
-            RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-            imageManager
-                    .waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
-            logger.info("Protection enabled on CG copy " + cgCopyName + " on CG " + cgName);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToEnableProtection(
                     volumeInfo.getRpVolumeGroupID(), e);
@@ -2206,7 +2211,8 @@ public class RecoverPointClient {
 
         for (ConsistencyGroupLinkState cgLinkState : cgLinkStateList) {
             // OK, this is our link that we just restored. Check the link state to see if it is active
-            if (PipeState.ACTIVE.equals(cgLinkState.getPipeState())) {
+            if (PipeState.ACTIVE.equals(cgLinkState.getPipeState()) || PipeState.SNAP_IDLE.equals(cgLinkState.getPipeState()) || 
+                    PipeState.SNAP_SHIPPING.equals(cgLinkState.getPipeState())) {
                 someCopiesNotPaused = true;
             } else {
                 someCopiesPaused = true;

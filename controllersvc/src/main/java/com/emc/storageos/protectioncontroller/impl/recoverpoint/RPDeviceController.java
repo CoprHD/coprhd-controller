@@ -1336,10 +1336,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             for (String rpaId : rpaWWNs.keySet()) {
                 for (Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
                     Initiator initiator = ExportUtils.getInitiator(rpaWWN.getKey(), _dbClient);
+                    if (initiator == null) {
+                        _log.error(String.format("Could not find initiator for %s on RP ID %s, site %s", rpaWWN.getKey(), rpaId, rpSiteName));
+                        throw DeviceControllerExceptions.recoverpoint.noInitiatorsFoundOnRPAs();
+                    }
+                    
                     if (!rpSiteInitiators.containsKey(rpSiteName)) {
                         rpSiteInitiators.put(rpSiteName, new HashSet<URI>());
                     }
 
+                    _log.info(String.format("Adding initiator %s, port %s on RP ID %s, site %s", initiator.getId(), rpaWWN.getKey(), rpaId, rpSiteName));
                     rpSiteInitiators.get(rpSiteName).add(initiator.getId());
                 }
             }
@@ -3504,7 +3510,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
                 else {
                     Volume vol = _dbClient.queryObject(Volume.class, volume.getVolumeURI());
-                    vol.setProtectionSet(new NamedURI(protectionSet.getId(), vol.getLabel()));
+                    vol.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
                     vol.setInternalSiteName(volume.getInternalSiteName());
                     vol.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                     _dbClient.updateObject(vol);

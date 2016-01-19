@@ -66,7 +66,11 @@ public class LinkBlockSnapshotService extends ViPRService {
                                 || BlockProvider.LINKED_SNAPSHOT_NOCOPYMODE_VALUE.equals(linkedSnapshotCopyMode))) {
                     ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCopyMode.precheck", new Object[] {}, new Object[] {});
                 }
-            }            
+            } else if (existingLinkedSnapshotIds == null || existingLinkedSnapshotIds.isEmpty()) {
+                // If we get here, the user has neither selected existing linked snapshots to relink and hasn't
+                // filled in the correct information needed for linking a new snapshot.
+                ExecutionUtils.fail("failTask.LinkBlockSnapshot.linkAtLeastOneSnapshot.precheck", new Object[] {}, new Object[] {});
+            }
         }
     }
 

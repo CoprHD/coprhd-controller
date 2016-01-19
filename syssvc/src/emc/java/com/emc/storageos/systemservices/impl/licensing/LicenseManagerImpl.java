@@ -83,6 +83,16 @@ public class LicenseManagerImpl implements LicenseManager {
                 // ELMS API.
                 License fullLicense = buildLicenseObjectFromText(license.getLicenseText());
 
+                // Do not support the licenses of pre-yoda releases.
+                for (LicenseFeature licenseFeature : license.getLicenseFeatures()) {
+                    if (licenseFeature.getModelId().contains(LicenseConstants.OLD_LICENSE_SUBMODEL)) {
+                        _log.info("The license file contains a feature which is not supported any more. The license was not added to the system.");
+                        throw APIException.badRequests
+                                .licenseIsNotValid(
+                                        "The license file contains a feature which is not supported any more. The license was not added to the system.");
+                    }
+                }
+
                 // Step 3: Add license features to coordinator service.
                 updateCoordinatorWithLicenseFeatures(fullLicense, true);
 

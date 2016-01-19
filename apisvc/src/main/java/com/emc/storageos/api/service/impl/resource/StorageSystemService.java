@@ -1126,7 +1126,7 @@ public class StorageSystemService extends TaskResourceService {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/ecs-namespaces")
+    @Path("/{id}/object-namespaces")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public ECSNamespaceList getAllECSNamespaces(@PathParam("id") URI id) {
         // Make sure storage system is registered.
@@ -1150,7 +1150,25 @@ public class StorageSystemService extends TaskResourceService {
         }
         return ecsNamespaceList;
     }
-    
+    /*
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/ecs-namespaces/{nsId}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ECSNamespaceRestRep getECSNamespace(@PathParam("id") URI id,
+            @PathParam("nsId") URI nsId) {
+        // Make sure storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+
+        ArgValidator.checkFieldUriType(nsId, ECSNamespace.class, "nsId");
+        ECSNamespace ecsNamespace = _dbClient.queryObject(ECSNamespace.class, nsId);
+        ArgValidator.checkEntity(ecsNamespace, nsId, isIdEmbeddedInURL(nsId));
+        
+        return StoragePoolService.toStoragePoolRep(ecsNamespace, _dbClient, _coordinator);
+    }*/
+
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/rdf-groups")

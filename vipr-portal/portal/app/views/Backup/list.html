@@ -1,27 +1,120 @@
+%{
+LOCAL = models.datatable.BackupDataTable.Type.LOCAL
+REMOTE = models.datatable.BackupDataTable.Type.REMOTE
+}%
+
 #{extends 'main.html' /}
 #{set navSelected: ['nav.adminDashboard', 'nav.backup'] /}
 
-#{DataTable.header titleKey:'Backup.list.title'/}
-#{DataTable.crudTable id:'backup', 
-                      dataTable:dataTable, 
-                      deleteConfirm:messages.get('backup.deleteConfirm')}
-  
-#{/DataTable.crudTable}
+<div id="backups">
+    <div class="content">
+        <div class="section-header">
+            <h1>&{'Backup.list.title'}</h1>
+        </div>
 
-<script>
-render.uploadBtn = function(o, val) {
+        <ul class="nav nav-tabs">
+            <li id="localBackupTab" #{if LOCAL.equals(type)}class="active"#{/if}>
+                <a href="@{list(LOCAL)}">&{'backup.tab.local'}</a></li>
+            <li id="remoteBackupTab" #{if REMOTE.equals(type)}class="active"#{/if}>
+                <a href="@{list(REMOTE)}">&{'backup.tab.remote'}</a></li>
+        </ul>
+
+    #{if LOCAL.equals(type)}
+        #{DataTable.crudTable id:'backup',
+        dataTable:dataTable,
+        deleteConfirm:messages.get('backup.deleteConfirm')}
+        #{/DataTable.crudTable}
+    #{/if}
+
+    #{if REMOTE.equals(type)}
+        #{DataTable.table id:'backup',
+        dataTable:dataTable,
+        source:@listJson(type)}
+        #{/DataTable.table}
+    #{/if}
+
+    </div>
+</div>
+
+<script type="text/javascript">
+    stop = false;
+    request = null;
+    type = "${type}";
+    LOCAL = "${models.datatable.BackupDataTable.Type.LOCAL}";
+    REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
+
+    $(document).ready(function () {
+        //update remote backups detail info
+        if (type == REMOTE) {
+            var dataTable = table.backup.dataTable.getDataTable();
+            var itemsJson = #{jsAction @externalItemsJson(':ids')/};
+            var checkUpdate = window.setInterval(function () {
+                if (stop) {
+                    console.info("stop");
+                    clearInterval(checkUpdate);
+                    return;
+                }
+                updateRemoteListDetails(dataTable, itemsJson);
+            }, 1000); // Check every 1 seconds
+        }
+    });
+
+    function updateRemoteListDetails(dataTable, itemsJson) {
+        var ids = new Array();
+        var data = dataTable.fnGetData();
+        for (var i = 0; i < data.length; i++) {
+            var row = data[i];
+            ids.push(row.id);
+        }
+
+        console.info("ids: %s", ids);
+        if (ids.length > 0) {
+            var update = function (table) {
+                var url = itemsJson({ids: ids.join(",")});
+                request = $.get(url, function (results) {
+                    console.info("request: %s", results);
+                    stop = true;
+                    var field = ['creationtime', 'actionstatus', 'error', 'status'];
+                    updateDatatableRows(table, results, field);
+                });
+            };
+            if (request == null) {
+                update(dataTable);
+            } else if (stop) {
+                request.abort();
+            }
+        }
+
+    }
+
+render.uploadAndRestoreBtn = function(o, val) {
 	var odata = o.aData;
 	var name= odata.name;
 	var url = #{jsAction @upload()/};
 	var href = url(odata)+"/"+name;
+    var btns;
 	if (val.indexOf("_enable")>0){
-		return "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
+		btns = "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
 	}else{
-		return "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  disabled class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
+		btns = "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  disabled class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
 	}
+
+    url = #{jsAction @restore()/};
+    href = url(odata) + "/name/" + name + "/type/" + "${type}";
+    btns += "&nbsp;&nbsp;<a id='" + val+"BtnId" + "' href='" + href + "' " +"  class=\"btn btn-default btn-xs\">" + "Restore" + "</a>";
+    return btns;
+
 }
 
-render.uploadProgressIcon = function(o, val) {
+render.restoreBtn = function (o, val) {
+    var odata = o.aData;
+    var name = odata.name;
+    var url = #{jsAction @restore()/};
+    href = url(odata) + "/name/" + name + "/type/" + "${type}";
+    return "<a id='" + val + "BtnId" + "' href='" + href + "' " + "  class=\"btn btn-default btn-xs\">" + "Restore" + "</a>";
+}
+
+render.uploadAndRestoreProgressIcon = function(o, val) {
 	 if (!o) {
 	        return "";
 	    }
@@ -30,21 +123,37 @@ render.uploadProgressIcon = function(o, val) {
 	        'IN_PROGRESS': 'label-info',
 	        'FAILED':   'label-danger',
 	        'DONE':    'label-success',
-	        'CANCELLED': 'label-danger'
-	    }
+            'CANCELLED': 'label-danger',
+            //Restore Status
+            'LOADING':    'label-info',
+            'DOWNLOADING':    'label-info',
+            'DOWNLOAD_SUCCESS':    'label-success',
+            'DOWNLOAD_FAILED':    'label-danger',
+            'DOWNLOAD_CANCELLED':    'label-danger',
+            'RESTORE_FAILED':    'label-danger',
+            'RESTORE_SUCCESS':    'label-success'
+        }
 	    var icons = {
 	        'NOT_STARTED':     'glyphicon glyphicon-time',
 	        'IN_PROGRESS': 'glyphicon glyphicon-refresh rotate',
 	        'DONE':    'glyphicon glyphicon-ok',
 	        'CANCELLED': 'glyphicon glyphicon-warning-sign',
-	        'FAILED':       'glyphicon glyphicon-remove'
+	        'FAILED':       'glyphicon glyphicon-remove',
+            //Restore Status
+            'LOADING':    'glyphicon glyphicon-refresh rotate',
+            'DOWNLOADING':    'glyphicon glyphicon-refresh rotate',
+            'DOWNLOAD_SUCCESS':    'glyphicon glyphicon-ok',
+            'DOWNLOAD_FAILED':    'glyphicon glyphicon-remove',
+            'DOWNLOAD_CANCELLED':    'glyphicon glyphicon-warning-sign',
+            'RESTORE_FAILED':    'glyphicon glyphicon-remove',
+            'RESTORE_SUCCESS':    'glyphicon glyphicon-ok'
 	    };
 	    var label = defaultValue(labels[o.aData.status], 'label-default');
 	    var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
 	    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span>';
 }
 
-render.uploadProgressMessage = function(o, val) {
+render.uploadAndRestoreProgressMessage = function(o, val) {
     if (!o) {
         return "";
     }
@@ -53,9 +162,17 @@ render.uploadProgressMessage = function(o, val) {
         'IN_PROGRESS':   Messages.get("renderFunctions.backupupload.status.progress"),
         'FAILED': Messages.get("renderFunctions.backupupload.status.failed"),
         'DONE':    Messages.get("renderFunctions.backupupload.status.done"),
-        'CANCELLED':    Messages.get("renderFunctions.backupupload.status.cancel")
+        'CANCELLED':    Messages.get("renderFunctions.backupupload.status.cancel"),
+        //Restore Status
+        'LOADING':    Messages.get("renderFunctions.restore.status.loading"),
+        'DOWNLOADING':    Messages.get("renderFunctions.restore.status.downloading"),
+        'DOWNLOAD_SUCCESS':    Messages.get("renderFunctions.restore.status.downloadsuccess"),
+        'DOWNLOAD_FAILED':    Messages.get("renderFunctions.restore.status.downloadfailed"),
+        'DOWNLOAD_CANCELLED':    Messages.get("renderFunctions.restore.status.downloadcancel"),
+        'RESTORE_FAILED':    Messages.get("renderFunctions.restore.status.restorefailed"),
+        'RESTORE_SUCCESS':    Messages.get("renderFunctions.restore.status.restoresuccess")
     };
-    
+
     var errors = {
            'FTP_NOT_CONFIGURED':     Messages.get("renderFunctions.backupupload.error.notconf"),
            'BACKUP_NOT_EXIST':   Messages.get("renderFunctions.backupupload.error.notexist"),
@@ -74,13 +191,33 @@ render.uploadProgressMessage = function(o, val) {
     return '<span>' + messages[o.aData.status] + '</span>';
 }
 
-render.uploadProgress = function(o, val) {
-    return render.uploadProgressIcon(o, val) + " " + render.uploadProgressMessage(o, val);
+render.uploadAndRestoreProgress = function(o, val) {
+    return render.uploadAndRestoreProgressIcon(o, val) + " " + render.uploadAndRestoreProgressMessage(o, val);
 }
+
+render.backupSize = function (o, val) {
+    var size = o.aData.size;
+    if (size > 1024 * 1024 * 1024) {
+        size = Math.round(size / (1024 * 1024 * 1024));
+        return Messages.get("backup.GB", size);
+    }
+    if (size > 1024 * 1024) {
+        size = Math.round(size / (1024 * 1024));
+        return Messages.get("backup.MB", size);
+    }
+    if (size > 1024) {
+        size = Math.round(size / 1024);
+        return Messages.get("backup.KB", size);
+    }
+    return Messages.get("backup.bytes", size);
+}
+
     table.backup.dataTable.afterCreate(function(table) {
-        var dataTable = table.getDataTable();
-        var itemsJson = #{jsAction @itemsJson(':ids')/};
-        watchUploadState(dataTable, itemsJson, ['uploadstatus','error','upload']);
+        if (type == LOCAL) {
+            var dataTable = table.getDataTable();
+            var itemsJson = #{jsAction @itemsJson(':ids')/};
+            watchUploadState(dataTable, itemsJson, ['actionstatus', 'error', 'action']);
+        }
     });
 
 

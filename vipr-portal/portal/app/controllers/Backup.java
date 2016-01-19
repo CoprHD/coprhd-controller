@@ -8,7 +8,10 @@ import static controllers.Common.flashException;
 
 import java.util.List;
 
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
 import models.datatable.BackupDataTable;
+import models.datatable.BackupDataTable.Type;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -19,6 +22,7 @@ import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.BackupUtils;
+import util.BourneUtil;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
@@ -44,39 +48,62 @@ public class Backup extends Controller {
     protected static final String DELETED_ERROR = "backup.delete.error";
 
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
-    public static void list() {
-        BackupDataTable dataTable = new BackupDataTable();
+    public static void list(Type type) {
+        if (type == null) {
+            type = Type.LOCAL;
+        }
+
+        BackupDataTable dataTable = new BackupDataTable(type);
+        renderArgs.put("type", type);
         render(dataTable);
     }
 
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
-    public static void listJson() {
-        List<BackupDataTable.Backup> backups = BackupDataTable.fetch();
+    public static void listJson(Type type) {
+        List<BackupDataTable.Backup> backups = BackupDataTable.fetch(type == null ? Type.LOCAL : type);
         renderJSON(DataTablesSupport.createJSON(backups, params));
     }
 
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void itemsJson(@As(",") String[] ids) {
-    	  List<BackupDataTable.Backup> results = Lists.newArrayList();
-          if (ids != null && ids.length > 0) {
-              for (String id : ids) {
-                  if (StringUtils.isNotBlank(id)) {
-                	  BackupSet backup = BackupUtils.getBackup(id);
-                      if (backup != null) {
-                          results.add(new BackupDataTable.Backup(backup));
-                      }
-                  }
-              }
-          }
-          renderJSON(results);
+        List<BackupDataTable.Backup> results = Lists.newArrayList();
+        if (ids != null) {
+            for (String id : ids) {
+                if (StringUtils.isNotBlank(id)) {
+                    BackupSet backup = BackupUtils.getBackup(id);
+                    if (backup != null) {
+                        results.add(new BackupDataTable.Backup(backup));
+                    }
+                }
+            }
+        }
+        renderJSON(results);
     }
-    
+
+    public static void externalItemsJson(@As(",") String[] ids) {
+        List<BackupDataTable.Backup> results = Lists.newArrayList();
+        if (ids != null) {
+            for (String id : ids) {
+                if (StringUtils.isNotBlank(id)) {
+                    ExternalBackupInfo backupInfo = BackupUtils.getExternalBackup(id);
+                    BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
+                    if (backupInfo.getCreateTime() != null) {
+                        backup.creationtime = backupInfo.getCreateTime();
+                    }
+                    backup.status = backupInfo.getRestoreStatus().getStatus().name();
+                    results.add(backup);
+                }
+            }
+        }
+        renderJSON(results);
+    }
+
     public static void create() {
         render();
     }
 
     public static void cancel() {
-        list();
+        list(Type.LOCAL);
     }
 
     @FlashException(keep = true, referrer = { "create" })
@@ -99,7 +126,7 @@ public class Backup extends Controller {
     }
 
     public static void edit(String id) {
-        list();
+        list(Type.LOCAL);
     }
 
     @FlashException(value = "list")
@@ -114,28 +141,69 @@ public class Backup extends Controller {
                 flash.success(MessagesUtils.get("backups.deleted"));
             }
         }
-        list();
+        list(Type.LOCAL);
     }
 
     @FlashException(value = "list")
     public static void upload(String id) {
-            BackupUtils.uploadBackup(id);
-            list();
+        BackupUtils.uploadBackup(id);
+        list(Type.LOCAL);
     }
-    
+
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void getUploadStatus(String id) {
-            BackupUploadStatus status = BackupUtils.getUploadStatus(id);
-            renderJSON(status);
-        
+        BackupUploadStatus status = BackupUtils.getUploadStatus(id);
+        renderJSON(status);
+
     }
-    
+
+    public static void restore(String id, Type type) {
+        if (type == Type.REMOTE) { // pull first if remote backup set
+            BackupUtils.pullBackup(id);
+            BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, false);
+            long totalSize = status.getBackupSize();
+            long downloadSize = status.getDownoadSize();
+            int checkProgress = 0;
+            if (totalSize != 0) {
+                checkProgress = downloadSize / totalSize > 100 ? 100 : (int) (downloadSize / totalSize);
+            }
+            renderArgs.put("downloadStatus", status.getStatus().name());
+            renderArgs.put("checkProgress", checkProgress);
+        }
+        renderArgs.put("id", id);
+        renderArgs.put("type", type);
+        renderArgs.put("isGeo", false);
+        render();
+    }
+
+    public static void cancelPullBackup(Type type) {
+        BackupUtils.cancelPullBackup();
+        list(type);
+    }
+
+    @FlashException(keep = true, referrer = { "restore" })
+    public static void doRestore() {
+        RestoreForm restoreForm = new RestoreForm();
+        restoreForm.name = params.get("restoreForm.name");
+        restoreForm.password = params.get("restoreForm.password");
+        restoreForm.isGeoFromScratch = params.get("restoreForm.isGeoFromScratch", boolean.class);
+        Type type = params.get("restoreForm.type", Type.class);
+        restoreForm.isLocal = type == Type.LOCAL;
+        restoreForm.restore();
+        list(type);
+    }
+
+    public static void getRestoreStatus(String id, Type type) {
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
+        renderJSON(status);
+    }
+
     private static void backToReferrer() {
         String referrer = Common.getReferrer();
         if (StringUtils.isNotBlank(referrer)) {
             redirect(referrer);
         } else {
-            list();
+            list(Type.LOCAL);
         }
     }
 
@@ -164,6 +232,23 @@ public class Backup extends Controller {
 
         public void save() throws ViPRException {
             BackupUtils.createBackup(name, force);
+        }
+    }
+
+    public static class RestoreForm {
+
+        @Required
+        public String name;
+
+        @Required
+        public String password;
+
+        public boolean isLocal;
+
+        public boolean isGeoFromScratch = false;
+
+        public void restore() throws ViPRException {
+            BackupUtils.restore(name, StringUtils.trimToNull(password), isLocal, isGeoFromScratch);
         }
     }
 

@@ -1,4 +1,4 @@
-/#!/bin/bash
+#!/bin/bash
 #
 # Copyright (c) 2015 EMC Corporation
 # All Rights Reserved
@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr | ipsec} [local|ldap] [<timeslot>] | sanzoning | volumegroup'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr | ipsec} [local|ldap] [<timeslot>] | sanzoning | application'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -138,7 +138,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|volumegroup)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -8033,7 +8033,7 @@ output_conf(){
     echo "bucket=${WS_SETUP_BUCKETS# }" >> "$file"
 }
 
-volumegroup_setup()
+application_setup()
 {
     echo "**** Executing volume group setup"
     vmaxblock_setup
@@ -8041,7 +8041,7 @@ volumegroup_setup()
     consistencygroup_block_cos_setup
 }
 
-volumegroup_crud_test()
+application_crud_test()
 {
     echo "**** Executing volume group crud test"
     appname=sanityapp-${RANDOM}
@@ -8066,14 +8066,7 @@ volumegroup_crud_test()
     fail volumegroup show ${newappname}
 }
 
-volume_id()
-{
-    volid=`volume list ${PROJECT} | grep ${1} | awk '{print $7}'`
-    echo volume id is $volid
-    return volid
-}
-
-volumegroup_createvols()
+application_createvols()
 {
     #unique=12044
     unique=${RANDOM}
@@ -8123,7 +8116,7 @@ volumegroup_createvols()
     run volumegroup create ${VG_MOBIVG1} mobility MOBILITY
 }
 
-volumegroup_deleteall()
+application_deleteall()
 {
     run volume delete $PROJECT/$VG_CGVOL1 --wait
     run volume delete $PROJECT/$VG_CGVOL2 --wait
@@ -8139,32 +8132,7 @@ volumegroup_deleteall()
 }
 
 # adds and removes volumes from a COPY volume group
-volumegroup_volume_negative_tests()
-{
-    # can't add if there are other volumes in the CG
-    fail volumegroup add-volumes ${VG_COPYVG1} ${VG_CGVOLID1}
-
-    # can't add two volumes to two copy groups but same cg
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_VOLID1} ${VG_CGID2}
-    run blockconsistencygroup check_volume $PROJECT ${VG_VOL1} ${VG_CGNAME2}
-    fail volumegroup add-volumes ${VG_COPYVG2} ${VG_VOLID2} ${VG_CGID2}
-
-    # can't add the same volume to two copy volume groups
-    fail volumegroup add-volumes ${VG_COPYVG2} ${VG_VOLID1}
-    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_VOLID1}
-    fail blockconsistencygroup check_volume $PROJECT ${VG_VOL1} ${VG_CGNAME1}
-
-    # VG_CG1 is a block consistency group with 3 volumes
-    # these thre volumes are not in any aplication
-    # we shojudln't be able to add a volume to an app and add to that CG
-    fail volumegroup add-volumes ${VG_COPYVG1} ${VG_VOLID1} ${VG_CGID1}
-
-    # can't add just one out of 3 voluems in a CG
-    fail volumegroup add-volumes ${VG_COPYVG1} ${VG_CGVOLID1}
-}
-
-# adds and removes volumes from a COPY volume group
-volumegroup_volume_tests()
+application_volume_tests()
 {
     # add 3 volumes from same CG to application
     run volumegroup add-volumes ${VG_COPYVG1} ${VG_CGVOLID1},${VG_CGVOLID2},${VG_CGVOLID3}
@@ -8191,72 +8159,15 @@ volumegroup_volume_tests()
     
 }
 
-volumegroup_tests()
+application_tests()
 {
     echo "**** Executing volume group tests"
     VG_VPOOL_CG=$VMAX_COS_GROUP
     VG_VPOOL=$COS_VMAXBLOCK_THIN
-    #volumegroup_crud_test
-    volumegroup_createvols
-    #volumegroup_volume_negative_tests
-    #volumegroup_volume_tests
-    #volumegroup_deleteall
-    #volumegroup_volumesnocg_test
-    #volumegroup_volumescg_test
-    #volumegroup_multi_volume_tests
-}
-
-# adds and removes volumes from a COPY volume group
-xvolumegroup_volume_tests()
-{
-    volnocg=vgsanity-${RANDOM}
-    cgname=${volnocg}-cg
-    vgname=${volnocg}-vg
-
-    run blockconsistencygroup create ${PROJECT} ${cgname}
-    a=`blockconsistencygroup show ${cgname} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
-    b=${a:1}
-    cgid=${b%'"'*}
-    echo cgid is ${cgid}
-
-    if [ "$VG_CG_TEST" = "1" ]; then
-        run volume create ${volnocg} $PROJECT $NH $VG_VPOOL $BLK_SIZE --thinVolume true --consistencygroup ${cgname}
-    else
-        run volume create ${volnocg} $PROJECT $NH $VG_VPOOL $BLK_SIZE --thinVolume true
-    fi
-    volid=`volume list ${PROJECT} | grep ${volnocg} | awk '{print $7}'`
-    echo volume id is $volid
-
-    run volumegroup create ${vgname} descrip COPY
-
-    run volumegroup add-volumes ${vgname} ${volid} ${cgid}
-    sleep 10
-    run blockconsistencygroup check_volume $PROJECT ${volnocg} ${cgname}
-    run volumegroup show-volumes ${vgname}
-
-    run volumegroup remove-volumes ${vgname} ${volid}
-    sleep 10
-    fail blockconsistencygroup check_volume $PROJECT ${volnocg} ${cgname}
-    run volumegroup show-volumes ${vgname}
-
-    run volume delete $PROJECT/$volnocg --wait
-    run blockconsistencygroup delete ${cgname}
-    run volumegroup delete ${vgname}
-}
-
-volumegroup_volumescg_test()
-{
-    consistencygroup_block_cos_setup
-    VG_VPOOL=$VMAX_COS_GROUP
-    VG_CG_TEST=1
-    volumegroup_volume_tests
-}
-
-volumegroup_volumesnocg_test()
-{
-    VG_VPOOL=$COS_VMAXBLOCK_THIN
-    VG_CG_TEST=0
-    volumegroup_volume_tests
+    application_crud_test
+    application_createvols
+    application_volume_tests
+    #application_deleteall
 }
 
 vplexsnap_setup()

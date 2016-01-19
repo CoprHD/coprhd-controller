@@ -39,8 +39,10 @@ _usage() {
     echo "   or: $0 --reconfig-props [ntp] [dns] [ssh] [connectemc] [password]" >&2
     echo "   or: $0 --reconfig-security" >&2
     echo "   or: $0 --restart service"  >&2
+    echo "   or: $0 --stop service"  >&2
     echo "   or: $0 --reload ntp|ssh|connectemc" >&2
     echo "   or: $0 --reconfig-coordinator observer|participant" >&2
+    echo "   or: $0 --remote-systool node_id command parameter" >&2
     echo "   or: $0 --test"             >&2
     exit 2
 }
@@ -461,8 +463,17 @@ EOF
     fi
 }
 
+_remote_systool() {
+    exec /usr/bin/ssh storageos@${1} "sudo /etc/systool ${2} ${3}"
+    _fatal     "Failed to exec /usr/bin/ssh storageos@${1} \"sudo /etc/systool ${2} ${3}\""
+}
+
 _restart() {
     /usr/bin/systemctl restart storageos-${1%*svc} || _fatal2 67 "Unexpected restart ${1} failure. Error code $?"
+}
+
+_stop() {
+    /usr/bin/systemctl stop storageos-${1%*svc} || _fatal2 68 "Unexpected stop ${1} failure. Error code $?"
 }
 
 _reload() {
@@ -480,7 +491,7 @@ _reload() {
         ipsec)
             exec /usr/bin/systemctl restart ipsec ;;
         reset-coordinator)
-	    /etc/storageos/storageos stop
+            /etc/storageos/storageos stop
             rm -fR /data/zk/version-2/
             /etc/storageos/storageos drstandby
             ;;
@@ -823,14 +834,16 @@ case ${#} in
             --setsslprops)            _x _set_ssl_props        "${2}" ;;
             --set-data-revision)      _x _set_data_revision    "${2}" ;;
             --restart)                _x _restart              "${2}" ;;
+            --stop)                   _x _stop                 "${2}" ;;
             --reconfig-props)         _x _reconfig_props       "${2}" ;;
             --reload)                 _x _reload               "${2}" ;;
             --reconfig-coordinator)   _x _reconfig_coordinator "${2}" ;;
             *)                        _usage
         esac;;
     4)  case ${1} in 
-            --getprops)               _s _get_props "${2}" "${3}" "${4}" ;;
-            *)
+            --getprops)               _s _get_props      "${2}" "${3}" "${4}" ;;
+            --remote-systool)         _s _remote_systool "${2}" "${3}" "${4}" ;;
+            *)                        _usage
         esac;;
     *)  _usage
 esac

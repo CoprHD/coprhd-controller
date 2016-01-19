@@ -619,7 +619,8 @@ public class DisasterRecoveryService {
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN, Role.SYSTEM_ADMIN,
+            Role.RESTRICTED_SYSTEM_ADMIN}, blockProxies = true)
     @Path("/{uuid}/pause")
     public Response pauseStandby(@PathParam("uuid") String uuid) {
         SiteIdListParam param = new SiteIdListParam();
@@ -636,7 +637,8 @@ public class DisasterRecoveryService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN, Role.SYSTEM_ADMIN,
+            Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     @Path("/pause")
     public Response pause(SiteIdListParam idList) {
         List<String> siteIdList = idList.getIds();
@@ -723,7 +725,8 @@ public class DisasterRecoveryService {
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN, Role.SYSTEM_ADMIN,
+            Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     @Path("/{uuid}/resume")
     public SiteRestRep resumeStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to resume data sync to standby site identified by uuid: {}", uuid);

@@ -42,7 +42,8 @@ import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 
 @With(Common.class)
-@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_MONITOR") })
+@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_MONITOR"),
+        @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
 public class DisasterRecovery extends ViprResourceController {
     protected static final String SAVED_SUCCESS = "disasterRecovery.save.success";
     protected static final String PAUSED_SUCCESS = "disasterRecovery.pause.success";
@@ -72,7 +73,8 @@ public class DisasterRecovery extends ViprResourceController {
     }
 
     @FlashException("list")
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_ADMIN"),
+            @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void pause(@As(",") String[] ids) {
         List<String> uuids = Arrays.asList(ids);
         for (String uuid : uuids) {
@@ -91,7 +93,8 @@ public class DisasterRecovery extends ViprResourceController {
     }
 
     @FlashException("list")
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_ADMIN"),
+            @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void resume(String id) {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {

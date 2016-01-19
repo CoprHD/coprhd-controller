@@ -48,30 +48,28 @@ public class LinkBlockSnapshotService extends ViPRService {
     protected String linkedSnapshotCopyMode;
 
     @Override
-    public void precheck() {
-        if (ConsistencyUtils.isVolumeStorageType(storageType)) {                                    
-            if (linkedSnapshotName != null && !linkedSnapshotName.isEmpty()) {
-                // Can not relink an existing snapshot and link a new snapshot at the same time
-                if (existingLinkedSnapshotIds != null && !existingLinkedSnapshotIds.isEmpty()) {
-                    ExecutionUtils.fail("failTask.LinkBlockSnapshot.linkNewAndExistingSnapshot.precheck", new Object[] {}, new Object[] {});
-                }                
-                // If trying to create a new Snapshot Session and the optional linkedSnapshotName 
-                // is populated, make sure that linkedSnapshotCount > 0.                      
-                if (linkedSnapshotCount == null || linkedSnapshotCount.intValue() <= 0) {
-                    ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCount.precheck", new Object[] {}, new Object[] {});
-                }
-                // Ensure that copy mode is selected            
-                if (linkedSnapshotCopyMode == null
-                        || !(BlockProvider.LINKED_SNAPSHOT_COPYMODE_VALUE.equals(linkedSnapshotCopyMode)
-                                || BlockProvider.LINKED_SNAPSHOT_NOCOPYMODE_VALUE.equals(linkedSnapshotCopyMode))) {
-                    ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCopyMode.precheck", new Object[] {}, new Object[] {});
-                }
-            } else if (existingLinkedSnapshotIds == null || existingLinkedSnapshotIds.isEmpty()) {
-                // If we get here, the user has neither selected existing linked snapshots to relink and hasn't
-                // filled in the correct information needed for linking a new snapshot.
-                ExecutionUtils.fail("failTask.LinkBlockSnapshot.linkAtLeastOneSnapshot.precheck", new Object[] {}, new Object[] {});
+    public void precheck() {                                            
+        if (linkedSnapshotName != null && !linkedSnapshotName.isEmpty()) {
+            // Can not relink an existing snapshot and link a new snapshot at the same time
+            if (existingLinkedSnapshotIds != null && !existingLinkedSnapshotIds.isEmpty()) {
+                ExecutionUtils.fail("failTask.LinkBlockSnapshot.linkNewAndExistingSnapshot.precheck", new Object[] {}, new Object[] {});
+            }                
+            // If trying to create a new Snapshot Session and the optional linkedSnapshotName 
+            // is populated, make sure that linkedSnapshotCount > 0.                      
+            if (linkedSnapshotCount == null || linkedSnapshotCount.intValue() <= 0) {
+                ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCount.precheck", new Object[] {}, new Object[] {});
             }
-        }
+            // Ensure that copy mode is selected            
+            if (linkedSnapshotCopyMode == null
+                    || !(BlockProvider.LINKED_SNAPSHOT_COPYMODE_VALUE.equals(linkedSnapshotCopyMode)
+                            || BlockProvider.LINKED_SNAPSHOT_NOCOPYMODE_VALUE.equals(linkedSnapshotCopyMode))) {
+                ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCopyMode.precheck", new Object[] {}, new Object[] {});
+            }
+        } else if (existingLinkedSnapshotIds == null || existingLinkedSnapshotIds.isEmpty()) {
+            // If we get here, the user hasn't selected existing linked snapshots to relink and also hasn't
+            // filled in the correct information needed for linking a new snapshot.
+            ExecutionUtils.fail("failTask.LinkBlockSnapshot.linkAtLeastOneSnapshot.precheck", new Object[] {}, new Object[] {});
+        }        
     }
 
     @Override

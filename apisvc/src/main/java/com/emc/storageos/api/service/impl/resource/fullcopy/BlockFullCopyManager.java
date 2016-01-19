@@ -38,7 +38,6 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -52,8 +51,6 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -267,6 +264,8 @@ public class BlockFullCopyManager {
         // if Volume is part of Application (COPY type VolumeGroup)
         VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
                 ? ((Volume) fcSourceObj).getCopyTypeVolumeGroup(_dbClient) : null;
+                
+        VirtualArray varray = null;
         if (volumeGroup != null) {
             s_logger.info("Volume {} is part of Application, Creating full copy for all volumes in the Application.", sourceURI);
             // get all volumes
@@ -281,7 +280,7 @@ public class BlockFullCopyManager {
                 Project project = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
 
                 // verify the virtual array.
-                BlockServiceUtils.verifyVirtualArrayForRequest(project,
+                varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
                         fcSourceObj.getVirtualArray(), _uriInfo, _permissionsHelper, _dbClient);
 
                 // Get the platform specific block full copy implementation.
@@ -305,7 +304,7 @@ public class BlockFullCopyManager {
             Project project = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
 
             // verify the virtual array.
-           BlockServiceUtils.verifyVirtualArrayForRequest(project,
+            varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
                     fcSourceObj.getVirtualArray(), _uriInfo, _permissionsHelper, _dbClient);
 
             // Get the platform specific block full copy implementation.
@@ -324,7 +323,7 @@ public class BlockFullCopyManager {
 
         // TODO volumes in Volume Group can be in different vArrays. Change create() signature?
         // Create the full copies
-        TaskList taskList = fullCopyApiImpl.create(fcSourceObjList, null, name,
+        TaskList taskList = fullCopyApiImpl.create(fcSourceObjList, varray, name,
                 createInactive, count, taskId);
         s_logger.info("FINISH create full copy for source {}", sourceURI);
         return taskList;

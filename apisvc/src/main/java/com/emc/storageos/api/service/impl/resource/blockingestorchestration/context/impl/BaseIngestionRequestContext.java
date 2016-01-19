@@ -138,7 +138,9 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             }
 
             // order is actually important here because a VPLEX volume could also be RP-enabled
-            if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
+            if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
+                return new RpVplexVolumeIngestionContext(unManagedVolume, dbClient, parentRequestContext);
+            } else if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
                 return new VplexVolumeIngestionContext(unManagedVolume, dbClient, parentRequestContext);
             } else if (VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
                 return new RecoverPointVolumeIngestionContext(unManagedVolume, dbClient, parentRequestContext);

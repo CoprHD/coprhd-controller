@@ -93,7 +93,6 @@ public class FileStorageScheduler implements Scheduler {
     public void setPermissionsHelper(PermissionsHelper permissionsHelper) {
         this.permissionsHelper = permissionsHelper;
     }
-    
 
     /**
      * Schedule storage for fileshare in the varray with the given CoS
@@ -195,6 +194,8 @@ public class FileStorageScheduler implements Scheduler {
             for (FileRecommendation recommendation : fileRecommendations) {
                 FileRecommendation fileRecommendation = recommendation;
                 fileRecommendation.setFileType(FileType.FILE_SYSTEM_DATA);
+                StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
+                fileRecommendation.setDeviceType(system.getSystemType());
             }
         }
 
@@ -363,7 +364,7 @@ public class FileStorageScheduler implements Scheduler {
      * @param poolRecommendations
      * @param project
      * @return list of recommended storage ports for VNAS
-     *
+     * 
      */
     private Map<VirtualNAS, List<StoragePool>> getRecommendedVirtualNASBasedOnCandidatePools(
             VirtualPool vPool, URI vArrayURI,
@@ -965,6 +966,7 @@ public class FileStorageScheduler implements Scheduler {
         }
         return result;
     }
+
     public List<FileRecommendation> placeFileShare(VirtualArray vArray,
             VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities,
             Project project) {
@@ -976,7 +978,6 @@ public class FileStorageScheduler implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities) {
         return placeFileShare(vArray, vPool, capabilities, project, null);
     }
-    
 
     /**
      * create fileshare from the Recommendation object
@@ -1051,8 +1052,7 @@ public class FileStorageScheduler implements Scheduler {
                 fileShare.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
             }
         }
-        
-        
+
         fileShare.setStorageDevice(placement.getSourceStorageSystem());
         fileShare.setPool(placement.getSourceStoragePool());
         if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {

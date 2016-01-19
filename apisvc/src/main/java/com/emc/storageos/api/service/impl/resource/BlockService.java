@@ -389,7 +389,7 @@ public class BlockService extends TaskResourceService {
                 if (!URIUtil.isValid(copyID)) {
                     copyID = null;
                 }
-                taskResp = performProtectionAction(id, copyID, ProtectionOp.START.getRestOp());
+                taskResp = performProtectionAction(id, copyID, copy.getName(), copy.getApitTime(), ProtectionOp.START.getRestOp());
                 taskList.getTaskList().add(taskResp);
                 // If copyID is null, we have already started all copies
                 if (copyID == null) {
@@ -476,7 +476,7 @@ public class BlockService extends TaskResourceService {
 
             // If copyID is null all copies are stopped
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, ProtectionOp.STOP.getRestOp());
+                taskResp = performProtectionAction(id, copyID, copy.getName(), copy.getApitTime(), ProtectionOp.STOP.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 taskList = stopMirrors(id, copyID);
@@ -1354,7 +1354,8 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER_TEST.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getApitTime(),
+                    ProtectionOp.FAILOVER_TEST.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST.getRestOp());
@@ -1400,7 +1401,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.SWAP.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getApitTime(), ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
@@ -1445,7 +1446,8 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER_CANCEL.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getApitTime(),
+                    ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
@@ -1504,7 +1506,8 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldUriType(copy.getCopyID(), Volume.class, "id");
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getApitTime(),
+                    ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
@@ -1564,7 +1567,7 @@ public class BlockService extends TaskResourceService {
 
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getApitTime(), ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
@@ -1625,7 +1628,7 @@ public class BlockService extends TaskResourceService {
                 if (!URIUtil.isValid(copyID)) {
                     copyID = null;
                 }
-                taskResp = performProtectionAction(id, copyID, ProtectionOp.SYNC.getRestOp());
+                taskResp = performProtectionAction(id, copyID, copy.getName(), copy.getApitTime(), ProtectionOp.SYNC.getRestOp());
                 taskList.getTaskList().add(taskResp);
                 // If copyID is null, we have already synced all copies
                 if (copyID == null) {
@@ -2508,7 +2511,7 @@ public class BlockService extends TaskResourceService {
             ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, ProtectionOp.PAUSE.getRestOp());
+                taskResp = performProtectionAction(id, copyID, copy.getName(), copy.getApitTime(), ProtectionOp.PAUSE.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 TaskList pauseTaskList = pauseMirrors(id, copy.getSync(), copyID);
@@ -2582,7 +2585,7 @@ public class BlockService extends TaskResourceService {
 
             // If copyID is null all copies are paused
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, ProtectionOp.RESUME.getRestOp());
+                taskResp = performProtectionAction(id, copyID, copy.getName(), copy.getApitTime(), ProtectionOp.RESUME.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 TaskList resumeTaskList = resumeMirrors(id, copyID);
@@ -2862,11 +2865,16 @@ public class BlockService extends TaskResourceService {
      *
      * @param id the URN of a ViPR source volume
      * @param copyID id of the target volume
+     * @param copyName the name of the copy
+     * @param apitTime any point in time used for failover.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms. Can be
+     *            null.
      * @param op operation to perform (pause, stop, failover, etc)
      * @return task resource rep
      * @throws InternalException
      */
-    private TaskResourceRep performProtectionAction(URI id, URI copyID, String op) throws InternalException {
+    private TaskResourceRep performProtectionAction(URI id, URI copyID, String copyName, String apitTime, String op)
+            throws InternalException {
         ArgValidator.checkFieldUriType(copyID, Volume.class, "copyID");
         // Get the volume associated with the URI
         Volume volume = queryVolumeResource(id);
@@ -2903,7 +2911,7 @@ public class BlockService extends TaskResourceService {
 
         RPController controller = getController(RPController.class, system.getSystemType());
 
-        controller.performProtectionOperation(system.getId(), id, copyID, op, task);
+        controller.performProtectionOperation(system.getId(), id, copyID, copyName, apitTime, op, task);
         /*
          * auditOp(OperationTypeEnum.PERFORM_PROTECTION_ACTION, true, AuditLogManager.AUDITOP_BEGIN,
          * op, copyID.toString(), id.toString(), system.getId().toString());

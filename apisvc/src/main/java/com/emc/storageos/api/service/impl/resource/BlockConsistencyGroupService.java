@@ -1617,7 +1617,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.SWAP.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getApitTime(), ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
@@ -1681,7 +1681,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getApitTime(), ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
@@ -1737,7 +1737,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER_CANCEL.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getApitTime(),
+                    ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
@@ -1754,11 +1755,16 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      *
      * @param consistencyGroupId the URI of the BlockConsistencyGroup to perform the protection action against.
      * @param targetVarrayId the target virtual array.
+     * @param copyName the name of the copy
+     * @param apitTime any point in time.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
      * @param op operation to perform (pause, stop, failover, etc)
      * @return task resource rep
      * @throws InternalException
      */
-    private TaskResourceRep performProtectionAction(URI consistencyGroupId, URI targetVarrayId, String op) throws InternalException {
+    private TaskResourceRep
+            performProtectionAction(URI consistencyGroupId, URI targetVarrayId, String copyName, String apitTime, String op)
+                    throws InternalException {
         ArgValidator.checkFieldUriType(consistencyGroupId, BlockConsistencyGroup.class, "id");
         ArgValidator.checkFieldUriType(targetVarrayId, VirtualArray.class, "copyId");
 
@@ -1801,7 +1807,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         RPController controller = getController(RPController.class, system.getSystemType());
 
-        controller.performProtectionOperation(system.getId(), consistencyGroupId, targetVolume.getId(), op, task);
+        controller.performProtectionOperation(system.getId(), consistencyGroupId, targetVolume.getId(), copyName, apitTime, op, task);
         /*
          * auditOp(OperationTypeEnum.PERFORM_PROTECTION_ACTION, true, AuditLogManager.AUDITOP_BEGIN,
          * op, copyID.toString(), id.toString(), system.getId().toString());

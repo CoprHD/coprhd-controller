@@ -104,6 +104,7 @@ import com.emc.storageos.recoverpoint.responses.RecoverPointStatisticsResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -3811,7 +3812,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
-    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String op, String task)
+    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String bookmarkName, String apitTime, String op,
+            String task)
             throws ControllerException {
         RPCGProtectionTaskCompleter taskCompleter = null;
         try {
@@ -3912,6 +3914,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_RP_LINK);
                     RPCopyRequestParams copyParams = new RPCopyRequestParams();
                     copyParams.setCopyVolumeInfo(volumeProtectionInfo);
+
+                    if (bookmarkName != null) {
+                        // Failover to a specific bookmark
+                        copyParams.setBookmarkName(bookmarkName);
+                    }
+
+                    if (apitTime != null) {
+                        // Build a Date reference.
+                        copyParams.setApitTime(TimeUtils.getDateTimestamp(apitTime));
+                    }
+
                     rp.failoverCopy(copyParams);
                     updatePostFailover(protectionVolume);
                     taskCompleter.ready(_dbClient, _locker);

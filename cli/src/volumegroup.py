@@ -191,13 +191,13 @@ class VolumeGroup(object):
             remove_vols["volume"] = remove_volumes.split(',')
             request["remove_volumes"] = remove_vols
         if(add_hosts and len(add_hosts) > 0):
-            request["add_hosts"] = add_hosts
+            request["add_hosts"] = add_hosts.split(',')
         if(add_clusters and len(add_clusters) > 0):
-            request["add_clusters"] = add_clusters
+            request["add_clusters"] = add_clusters.split(',')
         if(remove_hosts and len(remove_hosts) > 0):
-            request["remove_hosts"] = remove_hosts
+            request["remove_hosts"] = remove_hosts.split(',')
         if(remove_clusters and len(remove_clusters) > 0):
-            request["remove_clusters"] = remove_clusters
+            request["remove_clusters"] = remove_clusters.split(',')
 
         body = json.dumps(request)
 

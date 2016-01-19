@@ -60,6 +60,8 @@ public class LicenseManagerImpl implements LicenseManager {
     public static final int waitClusterStableInterval = 5000;
     public static final int waitRetryConvertLicneseInterval = 5000;
 
+    public static final String LICENSETYPE_DELIMITER = ":";
+
     // used to ensure thread-safety of parsing license
     final Lock parseLicenseLock = new ReentrantLock();
     public final static int waitAcquireParseLicenseLock = 60; // 60 seconds
@@ -224,7 +226,7 @@ public class LicenseManagerImpl implements LicenseManager {
                                 }
                             }
                         }
-                        licenseFeature.setModelId(featureDetail.getFeatureName() + ":" + subModelId);
+                        licenseFeature.setModelId(featureDetail.getFeatureName() + LICENSETYPE_DELIMITER + subModelId);
                         setVendorStringFields(featureDetail, licenseFeature, p);
                     } else {
                         _log.info("The license file contains a feature which is in an expired state. The license was not added to the system.");

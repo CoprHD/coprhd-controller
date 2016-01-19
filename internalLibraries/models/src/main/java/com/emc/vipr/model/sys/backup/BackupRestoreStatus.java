@@ -55,6 +55,10 @@ public class BackupRestoreStatus {
         return nodeCompleted;
     }
 
+    public void resetNodeCompleted() {
+        this.nodeCompleted = 0;
+    }
+
     @XmlElement (name = "is_geo")
     public boolean isGeo() {
         return isGeo;

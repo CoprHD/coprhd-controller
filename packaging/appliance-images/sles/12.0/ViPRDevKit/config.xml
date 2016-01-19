@@ -20,7 +20,7 @@
     <keytable>us.map.gz</keytable>
     <timezone>US + Canada/Eastern Time</timezone>
     <hwclock>utc</hwclock>
-    <type image="vmx" filesystem="ext3" boot="vmxboot/suse-SLES12" primary="true" format="vmdk" bootloader="grub2" kernelcmdline="splash fips=1 boot=/dev/sda1">
+    <type image="vmx" filesystem="ext3" boot="vmxboot/suse-SLES12" primary="true" format="vmdk" bootloader="grub2" kernelcmdline="splash fips=0 boot=/dev/sda1">
       <systemdisk name="systemVG">
         <volume name="swap" size="6144"/>
       </systemdisk>
@@ -49,9 +49,6 @@
   </users>
   <repository type="yast2" priority="3">
     <source path="/slesmedia/12-SLES-DVD1"/>
-  </repository>
-  <repository type="rpm-md" priority="2">
-    <source path="http://lglaf020.lss.emc.com/kiwi_build_requires"/>
   </repository>
   <packages type="image" profiles="base,appliance">
     <package name="audit"/>

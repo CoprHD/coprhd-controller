@@ -5,8 +5,8 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,6 +38,8 @@ import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.imageservercontroller.ImageServerController;
+import com.emc.storageos.imageservercontroller.impl.ImageServerControllerImpl;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -47,8 +49,6 @@ import com.emc.storageos.model.compute.ComputeImageCreate;
 import com.emc.storageos.model.compute.ComputeImageList;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
 import com.emc.storageos.model.compute.ComputeImageUpdate;
-import com.emc.storageos.imageservercontroller.ImageServerController;
-import com.emc.storageos.imageservercontroller.impl.ImageServerControllerImpl;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -74,7 +74,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Show compute image attribute.
-     * 
+     *
      * @param id
      *            the URN of compute image
      * @brief Show compute image
@@ -94,7 +94,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Returns a list of all compute images.
-     * 
+     *
      * @brief Show compute images
      * @return List of all compute images.
      */
@@ -142,7 +142,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Create compute image from image URL or existing installable image URN.
-     * 
+     *
      * @param param
      *            The ComputeImageCreate object contains all the parameters for
      *            creation.
@@ -219,7 +219,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Updates an already present compute image.
-     * 
+     *
      * @param id
      *            compute image URN.
      * @param param
@@ -262,13 +262,26 @@ public class ComputeImageService extends TaskResourceService {
                         .extractPasswordFromImageUrl(param.getImageUrl());
 
                 if (StringUtils.isNotBlank(oldPassword)
-                        && StringUtils.isNotBlank(newPassword)
-                        && oldPassword.equals(newPassword)) {
-                    isEncrypted = true;
+                        && StringUtils.isNotBlank(newPassword)) {
+                    //MASKED_PASSWORD is a constant string and UI/REST feeds displays it as bunch
+                    //of asterixk's, if user does not update the password then the newPassword and masked
+                    //password will be same there by we know that password is not updated and same as encrypted
+                    //password present in the DB.
+                    if (ImageServerControllerImpl.MASKED_PASSWORD.equals(newPassword)) {
+                        isEncrypted = true;
+                    }
                 }
-                ci.setImageUrl(encryptImageURLPassword(param.getImageUrl(),
-                        isEncrypted));
-
+                //Any change to the password section of the URL, we will get to know that password is updated
+                //and we encrypt and updated the DB, if the user does not change the password part but
+                //changes any other parts (username, hostname or the file part) the password of masked asterisks
+                //and the constant will be same and we do not update the password but update other parts if changed.
+                if (isEncrypted) {
+                    ci.setImageUrl( StringUtils.replace(param.getImageUrl(), ":" + newPassword + "@", ":"
+                            + oldPassword + "@"));
+                } else {
+                    ci.setImageUrl(encryptImageURLPassword(param.getImageUrl(),
+                            isEncrypted));
+                }
                 ci.setComputeImageStatus(ComputeImageStatus.IN_PROGRESS.name());
                 reImport = true;
             } else {
@@ -287,7 +300,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Delete existing compute image.
-     * 
+     *
      * @param id
      *            compute image URN.
      * @brief Delete compute image
@@ -380,7 +393,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * List data of compute images based on input ids.
-     * 
+     *
      * @param param
      *            POST data containing the id list.
      * @prereq none
@@ -448,7 +461,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Method to create and initiate task to controller.
-     * 
+     *
      * @param ci
      *            {@link ComputeImage} instance
      * @param reImport

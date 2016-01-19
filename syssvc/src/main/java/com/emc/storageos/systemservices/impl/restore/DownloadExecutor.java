@@ -10,9 +10,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
-import java.net.URI;
 import java.net.UnknownHostException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
@@ -24,7 +22,6 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.commons.io.FileUtils;
 
 import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.coordinator.common.Service;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus.Status;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -32,7 +29,6 @@ import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.management.backup.BackupOps;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
-import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 
 public final class DownloadExecutor implements  Runnable {
     private static final Logger log = LoggerFactory.getLogger(DownloadExecutor.class);
@@ -40,21 +36,12 @@ public final class DownloadExecutor implements  Runnable {
     private FtpClient client;
     private String remoteBackupFileName;
     private BackupOps backupOps;
-    private boolean notifyOthers;
-    private String localHostName;
     private BackupRestoreStatus restoreStatus;
     private DownloadListener downloadListener;
     private boolean isGeo = false; // true if the backupset is from GEO env
     private volatile  boolean isCanceled =false;
 
-    public static DownloadExecutor create(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps, boolean notifyOthers) {
-
-        DownloadExecutor downloader = new DownloadExecutor(cfg, backupZipFileName, backupOps, notifyOthers);
-
-        return downloader;
-    }
-
-    private DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps, boolean notifyOthers) {
+    public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps) {
         if (cfg.uploadUrl == null) {
             try {
                 cfg.reload();
@@ -67,7 +54,6 @@ public final class DownloadExecutor implements  Runnable {
         client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
         remoteBackupFileName = backupZipFileName;
         this.backupOps = backupOps;
-        this.notifyOthers = notifyOthers;
     }
 
     public void registerListener() {
@@ -201,9 +187,7 @@ public final class DownloadExecutor implements  Runnable {
                     -1, TimeUnit.MILLISECONDS); // -1= no timeout
 
             registerListener();
-            localHostName = InetAddress.getLocalHost().getHostName();
             download();
-            notifyOtherNodes();
         }catch (InterruptedException e) {
             log.info("The downloading thread has been interrupted");
             restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
@@ -264,13 +248,6 @@ public final class DownloadExecutor implements  Runnable {
             return; //already downloaded, no need to download again
         }
 
-        if (notifyOthers) {
-            // This is the first node to download backup files, get the whole zip file size first
-            long size = client.getFileSize(remoteBackupFileName);
-
-            setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOADING, size, 0, false);
-        }
-
         ZipEntry zentry = zin.getNextEntry();
         while (zentry != null) {
             if (isMyBackupFile(zentry)) {
@@ -317,6 +294,7 @@ public final class DownloadExecutor implements  Runnable {
 
     private void postDownload() {
         restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
+        log.info("status={}", restoreStatus);
         Status s = null;
         if (restoreStatus.getStatus() == BackupRestoreStatus.Status.DOWNLOADING) {
             long nodeNumber = backupOps.getHosts().size();
@@ -350,7 +328,7 @@ public final class DownloadExecutor implements  Runnable {
 
         File file = new File(downloadDir, backupFileName);
         if (!file.exists()) {
-            log.info("create the new file {}", file.getAbsolutePath());
+            log.info("To create the new file {}", file.getAbsolutePath());
             file.getParentFile().mkdirs();
             file.createNewFile();
         }
@@ -372,28 +350,6 @@ public final class DownloadExecutor implements  Runnable {
         }
 
         return downloadSize;
-    }
-
-    private void notifyOtherNodes() {
-        log.info("Notify other nodes");
-        if (notifyOthers == false) {
-            return;
-        }
-
-        URI pushUri = SysClientFactory.URI_NODE_BACKUPS_PUSH;
-
-        List<Service> sysSvcs = backupOps.getAllSysSvc();
-        for (Service svc : sysSvcs) {
-            URI endpoint = svc.getEndpoint();
-            log.info("Notify {} hostname={}", endpoint, svc.getNodeName());
-
-            if (localHostName.equals(svc.getNodeName())) {
-                continue;
-            }
-
-            SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
-            sysClient.post(pushUri, null, remoteBackupFileName);
-        }
     }
 
     private ZipInputStream getDownloadStream() throws IOException {

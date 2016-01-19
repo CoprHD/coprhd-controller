@@ -28,11 +28,10 @@ public class ScheduledBackupTag {
 
     private static final String BACKUP_TAG_TEMPLATE = "%s-%d-%s";
     private static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s-%s-%s-%s%s";
-    private static final String SCHEDULED_BACKUP_TAG_REGEX_PATTERN = "^%s-(\\w+|\\.)*\\d+-\\d+-\\d{%d}$";
     private static final ThreadLocal<SimpleDateFormat> dateFormat = new ThreadLocal<SimpleDateFormat>() {
         @Override
         protected SimpleDateFormat initialValue() {
-            return new SimpleDateFormat(BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT);
+            return new SimpleDateFormat(BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN);
         }
     };
     private static final Date MIN_DATE = new Date(0);
@@ -58,7 +57,7 @@ public class ScheduledBackupTag {
             throw new ParseException("Can't parse backup date because tag is null", -1);
         }
 
-        int beginIndex = tag.length() - BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length();
+        int beginIndex = tag.length() - BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN.length();
         if (beginIndex < 0) {
             throw new ParseException("Can't parse backup date from wrong begin index for tag: " + tag, beginIndex);
         }
@@ -70,15 +69,15 @@ public class ScheduledBackupTag {
         ArrayList<String> scheduledTags = new ArrayList<>();
         // Typically, this pattern String could match all tags produced by toBackupTag method
         // also in consideration of extension, version part could be longer and node count could bigger
-        String regex = String.format(SCHEDULED_BACKUP_TAG_REGEX_PATTERN, ProductName.getName(),
-                BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length());
+        String regex = String.format(BackupConstants.SCHEDULED_BACKUP_TAG_REGEX_PATTERN, ProductName.getName(),
+                BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN.length());
         Pattern backupNamePattern = Pattern.compile(regex);
         for (String tag : tags) {
             if (backupNamePattern.matcher(tag).find()) {
                 scheduledTags.add(tag);
             }
         }
-
+        log.info("Scheduled backup tags: {}", scheduledTags);
         return scheduledTags;
     }
 

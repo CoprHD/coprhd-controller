@@ -31,6 +31,7 @@ import javax.ws.rs.core.SecurityContext;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +61,10 @@ import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.systemservices.impl.util.LocalPasswordHandler;
 import com.emc.storageos.util.DummyDbClient;
 
+// Requires coordinator to be running on the local host, which build and external servers may not have running, therefore ignoring by default.
+// This class can be modified to instantiate coordinator and other dependencies so the test is self-contained.  See DbsvcTestBase and other unit
+// tests that accomplish this.
+@Ignore
 public class PasswordServiceTest {
     private static final Logger log = LoggerFactory.getLogger(PasswordServiceTest.class);
 

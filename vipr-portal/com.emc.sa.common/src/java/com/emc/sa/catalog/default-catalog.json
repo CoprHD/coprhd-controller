@@ -41,11 +41,15 @@
           "baseService": "UnexportVolume"
         },
         {
+          "image": "icon_host_multi_remove.png",
+          "baseService": "UnexportMultiVolume"
+        },
+        {
           "image": "Service_Discover_Unmanaged_Volumes.png",
           "baseService": "DiscoverUnmanagedVolumes"
         },
         {
-          "image": "Service_Discover_Unmanaged_Volumes.png",
+          "image": "Service_Discover_Unmanaged_CGs.png",
           "baseService": "DiscoverUnmanagedCGs"
         },
         {
@@ -98,6 +102,10 @@
         {
           "image": "Service_Resynchronize_Block_Snapshot.png",
           "baseService": "ResynchronizeBlockSnapshot"
+        },
+        {
+          "image": "Service_Link_Block_Snapshot.png",
+          "baseService": "LinkBlockSnapshot"
         },
         {
           "image": "Service_Remove_Block_Snapshot.png",

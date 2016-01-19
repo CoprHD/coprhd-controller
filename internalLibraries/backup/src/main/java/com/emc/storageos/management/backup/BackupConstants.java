@@ -6,6 +6,7 @@
 package com.emc.storageos.management.backup;
 
 import java.io.File;
+
 /**
  * Constants for backup project
  */
@@ -20,9 +21,12 @@ public interface BackupConstants {
     public static final String BACKUP_TAGS_RETAINED = "retained_tags";
     public static final String BACKUP_TAGS_UPLOADED = "uploaded_tags";
 
-    // These are Backup Scheduler related configurations in system properties
+    // These are backup related configurations in system properties
     public static final String BACKUP_MAX_USED_DISK_PERCENTAGE = "backup_max_used_disk_percentage";
     public static final String BACKUP_THRESHOLD_DISK_PERCENTAGE = "backup_threshold_disk_percentage";
+
+    // These are manual backup configurations in system properties
+    public static final String BACKUP_MAX_MANUAL_COPIES = "backup_max_manual_copies";
 
     // These are Backup Scheduler related configurations in system properties
     public static final String SCHEDULER_ENABLED = "backup_scheduler_enable";
@@ -38,6 +42,9 @@ public interface BackupConstants {
 
     // The sleep time for scheduler when the cluster is upgrading
     public static final int SCHEDULER_SLEEP_TIME_FOR_UPGRADING = 10 * 60 * 1000;
+
+    public static final String SCHEDULED_BACKUP_DATE_PATTERN = "yyyyMMddHHmmss";
+    public static final String SCHEDULED_BACKUP_TAG_REGEX_PATTERN = "^%s-([0-9]{1,}\\.){4}[0-9a-f]+-\\d+-\\d{%d}$";
 
     // Number of Gigabyte compare to byte
     public static final long GIGABYTE = 1024 * 1024 * 1024;

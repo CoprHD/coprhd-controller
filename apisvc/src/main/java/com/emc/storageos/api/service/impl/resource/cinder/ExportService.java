@@ -77,6 +77,7 @@ import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -145,6 +146,7 @@ public class ExportService extends VolumeService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{volume_id}/action")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Object actionOnVolume(@PathParam("tenant_id") String openstackTenantId,
             @PathParam("volume_id") String volumeId,
             String input
@@ -810,8 +812,6 @@ public class ExportService extends VolumeService {
         List<Initiator> initiators = new ArrayList<Initiator>();
         boolean bFound = false;
 
-        // TODO: How do we handle the automatic addition of initiators. Even if we add it how do we handle the part of
-        // adding it to the the requisite network.
         if (protocol.equals(Protocol.iSCSI.name())) {
             // this is an iSCSI request
             String port = connector.initiator;
@@ -862,8 +862,7 @@ public class ExportService extends VolumeService {
                     initiators.addAll(fc_initiators);
                 }
                 else {
-                    // not found, we don't create dynamically for FC
-                    // TODO: How do we intimate the user apropriately.
+                    // not found, we don't create dynamically for FC                    
                     _log.info("FC initiator for wwpn {} not found", fc_port);
                 }
             }

@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
+import com.emc.storageos.imageservercontroller.impl.ImageServerControllerImpl;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
@@ -130,7 +131,7 @@ public class ComputeMapper {
         ComputeImageRestRep to = new ComputeImageRestRep();
         mapDataObjectFields(from, to);
         to.setImageName(from.getImageName());
-        to.setImageUrl(from.getImageUrl());
+        to.setImageUrl(ImageServerControllerImpl.maskImageURLPassword(from.getImageUrl()));
         to.setImageType(from.getImageType());
         to.setComputeImageStatus(from.getComputeImageStatus());
         to.setLastImportStatusMessage(from.getLastImportStatusMessage());
@@ -187,6 +188,10 @@ public class ComputeMapper {
         to.setImageServerUser(from.getImageServerUser());
         to.setOsInstallTimeout(new Long(TimeUnit.MILLISECONDS.toSeconds(from
                 .getOsInstallTimeoutMs())).intValue());
+        to.setSshTimeout(new Long(TimeUnit.MILLISECONDS.toSeconds(from
+                .getSshTimeoutMs())).intValue());
+        to.setImageImportTimeout(new Long(TimeUnit.MILLISECONDS.toSeconds(from
+                .getImageImportTimeoutMs())).intValue());
         to.setComputeImages(new ArrayList<NamedRelatedResourceRep>());
         to.setFailedImages(new ArrayList<NamedRelatedResourceRep>());
         if (from.getComputeImages() != null) {

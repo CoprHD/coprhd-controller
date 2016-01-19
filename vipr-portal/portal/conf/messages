@@ -372,6 +372,7 @@ RegistrationStatus.REGISTERED=Registered
 
 RemoteCopyMode.ASYNCHRONOUS=Asynchronous
 RemoteCopyMode.SYNCHRONOUS=Synchronous
+RemoteCopyMode.ACTIVE=Active
 
 RpoType.SECONDS=Seconds
 RpoType.MINUTES=Minutes
@@ -706,6 +707,7 @@ CustomConfigs.configType.HDSHostModeOption=Host Mode Option
 CustomConfigs.configType.VPlexStorageViewName=Storage View Name
 CustomConfigs.configType.NasDynamicPerformancePlacementEnabled=Dynamic Performance Placement Enabled
 CustomConfigs.configType.NasUsePhysicalNASForProvisioning=Use Physical NAS For Provisioning
+CustomConfigs.configType.NasShareVNASWithMultipleProjects=Enable Association of Virtual NAS to Multiple Projects
 CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.scopeType.global=Global
@@ -1896,7 +1898,7 @@ StorageSystems.pools.description=Enter the information needed to edit a Storage 
 vNasServers.nasName=Name
 vNasServers.protocols=Protocols
 vNasServers.storagePorts=Storage Ports
-vNasServers.project=Project
+vNasServers.project=Project(s)
 vNasServers.parentNASURI= Parent NAS Server
 vNasServers.nasState= State
 vNasServers.storageDomain=Domain
@@ -1914,7 +1916,8 @@ vNasServers.usedStorageCapacity= Used Storage Capacity
 vNasServers.avgPercentagebusy=Average Percentage busy
 vNasServers.percentLoad=Percentage Load
 vNasServersDataTable.notApplicable=N/A
-vNasServers.associateToProject=Associate to a Project
+vNasServers.associateToProject=Associate to Project(s)
+vNasServers.dissociateFromProject=Dissociate from Project(s)
 vNasServers.dissociate.Confirm=Are you sure you want to dissociate these vNas Server(s) from the project?
 
 storageArrayPool.name=Name
@@ -2077,9 +2080,11 @@ vpool.systemType=System Type
 vpool.poolAssignment=Pool Assignment
 vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a subset of the storage pools matching the criteria
 
-#Object Specefic
+#Object Specific
 vpool.maxRetention=Maximum Retention (Days)
+vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
+storagePools.numOfDataCenters=Data Center(s)
 
 # Block Specific
 vpool.minPaths=Minimum Paths
@@ -2141,6 +2146,17 @@ vpool.rpVplex.source=Source
 vpool.rpVplex.ha=HA
 vpool.activeSite=Active Site
 vpool.activeSite.help=Specifies the VPLEX site for active protection with RecoverPoint.  The link to the other VPLEX site is configured as stand-by.
+vpool.replicationMode=Replication Mode
+vpool.replicationRpo=Min RPO
+vpool.replicationCopies=Replication Copies
+vpool.remoteVirtualArray=Virtual Array
+vpool.remoteVirtualPool=Virtual Pool
+vpool.replicationType=Replication Type
+
+# File Replication
+replicationCopy.virtualArray=Virtual Array
+replicationCopy.virtualPool=Virtual Pool
+replicationCopy.title=Replication Copy
 
 # Recoverpoint
 vpool.rpJournalSize=RecoverPoint Source Journal Size
@@ -2425,6 +2441,11 @@ configProperties.changePassword=Local Account Passwords
 configProperties.password.doesNotMatch=Passwords do not match
 configProperties.password.state=state
 
+configProperties.backup.scheduled=Scheduled Backup
+configProperties.backup.manual=Manual Backup
+configProperties.backup.server=External Server
+configProperties.backup.setToZero.scheduler=WARNING: Setting the value as zero would cause all scheduled backup sets being reclaimed without any guarantee that they have been successfully uploaded to external server.
+configProperties.backup.setToZero.manual=WARNING: Setting the value as zero would disable manual backup creation.
 
 #Upgrade
 upgrade.title=Software Upgrade
@@ -2695,7 +2716,9 @@ computeImageServers.tftpBootDir=TFTPBOOT Directory
 computeImageServers.confirmPassword=Comfirm Password
 computeImageServers.computeImageServerStatus=Image Server Status
 computeImageServers.osInstallNetworkAddress=OS Install Network Address
-computeImageServers.osInstallTimeOut=OS Install Timeout
+computeImageServers.osInstallTimeOut=OS Install Timeout in seconds
+computeImageServers.sshTimeout=Timeout in seconds for SSH commands sent to Image Server
+computeImageServers.imageImportTimeout=Image Import Timeout in seconds
 computeImageServers.availableComputeImages=Available Images
 computeImageServers.failedComputeImages=Images Failed to import
 computeImageServers.confirmPassword.not.match=User Password and Confirm Password do not match
@@ -2955,6 +2978,14 @@ affectedResources.blockSnapshot.creationTime=Creation Time
 affectedResources.blockSnapshot.wwn=WWN
 affectedResources.blockSnapshot.volume=Volume
 affectedResources.blockSnapshot.varray=Virtual Array
+
+affectedResources.blockSnapshotSession=Block Snapshot Session
+affectedResources.blockSnapshotSession.image=serviceCatalog/Snapshot.png
+affectedResources.blockSnapshotSession.name=Name
+affectedResources.blockSnapshotSession.creationTime=Creation Time
+affectedResources.blockSnapshotSession.wwn=WWN
+affectedResources.blockSnapshotSession.volume=Volume
+affectedResources.blockSnapshotSession.varray=Virtual Array
 
 affectedResources.blockConsistencyGroup=Consistency Group
 affectedResources.blockConsistencyGroup.image=assets/Consistency_Group.png

@@ -18,7 +18,10 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -28,6 +31,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedPro
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
@@ -96,6 +100,21 @@ public class RPUnManagedObjectDiscoverer {
             return;
         }
 
+        // This section of code allows us to cache XIO native GUID to workaround an issue
+        // with RP's understanding of XIO volume WWNs (128-bit) and the rest of the world's
+        // understanding of the XIO volume WWN once it's exported (64-bit)
+        List<URI> storageSystemIds = dbClient.queryByType(StorageSystem.class, true);
+        List<String> storageNativeIdPrefixes = new ArrayList<String>();
+        if (storageSystemIds != null) {
+            Iterator<StorageSystem> storageSystemsItr = dbClient.queryIterativeObjects(StorageSystem.class, storageSystemIds);
+            while (storageSystemsItr.hasNext()) {
+                StorageSystem storageSystem = storageSystemsItr.next();
+                if (storageSystem.getSystemType().equalsIgnoreCase(Type.xtremio.name())) {
+                    storageNativeIdPrefixes.add(storageSystem.getNativeGuid());
+                }   
+            }
+        }
+        
         // TODO: Break this up into smaller chunks
         for (GetCGsResponse cg : cgs) {
             log.info("Processing returned CG: " + cg.getCgName());
@@ -167,7 +186,7 @@ public class RPUnManagedObjectDiscoverer {
                 String accessState = copy.getAccessState();
                 for (GetVolumeResponse volume : copy.getJournals()) {
                     // Find this volume in UnManagedVolumes based on wwn
-                    UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
+                    UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient, storageNativeIdPrefixes);
 
                     // Check if this volume is already managed, which would indicate it has already been partially ingested
                     Volume managedVolume = DiscoveryUtils.checkManagedVolumeExistsInDBByWwn(dbClient, volume.getWwn());
@@ -251,7 +270,7 @@ public class RPUnManagedObjectDiscoverer {
             for (GetRSetResponse rset : cg.getRsets()) {
                 for (GetVolumeResponse volume : rset.getVolumes()) {
                     // Find this volume in UnManagedVolumes based on wwn
-                    UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
+                    UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient, storageNativeIdPrefixes);
 
                     // Check if this volume is already managed, which would indicate it has already been partially ingested
                     Volume managedVolume = DiscoveryUtils.checkManagedVolumeExistsInDBByWwn(dbClient, volume.getWwn());
@@ -273,7 +292,7 @@ public class RPUnManagedObjectDiscoverer {
                             unManagedProtectionSet.getManagedVolumeIds().add(managedVolume.getId().toString());
                         }
 
-                        if (null != unManagedVolume) {
+                        if (!managedVolume.checkInternalFlags(Flag.INTERNAL_OBJECT) && null != unManagedVolume) {
                             log.info("Protection Set {} also has an orphaned UnManagedVolume {} that will be removed",
                                     nativeGuid, unManagedVolume.getLabel());
                             // remove the unManagedVolume from the UnManagedProtectionSet's UnManagedVolume ids
@@ -346,7 +365,10 @@ public class RPUnManagedObjectDiscoverer {
 
                     // Find this volume in UnManagedVolumes based on wwn
                     StringSet rpTargetVolumeIds = new StringSet();
-                    UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
+                    
+                    // See if the unmanaged volume is in the list of volumes to update 
+                    // (it should be, unless the backing array has not been discovered)
+                    UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient, storageNativeIdPrefixes);
 
                     if (null == unManagedVolume) {
                         log.info("Protection Set {} contains unknown volume: {}. Skipping.",
@@ -359,7 +381,7 @@ public class RPUnManagedObjectDiscoverer {
                     // Find the target volumes associated with this source volume.
                     for (GetVolumeResponse targetVolume : rset.getVolumes()) {
                         // Find this volume in UnManagedVolumes based on wwn
-                        UnManagedVolume targetUnManagedVolume = findUnManagedVolumeForWwn(targetVolume.getWwn(), dbClient);
+                        UnManagedVolume targetUnManagedVolume = findUnManagedVolumeForWwn(targetVolume.getWwn(), dbClient, storageNativeIdPrefixes);
 
                         if (null == targetUnManagedVolume) {
                             log.info("Protection Set {} contains unknown target volume: {}. Skipping.",
@@ -544,14 +566,34 @@ public class RPUnManagedObjectDiscoverer {
      * 
      * @param wwn the WWN to find an UnManagedVolume for
      * @param dbClient a reference to the database client
-     * 
+     * @param cachedStorageNativeIds see comments, cached list of storage native GUIDs
      * @return an UnManagedVolume object for the given WWN
      */
-    private UnManagedVolume findUnManagedVolumeForWwn(String wwn, DbClient dbClient) {
+    private UnManagedVolume findUnManagedVolumeForWwn(String wwn, DbClient dbClient, List<String> cachedStorageNativeIds) {
         UnManagedVolume unManagedVolume = unManagedVolumesToUpdateByWwn.get(wwn);
 
         if (null == unManagedVolume) {
             unManagedVolume = DiscoveryUtils.checkUnManagedVolumeExistsInDBByWwn(dbClient, wwn);
+        }
+
+        // Special for RP.  XIO unmanaged volumes store a WWN in the "wwn" field that will not match 
+        // the WWN returned by RP, however the proper 128-but WWN is in two places:
+        // 1. The volume information "NATIVE_ID" field.  (not indexable, so hard to run a query to find)
+        // 2. Locked in the native guid of the volume XTREMIO+APM00144755987+UNMANAGEDVOLUME+616a8770e89749a7908d48a3dd9cf0fd
+        // The goal of this section of code is to loop through XIO arrays and search for the native guid
+        // based on that XIO native guid and wwn to see if we find the unmanaged volume.
+        //
+        // Someday RP will return the short WWN in the CG information and this inefficient code can be removed.
+        if (null == unManagedVolume && cachedStorageNativeIds != null) {
+            for (String storageNativeIdPrefix : cachedStorageNativeIds) {
+                // Search for the unmanaged volume based on the native GUID
+                String searchCriteria = storageNativeIdPrefix + "+UNMANAGEDVOLUME+" + wwn.toLowerCase();
+                List<UnManagedVolume> volumes = CustomQueryUtility.getUnManagedVolumeByNativeGuid(dbClient, searchCriteria);
+                if (volumes != null && !volumes.isEmpty()) {
+                    log.info("Found XIO unmanaged volume: " + volumes.get(0).getLabel());
+                    return volumes.get(0);
+                }
+            }
         }
 
         return unManagedVolume;

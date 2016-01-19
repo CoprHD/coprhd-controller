@@ -41,6 +41,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
+import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import com.emc.storageos.systemservices.impl.restore.DownloadExecutor;
@@ -460,12 +461,11 @@ public class BackupService {
      * @param backupName the backup filename to be downloaded
      */
     @POST
-    @Path("internal/push")
+    @Path("internal/pull")
     public Response downloadBackupFile(String backupName) {
         log.info("To download backupName={}", backupName);
 
-        downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
-                backupName, backupOps, false); //false= notify other nodes
+        downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps);
 
         Thread downloadThread = new Thread(downloadTask);
         downloadThread.setDaemon(true);
@@ -488,16 +488,64 @@ public class BackupService {
     public Response pullBackup(@QueryParam("file") String backupName ) {
         log.info("The backup file {} to download", backupName);
 
-        downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
-                backupName, backupOps, true); //true = notify other nodes
+        if (hasDownloadingInProgress()) {
+            Map<String, String> currentBackupInfo = backupOps.getCurrentBackupInfo();
+            String errmsg = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY)+ " is downloading";
+            throw SyssvcException.syssvcExceptions.pullBackupFailed(backupName, errmsg);
+        }
+        setBackupFileSize(backupName);
 
-        Thread downloadThread = new Thread(downloadTask);
-        downloadThread.setDaemon(true);
-        downloadThread.setName("backupDownloadThread");
-        downloadThread.start();
+        notifyOtherNodes(backupName);
 
         log.info("done");
         return Response.status(202).build();
+    }
+
+    private boolean hasDownloadingInProgress() {
+        Map<String,String> info = backupOps.getCurrentBackupInfo();
+        log.info("The current downloading backup info ={}", info);
+
+        if (info.isEmpty()) {
+            return false;
+        }
+
+        String backupName = info.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
+
+        return !backupName.isEmpty();
+    }
+
+    private void setBackupFileSize(@QueryParam("file") String backupName) {
+        SchedulerConfig cfg = backupScheduler.getCfg();
+        long size = 0;
+        try {
+            if (cfg.uploadUrl == null) {
+                cfg.reload();
+            }
+            FtpClient client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
+            size = client.getFileSize(backupName);
+        }catch(Exception  e) {
+            log.warn("Failed to get the backup file size, e=", e);
+            throw new RuntimeException(e);
+        }
+
+        BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName, false);
+        status.setBackupName(backupName);
+        status.setBackupSize(size);
+        status.setStatus(BackupRestoreStatus.Status.DOWNLOADING);
+        backupOps.persistBackupRestoreStatus(status, false);
+    }
+
+    private void notifyOtherNodes(String backupName) {
+        URI pushUri = SysClientFactory.URI_NODE_BACKUPS_PULL;
+
+        List<Service> sysSvcs = backupOps.getAllSysSvc();
+        for (Service svc : sysSvcs) {
+            URI endpoint = svc.getEndpoint();
+            log.info("Notify {} hostname={}", endpoint, svc.getNodeName());
+
+            SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
+            sysClient.post(pushUri, null, backupName);
+        }
     }
 
     /**
@@ -549,7 +597,7 @@ public class BackupService {
                 restoreLog};
         log.info("The restore command={}", restoreCommand);
 
-        Exec.exec(120*1000, restoreCommand);
+        Exec.exec(120 * 1000, restoreCommand);
 
         log.info("done");
         return Response.status(202).build();

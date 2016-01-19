@@ -42,6 +42,7 @@
 
 #{DataTable.header titleKey:'nav.block.volumes' /}  
 #{DataTable.table id:'volumes',
+				  expandable:true,
                   dataTable:dataTable,
                   source:@volumesJson(session.activeProjectId), 
                   cssClass:'editableRows',
@@ -66,3 +67,16 @@
     <input type="hidden" name="type" value="VIPR_ONLY">
   #{/DataTable.formAction}
 #{/DataTable.table}
+#{DataTable.expandHtml @volumeDetails(':id'), table:'volumes' /}
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+function renderLink(o, val) {
+    var data = o.aData;
+    var url = #{jsAction @resources.BlockVolumes.volume(':id') /};
+    var href = url(data);
+    
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+</script>
+#{/set}

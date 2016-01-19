@@ -91,6 +91,7 @@
 
     <bean id="srdfscheduler" class="com.emc.storageos.api.service.impl.placement.SRDFScheduler">
         <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
         <property name="blockScheduler" ref="storagescheduler" />
     </bean>
 
@@ -418,6 +419,7 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.ProjectService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
+                    <property name="customConfigHandler" ref="customConfigHandler" />
                 </bean>
                 <ref bean="fileService"/>
                 <ref bean="bucketService"/>

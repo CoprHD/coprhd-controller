@@ -13,7 +13,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 
 /**
@@ -24,8 +26,11 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 public class DrUpgradeVoter implements UpgradeVoter {
     private static Logger log = LoggerFactory.getLogger(DrUpgradeVoter.class);
 
-    @Autowired
     private DrUtil drUtil;
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
 
     @Override
     public void isOKForUpgrade(String currentVersion, String targetVersion) {
@@ -46,6 +51,12 @@ public class DrUpgradeVoter implements UpgradeVoter {
                     log.error("Failed to release the DR lock", e);
                 }
             }
+        }
+
+        List<Site> pausedSites = drUtil.listSitesInState(SiteState.STANDBY_PAUSED);
+        if (pausedSites.isEmpty()) {
+            log.error("There's no paused standby site for DR Upgrade");
+            throw APIException.internalServerErrors.upgradeNotAllowedWithoutPausedSite();
         }
     }
 }

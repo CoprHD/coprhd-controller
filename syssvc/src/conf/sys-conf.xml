@@ -102,6 +102,7 @@
                     <property name="upgradeVoters">
                     	<list>
                     		<ref bean="geoUpgradeVoter"/>
+                            <ref bean="drUpgradeVoter"/>
                     	</list>
                     </property>
                 </bean>
@@ -597,6 +598,10 @@
                 <value>SasvcOrderCleanupHandler</value>
             </list>
         </property>
+    </bean>
+
+    <bean id="drUpgradeVoter" class="com.emc.storageos.security.upgradevoter.DrUpgradeVoter">
+        <property name="drUtil" ref="drUtil" />
     </bean>
 </beans>
     

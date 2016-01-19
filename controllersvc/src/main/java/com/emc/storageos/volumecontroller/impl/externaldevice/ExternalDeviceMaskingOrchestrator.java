@@ -179,7 +179,8 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                                                      StorageSystem storage) throws Exception
     {
         // Note: We support only case when add volumes to export group does not change storage ports in
-        // export masks where volumes are added.
+        // existing export masks where volumes are added.
+        // Based on this, we only execute masking step on device for existing masks --- no zoning change is required.
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                 exportGroup, storageURI);
         if (exportMasks != null && !exportMasks.isEmpty())
@@ -192,7 +193,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
 
             // For each export mask in export group, invoke add Volumes if export Mask belongs to the storage array
             // of added volumes. Export group may have export masks for the same array but for different compute resources
-            // (hosts or clusters). Based on this we execute only masking step to add volumes to rele
+            // (hosts or clusters).
             for (ExportMask exportMask : exportMasks) {
                 if (exportMask.getStorageDevice().equals(storageURI)) {
                     _log.info("export_volume_add: adding volume to an existing export");
@@ -208,12 +209,14 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     String maskingStep = generateExportMaskAddVolumesWorkflow(workflow,
                             null, storage, exportGroup, exportMask, volumeMap);
 
+                    // We do not need zoning step, since storage ports should not change.
                     // Have to store export group id to be available at device level.
-                    WorkflowService.getInstance().storeStepData(maskingStep, exportGroup.getId());
+                    // Todo: remove commented code.
+                    // WorkflowService.getInstance().storeStepData(maskingStep, exportGroup.getId());
                    // String zoningMapUpdateStep = generateZoningMapUpdateWorkflow(
                    //         workflow, maskingStep, exportGroup, storage);
-                    generateZoningAddVolumesWorkflow(workflow, maskingStep,
-                            exportGroup, masks, volumeURIs);
+                   // generateZoningAddVolumesWorkflow(workflow, maskingStep,
+                   //         exportGroup, masks, volumeURIs);
                 }
             }
 
@@ -223,11 +226,13 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
             workflow.executePlan(taskCompleter, successMessage);
         }
         else
-        {
+        { // Todo: complete this .....
+            // This is the case when export group does not have export mask for storage array the volumes belongs.
+            // In this case we will create new export masks for storage array and each compute resource in the export group.
             if (exportGroup.getInitiators() != null
                     && !exportGroup.getInitiators().isEmpty())
             {
-                _log.info("export_volume_add: adding volume, creating a new export");
+                _log.info("export_volume_add: adding volume, creating a new export mask");
 
                 List<URI> initiatorURIs = new ArrayList<>();
                 for (String initiatorId : exportGroup.getInitiators())
@@ -237,18 +242,28 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     initiatorURIs.add(initiator.getId());
                 }
 
-                // Set up work flow steps.
+                // Get new work flow to setup steps for export masks creation
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(),
-                        "exportGroupAddVolumes - Create a new mask", true,
-                        token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
+                        true, token);
+                String stepId;
 
-                generateExportMaskCreateWorkflow(workflow, null, storage,
-                        exportGroup, initiatorURIs, volumeMap, token);
-                generateZoningMapUpdateWorkflow(workflow,
-                        EXPORT_GROUP_MASKING_TASK, exportGroup, storage);
+                stepId = createNewExportMaskWorkflowForInitiators(initiatorURIs,
+                        exportGroup, workflow, volumeMap, storage, token,
+                        null);
+
+                // Set up work flow steps.
+//                Workflow workflow = _workflowService.getNewWorkflow(
+//                        MaskingWorkflowEntryPoints.getInstance(),
+//                        "exportGroupAddVolumes - Create a new mask", true,
+//                        token);
+//
+//                generateExportMaskCreateWorkflow(workflow, null, storage,
+//                        exportGroup, initiatorURIs, volumeMap, token);
+                //generateZoningMapUpdateWorkflow(workflow,
+                //        EXPORT_GROUP_MASKING_TASK, exportGroup, storage);
                 generateZoningCreateWorkflow(workflow,
-                        EXPORT_GROUP_UPDATE_ZONING_MAP, exportGroup, null,
+                        EXPORT_GROUP_MASKING_TASK, exportGroup, null,
                         volumeMap);
 
                 String successMessage = String
@@ -259,7 +274,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
             }
             else
             {
-                _log.info("Export group doesn't have intitiators.");
+                _log.info("Export group doesn't have initiators.");
                 taskCompleter.ready(_dbClient);
             }
         }

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.externaldevice;
 
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
@@ -24,4 +25,7 @@ public interface ExternalDeviceExceptions {
 
     @DeclareServiceCode(ServiceCode.NO_DRIVER_DEFINED_FOR_DEVICE_ERROR)
     public ExternalDeviceException noDriverDefinedForDevice(String systemName);
+
+    @DeclareServiceCode(ServiceCode.NO_NATIVEID_DEFINED_FOR_STORAGE_PORT_ERROR)
+    public ExternalDeviceException noNativeIdDefinedForPort(String storageSystem, String storagePort);
 }

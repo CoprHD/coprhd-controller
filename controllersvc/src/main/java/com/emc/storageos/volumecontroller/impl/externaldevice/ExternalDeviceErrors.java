@@ -35,4 +35,11 @@ public interface ExternalDeviceErrors {
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_SNAPSHOT_ERROR)
     public ServiceError deleteSnapshotFailed(String method, String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_EXPORT_MASK_ERROR)
+    public ServiceError createExportMaskFailed(String method, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_ADD_VOLUME_TO_EXPORT_MASK_ERROR)
+    public ServiceError addVolumesToExportMaskFailed(String method, String errorMsg);
+
+
 }

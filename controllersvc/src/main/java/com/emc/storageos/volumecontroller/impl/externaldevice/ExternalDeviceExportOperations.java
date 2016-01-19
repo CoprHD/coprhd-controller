@@ -136,35 +136,34 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                             selectedPortsForMask.add(port);
                         }
                         updateStoragePortsInExportMask(exportMask, initiatorList, exportGroup, selectedPortsForMask);
+                        // Update volumes Lun Ids in export mask based on driver selection
+                        for (String volumeUriString : volumeToHLUMap.keySet()) {
+                            String targetLunId = volumeToHLUMap.get(volumeUriString);
+                            exportMask.getVolumes().put(volumeUriString, targetLunId);
+                        }
+
+                        dbClient.updateObject(exportMask);
+                        taskCompleter.ready(dbClient);
                     } else {
                         //  selected ports are not valid. failure
-                        String errorMsg = String.format("createExportMask -- Failed to create export: %s .", task.getMessage());
-                        log.error(errorMsg);
-                        ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("createExportMask", errorMsg);
+                        String errorMsg = "createExportMask -- Ports selected by driver failed validation.";
+                        log.error("createExportMask -- Ports selected by driver failed validation.");
+                        ServiceError serviceError = ExternalDeviceException.errors.createExportMaskFailed("createExportMask", errorMsg);
                         taskCompleter.error(dbClient, serviceError);
                     }
                 }
-                // Update volumes Lun Ids in export mask based on driver selection
-                for (String volumeUriString : volumeToHLUMap.keySet()) {
-                    String targetLunId = volumeToHLUMap.get(volumeUriString);
-                    exportMask.getVolumes().put(volumeUriString, targetLunId);
-                }
-
-                dbClient.updateObject(exportMask);
-                taskCompleter.ready(dbClient);
             } else {
                 // failed
                 // TODO support async
-                // Set volumes to inactive state
                 String errorMsg = String.format("createExportMask -- Failed to create export: %s .", task.getMessage());
                 log.error(errorMsg);
-                ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("createExportMask", errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.createExportMaskFailed("createExportMask", errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
-        }    catch (Exception ex) {
+        }  catch (Exception ex) {
             log.error("Problem in createExportMask: ", ex);
             log.error("createExportMask -- Failed to create export mask. ", ex);
-            ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("createExportMask", ex.getMessage());
+            ServiceError serviceError = ExternalDeviceException.errors.createExportMaskFailed("createExportMask", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
 
@@ -267,9 +266,10 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                         task.getMessage(), usedRecommendedPorts);
                 log.info(msg);
                 if (usedRecommendedPorts.isFalse()) {
-                    String errorMsg = String.format("Change of ports for addVolume() call is not supported: %s .", task.getMessage());
+                    String errorMsg = String.format("Change of storage ports in the mask for addVolume() call is not supported: %s .",
+                            task.getMessage());
                     log.error(errorMsg);
-                    ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("createExportMask", errorMsg);
+                    ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolume", errorMsg);
                     taskCompleter.error(dbClient, serviceError);
                 } else {
                     // Driver used recommended ports for a new volume.
@@ -286,16 +286,16 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             } else {
                 // failed
                 // TODO support async
-                // Set volumes to inactive state
-                String errorMsg = String.format("Failed to create export: %s .", task.getMessage());
+                String errorMsg = String.format("Failed to add volumes to export mask: %s .", task.getMessage());
                 log.error(errorMsg);
-                ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("createExportMask", errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolume", errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception ex) {
             log.error("Problem in addVolume: ", ex);
-            log.error("Failed to add volumes to export mask. ", ex);
-            ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("createExportMask", ex.getMessage());
+            String errorMsg = String.format("Failed to add volumes to export mask: %s .", ex.getMessage());
+            log.error(errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolume", errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }
         log.info("{} addVolume END...", storage.getSerialNumber());
@@ -372,7 +372,10 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             } else {
                 // This is error condition. Each port for driver managed systems should have nativeId set at
                 // discovery time.
-                // TODO process error.
+                String errorMsg = String.format("No nativeId defined for port: storage system: %s, storagePort: %s .",
+                        storage.getId(), port.getId());
+                log.error(errorMsg);
+                throw ExternalDeviceException.exceptions.noNativeIdDefinedForPort(storage.getNativeId(), port.getId().toString());
             }
             StoragePort driverPort = createDriverPort(storage, port);
             availablePorts.add(driverPort);

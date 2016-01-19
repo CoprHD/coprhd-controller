@@ -21,6 +21,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation.Target;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
@@ -116,6 +117,9 @@ public class FileMirrorSchedular implements Scheduler {
                     VirtualPool.getFileRemoteProtectionSettings(vPool, _dbClient);
 
             String srcSystemType = sourceFileRecommendation.getDeviceType();
+            Set<String> systemTypes = new StringSet();
+            systemTypes.add(srcSystemType);
+
             if (remoteCopySettings != null && !remoteCopySettings.isEmpty()) {
                 for (Entry<URI, VpoolRemoteCopyProtectionSettings> copy : remoteCopySettings.entrySet()) {
                     // Process each target !!!
@@ -125,7 +129,8 @@ public class FileMirrorSchedular implements Scheduler {
                     VirtualArray targetArray = _dbClient.queryObject(VirtualArray.class, targetCopy.getVirtualArray());
                     // Filter the target storage pools!!!
                     Map<String, Object> attributeMap = new HashMap<String, Object>();
-                    attributeMap.put(Attributes.system_type.toString(), srcSystemType);
+
+                    attributeMap.put(Attributes.system_type.toString(), systemTypes);
                     attributeMap.put(Attributes.remote_copy_mode.toString(), targetCopy.getCopyMode());
                     attributeMap.put(Attributes.source_storage_system.name(), sourceFileRecommendation.getSourceStorageSystem().toString());
 

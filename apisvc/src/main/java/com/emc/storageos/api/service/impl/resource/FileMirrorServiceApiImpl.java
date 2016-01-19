@@ -17,6 +17,7 @@ import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation;
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation.Target;
 import com.emc.storageos.api.service.impl.placement.FileMirrorSchedular;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
+
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
@@ -34,20 +35,18 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Strings;
@@ -75,7 +74,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * it take mirror recommendation and then creates source and mirror fileshare
+     * It take mirror recommendation and then creates source and mirror fileshare
      */
 
     @Override
@@ -112,8 +111,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * prepare the file descriptors
-     * 
+     * Prepare the file descriptors
      * @param filesystems
      * @param cosCapabilities
      * @param suggestedId
@@ -195,30 +193,10 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         return fileDescriptors;
     }
 
-    @Override
-    public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
-            FileShare sourceFileShare, VirtualPool sourceVirtualPool,
-            VirtualPoolCapabilityValuesWrapper capabilities,
-            NativeContinuousCopyCreate param, String taskId)
-            throws ControllerException {
-        // TODO Auto-generated method stub
-        TaskList taskList = new TaskList();
-        // TBD call the FileReplicationDevice controller
-        return taskList;
-    }
 
-    @Override
-    public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
-            Volume sourceFileShare, List<URI> mirrorFSUris, String taskId)
-            throws ControllerException {
-        // TODO Auto-generated method stub
-        TaskList taskList = new TaskList();
-        // TBD call the FileReplicationDevice controller
-        return taskList;
-    }
 
     /**
-     * 
+     * Prepare the source and target filesystems
      * @param param
      * @param task
      * @param taskList
@@ -303,7 +281,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         return preparedFileSystems;
     }
 
-    /**
+    /**Set mirror object information
      * 
      * @param sourceFileShare
      * @param targetFileShare
@@ -325,7 +303,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * 
+     * Validate the filesystem label
      * @param placement
      * @param fileShare
      */
@@ -365,7 +343,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * create fileSystem
+     * Create fileSystem
      * 
      * @param newFileLabel
      * @param fileshareSize
@@ -437,7 +415,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * prepare the source and target filesystem using Recommandations
+     * Prepare the source and target filesystem using Recommandations
      * 
      * @param placement
      * @param vpoolSource
@@ -520,14 +498,14 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * validate the given fileshare label is not a duplicate within given project. If so, throw exception
+     * Validate the given fileshare label is not a duplicate within given project. If so, throw exception
      * 
      * @param label - label to validate
      * @param project - project where label is being validate.
      */
     protected void validateFileShareLabel(String label, Project project) {
         List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
-                ContainmentPrefixConstraint.Factory.getFullMatchConstraint(Volume.class, "project", project.getId(), label));
+                ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project", project.getId(), label));
         if (!fileShareList.isEmpty()) {
             throw APIException.badRequests.duplicateLabel(label);
         }

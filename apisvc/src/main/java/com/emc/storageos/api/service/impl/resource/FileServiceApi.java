@@ -2,12 +2,14 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -26,14 +28,14 @@ public interface FileServiceApi {
 	/**
      * Create filesystems
      *
-     * @param param The filesystem creation post parameter
-     * @param project project requested
-     * @param varray source VirtualArray
-     * @param vpool VirtualPool requested
-     * @param recommendations Placement recommendation object
-     * @param taskList list of tasks for source filesystems
-     * @param task task ID
-     * @param vpoolCapabilities wrapper for vpool params
+     * @param param  -The filesystem creation post parameter
+     * @param project -project requested
+     * @param varray -source VirtualArray
+     * @param vpool -VirtualPool requested
+     * @param recommendations -Placement recommendation object
+     * @param taskList -list of tasks for source filesystems
+     * @param task  -task ID
+     * @param vpoolCapabilities -wrapper for vpool params
      * @return TaskList
      *
      * @throws InternalException
@@ -47,10 +49,11 @@ public interface FileServiceApi {
     /**
      * Delete the passed filesystems for the passed system.
      *
-     * @param systemURI URI of the system owing the filesystems.
-     * @param fileSystemURIs The URIs of the filesystems to be deleted.
-     * @param deletionType The type of deletion to perform.
-     * @param task The task identifier.
+     * @param systemURI -URI of the system owing the filesystems.
+     * @param fileSystemURIs- The URIs of the filesystems to be deleted.
+     * @param deletionType -The type of deletion to perform.
+     * @param  
+     * @param task -The task identifier.
      *
      * @throws InternalException
      */
@@ -66,36 +69,4 @@ public interface FileServiceApi {
      * @throws InternalException
      */
     public <T extends DataObject> String checkForDelete(T object) throws InternalException;
-    
-    /**
-     * start the native continuous copies of source fileshare or it single local mirror replication
-     * @param storageSystem
-     * @param sourceFileShare
-     * @param sourceVirtualPool
-     * @param capabilities
-     * @param param
-     * @param taskId
-     * @return
-     * @throws ControllerException
-     */
-    public TaskList startNativeContinuousCopies(StorageSystem storageSystem, FileShare sourceFileShare,
-                                                VirtualPool sourceVirtualPool, VirtualPoolCapabilityValuesWrapper capabilities,
-                                                NativeContinuousCopyCreate param, String taskId)
-            throws ControllerException;
-    
-    /**
-     * detach the continuous copies
-     * @param storageSystem
-     * @param sourceFileShare
-     * @param mirrorFSUris
-     * @param taskId
-     * @return
-     * @throws ControllerException
-     */
-    public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
-            Volume sourceFileShare, List<URI> mirrorFSUris, String taskId) throws ControllerException;
-    
-    
-    
-
 }

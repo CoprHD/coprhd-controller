@@ -11,20 +11,24 @@ import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.placement.FileRecommendation;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
+
 import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
-import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
-import com.emc.storageos.fileorchestrationcontroller.FileDescriptor.DeleteType;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.google.common.base.Strings;
+
 
 /**
  * File Service subtask (parts of larger operations) default implementation.
@@ -46,7 +50,7 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
         List<FileShare> fileShares = new ArrayList<FileShare>();
 
         // Prepare the FileShares
-        fileList = _scheduler.prepareFileSystems(param, task, taskList, project,
+        fileList = getFileScheduler().prepareFileSystems(param, task, taskList, project,
                 varray, vpool, recommendations, vpoolCapabilities, false);
 
         fileShares.addAll(fileList);

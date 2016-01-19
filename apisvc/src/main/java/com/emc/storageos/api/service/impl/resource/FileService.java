@@ -1466,11 +1466,12 @@ public class FileService extends TaskResourceService {
 
     /**
      * Allocate, initialize and persist state of the fileSystem being created.
-     * 
      * @param param
      * @param project
+     * @param tenantOrg
      * @param neighborhood
      * @param vpool
+     * @param flags
      * @param placement
      * @param token
      * @return
@@ -2327,6 +2328,7 @@ public class FileService extends TaskResourceService {
      * Returns the bean responsible for servicing the request
      *
      * @param fileshahre
+     * @param dbClient db client
      * @return file service implementation object
      */
     public static FileServiceApi getFileShareServiceImpl(FileShare fileShare, DbClient dbClient) {
@@ -2338,6 +2340,7 @@ public class FileService extends TaskResourceService {
      * Returns the bean responsible for servicing the request
      *
      * @param vpool Virtual Pool
+     * @param dbClient db client
      * @return file service implementation object
      */
     private static FileServiceApi getFileServiceImpl(VirtualPool vpool, DbClient dbClient) {

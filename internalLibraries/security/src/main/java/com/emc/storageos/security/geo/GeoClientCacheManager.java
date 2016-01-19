@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.Properties;
 
 import com.emc.storageos.security.helpers.ServiceClientRetryFilter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,6 +123,7 @@ public class GeoClientCacheManager {
         client.setClientReadTimeout(_clientReadTimeout);
         client.addFilter(new ServiceClientRetryFilter(client.getClientMaxRetries(), client.getClientRetryInterval()));
         client.addFilter(new GeoServiceExceptionFilter());
+        
         return client;
     }
 

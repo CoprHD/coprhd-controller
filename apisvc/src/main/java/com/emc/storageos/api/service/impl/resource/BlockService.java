@@ -186,6 +186,8 @@ public class BlockService extends TaskResourceService {
     private static final String FALSE_STR = "false";
     private static final String MIRRORS = "Mirrors";
 
+    private static final String SIZE = "size";
+
     // Protection operations that are allowed with /block/volumes/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
         FAILOVER("failover", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER),
@@ -739,12 +741,9 @@ public class BlockService extends TaskResourceService {
         if (param.getSize() != null) {
             // Validate the requested volume size is greater then 0.
             volumeSize = SizeUtil.translateSize(param.getSize());
-            // HY: JPMC initiated the request to be able able to create GK devices and
-            // ViPR controller has decided not block device creations when the size is < 1 GB
-            // Validate the requested volume size is at least 1 GB.
-            // if (volumeSize < GB) {
-            // throw APIException.badRequests.leastVolumeSize("1");
-            // }
+            if (volumeSize <= 0) {
+                throw APIException.badRequests.parameterMustBeGreaterThan(SIZE, 0);
+            }
             capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volumeSize);
         }
 

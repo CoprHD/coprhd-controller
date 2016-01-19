@@ -7,6 +7,7 @@ package com.emc.vipr.client;
 import com.emc.vipr.client.exceptions.ViPRException;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.impl.SSLUtil;
+import sun.net.util.IPAddressUtil;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
@@ -171,7 +172,12 @@ public class ClientConfig {
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      */
     public void setHost(String host) {
-        this.host = host;
+        //sets literal ipv6 address to bracketed address
+        if (IPAddressUtil.isIPv6LiteralAddress(host)) {
+            this.host = String.format("[%s]",host);
+        } else {
+            this.host = host;
+        }
     }
 
     public int getPort() {

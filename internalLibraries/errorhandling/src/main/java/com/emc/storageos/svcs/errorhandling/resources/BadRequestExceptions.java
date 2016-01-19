@@ -2708,6 +2708,12 @@ public interface BadRequestExceptions {
             replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidIpsecStatus();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException notAllowedToAddVdcInDRConfig();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vpoolChangeInvalidProtectionSystemOrCg(final String invalidVolumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

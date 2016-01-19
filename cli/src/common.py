@@ -301,9 +301,26 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                 error_msg = "Requested resource not found"
             elif(response.status_code == 405):
                 error_msg = str(response.text)
-            elif(response.status_code == 503):
-                error_msg = "Service temporarily unavailable: The server" + \
-                    " is temporarily unable to service your request"
+            elif response.status_code == 503:
+                error_msg = ""
+                errorDetails = ""
+                errorDescription = ""
+
+                responseText = json_decode(response.text)
+
+                if 'code' in responseText:
+                    errorCode = responseText['code']
+                    error_msg = error_msg + "Error " + str(errorCode)
+
+                if 'details' in responseText:
+                    errorDetails = responseText['details']
+                    error_msg = error_msg + ": " + errorDetails
+                elif 'description' in responseText:
+                    errorDescription = responseText['description']
+                    error_msg = error_msg + ": " + errorDescription
+                else:
+                    error_msg = "Service temporarily unavailable: The server" + \
+                                " is temporarily unable to service your request"
             else:
                 error_msg = response.text
                 if isinstance(error_msg, unicode):

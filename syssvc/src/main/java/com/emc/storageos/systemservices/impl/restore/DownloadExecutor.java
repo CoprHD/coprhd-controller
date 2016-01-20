@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import com.emc.storageos.coordinator.common.impl.ZkPath;
+import org.apache.curator.utils.ZKPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -196,7 +198,10 @@ public final class DownloadExecutor implements  Runnable {
             }
         }catch (Exception e) {
             log.info("isCanceled={}", isCanceled);
+
             Status s = Status.DOWNLOAD_FAILED;
+            s.setMessage(e.getMessage());
+
             if (isCanceled) {
                 s = Status.DOWNLOAD_CANCELLED;
                 deleteDownloadedBackup();

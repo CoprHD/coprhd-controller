@@ -10,7 +10,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -38,17 +37,17 @@ public class ScaleIOStorageDriverTest {
     String INVALID_VOLUME_ID_1 = "83f177070000000";
 
     private ScaleIOStorageDriver driver;
-    @Autowired
-    private ScaleIORestHandleFactory scaleIORestHandleFactory;
+    // @Autowired
+    // private ScaleIORestHandleFactory scaleIORestHandleFactory;
     private DriverTask task;
 
     @Before
     public void setUp() throws Exception {
         Registry registry = new InMemoryRegistryImpl();
         driver = new ScaleIOStorageDriver();
-        //driver.setScaleIORestHandleFactory(scaleIORestHandleFactory);
+        // driver.setScaleIORestHandleFactory(scaleIORestHandleFactory);
         driver.setDriverRegistry(registry);
-        //testDiscoverStorageSystem();
+        // testDiscoverStorageSystem();
     }
 
     @Test
@@ -239,7 +238,8 @@ public class ScaleIOStorageDriverTest {
         List<StoragePool> storagePools = new ArrayList<>();
         StoragePool storagePool = new StoragePool();
         storagePools.add(storagePool);
-        driver.setConnInfoToRegistry(validStorageSystem.getNativeId(), validStorageSystem.getIpAddress(), validStorageSystem.getPortNumber(), validStorageSystem.getUsername(), validStorageSystem.getPassword());
+        driver.setConnInfoToRegistry(validStorageSystem.getNativeId(), validStorageSystem.getIpAddress(),
+                validStorageSystem.getPortNumber(), validStorageSystem.getUsername(), validStorageSystem.getPassword());
         task = driver.discoverStoragePools(validStorageSystem, storagePools);
 
         Assert.assertNotNull(task);
@@ -309,6 +309,7 @@ public class ScaleIOStorageDriverTest {
 
     @Test
     public void testCreateVolumeSnapshot() throws Exception {
+
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
         // test with null input parameters

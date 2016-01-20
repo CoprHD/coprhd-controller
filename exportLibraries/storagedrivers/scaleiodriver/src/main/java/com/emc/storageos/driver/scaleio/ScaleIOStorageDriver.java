@@ -18,19 +18,18 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
-
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
-    private ScaleIORestHandleFactory handleFactory;
+    String fullyQualifiedXMLConfigName = "/scaleio-driver-prov.xml";
+    ApplicationContext context = new ClassPathXmlApplicationContext(fullyQualifiedXMLConfigName);
+    ScaleIORestHandleFactory scaleIORestHandleFactory = (ScaleIORestHandleFactory) context.getBean("scaleIORestHandleFactory");
     private ScaleIORestClient client;
     private int countSucc;
-
-    public void setHandleFactory(ScaleIORestHandleFactory handleFactory) {
-        this.handleFactory = handleFactory;
-    }
 
     /**
      * Create storage volumes with a given set of capabilities.
@@ -85,7 +84,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         if (snapshots != null && snapshots.size() > 0) {
             // Assume snapshots could be from different storage system
             for (VolumeSnapshot snapshot : snapshots) {
-                log.info("Start to get Rest client for volume {} of ScaleIO storage system: {}",snapshot.getParentId(), snapshot.getStorageSystemId());
+                log.info("Start to get Rest client for volume {} of ScaleIO storage system: {}", snapshot.getParentId(),
+                        snapshot.getStorageSystemId());
                 client = this.getClientBySystemId(snapshot.getStorageSystemId());
                 // create snapshot
                 if (client != null) {
@@ -393,7 +393,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                         }
                     }
                     this.setTaskStatus(snapshots.size(), countSucc, task);
-                    log.info("Create consistency group snapshot with group ID:{} - End:",consistencyGroup.getNativeId());
+                    log.info("Create consistency group snapshot with group ID:{} - End:", consistencyGroup.getNativeId());
                 } catch (Exception e) {
                     log.error("Exception while Creating consistency group snapshots in storage system: {}", systemId, e);
                     task.setStatus(DriverTask.TaskStatus.FAILED);
@@ -497,7 +497,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
             try {
                 setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                         storageSystem.getUsername(), storageSystem.getPassword());
-                ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(), storageSystem.getIpAddress(),
+                ScaleIORestClient scaleIOHandle = scaleIORestHandleFactory.getClientHandle(storageSystem.getNativeId(),
+                        storageSystem.getIpAddress(),
                         storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
                 if (scaleIOHandle != null) {
                     ScaleIOSystem scaleIOSystem = scaleIOHandle.getSystem();
@@ -547,7 +548,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         try {
 
             log.info("Discovery of storage pools for storage system {} .", storageSystem.getNativeId());
-            ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(), storageSystem.getIpAddress(),
+            ScaleIORestClient scaleIOHandle = scaleIORestHandleFactory.getClientHandle(storageSystem.getNativeId(),
+                    storageSystem.getIpAddress(),
                     storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
             if (scaleIOHandle != null) {
                 List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
@@ -613,7 +615,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         try {
 
             log.info("Discovery of storage ports for storage system {} .", storageSystem.getNativeId());
-            ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(), storageSystem.getIpAddress(),
+            ScaleIORestClient scaleIOHandle = scaleIORestHandleFactory.getClientHandle(storageSystem.getNativeId(),
+                    storageSystem.getIpAddress(),
                     storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
             if (scaleIOHandle != null) {
                 List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
@@ -776,7 +779,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         password = this.getConnInfoFromRegistry(systemId, ScaleIOConstants.PASSWORD);
         if (ip_address != null && port != null && username != null && password != null) {
             try {
-                client = handleFactory.getClientHandle(systemId, ip_address, Integer.parseInt(port), username, password);
+                client = scaleIORestHandleFactory.getClientHandle(systemId, ip_address, Integer.parseInt(port), username, password);
                 return client;
             } catch (Exception e) {
                 log.error("Exception when creating rest client instance.", e);

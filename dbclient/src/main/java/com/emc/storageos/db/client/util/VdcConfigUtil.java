@@ -132,14 +132,6 @@ public class VdcConfigUtil {
             activeSiteId = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()).getUuid();
         }
         
-        if (StringUtils.isEmpty(activeSiteId)) {
-            if (SiteInfo.DR_OP_FAILBACK_DEGRADE.equals(siteInfo.getActionRequired())) {
-                log.info("For active failback degraded, no active site any more. Leave active site id as empty");
-            } else {
-                throw new IllegalStateException("No valid active site UUID found");
-            }
-        }
-        
         Collections.sort(sites, new Comparator<Site>() {
             @Override
             public int compare(Site a, Site b) {

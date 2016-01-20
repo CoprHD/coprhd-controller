@@ -30,7 +30,7 @@
             size:{
               type:"storageSize",
               validation:{
-                min:1
+                min:0
               }
             },
             numberOfVolumes:{

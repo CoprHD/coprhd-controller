@@ -37,21 +37,21 @@ public class VdcConfigUtilTest {
         // the signature is assertEquals(String expected, String actual)
         Assert.assertEquals("vdc2", vdcConfig.get(VdcConfigUtil.VDC_MYID));
         Assert.assertEquals("vdc1,vdc2,vdc3", vdcConfig.get(VdcConfigUtil.VDC_IDS));
-        Assert.assertEquals("3", vdcConfig.get(String.format(VdcConfigUtil.VDC_NODE_COUNT_PTN, "vdc1")));
-        Assert.assertEquals("5", vdcConfig.get(String.format(VdcConfigUtil.VDC_NODE_COUNT_PTN, "vdc2")));
-        Assert.assertEquals("1", vdcConfig.get(String.format(VdcConfigUtil.VDC_NODE_COUNT_PTN, "vdc3")));
-        Assert.assertEquals("1.1.1.1", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc1", 1)));
-        Assert.assertEquals("1.1.1.2", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc1", 2)));
-        Assert.assertEquals("1.1.1.3", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc1", 3)));
-        Assert.assertEquals("2.1.1.1", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 1)));
-        Assert.assertEquals("2.1.1.2", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 2)));
-        Assert.assertEquals("2.1.1.3", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 3)));
-        Assert.assertEquals("2.1.1.4", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 4)));
-        Assert.assertEquals("2.1.1.5", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 5)));
-        Assert.assertEquals("3.1.1.1", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc3", 1)));
-        Assert.assertEquals("", vdcConfig.get(VdcConfigUtil.SITE_IDS));
+        Assert.assertEquals("3", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_NODE_COUNT_PTN, "vdc1", "site1")));
+        Assert.assertEquals("5", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_NODE_COUNT_PTN, "vdc2", "site1")));
+        Assert.assertEquals("1", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_NODE_COUNT_PTN, "vdc3", "site1")));
+        Assert.assertEquals("1.1.1.1", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc1", "site1", 1)));
+        Assert.assertEquals("1.1.1.2", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc1", "site1", 2)));
+        Assert.assertEquals("1.1.1.3", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc1", "site1", 3)));
+        Assert.assertEquals("2.1.1.1", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc2", "site1", 1)));
+        Assert.assertEquals("2.1.1.2", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc2", "site1", 2)));
+        Assert.assertEquals("2.1.1.3", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc2", "site1", 3)));
+        Assert.assertEquals("2.1.1.4", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc2", "site1", 4)));
+        Assert.assertEquals("2.1.1.5", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc2", "site1", 5)));
+        Assert.assertEquals("3.1.1.1", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc3", "site1", 1)));
+        Assert.assertEquals("site1", vdcConfig.get(VdcConfigUtil.SITE_IDS));
         Assert.assertEquals("false", vdcConfig.get(VdcConfigUtil.SITE_IS_STANDBY));
-        Assert.assertEquals("", vdcConfig.get(VdcConfigUtil.SITE_MYID));
+        Assert.assertEquals("site1", vdcConfig.get(VdcConfigUtil.SITE_MYID));
     }
 
     private static class VdcCoordinatorClient extends CoordinatorClientImpl {
@@ -63,7 +63,7 @@ public class VdcConfigUtilTest {
             site.setUuid(siteId);
             site.setVdcShortId("vdc1");
             site.setNodeCount(3);
-            site.setStandbyShortId("");
+            site.setSiteShortId("site1");
             site.setHostIPv4AddressMap(new StringMap() {
                 {
                     put("node1", "1.1.1.1");
@@ -80,7 +80,7 @@ public class VdcConfigUtilTest {
             site.setUuid(siteId);
             site.setVdcShortId("vdc2");
             site.setNodeCount(5);
-            site.setStandbyShortId("");
+            site.setSiteShortId("site1");
             site.setHostIPv4AddressMap(new StringMap() {
                 {
                     put("node1", "2.1.1.1");
@@ -99,7 +99,7 @@ public class VdcConfigUtilTest {
             site.setUuid(siteId);
             site.setVdcShortId("vdc3");
             site.setNodeCount(1);
-            site.setStandbyShortId("");
+            site.setSiteShortId("site1");
             site.setHostIPv4AddressMap(new StringMap() {
                 {
                     put("node1", "3.1.1.1");

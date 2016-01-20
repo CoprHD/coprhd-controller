@@ -5177,6 +5177,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         String waitFor = null;
         List<URI> addVolumesList = new ArrayList<URI>(); // non CG volumes
         try {
+            List<URI> volumesToAdd = null;
+            if (addVolList != null) {
+                volumesToAdd = addVolList.getVolumes();
+            }
+            completer = new ApplicationTaskCompleter(application, volumesToAdd, removeVolumeList, cgs, opId);
+
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false, opId);
@@ -5305,7 +5311,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             }
 
-            completer = new ApplicationTaskCompleter(application, addVolList.getVolumes(), removeVolumeList, cgs, opId);
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);
             String successMessage = String.format(

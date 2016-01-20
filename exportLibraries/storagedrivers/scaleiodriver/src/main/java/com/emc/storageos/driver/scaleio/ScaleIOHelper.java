@@ -23,7 +23,7 @@ public class ScaleIOHelper {
      * Generate Task ID for a task type
      * 
      * @param taskType
-     * @return
+     * @return task id
      */
     public static String getTaskId(ScaleIOConstants.TaskType taskType) {
         return String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType.name(), UUID.randomUUID());
@@ -32,7 +32,7 @@ public class ScaleIOHelper {
     /**
      * Generate timestamp
      * 
-     * @return
+     * @return current time string
      */
     public static String getCurrentTime() {
         DateFormat datafomate = new SimpleDateFormat("yyyy.MM.dd G 'at' HH:mm:ss z");
@@ -44,7 +44,7 @@ public class ScaleIOHelper {
      * Check if all snapshots are from same storage system
      * 
      * @param snapshots
-     * @return
+     * @return true if all volumes are from same storage system, false otherwise
      */
     public static boolean isFromSameStorageSystem(List<VolumeSnapshot> snapshots) {
         boolean isSameSys = false;
@@ -65,7 +65,7 @@ public class ScaleIOHelper {
      * Check if all snapshots are from same consistency group
      * 
      * @param snapshots
-     * @return
+     * @return true if all volumes are from same consistency group, false otherwise
      */
     public static boolean isFromSameCGgroup(List<VolumeSnapshot> snapshots) {
         boolean isSameCG = false;

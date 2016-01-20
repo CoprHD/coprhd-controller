@@ -20,6 +20,11 @@ class DriverTaskImpl extends DriverTask {
         this.setStartTime(Calendar.getInstance());
     }
 
+    /**
+     * Abort the driver
+     * @param task
+     * @return task
+     */
     @Override
     public DriverTask abort(DriverTask task) {
         task.setMessage("Task " + task.getTaskId() + " is aborted!");

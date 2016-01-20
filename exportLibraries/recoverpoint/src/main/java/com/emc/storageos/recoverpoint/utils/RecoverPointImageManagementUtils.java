@@ -283,13 +283,21 @@ public class RecoverPointImageManagementUtils {
         }
     }
 
+    /**
+     * Given a list of snapshots, finds the snapshot that is closest to the the provided any point-in-time
+     * in microseconds.
+     *
+     * @param copySnapshots the list of group copy snapshots.
+     * @param apitTimeInMicroSeconds the point-in-time in microseconds
+     * @return the snapshot closest to the provided point-in-time.
+     */
     private Snapshot findPiTSnapshot(ConsistencyGroupCopySnapshots copySnapshots, long apitTimeInMicroSeconds) {
         long min = Long.MAX_VALUE;
         Snapshot closest = null;
 
         for (Snapshot snapshot : copySnapshots.getSnapshots()) {
             final long diff = Math.abs(snapshot.getClosingTimeStamp().getTimeInMicroSeconds() - apitTimeInMicroSeconds);
-            logger.info(
+            logger.debug(
                     String.format(
                             "Examining snapshot %s with closing timestamp %s. Determining if it's closest to provided point-in-time %s. Difference is %s",
                             snapshot.getSnapshotUID().getId(), snapshot.getClosingTimeStamp().getTimeInMicroSeconds(),

@@ -10889,7 +10889,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 
                 // Sort the backend volumes by their storage systems. all volumes in the list should belong to the same VPLEX CG
                 Map<URI, List<URI>> addVolsMap = new HashMap<URI, List<URI>>();
-                Map<URI, List<URI>> addHAVolsMap = new HashMap<URI, List<URI>>();
                 for (URI addVol : addVols) {
                     Volume addVplexVol = getDataObject(Volume.class, addVol, _dbClient);
                     Volume backendSrcVol = VPlexUtil.getVPLEXBackendVolume(addVplexVol, true, _dbClient, false);

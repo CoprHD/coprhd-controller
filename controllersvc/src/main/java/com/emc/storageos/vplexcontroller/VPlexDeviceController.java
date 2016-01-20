@@ -10977,7 +10977,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         waitFor, storageUri, storage.getSystemType(),
                         BlockDeviceController.class,
                         createConsistencyGroupMethod(storageUri, cguri, groupName),
-                        // TODO for vplex and RP deleteConsistencyGroup needs to take replication group name as a parameter
                         deleteConsistencyGroupMethod(storageUri, cguri, groupName, false), null);
             }
 

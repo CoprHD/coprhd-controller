@@ -16,7 +16,7 @@ prepare: clean
 createAppliance:
 	cat ${RUN_DIR}/../configurations.sh > config.sh
 	cat ViPRDevKit_config.sh >> config.sh
-	${CREATE_APPLIANCE_TOOL} -lc${DEBUG} ${CONF} ${JOB} -p appliance[vmx,tbz]
+	${CREATE_APPLIANCE_TOOL} -lc${DEBUG} ${CONF} ${JOB} -p appliance[vmx]
 	
 bless:
 	${CREATE_APPLIANCE_TOOL} -b ${CONF} ${JOB}

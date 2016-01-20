@@ -86,6 +86,8 @@
     <package name="glib2-branding-SLE"/>
     <package name="gpm"/>
     <package name="grub2"/>
+    <package name="grub2-x86_64-efi"/>
+    <package name="grub2-i386-pc"/>
     <package name="hwinfo"/>
     <package name="initviocons"/>	
     <package name="iproute2"/>

@@ -39,7 +39,7 @@ public class UserInfo implements RoleHolder, Serializable {
         this.commonName = userInfo.getCommonName();
         this.distinguishedName = userInfo.getDistinguishedName();
         this.tenant = userInfo.getTenant();
-        this.tenantName = userInfo.getTenantName();
+        this.setTenantName(userInfo.getTenantName());
         List<Role> vdcRoles = convertToRoles(userInfo.getVdcRoles());
         List<Role> homeTenantRoles = convertToRoles(userInfo.getHomeTenantRoles());
         roles.addAll(vdcRoles);
@@ -124,4 +124,12 @@ public class UserInfo implements RoleHolder, Serializable {
             }
         }
     }
+
+	public String getTenantName() {
+		return tenantName;
+	}
+
+	public void setTenantName(String tenantName) {
+		this.tenantName = tenantName;
+	}
 }

@@ -488,6 +488,8 @@ public class BackupService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response pullBackup(@QueryParam("file") String backupName ) {
         log.info("The backup file {} to download", backupName);
+        List<String> descParams = getDescParams(backupName);
+        auditBackup(OperationTypeEnum.DOWNLOAD_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, descParams.toArray());
 
         checkExternalServer();
 
@@ -501,6 +503,7 @@ public class BackupService {
 
         notifyOtherNodes(backupName);
 
+        auditBackup(OperationTypeEnum.DOWNLOAD_BACKUP, AuditLogManager.AUDITOP_END, null, descParams.toArray());
         log.info("done");
         return Response.status(202).build();
     }
@@ -605,6 +608,9 @@ public class BackupService {
                                   @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
         log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
                 new Object[] {backupName, isLocal, password, isGeoFromScratch});
+        List<String> descParams = getDescParams(backupName);
+        auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, descParams.toArray());
+
         File backupDir= getBackupDir(backupName, isLocal);
 
         String[] restoreCommand=new String[]{restoreCmd,
@@ -614,6 +620,7 @@ public class BackupService {
 
         Exec.exec(120 * 1000, restoreCommand);
 
+        auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogMarnager.AUDITOP_END, null, descParams.toArray());
         log.info("done");
         return Response.status(202).build();
     }

@@ -389,6 +389,8 @@ public enum OperationTypeEnum {
     CREATE_BACKUP("CREATE BACKUP", "", "operation to create ViPR backup"),
     DELETE_BACKUP("DELETE BACKUP", "", "operation to delete ViPR backup"),
     UPLOAD_BACKUP("UPLOAD BACKUP", "", "operation to upload ViPR backup to external location"),
+    DOWNLOAD_BACKUP("DOWNLOAD BACKUP", "", "operation to download ViPR backup from external location"),
+    RESTORE_BACKUP("RESTORE BACKUP", "", "operation to restore ViPR backup"),
     RECOVER_NODES("RECOVER NODES", "", "operation to recover corrupted nodes"),
     RECONFIG_IP("Reconfig IPs", "", "trigger ip reconfiguration"),
     CREATE_USERGROUP("CREATE USER GROUP", "", "operation to create a user group."),

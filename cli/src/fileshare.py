@@ -16,7 +16,7 @@ import socket
 import commands
 from common import SOSError
 from threading import Timer
-
+import sys
 
 class Fileshare(object):
 
@@ -260,7 +260,7 @@ class Fileshare(object):
         return o
 
     # Creates a fileshare given label, project, vpool, size and id for vnx file
-    def create(self, project, label, size, varray, vpool, id, protocol, sync):
+    def create(self, project, label, size, varray, vpool, id, protocol, sync,synctimeout):
         '''
         Makes REST API call to create fileshare under a project
         Parameters:
@@ -310,7 +310,7 @@ class Fileshare(object):
             o = common.json_decode(s)
             if(sync):
                 #fileshare = self.show(name, True)
-                return self.check_for_sync(o, sync)
+                return self.check_for_sync(o, sync,synctimeout)
             
             else:
                 return o
@@ -374,7 +374,7 @@ class Fileshare(object):
     def export(
             self, name, security_type, permission, root_user,
             endpoints, protocol, share_name, share_description,
-            permission_type, sub_dir, sync):
+            permission_type, sub_dir, sync,synctimeout):
         '''
         Makes REST API call to export fileshare to a host
         Parameters:
@@ -434,7 +434,7 @@ class Fileshare(object):
                 return None
             o = common.json_decode(s)
             if(sync):
-                return self.check_for_sync(o, sync)
+                return self.check_for_sync(o, sync,synctimeout)
             else:
                 return o
         except SOSError as e:
@@ -446,7 +446,7 @@ class Fileshare(object):
 
     # Unexports a fileshare from a host given a fileshare name, type of
     # security and permission
-    def unexport(self, name, protocol, share_name, sub_dir, all_dir, sync):
+    def unexport(self, name, protocol, share_name, sub_dir, all_dir, sync,synctimeout):
         '''
         Makes REST API call to unexport fileshare from a host
         Parameters:
@@ -479,7 +479,7 @@ class Fileshare(object):
             return None
         o = common.json_decode(s)
         if(sync):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync(o, sync,synctimeout)
         else:
             return o
 
@@ -520,14 +520,14 @@ class Fileshare(object):
 
 
     # Deletes a fileshare given a fileshare name
-    def delete(self, name, forceDelete=False, delete_type='FULL', sync=False):
+    def delete(self, name, forceDelete=False, delete_type='FULL', sync=False,synctimeout):
         '''
         Deletes a fileshare based on fileshare name
         Parameters:
             name: name of fileshare
         '''
         fileshare_uri = self.fileshare_query(name)
-        return self.delete_by_uri(fileshare_uri, forceDelete, delete_type, sync)
+        return self.delete_by_uri(fileshare_uri, forceDelete, delete_type, sync,synctimeout)
     
         # Deletes a fileshare given a fileshare name
     def delete_acl(self, name, sharename):
@@ -685,7 +685,7 @@ class Fileshare(object):
 
 
     # Deletes a fileshare given a fileshare uri
-    def delete_by_uri(self, uri, forceDelete=False, delete_type='FULL', sync=False):
+    def delete_by_uri(self, uri, forceDelete=False, delete_type='FULL', sync=False,synctimeout):
         '''
         Deletes a fileshare based on fileshare uri
         Parameters:
@@ -702,7 +702,7 @@ class Fileshare(object):
             return None
         o = common.json_decode(s)
         if(sync):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync(o, sync,synctimeout)
         return o
 
     def get_exports_by_uri(self, uri, subDir=None, allDir=None):
@@ -833,14 +833,14 @@ class Fileshare(object):
         self.isTimeout = True
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def check_for_sync(self, result, sync):
+    def check_for_sync(self, result, sync,synctimeout):
         if(sync):
             if(len(result["resource"]) > 0):
                 resource = result["resource"]
                 return (
                     common.block_until_complete("fileshare", resource["id"],
                                                 result["id"], self.__ipAddr,
-                                                self.__port)
+                                                self.__port,synctimeout)
                 )
             else:
                 raise SOSError(
@@ -856,7 +856,7 @@ class Fileshare(object):
                               project_name, fileshare_name, task_id)
         )
     
-    def expand(self, name, new_size, sync=False):
+    def expand(self, name, new_size, sync=False,synctimeout):
 
         fileshare_detail = self.show(name)
         current_size = float(fileshare_detail["capacity_gb"])
@@ -881,7 +881,7 @@ class Fileshare(object):
             return None
         o = common.json_decode(s)
         if(sync):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync(o, sync,synctimeout)
         return o
 
 # Fileshare Create routines
@@ -935,11 +935,19 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    
+    create_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               default=0,
+                               type=int)
+    
     create_parser.set_defaults(func=fileshare_create)
 
 
 def fileshare_create(args):
-
+    if args.sync != True and args.synctimeout !=0:
+        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
+        sys.exit()
     size = common.to_bytes(args.size)
     if not size:
         raise SOSError(SOSError.CMD_LINE_ERR,
@@ -955,7 +963,7 @@ def fileshare_create(args):
                          args.vpool,
                          args.id,
                          None,
-                         args.sync)
+                         args.sync,args.synctimeout)
 #        if(args.sync == False):
 #            return common.format_json_object(res)
     except SOSError as e:
@@ -1048,6 +1056,10 @@ def delete_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    delete_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               default=0,
+                               type=int)
     delete_parser.add_argument(
         '-forceDelete', '-fd',
         metavar='<forceDelete>',
@@ -1065,13 +1077,16 @@ def delete_parser(subcommand_parsers, common_parser):
 
 
 def fileshare_delete(args):
+    if args.sync != True and args.synctimeout !=0:
+        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
+        sys.exit()
     if(not args.tenant):
         args.tenant = ""
     obj = Fileshare(args.ip, args.port)
     try:
         obj.delete(
             args.tenant + "/" + args.project + "/" + args.name,
-            args.forceDelete, args.delete_type, args.sync)
+            args.forceDelete, args.delete_type, args.sync,args.synctimeout)
     except SOSError as e:
         common.format_err_msg_and_raise("delete", "filesystem",
                                         e.err_text, e.err_code)
@@ -1504,10 +1519,17 @@ def export_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    export_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               default=0,
+                               type=int)
     export_parser.set_defaults(func=fileshare_export)
 
 
 def fileshare_export(args):
+    if args.sync != True and args.synctimeout !=0:
+        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
+        sys.exit()
 
     try:
         if(args.protocol == "CIFS"):
@@ -1548,7 +1570,7 @@ def fileshare_export(args):
             args.tenant + "/" + args.project + "/" + args.name,
             args.security, args.permission, args.root_user, args.endpoint,
             args.protocol, args.share, args.desc,
-            args.permission_type, args.subdir, args.sync)
+            args.permission_type, args.subdir, args.sync,args.synctimeout)
 
 #        if(args.sync == False):
 #            return common.format_json_object(res)
@@ -1604,10 +1626,17 @@ def unexport_parser(subcommand_parsers, common_parser):
                                  dest='sync',
                                  help='Execute in synchronous mode',
                                  action='store_true')
+    unexport_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               default=0,
+                               type=int)
     unexport_parser.set_defaults(func=fileshare_unexport)
 
 
 def fileshare_unexport(args):
+    if args.sync != True and args.synctimeout !=0:
+        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
+        sys.exit()
     try:
 
         if(args.protocol == "CIFS"):
@@ -1618,7 +1647,7 @@ def fileshare_unexport(args):
         obj = Fileshare(args.ip, args.port)
         if(not args.tenant):
             args.tenant = ""
-        res = obj.unexport(args.tenant + "/" + args.project + "/" + args.name, args.protocol, args.share, args.subdir, args.alldir, args.sync)
+        res = obj.unexport(args.tenant + "/" + args.project + "/" + args.name, args.protocol, args.share, args.subdir, args.alldir, args.sync,args.synctimeout)
 #        if(args.sync == False):
 #            return common.format_json_object(res)
 
@@ -2143,10 +2172,18 @@ def expand_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    
+    expand_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               default=0,
+                               type=int)
     expand_parser.set_defaults(func=fileshare_expand)
 
 
 def fileshare_expand(args):
+    if args.sync != True and args.synctimeout !=0:
+        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
+        sys.exit()
     size = common.to_bytes(args.size)
     if(not size):
         raise SOSError(SOSError.CMD_LINE_ERR, 'error: Invalid input for -size')
@@ -2157,7 +2194,7 @@ def fileshare_expand(args):
             args.tenant = ""
 
         res = obj.expand(args.tenant + "/" + args.project +
-                         "/" + args.name, size, args.sync)
+                         "/" + args.name, size, args.sync,args.synctimeout)
     except SOSError as e:
         raise e
 

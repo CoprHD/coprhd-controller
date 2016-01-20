@@ -166,7 +166,7 @@ class ConsistencyGroup(object):
                 "consistency groupwith name: " + name + " already exists",
                 SOSError.ENTRY_ALREADY_EXISTS_ERR)
 
-    def update(self, name, project, tenant, add_volumes, remove_volumes, sync):
+    def update(self, name, project, tenant, add_volumes, remove_volumes, sync,synctimeout):
         '''
         This function is used to add or remove volumes from consistency group
         It will update the consistency  group with given volumes.
@@ -214,7 +214,7 @@ class ConsistencyGroup(object):
 
         o = common.json_decode(s)
         if(sync):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync(o, sync,synctimeout)
         else:
             return o
 
@@ -259,13 +259,13 @@ class ConsistencyGroup(object):
                        "Consistency Group " + name + ": not found")
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def check_for_sync(self, result, sync):
+    def check_for_sync(self, result, sync,synctimeout):
         if(len(result["resource"]) > 0):
             resource = result["resource"]
             return (
                 common.block_until_complete("consistencygroup", resource["id"],
                                             result["id"], self.__ipAddr,
-                                            self.__port)
+                                            self.__port,synctimeout)
             )
         else:
             raise SOSError(
@@ -558,15 +558,24 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    
+    update_parser.add_argument('-synctimeout',
+                               dest='sync',
+                               help='Synchronous timeout in Seconds',
+                               default=0, type=int)
+    
 
     update_parser.set_defaults(func=consistencygroup_update)
 
 
 def consistencygroup_update(args):
+    if args.sync != True and args.synctimeout !=0:
+        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
+        sys.exit()
     try:
         obj = ConsistencyGroup(args.ip, args.port)
         res = obj.update(args.name, args.project, args.tenant,
-                         args.add_volumes, args.remove_volumes, args.sync)
+                         args.add_volumes, args.remove_volumes, args.sync,args.synctimeout)
     except SOSError as e:
         raise SOSError(SOSError.SOS_FAILURE_ERR, "Consistency Group " +
                        args.name + ": Update failed:\n" + e.err_text)

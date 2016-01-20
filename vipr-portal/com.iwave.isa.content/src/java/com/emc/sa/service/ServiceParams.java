@@ -46,6 +46,7 @@ public interface ServiceParams {
     public String VOLUMES = "volumes";
     public String DELETION_TYPE = "deletionType";
     public String STORAGE_SYSTEMS = "storageSystems";
+    public String PROTECTION_SYSTEMS = "protectionSystems";
     public String REMOVED_VOLUMES = "removedVolumes";
     public String SNAPSHOTS = "snapshots";
     public String FILESYSTEMS = "fileSystems";
@@ -115,4 +116,7 @@ public interface ServiceParams {
     public String TENANT = "tenant";
     public String OWNER = "owner";
     public String BUCKET = "bucket";
+    
+    public String LINKED_SNAPSHOT_NAME = "linkedSnapshotName";
+    public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
 }

@@ -5,30 +5,16 @@
 
 package com.emc.storageos.geomodel;
 
-import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.vipr.model.sys.NatCheckResponse;
+
+/**
+ * We hold this empty marker class because:
+ *  1. VDC NAT check may return more extra VDS-specified fields
+ *  2. Back-compatible, make sure return XML has same root tag as previous version
+ */
 @XmlRootElement
-public class VdcNatCheckResponse {
-
-    private boolean behindNAT;
-    private String seenIp;
-
-    @XmlElement(name = "isNodesReachable")
-    public boolean isBehindNAT() {
-        return this.behindNAT;
-    }
-
-    public void setBehindNAT(boolean behindNAT) {
-        this.behindNAT = behindNAT;
-    }
-
-    @XmlElement(name = "short_id")
-    public String getSeenIp() {
-        return this.seenIp;
-    }
-
-    public void setSeenIp(String ip) {
-        this.seenIp = ip;
-    }
+public class VdcNatCheckResponse extends NatCheckResponse {
+    
 }

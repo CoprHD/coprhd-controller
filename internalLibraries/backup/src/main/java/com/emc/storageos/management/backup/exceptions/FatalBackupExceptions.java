@@ -97,6 +97,9 @@ public interface FatalBackupExceptions {
     @DeclareServiceCode(ServiceCode.BACKUP_LOCK_OCCUPIED)
     public FatalBackupException unableToGetLock(final String lockName);
 
+    @DeclareServiceCode(ServiceCode.BACKUP_LOCK_OCCUPIED)
+    public FatalBackupException unableToGetRecoveryLock(final String lockName);
+
     @DeclareServiceCode(ServiceCode.BACKUP_INTERNAL_ERROR)
     public FatalBackupException failedToSetQuota(final int quotaGb, final Throwable cause);
 

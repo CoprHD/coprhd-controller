@@ -56,6 +56,7 @@ public enum ResourceTypeEnum {
     AUTO_TIERING_POLICY("auto_tiering_policy", "/vdc/auto-tier-policies"),
     MIGRATION("migration", "/block/migrations"),
     UNMANAGED_VOLUMES("unmanaged_volumes", "/vdc/unmanaged/volumes"),
+    UNMANAGED_CGS("unmanaged_cgs", "/vdc/unmanaged/cgs"),
     UNMANAGED_FILESYSTEMS("unmanaged_filesystems", "/vdc/unmanaged/filesystems"),
     UNMANAGED_EXPORT_MASKS("unmanaged_export_masks", "/vdc/unmanaged/export-masks"),
     DATA_STORE("data_store", "/vdc/object-pools"),
@@ -73,8 +74,12 @@ public enum ResourceTypeEnum {
     CONFIG_TYPE("config_type", "/config/controller/types"),
     SYS_EVENT("sysevent", ""),
     USER_GROUP("user_group", "/vdc/admin/user-groups"),
+    SITE("site", "/site"),
     VIRTUAL_NAS("vnas-servers", "/vdc/vnas-servers"),
-    COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers");
+    COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers"),
+    BLOCK_SNAPSHOT_SESSION("block_snapshot_session", "/block/snapshot-sessions");
+
+
     private final String type;
     private final String service;
 

@@ -30,7 +30,7 @@ public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase {
 
     private String getCheckpoint(String version) {
         CoordinatorClient coordinator = getCoordinator();
-        Configuration config = coordinator.queryConfiguration(
+        Configuration config = coordinator.queryConfiguration( coordinator.getSiteId(),
                 coordinator.getVersionedDbConfigPath(Constants.DBSVC_NAME, version), Constants.GLOBAL_ID);
         Assert.assertNotNull(config);
         return config.getConfig(DbConfigConstants.MIGRATION_CHECKPOINT);
@@ -43,13 +43,13 @@ public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase {
      */
     private void resetMigrationStatus(String version) {
         CoordinatorClient coordinator = getCoordinator();
-        Configuration config = coordinator.queryConfiguration(
+        Configuration config = coordinator.queryConfiguration(coordinator.getSiteId(),
                 coordinator.getVersionedDbConfigPath(Constants.DBSVC_NAME, version), Constants.GLOBAL_ID);
         Assert.assertNotNull(config);
         log.info("setMigrationStatus: target version \"{}\" status {}",
                 version, MigrationStatus.RUNNING);
         config.setConfig(Constants.MIGRATION_STATUS, MigrationStatus.RUNNING.name());
-        coordinator.persistServiceConfiguration(config);
+        coordinator.persistServiceConfiguration(coordinator.getSiteId(), config);
     }
 
     /**
@@ -109,14 +109,14 @@ public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase {
 
         // prepare data for version 1.2
         stopAll();
-        setupDB(initalVersion, "com.emc.storageos.db.server.upgrade.util.models.old");
+        setupDB(initalVersion, initalVersion, "com.emc.storageos.db.server.upgrade.util.models.old");
         prepareData1();
         prepareData2();
         stopAll();
 
         // fatal exception -- make sure we are moving into failed state
         Resource3NewFlagsInitializer.injectFatalFault = true;
-        setupDB(targetVersion, targetDoPackage);
+        setupDB(initalVersion, targetVersion, targetDoPackage);
         verifyMigrationFailed(targetVersion);
         stopAll();
 
@@ -139,7 +139,7 @@ public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase {
             }
         }, 10, 10, TimeUnit.SECONDS);
 
-        setupDB(targetVersion, targetDoPackage);
+        setupDB(initalVersion, targetVersion, targetDoPackage);
         verifyAll();
         verifyMigrationDone(targetVersion);
         stopAll();

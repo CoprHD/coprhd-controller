@@ -28,6 +28,8 @@ import org.apache.curator.framework.recipes.queue.QueueSerializer;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.*;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
@@ -39,6 +41,7 @@ import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.WorkPool;
 import com.emc.storageos.coordinator.client.service.WorkPool.WorkAssignmentListener;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueTaskConsumer;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
@@ -51,7 +54,7 @@ import com.emc.vipr.model.sys.ClusterInfo;
 /**
  * Stub coordinator class for use with unit tests
  */
-public class TestCoordinator implements CoordinatorClient {
+public class TestCoordinator extends CoordinatorClientImpl {
 
     private ConcurrentHashMap<String, HashMap<String, Configuration>> configurations =
             new ConcurrentHashMap<String, HashMap<String, Configuration>>();
@@ -392,6 +395,11 @@ public class TestCoordinator implements CoordinatorClient {
     }
 
     @Override
+    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
+        return null;
+    }
+
+    @Override
     public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception {
         return null;
@@ -413,13 +421,18 @@ public class TestCoordinator implements CoordinatorClient {
     }
 
     @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException {
         return null;
     }
 
     @Override
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
+        
+    }
+    
+    @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
-            throws Exception {
+            throws CoordinatorException {
         return null;
     }
 
@@ -467,6 +480,21 @@ public class TestCoordinator implements CoordinatorClient {
     public boolean isDbSchemaVersionChanged() {
         // TODO Auto-generated method stub.
         return false;
+    }
+    
+    @Override
+    public String getSiteId() {
+    	return "testsiteid";
+    }
+
+    @Override
+    public void addSite(String siteId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setActiveSite(String siteId) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

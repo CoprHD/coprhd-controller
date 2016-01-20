@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -45,6 +46,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
@@ -539,21 +541,32 @@ public class SRDFUtils implements SmisConstants {
     }
 
     /**
-     * Checks if a volume has snapshot or clone or mirror associated.
+     * Checks if a volume has snapshot, snapshot session, or clone or mirror associated.
      */
     private boolean CheckIfVolumeHasReplica(Volume volume) {
         boolean forceAdd = false;
+        URI volumeURI = volume.getId();
         URIQueryResultList list = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getVolumeSnapshotConstraint(volume.getId()), list);
+                .getVolumeSnapshotConstraint(volumeURI), list);
         Iterator<URI> it = list.iterator();
         while (it.hasNext()) {
             URI snapshotID = it.next();
             BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
             if (snapshot != null) {
-                log.debug("There are Snapshot(s) available for volume {}", volume.getId());
+                log.debug("There are Snapshot(s) available for volume {}", volumeURI);
                 forceAdd = true;
                 break;
+            }
+        }
+
+        // Check snapshot sessions also.
+        if (!forceAdd) {
+            List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                    BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volumeURI));
+            if (!snapSessions.isEmpty()) {
+                log.debug("There are snapshot sessions available on volume {}", volumeURI);
+                forceAdd = true;
             }
         }
 
@@ -561,13 +574,13 @@ public class SRDFUtils implements SmisConstants {
             // TODO ignore DETACHED clones?
             URIQueryResultList cloneList = new URIQueryResultList();
             dbClient.queryByConstraint(ContainmentConstraint.Factory
-                    .getAssociatedSourceVolumeConstraint(volume.getId()), cloneList);
+                    .getAssociatedSourceVolumeConstraint(volumeURI), cloneList);
             Iterator<URI> iter = cloneList.iterator();
             while (iter.hasNext()) {
                 URI cloneID = iter.next();
                 Volume clone = dbClient.queryObject(Volume.class, cloneID);
                 if (clone != null) {
-                    log.debug("There are Clone(s) available for volume {}", volume.getId());
+                    log.debug("There are Clone(s) available for volume {}", volumeURI);
                     forceAdd = true;
                     break;
                 }
@@ -577,13 +590,13 @@ public class SRDFUtils implements SmisConstants {
         if (!forceAdd) {
             URIQueryResultList mirrorList = new URIQueryResultList();
             dbClient.queryByConstraint(ContainmentConstraint.Factory
-                    .getVolumeBlockMirrorConstraint(volume.getId()), mirrorList);
+                    .getVolumeBlockMirrorConstraint(volumeURI), mirrorList);
             Iterator<URI> itr = mirrorList.iterator();
             while (itr.hasNext()) {
                 URI mirrorID = itr.next();
                 BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorID);
                 if (mirror != null) {
-                    log.debug("There are Mirror(s) available for volume {}", volume.getId());
+                    log.debug("There are Mirror(s) available for volume {}", volumeURI);
                     forceAdd = true;
                     break;
                 }

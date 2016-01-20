@@ -45,10 +45,18 @@ public class InterProcessLockHolder implements AutoCloseable {
     }
 
     public InterProcessLockHolder(CoordinatorClient client, String lockName, Logger log) throws Exception {
+        this(client, lockName, log, false); // a lock for all DR sites as default
+    }
+    
+    public InterProcessLockHolder(CoordinatorClient client, String lockName, Logger log, boolean siteLocalLock) throws Exception {
         this.name = lockName;
         this.log = log;
 
-        this.lock = client.getLock(lockName);
+        if (siteLocalLock) {
+            this.lock = client.getSiteLocalLock(lockName);
+        } else {
+            this.lock = client.getLock(lockName);
+        }
         this.lock.acquire();
 
         if (this.log != null) {

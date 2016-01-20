@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -34,6 +35,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.Types;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -55,12 +57,17 @@ public class DiscoveryUtils {
     /**
      * get Matched Virtual Pools For Pool.
      * This is called to calculate supported vpools during unmanaged objects discovery
-     *
-     * @param poolUri
+     * 
+     * @param dbClient db client
+     * @param poolUri storage pool
+     * @param isThinlyProvisionedUnManagedObject is this thin provisioned?
+     * @param srdfProtectedVPoolUris srdf protected vpools
+     * @param rpProtectedVPoolUris RP protected vpools
+     * @param volumeType type of volume
      * @return
      */
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
-            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, String volumeType) {
+            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, Set<URI> rpProtectedVPoolUris, String volumeType) {
         StringSet vpoolUriSet = new StringSet();
         // We should match all virtual pools as below:
         // 1) Virtual pools which have useMatchedPools set to true and have the storage pool in their matched pools
@@ -465,7 +472,7 @@ public class DiscoveryUtils {
     }
 
     /**
-     * check Storage Volume exists in DB
+     * check Block Snapshot exists in DB
      * 
      * @param dbClient
      * @param nativeGuid
@@ -478,6 +485,24 @@ public class DiscoveryUtils {
         Iterator<BlockSnapshot> snapshotItr = snapshots.iterator();
         if (snapshotItr.hasNext()) {
             return snapshotItr.next();
+        }
+        return null;
+    }
+
+    /**
+     * check Protection Set exists in DB
+     * 
+     * @param dbClient
+     * @param nativeGuid
+     * @return
+     * @throws IOException
+     */
+    public static ProtectionSet checkProtectionSetExistsInDB(DbClient dbClient, String nativeGuid)
+            throws IOException {
+        List<ProtectionSet> cgs = CustomQueryUtility.getActiveProtectionSetByNativeGuid(dbClient, nativeGuid);
+        Iterator<ProtectionSet> cgsItr = cgs.iterator();
+        if (cgsItr.hasNext()) {
+            return cgsItr.next();
         }
         return null;
     }
@@ -502,6 +527,87 @@ public class DiscoveryUtils {
             }
         }
         return null;
+    }
+
+    /**
+     * check UnManagedVolume exists in DB by WWN
+     * 
+     * @param dbClient db client
+     * @param wwn WWN
+     * @return volume, if it's in the DB
+     */
+    public static UnManagedVolume checkUnManagedVolumeExistsInDBByWwn(DbClient dbClient, String wwn) {
+        URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedVolumeWwnConstraint(wwn), unManagedVolumeList);
+        if (unManagedVolumeList.iterator().hasNext()) {
+            URI unManagedVolumeURI = unManagedVolumeList.iterator().next();
+            UnManagedVolume volumeInfo = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeURI);
+            if (!volumeInfo.getInactive()) {
+                return volumeInfo;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Check if a managed Volume exists in database, searching by WWN.
+     * 
+     * @param dbClient database client reference
+     * @param wwn the WWN to look for in the Volume table
+     * @return a Volume object, if it's in the database
+     */
+    public static Volume checkManagedVolumeExistsInDBByWwn(DbClient dbClient, String wwn) {
+        URIQueryResultList volumeList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+        if (volumeList.iterator().hasNext()) {
+            URI volumeURI = volumeList.iterator().next();
+            Volume volumeInfo = dbClient.queryObject(Volume.class, volumeURI);
+            if (!volumeInfo.getInactive()) {
+                return volumeInfo;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * check unmanaged Protection Set exists in DB
+     * 
+     * @param dbClient a reference to the database client
+     * @param nativeGuid native guid of the protection set
+     * @return the unmanaged protection set associated with the native guid
+     * @throws IOException
+     */
+    public static UnManagedProtectionSet checkUnManagedProtectionSetExistsInDB(DbClient dbClient, String nativeGuid)
+            throws IOException {
+        List<UnManagedProtectionSet> cgs = CustomQueryUtility.getUnManagedProtectionSetByNativeGuid(dbClient, nativeGuid);
+        Iterator<UnManagedProtectionSet> cgsItr = cgs.iterator();
+        if (cgsItr.hasNext()) {
+            return cgsItr.next();
+        }
+        return null;
+    }
+
+    /**
+     * Get a Set of all UnManagedProtectionSet URIs for a given ProtectionSystem.
+     * 
+     * @param dbClient a reference to the database client
+     * @param protectionSystemUri the URI of the ProtectionSystem to check
+     * @return a Set of all UnManagedProtectionSets for a given ProtectionSystem
+     */
+    public static Set<URI> getAllUnManagedProtectionSetsForSystem(
+            DbClient dbClient, String protectionSystemUri) {
+        
+        final URIQueryResultList result = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedProtectionSetsByProtectionSystemUriConstraint(protectionSystemUri), result);
+
+        Set<URI> cgSet = new HashSet<URI>();
+        Iterator<URI> results = result.iterator(); 
+        while (results.hasNext()) {
+            cgSet.add(results.next());
+        }
+        return cgSet;
     }
 
     /**
@@ -623,4 +729,5 @@ public class DiscoveryUtils {
                 .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
         return dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
     }
+
 }

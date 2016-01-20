@@ -94,7 +94,8 @@ public class VnxCloneOperations extends AbstractCloneOperations {
                 // Create target devices
                 final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(),
                         createInactive,
-                        1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), null, taskCompleter, _dbClient, _helper, _cimPath);
+                        1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), source, taskCompleter, _dbClient, _helper,
+                        _cimPath);
 
                 targetDeviceIds.addAll(newDeviceIds);
             }

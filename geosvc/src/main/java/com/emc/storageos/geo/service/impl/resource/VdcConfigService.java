@@ -7,11 +7,7 @@ package com.emc.storageos.geo.service.impl.resource;
 
 import java.net.InetAddress;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -24,26 +20,20 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import com.emc.storageos.db.client.model.VdcVersion;
+
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.db.client.impl.DataObjectType;
-import com.emc.storageos.db.client.impl.TypeMap;
-import com.emc.storageos.db.client.model.CustomConfig;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.PasswordHistory;
-import com.emc.storageos.db.client.model.PropertyListDataObject;
-import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.Token;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.geo.service.impl.GeoBackgroundTasks;
@@ -64,8 +54,13 @@ import com.emc.storageos.geomodel.VdcPreCheckResponse2;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.security.geo.exceptions.GeoException;
 import com.emc.storageos.services.util.Strings;
+import com.emc.storageos.services.util.SysUtils;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.google.common.net.InetAddresses;
+
+import static com.emc.storageos.coordinator.client.model.Constants.IPSEC_KEY;
+import static com.emc.storageos.coordinator.client.model.Constants.VDC_CONFIG_VERSION;
 
 @Path(GeoServiceClient.VDCCONFIG_URI)
 public class VdcConfigService {
@@ -87,10 +82,13 @@ public class VdcConfigService {
     private VdcConfigHelper helper;
 
     private Service service;
+    
+    private SysUtils sysUtils;
 
-    static private final List<Class<? extends DataObject>> excludeClasses = Arrays.asList(
-            Token.class, StorageOSUserDAO.class, VirtualDataCenter.class,
-            PropertyListDataObject.class, PasswordHistory.class, CustomConfig.class, VdcVersion.class);
+    private IPsecConfig ipsecConfig;
+    public void setIpsecConfig(IPsecConfig ipsecConfig) {
+        this.ipsecConfig = ipsecConfig;
+    }
 
     public void setService(Service service) {
         this.service = service;
@@ -136,7 +134,7 @@ public class VdcConfigService {
 
         boolean hasData = false;
         if (isFresher) {
-            hasData = hasDataInDb();
+            hasData = dbClient.hasUsefulData();
         }
 
         hasData |= hasDataService();
@@ -163,26 +161,6 @@ public class VdcConfigService {
     }
 
     /**
-     * Check if there are useful data in the DB
-     * we don't check the data whose type is in excludeClasses
-     * 
-     * @return true if there are data no matter inactive or not
-     */
-    private boolean hasDataInDb() {
-        Collection<DataObjectType> doTypes = TypeMap.getAllDoTypes();
-
-        for (DataObjectType doType : doTypes) {
-            Class clazz = doType.getDataObjectClass();
-
-            if (hasDataInCF(clazz)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * @return true if there are data services
      */
     private boolean hasDataService() {
@@ -197,32 +175,6 @@ public class VdcConfigService {
         }
 
         return true;
-    }
-
-    private <T extends DataObject> boolean hasDataInCF(Class<T> clazz) {
-        if (excludeClasses.contains(clazz)) {
-            return false; // ignore the data in those CFs
-        }
-
-        // true: query only active object ids, for below reason:
-        // add VDC should succeed just when remove the data in vdc2.
-        List<URI> ids = dbClient.queryByType(clazz, true, null, 2);
-
-        if (clazz.equals(TenantOrg.class)) {
-            if (ids.size() > 1) {
-                // at least one non-root tenant exist
-                return true;
-            }
-
-            return false;
-        }
-
-        if (!ids.isEmpty()) {
-            log.info("The class {} has data e.g. id={}", clazz.getSimpleName(), ids.get(0));
-            return true;
-        }
-
-        return false;
     }
 
     /**
@@ -543,18 +495,17 @@ public class VdcConfigService {
         log.info(String.format("Performing NAT check, client address connecting to VIP: %s. Client reports its IPv4 = %s, IPv6 = %s",
                 clientIp, ipv4Str, ipv6Str));
 
-        InetAddress ipv4Addr = parseInetAddress(ipv4Str);
-        InetAddress ipv6Addr = parseInetAddress(ipv6Str);
-        InetAddress directAddr = parseInetAddress(clientIp);
-        if (directAddr == null || ipv4Addr == null && ipv6Addr == null) {
-            String ipAddrsStr = Strings.join("|", ipv4Str, ipv6Addr);
-            log.error("checkParam is {}, X-Forwarded-For is {}", ipAddrsStr, clientIp);
-            throw GeoException.fatals.invalidNatCheckCall(ipAddrsStr, clientIp);
+        boolean isBehindNat = false;
+        try {
+            isBehindNat = sysUtils.checkIfBehindNat(ipv4Str, ipv6Str, clientIp);
+        } catch (Exception e) {
+            log.error("Fail to check NAT {}", e);
+            throw GeoException.fatals.invalidNatCheckCall(e.getMessage(), clientIp);
         }
 
         VdcNatCheckResponse resp = new VdcNatCheckResponse();
         resp.setSeenIp(clientIp);
-        resp.setBehindNAT(!directAddr.equals(ipv4Addr) && !directAddr.equals(ipv6Addr));
+        resp.setBehindNAT(isBehindNat);
 
         return resp;
     }
@@ -731,6 +682,23 @@ public class VdcConfigService {
         return String.valueOf(isClusterStable());
     }
 
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/ipsec-properties")
+    public PropertyInfoRestRep getIpsecProperties() throws Exception {
+        log.info("getting ipsec properties.");
+        Map<String, String> ipsecProps = new HashMap();
+        ipsecProps.put(IPSEC_KEY, ipsecConfig.getPreSharedKey());
+
+        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
+        String vdcConfigVersion = String.valueOf(siteInfo.getVdcConfigVersion());
+        ipsecProps.put(VDC_CONFIG_VERSION, vdcConfigVersion);
+        log.info("ipsec key: " + ipsecConfig.getPreSharedKey()
+                + ", vdc config version: " + vdcConfigVersion);
+
+        return new PropertyInfoRestRep(ipsecProps);
+    }
+
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/resetblacklist")
@@ -749,4 +717,7 @@ public class VdcConfigService {
         }
     }
 
+    public void setSysUtils(SysUtils sysUtils) {
+        this.sysUtils = sysUtils;
+    }
 }

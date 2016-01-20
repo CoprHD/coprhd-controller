@@ -51,7 +51,7 @@ public class NetAppFacade {
             log.debug("Connecting to NetApp server: " + host + ":" + port + ":" + vFiler);
         }
         _vFilerName = vFilerName;
-        server = new Server(host, port, username, password, useHTTPS, vFilerName);
+        server = new Server(host, port, username, password, useHTTPS, vFilerName, false);
     }
 
     public static NetAppFacade create(Map<String, String> connectionParams) {

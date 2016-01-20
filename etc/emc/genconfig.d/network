@@ -123,9 +123,17 @@ _gen_hostname() {
     hostname "${_GENCONFIG_node_name}"
 }
 
+_is_appliance() {
+    #check if the system is not a devkit
+    bootfs_mntp=${bootfs_mntp:-'/.volumes/bootfs'}
+    [ -d "${bootfs_mntp}/boot/grub/i386-pc" -o -d "${bootfs_mntp}/boot/grub2/i386-pc" ]
+}
+
 _genconfig_exec _gen_ifcfg               /etc/sysconfig/network/ifcfg-${NIC_NAME}
 _genconfig_exec _gen_routes              /etc/sysconfig/network/routes
 _genconfig_exec _gen_sysctl_disable      /proc/sys/net/ipv6/conf/all/autoconf
 _genconfig_exec _gen_sysctl_disable      /proc/sys/net/ipv6/conf/${NIC_NAME}/autoconf
 _genconfig_exec _gen_hosts               /etc/hosts
-_genconfig_exec _gen_hostname            /etc/HOSTNAME
+if _is_appliance ; then
+    _genconfig_exec _gen_hostname            /etc/HOSTNAME
+fi

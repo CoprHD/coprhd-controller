@@ -75,7 +75,7 @@ public class GeoDbSvcStartupTest {
 
         // Check dbconfig
         String kind = coordinator.getDbConfigPath(Constants.GEODBSVC_NAME);
-        Configuration config = coordinator.queryConfiguration(kind,
+        Configuration config = coordinator.queryConfiguration(coordinator.getSiteId(), kind,
                 DbSvcRunner.GEOSVC_ID);
         Assert.assertNotNull("No dbconfig found", config);
         String value = config.getConfig(DbConfigConstants.JOINED);
@@ -83,7 +83,7 @@ public class GeoDbSvcStartupTest {
                 "true".equalsIgnoreCase(value));
 
         // Check dbconfig/global
-        config = coordinator.queryConfiguration(kind, Constants.GLOBAL_ID);
+        config = coordinator.queryConfiguration(coordinator.getSiteId(), kind, Constants.GLOBAL_ID);
         Assert.assertNotNull("No dbconfig/global found", config);
         value = config.getConfig(Constants.SCHEMA_VERSION);
         Assert.assertTrue("Unexpected dbconfig/global schemaversion",
@@ -92,7 +92,7 @@ public class GeoDbSvcStartupTest {
         // Check versioned dbconfig
         kind = coordinator.getVersionedDbConfigPath(Constants.GEODBSVC_NAME,
                 DbSvcRunner.SVC_VERSION);
-        config = coordinator.queryConfiguration(kind, DbSvcRunner.GEOSVC_ID);
+        config = coordinator.queryConfiguration(coordinator.getSiteId(), kind, DbSvcRunner.GEOSVC_ID);
         Assert.assertNotNull("No versioned dbconfig found", config);
         value = config.getConfig(DbConfigConstants.INIT_DONE);
         Assert.assertTrue("Unexpected versioned dbconfig initdone",
@@ -180,7 +180,7 @@ public class GeoDbSvcStartupTest {
     }
 
     private static void setLocalDbCurrentVersion(CoordinatorClient coordinator) throws Exception {
-        Configuration config = coordinator.queryConfiguration(Constants.DB_CONFIG,
+        Configuration config = coordinator.queryConfiguration(coordinator.getSiteId(), Constants.DB_CONFIG,
                 Constants.GLOBAL_ID);
         if (config == null) {
             ConfigurationImpl cfg = new ConfigurationImpl();
@@ -189,7 +189,7 @@ public class GeoDbSvcStartupTest {
             config = cfg;
         }
         config.setConfig(Constants.SCHEMA_VERSION, DbSvcRunner.SVC_VERSION);
-        coordinator.persistServiceConfiguration(config);
+        coordinator.persistServiceConfiguration(coordinator.getSiteId(), config);
     }
 
     @AfterClass

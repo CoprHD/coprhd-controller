@@ -1,0 +1,158 @@
+#!/etc/genconfig
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+
+PORTS_PROTECTED_IN_CLUSTER="tcp/2181 tcp/2888 tcp/2889 tcp/7000 tcp/7100 tcp/7199 tcp/7200 tcp/7299 tcp/7300 tcp/7399 tcp/7400 tcp/10099 tcp/40201"
+PORTS_PROTECTED_ACROSS_SITE="tcp/2181 tcp/2888 tcp/2889 tcp/7000 tcp/7100"
+IPSEC_CONF_FILE="/etc/ipsec.conf"
+IPSEC_SECRET_FILE="/etc/ipsec.secrets"
+FIRT_BOOT_FLAG_FILE="/.volumes/bootfs/etc/first_boot_flag"
+
+#
+# common section for all connnections in ipsec.conf
+#
+LOCAL_IP=$(_get_local_ip)
+COMMON_SECTION=$(cat << EOF
+# common section for all connections
+conn %default
+    ikelifetime=60m
+    keylife=20m
+    rekeymargin=3m
+    keyingtries=1
+    keyexchange=ikev2
+    authby=secret
+    auto=route
+    type=transport
+    esp=aes128gcm16!
+    left=${LOCAL_IP}
+EOF
+)
+
+#
+# section specific to each connection
+#
+_gen_conn_sections() {
+    local ips=$1
+    local ports=""
+    if [[ ${ips} == *"${LOCAL_IP}"* ]] ; then
+        ports=${PORTS_PROTECTED_IN_CLUSTER}
+    else
+        ports=${PORTS_PROTECTED_ACROSS_SITE}
+    fi
+
+    for ip in ${ips}
+    do
+        # skip generate connections for itself
+        [ "${ip}" == "${LOCAL_IP}" ] && continue
+
+        for port in ${ports}
+        do
+            conn=$(cat << EOF
+
+conn ${LOCAL_IP}-${ip}-${port}
+    right=${ip}
+    rightprotoport=${port}
+conn ${ip}-${LOCAL_IP}-${port}
+    right=${ip}
+    leftprotoport=${port}
+
+EOF
+)
+            echo "${conn}"
+        done
+    done
+}
+
+
+_create_first_boot_flag_file() {
+    /etc/systool --remount-rw
+    local dir="$(dirname -- "${FIRT_BOOT_FLAG_FILE}")"
+    [ -d "${dir}" ] || mkdir -p -- "${dir}"
+    touch -- "${FIRT_BOOT_FLAG_FILE}"
+    /etc/systool --remount-ro
+}
+
+#
+# generate ipsec.conf and ipsec.secrets
+#
+_gen_ipsec_conf() {
+
+    # based on flag file AND directory "/data/db/1" to determine if need to generate conf files
+    #
+    # flag file dose NOT exists: first boot, further check "data/db/1" directory existence
+    #      - not exist: new installation, generate conf files
+    #      - exist    : first boot after upgrade, do NOT generate conf files
+    #
+    # flag file exists: following up boots, further check ipsec_enabled flag 
+    #      - true : generate files
+    #      - false: do NOT generate files
+    #
+    local start_ipsec
+    if [ -f "${FIRT_BOOT_FLAG_FILE}" ] ; then 
+        if [ "${_GENCONFIG_ipsec_enabled}" == "false" ] ; then
+            rm -f ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
+            start_ipsec=false	
+        else
+            start_ipsec=true		
+        fi
+    else
+        _create_first_boot_flag_file
+
+        if [ -d /data/db/1 ] ; then
+            rm -f ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
+            start_ipsec=false	
+        else
+            start_ipsec=true
+        fi
+    fi
+
+    if [ "${start_ipsec}" = false ] ; then
+        return 0;
+    fi
+
+    # generating ipsec config files
+    # generate common section and connections of primary site
+    local ips_in_primary=$(_get_ips_in_primary)
+    local connections_in_primary=$(_gen_conn_sections "${ips_in_primary}")
+    local content=$(cat << EOF
+${COMMON_SECTION}
+
+# ips in primary site: ${ips_in_primary}
+${connections_in_primary}
+EOF
+)
+
+    if [ -n "${_GENCONFIG_site_ids}" ] ; then
+        local site_ids=$(echo ${_GENCONFIG_site_ids} | sed 's/,/ /g')
+        for standby in ${site_ids} ; do
+            local ips=$(_get_ips_in_standby "${standby}")
+            connections_in_standby=$(_gen_conn_sections "${ips}")
+            content=$(cat << EOF
+${content}
+
+# ips in ${standby} site: ${ips}
+${connections_in_standby}
+EOF
+)
+        done
+    fi
+
+# retrieve ipsec_key
+# the priority sequence as:
+#   1. from vdcconfig.properties
+#   2. from ovfenv.properties
+#   3. from psk.default
+    local ipsec_key=$(cat /opt/storageos/conf/psk.default)
+    if [ -n "${_GENCONFIG_ipsec_key}" ] ; then
+        ipsec_key="${_GENCONFIG_ipsec_key}"
+    elif [ -n "${_GENCONFIG_ipsec_key_ovfenv}" ] ; then
+        ipsec_key="${_GENCONFIG_ipsec_key_ovfenv}"
+    fi
+
+    _genconfig_write 400 root:root "${IPSEC_CONF_FILE}" "${content}"
+    _genconfig_write 400 root:root "${IPSEC_SECRET_FILE}" \
+        " : PSK ${ipsec_key}"
+}
+
+_gen_ipsec_conf

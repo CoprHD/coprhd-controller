@@ -192,4 +192,7 @@ public interface FatalSecurityExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_ERROR)
     FatalSecurityException failToNotifyChange(Exception e);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_ERROR)
+    FatalSecurityException failToRotateIPsecKey(Exception e);
 }

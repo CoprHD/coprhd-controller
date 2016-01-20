@@ -104,15 +104,16 @@ public class XtremIOUnManagedVolumeDiscoverer {
             Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap, Map<String, StringSet> igKnownVolumesMap) throws Exception {
 
         StringSet snaps = new StringSet();
+        Object snapNameToProcess;
 
         for (List<Object> snapDetail : snapDetails) {
             // This can't be null
-            if (null == snapDetail.get(1) || null == snapDetail.get(2)) {
-                log.warn("Snap Name is null in returned snap list response for volume {}", parentGUID);
+        	snapNameToProcess = snapDetail.get(1);
+            if ((null == snapNameToProcess || snapNameToProcess.toString().length() == 0)  || null == snapDetail.get(2)) {
+                log.warn("Skipping snapshot as it is null for volume {}", parentGUID);
                 continue;
             }
-            String snapNameToProcess = (String) snapDetail.get(1);
-            XtremIOVolume snap = xtremIOClient.getSnapShotDetails(snapNameToProcess, xioClusterName);
+            XtremIOVolume snap = xtremIOClient.getSnapShotDetails(snapNameToProcess.toString(), xioClusterName);
             UnManagedVolume unManagedVolume = null;
             boolean isExported = !snap.getLunMaps().isEmpty();
             String managedSnapNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(

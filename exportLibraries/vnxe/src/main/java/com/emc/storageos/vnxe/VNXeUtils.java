@@ -13,18 +13,15 @@ import org.slf4j.LoggerFactory;
 
 public class VNXeUtils {
     private static Logger _logger = LoggerFactory.getLogger(VNXeUtils.class);
-    private static final String HOST_NAME_PATTERN =
-            "^(?![0-9]+$)(?:([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$";
+    private static final String HOST_NAME_PATTERN = "^(?![0-9]+$)(?:([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$";
 
     // Regular Expression to match an IPv4 IP Address.
-    private static final String IPV4_PATTERN =
-            "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
-                    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
-                    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
-                    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
+    private static final String IPV4_PATTERN = "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
+            "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
+            "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
+            "([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
     // Regular Expression to match an IPv6 IP Address.
-    private static final String IPV6_PATTERN =
-            "^([0-9a-fA-F]{1,4}|0)(\\:([0-9a-fA-F]{1,4}|0)){7}$";
+    private static final String IPV6_PATTERN = "^([0-9a-fA-F]{1,4}|0)(\\:([0-9a-fA-F]{1,4}|0)){7}$";
 
     private static int KBYTES = 1024;
 
@@ -90,5 +87,19 @@ public class VNXeUtils {
         double kSize = size / KBYTES;
         return Double.valueOf(kSize).longValue();
 
+    }
+
+    public static boolean isHigherVersion(String currentVersion, String baseVersion) {
+        String delims = "[.]";
+        boolean isHigher = false;
+        String[] currentVersionTokens = currentVersion.split(delims);
+        String[] baseVersionTokens = baseVersion.split(delims);
+        for (int index = 0; index < 2; index++) {
+            if ((Integer.parseInt(currentVersionTokens[index])) > (Integer.parseInt(baseVersionTokens[index]))) {
+                isHigher = true;
+                break;
+            }
+        }
+        return isHigher;
     }
 }

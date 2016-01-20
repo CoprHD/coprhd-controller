@@ -39,6 +39,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
     private String linkStatus;
     private Boolean hasXIO3XVolumes;
     private RelatedResourceRep pool;
+    private Boolean supportsSnapshotSessions;
 
     // Fields in a Volume that are specific to RecoverPoint
     public static class RecoverPointRestRep {
@@ -608,5 +609,18 @@ public class VolumeRestRep extends BlockObjectRestRep {
     public void setPool(RelatedResourceRep pool) {
         this.pool = pool;
     }
+    
+    /**
+     * Specifies whether this is volume supports Snapshot Sessions.
+     * 
+     * @return true if volume supports Snapshot Sessions, false otherwise
+     */
+    @XmlElement(name = "supports_snapshot_sessions")
+    public Boolean getSupportsSnapshotSessions() {
+        return supportsSnapshotSessions;
+    }
 
+    public void setSupportsSnapshotSessions(Boolean supportsSnapshotSessions) {
+        this.supportsSnapshotSessions = supportsSnapshotSessions;
+    }
 }

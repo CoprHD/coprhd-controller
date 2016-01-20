@@ -254,6 +254,22 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
         final String url = getIdUrl() + "/protection/snapshots/{fcid}/restore";
         return postTask(url, consistencyGroupId, snapshotId);
     }
+    
+    /**
+     * Resynchronize consistency group snapshot
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshot/{fcid}/resynchronize</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @param snapshotId
+     *            the Id of the snapshot
+     * @return An asychronous operation realized as a <code>Tasks</code> object
+     */
+    public Task<BlockConsistencyGroupRestRep> resynchronizeSnapshot(URI consistencyGroupId, URI snapshotId) {
+        final String url = getIdUrl() + "/protection/snapshots/{fcid}/resynchronize";
+        return postTask(url, consistencyGroupId, snapshotId);
+    }
 
     /**
      * Begins initiating failover for a given consistency group.

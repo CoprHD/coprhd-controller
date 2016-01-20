@@ -17,6 +17,7 @@ public class NfsACLDataTable extends DataTable {
         addColumn("domain");
         addColumn("type");
         addColumn("permissions");
+        addColumn("permissionType");
         sortAll();
         setDefaultSortField("name");
     }
@@ -43,6 +44,7 @@ public class NfsACLDataTable extends DataTable {
             this.subDir = subDir;
             this.fileSystem = fileSystem;
             this.fsMountPath = fsMountPath;
+            this.permissionType = permissionType;
             this.id = NfsACLForm.createId(this.name, this.type,
                     this.fileSystem, this.subDir, this.domain,
                     this.permissions, this.fsMountPath, this.permissionType);

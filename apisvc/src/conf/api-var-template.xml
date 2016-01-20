@@ -9,4 +9,9 @@
         <property name="endpoint" value="http://${node_id}:8080/"/>
         <property name="version" value="1"/>
     </bean>
+
+    <bean id="permissionsFilterFactory" class="com.emc.storageos.api.service.authorization.PermissionsFilterFactory">
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+        <property name="isStandby" value="${site_is_standby}"/>
+    </bean>
 </beans>

@@ -101,7 +101,7 @@ public class DbDowntimeTracker {
             }
         }
         config = dbOfflineEventInfo.toConfiguration(serviceName);
-        coordinator.getCoordinatorClient().persistServiceConfiguration(config);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(coordinator.getCoordinatorClient().getSiteId(), config);
         log.info("Persist db tracker info to zk successfully");
     }
 }

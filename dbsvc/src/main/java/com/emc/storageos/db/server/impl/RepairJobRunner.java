@@ -4,17 +4,20 @@
  */
 package com.emc.storageos.db.server.impl;
 
+import com.emc.storageos.services.util.JmxServerWrapper;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.ActiveRepairService;
 import org.apache.cassandra.service.StorageServiceMBean;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
+import org.apache.cassandra.utils.concurrent.SimpleCondition;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.management.Notification;
 import javax.management.NotificationListener;
+import javax.management.remote.JMXConnectionNotification;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -26,6 +29,7 @@ import java.util.Collection;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.locks.Condition;
 
 /**
  * Class handles running repair job and listening for messages related modeled
@@ -41,6 +45,8 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             .getLogger(RepairJobRunner.class);
     private final SimpleDateFormat format = new SimpleDateFormat(
             "yyyy-MM-dd HH:mm:ss,SSS");
+
+    private final Condition condition = new SimpleCondition();
 
     /**
      * Flag to indicate the job is successful or failed
@@ -83,12 +89,9 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      */
     private String _lastToken = null;
 
-    /**
-     * Flag to indicate if restrict db repair at local site
-     */
-    private boolean _isLocal = false;
-
     private ProgressNotificationListener listener;
+
+    private JmxServerWrapper jmxServer;
 
     private StorageServiceMBean svcProxy;
 
@@ -103,21 +106,18 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      * @param keySpaceName
      *            ViPR table name
      * @param exe
-     * @param isLocal if repair is done in local site only
      * @param listener
      * @param startToken
      */
-    public RepairJobRunner(StorageServiceMBean svcProxy, String keySpaceName, ScheduledExecutorService exe, boolean isLocal,
+    public RepairJobRunner(JmxServerWrapper jmxServer, StorageServiceMBean svcProxy, String keySpaceName, ScheduledExecutorService exe,
             ProgressNotificationListener listener, String startToken, String clusterStateDigest) {
+        this.jmxServer = jmxServer;
         this.svcProxy = svcProxy;
         this.keySpaceName = keySpaceName;
         _exe = exe;
-        this._isLocal = isLocal;
         _lastToken = startToken;
         this.listener = listener;
         this.clusterStateDigest = clusterStateDigest;
-
-        this.svcProxy.addNotificationListener(this, null, null);
     }
 
     public static class StringTokenRange {
@@ -225,8 +225,15 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
                 this.listener.onStartToken(range.end, getProgress());
 
-                svcProxy.forceKeyspaceRepairRange(range.begin, range.end, this.keySpaceName,
-                        true, _isLocal);
+                int cmd = svcProxy.forceRepairRangeAsync(range.begin, range.end, this.keySpaceName,
+                        true, false, true);
+
+                _log.info("Wait for repairing this range to be done cmd={}", cmd);
+                if (cmd > 0) {
+                    condition.await();
+                }
+
+                _log.info("Repair this range is done success={}", _success);
 
                 if (!_success) {
                     _log.error("Fail to repair range {} {}. Stopping the job",
@@ -331,22 +338,42 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 // status
                 if (status[1] == ActiveRepairService.Status.SESSION_FAILED
                         .ordinal()) {
+                    _log.info("Repair session failed");
                     _success = false;
                 } else if (status[1] == ActiveRepairService.Status.FINISHED
                         .ordinal()) {
 
+                    _log.info("Repair session finished");
                     if (_aborted) {
                         _success = false;
                     }
+                    condition.signalAll();
                 }
             } else {
                 _log.error("Unexpected notification: status.length {}", status.length);
             }
+        } else if (JMXConnectionNotification.NOTIFS_LOST.equals(notification.getType()))
+        {
+            String message = String.format("[%s] Lost notification. You should check server log for repair status of keyspace %s",
+                                           format.format(notification.getTimeStamp()),
+                                           keySpaceName);
+            _log.error(message);
+        }
+        else if (JMXConnectionNotification.FAILED.equals(notification.getType())
+                 || JMXConnectionNotification.CLOSED.equals(notification.getType()))
+        {
+            String message = String.format("JMX connection closed. You should check server log for repair status of keyspace %s"
+                                           + "(Subsequent keyspaces are not going to be repaired).",
+                                           keySpaceName);
+            _log.error(message);
+            condition.signalAll();
         }
     }
 
     @Override
     public void close() throws Exception {
-        this.svcProxy.removeNotificationListener(this);
+        _log.info("remove listener");
+        svcProxy.removeNotificationListener(this);
+        jmxServer.removeConnectionNotificationListener(this);
     }
 }

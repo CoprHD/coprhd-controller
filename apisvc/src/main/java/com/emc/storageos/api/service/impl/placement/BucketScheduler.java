@@ -7,6 +7,8 @@ package com.emc.storageos.api.service.impl.placement;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -76,7 +78,7 @@ public class BucketScheduler {
     }
 
     /**
-     * Select the right StorageHADomain matching vpool protocols.
+     * Select the right matching storage pools
      * 
      * @param vpool
      * @param poolRecommends recommendations after selecting matching storage pools.
@@ -84,7 +86,7 @@ public class BucketScheduler {
      */
     private List<BucketRecommendation> selectMatchingStoragePool(VirtualPool vpool, List<Recommendation> poolRecommends) {
 
-        List<BucketRecommendation> result = new ArrayList<BucketRecommendation>();
+        List<BucketRecommendation> baseResult = new ArrayList<BucketRecommendation>();
         for (Recommendation recommendation : poolRecommends) {
             BucketRecommendation rec = new BucketRecommendation(recommendation);
             URI storageUri = recommendation.getSourceStorageSystem();
@@ -95,14 +97,51 @@ public class BucketScheduler {
             if (!Type.isObjectStorageSystem(StorageSystem.Type.valueOf(storage.getSystemType()))) {
                 continue;
             }
+            baseResult.add(rec);
+        }
+        
+        //sort the storage pools based on the number of datacenters spread 
+        storagePoolSort(baseResult);
+        
+        //get the value of datacenters in the sorted first storage pool
+        StoragePool pool = _dbClient.queryObject(StoragePool.class, baseResult.get(0).getSourceStoragePool());
+        Integer baseDC = pool.getDataCenters();
+        
+        //make the first sub-set of pools
+        List<BucketRecommendation> finalResult = new ArrayList<BucketRecommendation>();
+        for (BucketRecommendation bkRec:baseResult) {
+            URI storagePoolUri = bkRec.getSourceStoragePool();
+            pool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
 
-            // Select only those Storage pool whose retention days is more than that of Virtual Pool
-            StoragePool pool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
-            if (pool.getMaxRetention() == 0 || pool.getMaxRetention() >= vpool.getMaxRetention()) {
-                result.add(rec);
-                _log.debug("Select matching Object Store Domain : {} # {}", storageUri, storagePoolUri);
+            if (pool.getDataCenters() == baseDC) {
+                finalResult.add(bkRec);
+            }
+            else {
+                break;
             }
         }
-        return result;
+        
+        return finalResult;
     }
+    
+    private void storagePoolSort(List<BucketRecommendation> baseResult) {
+
+        Collections.sort(baseResult, new Comparator<BucketRecommendation>() {
+
+            @Override
+            public int compare(BucketRecommendation bucketRec1, BucketRecommendation bucketRec2) {
+                URI storagePoolUri1 = bucketRec1.getSourceStoragePool();
+                StoragePool pool1 = _dbClient.queryObject(StoragePool.class, storagePoolUri1);
+
+                URI storagePoolUri2 = bucketRec2.getSourceStoragePool();
+                StoragePool pool2 = _dbClient.queryObject(StoragePool.class, storagePoolUri2);
+
+                //pool1 DC > pool2 DC -> +ve
+                //pool1 DC == pool2 DC -> 0
+                //pool1 DC < pool2 DC -> -ve
+                return (pool1.getDataCenters() - pool2.getDataCenters());
+            }
+        });//end sort method
+    }
+
 }

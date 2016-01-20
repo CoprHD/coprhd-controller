@@ -5,11 +5,20 @@
  #{get 'moreScripts'/}
  #{/set}
  
+ #{script "systemhealth.js" /}
  <div class="container">
  <div id="checkDbProgress"> 
  #{Form.header titleKey:'upgrade.title' /} 
+  <div><b>&{'upgrade.targetVersion'}:</b> <span id="bourne-version"></span><br/></div>
+  <b>&{'upgrade.clusterState'}:</b>
+    <span id="clusterState" data-state="${clusterInfo.currentState}"></span>
+    #{if isWorking}
+        &nbsp;&nbsp;#{loading /}
+    #{/if}
+<div>&nbsp;</div>
  <br/>
 #{Form.subheader titleKey:"upgrade.checkDbProgress", descriptionKey:"upgrade.checkDbProgress.description"/}
+<br/>
 	<table class="database-check-progress-table">
 		<tr><td width="300">
                     %{
@@ -19,13 +28,17 @@
                         }
                       }%
                       #{progressBar name:"Status", percentage:checkProgress, style:style/}</td>
-         <td style="padding-right: 10px">
-         <span id="checkDbStatus">
+		</tr>
+		<tr>
+		<td width="300">
+		  <span id="checkDbStatus">
 			#{if isDbCheckStatus.equals("FAILED")}&{'upgrade.checkDb.failed'}#{/if}
 		</span>
+		<div id="checkDetailMsg" style="color:#2c95dd"></div>
 		</td>
 		</tr>
 	</table>
+<br/>
 <br/>
 <form class="form">
         <button id="okButton" type="submit" class="btn btn-primary btn-sm btn-success" onclick="window.location = '@{infra.Upgrade.checkDbStatusOK()}';" style="margin-bottom: 0px">
@@ -43,8 +56,37 @@ $('#cancelDbButton').attr('disabled',false);
 </div>
 <script>
 $(document).ready(function() {
+	loadVersion();
+	render.clusterStatus('#clusterState', $('#clusterState').data('state'));
 	checkDbStatusUpdates();
 });
+
+
+function loadVersion() {
+    var uri = SystemHealth.PROXY_URI + encodeURIComponent("upgrade/target-version.json");
+    window.console && console.log("Requesting version: " + uri);
+
+    $.ajax({ // Define AJAX call properties
+        method: "get",
+        url: uri,
+        dataType: "json",
+        timeout: (30 * 1000), // 30 sec timeout
+
+        success: function(ret) {
+            if(!ret["target_version"]) {
+                // display error message if what we get back is not an object
+                // that contains the expected field
+                SystemHealth.handleErrorMessage(ret.description, Messages.get("upgrade.error.retrieving.version"));
+                return;
+            }
+            window.console && console.log("Success retrieving version: " + ret["target_version"]);
+            $("#bourne-version").html(ret["target_version"]);
+        },
+        error: function(jqXHR, exception) {
+            SystemHealth.handleAjaxError(jqXHR, exception, Messages.get("upgrade.error.retrieving.version"));
+        }
+    });
+}
 
 function checkDbStatusUpdates() {
 	window.setInterval(function() {
@@ -61,15 +103,31 @@ function checkDbProgressUpdate() {
 		
         success: function(result) {
         	updateProgressBar("Status",result.progress);
+        	$("#checkDbStatus").text(result.status);
 			if(result.status == "FAILED" || result.status == "SUCCESS") {
     			$('#okButton').attr('disabled',false);
     			$('#cancelDbButton').attr('disabled',true);
+    		}else{
+    			$('#okButton').attr('disabled',true);
+    			$('#cancelDbButton').attr('disabled',false);
     		}
-        	if(result.status == "FAILED") {
+			if(result.status != "FAILED"){
+				if($('.progress-bar').hasClass('progress-bar-danger')){
+					$('.progress-bar').removeClass('progress-bar-danger');
+				}
+				$("#checkDbStatus").css("color", "#333333");
+				$("#checkDbStatus").css("font-weight", "normal");
+				$("#checkDetailMsg").text("");
+			}else {
 				$("#checkDbStatus").text('&{'upgrade.checkDb.failed'}');
-        		updateProgressBarStyle("Status", "danger")
+        		updateProgressBarStyle("Status", "danger");
+        		$("#checkDbStatus").css("color", "#d9534f");
+        		$("#checkDbStatus").css("font-weight", "bold");
+        		var startTime = formatLocalDateTime(moment.utc(moment(result.startTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
+        		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
+        		$("#checkDetailMsg").text('Please check the syssvc log during local time '+startTime+'('+result.startTime+' UTC) and '+endTime+'('+result.endTime+' UTC) for more details and contact EMC Support Engineer.');
+
         	}
-			$("#checkDbStatus").text(result.status);
         },
         error: function() {
         }

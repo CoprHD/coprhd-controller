@@ -8,6 +8,7 @@ package com.emc.storageos.systemservices.impl;
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
+import com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.security.AbstractSecuredWebServer;
@@ -17,8 +18,10 @@ import com.emc.storageos.systemservices.impl.upgrade.ClusterAddressPoller;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.RemoteRepository;
 import com.emc.storageos.systemservices.impl.upgrade.UpgradeManager;
+import com.emc.storageos.systemservices.impl.vdc.VdcManager;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.systemservices.SysSvc;
 import com.emc.storageos.systemservices.impl.audit.SystemAudit;
 import com.emc.storageos.db.client.DbClient;
@@ -32,14 +35,19 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private Thread _upgradeManagerThread = null;
     private Thread _secretsManagerThread = null;
     private Thread _propertyManagerThread = null;
+    private Thread _vdcManagerThread = null;
     private Thread _ipreconfigManagerThread = null;
     private int _timeout;
+    private SoftwareUpdate _softwareUpdate;
 
     @Autowired
     private SecretsManager _secretsMgr;
 
     @Autowired
     private PropertyManager _propertyMgr;
+
+    @Autowired
+    private VdcManager _vdcMgr;
 
     @Autowired
     private IpReconfigManager _ipreconfigMgr;
@@ -74,6 +82,14 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     }
 
     /**
+     * Instantiate SoftwareUpdate bean
+     *
+     */
+    public void setSoftwareUpdate(SoftwareUpdate softwareUpdate) {
+        _softwareUpdate = softwareUpdate;
+    }
+
+    /**
      * Set the key generator
      * 
      */
@@ -97,6 +113,12 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _propertyManagerThread = new Thread(_propertyMgr);
         _propertyManagerThread.setName("PropertyManager");
         _propertyManagerThread.start();
+    }
+
+    private void startVdcManager() {
+        _vdcManagerThread = new Thread(_vdcMgr);
+        _vdcManagerThread.setName("VdcManager");
+        _vdcManagerThread.start();
     }
 
     private void startNewVersionCheck() {
@@ -141,13 +163,19 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             if (!_coordinator.isControlNode()) {
                 _clusterPoller.start();
             }
+
             startNewVersionCheck();
             startUpgradeManager();
             startSecretsManager();
             startPropertyManager();
+            startVdcManager();
             startIpReconfigManager();
-            _recoveryMgr.init();
-            startSystemAudit(_dbClient);
+            
+            DrUtil drUtil = _coordinator.getDrUtil();
+            if (drUtil.isActiveSite()) {
+                _recoveryMgr.init();
+                startSystemAudit(_dbClient);
+            }
             _svcBeacon.start();
         } else {
             throw new Exception("No app found.");
@@ -159,6 +187,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _upgradeMgr.stop();
         _secretsMgr.stop();
         _propertyMgr.stop();
+        _vdcMgr.stop();
         stopNewVersionCheck();
         _server.stop();
     }

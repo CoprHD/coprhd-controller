@@ -4,6 +4,7 @@ BlockConsistencyGroupService
 BlockSnapshotService
 ExportGroupService
 BlockFullCopyService
+BlockSnapshotSessionService
 
 =File Services
 FileService
@@ -95,6 +96,18 @@ com.emc.storageos.systemservices.impl.resource.LogService
 com.emc.storageos.systemservices.impl.resource.PasswordService
 com.emc.storageos.systemservices.impl.resource.UpgradeService
 com.emc.storageos.systemservices.impl.resource.DbConsistencyService
+com.emc.storageos.systemservices.impl.resource.IPsecService
+
+=Block Services For OpenStack
+com.emc.storageos.api.service.impl.resource.cinder.ExportService
+com.emc.storageos.api.service.impl.resource.cinder.SnapshotService
+com.emc.storageos.api.service.impl.resource.cinder.QuotaService
+com.emc.storageos.api.service.impl.resource.cinder.ConsistencyGroupSnapshotService
+com.emc.storageos.api.service.impl.resource.cinder.TypeService
+com.emc.storageos.api.service.impl.resource.cinder.ExtensionService
+com.emc.storageos.api.service.impl.resource.cinder.QosService
+com.emc.storageos.api.service.impl.resource.cinder.ConsistencyGroupService
+com.emc.storageos.api.service.impl.resource.cinder.MiscService
 
 =Other Services
 com.emc.storageos.api.service.impl.resource.AuditService
@@ -106,6 +119,7 @@ MonitoringService
 MeteringService
 WorkflowService
 TaskService
+DisasterRecoveryService
 
 =API Differences
 Block Services

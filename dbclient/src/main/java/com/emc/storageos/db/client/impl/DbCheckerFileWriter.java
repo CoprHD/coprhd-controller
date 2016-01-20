@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.impl;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -18,15 +19,16 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DbCheckerFileWriter {
-    private static BufferedWriter storageFileWriter;
-    private static BufferedWriter geoStorageFileWriter;
-    private static BufferedWriter rebuildIndexFileWriter;
     static final String WRITER_STORAGEOS = "StorageOS";
     static final String WRITER_GEOSTORAGEOS = "GeoStorageOS";
     static final String WRITER_REBUILD_INDEX = "RebuildIndex";
@@ -49,7 +51,8 @@ public class DbCheckerFileWriter {
     private static final String STORAGEOS_NAME = "storageos";
     private static String owner = STORAGEOS_NAME;
     private static String group = STORAGEOS_NAME;
-
+    private static final Set<String> cleanupFiles = new HashSet<String>();
+    private static final Map<String, BufferedWriter> writers = new HashMap<String, BufferedWriter>();
     private static final Logger log = LoggerFactory.getLogger(DbCheckerFileWriter.class);
 
     private DbCheckerFileWriter() {
@@ -66,23 +69,12 @@ public class DbCheckerFileWriter {
     }
 
     private static BufferedWriter getWriter(String name) throws IOException {
-        if (WRITER_STORAGEOS.equals(name)) {
-            storageFileWriter = getAndInit(storageFileWriter, CLEANUP_FILE_STORAGEOS, USAGE_STORAGEOS);
-            return storageFileWriter;
-        } else if (WRITER_GEOSTORAGEOS.equals(name)) {
-            geoStorageFileWriter = getAndInit(geoStorageFileWriter, CLEANUP_FILE_GEOSTORAGEOS, USAGE_GEOSTORAGEOS);
-            return geoStorageFileWriter;
-        } else if (WRITER_REBUILD_INDEX.equals(name)) {
-            rebuildIndexFileWriter = getAndInit(rebuildIndexFileWriter, CLEANUP_FILE_REBUILD_INDEX, USAGE_REBUILDINDEX);
-            return rebuildIndexFileWriter;
-        }
-        return null;
-    }
-
-    private static BufferedWriter getAndInit(BufferedWriter writer, String fileName, String usage)
-            throws IOException {
+        WriteType type = WriteType.getByType(name);
+        BufferedWriter writer = writers.get(type.filename);
         if (writer == null) {
-            writer = init(fileName, usage);
+            writer = init(type.filename, type.usage);
+            writers.put(type.filename, writer);
+            cleanupFiles.add(type.filename);
         }
         return writer;
     }
@@ -105,44 +97,21 @@ public class DbCheckerFileWriter {
     }
 
     public static void close() {
-        try {
-            if (storageFileWriter != null) {
-                storageFileWriter.close();
-                storageFileWriter = null;
+        for (Writer writer : writers.values()) {
+            try {
+                if (writer != null) {
+                    writer.close();
+                }
+            } catch (IOException e) {
+                log.error("Exception happens when closing file, e=", e);
             }
-            if (geoStorageFileWriter != null) {
-                geoStorageFileWriter.close();
-                geoStorageFileWriter = null;
-            }
-            if (rebuildIndexFileWriter != null) {
-                rebuildIndexFileWriter.close();
-                rebuildIndexFileWriter = null;
-            }
-        } catch (IOException e) {
-            log.error("Exception happens when closing file, e=", e);
         }
+
+
     }
 
     public static String getGeneratedFileNames() {
-        StringBuilder fileName = null;
-        if (storageFileWriter != null) {
-            fileName = new StringBuilder(CLEANUP_FILE_STORAGEOS);
-        }
-        if (geoStorageFileWriter != null) {
-            if (fileName == null) {
-                fileName = new StringBuilder(CLEANUP_FILE_GEOSTORAGEOS);
-            } else {
-                fileName.append(" ").append(CLEANUP_FILE_GEOSTORAGEOS);
-            }
-        }
-        if (rebuildIndexFileWriter != null) {
-            if (fileName == null) {
-                fileName = new StringBuilder(CLEANUP_FILE_REBUILD_INDEX);
-            } else {
-                fileName.append(" ").append(CLEANUP_FILE_REBUILD_INDEX);
-            }
-        }
-        return fileName.toString();
+        return StringUtils.join(cleanupFiles, " ");
     }
 
     private static void deleteIfExists(String fileName) {
@@ -161,5 +130,29 @@ public class DbCheckerFileWriter {
         attributeView.setGroup(group);
         attributeView.setOwner(user);
         Files.setPosixFilePermissions(path, permissions);
+    }
+    
+    enum WriteType {
+        STORAGEOS("StorageOS", CLEANUP_FILE_STORAGEOS, USAGE_STORAGEOS),
+        GEOSTORAGEOS("GeoStorageOS", CLEANUP_FILE_GEOSTORAGEOS, USAGE_GEOSTORAGEOS),
+        REBUILD_INDEX("RebuildIndex", CLEANUP_FILE_REBUILD_INDEX, USAGE_REBUILDINDEX);
+        String type;
+        String filename;
+        String usage;
+
+        WriteType(String type, String filename, String usage) {
+            this.type = type;
+            this.filename = filename;
+            this.usage = usage;
+        }
+        
+        public static WriteType getByType(String type) {
+            for (WriteType writeType : values()) {
+                if (writeType.type.equals(type)) {
+                    return writeType;
+                }
+            }
+            throw new RuntimeException("invalid type:" + type);
+        }
     }
 }

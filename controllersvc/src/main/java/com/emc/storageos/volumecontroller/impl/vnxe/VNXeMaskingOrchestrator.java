@@ -161,12 +161,12 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep,
                             storage, exportGroup, exportMask, null);
                 }
-                String successMessage = String.format(
-                        "Export was successfully removed from StorageArray %s",
-                        storage.getLabel());
-                workflow.executePlan(taskCompleter, successMessage);
-
             }
+
+            String successMessage = String.format(
+                    "Export was successfully removed from StorageArray %s",
+                    storage.getLabel());
+            workflow.executePlan(taskCompleter, successMessage);
 
             _log.info(String.format("exportGroupDelete end - Array: %s ExportMask: %s",
                     storageURI.toString(), exportGroupURI.toString()));

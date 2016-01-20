@@ -6,6 +6,9 @@ package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
 
 import com.emc.storageos.systemservices.impl.util.ProcessOutputStream;
 import com.emc.storageos.systemservices.impl.util.ProcessRunner;
@@ -97,5 +100,55 @@ public class FtpsUploader extends Uploader {
         builder.command().add(this.cfg.uploadUrl + fileName);
 
         return new ProcessOutputStream(builder.start());
+    }
+
+    @Override
+    public List<String> listFiles(String prefix) throws Exception {
+        if (prefix == null) {
+            return null;
+        }
+        ProcessBuilder builder = getBuilder();
+        builder.command().add("-l");
+        builder.command().add(this.cfg.uploadUrl);
+
+        List<String> fileList = new ArrayList<String>();
+        try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
+            StringBuilder errText = new StringBuilder();
+            processor.captureAllTextInBackground(processor.getStdErr(), errText);
+
+            for (String line : processor.enumLines(processor.getStdOut())) {
+                if (line.startsWith(prefix)) {
+                    fileList.add(line);
+                }
+            }
+
+            int exitCode = processor.join();
+            if (exitCode != 0) {
+                log.error("List files on FTP {} failed, Exit code {}", this.cfg.uploadUrl, exitCode);
+                throw new IOException(errText.length() > 0 ? errText.toString() : Integer.toString(exitCode));
+            }
+        }
+
+        return fileList;
+    }
+
+    @Override
+    public void rename(String sourceFileName, String destFileName) throws Exception {
+        ProcessBuilder builder = getBuilder();
+        builder.command().add(this.cfg.uploadUrl);
+        builder.command().add("-Q");
+        builder.command().add("RNFR " + sourceFileName);
+        builder.command().add("-Q");
+        builder.command().add("RNTO " + destFileName);
+
+        try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
+            StringBuilder errText = new StringBuilder();
+            processor.captureAllTextInBackground(processor.getStdErr(), errText);
+            int exitCode = processor.join();
+            if (exitCode != 0) {
+                log.error("Rename files on FTP {} failed, Exit code {}", this.cfg.uploadUrl, exitCode);
+                throw new IOException(errText.length() > 0 ? errText.toString() : Integer.toString(exitCode));
+            }
+        }
     }
 }

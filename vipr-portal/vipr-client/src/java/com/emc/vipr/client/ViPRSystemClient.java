@@ -11,6 +11,8 @@ import com.emc.vipr.client.system.*;
 public class ViPRSystemClient {
     protected RestClient client;
 
+    // for easy mocking in UT
+    public ViPRSystemClient() {}
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host)
      * 
@@ -106,5 +108,9 @@ public class ViPRSystemClient {
     
     public Backup backup(){
     	return new Backup(client);
+    }
+
+    public IPsec ipsec(){
+        return new IPsec(client);
     }
 }

@@ -29,7 +29,7 @@
                       source: @listNodesJson(),
                       dataTable:dataTable,
                       expandable:true } 
-      #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}                   
+      #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
         #{DataTable.buttonBar}
           <a href="@{AdminDashboard.clusterPoweroff}" class="btn btn-sm btn-danger" onclick="return confirm(Messages.get('adminDashboard.confirm.poweroff'))">#{icon 'off'/} &{'adminDashboard.cluster.poweroff'}</a>
         #{/DataTable.buttonBar} 
@@ -45,7 +45,7 @@
         <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">{{'system.stats.actions'| t}}<span class='caret'></span></button>
         <ul class="dropdown-menu dropdown-menu-right" role="menu">
             <li><a href="@{logs()}?nodeId={{row.id}}{{allServices}}&startTime={{time}}">{{'system.stats.logs' | t}}</a></li>
-            #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
                 <li ng-show="isRebootable" ><a href="{{rebootUrl}}" onclick="if (!confirm('&{'adminDashboard.confirm.reboot'}')){return false;}")>{{'system.stats.reboot' | t}}</a></li>
             #{/deadbolt.restrict}
         </ul>

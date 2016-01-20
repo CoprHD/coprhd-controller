@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.httpclient.util.URIUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +68,8 @@ public class XtremIOV2Client extends XtremIOClient {
         log.info("Returned Clusters : {}", xioClusters.getClusters().length);
         List<XtremIOSystem> discoveredXIOSystems = new ArrayList<XtremIOSystem>();
         for (XtremIOCluster cluster : xioClusters.getClusters()) {
-            URI clusterURI = URI.create(cluster.getHref());
+            URI clusterURI = URI.create(URIUtil.getFromPath(cluster.getHref()));
+            log.debug("Trying to get cluster details for {}", clusterURI.toString());
             response = get(clusterURI);
             XtremIOClusterInfo xioSystem = getResponseObject(XtremIOClusterInfo.class, response);
             log.info("System {}", xioSystem.getContent().getName() + "-"
@@ -86,7 +88,9 @@ public class XtremIOV2Client extends XtremIOClient {
         log.info("Returned Target Links size : {}", targetPortLinks.getPortInfo().length);
         List<XtremIOPort> targetPortList = new ArrayList<XtremIOPort>();
         for (XtremIOObjectInfo targetPortInfo : targetPortLinks.getPortInfo()) {
-            URI targetPortUri = URI.create(targetPortInfo.getHref().concat(XtremIOConstants.getInputClusterString(clusterName)));
+            URI targetPortUri = URI.create(URIUtil.getFromPath(targetPortInfo.getHref().concat(
+                    XtremIOConstants.getInputClusterString(clusterName))));
+            log.debug("Trying to get port details for {}", targetPortUri.toString());
             response = get(targetPortUri);
             XtremIOPorts targetPorts = getResponseObject(XtremIOPorts.class, response);
             log.info("Target Port {}", targetPorts.getContent().getName() + "-"
@@ -105,7 +109,9 @@ public class XtremIOV2Client extends XtremIOClient {
         log.info("Returned Initiator Links size : {}", initiatorPortLinks.getInitiators().length);
         List<XtremIOInitiator> initiatorPortList = new ArrayList<XtremIOInitiator>();
         for (XtremIOObjectInfo initiatorPortInfo : initiatorPortLinks.getInitiators()) {
-            URI initiatorPortUri = URI.create(initiatorPortInfo.getHref().concat(XtremIOConstants.getInputClusterString(clusterName)));
+            URI initiatorPortUri = URI.create(URIUtil.getFromPath(initiatorPortInfo.getHref().concat(
+                    XtremIOConstants.getInputClusterString(clusterName))));
+            log.debug("Trying to get initiator details for {}", initiatorPortUri.toString());
             response = get(initiatorPortUri);
             XtremIOInitiators initiatorPorts = getResponseObject(XtremIOInitiators.class, response);
             log.info("Initiator Port {}", initiatorPorts.getContent().getName() + "-"
@@ -130,9 +136,10 @@ public class XtremIOV2Client extends XtremIOClient {
     public List<XtremIOVolume> getXtremIOVolumesForLinks(List<XtremIOObjectInfo> volumeLinks, String clusterName) throws Exception {
         List<XtremIOVolume> volumeList = new ArrayList<XtremIOVolume>();
         for (XtremIOObjectInfo volumeInfo : volumeLinks) {
-            log.debug("Trying to get volume details for {}", volumeInfo.getHref());
             try {
-                URI volumeURI = URI.create(volumeInfo.getHref().concat(XtremIOConstants.getInputClusterString(clusterName)));
+                URI volumeURI = URI.create(URIUtil.getFromPath(volumeInfo.getHref().concat(
+                        XtremIOConstants.getInputClusterString(clusterName))));
+                log.debug("Trying to get volume details for {}", volumeURI.toString());
                 ClientResponse response = get(volumeURI);
                 XtremIOVolumes volumes = getResponseObject(XtremIOVolumes.class, response);
                 log.info("Volume {}", volumes.getContent().getVolInfo().get(1) + "-"
@@ -541,7 +548,8 @@ public class XtremIOV2Client extends XtremIOClient {
         ClientResponse response = get(XtremIOConstants.XTREMIO_V2_XMS_URI);
         XtremIOXMSsInfo xmssInfo = getResponseObject(XtremIOXMSsInfo.class, response);
         for (XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
-            URI xmsURI = URI.create(xmsInfo.getHref());
+            URI xmsURI = URI.create(URIUtil.getFromPath(xmsInfo.getHref()));
+            log.debug("Trying to get xms details for {}", xmsURI.toString());
             response = get(xmsURI);
             XtremIOXMSResponse xmsResponse = getResponseObject(XtremIOXMSResponse.class, response);
             return xmsResponse.getContent().getVersion();
@@ -559,7 +567,8 @@ public class XtremIOV2Client extends XtremIOClient {
         XtremIOClusters xioClusters = getResponseObject(XtremIOClusters.class, response);
         log.info("Returned Clusters : {}", xioClusters.getClusters().length);
         for (XtremIOCluster cluster : xioClusters.getClusters()) {
-            URI clusterURI = URI.create(cluster.getHref());
+            URI clusterURI = URI.create(URIUtil.getFromPath(cluster.getHref()));
+            log.debug("Trying to get cluster details for {}", clusterURI.toString());
             response = get(clusterURI);
             XtremIOClusterInfo xioSystem = getResponseObject(XtremIOClusterInfo.class, response);
             log.info("System {}", xioSystem.getContent().getName() + "-"

@@ -1,0 +1,164 @@
+#{extends 'main.html' /} 
+#{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
+
+#{DataTable.header titleKey:'disasterRecovery.title'/}
+
+#{DataTable.crudTable id:'disasterRecovery', 
+					dataTable:dataTable,
+					expandable: true,
+					deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
+    #{Form.button name:'disasterRecovery.pauseButton', icon:'pause', submit:'pauseForm', data:['enabled':'selected']/}
+    #{DataTable.formAction @pause(), id:'pauseForm', table:'disasterRecovery'/}
+#{/DataTable.crudTable}
+#{DataTable.expandHtml @errorDetails(':id'), table:'disasterRecovery' /}
+
+<script id="inlineActions.html" type="text/ng-template">
+    <div class="btn-group-site">
+		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+			<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
+			<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
+			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
+			<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.FailoverButton' | t}}</a>
+		#{/deadbolt.restrict}
+    </div>
+</script>
+
+<script type="text/javascript">
+var standbypauseUrl = #{jsAction @pause(':uuid') /}
+var standbyresumeUrl = #{jsAction @resume(':uuid') /}
+var standbytestUrl = #{jsAction @test(':uuid') /}
+var standbyfailoverUrl = #{jsAction @switchover(':uuid') /}
+
+angular.module('tags').directive({
+	actions: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineActions.html",
+         link: function(scope, elem, attrs) {
+        	 scope.pauseUrl = standbypauseUrl({'uuid': scope.row.id});
+        	 scope.resumeUrl = standbyresumeUrl({'uuid': scope.row.id});
+        	 scope.testUrl = standbytestUrl({'uuid': scope.row.id});
+			scope.failoverUrl = standbyfailoverUrl({'uuid': scope.row.id});
+			scope.isPauseSite = false;
+			scope.isResumeSite = false;
+			scope.isTestSite = false;
+			scope.isFailover = false;
+
+        	 if(scope.row.status.toUpperCase() == "STANDBY_SYNCED"){
+				scope.isPauseSite = true;
+				scope.isTestSite = true;
+				scope.isFailover = true;
+             }
+        	 
+        	 if(scope.row.status.toUpperCase() == "STANDBY_PAUSED"){
+				scope.isResumeSite = true;
+             }
+        	 
+        	 if(scope.row.status.toUpperCase() == "ACTIVE"){
+				scope.isResumeSite = false;
+				scope.isPauseSite = false;
+				scope.isTestSite = false;
+				scope.isFailover = false;
+             }
+         }
+     }
+ },
+ url: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineLink.html"
+     }
+ }
+});
+
+function renderButtonBar(o,val) {
+    return "<actions></actions>";
+}
+</script>
+
+<script type="text/javascript">
+function renderLink(o, val) {
+	var data = o.aData;
+    var url = #{jsAction @edit(':id')/};
+    var href = url(data);
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+</script>
+
+<script type="text/javascript">
+function watchLoadStatus(datatable, itemsJson) {
+    var fields = ['status','VirtualIP','name'];
+    var fieldToWatch = 'status';
+    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING'];
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
+}
+$(document).ready(function() {
+    var dataTable = table.disasterRecovery.dataTable.getDataTable()
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchLoadStatus(dataTable, itemsJson);
+});
+</script>
+
+<script type="text/javascript">
+function standbyStatusIcon(o, val) {
+    if (!o) {
+        return "";
+    }
+    var labels = {
+        'ACTIVE': 'label-success',
+        'ACTIVE_SWITCHING_OVER': 'label-danger',
+        'ACTIVE_FAILING_OVER': 'label-danger',
+        'STANDBY_ADDING': 'label-info',
+        'STANDBY_SYNCING' : 'label-info',
+        'STANDBY_SYNCED': 'label-success',
+        'STANDBY_PAUSING': 'label-info',
+        'STANDBY_PAUSED': 'label-info',
+        'STANDBY_TESTING' : 'label-info',
+        'STANDBY_SWITCHING_OVER': 'label-danger',
+        'STANDBY_FAILING_OVER': 'label-danger',
+        'STANDBY_REMOVING': 'label-danger',
+        'STANDBY_RESUMING': 'label-info',
+        'STANDBY_ERROR':  'label-danger'
+    }
+    var icons = {
+        'ACTIVE': 'glyphicon glyphicon-ok',
+        'ACTIVE_SWITCHING_OVER': 'glyphicon glyphicon-refresh rotate',
+        'ACTIVE_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_ADDING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_SYNCING' : 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_SYNCED': 'glyphicon glyphicon-ok',
+        'STANDBY_PAUSING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_PAUSED': 'glyphicon glyphicon-pause',
+        'STANDBY_TESTING' : 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_SWITCHING_OVER': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_REMOVING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_RESUMING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_ERROR':  'glyphicon glyphicon-remove'
+    }
+
+	var messages = {
+            'ACTIVE': Messages.get("renderFunctions.disasterRecovery.status.primary"),
+            'ACTIVE_SWITCHING_OVER': Messages.get("renderFunctions.disasterRecovery.status.primary.switchingover"),
+            'ACTIVE_FAILING_OVER': Messages.get("renderFunctions.disasterRecovery.status.primary.failingover"),
+            'STANDBY_ADDING': Messages.get("renderFunctions.disasterRecovery.status.standby.adding"),
+            'STANDBY_SYNCING' : Messages.get("renderFunctions.disasterRecovery.status.standby.syncing"),
+            'STANDBY_SYNCED': Messages.get("renderFunctions.disasterRecovery.status.standby.synced"),
+            'STANDBY_PAUSING': Messages.get("renderFunctions.disasterRecovery.status.standby.pausing"),
+            'STANDBY_PAUSED': Messages.get("renderFunctions.disasterRecovery.status.standby.paused"),
+            'STANDBY_TESTING' : Messages.get("renderFunctions.disasterRecovery.status.standby.testing"),
+            'STANDBY_SWITCHING_OVER': Messages.get("renderFunctions.disasterRecovery.status.standby.switchingover"),
+            'STANDBY_FAILING_OVER': Messages.get("renderFunctions.disasterRecovery.status.standby.failingover"),
+            'STANDBY_REMOVING': Messages.get("renderFunctions.disasterRecovery.status.standby.removing"),
+            'STANDBY_RESUMING': Messages.get("renderFunctions.disasterRecovery.status.standby.resuming"),
+            'STANDBY_ERROR':  Messages.get("renderFunctions.disasterRecovery.status.standby.error")
+	};
+
+    var label = defaultValue(labels[o.aData.status], 'label-default');
+    var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
+
+    var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
+
+    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
+}
+</script>

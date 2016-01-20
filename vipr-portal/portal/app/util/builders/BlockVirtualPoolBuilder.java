@@ -31,7 +31,7 @@ import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionVirtualArraySett
 import com.google.common.collect.Sets;
 
 public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
-    private BlockVirtualPoolParam virtualPool;
+    private final BlockVirtualPoolParam virtualPool;
 
     public BlockVirtualPoolBuilder() {
         this(new BlockVirtualPoolParam());
@@ -191,25 +191,21 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
     }
 
     public BlockVirtualPoolBuilder setJournalVarrayAndVpool(URI journalVarray, URI journalVpool) {
-        if (journalVarray != null) {
-            if (getProtectionSourcePolicy() == null) {
-                getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
-            }
-            getProtectionSourcePolicy().setJournalVarray(journalVarray);
-            getProtectionSourcePolicy().setJournalVpool(journalVpool);
+        if (getProtectionSourcePolicy() == null) {
+            getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
         }
+        getProtectionSourcePolicy().setJournalVarray(journalVarray);
+        getProtectionSourcePolicy().setJournalVpool(journalVpool);
 
         return this;
     }
 
     public BlockVirtualPoolBuilder setStandByJournalVArrayVpool(URI standbyJournalVarray, URI standbyJournalVpool) {
-        if (standbyJournalVarray != null) {
-            if (getProtectionSourcePolicy() == null) {
-                getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
-            }
-            getProtectionSourcePolicy().setStandbyJournalVarray(standbyJournalVarray);
-            getProtectionSourcePolicy().setStandbyJournalVpool(standbyJournalVpool);
+        if (getProtectionSourcePolicy() == null) {
+            getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
         }
+        getProtectionSourcePolicy().setStandbyJournalVarray(standbyJournalVarray);
+        getProtectionSourcePolicy().setStandbyJournalVpool(standbyJournalVpool);
 
         return this;
     }

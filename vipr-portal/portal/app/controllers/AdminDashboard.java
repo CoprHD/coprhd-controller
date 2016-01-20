@@ -7,7 +7,10 @@ package controllers;
 import static util.BourneUtil.getSysClient;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+
+import org.joda.time.DateTime;
 
 import jobs.PoweroffJob;
 import jobs.RebootNodeJob;
@@ -21,9 +24,11 @@ import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.AdminDashboardUtils;
+import util.DisasterRecoveryUtils;
 import util.LicenseUtils;
 import util.MessagesUtils;
 
+import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.google.common.collect.Maps;
@@ -74,6 +79,13 @@ public class AdminDashboard extends Controller {
         render(dbstatus);
     }
 
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"),
+        @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
+    public static void disasterRecovery() {
+        List<SiteRestRep> drsites = DisasterRecoveryUtils.getAllSites().getSites();
+        render(drsites);
+    }
+
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void physicalAssets() {
         Map<String, Promise<?>> promises = Maps.newHashMap();
@@ -93,10 +105,12 @@ public class AdminDashboard extends Controller {
         // Last updated must be set after evaluating promises
         renderArgs.put("storageArrayCountLastUpdated", AdminDashboardUtils.getStorageArrayCountLastUpdated());
         render();
+
     }
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void virtualAssets() {
+
         Map<String, Promise<?>> promises = Maps.newHashMap();
         promises.put("virtualStorageArrayCount", AdminDashboardUtils.virutalStorageArrayCount());
         if (LicenseUtils.isControllerLicensed()) {
@@ -110,6 +124,7 @@ public class AdminDashboard extends Controller {
         // Last updated must be set after evaluating promises
         renderArgs.put("virtualStorageArrayCountLastUpdated", AdminDashboardUtils.getVirtualStorageArrayCountLastUpdated());
         render();
+
     }
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -120,14 +135,14 @@ public class AdminDashboard extends Controller {
         render();
     }
 
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void nodeReboot(@Required String nodeId) {
         new RebootNodeJob(getSysClient(), nodeId).in(3);
         flash.success(Messages.get("adminDashboard.nodeRebooting", nodeId));
         Maintenance.maintenance(Common.reverseRoute(AdminDashboard.class, "dashboard"));
     }
 
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void clusterPoweroff() {
         new PoweroffJob(getSysClient()).in(3);
         flash.success(MessagesUtils.get("adminDashboard.clusterPoweroff.description"));

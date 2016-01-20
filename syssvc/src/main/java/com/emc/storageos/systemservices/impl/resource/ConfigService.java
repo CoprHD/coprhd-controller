@@ -21,6 +21,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.security.password.InvalidLoginManager;
 import com.emc.storageos.model.auth.LoginFailedIPList;
 import org.apache.commons.lang.StringUtils;
@@ -60,6 +61,7 @@ import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toCluste
 public class ConfigService {
     // keys used in returning properties
     public static final String VERSION = "-clusterversion";
+    public static final String IPSEC_KEY = "-ipsec_key";
     public static final Map<String, String> propertyToParameters = new HashMap() {
         {
             put("node_count", "-nodecount");
@@ -98,6 +100,8 @@ public class ConfigService {
 
     @Autowired
     protected InvalidLoginManager _invLoginManager;
+
+    private IPsecConfig ipsecConfig;
 
     public static final String CERTIFICATE_VERSION = "certificate_version";
     private static final Logger _log = LoggerFactory.getLogger(ConfigService.class);
@@ -157,6 +161,11 @@ public class ConfigService {
     public void setPropertyHandlers(PropertyHandlers propertyHandlers) {
         _propertyHandlers = propertyHandlers;
     }
+
+    public void setIpsecConfig(IPsecConfig ipsecConfig) {
+        this.ipsecConfig = ipsecConfig;
+    }
+
 
     /**
      * Get properties defaults
@@ -249,6 +258,9 @@ public class ConfigService {
                     }
                     clusterInfo.put(parameter, ovfProp.getValue());
                 }
+
+                // Add ipsec key
+                clusterInfo.put(IPSEC_KEY, ipsecConfig.getPreSharedKey());
 
                 // Add version info
                 RepositoryInfo info = _coordinator.getTargetInfo(RepositoryInfo.class);
@@ -484,7 +496,7 @@ public class ConfigService {
     private Map<String, String> getMutatedProps(boolean maskSecretsProperties) {
         Map<String, String> overrides;
         try {
-            overrides = _coordinator.getTargetInfo(PropertyInfoExt.class).getProperties();
+            overrides = _coordinator.getTargetProperties().getProperties();
         } catch (Exception e) {
             _log.info("Fail to get the cluster information ", e);
             return new TreeMap<>();
@@ -543,7 +555,7 @@ public class ConfigService {
         StringBuilder propChanges = new StringBuilder();
 
         // get current property set
-        PropertyInfoRestRep currentProps = _coordinator.getTargetInfo(PropertyInfoExt.class);
+        PropertyInfoRestRep currentProps = _coordinator.getTargetProperties();
         PropertyInfoRestRep oldProps = new PropertyInfoRestRep();
         oldProps.addProperties(currentProps.getAllProperties());
 
@@ -578,11 +590,7 @@ public class ConfigService {
 
             // perform before handlers
             _propertyHandlers.before(oldProps, currentProps);
-
-            PropertyInfoExt targetProps = null;
-            _coordinator.setTargetInfo(targetProps = new PropertyInfoExt(currentProps.getAllProperties()));
-            _log.info("target properties changed successfully. target properties {}", targetProps.toString());
-
+            _coordinator.setTargetProperties(currentProps.getAllProperties());
             for (Map.Entry<String, String> entry : updateProps.getAllProperties().entrySet()) {
                 if (propChanges.length() > 0) {
                     propChanges.append(",");
@@ -602,21 +610,13 @@ public class ConfigService {
             // perform after handlers
             _propertyHandlers.after(oldProps, currentProps);
 
-            /* wake up all */
-            propertyManager.wakeupOtherNodes();
         }
 
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster information");
         }
-        try {
-            return toClusterResponse(clusterInfo);
-        } finally {
-            if (doSetTarget) {
-                propertyManager.wakeup();
-            }
-        }
+        return toClusterResponse(clusterInfo);
     }
 
     /**

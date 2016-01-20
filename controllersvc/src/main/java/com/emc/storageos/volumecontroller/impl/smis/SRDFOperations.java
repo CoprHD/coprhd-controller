@@ -16,6 +16,7 @@ import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static javax.cim.CIMDataType.UINT16_T;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
+import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
@@ -321,7 +323,8 @@ public class SRDFOperations implements SmisConstants {
         try {
             CIMObjectPath replicationSettingCapabilities = cimPath
                     .getReplicationServiceCapabilitiesPath(sourceSystem);
-            CIMArgument[] inArgs = helper.getReplicationSettingDataInstance();
+            int replicationType = Mode.ASYNCHRONOUS.getMode() == modeValue ? ASYNC_MIRROR_REMOTE_REPLICATION_TYPE : SYNC_MIRROR_REMOTE_REPLICATION_TYPE;
+            CIMArgument[] inArgs = helper.getReplicationSettingDataInstance(replicationType);
             CIMArgument[] outArgs = new CIMArgument[5];
             helper.invokeMethod(sourceSystem, replicationSettingCapabilities,
                     "GetDefaultReplicationSettingData", inArgs, outArgs);
@@ -332,6 +335,7 @@ public class SRDFOperations implements SmisConstants {
                 if (outArg.getName().equalsIgnoreCase(DEFAULT_INSTANCE)) {
                     CIMInstance repInstance = (CIMInstance) outArg.getValue();
                     if (null != repInstance) {
+                        List<CIMProperty<?>> propList = new ArrayList<CIMProperty<?>>();
                         if (Mode.ASYNCHRONOUS.getMode() == modeValue) {
                             CIMProperty<?> existingProp = repInstance.getProperty(EMC_CONSISTENCY_EXEMPT);
                             CIMProperty<?> prop = null;
@@ -345,11 +349,15 @@ public class SRDFOperations implements SmisConstants {
                                 prop = new CIMProperty<Object>(EMC_CONSISTENCY_EXEMPT,
                                         existingProp.getDataType(), true);
                             }
-                            CIMProperty<?>[] propArray = new CIMProperty<?>[] { prop };
-                            modifiedInstance = repInstance.deriveInstance(propArray);
-                        } else {
-                            modifiedInstance = repInstance;
+                            propList.add(prop);
                         }
+
+                        // Set target supplier to Implementation Decides so that the supplied targets can be used
+                        CIMProperty<?> targetElementSupplier = new CIMProperty<Object>(TARGET_ELEMENT_SUPPLIER,
+                                UINT16_T, new UnsignedInteger16(IMPLEMENTATION_DECIDES));
+                        propList.add(targetElementSupplier);
+
+                        modifiedInstance = repInstance.deriveInstance(propList.toArray(new CIMProperty<?>[]{}));
                         break;
                     }
                 }

@@ -136,6 +136,10 @@ public class BackupRestoreStatus {
         downloadSize = size;
     }
 
+    public boolean isNotSuccess() {
+        return status == Status.DOWNLOAD_FAILED || status == Status.RESTORE_FAILED || status == Status.DOWNLOAD_CANCELLED;
+    }
+
     //convert to Map to persist to ZK
     public Map<String, String> toMap() {
         Map<String, String> map = new HashMap();

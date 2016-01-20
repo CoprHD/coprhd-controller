@@ -6,7 +6,6 @@ package com.emc.storageos.systemservices.impl.restore;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -16,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import com.emc.storageos.management.backup.RestoreManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -236,7 +234,7 @@ public final class DownloadExecutor implements  Runnable {
 
         File backupFolder= backupOps.getDownloadDirectory(remoteBackupFileName);
 
-        if (hasDownloaded(backupFolder)) {
+        if (backupOps.isValidBackup(backupFolder)) {
             log.info("The backup {} for this node has already been downloaded", remoteBackupFileName);
             postDownload();
 
@@ -263,44 +261,12 @@ public final class DownloadExecutor implements  Runnable {
         }
     }
 
-    private boolean hasDownloaded(File backupFolder) {
-        FilenameFilter filter = new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(BackupConstants.COMPRESS_SUFFIX) || name.endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
-            }
-        };
-
-        File[] backupFiles = backupFolder.listFiles(filter);
-
-        if (backupFiles == null) {
-            return false;
-        }
-
-        for (File file : backupFiles) {
-            if (file.getAbsolutePath().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
-                // it's a property info file
-                infoPropertiesFile = file;
-                continue;
-            }
-
-            if (!backupOps.checkMD5(file)) {
-                log.info("MD5 of {} does not match its md5 file", file.getAbsolutePath());
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     private void postDownload() {
         BackupRestoreStatus restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
         log.info("status={}", restoreStatus);
 
-        try {
-            validBackup();
-        }catch (Exception e) {
-            log.error("Invalid backup e=", e);
+        if (!validBackup()) {
+            log.error("Invalid backup");
             Status s = Status.DOWNLOAD_FAILED;
             s.setMessage("Invalid backup");
             restoreStatus.setStatus(s);
@@ -323,8 +289,9 @@ public final class DownloadExecutor implements  Runnable {
         }
     }
 
-    private void validBackup() {
-        backupOps.validBackup(infoPropertiesFile, isGeo);
+    private boolean validBackup() {
+        File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
+        return backupOps.isValidBackup(downloadedDir);
     }
 
     private boolean isMyBackupFile(ZipEntry backupEntry) throws UnknownHostException {

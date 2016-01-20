@@ -45,6 +45,7 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
@@ -71,6 +72,23 @@ public class BackupOps {
     private int quorumSize;
     private List<String> vdcList;
     private File backupDir;
+
+    private DrUtil drUtil;
+
+    public DrUtil getDrUtil() {
+        return drUtil;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
+
+    private void checkOnStandby() {
+        if (drUtil.isStandby()) {
+            log.error("Backup and restore operations on standby site are forbidden");
+            throw BackupException.fatals.forbidBackupOnStandbySite();
+        }
+    }
 
     /**
      * Default constructor.
@@ -274,6 +292,7 @@ public class BackupOps {
      *            Ignore the errors during the creation
      */
     public void createBackup(String backupTag, boolean force) {
+        checkOnStandby();
         if (backupTag == null) {
             backupTag = createBackupName();
         } else {
@@ -747,6 +766,7 @@ public class BackupOps {
      *            The tag of the backup
      */
     public void deleteBackup(String backupTag) {
+        checkOnStandby();
         validateBackupName(backupTag);
         InterProcessLock lock = null;
         try {
@@ -915,6 +935,7 @@ public class BackupOps {
      * @return a list of backup sets info
      */
     public List<BackupSetInfo> listBackup() {
+        checkOnStandby();
         log.info("Listing backup sets");
         return listBackup(true);
     }
@@ -1063,6 +1084,7 @@ public class BackupOps {
      * Gets disk quota for backup files in gigabyte.
      */
     public int getQuotaGb() {
+        checkOnStandby();
         int quotaGb;
         JMXConnector conn = connect(getLocalHost(), ports.get(0));
         try {

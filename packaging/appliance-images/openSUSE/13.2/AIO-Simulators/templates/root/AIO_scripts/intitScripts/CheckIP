@@ -1,0 +1,43 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          CheckIP
+# Required-Start:    boot.ovfenv $named
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:
+# Description:       Checks if IP is available
+### END INIT INFO
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+. /etc/rc.status
+
+start(){
+	while ! [[ ${ip} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; do
+		echo "IP is not set yet"
+		interface="$(/sbin/ifconfig -a | grep Ethernet | awk '{print $1}' | head -1)"
+		ip="$(/sbin/ifconfig | grep -A 1 $interface'\s' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
+		sleep 2
+	done
+}
+
+stop(){
+	echo "I was not even running!"
+}
+
+case "$1" in
+  start)
+        start
+        ;;
+  status)
+    exit 0
+    ;;
+  stop)
+        stop
+        ;;
+    *)
+        echo $"Usage {start|status|stop}"
+        exit 1
+        exit 1
+esac

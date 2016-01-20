@@ -355,6 +355,41 @@
       ]
     }, 
     {
+      "title": "block.hpux.title",
+      "image": "icon_hpux.png",
+      "description": "block.hpux.description",
+      "services": [
+        {
+          "image": "icon_provision_hpux_add.png",
+          "baseService": "Hpux-CreateAndMountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_hpux_remove.png",
+          "baseService": "Hpux-UnmountBlockVolume"
+        },
+        {
+          "image": "icon_provision_hpux_remove.png",
+          "baseService": "Hpux-UnmountAndDeleteBlockVolume"
+        },
+        {
+          "image": "icon_storage_hpux_add.png",
+          "baseService": "Hpux-MountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_hpux_expand.png",
+          "baseService": "Hpux-ExpandBlockVolume"
+        }
+      ]
+    }, 
+    {
       "title": "block.vcenter.title",
       "image": "icon_VMware.png",
       "description": "block.vcenter.description",

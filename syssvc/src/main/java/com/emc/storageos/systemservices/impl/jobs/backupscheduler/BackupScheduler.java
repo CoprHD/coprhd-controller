@@ -43,6 +43,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.management.backup.BackupOps;
 
@@ -131,6 +132,10 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     @Override
     public Object call() throws Exception {
         log.info("Starting to configure scheduler");
+        if (drUtil.isStandby()) {
+            log.info("Current site is standby, disable BackupScheduler");
+            return null;
+        }
 
         if (this.scheduledTask != null) {
             cancelScheduledTask();
@@ -279,12 +284,12 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             }
         }
 
-        String drSiteName = drUtil.getLocalSite().getName().replace(' ', '-');
+        String drSiteId = drUtil.getLocalSite().getUuid();
 
         // Remove all non alphanumeric characters
-        drSiteName = drSiteName.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
+        drSiteId = drSiteId.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
         
-        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteName);
+        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteId);
     }
 
     public List<String> getDescParams(final String tag) {
@@ -337,7 +342,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         singletonInstance = this;
         this.cfg = new SchedulerConfig(coordinator, this.encryptionProvider, this.dbClient);
 
-        LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(BackupConstants.BACKUP_LEADER_PATH,
+        LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(coordinator.getCoordinatorClient().getSiteId(), BackupConstants.BACKUP_LEADER_PATH,
                 new BackupLeaderSelectorListener());
         leaderSelector.autoRequeue();
         leaderSelector.start();

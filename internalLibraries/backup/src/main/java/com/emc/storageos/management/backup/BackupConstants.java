@@ -91,6 +91,7 @@ public interface BackupConstants {
     public static final String STORAGEOS_GROUP = "storageos";
 
     public static final File[] EMPTY_ARRAY = {};
+
     String FTPS_URL_PREFIX = "ftps://";
     String FTP_URL_PREFIX = "ftp://";
     String CONTENT_LENGTH_HEADER = "Content-Length:";
@@ -112,6 +113,7 @@ public interface BackupConstants {
     String CURRENT_DOWNLOADING_BACKUP_NAME_KEY="name";
     String CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY="isLocal";
 
-    public static final String SITE_ID_FILE_PATH = "/data/zk/siteid";
     public static final String SITE_ID_FILE_NAME = "siteid";
+    public static final int SYSTOOL_TIMEOUT_MILLIS = 120000; // 2 min
+    public static final String VDC_PROPS_FILE_NAME = "vdcconfig.properties";
 }

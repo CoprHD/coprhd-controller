@@ -6,6 +6,7 @@ package com.emc.storageos.management.backup;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
@@ -35,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import com.google.common.base.Preconditions;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -291,7 +291,43 @@ public class BackupOps {
         }
     }
 
-    public void validBackup(File propertyInfoFile, boolean isGeo) {
+    public boolean isValidBackup(File backupFolder) {
+        FilenameFilter filter = new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(BackupConstants.COMPRESS_SUFFIX) || name.endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
+            }
+        };
+
+        File[] backupFiles = backupFolder.listFiles(filter);
+        File infoPropertyFile = null;
+        boolean isGeo = false;
+
+        if (backupFiles == null) {
+            return false;
+        }
+
+        for (File file : backupFiles) {
+            if (file.getAbsolutePath().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+                // it's a property info file
+                infoPropertyFile = file;
+                continue;
+            }
+
+            if (isGeoBackup(file.getName())) {
+                isGeo = true;
+            }
+
+            if (!checkMD5(file)) {
+                log.info("MD5 of {} does not match its md5 file", file.getAbsolutePath());
+                return false;
+            }
+        }
+
+        return (infoPropertyFile != null) && isValidBackup(infoPropertyFile, isGeo);
+    }
+
+    private boolean isValidBackup(File propertyInfoFile, boolean isGeo) {
         RestoreManager manager = new RestoreManager();
         CoordinatorClientImpl client = (CoordinatorClientImpl) coordinatorClient;
         manager.setNodeCount(client.getNodeCount());
@@ -303,7 +339,14 @@ public class BackupOps {
         manager.setIpAddress6(ipaddress6);
         manager.setEnableChangeVersion(false);
 
-        manager.checkBackupInfo(propertyInfoFile, isGeo);
+        try {
+            manager.checkBackupInfo(propertyInfoFile, isGeo);
+        }catch (Exception e) {
+            log.info("Invalid backup e=",e);
+            return false;
+        }
+
+        return true;
     }
 
     public void addRestoreListener(NodeListener listener) throws Exception {

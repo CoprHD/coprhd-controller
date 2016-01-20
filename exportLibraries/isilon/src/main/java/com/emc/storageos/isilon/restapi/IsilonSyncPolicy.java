@@ -28,7 +28,7 @@ public class IsilonSyncPolicy {
         needs_attention,
         skipped,
         pending,
-        unknown,
+        unknown
     }
 
     private String name;
@@ -56,13 +56,13 @@ public class IsilonSyncPolicy {
     public IsilonSyncPolicy() {
     }
 
-    public IsilonSyncPolicy(String name, String source_root_path,
-            String target_path, String target_host,
+    public IsilonSyncPolicy(String name, String sourceRootPath,
+            String targetPath, String targetHost,
             IsilonSyncPolicy.Action action) {
         this.name = name;
-        this.source_root_path = source_root_path;
-        this.target_path = target_path;
-        this.target_host = target_host;
+        this.source_root_path = sourceRootPath;
+        this.target_path = targetPath;
+        this.target_host = targetHost;
         this.action = action;
     }
 
@@ -74,12 +74,12 @@ public class IsilonSyncPolicy {
         this.name = name;
     }
 
-    public String getSource_root_path() {
+    public String getSourceRootPath() {
         return source_root_path;
     }
 
-    public void setSource_root_path(String source_root_path) {
-        this.source_root_path = source_root_path;
+    public void setSourceRootPath(String sourceRootPath) {
+        this.source_root_path = sourceRootPath;
     }
 
     public Action getAction() {
@@ -90,20 +90,20 @@ public class IsilonSyncPolicy {
         this.action = action;
     }
 
-    public String getTarget_path() {
+    public String getTargetPath() {
         return target_path;
     }
 
-    public void setTarget_path(String target_path) {
-        this.target_path = target_path;
+    public void setTargetPath(String targetPath) {
+        this.target_path = targetPath;
     }
 
-    public String getTarget_host() {
+    public String getTargetHost() {
         return target_host;
     }
 
-    public void setTarget_host(String target_host) {
-        this.target_host = target_host;
+    public void setTargetHost(String targetHost) {
+        this.target_host = targetHost;
     }
 
     public Boolean getEnabled() {
@@ -130,11 +130,11 @@ public class IsilonSyncPolicy {
         this.schedule = schedule;
     }
 
-    public JobState getLast_job_state() {
+    public JobState getLastJobState() {
         return last_job_state;
     }
 
-    public Integer getLast_started() {
+    public Integer getLastStarted() {
         return last_started;
     }
 

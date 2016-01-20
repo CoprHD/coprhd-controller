@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.isilon.restapi;
 
 import java.net.URI;
@@ -43,9 +47,9 @@ public class IsilonReplicationApiTest {
         policy.setAction(IsilonSyncPolicy.Action.sync);
         policy.setEnabled(true);
         policy.setName("");
-        policy.setSource_root_path("");
-        policy.setTarget_host("");
-        policy.setTarget_path("");
+        policy.setSourceRootPath("");
+        policy.setTargetHost("");
+        policy.setTargetPath("");
         System.out.println("Replication policy: " + policy.toString());
         String policyID = _client.createReplicationPolicy(policy);
         System.out.println("Replication policy: " + policyID);

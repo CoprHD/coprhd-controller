@@ -22,7 +22,7 @@ public class IsilonSyncPolicyReport extends IsilonSyncPolicy {
         return errors;
     }
 
-    public String getPolicy_name() {
+    public String getPolicyName() {
         return policy_name;
     }
 

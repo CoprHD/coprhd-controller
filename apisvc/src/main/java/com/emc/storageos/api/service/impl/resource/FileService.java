@@ -2235,7 +2235,7 @@ public class FileService extends TaskResourceService {
 
     /**
      * 
-     * assign existing file system to file policy.
+     * Assign existing file system to file policy.
      * 
      * @param id the URN of a ViPR fileSystem
      * @param filePolicyUri the URN of a Policy

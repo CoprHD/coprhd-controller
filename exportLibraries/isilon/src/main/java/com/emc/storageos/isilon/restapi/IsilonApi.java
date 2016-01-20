@@ -1781,7 +1781,6 @@ public class IsilonApi {
             JSONObject jsonResp = resp.getEntity(JSONObject.class);
             if (jsonResp.has("status")) {
                 licenseStatus = jsonResp.get("status").toString();
-                return licenseStatus;
             }
         } catch (Exception e) {
             throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
@@ -1790,6 +1789,7 @@ public class IsilonApi {
                 resp.close();
             }
         }
+        sLogger.info("Isilon snapshotIQ license status is  {}", licenseStatus);
         return licenseStatus;
     }
 

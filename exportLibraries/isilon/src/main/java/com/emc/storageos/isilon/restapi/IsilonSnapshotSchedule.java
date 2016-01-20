@@ -5,9 +5,12 @@
 
 package com.emc.storageos.isilon.restapi;
 
-/*
+/**
  * Class representing the isilon snapshot Schedule object
  * member names should match the key names in json object
+ * 
+ * @author sauraa
+ *
  */
 public class IsilonSnapshotSchedule {
     private Integer id;
@@ -17,9 +20,6 @@ public class IsilonSnapshotSchedule {
     private String pattern;
     private String alias;
     private Integer duration;/* expiration */
-
-    // private String next_run;
-    // private String next_snapshot;
 
     public IsilonSnapshotSchedule() {
     }
@@ -35,8 +35,7 @@ public class IsilonSnapshotSchedule {
 
     /**
      * 
-     * @return
-     *         The name
+     * @return name
      */
     public String getName() {
         return name;
@@ -149,21 +148,4 @@ public class IsilonSnapshotSchedule {
         this.id = id;
     }
 
-    /*
-     * public String getNext_run() {
-     * return next_run;
-     * }
-     * 
-     * public void setNext_run(String next_run) {
-     * this.next_run = next_run;
-     * }
-     * 
-     * public String getNext_snapshot() {
-     * return next_snapshot;
-     * }
-     * 
-     * public void setNext_snapshot(String next_snapshot) {
-     * this.next_snapshot = next_snapshot;
-     * }
-     */
 }

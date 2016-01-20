@@ -43,7 +43,7 @@ import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
 import com.emc.storageos.model.host.TenantResourceRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
-import com.emc.storageos.model.project.SchedulePolicyRestRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Lists;

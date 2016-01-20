@@ -930,11 +930,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
-            boolean syncLicenceValid = isValidLicense(isilonApi.getReplicationLicenseInfo(), storageSystem);
+            boolean syncLicenseValid = isValidLicense(isilonApi.getReplicationLicenseInfo(), storageSystem);
             boolean snapLicenseValid = isValidLicense(isilonApi.snapshotIQLicenseInfo(), storageSystem);
 
             // Set file replication type for Isilon storage system!!!
-            if (syncLicenceValid) {
+            if (syncLicenseValid) {
                 StringSet supportReplicationTypes = new StringSet();
                 supportReplicationTypes.add(SupportedFileReplicationTypes.REMOTE.name());
                 supportReplicationTypes.add(SupportedFileReplicationTypes.LOCAL.name());
@@ -1005,7 +1005,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 // Add the Copy type ASYNC, if the Isilon is enabled with SyncIQ service!!
                 StringSet copyTypesSupported = new StringSet();
 
-                if (syncLicenceValid) {
+                if (syncLicenseValid) {
                     copyTypesSupported.add(CopyTypes.ASYNC.name());
                     storagePool.setSupportedCopyTypes(copyTypesSupported);
                 } else {

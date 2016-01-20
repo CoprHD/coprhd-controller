@@ -24,7 +24,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
 import com.emc.storageos.model.file.ScheduleSnapshotExpireParam;
-import com.emc.storageos.model.project.SchedulePolicyParam;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;

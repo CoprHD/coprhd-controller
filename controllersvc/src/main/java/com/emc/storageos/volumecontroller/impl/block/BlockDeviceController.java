@@ -5796,7 +5796,30 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _log.info("Created new workflow to re-link targets to snapshot session {} with operation id {}",
                     tgtSnapSessionURI, opId);
 
-            for (URI snapshotURI : snapshotURIs) {
+            Iterable<URI> snapshotsIterable = snapshotURIs;
+            BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
+
+            // For CG's, ensure 1 target per ReplicationGroup
+            if (tgtSnapSession.hasConsistencyGroup()) {
+                Iterator<BlockSnapshot> iterator = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
+                List<BlockSnapshot> snapshots = Lists.newArrayList(iterator);
+                Set<String> replicationGroups = new HashSet<>();
+                List<URI> filtered = new ArrayList<>();
+
+                for (BlockSnapshot snapshot : snapshots) {
+                    String repGrpInstance = snapshot.getReplicationGroupInstance();
+                    if (replicationGroups.contains(repGrpInstance)) {
+                        continue;
+                    }
+
+                    replicationGroups.add(repGrpInstance);
+                    filtered.add(snapshot.getId());
+                }
+
+                snapshotsIterable = filtered;
+            }
+
+            for (URI snapshotURI : snapshotsIterable) {
                 workflow.createStep(
                         RELINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Re-linking target to snapshot session %s", tgtSnapSessionURI),

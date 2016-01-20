@@ -1012,14 +1012,16 @@ public class DbServiceImpl implements DbService {
         }
 
     }
+
     /**
-     * Output work around in the log when new node down during node recovery introduced by CASSANDRA-2434.
+     * Output more clear message in the log when new node down during node recovery introduced by CASSANDRA-2434.
     */
     private void printRecoveryWorkAround(Exception e) {
         if (e.getMessage().startsWith("A node required to move the data consistently is down (")) {
             String sourceIp = e.getMessage().split("\\(")[1].split("\\)")[0];
-            _log.error("{} of node {} is unavailable during recovery,Recovery would need the node up to proceed,Or recovery will fail.",isGeoDbsvc() ? "geodbsvc" : "dbsvc",sourceIp);
-            _log.error("If node {} can't bring back,please wait recovery failure and trigger another round of node recovery",sourceIp);
+            _log.error("{} of node {} is unavailable during node recovery, please double check the node {} status. " +
+                    "Node recovery will fail in 30 minutes if {} not back to normal state.", isGeoDbsvc() ? "geodbsvc" : "dbsvc",
+                    sourceIp, sourceIp, sourceIp);
         }
     }
 }

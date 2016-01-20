@@ -833,7 +833,7 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Query last data sync time and last db repair time of specific site
+     * Query last data sync time of specific site
      * @param uuid
      * @return
      */
@@ -855,8 +855,7 @@ public class DisasterRecoveryService {
         SiteDataStatus status = new SiteDataStatus();
         if (site.getState().equals(SiteState.ACTIVE)) {
             status.setDataSynced(true);
-        }
-        else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !site.getNetworkHealth().equals(SiteNetworkHealth.BROKEN)) {
+        } else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !site.getNetworkHealth().equals(SiteNetworkHealth.BROKEN)) {
             status.setDataSynced(true);
         } else {
             status.setLastSyncTime(site.getLastStateUpdateTime());

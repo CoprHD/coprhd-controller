@@ -1,23 +1,23 @@
 package com.emc.storageos.driver.scaleio;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.impl.InMemoryRegistryImpl;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
 
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "/scaleio-driver-prov.xml" })
@@ -38,8 +38,8 @@ public class ScaleIOStorageDriverTest {
     String INVALID_VOLUME_ID_1 = "83f177070000000";
 
     private ScaleIOStorageDriver driver;
-   // @Autowired
- //   private ScaleIORestHandleFactory scaleIORestHandleFactory;
+    @Autowired
+    private ScaleIORestHandleFactory scaleIORestHandleFactory;
     private DriverTask task;
 
     @Before

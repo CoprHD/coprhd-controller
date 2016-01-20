@@ -2675,7 +2675,7 @@ public class FileService extends TaskResourceService {
             // If copyID is null all copies are stopped
             if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString()) ||
                     copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
-                taskResp = performProtectionAction(id, copyID, ProtectionOp.STOP.getRestOp());
+                taskResp = performProtectionAction(id, copyID, op);
                 taskList.getTaskList().add(taskResp);
             } else {
                 throw APIException.badRequests.invalidCopyType(copy.getType());

@@ -180,15 +180,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * Check if a resource can be deactivated safely
-     * 
-     * @return detail type of the dependency if exist, null otherwise
-     * @throws InternalException
+     * {@inheritDoc}
      */
     @Override
-    public <T extends DataObject> String checkForDelete(T object) throws InternalException {
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException {
         URI objectURI = object.getId();
-        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true);
+        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true, excludeTypes);
         if (depMsg != null) {
             return depMsg;
         }

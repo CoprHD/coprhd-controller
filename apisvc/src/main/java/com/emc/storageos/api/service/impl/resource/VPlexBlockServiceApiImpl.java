@@ -508,16 +508,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public <T extends DataObject> String checkForDelete(T object) {
-        List<Class<? extends DataObject>> excludeTypes = new ArrayList<Class<? extends DataObject>>();
-
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) {
         // VplexMirror is added as exclude types in dependencyChecker as there is code
         // that handles deletion of VPLEX Mirror along with VPLEX volume simultaneously.
         // Without this check user will be forced to delete continuous copies first and
         // then VPLEX volumes.
-        excludeTypes.add(VplexMirror.class);
+        List<Class<? extends DataObject>> allExcludeTypes = new ArrayList<Class<? extends DataObject>>();
+        allExcludeTypes.add(VplexMirror.class);
+        if (excludeTypes != null) {
+            allExcludeTypes.addAll(excludeTypes);
+        }
 
-        String depMsg = _dependencyChecker.checkDependencies(object.getId(), object.getClass(), true, excludeTypes);
+        String depMsg = _dependencyChecker.checkDependencies(object.getId(), object.getClass(), true, allExcludeTypes);
         if (depMsg != null) {
             return depMsg;
         }

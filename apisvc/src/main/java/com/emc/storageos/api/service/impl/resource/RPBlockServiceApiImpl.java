@@ -1775,7 +1775,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @throws InternalException
      */
     @Override
-    public <T extends DataObject> String checkForDelete(T object) throws InternalException {
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException {
         // The standard dependency checker really doesn't fly with RP because we need to determine if we can do
         // a tear-down of the volume, and that tear-down involved cleaning up dependent relationships.
         // So this will be a bit more manual and calculated. In order to determine if we can delete this object,
@@ -1809,7 +1809,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // down.
         if (volumeIDs.size() == 1) {
             String depMsg = _dependencyChecker.checkDependencies(object.getId(),
-                    object.getClass(), true);
+                    object.getClass(), true, excludeTypes);
             if (depMsg != null) {
                 return depMsg;
             }

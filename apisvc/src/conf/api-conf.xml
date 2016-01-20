@@ -668,7 +668,7 @@
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
                 <ref local="userGroupService"/>
 
-                <bean class="com.emc.storageos.api.service.impl.resource.DisasterRecoveryService">
+                <bean class="com.emc.storageos.api.service.impl.resource.DisasterRecoveryService" init-method="init">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
                     <property name="apiSignatureGenerator" ref="keyGenerator"/>

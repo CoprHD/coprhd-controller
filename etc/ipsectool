@@ -12,12 +12,15 @@ nl="
 # commands
 SIPCALC="/usr/local/bin/sipcalc"
 SSH="/usr/bin/ssh"
+GREP="/usr/bin/grep"
+SED="/usr/bin/sed"
 
 _usage() {
     set +Ex
-    echo "Usage: $0 check-connection       return IPs with ipsec connections"          >&2
-    echo "   or: $0 get-props <ip>         get version and ipsec_key from given node"  >&2
-    echo "   or: $0 sync-key  <ipsec-key>  write given key to vdc property file"       >&2
+    echo "Usage: $0 check-connection           return IPs with NO ipsec connections"       >&2
+    echo "   or: $0 get-props  <ip>            get version and ipsec_key from given node"  >&2
+    echo "   or: $0 sync-key   <ipsec-key>     write given key to vdc property file"       >&2
+    echo "   or: $0 sync-status <ipsec-status> write given status to vdc property file"    >&2
     exit 0
 }
 
@@ -66,16 +69,20 @@ _get_local_ip() {
 }
 
 #
-# get ips in primary site
+# get ips in specified site
+# input:
+#   $1 - vdc id
+#   $2 - site id
 #
-_get_ips_in_primary() {
-    local cursite_begin_index="0"
-    local vdc_myid=$(_get_prop "vdc_myid")
-    local primary_cnt=$(_get_prop "vdc_${vdc_myid}_node_count")
+_get_ips_in_specified_site() {
+    local vdc_id=$1
+    local site_id=$2
     local ips=""
-    for i in $(seq ${primary_cnt}) ; do
-        local ipaddr=$(_get_prop "vdc_${vdc_myid}_network_${i}_ipaddr")
-        local ipaddr6=$(_get_prop "vdc_${vdc_myid}_network_${i}_ipaddr6")
+
+    local node_cnt=$(_get_prop "vdc_${vdc_id}_${site_id}_node_count")
+    for i in $(seq 1 ${node_cnt}); do
+        local ipaddr=$(_get_prop "vdc_${vdc_id}_${site_id}_network_${i}_ipaddr")
+        local ipaddr6=$(_get_prop "vdc_${vdc_id}_${site_id}_network_${i}_ipaddr6")
         [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]]  && ipaddr=$(_get_ipv6_uncompressed "${ipaddr6}")
         ips="${ips} ${ipaddr}"
     done
@@ -84,42 +91,19 @@ _get_ips_in_primary() {
 }
 
 #
-# get ips in specified standby site
-# input - standby site id
-#
-_get_ips_in_standby() {
-    local standby=$1
-    local ips=""
-
-    local site_ids=$(_get_prop "site_ids")
-    local vdc_myid=$(_get_prop "vdc_myid")
-    if [ -n "${site_ids}" ] ; then
-        local standby_cnt=$(_get_prop "vdc_${vdc_myid}_${standby}_node_count")
-        for standby_index in $(seq 1 ${standby_cnt}); do
-            local ipaddr=$(_get_prop "vdc_${vdc_myid}_${standby}_network_${standby_index}_ipaddr")
-            local ipaddr6=$(_get_prop "vdc_${vdc_myid}_${standby}_network_${standby_index}_ipaddr6")
-            [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]]  && ipaddr=$(_get_ipv6_uncompressed "${ipaddr6}")
-            ips="${ips} ${ipaddr}"
-        done
-    else
-        # no standby defined
-        echo ""
-    fi
-    echo "${ips}"
-}
-
-#
 # return all nodes, include primary site and standby sites
 #
 _get_all_nodes() {
-    local ips=$(_get_ips_in_primary)
-    local site_ids=$(_get_prop "site_ids")
-    if [ -n "${site_ids}" ] ; then
-        local site_ids=$(echo ${site_ids} | sed 's/,/ /g')
-        for standby in ${site_ids} ; do
-            ips="${ips} $(_get_ips_in_standby ${standby})"
+    local ips=""
+    local vdc_ids=$(_get_prop "vdc_ids" | sed 's/,/ /g')
+    local site_ids=$(_get_prop "site_ids" | sed 's/,/ /g')
+
+    for vdc in ${vdc_ids} ; do
+        for site in ${site_ids} ; do
+            ips="${ips} $(_get_ips_in_specified_site "${vdc}" "${site}")"
         done
-    fi
+    done
+
     echo "${ips}"
 }
 
@@ -172,8 +156,40 @@ _get_props() {
     local remote=${1}
     local version=$(_get_remote_prop ${remote} "vdc_config_version")
     local ipsec_key=$(_get_remote_prop ${remote} "ipsec_key")
+    local ipsec_status=$(_get_remote_prop ${remote} "ipsec_status")
     echo "vdc_config_version=${version}"
     echo "ipsec_key=${ipsec_key}"
+    echo "ipsec_status=${ipsec_status}"
+}
+
+#
+# write/update property to vdcconfig.properties
+# input:
+#     1. property name
+#     2. property value
+#
+_sync_ipsec_property() {
+    local name=${1}
+    local value=${2}
+    local vdcconfig_file="/.volumes/bootfs/etc/vdcconfig.properties"
+
+    /etc/systool --remount-rw
+    ${GREP} "${name}" ${vdcconfig_file} 2>/dev/null
+    if [ $? -eq 0 ] ; then
+        ${SED} -i -- "s/${name}=.*/${name}=${value}/" ${vdcconfig_file}
+    else
+        echo "${name}=${value}" >> ${vdcconfig_file}
+    fi
+    /etc/systool --remount-ro
+}
+
+#
+# write given ipsec_status to local's vdcconfig.properties
+# input: new ipsec_status
+#
+_sync_status() {
+    local ipsec_status=${1}
+    _sync_ipsec_property "ipsec_status" "${ipsec_status}"
 }
 
 #
@@ -181,15 +197,13 @@ _get_props() {
 # input: new ipsec_key
 #
 _sync_key() {
-   local ipsec_key=${1}
-   /etc/systool --remount-rw
-   sed -i -- "s/ipsec_key=.*/ipsec_key=${ipsec_key}/" "/.volumes/bootfs/etc/vdcconfig.properties"
-   /etc/systool --remount-ro
+    local ipsec_key=${1}
+    _sync_ipsec_property "ipsec_key" "${ipsec_key}"
 }
 
 
 case ${#} in
-    0) ;;
+    0) _usage ;;
     1) case ${1} in
         check-connection)  _check_connection ;;
         *)                 _usage
@@ -197,6 +211,7 @@ case ${#} in
     2) case ${1} in
         get-props)         _get_props   "${2}" ;;
         sync-key)          _sync_key    "${2}" ;;
+        sync-status)       _sync_status "${2}" ;;
         *)                 _usage
        esac ;;
     *) _usage

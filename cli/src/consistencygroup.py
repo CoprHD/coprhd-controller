@@ -433,19 +433,21 @@ class ConsistencyGroup(object):
         return o       
         
     def consitencygroup_protection_failover_ops(self, name, project, tenant, copyvarray,
-                                    type="native", op="failover"):
+                                    copyname, apit, type="native", op="failover"):
         '''
         Failover the consistency group protection
         Parameters:
             name        : name of the consistency group
             project     : name of the project
             copyvarray  : name of the copy target virtual array
+            copyname    : name of the copy
+            apit        : any point-in-time
             type        : type of protection
         Returns:
             result of the action.
         '''
         group_uri = self.consistencygroup_query(name, project, tenant)
-        body = self.protection_copyparam(copyvarray, type)
+        body = self.protection_copyparam(copyvarray, copyname, apit, type)
 
         uri = self.URI_BLOCK_CONSISTENCY_GROUP_FAILOVER.format(group_uri)
         if op == 'failover_cancel':
@@ -462,12 +464,17 @@ class ConsistencyGroup(object):
         return common.json_decode(s)   
         
     def protection_copyparam(
-            self, copyvarray, type="native", sync='false'):
+            self, copyvarray, copyname, apit, type="native", sync='false'):
         copies_param = dict()
         copy = dict()
         copy_entries = []
 
         copy['type'] = type
+        
+        if(copyname != ""):
+            copy['name'] = copyname
+        if(apit != ""):
+            copy['apitTime'] = apit
         #true=split
         if(sync == 'true'):
             copy['sync'] = "true"
@@ -985,10 +992,18 @@ def failover_parser(subcommand_parsers, common_parser):
                                dest='copyvarray',
                                help='copy virtual array name',
                                required=True)
+    failover_parser.add_argument('-copyname', '-cn',
+                               metavar='<copyname>',
+                               dest='copyname',
+                               help='name of the copy (bookmark) for failover')
+    failover_parser.add_argument('-apit', '-pit',
+                               metavar='<apit>',
+                               dest='apit',
+                               help='any failover point-in-time date/time formatted as yyyy-MM-dd_HH:mm:ss')
     failover_parser.add_argument('-type', '-t',
                                metavar='<type>',
                                dest='type',
-                               help='type of protection - native, rp, srdf')  
+                               help='type of protection - native, rp, srdf')
                                
     failover_parser.set_defaults(func=failover)
                          
@@ -1068,7 +1083,7 @@ def failover(args):
         if(not args.tenant):
             args.tenant = ""
         res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
-                                   args.copyvarray, args.type, "failover")
+                                   args.copyvarray, args.copyname, args.apit, args.type, "failover")
     except SOSError as e:
         raise e
         
@@ -1078,7 +1093,7 @@ def failover_cancel(args):
         if(not args.tenant):
             args.tenant = ""
         res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
-                                   args.copyvarray, args.type, "failover_cancel")
+                                   args.copyvarray, "", "", args.type, "failover_cancel")
     except SOSError as e:
         raise e   
         
@@ -1088,7 +1103,7 @@ def swap(args):
         if(not args.tenant):
             args.tenant = ""
         res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
-                                   args.copyvarray, args.type, "swap")
+                                   args.copyvarray, "", "", args.type, "swap")
     except SOSError as e:
         raise e                    
 

@@ -205,7 +205,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String syncDirection, String opId)
             throws InternalException {
         blockRMI("restoreVolume", storage, pool, volume, snapshot, updateOpStatus, opId);
     }
@@ -296,7 +296,8 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId) throws InternalException {
+    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId)
+            throws InternalException {
         blockRMI("deactivateMirror", storage, mirrorList, promotees, isCG, opId);
     }
 

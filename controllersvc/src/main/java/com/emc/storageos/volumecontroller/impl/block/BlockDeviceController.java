@@ -74,6 +74,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.block.VolumeSnapshotRestoreParam;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
@@ -145,6 +146,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DiscoverTa
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -2072,7 +2074,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     @Override
     public String addStepsForRestoreVolume(Workflow workflow, String waitFor,
-            URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String taskId,
+            URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String syncDirection, String taskId,
             BlockSnapshotRestoreCompleter completer) throws ControllerException {
 
         BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -2093,7 +2095,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         Workflow.Method restoreVolumeMethod = new Workflow.Method(
                 RESTORE_VOLUME_METHOD_NAME, storage, pool,
-                volume, snapshot, Boolean.TRUE);
+                volume, snapshot, Boolean.TRUE, syncDirection);
         workflow.createStep(RESTORE_VOLUME_STEP, String.format(
                 "Restore volume %s from snapshot %s",
                 volume, snapshot), waitFor,
@@ -2110,8 +2112,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String POST_BLOCK_VOLUME_RESTORE_GROUP = "PostBlockDeviceRestoreVolumeGroup";
 
     @Override
-    public void restoreVolume(URI storage, URI pool, URI volumeURI, URI snapshot, Boolean updateOpStatus, String opId)
-            throws ControllerException {
+    public void
+            restoreVolume(URI storage, URI pool, URI volumeURI, URI snapshot, Boolean updateOpStatus, String syncDirection, String opId)
+                    throws ControllerException {
 
         SimpleTaskCompleter completer = new SimpleTaskCompleter(BlockSnapshot.class, snapshot, opId);
 
@@ -2258,10 +2261,33 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         deleteBlockSnapshotSessionMethod(storage, snapSessionURI, Boolean.TRUE),
                         rollbackMethodNullMethod(), null);
 
-                // If Active mode create a step to resume srdf group
+                /*
+                 * If Active mode then create a step to resume srdf group or restore R2 To R1 or do nothing.
+                 * If syncdirection is not specified means its null then after R1 snapshot restore, resume.
+                 * If syncdirection is not specified means its null then after R2 snapshot restore, restore R2 to R1.
+                 * If syncdirection is SOURCE_TO_TARGET then after R1 or R2 snapshot restore, resume.
+                 * If syncdirection is TARGET_TO_SOURCE then after R1 or R2 snapshot restore, restore R2 to R1.
+                 * If syncdirection is NONE then do nothing, RDF group will stay in suspend state.
+                 */
                 if (active) {
-                    resumeSRDFLinkWorkflowStep(waitFor, srdfSourceStorageSystemURI, srdfSourceVolume.getId(), srdfTargetVolume.getId(),
-                            workflow);
+                    if ((null == syncDirection && null != srdfSourceVolume && volumeURI.equals(srdfSourceVolume.getId()))
+                            || (null != syncDirection
+                            && SRDFUtils.SyncDirection.SOURCE_TO_TARGET.toString().equals(syncDirection))) {
+                        resumeSRDFLinkWorkflowStep(waitFor, srdfSourceStorageSystemURI, srdfSourceVolume.getId(),
+                                srdfTargetVolume.getId(),
+                                workflow);
+                    } else if ((null == syncDirection && null != srdfTargetVolume && volumeURI.equals(srdfTargetVolume.getId()))
+                            || (null != syncDirection
+                            && SRDFUtils.SyncDirection.TARGET_TO_SOURCE.toString().equals(syncDirection))) {
+                        restoreWorkflowStep(waitFor, srdfTargetVolume.getStorageController(), srdfSourceVolume.getId(),
+                                srdfTargetVolume.getId(), workflow);
+                    } else if (null != syncDirection
+                            && SRDFUtils.SyncDirection.NONE.toString().equals(syncDirection)) {
+                        _log.info(
+                                "Sync direction is specified as {} hence no action will be done after retsore snapshot which"
+                                        + " means the RDF group for volume {} will be in a suspended state.",
+                                syncDirection, volume.getLabel());
+                    }
                 }
 
             } else {
@@ -2322,6 +2348,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return workflow.createStep(SRDFDeviceController.RESUME_SRDF_MIRRORS_STEP_GROUP,
                 SRDFDeviceController.RESUME_SRDF_MIRRORS_STEP_DESC, waitFor, srdfSourceStorageSystemURI,
                 getDeviceType(srdfSourceStorageSystemURI), SRDFDeviceController.class, resumeMethod,
+                null, null);
+    }
+
+    private String restoreWorkflowStep(String waitFor, URI srdfTargetStorageSystemURI,
+            URI sourceURI, URI targetURI, Workflow workflow) {
+        Workflow.Method restoreMethod = srdfDeviceController.restoreMethod(srdfTargetStorageSystemURI, sourceURI, targetURI);
+        return workflow.createStep(SRDFDeviceController.RESTORE_SRDF_MIRRORS_STEP_GROUP,
+                SRDFDeviceController.RESTORE_SRDF_MIRRORS_STEP_DESC, waitFor, srdfTargetStorageSystemURI,
+                getDeviceType(srdfTargetStorageSystemURI), SRDFDeviceController.class, restoreMethod,
                 null, null);
     }
 

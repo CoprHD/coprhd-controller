@@ -23,6 +23,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
@@ -73,6 +74,7 @@ import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
+import com.emc.storageos.model.block.VolumeSnapshotRestoreParam;
 import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -87,6 +89,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 
 /**
  * @author burckb
@@ -340,11 +343,16 @@ public class BlockSnapshotService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     @Path("/{id}/restore")
-    public TaskResourceRep restore(@PathParam("id") URI id) {
+    public TaskResourceRep restore(@PathParam("id") URI id, @QueryParam("syncDirection") String syncDirection) {
 
         // Validate an get the snapshot to be restored.
         ArgValidator.checkFieldUriType(id, BlockSnapshot.class, "id");
         BlockSnapshot snapshot = (BlockSnapshot) queryResource(id);
+
+        // Validate syncDirection
+        if (syncDirection != null) {
+            validateSyncDirection(syncDirection);
+        }
 
         // Get the block service API implementation for the snapshot parent volume.
         Volume parentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
@@ -382,14 +390,23 @@ public class BlockSnapshotService extends TaskResourceService {
         _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), taskId, op);
         snapshot.getOpStatus().put(taskId, op);
 
-        // Restore the snapshot.
-        blockServiceApiImpl.restoreSnapshot(snapshot, parentVolume, taskId);
+        blockServiceApiImpl.restoreSnapshot(snapshot, parentVolume, syncDirection, taskId);
 
         // Create the audit log entry.
         auditOp(OperationTypeEnum.RESTORE_VOLUME_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                 id.toString(), parentVolume.getId().toString(), snapshot.getStorageController().toString());
 
         return toTask(snapshot, taskId, op);
+    }
+
+    public void validateSyncDirection(String syncDirection) {
+        if (syncDirection.equals(SRDFUtils.SyncDirection.SOURCE_TO_TARGET.name()) ||
+                syncDirection.equals(SRDFUtils.SyncDirection.TARGET_TO_SOURCE.name()) ||
+                syncDirection.equals(SRDFUtils.SyncDirection.NONE.name())) {
+            return;
+        } else {
+            throw APIException.badRequests.syncDirectionIsNotValid(syncDirection);
+        }
     }
 
     /**

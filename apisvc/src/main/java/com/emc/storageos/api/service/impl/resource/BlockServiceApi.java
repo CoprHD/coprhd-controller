@@ -157,7 +157,7 @@ public interface BlockServiceApi {
 
     /**
      * Establish group relation between volume group and native continuous copy group.
-     *
+     * 
      * @param storageSystem the storage system
      * @param sourceVolume the source volume
      * @param blockMirror the block mirror
@@ -171,7 +171,7 @@ public interface BlockServiceApi {
 
     /**
      * Establish group relation between volume group and snapshot group.
-     *
+     * 
      * @param storageSystem the storage system
      * @param sourceVolume the source volume
      * @param snapshot the block snapshot
@@ -430,7 +430,7 @@ public interface BlockServiceApi {
      * @param parentVolume The volume to be restored.
      * @param taskId The unique task identifier.
      */
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String syncDirection, String taskId);
 
     /**
      * Resynchronize the passed snapshot.
@@ -479,7 +479,7 @@ public interface BlockServiceApi {
 
     /**
      * Verifies replica count of the volumes to be added to CG.
-     *
+     * 
      * @param volumes List of volumes
      * @param cgVolumes List of active volumes in the CG
      * @param volsAlreadyInCG Volumes to be added are the same with those already in CG

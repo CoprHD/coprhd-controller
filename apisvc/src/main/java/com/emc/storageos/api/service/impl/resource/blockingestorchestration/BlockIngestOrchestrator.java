@@ -976,7 +976,7 @@ public abstract class BlockIngestOrchestrator {
         StringSet unmanagedReplicaGUIDs = new StringSet();
         StringSet expectedIngestedReplicas = new StringSet();
         List<BlockObject> foundIngestedReplicas = new ArrayList<BlockObject>();
-        List<String> foundIngestedReplicaNativeGuids = new ArrayList<String>();
+        StringSet foundIngestedReplicaNativeGuids = new StringSet();
 
         StringSet mirrors = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.MIRRORS.toString(),
                 unManagedVolumeInformation);
@@ -1100,7 +1100,7 @@ public abstract class BlockIngestOrchestrator {
      * @param foundIngestedReplicas
      * @param foundIngestedReplicaNativeGuids
      */
-    private void getFoundIngestedReplicaURIs(List<BlockObject> foundIngestedReplicas, List<String> foundIngestedReplicaNativeGuids) {
+    private void getFoundIngestedReplicaURIs(List<BlockObject> foundIngestedReplicas, StringSet foundIngestedReplicaNativeGuids) {
         if (null != foundIngestedReplicas && !foundIngestedReplicas.isEmpty()) {
             for (BlockObject blockObj : foundIngestedReplicas) {
                 _logger.info("getFoundIngestedReplicaURIs blockObj: " + blockObj);

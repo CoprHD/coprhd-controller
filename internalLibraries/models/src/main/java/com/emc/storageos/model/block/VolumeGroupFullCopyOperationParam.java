@@ -44,8 +44,6 @@ public class VolumeGroupFullCopyOperationParam {
         this.partial = partial;
     }
 
-    // TODO check it should be volumes or full copies
-
     @XmlElementWrapper(required = true, name = "volumes")
     /**
      * List of Full copy IDs.

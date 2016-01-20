@@ -3230,7 +3230,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
                     _dbClient.queryObject(Volume.class, sourceVolume) : null;
-            VolumeGroup volumeGroup = (source != null && source.isInVolumeGroup())
+            VolumeGroup volumeGroup = (source != null)
                     ? source.getApplication(_dbClient) : null;
             if (volumeGroup != null
                     && !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, source)) {

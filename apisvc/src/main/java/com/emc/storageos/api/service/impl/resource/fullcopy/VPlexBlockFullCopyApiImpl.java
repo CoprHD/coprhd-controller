@@ -107,7 +107,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         URI cgURI = fcSourceObj.getConsistencyGroup();
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
             // if volume is part of COPY type Volume Group, get only the Array Group volumes
-            if (fcSourceVolume.isInVolumeGroup() && fcSourceVolume.getApplication(_dbClient) != null) {
+            if (fcSourceVolume.getApplication(_dbClient) != null) {
                 fcSourceObjList.addAll(
                         ControllerUtils.getVolumesPartOfRG(fcSourceVolume.getReplicationGroupInstance(), _dbClient));
             } else {

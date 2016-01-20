@@ -1274,7 +1274,7 @@ public class ControllerUtils {
         URI sourceVolume = clone.getAssociatedSourceVolume();
         Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
                 dbClient.queryObject(Volume.class, sourceVolume) : null;
-        VolumeGroup volumeGroup = (source != null && source.isInVolumeGroup())
+        VolumeGroup volumeGroup = (source != null)
                 ? source.getApplication(dbClient) : null;
 
         if (volumeGroup != null) {
@@ -1466,6 +1466,9 @@ public class ControllerUtils {
      * Returns true if the request is made for subset of array groups within the Volume Group.
      * For Partial request, PARTIAL Flag was set on the requested Volume.
      *
+     * @param dbClient the db client
+     * @param volume the volume
+     * @return true, if the request is Partial
      */
     public static boolean checkVolumeForVolumeGroupPartialRequest(DbClient dbClient, Volume volume) {
         boolean partial = false;

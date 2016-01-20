@@ -36,7 +36,7 @@ public class IsilonSyncJob {
         this.action = action;
     }
 
-    public String getPolicy_name() {
+    public String getPolicyName() {
         return policy_name;
     }
 

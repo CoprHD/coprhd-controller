@@ -17,14 +17,14 @@ public class IsilonSyncTargetPolicy extends IsilonSyncPolicy {
         return failover_failback_state;
     }
 
-    public String getSource_host() {
+    public String getSourceHost() {
         return source_host;
     }
 
     @Override
     public String toString() {
-        return "IsilonSyncTargetPolicy [Policy_Name=" + getName() + ", Target_path=" + getTarget_path() + ", Last_job_state="
-                + getLast_job_state() + ", failover_failback_state=" + failover_failback_state + ", source_host=" + source_host + "]";
+        return "IsilonSyncTargetPolicy [Policy_Name=" + getName() + ", Target_path=" + getTargetPath() + ", Last_job_state="
+                + getLastJobState() + ", failover_failback_state=" + failover_failback_state + ", source_host=" + source_host + "]";
     }
 
 }

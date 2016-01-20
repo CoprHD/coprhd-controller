@@ -50,6 +50,7 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+import com.emc.storageos.coordinator.client.model.SiteNetworkHealth;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -853,7 +854,7 @@ public class DisasterRecoveryService {
         }
 
         SiteDataStatus status = new SiteDataStatus();
-        if (site.getState().equals(SiteState.STANDBY_SYNCED) && !site.getNetworkHealth().equals(DrSiteNetworkMonitor.NETWORK_HEALTH_BROKEN)) {
+        if (site.getState().equals(SiteState.STANDBY_SYNCED) && !site.getNetworkHealth().equals(SiteNetworkHealth.BROKEN)) {
             status.setDataSynced(true);
         } else {
             status.setLastSyncTime(site.getLastStateUpdateTime());

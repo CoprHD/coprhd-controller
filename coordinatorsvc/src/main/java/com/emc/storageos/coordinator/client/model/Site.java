@@ -48,7 +48,7 @@ public class Site {
     private long creationTime;
     private long lastStateUpdateTime;
     private double networkLatencyInMs;
-    private String networkHealth;
+    private SiteNetworkHealth networkHealth;
     private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
 
@@ -149,11 +149,11 @@ public class Site {
         this.networkLatencyInMs = networkLatencyInMs;
     }
 
-    public String getNetworkHealth() {
+    public SiteNetworkHealth getNetworkHealth() {
         return networkHealth;
     }
 
-    public void setNetworkHealth(String networkHealth) {
+    public void setNetworkHealth(SiteNetworkHealth networkHealth) {
         this.networkHealth = networkHealth;
     }
 
@@ -221,7 +221,7 @@ public class Site {
             config.setConfig(KEY_PING, String.valueOf(networkLatencyInMs));
         }
         if (networkHealth != null) {
-            config.setConfig(KEY_NETWORK_HEALTH, networkHealth);
+            config.setConfig(KEY_NETWORK_HEALTH, networkHealth.toString());
         }
 
         if (state != null) {
@@ -252,7 +252,7 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
-            this.networkHealth = config.getConfig(KEY_NETWORK_HEALTH);
+            this.networkHealth = Enum.valueOf(SiteNetworkHealth.class, config.getConfig(KEY_NETWORK_HEALTH));
             this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {

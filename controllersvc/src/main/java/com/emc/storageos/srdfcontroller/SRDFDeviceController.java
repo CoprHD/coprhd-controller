@@ -556,7 +556,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, system, null, waitFor, workflow);
         }
         if (null != targetSystem) {
-            addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, waitFor, workflow);
+            waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, waitFor, workflow);
+        }
+
+        // Refresh target volume properties
+        Mode SRDFMode = getSRDFMode(sourceDescriptors, uriVolumeMap);
+        if (Mode.ACTIVE.equals(SRDFMode)) {
+            refreshVolumeProperties(targetDescriptors, targetSystem, waitFor, workflow);
         }
     }
 

@@ -92,7 +92,7 @@ public class LicenseManagerImpl implements LicenseManager {
                     }
                     if (!isTrial) {
                         // Do not support the licenses of pre-yoda releases unless it is trial license.
-                        for (LicenseFeature licenseFeature : license.getLicenseFeatures()) {
+                        for (LicenseFeature licenseFeature : fullLicense.getLicenseFeatures()) {
                             if (licenseFeature.getModelId().contains(LicenseFeature.OLD_LICENSE_SUBMODEL)) {
                                 _log.info("The license file contains a feature which is not supported any more. The license was not added to the system.");
                                 throw APIException.badRequests

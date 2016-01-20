@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<image schemaversion="5.8" name="__NAME__">
+  <description type="system">
+    <author>ADG</author>
+    <contact>Ionix_Appliance_Development_Group@emc.com</contact>
+    <specification>A SUSE Linux Enterprise Server 12 product appliance</specification>
+  </description>
+  <profiles>
+    <profile name="appliance" description="ADG Core Appliance" import="true"/>
+    <profile name="base" description="ADG default"/>
+  </profiles>
+  <preferences>
+    <version>__VERSION__</version>
+    <packagemanager>zypper</packagemanager>
+    <bootsplash-theme>SLES</bootsplash-theme>
+    <bootloader-theme>SLES</bootloader-theme>
+    <rpm-excludedocs>false</rpm-excludedocs>
+    <locale>en_US</locale>
+    <keytable>us.map.gz</keytable>
+    <timezone>US + Canada/Eastern Time</timezone>
+    <hwclock>utc</hwclock>
+    <type image="vmx" filesystem="ext3" boot="vmxboot/suse-SLES12" primary="true" format="vmdk" bootloader="grub2" kernelcmdline="splash fips=0 boot=/dev/sda1">
+      <machine memory="4096" guestOS="sles12-64" HWversion="7" arch="x86_64">
+        <vmdisk controller="lsilogic" id="0"/>
+        <vmdvd  controller="ide" id="0"/>
+        <vmnic driver="vmxnet3" interface="0" mode="bridged"/>
+      </machine>
+      <size unit="G">10</size>
+    </type>
+    <type image="tbz" container="__NAME__" primary="false" />
+    <type image="oem" filesystem="ext3" boot="oemboot/suse-SLES12" installiso="true" installboot="install" bootloader="grub2" boottimeout="0" installprovidefailsafe="false" primary="false">
+      <oemconfig>
+        <oem-boot-title>__NAME__-__VERSION__</oem-boot-title>
+        <oem-swap>true</oem-swap>
+        <oem-swapsize>4096</oem-swapsize>
+        <oem-systemsize>8192</oem-systemsize>
+        <oem-unattended>true</oem-unattended>
+        <oem-skip-verify>true</oem-skip-verify>
+      </oemconfig>
+    </type>
+    <type image="iso" primary="false" boot="isoboot/suse-SLES12" flags="compressed" hybrid="true"/>
+  </preferences>
+  <users group="root">
+    <user password="$6$/8n4NZ4P$7PJqY3T/4/jp3Aq0GsrEvSdw.RfLcvia8RIt451qOcj0.f975gObHNVP8kBbjMqp86/lE4MW79NKXeHwPd796/" home="/root" name="root"/>
+  </users>
+  <repository type="yast2" priority="3">
+    <source path="/slesmedia/12-SLES-DVD1"/>
+  </repository>
+  <packages type="image" profiles="base,appliance">
+    <package name="audit"/>
+    <package name="curl"/>
+    <package name="dracut"/>
+    <package name="grub2"/>
+    <package name="iproute2"/>
+    <package name="iptables"/>
+    <package name="iputils"/>
+    <package name="kernel-default"/>
+    <package name="lvm2"/>
+    <package name="net-tools"/>
+    <package name="ntp"/>
+    <package name="openssh"/>
+    <package name="parted"/>
+    <package name="rsyslog"/>
+    <package name="sles-release"/>
+    <package name="systemd"/>
+    <package name="systemd-sysvinit"/>
+    <package name="SuSEfirewall2"/>
+    <package name="tar"/>
+    <package name="timezone"/>
+    <package name="unzip"/>
+    <package name="vim"/>
+    <package name="wicked"/>
+    <package name="zip"/>
+    <package name="zypper"/>
+  </packages>
+  <packages type="image" profiles="appliance">
+  </packages>
+  <packages type="bootstrap">
+    <package name="ca-certificates"/>
+    <package name="cracklib-dict-full"/>
+    <package name="filesystem"/>
+    <package name="udev"/>
+  </packages>
+</image>

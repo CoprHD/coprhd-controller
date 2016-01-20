@@ -484,7 +484,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
     }
 
-    private void addDescriptorsForVplexMirrors(List<VolumeDescriptor> descriptors, Volume vplexVolume) {
+    public void addDescriptorsForVplexMirrors(List<VolumeDescriptor> descriptors, Volume vplexVolume) {
         if (vplexVolume.getMirrors() != null && vplexVolume.getMirrors().isEmpty() == false) {
             for (String mirrorId : vplexVolume.getMirrors()) {
                 VplexMirror mirror = _dbClient.queryObject(VplexMirror.class, URI.create(mirrorId));
@@ -3179,15 +3179,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
-        // For a VIPR only deletion make sure to clean up the export
-        // groups and mask so that they no longer reference associated
-        // volumes.
-        List<VolumeDescriptor> assocVolumeDescriptors = VolumeDescriptor
-                .getDescriptors(volumeDescriptors, VolumeDescriptor.Type.BLOCK_DATA);
-        List<URI> assocVolumeURIs = VolumeDescriptor.getVolumeURIs(assocVolumeDescriptors);
-        for (URI assocVolumeURI : assocVolumeURIs) {
-            cleanVolumeFromExports(assocVolumeURI, true);
-        }
+        // Call super first.
+        super.cleanupForViPROnlyDelete(volumeDescriptors);
 
         // Clean up the relationship between vplex volumes that are full
         // copies and and their source vplex volumes.

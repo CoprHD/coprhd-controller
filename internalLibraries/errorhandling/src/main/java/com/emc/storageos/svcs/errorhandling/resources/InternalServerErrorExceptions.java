@@ -253,6 +253,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_RECONFIG_FAILED)
     public InternalServerErrorException removeStandbyReconfigFailed(String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
+    InternalServerErrorException removeStandbyFailedTimeout(final long timeoutValue);
+
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_FAILED)
     public InternalServerErrorException pauseStandbyFailed(final String siteName, String errMsg);
 
@@ -291,6 +294,9 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_STANDBY_FAILED_TIMEOUT)
     public InternalServerErrorException switchoverStandbyFailedTimeout(String siteName, int timeoutValue);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED_TIMEOUT)
+    public InternalServerErrorException failoverFailedTimeout(String siteName, int timeoutValue);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_ACQUIRE_OPERATION_LOCK_FAILED)
     public InternalServerErrorException failToAcquireDROperationLock();

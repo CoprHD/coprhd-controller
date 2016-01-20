@@ -1,0 +1,82 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          HDS
+# Required-Start:    SimService
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:
+# Description:       starts HDS simulator
+### END INIT INFO
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+. /etc/rc.status
+
+RETVAL=0
+HDS_HOME=/data/simulators/hds-sim
+DELAY=60
+
+start() {
+        echo -n $"Starting HDS:..hold on 10sec .."
+		cd ${HDS_HOME}
+        java -Dlogback.configurationFile=conf/logback.xml -jar lib/sim-hds-0.0.1-SNAPSHOT.jar conf/serverConfig.groovy >/var/log/HDS.log 2>&1 &
+        RETVAL=$?
+
+        while [ $DELAY -gt 0 ]; do
+        #echo "delay $DELAY"
+	if [ -f "${HDS_HOME}/log/sim-hds.log" ] ; then 
+	 STARTSSL=`grep "\[HttpServer\] Started" /var/log/HDS.log`
+         if [ "${STARTSSL}" != "" ] ; then
+           echo "${STARTSSL}" >> /var/log/HDS.log 2>&1  
+           echo "..OK"
+           return
+         fi
+        fi
+        sleep 2
+        DELAY=$((DELAY -1))
+       done
+
+       echo "Failed to start in 60 sec..try manual start" >> /var/log/HDS.log 2>&1
+}
+
+stop() {
+
+        echo -n $"Stopping HDS: "
+	#rm -f ${VPLEX_HOME}/log/* >>/var/log/VPLEX.log 2>&1
+        #killproc -TERM vplexRestSimulator.jar >> /var/log/VPLEX.log 2>&1
+		pkill -9 -f sim-hds-0.0.1-SNAPSHOT*.jar >> /var/log/HDS.log 2>&1
+        RETVAL=$?
+	echo  "..Done"
+}
+
+
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+    cnt=`pgrep -f sim-hds-0.0.1-SNAPSHOT-20150204.jar |wc -l`
+	if(test $cnt -eq 1) ;
+	then
+		echo "HDS simulator already running..."
+	else
+		echo "HDS simulator not running."
+	fi 
+    #    rc_status -v
+
+        ;;
+  *)
+        echo $"Usage: HDS {start|stop|status}"
+        exit 1
+        exit 1
+esac
+
+
+exit $RETVAL
+
+

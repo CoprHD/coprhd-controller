@@ -18,13 +18,13 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
  * Generic interface for all object storage systems exposing namespaces
  */ 
 @XmlRootElement(name = "object_namespaces")
-public class ECSNamespaceList {
+public class ObjectNamespaceList {
     private List<NamedRelatedResourceRep> namespaces;
 
-    public ECSNamespaceList() {
+    public ObjectNamespaceList() {
     }
 
-    public ECSNamespaceList(List<NamedRelatedResourceRep> namespaces) {
+    public ObjectNamespaceList(List<NamedRelatedResourceRep> namespaces) {
         this.namespaces = namespaces;
     }
     /**

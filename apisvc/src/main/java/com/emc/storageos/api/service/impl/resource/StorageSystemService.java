@@ -86,7 +86,8 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.UnManagedVolumeList;
 import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.file.UnManagedFileSystemList;
-import com.emc.storageos.model.object.ECSNamespaceList;
+import com.emc.storageos.model.object.ObjectNamespaceList;
+import com.emc.storageos.model.object.ObjectNamespaceRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
@@ -1126,51 +1127,6 @@ public class StorageSystemService extends TaskResourceService {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/object-namespaces")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public ECSNamespaceList getAllECSNamespaces(@PathParam("id") URI id) {
-        // Make sure storage system is registered.
-        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
-        StorageSystem system = queryResource(id);
-        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
-
-        ECSNamespaceList ecsNamespaceList = new ECSNamespaceList();
-        URIQueryResultList ecsNamespaceURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceStoragePoolConstraint(id),
-                ecsNamespaceURIs);
-        Iterator<URI> ecsNsIter = ecsNamespaceURIs.iterator();
-        while (ecsNsIter.hasNext()) {
-            URI nsURI = ecsNsIter.next();
-            ECSNamespace namespace = _dbClient.queryObject(ECSNamespace.class,
-                    nsURI);
-            if (namespace != null && !namespace.getInactive()) {
-                ecsNamespaceList.getNamespaces().add(toNamedRelatedResource(namespace, namespace.getNativeGuid()));
-            }
-        }
-        return ecsNamespaceList;
-    }
-    /*
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/ecs-namespaces/{nsId}")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public ECSNamespaceRestRep getECSNamespace(@PathParam("id") URI id,
-            @PathParam("nsId") URI nsId) {
-        // Make sure storage system is registered.
-        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
-        StorageSystem system = queryResource(id);
-        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
-
-        ArgValidator.checkFieldUriType(nsId, ECSNamespace.class, "nsId");
-        ECSNamespace ecsNamespace = _dbClient.queryObject(ECSNamespace.class, nsId);
-        ArgValidator.checkEntity(ecsNamespace, nsId, isIdEmbeddedInURL(nsId));
-        
-        return StoragePoolService.toStoragePoolRep(ecsNamespace, _dbClient, _coordinator);
-    }*/
-
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/rdf-groups")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public RDFGroupList getAllRAGroups(@PathParam("id") URI id) {
@@ -1242,6 +1198,41 @@ public class StorageSystemService extends TaskResourceService {
     }
 
     /**
+     * Gets all object namespaces for the registered storage system with the passed id
+     * 
+     * @param id the URN of a ViPR storage system.
+     * 
+     * @brief List object storage namespaces
+     * @return A reference to a ObjectNamespaceList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/object-namespaces")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ObjectNamespaceList getAllObjectNamespaces(@PathParam("id") URI id) {
+        // Make sure storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+
+        ObjectNamespaceList ecsNamespaceList = new ObjectNamespaceList();
+        URIQueryResultList ecsNamespaceURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceECSNamespaceConstraint(id),
+                ecsNamespaceURIs);
+        Iterator<URI> ecsNsIter = ecsNamespaceURIs.iterator();
+        while (ecsNsIter.hasNext()) {
+            URI nsURI = ecsNsIter.next();
+            ECSNamespace namespace = _dbClient.queryObject(ECSNamespace.class,
+                    nsURI);
+            if (namespace != null && !namespace.getInactive()) {
+                ecsNamespaceList.getNamespaces().add(toNamedRelatedResource(namespace, namespace.getNativeGuid()));
+            }
+        }
+        return ecsNamespaceList;
+    }
+    
+    /**
      * Get information about the storage pool with the passed id on the
      * registered storage system with the passed id.
      * 
@@ -1268,6 +1259,30 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkEntity(storagePool, poolId, isIdEmbeddedInURL(poolId));
 
         return StoragePoolService.toStoragePoolRep(storagePool, _dbClient, _coordinator);
+    }
+
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/object-namespaces/{nsId}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ObjectNamespaceRestRep getECSNamespace(@PathParam("id") URI id,
+            @PathParam("nsId") URI nsId) {
+        // Make sure storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+
+        ArgValidator.checkFieldUriType(nsId, ECSNamespace.class, "nsId");
+        ECSNamespace ecsNamespace = _dbClient.queryObject(ECSNamespace.class, nsId);
+        ArgValidator.checkEntity(ecsNamespace, nsId, isIdEmbeddedInURL(nsId));
+        
+        return toObjectNamespaceRestRep(ecsNamespace, _dbClient, _coordinator);
+    }
+    
+    private ObjectNamespaceRestRep toObjectNamespaceRestRep(ECSNamespace ecsNamespace, DbClient dbClient,
+            CoordinatorClient coordinator) {
+
+        return map(ecsNamespace);
     }
 
     @GET

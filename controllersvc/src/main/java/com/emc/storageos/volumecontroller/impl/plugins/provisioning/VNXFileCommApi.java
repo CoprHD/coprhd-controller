@@ -314,10 +314,10 @@ public class VNXFileCommApi {
                     result.setCommandSuccess();
                 } else {
                     result.setCommandFailed();
-                    result.setMessage((String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC));
+                    result.setMessage((String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_MSG));
                 }
             } else {
-                String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
+                String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_MSG);
                 result.setCommandFailed();
                 result.setMessage(errMsg);
             }
@@ -502,7 +502,8 @@ public class VNXFileCommApi {
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
             _provExecutor.setKeyMap(reqAttributeMap);
 
-            // Before deleting check whether it is available or not on the array - This need to be done as part of deleting un-managed FS.
+            // Before deleting check whether it is available or not on the array - This need to be done as part of
+            // deleting un-managed FS.
             _provExecutor.setKeyMap(reqAttributeMap);
             _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE_DELETE));
             boolean isFsAvailable = false;
@@ -641,7 +642,8 @@ public class VNXFileCommApi {
 
                 for (TreeQuota quota : quotaDirs) {
                     if (quota != null) {
-                        String quotaDirName = quota.getPath().substring(1); // exclude the "/" in the beginning of the path.
+                        String quotaDirName = quota.getPath().substring(1); // exclude the "/" in the beginning of the
+                                                                            // path.
                         XMLApiResult status = deleteQuotaDirectory(system, fs.getName(), quotaDirName, true, false);
                         if (!status.isCommandSuccess()) {
                             String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
@@ -883,7 +885,8 @@ public class VNXFileCommApi {
                 }
             }
 
-            // Map<String,String> userInfo = (Map<String,String>)_provExecutor.getKeyMap().get(VNXFileConstants.USER_INFO);
+            // Map<String,String> userInfo =
+            // (Map<String,String>)_provExecutor.getKeyMap().get(VNXFileConstants.USER_INFO);
 
             // Format and issue separate ssh api commands for each new file system and subdirectory
             List<VNXFileExport> newExportEntries = new ArrayList<VNXFileExport>();
@@ -1152,8 +1155,10 @@ public class VNXFileCommApi {
      * Delete a CIFS Share
      * 
      * @param system
-     * @param moverOrVdm data mover the share is on.
-     * @param shareName name of the CIFS share.
+     * @param moverOrVdm
+     *            data mover the share is on.
+     * @param shareName
+     *            name of the CIFS share.
      * @return result of the operation.
      */
     public XMLApiResult doDeleteShare(StorageSystem system, StorageHADomain moverOrVdm,

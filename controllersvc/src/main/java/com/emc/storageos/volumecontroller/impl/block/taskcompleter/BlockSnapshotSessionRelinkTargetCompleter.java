@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,23 +72,28 @@ public class BlockSnapshotSessionRelinkTargetCompleter extends BlockSnapshotSess
                     // A target can only be linked to a single session.
                     BlockSnapshotSession currentSnapSession = snaphotSessionsList.get(0);
 
-                    // If the target was not re-linked to the same snapshot session
-                    // update the linked targets list for both the current and target
-                    // snapshot sessions.
-                    if (!currentSnapSession.getId().equals(getId())) {
-                        String snapshotId = _snapshotURI.toString();
-                        // Remove from the current snapshot session.
-                        StringSet currentSnapSessionTargets = currentSnapSession.getLinkedTargets();
-                        currentSnapSessionTargets.remove(snapshotId);
-                        dbClient.updateObject(currentSnapSession);
+                    BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, _snapshotURI);
+                    List<BlockSnapshot> relatedSnapshots = getRelatedSnapshots(snapshot, dbClient);
 
-                        // Add to the target snapshot session.
-                        if (tgtSnapSessionTargets == null) {
-                            tgtSnapSessionTargets = new StringSet();
-                            tgtSnapSession.setLinkedTargets(tgtSnapSessionTargets);
+                    for (BlockSnapshot relatedSnapshot : relatedSnapshots) {
+                        // If the target was not re-linked to the same snapshot session
+                        // update the linked targets list for both the current and target
+                        // snapshot sessions.
+                        if (!currentSnapSession.getId().equals(getId())) {
+                            String snapshotId = relatedSnapshot.getId().toString();
+                            // Remove from the current snapshot session.
+                            StringSet currentSnapSessionTargets = currentSnapSession.getLinkedTargets();
+                            currentSnapSessionTargets.remove(snapshotId);
+                            dbClient.updateObject(currentSnapSession);
+
+                            // Add to the target snapshot session.
+                            if (tgtSnapSessionTargets == null) {
+                                tgtSnapSessionTargets = new StringSet();
+                                tgtSnapSession.setLinkedTargets(tgtSnapSessionTargets);
+                            }
+                            tgtSnapSessionTargets.add(snapshotId);
+                            dbClient.updateObject(tgtSnapSession);
                         }
-                        tgtSnapSessionTargets.add(snapshotId);
-                        dbClient.updateObject(tgtSnapSession);
                     }
                     break;
                 default:

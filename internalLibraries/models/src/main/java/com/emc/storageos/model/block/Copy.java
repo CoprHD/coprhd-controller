@@ -16,8 +16,10 @@ import javax.xml.bind.annotation.XmlRootElement;
  * type: type of protection (rp, native, srdf)
  * sync: synchronize the mirror
  * copyID: the URI of the copy to be operated on, if none specified operate on all copies for that type
- * name: name of a new mirror being created by start operation
+ * name: name of a new mirror being created by start operation. also used to specify a snapshot (bookmark)
+ * name in the case of a failover operation.
  * count: number of mirrors to create using start operation
+ * apitTime: any point-in-time - used for the failover operation
  */
 @XmlRootElement(name = "copy")
 public class Copy implements Serializable {

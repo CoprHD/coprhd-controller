@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -52,10 +53,7 @@ public abstract class AbstractManager implements Runnable {
     protected volatile boolean doRun = true;
 
     protected int nodeCount;
-
-    protected final String upgradeLockId = DISTRIBUTED_UPGRADE_LOCK;
-    protected final String propertyLockId = DISTRIBUTED_PROPERTY_LOCK;
-    protected final String vdcLockId = DISTRIBUTED_VDC_LOCK;
+    protected DrUtil drUtil;
     
     private final static int TIME_LIMIT_FOR_INITIATING_POWEROFF = 60000;
     private static final int SLEEP_MS = 100;
@@ -96,6 +94,10 @@ public abstract class AbstractManager implements Runnable {
 
     public void setNodeCount(int nodeCount) {
         this.nodeCount = nodeCount;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
     }
 
     abstract protected URI getWakeUpUrl();
@@ -362,6 +364,48 @@ public abstract class AbstractManager implements Runnable {
                 return false;
             }
         }
+    }
+
+    /**
+     * Try to acquire the reboot lock for rolling reboot
+     *
+     * @param svcId
+     * @return
+     */
+    protected boolean getRebootLock(String svcId) {
+        if (!coordinator.getPersistentLock(svcId, DISTRIBUTED_REBOOT_LOCK)) {
+            log.info("Acquiring reboot lock failed. Retrying...");
+            return false;
+        }
+
+        log.info("Successfully acquired the reboot lock.");
+        return true;
+    }
+
+    /**
+     * Try to release the reboot lock after rolling reboot the current node
+     *
+     * @param svcId
+     * @return
+     */
+    protected void releaseRebootLock(String svcId) {
+        try {
+            coordinator.releasePersistentLock(svcId, DISTRIBUTED_REBOOT_LOCK);
+        } catch (Exception e) {
+            log.error("Failed to release the reboot lock:", e);
+        }
+    }
+
+    /**
+     * See if the current node has the reboot lock.
+     * Exception should be caught by the caller.
+     *
+     * @param svcId
+     * @return
+     * @throws Exception
+     */
+    protected boolean hasRebootLock(String svcId) throws Exception {
+        return coordinator.hasPersistentLock(svcId, DISTRIBUTED_REBOOT_LOCK);
     }
     
     protected void retrySleep() {

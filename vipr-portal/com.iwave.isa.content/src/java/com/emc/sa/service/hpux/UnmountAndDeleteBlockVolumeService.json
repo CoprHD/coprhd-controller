@@ -1,0 +1,15 @@
+{
+    baseKey:"UnmountAndDeleteBlockVolume.Block.Hpux",
+    serviceId:"Hpux-UnmountAndDeleteBlockVolume",
+    destructive: true,
+    fields: {
+        host:{
+            type:"assetType.vipr.hpuxHost"
+        },
+
+        volumes: {
+            type:"assetType.vipr.mountedBlockResourceNoTargets",
+            select:"many"
+        }
+    }
+}

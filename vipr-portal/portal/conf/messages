@@ -3233,6 +3233,11 @@ volumeApplication.wwn=WWN
 volumeApplication.consistencyGroup=Consistency Group
 volumeApplication.replicationGroup=Replication Group
 
+cloneApplication.name=Name
+cloneApplication.size=Size
+cloneApplication.status=Status
+cloneApplication.protocol=Protocol
+
 resources.snapshots=Block Snapshots
 resources.snapshots.none=No Snapshots
 resources.snapshot.unknown=Unknown Snapshot with ID '%s'

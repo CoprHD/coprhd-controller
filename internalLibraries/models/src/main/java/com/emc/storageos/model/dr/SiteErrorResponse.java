@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.model.dr;
 
+import java.util.Date;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -14,18 +16,18 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SiteErrorResponse {
     private static SiteErrorResponse noError = new SiteErrorResponse();
 
-    private long creationTime;
+    private Date creationTime;
     private int serviceCode;
     private String serviceCodeName;
     private String errorMessage;
-
+    
     @XmlElement(name = "creationTime")
-    public long getCreationTime() {
+    public Date getCreationTime() {
         return creationTime;
     }
 
     public void setCreationTime(long creationTime) {
-        this.creationTime = creationTime;
+        this.creationTime = new Date(creationTime);
     }
     
     @XmlElement(name = "serviceCode")

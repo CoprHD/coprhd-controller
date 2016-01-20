@@ -8,17 +8,15 @@ package com.emc.storageos.db.server.impl;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import javax.crypto.SecretKey;
 
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.CassandraOperationType;
@@ -37,10 +35,7 @@ import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.locator.IEndpointSnitch;
-import org.apache.cassandra.service.StorageProxy;
-import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -50,7 +45,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -59,7 +53,6 @@ import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -84,8 +77,6 @@ import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
-import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.password.PasswordUtils;
 
 /**
@@ -102,8 +93,6 @@ public class SchemaUtil {
     private static final int MAX_REPLICATION_FACTOR = 5;
     private static final int DBINIT_RETRY_INTERVAL = 5;
     private static final int DBINIT_RETRY_MAX = 20;
-    // a normal node removal should succeed in 30s.
-    private static final int REMOVE_NODE_TIMEOUT_MILLIS = 1 * 60 * 1000; // 1 min
 
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
@@ -120,8 +109,8 @@ public class SchemaUtil {
     private PasswordUtils _passwordUtils;
     private DbClientContext clientContext;
     private boolean onStandby = false;
-    private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private DrUtil drUtil;
+    private Boolean backCompatPreYoda = false;
 
     @Autowired
     private DbRebuildRunnable dbRebuildRunnable;
@@ -255,6 +244,10 @@ public class SchemaUtil {
         return isGeoDbsvc() ? _doScanner.getGeoCfMap() : _doScanner.getCfMap();
     }
 
+    public void setBackCompatPreYoda(Boolean backCompatPreYoda) {
+        this.backCompatPreYoda = backCompatPreYoda;
+    }
+
     /**
      * Check if it is geodbsvc
      *
@@ -354,10 +347,33 @@ public class SchemaUtil {
                 _log.info("set current version for standby site {}", _service.getVersion());
                 setCurrentVersion(_service.getVersion());
             }
-            waitForSchemaAgreementDuringResume();
+            Site currentSite = drUtil.getLocalSite();
+            if (currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+                // Ensure schema agreement before checking the strategy options,
+                // since the strategy options from the local site might be older than the active site
+                // and shouldn't be relied on any more.
+                while (clientContext.ensureSchemaAgreement()) {
+                    // If there are unreachable nodes, wait until there is at least
+                    // one reachable node from the other site (which contains the latest db schema).
+                    if (getReachableDcCount() > 1) {
+                        break;
+                    }
+                }
+            }
             checkStrategyOptions();
             return true;
         }
+    }
+
+    private int getReachableDcCount() {
+        Set<String> dcNames = new HashSet<>();
+        IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+        for (InetAddress nodeIp : liveNodes) {
+            dcNames.add(snitch.getDatacenter(nodeIp));
+        }
+        _log.info("Number of reachable data centers: {}", dcNames.size());
+        return dcNames.size();
     }
 
     public void rebuildDataOnStandby() {
@@ -374,50 +390,6 @@ public class SchemaUtil {
         }
     }
 
-    /**
-     * Wait for schema agreement before checking the strategy options during resume standby operation,
-     * since the strategy options from the local site might be older than the active site and shouldn't be used any more.
-     *
-     * Also there is a chance that some of the nodes in the current site has been added to gossip before the restart,
-     * in which case they must be removed again before a schema agreement can be reached.
-     * All the other nodes in the current site are now being blocked by the schema lock and are definitely unreachable
-     * if they are already in the ring.
-     */
-    private void waitForSchemaAgreementDuringResume() {
-        Site localSite = drUtil.getLocalSite();
-        if (!localSite.getState().equals(SiteState.STANDBY_RESUMING) &&
-                !localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
-            return;
-        }
-
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
-            try {
-                _log.info("sleep for {} seconds before checking schema versions.",
-                        DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS / 1000);
-                Thread.sleep(DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS);
-            } catch (InterruptedException ex) {
-                _log.warn("Interrupted during sleep");
-            }
-
-            Map<String, List<String>> schemas = clientContext.getSchemaVersions();
-            if (schemas.size() > 2) {
-                // there are more than two schema versions besides UNREACHABLE, keep waiting.
-                continue;
-            }
-            if (schemas.size() == 1) {
-                // schema agreement reached and we are all set
-                return;
-            }
-            // schemas.size() == 2, try removing the unreachable nodes from local site and check again.
-            if (schemas.containsKey(StorageProxy.UNREACHABLE)) {
-                String localDcId = drUtil.getCassandraDcId(localSite);
-                removeDataCenter(localDcId, true);
-            }
-        }
-        _log.error("Unable to converge schema versions during resume");
-        throw new IllegalStateException("Unable to converge schema versions during resume");
-    }
 
     
     /**
@@ -455,9 +427,11 @@ public class SchemaUtil {
         }
 
         Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
+                localSite.getState().equals(SiteState.STANDBY_DEGRADED) ||
+                localSite.getState().equals(SiteState.STANDBY_DEGRADING)) {
             // don't add back the paused site
-            _log.info("local standby site has been paused and removed from strategy options. Do nothing");
+            _log.info("local standby site has been paused/degraded and removed from strategy options. Do nothing");
             return false;
         }
 
@@ -485,14 +459,28 @@ public class SchemaUtil {
      * @return true to indicate keyspace strategy option is changed
      */
     private boolean checkStrategyOptionsForGeo(Map<String, String> strategyOptions) {
-        // no need to add new vdc for local db
-        // TODO: need to consider DR in future
-        if (!isGeoDbsvc()) {
+        if (onStandby) {
+            _log.info("Only active site updates geo strategy operation. Do nothing on standby site");
             return false;
         }
 
-        if (onStandby) {
-            _log.info("Only active site updates geo strategy operation. Do nothing on standby site");
+        if (!isGeoDbsvc()) {
+            // update local db strategy option in multivdc configuration only
+            if (!drUtil.isMultivdc()) {
+                return false;
+            }
+
+            if (backCompatPreYoda) {
+                _log.info("Upgraded from preyoda release. Keep db strategy options unchanged.");
+                return false;
+            }
+            // for local db, check if current vdc id is in the list
+            if (!strategyOptions.containsKey(_vdcShortId)) {
+                strategyOptions.clear();
+                _log.info("Add {} to strategy options", _vdcShortId);
+                strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
+                return true;
+            }
             return false;
         }
         
@@ -787,13 +775,11 @@ public class SchemaUtil {
     /**
      * Check if node ip or vip is changed. VirtualDataCenter object should be updated
      * to reflect this change.
-     * 
-     * @param vdc
-     * @param dbClient
      */
-    private void checkIPChanged(VirtualDataCenter vdc, DbClient dbClient) {
-        StringMap ipv4Addrs = vdc.getHostIPv4AddressesMap();
-        StringMap ipv6Addrs = vdc.getHostIPv6AddressesMap();
+    private void checkIPChanged() {
+        Site site = drUtil.getLocalSite();
+        Map<String, String> ipv4Addrs = site.getHostIPv4AddressMap();
+        Map<String, String> ipv6Addrs = site.getHostIPv6AddressMap();
 
         CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
         Map<String, DualInetAddress> controlNodes = nodeMap.getControllerNodeIPLookupMap();
@@ -838,29 +824,28 @@ public class SchemaUtil {
         }
 
         // check node count
-        if (_vdcHosts != null && _vdcHosts.size() != vdc.getHostCount()) {
-            if (_vdcHosts.size() < vdc.getHostCount()) {
-                for (nodeIndex = _vdcHosts.size() + 1; nodeIndex <= vdc.getHostCount(); nodeIndex++) {
+        if (_vdcHosts != null && _vdcHosts.size() != site.getNodeCount()) {
+            if (_vdcHosts.size() < site.getNodeCount()) {
+                for (nodeIndex = _vdcHosts.size() + 1; nodeIndex <= site.getNodeCount(); nodeIndex++) {
                     nodeId = VDC_NODE_PREFIX + nodeIndex;
                     ipv4Addrs.remove(nodeId);
                     ipv6Addrs.remove(nodeId);
                 }
             }
             changed = true;
-            vdc.setHostCount(_vdcHosts.size());
-            _log.info("Vdc host count changed from {} to {}", vdc.getHostCount(), _vdcHosts.size());
+            site.setNodeCount(_vdcHosts.size());
+            _log.info("Vdc host count changed from {} to {}", site.getNodeCount(), _vdcHosts.size());
         }
 
         // Check VIP
-        if (_vdcEndpoint != null && !_vdcEndpoint.equals(vdc.getApiEndpoint())) {
+        if (_vdcEndpoint != null && !_vdcEndpoint.equals(site.getVip())) {
             changed = true;
-            vdc.setApiEndpoint(_vdcEndpoint);
+            site.setVip(_vdcEndpoint);
             _log.info("Vdc vip changed to {}", _vdcEndpoint);
         }
 
         if (changed) {
-            vdc.setVersion(new Date().getTime()); // timestamp
-            dbClient.updateAndReindexObject(vdc);
+            _coordinator.persistServiceConfiguration(site.toConfiguration());
             _log.info("vdc ip change detected, updated vdc resource ok");
         }
     }
@@ -906,15 +891,9 @@ public class SchemaUtil {
             _log.error("Unable to find VirtualDataCenter CF in current keyspace");
             return;
         }
-
         VirtualDataCenter localVdc = queryLocalVdc(dbClient);
         if (localVdc != null) {
-            if (localVdc.getLocal()) {
-                checkIPChanged(localVdc, dbClient);
-            } else {
-                _log.warn("Vdc record is not local for {}", _vdcShortId);
-            }
-            checkAndInsertVdcConfig(localVdc);
+            checkIPChanged();
             return;
         }
 
@@ -927,73 +906,10 @@ public class SchemaUtil {
         vdc.setConnectionStatus(VirtualDataCenter.ConnectionStatus.ISOLATED);
         vdc.setRepStatus(VirtualDataCenter.GeoReplicationStatus.REP_NONE);
         vdc.setVersion(new Date().getTime()); // timestamp
-        vdc.setHostCount(_vdcHosts.size());
         vdc.setApiEndpoint(_vdcEndpoint);
-
-        CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
-        Map<String, DualInetAddress> controlNodes = nodeMap.getControllerNodeIPLookupMap();
-        StringMap ipv4Addresses = new StringMap();
-        StringMap ipv6Addresses = new StringMap();
-
-        String nodeId;
-        int nodeIndex = 0;
-        for (Map.Entry<String, DualInetAddress> cnode : controlNodes.entrySet()) {
-            nodeIndex++;
-            nodeId = VDC_NODE_PREFIX + nodeIndex;
-            DualInetAddress addr = cnode.getValue();
-            if (addr.hasInet4()) {
-                ipv4Addresses.put(nodeId, addr.getInet4());
-            }
-            if (addr.hasInet6()) {
-                ipv6Addresses.put(nodeId, addr.getInet6());
-            }
-        }
-
-        vdc.setHostIPv4AddressesMap(ipv4Addresses);
-        vdc.setHostIPv6AddressesMap(ipv6Addresses);
 
         vdc.setLocal(true);
         dbClient.createObject(vdc);
-
-        checkAndInsertVdcConfig(vdc);
-    }
-    
-    private void checkAndInsertVdcConfig(VirtualDataCenter vdc) {
-        try {
-            drUtil.getLocalSite();
-            _log.info("Find local site config in ZK");
-            return;
-        } catch (RetryableCoordinatorException ex) {
-            _log.info("Cannot find local vdc config in ZK. Create new config");
-        }
-        // create VDC parent ZNode for site config in ZK
-        ConfigurationImpl vdcConfig = new ConfigurationImpl();
-        vdcConfig.setKind(Site.CONFIG_KIND);
-        vdcConfig.setId(vdc.getShortId());
-        _coordinator.persistServiceConfiguration(vdcConfig);
-
-        // insert DR acitve site info to ZK
-        Site site = new Site();
-        site.setUuid(_coordinator.getSiteId());
-        site.setName("Default Active Site");
-        site.setVdcShortId(vdc.getShortId());
-        site.setStandbyShortId("");
-        site.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
-        site.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
-        site.setState(SiteState.ACTIVE);
-        site.setCreationTime(System.currentTimeMillis());
-        site.setVip(_vdcEndpoint);
-
-        SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
-        site.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
-
-        site.setNodeCount(vdc.getHostCount());
-
-        _coordinator.persistServiceConfiguration(site.toConfiguration());
-
-        // update Site version in ZK
-        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
-        _coordinator.setTargetInfo(siteInfo);
     }
     
     /**
@@ -1294,58 +1210,6 @@ public class SchemaUtil {
         }
         return true;
    }
-
-    public void removeDataCenter(String dcName, boolean unreachableNodesOnly) {
-        _log.info("Remove Cassandra data center {}", dcName);
-        List<InetAddress> allNodes = new ArrayList<>();
-        if (!unreachableNodesOnly) {
-            Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
-            allNodes.addAll(liveNodes);
-        }
-        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
-        allNodes.addAll(unreachableNodes);
-        for (InetAddress nodeIp : allNodes) {
-            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
-            String dc = snitch.getDatacenter(nodeIp);
-            _log.info("node {} belongs to data center {} ", nodeIp, dc);
-            if (dc.equals(dcName)) {
-                Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
-                String guid = hostIdMap.get(nodeIp.getHostAddress());
-                _log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
-                Gossiper.instance.convict(nodeIp, 0);
-                ensureRemoveNode(guid);
-            }
-        }
-    }
-
-    /**
-     * A safer method to remove Cassandra node. Calls forceRemoveCompletion after REMOVE_NODE_TIMEOUT_MILLIS
-     * This will help to prevent node removal from hanging due to CASSANDRA-6542.
-     *
-     * @param guid
-     */
-    public void ensureRemoveNode(final String guid) {
-        Thread thread = new Thread() {
-            public void run() {
-                StorageService.instance.removeNode(guid);
-            }
-        };
-        thread.start();
-        try {
-            thread.join(REMOVE_NODE_TIMEOUT_MILLIS);
-            if (thread.isAlive()) {
-                _log.warn("removenode timeout, calling forceRemoveCompletion()");
-                StorageService.instance.forceRemoveCompletion();
-                thread.join();
-            }
-        } catch (InterruptedException e) {
-            _log.warn("Interrupted during node removal");
-        }
-    }
-    
-    public void setApiSignatureGenerator(InternalApiSignatureKeyGenerator apiSignatureGenerator) {
-        this.apiSignatureGenerator = apiSignatureGenerator;
-    }
 
     public void setDrUtil(DrUtil drUtil) {
         this.drUtil = drUtil;

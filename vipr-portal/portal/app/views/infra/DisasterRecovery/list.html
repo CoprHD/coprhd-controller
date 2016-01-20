@@ -2,7 +2,6 @@
 #{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
 
 #{DataTable.header titleKey:'disasterRecovery.title'/}
-
 #{DataTable.crudTable id:'disasterRecovery', 
 					dataTable:dataTable,
 					expandable: true,
@@ -12,13 +11,22 @@
 #{/DataTable.crudTable}
 #{DataTable.expandHtml @errorDetails(':id'), table:'disasterRecovery' /}
 
+#{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
+
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
 		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
-			<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
-			<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
+			#{if isActiveSite }
+				<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.pause'}')){return false;}")>{{'disasterRecovery.pauseButton' | t}}</a>
+				<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
+			#{/if}
 			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
-			<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.FailoverButton' | t}}</a>
+			#{if isActiveSite }
+				<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.SwitchoverButton' | t}}</a>
+			#{/if}
+			#{else}
+				<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.failover'}')){return false;}")>{{'disasterRecovery.FailoverButton' | t}}</a>
+			#{/else}
 		#{/deadbolt.restrict}
     </div>
 </script>
@@ -38,20 +46,20 @@ angular.module('tags').directive({
         	 scope.pauseUrl = standbypauseUrl({'uuid': scope.row.id});
         	 scope.resumeUrl = standbyresumeUrl({'uuid': scope.row.id});
         	 scope.testUrl = standbytestUrl({'uuid': scope.row.id});
-			scope.failoverUrl = standbyfailoverUrl({'uuid': scope.row.id});
-			scope.isPauseSite = false;
-			scope.isResumeSite = false;
-			scope.isTestSite = false;
-			scope.isFailover = false;
+			 scope.failoverUrl = standbyfailoverUrl({'uuid': scope.row.id});
+			 scope.isPauseSite = false;
+			 scope.isResumeSite = false;
+			 scope.isTestSite = false;
+			 scope.isFailover = false;
 
         	 if(scope.row.status.toUpperCase() == "STANDBY_SYNCED"){
 				scope.isPauseSite = true;
-				scope.isTestSite = true;
 				scope.isFailover = true;
              }
         	 
         	 if(scope.row.status.toUpperCase() == "STANDBY_PAUSED"){
 				scope.isResumeSite = true;
+				scope.isFailover = true;
              }
         	 
         	 if(scope.row.status.toUpperCase() == "ACTIVE"){
@@ -89,11 +97,11 @@ function renderLink(o, val) {
 function watchLoadStatus(datatable, itemsJson) {
     var fields = ['status','VirtualIP','name'];
     var fieldToWatch = 'status';
-    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING'];
+    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING','STANDBY_SWITCHING_OVER','STANDBY_FAILING_OVER','ACTIVE_SWITCHING_OVER','ACTIVE_FAILING_OVER','STANDBY_DEGRADING'];
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
 }
 $(document).ready(function() {
-    var dataTable = table.disasterRecovery.dataTable.getDataTable()
+    var dataTable = table.disasterRecovery.dataTable.getDataTable();
     var itemsJson = #{jsAction @itemsJson(':ids')/};
     watchLoadStatus(dataTable, itemsJson);
 });
@@ -118,6 +126,9 @@ function standbyStatusIcon(o, val) {
         'STANDBY_FAILING_OVER': 'label-danger',
         'STANDBY_REMOVING': 'label-danger',
         'STANDBY_RESUMING': 'label-info',
+        'ACTIVE_DEGRADED': 'label-danger',
+        'STANDBY_DEGRADING': 'label-danger',
+        'STANDBY_DEGRADED': 'label-danger',
         'STANDBY_ERROR':  'label-danger'
     }
     var icons = {
@@ -134,6 +145,9 @@ function standbyStatusIcon(o, val) {
         'STANDBY_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_REMOVING': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_RESUMING': 'glyphicon glyphicon-refresh rotate',
+        'ACTIVE_DEGRADED': 'glyphicon glyphicon-remove',
+        'STANDBY_DEGRADING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_DEGRADED': 'glyphicon glyphicon-remove',
         'STANDBY_ERROR':  'glyphicon glyphicon-remove'
     }
 
@@ -151,6 +165,9 @@ function standbyStatusIcon(o, val) {
             'STANDBY_FAILING_OVER': Messages.get("renderFunctions.disasterRecovery.status.standby.failingover"),
             'STANDBY_REMOVING': Messages.get("renderFunctions.disasterRecovery.status.standby.removing"),
             'STANDBY_RESUMING': Messages.get("renderFunctions.disasterRecovery.status.standby.resuming"),
+            'ACTIVE_DEGRADED': Messages.get("renderFunctions.disasterRecovery.status.standby.failbackDegraded"),
+        	'STANDBY_DEGRADING': Messages.get("renderFunctions.disasterRecovery.status.standby.degrading"),
+        	'STANDBY_DEGRADED': Messages.get("renderFunctions.disasterRecovery.status.standby.degraded"),
             'STANDBY_ERROR':  Messages.get("renderFunctions.disasterRecovery.status.standby.error")
 	};
 
@@ -158,6 +175,37 @@ function standbyStatusIcon(o, val) {
     var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
 
     var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
+
+    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
+}
+</script>
+
+<script type="text/javascript">
+function networkHealthIcon(o, val) {
+    if (!o) {
+        return "";
+    }
+    var labels = {
+        'Good': 'label-success',
+        'Slow': 'label-warning',
+        'Broken': 'label-danger'
+    }
+    var icons = {
+        'Good': 'glyphicon glyphicon-ok',
+        'Slow': 'glyphicon glyphicon-warning-sign',
+        'Broken':  'glyphicon glyphicon-remove'
+    }
+
+	var messages = {
+            'Good': Messages.get("renderFunctions.disasterRecovery.networkHealth.good"),
+            'Slow': Messages.get("renderFunctions.disasterRecovery.networkHealth.slow"),
+            'Broken': Messages.get("renderFunctions.disasterRecovery.networkHealth.broken")
+	};
+
+    var label = defaultValue(labels[o.aData.networkHealth], 'label-default');
+    var icon = defaultValue(icons[o.aData.networkHealth], 'glyphicon glyphicon-question-sign');
+
+    var message = defaultValue(messages[o.aData.networkHealth], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
 
     return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
 }

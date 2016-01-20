@@ -47,9 +47,9 @@ public class DrSiteNetworkMonitor implements Runnable{
 
 
     private static final int NETWORK_MONITORING_INTERVAL = 60; // in seconds
-    private static final String NETWORK_HEALTH_BROKEN = "Broken";
-    private static final String NETWORK_HEALTH_GOOD = "Good";
-    private static final String NETWORK_HEALTH_SLOW = "Slow";
+    public static final String NETWORK_HEALTH_BROKEN = "Broken";
+    public static final String NETWORK_HEALTH_GOOD = "Good";
+    public static final String NETWORK_HEALTH_SLOW = "Slow";
     public static final String ZOOKEEPER_MODE_LEADER = "leader";
     public static final String ZOOKEEPER_MODE_STANDALONE = "standalone";
 

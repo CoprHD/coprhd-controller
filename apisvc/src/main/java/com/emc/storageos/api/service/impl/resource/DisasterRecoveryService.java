@@ -72,6 +72,7 @@ import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
+import com.emc.storageos.model.dr.SiteDataStatus;
 import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
@@ -91,6 +92,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
@@ -828,6 +830,36 @@ public class DisasterRecoveryService {
         }
 
         return SiteErrorResponse.noError();
+    }
+
+    /**
+     * Query last data sync time and last db repair time of specific site
+     * @param uuid
+     * @return
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @Path("/{uuid}/syncstatus")
+    public SiteDataStatus getSiteDataStatus(@PathParam("uuid") String uuid) {
+        log.info("Begin to get site data status by uuid {}", uuid);
+        Site site;
+        try {
+            site = drUtil.getSiteFromLocalVdc(uuid);
+        } catch (Exception e) {
+            log.error("Can't find site with specified site ID {}", uuid);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+
+        SiteDataStatus status = new SiteDataStatus();
+        if (site.getState().equals(SiteState.STANDBY_SYNCED) && !site.getNetworkHealth().equals(DrSiteNetworkMonitor.NETWORK_HEALTH_BROKEN)) {
+            status.setDataSynced(true);
+        } else {
+            status.setLastSyncTime(site.getLastStateUpdateTime());
+        }
+
+        return status;
     }
 
     /**

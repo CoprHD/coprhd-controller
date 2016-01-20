@@ -32,7 +32,6 @@ public class BlockSnapshotSessionLinkTargetCompleter extends BlockSnapshotSessio
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionLinkTargetCompleter.class);
 
     private URI _snapshotSessionURI;
-    private List<URI> _snapshotURIs;
 
     /**
      * Constructor

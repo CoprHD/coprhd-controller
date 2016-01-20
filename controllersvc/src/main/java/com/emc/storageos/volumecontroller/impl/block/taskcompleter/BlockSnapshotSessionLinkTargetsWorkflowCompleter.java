@@ -7,9 +7,6 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +33,7 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
 
     // The URIs of the BlockSnapshot instances representing the target volumes
     // to be linked to the session
-    private final List<List<URI>> _snapshotURIs;
+    private final List<List<URI>> _snapshotURILists;
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionLinkTargetsWorkflowCompleter.class);
@@ -45,13 +42,13 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
      * Constructor
      * 
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
-     * @param snapshotURIs The URIs of the BlockSnapshot instances representing the
+     * @param snapshotURILists The URIs of the BlockSnapshot instances representing the
      *            targets volume to be linked to the session.
      * @param taskId The unique task identifier.
      */
-    public BlockSnapshotSessionLinkTargetsWorkflowCompleter(URI snapSessionURI, List<List<URI>> snapshotURIs, String taskId) {
+    public BlockSnapshotSessionLinkTargetsWorkflowCompleter(URI snapSessionURI, List<List<URI>> snapshotURILists, String taskId) {
         super(snapSessionURI, taskId);
-        _snapshotURIs = snapshotURIs;
+        _snapshotURILists = snapshotURILists;
     }
 
     /**
@@ -75,7 +72,7 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
                     // For those BlockSnapshot instances representing linked targets that
                     // were not successfully created and linked to the array snapshot
                     // represented by the BlockSnapshotSession instance, mark them inactive.
-                    for (List<URI> snapshotURIs : _snapshotURIs) {
+                    for (List<URI> snapshotURIs : _snapshotURILists) {
                         for (URI snapshotURI : snapshotURIs) {
                             // Successfully linked targets will be in the list of linked
                             // targets for the session.

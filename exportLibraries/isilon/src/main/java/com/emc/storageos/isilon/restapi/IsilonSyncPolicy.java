@@ -28,7 +28,7 @@ public class IsilonSyncPolicy {
         needs_attention,
         skipped,
         pending,
-        unknown,
+        unknown
     }
 
     private String name;

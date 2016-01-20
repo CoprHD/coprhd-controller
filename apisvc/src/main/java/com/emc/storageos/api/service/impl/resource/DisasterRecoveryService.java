@@ -259,7 +259,7 @@ public class DisasterRecoveryService {
      */
     private SiteConfigParam prepareSiteConfigParam(String ipsecKey, String targetStandbyUUID, long targetStandbyDataRevision, long vdcConfigVersion) {
         log.info("Preparing to sync sites info among to be added/resumed standby site...");
-        Site active = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+        Site active = drUtil.getActiveSite();
         SiteConfigParam configParam = new SiteConfigParam();
         SiteParam activeSite = new SiteParam();
         siteMapper.map(active, activeSite);
@@ -846,7 +846,7 @@ public class DisasterRecoveryService {
 
         precheckForSwitchover(uuid);
 
-        String oldActiveUUID = drUtil.getActiveSiteId();
+        String oldActiveUUID = drUtil.getActiveSite().getUuid();
 
         InterProcessLock lock = drUtil.getDROperationLock();
 
@@ -941,7 +941,7 @@ public class DisasterRecoveryService {
 
         try {
             // set state
-            String activeSiteId = drUtil.getActiveSiteId();
+            String activeSiteId = drUtil.getActiveSite().getUuid();
             Site oldActiveSite = new Site();
             if (StringUtils.isEmpty(activeSiteId)) {
                 log.info("Cant't find active site id, go on to do failover");
@@ -1025,7 +1025,7 @@ public class DisasterRecoveryService {
 
         try {
             // set state
-            String activeSiteId = drUtil.getActiveSiteId();
+            String activeSiteId = drUtil.getActiveSite().getUuid();
             Site oldActiveSite = new Site();
             if (StringUtils.isEmpty(activeSiteId)) {
                 log.info("Cant't find active site id, go on to do failover");
@@ -1269,7 +1269,7 @@ public class DisasterRecoveryService {
         }
 
         // this site should not be standby site
-        String activeId = drUtil.getActiveSiteId();
+        String activeId = drUtil.getActiveSite().getUuid();
         if (activeId != null && !activeId.equals(coordinator.getSiteId())) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed("This site is also a standby site");
         }
@@ -1341,7 +1341,7 @@ public class DisasterRecoveryService {
                     "Standby uuid is not valid, can't find it");
         }
 
-        if (standbyUuid.equals(drUtil.getActiveSiteId())) {
+        if (standbyUuid.equals(drUtil.getActiveSite().getUuid())) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Can't switchover to an active site");
         }
 

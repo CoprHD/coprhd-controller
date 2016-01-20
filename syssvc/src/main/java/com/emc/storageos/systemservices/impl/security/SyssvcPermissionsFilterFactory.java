@@ -140,8 +140,7 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
                 return request;
             }
 
-            String siteId = drUtil.getActiveSiteId();
-            Site activeSite = drUtil.getSiteFromLocalVdc(siteId);
+            Site activeSite = drUtil.getActiveSite();
             String path = request.getPath();
 
             // disable backup related operations on standby site

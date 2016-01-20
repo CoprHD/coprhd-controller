@@ -9,11 +9,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,7 +19,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -31,8 +27,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SiteInfo.ActionScope;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -41,6 +37,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.vipr.model.sys.ClusterInfo;
 
 /**
  * Common utility functions for Disaster Recovery
@@ -72,7 +69,7 @@ public class DrUtil {
     public static final String KEY_STANDBY_DEGRADE_THRESHOLD = "degrade_standby_threshold_millis";
     public static final String KEY_FAILOVER_STANDBY_SITE_TIMEOUT = "failover_standby_site_timeout_millis";
     public static final String KEY_FAILOVER_ACTIVE_SITE_TIMEOUT = "failover_active_site_timeout_millis";
-
+    
     private CoordinatorClient coordinator;
 
     public DrUtil() {
@@ -137,23 +134,8 @@ public class DrUtil {
         return !isActiveSite();
     }
     
-    /**
-     * Get active site in current vdc
-     * 
-     * @return
-     */
-    public String getActiveSiteId() {
-        return getActiveSiteId(getLocalVdcShortId());
-    }
-    
-    /**
-     * Get active site in a specific vdc
-     *
-     * @param vdcShortId short id of the vdc
-     * @return uuid of the active site
-     */
-    public String getActiveSiteId(String vdcShortId) {
-        return getActiveSite(vdcShortId).getUuid();
+    public Site getActiveSite() {
+        return getActiveSite(getLocalVdcShortId());
     }
 
     /**
@@ -171,12 +153,7 @@ public class DrUtil {
             }
         }
         
-        Site localSite = getLocalSite();
-        if (localSite.getState() == SiteState.ACTIVE_DEGRADED) {
-            return localSite;
-        }
-        
-        throw CoordinatorException.retryables.cannotFindSite(vdcShortId);
+        return Site.DUMMY_ACTIVE_SITE;
     }
     /**
      * Get local site configuration
@@ -209,10 +186,10 @@ public class DrUtil {
      * @return list of standby sites
      */
     public List<Site> listStandbySites() {
-        String activeSiteId = getActiveSiteId();
+        Site activeSite = getActiveSite();
         List<Site> result = new ArrayList<>();
         for(Site site : listSites()) {
-            if (!site.getUuid().equals(activeSiteId)) {
+            if (!site.getUuid().equals(activeSite.getUuid())) {
                 result.add(site);
             }
         }

@@ -120,7 +120,7 @@ public class VdcConfigUtil {
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
         String activeSiteId = null;
         try {
-            activeSiteId = drUtil.getActiveSiteId(vdcShortId);
+            activeSiteId = drUtil.getActiveSite().getUuid();
         } catch (RetryableCoordinatorException e) {
             log.warn("Failed to find active site id from ZK, go on since it maybe switchover case");
         }

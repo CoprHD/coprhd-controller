@@ -35,7 +35,7 @@ public enum OperationTypeEnum {
     UPDATE_VPOOL("VpoolUpdated", "", "VirtualPool Update"),
     DELETE_VPOOL("VpoolDeleted", "", "VirtualPool Delete"),
     REASSIGN_VPOOL_ACL("VpoolUpdated", "", "operation to overwrite VirtualPool acls"),
-    MODIFY_VPOOL_ACL("VpoolUpdated", "", "operation to modify VirtualPool acls"),
+    MODIFY_VPOOL_ACL("VpoolUpdated", "", "operati to modify VirtualPool acls"),
     ASSIGN_VPOOL_TAG("ASSIGN VPOOL TAG", "", "operation to assign a tag to a VirtualPool"),
 
     CREATE_BLOCK_VOLUME("VolumeCreated", "VolumeCreateFailed", "Volume Create"),
@@ -141,7 +141,16 @@ public enum OperationTypeEnum {
 
     CREATE_FILE_MIRROR("FileSystemMirrorCreated", "FileSystemMirrorCreateFailed", "FileSystemMirror Create"),
     DELETE_FILE_MIRROR("FileSystemMirrorDeleted", "FileSystemMirrorDeleteFailed", "FileSystemMirror Delete"),
-    
+
+    SUSPEND_FILE_MIRROR("FileSystemMirrorSuspended", "FileSystemMirrorLinkSuspendFailed", "Mirror Session Suspend"),
+    DETACH_FILE_MIRROR("FileSystemMirrorDetached", "FileSystemMirrorLinkDetachFailed", "Mirror Session Detach"),
+    PAUSE_FILE_MIRROR("FileSystemMirrorPaused", "FileSystemMirrorLinkPauseFailed", "Mirror Session Pause"),
+    RESUME_FILE_MIRROR("FileSystemMirrorResumed", "FileSystemMirrorLinkResumeFailed", "Mirror Session Resume"),
+    FAILOVER_FILE_MIRROR("FileSystemMirrorFailedOver", "FileSystemMirrorLinkFailOverFailed", "Mirror Session Fail Over"),
+    SYNC_FILE_MIRROR("FileSystemMirrorSynced", "FileSystemMirrorLinkSyncFailed", "Mirror Session Sync"),
+    STOP_FILE_MIRROR("FileSystemMirrorStopped", "FileSystemMirrorLinkStopFailed", "Mirror Session Stop"),
+    START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorLinkStartFailed", "Mirror Session Start"),
+
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
     UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),

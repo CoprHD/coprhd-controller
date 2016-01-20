@@ -53,6 +53,28 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
         // TODO Auto-generated method stub
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
+
+    @Override
+    public void doStopMirrorLink(StorageSystem system, FileShare target,
+                                  TaskCompleter completer) {
+        // TODO Auto-generated method stub
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+    @Override
+    public void doSuspendLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+    @Override
+    public void doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+    @Override
+    public void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
     
     /**
      * Cancel a replication link.

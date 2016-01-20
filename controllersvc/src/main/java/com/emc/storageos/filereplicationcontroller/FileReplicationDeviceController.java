@@ -161,8 +161,37 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public void performRemoteContinuousCopies(URI storage, URI copyId,
             String opType, String opId) throws ControllerException {
-        // TODO Auto-generated method stub
-        //TBD remote mirror operations
+
+        URI sourceVolumeUri = null;
+        TaskCompleter completer = null;
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);
+        FileShare fileShare = dbClient.queryObject(FileShare.class, copyId);
+        try{
+            if (opId.equalsIgnoreCase("failover")) {
+
+            } else if (opId.equalsIgnoreCase("failback")) {
+
+            } else if (opId.equalsIgnoreCase("pause")) {
+
+            } else if (opId.equalsIgnoreCase("suspend")) {
+
+            } else if (opId.equalsIgnoreCase("resume")) {
+
+            } else if (opId.equalsIgnoreCase("start")) {
+
+            } else if (opId.equalsIgnoreCase("sync")) {
+
+            } else if (opId.equalsIgnoreCase("stop")) {
+
+            } 
+
+        }catch (Exception e) {
+            log.error("Failed operation {}", opId, e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(dbClient, error);
+            }
+        }
     }
     
     /**

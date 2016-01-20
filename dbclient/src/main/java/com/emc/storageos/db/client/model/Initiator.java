@@ -226,4 +226,12 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
         String thatPort = that.getInitiatorPort();
         return thisPort.equals(thatPort);
     }
+    
+    @Override
+    public int hashCode() {
+        if (this._id == null) {
+            return 0;
+        }
+        return this._id.hashCode();
+    }
 }

@@ -239,7 +239,7 @@ public class LicenseManagerImpl implements LicenseManager {
                         if (p.size() > 0) {
                             for (Enumeration e = p.propertyNames(); e.hasMoreElements();) {
                                 String str = (String) e.nextElement();
-                                if (str.equals(LicenseConstants.LICENSE_TYPE_PROPERTYNAME)) {
+                                if (str.equals(LicenseFeature.MODELID_DELIMETER)) {
                                     subModelId = p.getProperty(str);
                                     _log.info("Get a license increment with type: {}", subModelId);
                                     break;

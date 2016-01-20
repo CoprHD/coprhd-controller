@@ -1,0 +1,14 @@
+{
+  baseKey:"UnmountBlockVolume.Block.Hpux",
+  serviceId:"Hpux-UnmountBlockVolume",
+  fields: {
+    host:{
+      type:"assetType.vipr.hpuxHost"
+    },
+
+    volumes: {
+      type:"assetType.vipr.mountedBlockResource",   
+      select:"many" 
+    }            
+  }
+}

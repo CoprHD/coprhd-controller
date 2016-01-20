@@ -61,6 +61,11 @@ public class HostProvider extends BaseHostProvider {
         return api(context).hosts().getByTenant(context.getTenant(), HostTypeFilter.AIX.and(REGISTERED).and(INCOMPATIBLE.not()));
     }
 
+    protected List<HostRestRep> getHpuxHosts(AssetOptionsContext context) {
+        debug("getting hpuxHosts");
+        return api(context).hosts().getByTenant(context.getTenant(), HostTypeFilter.HPUX.and(REGISTERED).and(INCOMPATIBLE.not()));
+    }
+
     @Asset("host")
     public List<AssetOption> getHostOptions(AssetOptionsContext context) {
         debug("getting hosts");
@@ -83,6 +88,12 @@ public class HostProvider extends BaseHostProvider {
     public List<AssetOption> getAixHostOptions(AssetOptionsContext context) {
         debug("getting aixHosts");
         return createHostOptions(context, getAixHosts(context));
+    }
+
+    @Asset("hpuxHost")
+    public List<AssetOption> getHpuxHostOptions(AssetOptionsContext context) {
+        debug("getting hpuxHosts");
+        return createHostOptions(context, getHpuxHosts(context));
     }
 
     @Asset("host")

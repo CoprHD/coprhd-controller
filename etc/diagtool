@@ -1173,53 +1173,56 @@ _test_vdc() {
     local -a verboseStr
     local ipv4VIP
     local ipv6VIP
+    # we don't support DR in mutlivdc setup. so the site id should be always 
+    # "site1"
+    local siteId="site1"
     
     for vdcEntry in `IFS=,; for entry in ${vdcList}; do echo "$entry "; done`; do
-        nodeCount=$(_get_prop "vdc_${vdcEntry}_node_count")
+        nodeCount=$(_get_prop "vdc_${vdcEntry}_${siteId}_node_count")
         vdcStatus=1
         degraded=1
         for (( n=1; n<=${nodeCount}; n++ )) ; do
-            ipv4Addr=$(_get_prop_ip "vdc_${vdcEntry}_network_${n}_ipaddr")
+            ipv4Addr=$(_get_prop_ip "vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr")
             if [ ! -z "${ipv4Addr}" ] ; then
                 if  _ping_test ${ipv4Addr}  ; then
                     vdcStatus=0
-                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr=${ipv4Addr},REACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr=${ipv4Addr},REACHABLE")
                 else
                     degraded=0
-                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr=${ipv4Addr},UNREACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr=${ipv4Addr},UNREACHABLE")
                 fi        
             fi
-            ipv6Addr=$(_get_prop_ip "vdc_${vdcEntry}_network_${n}_ipaddr6")
+            ipv6Addr=$(_get_prop_ip "vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr6")
             if [ ! -z  "${ipv6Addr}" ] ; then
                 if _ping6_test ${ipv6Addr} ; then
                     vdcStatus=0
-                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr6=${ipv6Addr},REACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr6=${ipv6Addr},REACHABLE")
                 else
                     degraded=0
-                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr6=${ipv4Addr},UNREACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr6=${ipv4Addr},UNREACHABLE")
                 fi
             fi
         done
-        ipv4VIP=$(_get_prop_ip "vdc_${vdcEntry}_network_vip")
-        ipv6VIP=$(_get_prop_ip "vdc_${vdcEntry}_network_vip6")
+        ipv4VIP=$(_get_prop_ip "vdc_${vdcEntry}_${siteId}_network_vip")
+        ipv6VIP=$(_get_prop_ip "vdc_${vdcEntry}_${siteId}_network_vip6")
         [[ ${ipv6VIP} =~ [^\[*:*\]] ]] && ipv6VIP=${ipv6VIP:1:${#ipv6VIP}-2}
  
         if [ ! -z "${ipv6VIP}" ] ; then
              if _ping6_test ${ipv6VIP} ; then
                     vdcStatus=0
-                    verboseStr+=("vdc_${vdcEntry}_network_vip6=${ipv6VIP},REACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_vip6=${ipv6VIP},REACHABLE")
                 else
                     degraded=0
-                    verboseStr+=("vdc_${vdcEntry}_network_vip6=${ipv6VIP},UNREACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_vip6=${ipv6VIP},UNREACHABLE")
                 fi                 
         fi
         if [ ! -z "${ipv4VIP}" ] ; then
              if _ping_test ${ipv4VIP} ; then
                     vdcStatus=0
-                    verboseStr+=("vdc_${vdcEntry}_network_vip=${ipv4VIP},REACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_vip=${ipv4VIP},REACHABLE")
                 else
                     degraded=0
-                    verboseStr+=("vdc_${vdcEntry}_network_vip=${ipv4VIP},UNREACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_vip=${ipv4VIP},UNREACHABLE")
                 fi
         fi
 

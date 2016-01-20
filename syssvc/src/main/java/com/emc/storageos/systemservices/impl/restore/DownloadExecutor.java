@@ -196,7 +196,10 @@ public final class DownloadExecutor implements  Runnable {
             }
         }catch (Exception e) {
             log.info("isCanceled={}", isCanceled);
+
             Status s = Status.DOWNLOAD_FAILED;
+            s.setMessage(e.getMessage());
+
             if (isCanceled) {
                 s = Status.DOWNLOAD_CANCELLED;
                 deleteDownloadedBackup();

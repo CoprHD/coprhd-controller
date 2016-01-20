@@ -28,8 +28,10 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.model.property.PropertyInfo;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.curator.utils.ZKPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -852,6 +854,13 @@ public class BackupOps {
         } finally {
             close(conn);
         }
+    }
+
+    public boolean isDownloadInProgress() {
+        CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
+        String lockPath = ZKPaths.makePath(ZkPath.MUTEX.toString(), BackupConstants.RESTORE_LOCK);
+        log.info("lockPath={}", lockPath);
+        return client.nodeExists(lockPath);
     }
 
     public InterProcessLock getLock(String name, long time, TimeUnit unit) {

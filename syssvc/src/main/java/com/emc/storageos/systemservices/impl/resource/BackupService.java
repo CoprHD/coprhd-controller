@@ -491,17 +491,21 @@ public class BackupService {
 
         checkExternalServer();
 
-        if (hasDownloadingInProgress()) {
+        if (backupOps.isDownloadInProgress()) {
             Map<String, String> currentBackupInfo = backupOps.getCurrentBackupInfo();
-            String errmsg = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY)+ " is downloading";
-            throw SyssvcException.syssvcExceptions.pullBackupFailed(backupName, errmsg);
+            String curBackupName = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
+            if (!backupName.equals(curBackupName)) {
+                String errmsg = curBackupName + " is downloading";
+                throw SyssvcException.syssvcExceptions.pullBackupFailed(backupName, errmsg);
+            }
+            log.info("The backup {} is downloading, no need to trigger again", backupName);
+        }else {
+            setBackupFileSize(backupName);
+
+            notifyOtherNodes(backupName);
+
+            log.info("done");
         }
-
-        setBackupFileSize(backupName);
-
-        notifyOtherNodes(backupName);
-
-        log.info("done");
         return Response.status(202).build();
     }
 
@@ -510,19 +514,6 @@ public class BackupService {
         if (cfg.uploadUrl == null) {
             throw SyssvcException.syssvcExceptions.externalBackupServerError("The server is not set");
         }
-    }
-
-    private boolean hasDownloadingInProgress() {
-        Map<String,String> info = backupOps.getCurrentBackupInfo();
-        log.info("The current downloading backup info ={}", info);
-
-        if (info.isEmpty()) {
-            return false;
-        }
-
-        String backupName = info.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
-
-        return !backupName.isEmpty();
     }
 
     private void setBackupFileSize(@QueryParam("file") String backupName) {

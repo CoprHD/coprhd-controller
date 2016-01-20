@@ -67,9 +67,11 @@
 
     <div class="alert alert-info"> &{'restore.prompt'} </div>
 
-    #{Form.button 'button.ok', class:'primary', icon:'ok-sign', submit:'restoreForm', id:'restoreBtn' /}
-    #{Form.button 'button.cancel', icon:'primary', href: @cancelPullBackup(type)/}
+    <div class="button-bar">
+        #{Form.button 'button.ok', class:'primary', icon:'ok-sign', type:'submit', id:'restoreBtn' /}
+        #{Form.button 'button.cancel', icon:'primary', href: @cancelPullBackup(type)/}
 #{/form}
+    </div>
 </div>
 
 <script type="text/javascript">
@@ -99,7 +101,7 @@
                 return;
             }
             checkPullProgressUpdate();
-        }, 1000); // Check every 1 seconds
+        }, 2000); // Check every 2 seconds
     }
 
     function checkPullProgressUpdate() {

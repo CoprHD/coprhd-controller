@@ -969,7 +969,7 @@ restoreForm.password=Root Password
 restore.checkbox=no
 restore.geo.checkbox.help=To restore the vdc1 in an all crashed Geo Environment
 restore.geo.disconnect=Please make sure the VDC to be restored has been disconnected from other VDCs.
-restore.prompt=Click OK to restore your data, the System will reboot and you will be directed to login.
+restore.prompt=Click OK to restore your data, the system will be unavailable for several minutes then reboot, and you will be redirected to login.
 
 # System Node Recovery
 system.noderecovery.title=Node Recovery

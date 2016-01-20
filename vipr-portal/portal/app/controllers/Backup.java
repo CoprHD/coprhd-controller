@@ -181,16 +181,18 @@ public class Backup extends Controller {
         list(type);
     }
 
-    @FlashException(keep = true, referrer = { "restore" })
     public static void doRestore() {
-        RestoreForm restoreForm = new RestoreForm();
-        restoreForm.name = params.get("restoreForm.name");
-        restoreForm.password = params.get("restoreForm.password");
-        restoreForm.isGeoFromScratch = params.get("restoreForm.isGeoFromScratch", boolean.class);
         Type type = params.get("restoreForm.type", Type.class);
-        restoreForm.isLocal = type == Type.LOCAL;
+        boolean isLocal = type == Type.LOCAL;
+        String name = params.get("restoreForm.name");
+        RestoreForm restoreForm = new RestoreForm(name, params.get("restoreForm.password"), isLocal, params.get("restoreForm.isGeoFromScratch", boolean.class));
         restoreForm.restore();
-        list(type);
+
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(name, isLocal);
+        if (status.isNotSuccess()) {
+            list(type);
+        }
+        redirect("/");
     }
 
     public static void getRestoreStatus(String id, Type type) {
@@ -246,6 +248,13 @@ public class Backup extends Controller {
         public boolean isLocal;
 
         public boolean isGeoFromScratch = false;
+
+        public RestoreForm(String name, String password, boolean isLocal, boolean isGeo) {
+            this.name = name;
+            this.password = password;
+            this.isLocal = isLocal;
+            this.isGeoFromScratch = isGeo;
+        }
 
         public void restore() throws ViPRException {
             BackupUtils.restore(name, StringUtils.trimToNull(password), isLocal, isGeoFromScratch);

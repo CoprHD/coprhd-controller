@@ -853,7 +853,10 @@ public class DisasterRecoveryService {
         }
 
         SiteDataStatus status = new SiteDataStatus();
-        if (site.getState().equals(SiteState.STANDBY_SYNCED) && !site.getNetworkHealth().equals(SiteNetworkHealth.BROKEN)) {
+        if (site.getState().equals(SiteState.ACTIVE)) {
+            status.setDataSynced(true);
+        }
+        else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !site.getNetworkHealth().equals(SiteNetworkHealth.BROKEN)) {
             status.setDataSynced(true);
         } else {
             status.setLastSyncTime(site.getLastStateUpdateTime());

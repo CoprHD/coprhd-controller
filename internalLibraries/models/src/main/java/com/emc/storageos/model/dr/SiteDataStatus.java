@@ -8,17 +8,18 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "site_data_status")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class SiteDataStatus {
-    @XmlElement(name = "data_synced")
     private boolean dataSynced = false;
-    @XmlElement(name = "last_sync_time")
     private long lastSyncTime;
 
+    @XmlElement(name = "data_synced")
     public boolean isDataSynced() {
         return dataSynced;
     }
     public void setDataSynced(boolean dataSynced) {
         this.dataSynced = dataSynced;
     }
+
+    @XmlElement(name = "last_sync_time")
     public long getLastSyncTime() {
         return lastSyncTime;
     }

@@ -252,7 +252,10 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
-            this.networkHealth = Enum.valueOf(SiteNetworkHealth.class, config.getConfig(KEY_NETWORK_HEALTH));
+            String networkHealth = config.getConfig(KEY_NETWORK_HEALTH);
+            if (networkHealth != null && !networkHealth.isEmpty()) {
+                this.networkHealth = Enum.valueOf(SiteNetworkHealth.class, networkHealth);
+            }
             this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {

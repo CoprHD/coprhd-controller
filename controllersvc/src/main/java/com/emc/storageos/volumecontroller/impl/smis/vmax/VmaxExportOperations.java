@@ -1620,8 +1620,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts);
                         exportMask.setStoragePorts(storagePortURIs);
                         // Add the mask name to the list for which volumes are already updated
-                        maskNames.add(name);
-                        maskMap.put(exportMask.getId(), exportMask);
+                        maskNames.add(name);                        
                     }
                     exportMask.addToExistingInitiatorsIfAbsent(initiatorName);
 
@@ -1632,7 +1631,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                         initiatorName, name));
                         continue;
                     }
-                    exportMask.addInitiator(existingInitiator);
+                    exportMask.addInitiator(existingInitiator);    
+                    
+                    // Update the maskMap with the latest in-memory exportMask reference. 
+                    maskMap.put(exportMask.getId(), exportMask);
+                    
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
                         _dbClient.updateObject(exportMask);

@@ -36,8 +36,10 @@ import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.filereplicationcontroller.FileReplicationController;
 import com.emc.storageos.volumecontroller.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 
 
@@ -87,6 +89,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -2619,24 +2622,34 @@ public class FileService extends TaskResourceService {
     private TaskResourceRep performProtectionAction(URI id, URI copyID, String op) throws InternalException {
         String task = UUID.randomUUID().toString();
         Operation status = new Operation();
-        FileShare fileShare = queryFileObjectResource(id);
-        FileShare copyFileShare = queryFileObjectResource(copyID);
+        FileShare copyFileShare = null;
+        
+        FileShare sourcefileShare = queryFileObjectResource(id);
 
-        ArgValidator.checkEntity(fileShare, id, true);
+        if (null == copyID) {
+            copyFileShare = queryFileObjectResource(copyID);
+        } else {
+            copyFileShare = sourcefileShare;
+            copyID = sourcefileShare.getId();
+        }
+        
+
+        ArgValidator.checkEntity(sourcefileShare, id, true);
         ArgValidator.checkEntity(copyFileShare, copyID, true);
         // Make sure that we don't have some pending
         // operation against the volume
-        checkForPendingTasks(Arrays.asList(fileShare.getTenant().getURI()), Arrays.asList(fileShare));
+        checkForPendingTasks(Arrays.asList(sourcefileShare.getTenant().getURI()), Arrays.asList(sourcefileShare));
 
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
-        _dbClient.createTaskOpStatus(FileShare.class, fileShare.getId(), task, status);
+        _dbClient.createTaskOpStatus(FileShare.class, sourcefileShare.getId(), task, status);
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class,
-                fileShare.getStorageDevice());
+                sourcefileShare.getStorageDevice());
         FileReplicationController controller = getController(FileReplicationController.class,
                 system.getSystemType());
+        controller.performRemoteContinuousCopies(system.getId(), copyID, op, task);
 
-        return toTask(fileShare, task, status);
+        return toTask(sourcefileShare, task, status);
     }
 
 
@@ -2651,7 +2664,10 @@ public class FileService extends TaskResourceService {
             URI copyID = copy.getCopyID();
             if (!URIUtil.isValid(copyID)) {
                 copyID = null;
+                
             }
+            
+            
 
             // Validate a copy type was passed
             ArgValidator.checkFieldNotEmpty(copy.getType(), "type");

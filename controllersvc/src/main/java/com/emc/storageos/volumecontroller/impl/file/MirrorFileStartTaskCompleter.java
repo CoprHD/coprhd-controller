@@ -45,42 +45,7 @@ public class MirrorFileStartTaskCompleter extends MirrorFileTaskCompleter {
             throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-
-            switch (status) {
-
-                case ready:
-
-                    if (null != srcVolumes && null != tgtVolumes && !srcVolumes.isEmpty() && !tgtVolumes.isEmpty()) {
-                        for (Volume sourceVol : srcVolumes) {
-                            sourceVol.setPersonality(NullColumnValueGetter.getNullStr());
-                            sourceVol.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                            if (null != sourceVol.getSrdfTargets()) {
-                                sourceVol.getSrdfTargets().clear();
-                            }
-                            sourceVol.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                            dbClient.persistObject(sourceVol);
-                        }
-
-                        for (Volume target : tgtVolumes) {
-                            target.setPersonality(NullColumnValueGetter.getNullStr());
-                            target.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                            target.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
-                            target.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
-                            target.setSrdfGroup(NullColumnValueGetter.getNullURI());
-                            target.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                            dbClient.updateAndReindexObject(target);
-                        }
-
-                        Volume target = tgtVolumes.iterator().next();
-                        Volume source = srcVolumes.iterator().next();
-                        _log.info("SRDF Devices source {} and target {} converted to non srdf devices", source.getId(),
-                                target.getId());
-                        recordMirrorOperation(dbClient, OperationTypeEnum.START_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
-                                getTargetFileShare().getId().toString());
-                    }
-                default:
-                    _log.info("Unable to handle SRDF Link Stop Operational status: {}", status);
-            }
+            //tbd
 
         } catch (Exception e) {
             _log.error("Failed updating status. SRDFMirrorStop {}, for task " + getOpId(), getId(), e);

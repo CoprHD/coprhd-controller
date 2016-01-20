@@ -327,7 +327,7 @@ public class BackupOps {
         return (infoPropertyFile != null) && isValidBackup(infoPropertyFile, isGeo);
     }
 
-    public boolean isValidBackup(File propertyInfoFile, boolean isGeo) {
+    private boolean isValidBackup(File propertyInfoFile, boolean isGeo) {
         RestoreManager manager = new RestoreManager();
         CoordinatorClientImpl client = (CoordinatorClientImpl) coordinatorClient;
         manager.setNodeCount(client.getNodeCount());

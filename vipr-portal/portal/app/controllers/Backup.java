@@ -192,7 +192,7 @@ public class Backup extends Controller {
         if (status.isNotSuccess()) {
             list(type);
         }
-        redirect("/");
+        Maintenance.maintenance(Common.reverseRoute(AdminDashboard.class, "dashboard"));
     }
 
     public static void getRestoreStatus(String id, Type type) {

@@ -232,7 +232,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getSourceVolumesWithDeletion(final AssetOptionsContext ctx, URI project, String deletionType) {
         debug("getting source block volumes (project=%s)", project);
         List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), project);
-        ;
         return createVolumeOptions(null, volumes);
     }
 

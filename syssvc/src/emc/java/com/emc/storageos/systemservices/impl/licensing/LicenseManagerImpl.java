@@ -93,7 +93,7 @@ public class LicenseManagerImpl implements LicenseManager {
                     if (!isTrial) {
                         // Do not support the licenses of pre-yoda releases unless it is trial license.
                         for (LicenseFeature licenseFeature : license.getLicenseFeatures()) {
-                            if (licenseFeature.getModelId().contains(LicenseConstants.OLD_LICENSE_SUBMODEL)) {
+                            if (licenseFeature.getModelId().contains(LicenseFeature.OLD_LICENSE_SUBMODEL)) {
                                 _log.info("The license file contains a feature which is not supported any more. The license was not added to the system.");
                                 throw APIException.badRequests
                                         .licenseIsNotValid(
@@ -234,7 +234,7 @@ public class LicenseManagerImpl implements LicenseManager {
                         licenseFeature.setExpired(isExpired(licenseFeature.getDateExpires()));
                         licenseFeature.setDateIssued(convertCalendarToString(featureDetail.getIssuedDate()));
 
-                        String subModelId = LicenseConstants.OLD_LICENSE_SUBMODEL;
+                        String subModelId = LicenseFeature.OLD_LICENSE_SUBMODEL;
                         Properties p = featureDetail.getVendorString(";");
                         if (p.size() > 0) {
                             for (Enumeration e = p.propertyNames(); e.hasMoreElements();) {
@@ -246,7 +246,7 @@ public class LicenseManagerImpl implements LicenseManager {
                                 }
                             }
                         }
-                        licenseFeature.setModelId(featureDetail.getFeatureName() + LICENSETYPE_DELIMITER + subModelId);
+                        licenseFeature.setModelId(featureDetail.getFeatureName() + LicenseFeature.MODELID_DELIMETER+ subModelId);
                         setVendorStringFields(featureDetail, licenseFeature, p);
                     } else {
                         _log.info("The license file contains a feature which is in an expired state. The license was not added to the system.");

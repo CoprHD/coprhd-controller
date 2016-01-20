@@ -54,6 +54,5 @@ public final class LicenseConstants {
     public static final String LICENSE_EXPIRATION_DATE = "01/01/12006";
 
     public static final String LICENSE_TYPE_PROPERTYNAME = "LICENSE_TYPE";
-    public static final String OLD_LICENSE_SUBMODEL = "OUTDATED";   // For original managed capacity license
 
 }

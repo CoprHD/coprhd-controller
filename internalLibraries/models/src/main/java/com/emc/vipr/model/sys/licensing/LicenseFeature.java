@@ -18,7 +18,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class LicenseFeature implements Serializable {
 
     private static final long serialVersionUID = -5873033105809411374L;
-    private static final String MODELID_DELIMETER = ":";
+    public static final String MODELID_DELIMETER = ":";
+    public static final String OLD_LICENSE_SUBMODEL = "OUTDATED";   // For original managed capacity license
+
 
     private String serial;
     private String version;
@@ -298,6 +300,6 @@ public class LicenseFeature implements Serializable {
 
     // TIER1/TIER2/TIER3/ARRAY
     public String getLicenseType() {
-        return getModelId().contains(MODELID_DELIMETER) ? getModelId().split(MODELID_DELIMETER)[1] : null;
+        return getModelId().contains(MODELID_DELIMETER) ? getModelId().split(MODELID_DELIMETER)[1] : OLD_LICENSE_SUBMODEL;
     }
 }

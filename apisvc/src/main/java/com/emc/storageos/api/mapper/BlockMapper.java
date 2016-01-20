@@ -244,10 +244,17 @@ public class BlockMapper {
             to.setProtection(toProtection);
         }
 
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+
         if ((from.getAssociatedVolumes() != null) && (!from.getAssociatedVolumes().isEmpty())) {
             List<RelatedResourceRep> backingVolumes = new ArrayList<RelatedResourceRep>();
             for (String backingVolume : from.getAssociatedVolumes()) {
                 backingVolumes.add(toRelatedResource(ResourceTypeEnum.VOLUME, URI.create(backingVolume)));
+                if (to.getReplicationGroupInstance() == null) {
+                    Volume backendVolume = dbClient.queryObject(Volume.class, URI.create(backingVolume));
+                    to.setReplicationGroupInstance(backendVolume.getReplicationGroupInstance());
+                }
+
             }
             to.setHaVolumes(backingVolumes);
         }
@@ -258,7 +265,7 @@ public class BlockMapper {
             }
             to.setVolumeGroups(volumeGroups);
         }
-        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+
 
         return to;
     }

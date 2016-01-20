@@ -16,6 +16,8 @@ public class VdcConfigSyncParam {
     private String assignedVdcId;
     private String geoEncryptionKey;
     private String configChangeType;
+    private String ipsecKey;
+    private Long vdcConfigVersion;
 
     public VdcConfigSyncParam() {
     }
@@ -63,6 +65,16 @@ public class VdcConfigSyncParam {
         this.configChangeType = configChangeType;
     }
 
+    @XmlElement(name = "ipsec_key")
+    public String getIpsecKey() {
+        return ipsecKey;
+    }
+
+    public void setIpsecKey(String ipsecKey) {
+        this.ipsecKey = ipsecKey;
+    }
+
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(this.getClass().getName());
@@ -80,5 +92,14 @@ public class VdcConfigSyncParam {
         builder.append(getConfigChangeType());
 
         return builder.toString();
+    }
+
+    @XmlElement(name = "vdc_version")
+    public Long getVdcConfigVersion() {
+        return vdcConfigVersion;
+    }
+
+    public void setVdcConfigVersion(Long vdcConfigVersion) {
+        this.vdcConfigVersion = vdcConfigVersion;
     }
 }

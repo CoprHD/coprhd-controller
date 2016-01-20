@@ -249,8 +249,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String STEP_WAITER = "stepWaiterMethod";
     private static final String RESTORE_SNAP_SESSION_STEP = "restoreSnapshotSessionStep";
     private static final String REMOVE_VOLUMES_FROM_CG_STEP = "removeVolumesFromReplicationGropuStep";
-    private static final String ADD_VOLUME_REPLICATION_GROUP_STEP = "addVolumesToReplicationGroup";
-    private static final String CREATE_REPLICATION_GROUP_STEP = "createReplicationGroup";
+    private static final String ADD_VOLUME_REPLICATION_GROUP_STEP = "addVolumesToReplicationGroupStep";
+    private static final String CREATE_REPLICATION_GROUP_STEP = "createReplicationGroupStep";
+    private static final String REMOVE_REPLICATION_GROUP_STEP = "removeReplicationGropuStep";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
@@ -10877,6 +10878,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             null,storageUri, storageSystem.getSystemType(), BlockDeviceController.class, 
                             removeVolumeFromCGMethod(storageUri, cguri, removeVols),
                             addVolumeToCGMethod(storageUri, cguri, vol.getReplicationGroupInstance(), removeVols), null);
+                    
+                    // remove replication group if the replication group will become empty
+                    String groupName = vol.getReplicationGroupInstance();
+                    if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, groupName, removeVols, storageUri)) {
+                        waitFor = workflow.createStep(REMOVE_REPLICATION_GROUP_STEP,
+                                String.format("Deleting replication group for consistency group %s", cguri),
+                                waitFor, storageUri, storageSystem.getSystemType(),
+                                BlockDeviceController.class,
+                                deleteConsistencyGroupMethod(storageUri, cguri, groupName, false),
+                                rollbackMethodNullMethod(), null);
+                    }
                 }
             }
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
@@ -10965,8 +10977,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         waitFor, storageUri, storage.getSystemType(),
                         BlockDeviceController.class,
                         createConsistencyGroupMethod(storageUri, cguri, groupName),
-                        // TODO for vplex and RP deleteConsistencyGroup needs to take replication group name as a parameter
-                        deleteConsistencyGroupMethod(storageUri, cguri), null);
+                        deleteConsistencyGroupMethod(storageUri, cguri, groupName, false), null);
             }
 
             List<URI> addVolumesList = entry.getValue();
@@ -10988,9 +10999,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup, replicationGroupName);
     }
 
-    private Workflow.Method deleteConsistencyGroupMethod(URI storage, URI consistencyGroup) {
-        return new Workflow.Method("deleteConsistencyGroup", storage, consistencyGroup, false);
-    }
     
     private Workflow.Method removeVolumeFromCGMethod(URI storageUri, URI cguri, List<URI> removeVols) {
         return new Workflow.Method(REMOVE_FROM_CONSISTENCY_GROUP_METHOD_NAME, storageUri, cguri, removeVols);
@@ -10998,5 +11006,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     
     private Workflow.Method addVolumeToCGMethod(URI storageUri, URI cguri, String replicationGroupName, List<URI> addVols) {
         return new Workflow.Method(ADD_TO_CONSISTENCY_GROUP_METHOD_NAME, storageUri, cguri, replicationGroupName, addVols);
+    }
+    
+    public Workflow.Method deleteConsistencyGroupMethod(URI storage, URI consistencyGroup, String groupName, Boolean markInactive) {
+        return new Workflow.Method("deleteReplicationGroupInConsistencyGroup", storage, consistencyGroup, groupName, null, markInactive);
     }
 }

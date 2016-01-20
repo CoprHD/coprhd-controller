@@ -5,6 +5,7 @@
 package com.emc.storageos.systemservices.impl.audit;
 
 import java.io.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +17,7 @@ import java.net.NetworkInterface;
 import java.net.InetAddress;
 
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.services.OperationTypeEnum;
 
@@ -40,11 +42,12 @@ public class SystemAudit implements Runnable {
 
     private AuditLogManager _auditMgr = null;
 
-    public SystemAudit(DbClient dbClient) {
+    public SystemAudit(DbClient dbClient, CoordinatorClient coordinatorClient) {
         _log.info("SystemAudit initialized");
 
         _auditMgr = new AuditLogManager();
         _auditMgr.setDbClient(dbClient);
+        _auditMgr.setCoordinator(coordinatorClient);
     }
 
     public void setScanInterval(int interval) {

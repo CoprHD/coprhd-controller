@@ -446,7 +446,7 @@ public class BlockSnapshotSessionManager {
     }
 
     /**
-     * Implements a request to unlink the passed targets from the
+     * Implements a request to relink the passed targets from the
      * BlockSnapshotSession instance with the passed URI.
      * 
      * @param snapSessionURI The URI of a BlockSnapshotSession instance.
@@ -487,7 +487,7 @@ public class BlockSnapshotSessionManager {
 
         // Create a task for the snapshot session.
         Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.RELINK_SNAPSHOT_SESSION_TARGETS);
+        op.setResourceType(getRelinkResourceOperationTypeEnum(snapSession));
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSessionURI, taskId, op);
         snapSession.getOpStatus().put(taskId, op);
         TaskResourceRep response = toTask(snapSession, taskId);
@@ -921,5 +921,11 @@ public class BlockSnapshotSessionManager {
         return session.hasConsistencyGroup() ?
                 ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION :
                 ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION;
+    }
+
+    private ResourceOperationTypeEnum getRelinkResourceOperationTypeEnum(BlockSnapshotSession session) {
+        return session.hasConsistencyGroup() ?
+                ResourceOperationTypeEnum.RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS :
+                ResourceOperationTypeEnum.RELINK_SNAPSHOT_SESSION_TARGETS;
     }
 }

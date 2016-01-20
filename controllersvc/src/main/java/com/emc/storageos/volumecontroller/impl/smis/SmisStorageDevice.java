@@ -2866,7 +2866,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter completer) throws DeviceControllerException {
 
         try {
-            _snapshotOperations.relinkSnapshotSessionTarget(system, tgtSnapSessionURI, snapshotURI, completer);
+            if (checkSnapshotSessionConsistencyGroup(tgtSnapSessionURI, _dbClient, completer)) {
+                _snapshotOperations.relinkSnapshotSessionTargetGroup(system, tgtSnapSessionURI, snapshotURI, completer);
+            } else {
+                _snapshotOperations.relinkSnapshotSessionTarget(system, tgtSnapSessionURI, snapshotURI, completer);
+            }
         } catch (Exception e) {
             _log.error(String.format("Exception trying to re-link target to block snapshot session %s on array %s",
                     tgtSnapSessionURI, system.getSerialNumber()), e);

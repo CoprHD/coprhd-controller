@@ -29,9 +29,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 @SuppressWarnings("serial")
 public class BlockSnapshotSessionUnlinkTargetCompleter extends BlockSnapshotSessionCompleter {
 
-    // The URI of the BlockSnapshotSession representing the array snapshot.
-    private final List<URI> _snapshotURIs;
-
     // Whether or not the target is deleted when unlinked.
     private final Boolean _deleteTarget;
 
@@ -126,40 +123,4 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends BlockSnapshotSess
         return _deleteTarget;
     }
 
-    /**
-     * For non-CG snapshots, the returned list contains only the passed in snapshot.
-     * For CG snapshots, the returned list contains all snapshot members of the passed in snapshot's
-     * replication group.
-     *
-     * @param snapshot
-     * @param dbClient
-     * @return
-     */
-    public List<BlockSnapshot> getRelatedSnapshots(BlockSnapshot snapshot, DbClient dbClient) {
-        List<BlockSnapshot> result = new ArrayList<>();
-        if (snapshot.hasConsistencyGroup()) {
-            result.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                    snapshot.getReplicationGroupInstance(), dbClient));
-        } else {
-            result.add(snapshot);
-        }
-        return result;
-    }
-
-    /**
-     * When this completer is handling multiple snapshots from different replication groups,
-     * this method gathers all related snapshots for each snapshot and returns them in a list.
-     *
-     * @param dbClient  Database client.
-     * @return          List of all snapshots, including each of their related snapshots.
-     */
-    public List<BlockSnapshot> getAllSnapshots(DbClient dbClient) {
-        List<BlockSnapshot> result = new ArrayList<>();
-        Iterator<BlockSnapshot> iterator = dbClient.queryIterativeObjects(BlockSnapshot.class, _snapshotURIs);
-        while (iterator.hasNext()) {
-            BlockSnapshot snapshot = iterator.next();
-            result.addAll(getRelatedSnapshots(snapshot, dbClient));
-        }
-        return result;
-    }
 }

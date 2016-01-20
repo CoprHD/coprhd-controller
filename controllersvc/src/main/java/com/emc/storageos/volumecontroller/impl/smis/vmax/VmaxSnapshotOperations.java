@@ -1721,6 +1721,50 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     @SuppressWarnings("rawtypes")
     @Override
+    public void relinkSnapshotSessionTargetGroup(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
+                                            TaskCompleter completer) throws DeviceControllerException {
+        // Only supported for VMAX3 storage systems.
+        if (!system.checkIfVmax3()) {
+            throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        }
+
+        try {
+            _log.info("Re-link target {} to snapshot session {} START", snapshotURI, tgtSnapSessionURI);
+            BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
+            String syncAspectPath = tgtSnapSession.getSessionInstance();
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+
+            String groupInstance = snapshot.getReplicationGroupInstance();
+            CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupObjectPath(system, groupInstance);
+
+            CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+
+            // We need a single source volume for the session.
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, tgtSnapSession.getConsistencyGroup());
+            List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
+            BlockObject sourceObj = nativeVolumes.get(0);
+            String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
+            CIMObjectPath settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
+            
+            CIMArgument[] inArgs = null;
+            CIMArgument[] outArgs = new CIMArgument[5];
+            inArgs = _helper.getModifySettingsDefinedStateForRelinkTargetGroups(settingsStatePath, replicationGroupPath);
+            _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
+            CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+            ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,
+                    system.getId(), completer)));
+        } catch (Exception e) {
+            _log.info("Exception restoring snapshot session", e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("rawtypes")
+    @Override
     public void unlinkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
         // Only supported for VMAX3 storage systems.

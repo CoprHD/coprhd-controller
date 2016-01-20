@@ -455,21 +455,33 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             // A target can only be linked to a single session.
             BlockSnapshotSession snapshotSnapSession = snaphotSessionsList.get(0);
 
-            // Verify it the snapshot session for the target is the same
-            // as that for the other targets to be re-linked.
-            if (currentSnapSessionSourceURI == null) {
-                currentSnapSessionSourceURI = snapshotSnapSession.getParent().getURI();
-            } else if (!snapshotSnapSession.getParent().getURI().equals(currentSnapSessionSourceURI)) {
-                // Not all targets to be re-linked are linked to a block
-                // snapshot session of the same source.
-                throw APIException.badRequests.relinkSnapshotSessionsNotOfSameSource();
+            if (snapshotSnapSession.hasConsistencyGroup()) {
+                if (currentSnapSessionSourceURI == null) {
+                    currentSnapSessionSourceURI = snapshotSnapSession.getConsistencyGroup();
+                } else if (!snapshotSnapSession.getConsistencyGroup().equals(currentSnapSessionSourceURI)) {
+                    // Not all targets to be re-linked are linked to a block
+                    // snapshot session of the same source.
+                    throw APIException.badRequests.relinkSnapshotSessionsNotOfSameSource();
+                }
+            } else {
+                // Verify that the snapshot session for the target is the same
+                // as that for the other targets to be re-linked.
+                if (currentSnapSessionSourceURI == null) {
+                    currentSnapSessionSourceURI = snapshotSnapSession.getParent().getURI();
+                } else if (!snapshotSnapSession.getParent().getURI().equals(currentSnapSessionSourceURI)) {
+                    // Not all targets to be re-linked are linked to a block
+                    // snapshot session of the same source.
+                    throw APIException.badRequests.relinkSnapshotSessionsNotOfSameSource();
+                }
             }
         }
 
         // All targets to be re-linked are linked to an active block snapshot
         // session of the same source. Now make sure target snapshot session
         // has this same source.
-        URI tgtSnapSessionSourceURI = tgtSnapSession.getParent().getURI();
+        URI tgtSnapSessionSourceURI =
+                tgtSnapSession.hasConsistencyGroup() ?
+                        tgtSnapSession.getConsistencyGroup() : tgtSnapSession.getParent().getURI();
         if (!tgtSnapSessionSourceURI.equals(currentSnapSessionSourceURI)) {
             throw APIException.badRequests.relinkTgtSnapshotSessionHasDifferentSource(currentSnapSessionSourceURI.toString());
         }

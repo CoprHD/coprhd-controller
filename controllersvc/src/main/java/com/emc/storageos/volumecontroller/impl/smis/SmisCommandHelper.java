@@ -7081,6 +7081,23 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Get the SMI-S input arguments when re-linking a target group to an array snapshot.
+     *
+     * @param settingsStatePath The CIM object path of the CIM_SettingsDefineState for the target array snapshot.
+     * @param targetDevicePath The CIM object path of the target volume.
+     *
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getModifySettingsDefinedStateForRelinkTargetGroups(CIMObjectPath settingsStatePath,
+                                                                       CIMObjectPath replicationGroupPath) {
+        return new CIMArgument[] {
+                _cimArgument.uint16(CP_OPERATION, RELINK_TARGET_VALUE),
+                _cimArgument.reference(CP_TARGET_GROUP, replicationGroupPath),
+                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath)
+        };
+    }
+
+    /**
      * Get the SMI-S input arguments when unlinking a target from an array snapshot.
      *
      * @param syncObject The path for the CIM_StorageSynchronized instance for the linked target.

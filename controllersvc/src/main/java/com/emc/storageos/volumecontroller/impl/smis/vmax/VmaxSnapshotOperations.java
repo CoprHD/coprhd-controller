@@ -1686,33 +1686,33 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     @Override
     public void relinkSnapshotSessionTarget(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
             TaskCompleter completer) throws DeviceControllerException {
-        if (system.checkIfVmax3()) {
-            // Only supported for VMAX3 storage systems.
-            try {
-                _log.info("Re-link target {} to snapshot session {} START", snapshotURI, tgtSnapSessionURI);
-                BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                URI sourceURI = tgtSnapSession.getParent().getURI();
-                BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
-                CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
-                String syncAspectPath = tgtSnapSession.getSessionInstance();
-                CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
-                CIMObjectPath targetDevicePath = _cimPath.getBlockObjectPath(system, snapshot);
-                CIMArgument[] inArgs = null;
-                CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getModifySettingsDefinedStateForRelinkTargets(settingsStatePath, targetDevicePath);
-                _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
-                CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,
-                        system.getId(), completer)));
-            } catch (Exception e) {
-                _log.info("Exception restoring snapshot session", e);
-                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
-                completer.error(_dbClient, error);
-            }
-        } else {
+        // Only supported for VMAX3 storage systems.
+        if (!system.checkIfVmax3()) {
             throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        }
+
+        try {
+            _log.info("Re-link target {} to snapshot session {} START", snapshotURI, tgtSnapSessionURI);
+            BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+            CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+            URI sourceURI = tgtSnapSession.getParent().getURI();
+            BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
+            CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
+            String syncAspectPath = tgtSnapSession.getSessionInstance();
+            CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
+            CIMObjectPath targetDevicePath = _cimPath.getBlockObjectPath(system, snapshot);
+            CIMArgument[] inArgs = null;
+            CIMArgument[] outArgs = new CIMArgument[5];
+            inArgs = _helper.getModifySettingsDefinedStateForRelinkTargets(settingsStatePath, targetDevicePath);
+            _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
+            CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+            ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,
+                    system.getId(), completer)));
+        } catch (Exception e) {
+            _log.info("Exception restoring snapshot session", e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+            completer.error(_dbClient, error);
         }
     }
 

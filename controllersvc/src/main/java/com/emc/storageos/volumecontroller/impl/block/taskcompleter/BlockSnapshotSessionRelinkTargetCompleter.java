@@ -57,16 +57,15 @@ public class BlockSnapshotSessionRelinkTargetCompleter extends BlockSnapshotSess
                     // Remove the linked targets from the linked targets list for their
                     // current snapshot session and add them to the linked targets for
                     // the target session.
-                    URI snapshotURI = getId();
                     BlockSnapshotSession tgtSnapSession = dbClient.queryObject(BlockSnapshotSession.class, getId());
                     StringSet tgtSnapSessionTargets = tgtSnapSession.getLinkedTargets();
                     List<BlockSnapshotSession> snaphotSessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
                             BlockSnapshotSession.class,
-                            ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(snapshotURI));
+                            ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(_snapshotURI));
                     if (snaphotSessionsList.isEmpty()) {
                         // The target is not linked to an active snapshot session.
                         throw DeviceControllerException.exceptions.unexpectedCondition(String.format(
-                                "Cound not find active snapshot session for linked target %s", snapshotURI));
+                                "Cound not find active snapshot session for linked target %s", _snapshotURI));
                     }
 
                     // A target can only be linked to a single session.
@@ -76,7 +75,7 @@ public class BlockSnapshotSessionRelinkTargetCompleter extends BlockSnapshotSess
                     // update the linked targets list for both the current and target
                     // snapshot sessions.
                     if (!currentSnapSession.getId().equals(getId())) {
-                        String snapshotId = snapshotURI.toString();
+                        String snapshotId = _snapshotURI.toString();
                         // Remove from the current snapshot session.
                         StringSet currentSnapSessionTargets = currentSnapSession.getLinkedTargets();
                         currentSnapSessionTargets.remove(snapshotId);

@@ -53,7 +53,7 @@ public class Site {
     
     static {
         DUMMY_ACTIVE_SITE = new Site();
-        DUMMY_ACTIVE_SITE.setUuid(NO_ACTIVE_SITE_MESSAGE);
+        DUMMY_ACTIVE_SITE.setUuid("");
         DUMMY_ACTIVE_SITE.setVip(NO_ACTIVE_SITE_MESSAGE);
         DUMMY_ACTIVE_SITE.setName(NO_ACTIVE_SITE_MESSAGE);
         DUMMY_ACTIVE_SITE.setState(SiteState.NONE);

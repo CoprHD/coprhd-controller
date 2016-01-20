@@ -9,8 +9,10 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroup;
+import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupClusters;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupHosts;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumes;
+import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByCluster;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByHost;
 import com.emc.sa.service.vipr.block.tasks.MigrateBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.RemoveVolumesFromMobilityGroup;
@@ -74,6 +76,9 @@ public class MobilityGroupMigrationService extends ViPRService {
         } else if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
             List<NamedRelatedResourceRep> hosts = execute(new GetMobilityGroupHosts(mobilityGroupId));
             return execute(new GetMobilityGroupVolumesByHost(mobilityGroup, hosts));
+        } else if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
+            List<NamedRelatedResourceRep> clusters = execute(new GetMobilityGroupClusters(mobilityGroupId));
+            return execute(new GetMobilityGroupVolumesByCluster(mobilityGroup, clusters));
         }
         return Lists.newArrayList();
     }

@@ -1799,4 +1799,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             CoordinatorException.fatals.unableToDeletePath(path, ex);
         }
     }
+
+    public boolean nodeExists(String path) {
+        try {
+            return this._zkConnection.curator().checkExists().forPath(path) != null;
+        } catch (Exception e) {
+            log.error("Failed to check the existence of ZK node {} e=", path, e);
+            throw new RuntimeException(e);
+        }
+    }
 }

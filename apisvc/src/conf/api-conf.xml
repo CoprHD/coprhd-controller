@@ -108,6 +108,13 @@
         <property name="configInfo" ref="configinfo" />
         <property name="permissionsHelper" ref="permissionsHelper"/>
     </bean>
+    
+     <bean id="fileMirrorSchedular" class="com.emc.storageos.api.service.impl.placement.FileMirrorSchedular">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="storageScheduler" ref="storagescheduler" />
+        <property name="fileScheduler" ref="filescheduler"/>
+    </bean>
+    
 
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
         <property name="packages">
@@ -163,12 +170,50 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
+	
+	<bean id="defaultFileServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.DefaultFileServiceApiImpl">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="fileScheduler" ref="filescheduler"/>
+    </bean>
 
+    <bean id="fileMirrorServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.FileMirrorServiceApiImpl">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="fileScheduler" ref="fileMirrorSchedular" />
+        <property name ="defaultFileServiceApiImpl" ref="defaultFileServiceApiImpl"/>
+    </bean>
+    
+    <bean id="fileRemoteMirrorServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.FileRemoteMirrorServiceApiImpl">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="fileScheduler" ref="fileMirrorSchedular" />
+        <property name ="fileMirrorServiceApiImpl" ref="fileMirrorServiceApiImpl"/>
+    </bean>
+    
+    <bean id="filePlacementManager" class="com.emc.storageos.api.service.impl.placement.FilePlacementManager">
+        <property name="storageSchedulers">
+            <map>
+                <entry key="file" value-ref="filescheduler"/>
+                <entry key="mirrorfile" value-ref="fileMirrorSchedular"/>
+            </map>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+	
     <bean id="fileService" class="com.emc.storageos.api.service.impl.resource.FileService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="fileScheduler" ref="filescheduler"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="filePlacementManager" ref="filePlacementManager"/>
+        <property name="fileServiceApis">
+        <map>
+            <entry key="default" value-ref="defaultFileServiceApiImpl"/>
+            <entry key="localmirror" value-ref="fileMirrorServiceApiImpl" />
+            <entry key="remotemirror" value-ref="fileRemoteMirrorServiceApiImpl" />
+        </map>
+        </property>
     </bean>
     
     <bean id="bucketService" class="com.emc.storageos.api.service.impl.resource.BucketService">

@@ -1656,6 +1656,21 @@
 		<property name="value" value="6.0.6002" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
+	<bean id="compute_hpux_version" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="HPUX Version" />
+		<property name="description" value="Minimum supported version for HPUX. Version format : MajorVersion.MinorVersion.BuildNumber" />
+		<property name="type" value="string" />
+		<property name="minLen" value="3" />
+		<property name="tag" value="Compute" />
+		<property name="hidden" value="true" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="false" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="false" />
+		<property name="value" value="11.31" />
+		<property name="controlNodeOnly" value="true" />
+	</bean>
 	<bean id="compute_aix_version" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="AIX Version" />
 		<property name="description" value="Minimum supported version for AIX. Version format : MajorVersion.MinorVersion.BuildNumber" />
@@ -2737,6 +2752,7 @@
 				<entry key="controller_vplex_volume_expansion_status_check_retry_count" value-ref="controller_vplex_volume_expansion_status_check_retry_count" />
 				<entry key="controller_vplex_volume_expansion_status_check_retry_max_wait" value-ref="controller_vplex_volume_expansion_status_check_retry_max_wait" />
 				<entry key="compute_windows_version" value-ref="compute_windows_version" />
+				<entry key="compute_hpux_version" value-ref="compute_hpux_version" />
 				<entry key="compute_aix_version" value-ref="compute_aix_version" />
 				<entry key="compute_aixvio_version" value-ref="compute_aixvio_version" />
 				<entry key="compute_vmware_vcenter_version" value-ref="compute_vmware_vcenter_version" />

@@ -74,7 +74,6 @@ import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
-import com.emc.storageos.model.block.VolumeSnapshotRestoreParam;
 import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.security.audit.AuditLogManager;

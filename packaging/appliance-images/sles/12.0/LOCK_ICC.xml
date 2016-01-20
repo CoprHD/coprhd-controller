@@ -249,11 +249,11 @@
 <target name="java-1.6.0-sun-extras"               depends="java-1.6.0-sun-extras-1.6.0.45-2jpp"/>
 <target name="java-1.6.0-sun-fonts"                depends="java-1.6.0-sun-fonts-1.6.0.45-2jpp"/>
 <target name="java-1.6.0-sun-jdbc"                 depends="java-1.6.0-sun-jdbc-1.6.0.45-2jpp"/>
-<target name="java-1.7.0-oracle"                   depends="java-1.7.0-oracle-1.7.0.79-1jpp_1"/>
-<target name="java-1.7.0-oracle-devel"             depends="java-1.7.0-oracle-devel-1.7.0.79-1jpp_1"/>
-<target name="java-1.7.0-oracle-extras"            depends="java-1.7.0-oracle-extras-1.7.0.79-1jpp_1"/>
-<target name="java-1.7.0-oracle-fonts"             depends="java-1.7.0-oracle-fonts-1.7.0.79-1jpp_1"/>
-<target name="java-1.7.0-oracle-jdbc"              depends="java-1.7.0-oracle-jdbc-1.7.0.79-1jpp_1"/>
+<target name="java-1.7.0-oracle"                   depends="java-1.7.0-oracle-1.7.0.91-1jpp_1"/>
+<target name="java-1.7.0-oracle-devel"             depends="java-1.7.0-oracle-devel-1.7.0.91-1jpp_1"/>
+<target name="java-1.7.0-oracle-extras"            depends="java-1.7.0-oracle-extras-1.7.0.91-1jpp_1"/>
+<target name="java-1.7.0-oracle-fonts"             depends="java-1.7.0-oracle-fonts-1.7.0.91-1jpp_1"/>
+<target name="java-1.7.0-oracle-jdbc"              depends="java-1.7.0-oracle-jdbc-1.7.0.91-1jpp_1"/>
 <target name="java-1.8.0-oracle"                   depends="java-1.8.0-oracle-1.8.0.60-1jpp_1"/>
 <target name="java-1.8.0-oracle-devel"             depends="java-1.8.0-oracle-devel-1.8.0.60-1jpp_1"/>
 <target name="java-1.8.0-oracle-extras"            depends="java-1.8.0-oracle-extras-1.8.0.60-1jpp_1"/>

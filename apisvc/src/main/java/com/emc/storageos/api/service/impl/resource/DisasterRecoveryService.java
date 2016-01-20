@@ -73,7 +73,6 @@ import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
-import com.emc.storageos.model.dr.SiteDataStatus;
 import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
@@ -833,38 +832,6 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Query last data sync time of specific site
-     * @param uuid
-     * @return
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
-            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    @Path("/{uuid}/syncstatus")
-    public SiteDataStatus getSiteDataStatus(@PathParam("uuid") String uuid) {
-        log.info("Begin to get site data status by uuid {}", uuid);
-        Site site;
-        try {
-            site = drUtil.getSiteFromLocalVdc(uuid);
-        } catch (Exception e) {
-            log.error("Can't find site with specified site ID {}", uuid);
-            throw APIException.badRequests.siteIdNotFound();
-        }
-
-        SiteDataStatus status = new SiteDataStatus();
-        if (site.getState().equals(SiteState.ACTIVE)) {
-            status.setDataSynced(true);
-        } else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !site.getNetworkHealth().equals(SiteNetworkHealth.BROKEN)) {
-            status.setDataSynced(true);
-        } else {
-            status.setLastSyncTime(site.getLastStateUpdateTime());
-        }
-
-        return status;
-    }
-
-    /**
      * This API will do switchover to target new acitve site according passed in site UUID. After failover, old acitve site will
      * work as normal standby site and target site will be promoted to acitve. All site will update properties to trigger reconfig.
      * 
@@ -1148,6 +1115,15 @@ public class DisasterRecoveryService {
         return false;
     }
 
+    private boolean isDataSynced(Site site) {
+        if (site.getState().equals(SiteState.ACTIVE)) {
+            return true;
+        } else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !site.getNetworkHealth().equals(SiteNetworkHealth.BROKEN)) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Query the details, such as transition timings, for specific standby site
      * 
@@ -1171,7 +1147,9 @@ public class DisasterRecoveryService {
             if (standby.getState().equals(SiteState.STANDBY_PAUSED)) {
                 standbyDetails.setPausedTime(new Date(standby.getLastStateUpdateTime()));
             }
-            // Add last-synced time to lastUpdateTime when available
+
+            standbyDetails.setDataSynced(isDataSynced(standby));
+            standbyDetails.setlastUpdateTime(new Date(standby.getLastStateUpdateTime()));
 
             ClusterInfo.ClusterState clusterState = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());
             if(clusterState != null) {

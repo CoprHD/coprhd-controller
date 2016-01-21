@@ -9,6 +9,11 @@ import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.OPLOCK;
 import static com.emc.sa.service.ServiceParams.SECURITY_STYLE;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
+import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
+import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
+import static com.emc.sa.service.ServiceParams.SOFT_LIMIT;
+
+
 
 import java.net.URI;
 import java.util.List;
@@ -16,6 +21,8 @@ import java.util.List;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.file.FileShareRestRep;
+
+
 
 public class CreateFileSystemQuotaDirectoryHelper {
     @Param(FILESYSTEMS)
@@ -29,6 +36,15 @@ public class CreateFileSystemQuotaDirectoryHelper {
     protected String securityStyle;
     @Param(SIZE_IN_GB)
     protected String size;
+    
+    @Param(value=SOFT_LIMIT,required=false)
+    protected Integer softLimit;
+    @Param(value=ADVISORY_LIMIT,required=false)
+    protected Integer advisoryLimit;
+    @Param(value=GRACE_PERIOD,required=false)
+    protected Integer gracePeriod;
+
+    
 
     private List<FileShareRestRep> fileSystems;
 

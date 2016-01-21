@@ -57,6 +57,7 @@ public class ECSNamespace extends DiscoveredDataObject {
     
     public void setNsName(String nsName) {
         this._nsName = nsName;
+        setChanged("nsName");
     }
 
     @Name("nativeId")
@@ -66,6 +67,7 @@ public class ECSNamespace extends DiscoveredDataObject {
     
     public void setNativeId(String nativeId) {
         this._nativeId = nativeId;
+        setChanged("nativeId");
     }
 
     @Name("mapped")
@@ -75,6 +77,7 @@ public class ECSNamespace extends DiscoveredDataObject {
     
     public void setMapped(Boolean mapped) {
         this._mapped = mapped;
+        setChanged("mapped");
     }
     
     @RelationIndex(cf = "RelationIndex", type = TenantOrg.class)
@@ -106,6 +109,7 @@ public class ECSNamespace extends DiscoveredDataObject {
     
     public void setRgType(ECS_RepGroup_Type rgType) {
         this._rgType = rgType;
+        setChanged("rgType");
     }
 
     @Name("replicationGroups")
@@ -115,6 +119,7 @@ public class ECSNamespace extends DiscoveredDataObject {
     
     public void setReplicationGroups(StringSet replicationGroups) {
         this._replicationGroups = replicationGroups;
+        setChanged("replicationGroups");
     }
     
     @EnumType(DiscoveryStatus.class)

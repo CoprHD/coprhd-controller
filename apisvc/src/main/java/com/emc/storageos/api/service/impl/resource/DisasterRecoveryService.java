@@ -846,8 +846,10 @@ public class DisasterRecoveryService {
 
             log.info("Notify all sites for reconfig");
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
-            String drOperation = standby.getState().getVdcOperation();
+            SiteInfo siteInfo = coordinator.getTargetInfo(standby.getUuid(),SiteInfo.class);
+            String drOperation = siteInfo.getActionRequired();
             for (Site standbySite : drUtil.listSites()) {
+                //TODO: No need to update action - but is it worth the call to get the action?
                 drUtil.updateVdcTargetVersion(standbySite.getUuid(), drOperation, vdcTargetVersion);
             }
 
@@ -859,7 +861,7 @@ public class DisasterRecoveryService {
             log.error("Can't find site {} from ZK", uuid);
             throw APIException.badRequests.siteIdNotFound();
         } catch (Exception e) {
-            //TODO fix this to be specific
+            //TODO: fix this to be specific
             log.error("Can't find site from ZK for UUID {} : {}" + uuid, e);
             throw APIException.badRequests.siteIdNotFound();
         }

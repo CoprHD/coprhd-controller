@@ -328,7 +328,7 @@ public class SchemaUtil {
         if (kd != null) {
             String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
             String targetVersion = _service.getVersion();
-            // A known Cassandra behaviour is that schema changes cannot converge if Cassandra nodes are in the same 
+            // A known Cassandra behaviour is that schema changes cannot converge if Cassandra nodes arenot in the same 
             // version(MessagingService.currentVersion). As the result checkCf() will fail with schema disagreement errors. So 
             //   - During upgrade, we scan and create new column families before db migration starts(see MigrationHandlerImpl.run. 
             //     All cassandra nodes has been upgraded to same version at that time

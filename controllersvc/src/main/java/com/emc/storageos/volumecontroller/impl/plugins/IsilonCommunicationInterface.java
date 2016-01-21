@@ -230,9 +230,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     // Persists the file system, only if change in used capacity.
                     FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
                     if (fileSystem != null) {
-                        if (!fileSystem.getInactive() && fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
-                            fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
-                            _dbClient.persistObject(fileSystem);
+                        if (!fileSystem.getInactive()) {
+                            if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
+                                fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
+                                _dbClient.persistObject(fileSystem);
+                            }
+                            if (null != fileSystem.getSoftLimit()) {
+                                fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
+                                _dbClient.persistObject(fileSystem);
+                            }
                         }
                     }
                 }

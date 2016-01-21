@@ -222,47 +222,47 @@ public class MiscService extends TaskResourceService {
         
         String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();       
         
-        volumeService.binary = "coprHD-volume";
-        volumeService.host = localNodeId;
-        volumeService.zone = "nova";     
+        volumeService.setBinary("coprHD-volume");
+        volumeService.setHost(localNodeId);
+        volumeService.setZone("nova");   
         //If Apisvc is running and any storage system is registered then coprHD-volume is up
         List<URI> ids = _dbClient.queryByType(StorageSystem.class, true);
         Iterator<StorageSystem> iter = _dbClient.queryIterativeObjects(StorageSystem.class, ids);
         if (iter.hasNext())
         {
-        	volumeService.state = "up";
-        	volumeService.status = "enabled";
-      	    volumeService.disabled_reason = null;
+        	volumeService.setState("up");
+        	volumeService.setStatus("enabled");
+        	volumeService.setDisabledReason(null);
         } else
         {
-        	volumeService.state = "down";
-        	volumeService.status = "disabled";
-      	    volumeService.disabled_reason = "No storage system is discovered";
+        	volumeService.setState("down");
+        	volumeService.setStatus("disabled");
+        	volumeService.setDisabledReason("No storage system is discovered");
         }
         
         curDate = new Date();
-        volumeService.updated_at = format.format(curDate);
+        volumeService.setUpdatedAt(format.format(curDate));
         osServicesResp.getServices().add(volumeService);
               
         List<Service> schedulerSvcs = _coordinator.locateAllSvcsAllVers("controllersvc");
         CinderOsService schedulerService = new CinderOsService();
-        schedulerService.binary = "coprHD-scheduler";
-        schedulerService.host = localNodeId;
-        schedulerService.zone = "nova";
+        schedulerService.setBinary("coprHD-scheduler");
+        schedulerService.setHost(localNodeId);
+        schedulerService.setZone("nova");
         
         if (schedulerSvcs.isEmpty())
         {          
-            schedulerService.state = "down";
-            schedulerService.status = "disabled";
-            schedulerService.disabled_reason = "controller service is not available";              	
+        	schedulerService.setState("down");
+        	schedulerService.setStatus("disabled");
+            schedulerService.setDisabledReason("controller service is not available");              	
         }else	
         {        	
-        	schedulerService.state = "up";
-        	schedulerService.status = "enabled";
-        	schedulerService.disabled_reason = null;      
+        	schedulerService.setState("up");
+        	schedulerService.setStatus("enabled");
+        	schedulerService.setDisabledReason(null);      
         }  
         curDate = new Date();
-        schedulerService.updated_at = format.format(curDate);
+        schedulerService.setUpdatedAt(format.format(curDate));
         osServicesResp.getServices().add(schedulerService);
                
         return CinderApiUtils.getCinderResponse(osServicesResp, header, false);

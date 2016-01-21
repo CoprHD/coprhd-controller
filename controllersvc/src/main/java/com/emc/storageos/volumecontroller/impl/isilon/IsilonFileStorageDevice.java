@@ -2398,6 +2398,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (description != null && !description.isEmpty()) {
                 policy.setDescription(description);
             }
+            policy.setEnabled(false);
             String policyId = isi.createReplicationPolicy(policy);
             _log.info("IsilonFileStorageDevice doCreateReplicationPolicy {} with policyId {} - complete", name,
                     policyId);
@@ -2787,5 +2788,50 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
         return errorMessage;
     }
+
+
+    private String validatePolicySchedule(VirtualPool vpool, StringBuilder errorMsg) {
+        StringBuilder builder = new StringBuilder();
+        if (vpool != null) {
+
+            // validating schedule period
+            String fsRpoValue = vpool.getFrRpoValue().toString().toLowerCase();
+            String fsRpoType = vpool.getRpRpoType();
+            if (vpool.getFrRpoValue() < 1) {
+                errorMsg.append("required parameter schedule_period is missing or value: " + fsRpoValue
+                        + " is invalid");
+                _log.error(errorMsg.toString());
+                return errorMsg.toString();
+            }
+            switch (fsRpoValue) {
+                case "daily":
+                    builder.append("every ");
+                    builder.append(fsRpoValue);
+                    builder.append(" days");
+
+                    break;
+                case "weekly":
+                    builder.append("every ");
+                    builder.append(fsRpoValue);
+                    builder.append(" weeks");
+
+                    break;
+                case "monthly":
+                    
+                    break;
+                case "hours":
+                    break;
+                case "minites":
+                    break;
+                default:
+                    errorMsg.append("Schedule type: " + fsRpoType
+                            + " is invalid. Valid schedule types are daily, weekly and monthly");
+                    _log.error(errorMsg.toString());
+                    return errorMsg.toString();
+            }
+        }
+        return builder.toString();
+    }
+
 
 }

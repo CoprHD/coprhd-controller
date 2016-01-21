@@ -24,7 +24,7 @@
 # 7    echo protocol
 # 5353 jmdns internal port 
 
-TCP="80 443 4443 7012 9083 9998 9999"
+TCP="80 443 4443 7012 9083 9998 9999 8776"
 UDP="7 5353"
 RPC=""
 IP="8"

@@ -214,6 +214,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String UNEXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String VPLEX_STEP = "vplexVirtual";
+    private static final String TRANSFER_SPEED = "setTransferSpeed";
     private static final String MIGRATION_CREATE_STEP = "migrate";
     private static final String MIGRATION_COMMIT_STEP = "commit";
     private static final String DELETE_MIGRATION_SOURCES_STEP = "deleteSources";
@@ -263,6 +264,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RB_COMMIT_MIGRATION_METHOD_NAME = "rollbackCommitMigration";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
     private static final String CREATE_VIRTUAL_VOLUME_FROM_IMPORT_METHOD_NAME = "createVirtualVolumeFromImportStep";
+    private static final String REBUILD_SET_TRANSFER_SIZE = "rebuildSetTransferSize";
     private static final String DELETE_VIRTUAL_VOLUMES_METHOD_NAME = "deleteVirtualVolumes";
     private static final String DELETE_MIGRATION_SOURCES_METHOD = "deleteMigrationSources";
     private static final String EXPAND_VOLUME_NATIVELY_METHOD_NAME = "expandVolumeNatively";
@@ -5718,7 +5720,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
                         volumeMap, projectURI, tenantURI, waitFor);
             }
-
+            
+            // Get the configured migration speed. This value would be set in VPLEX through 
+            // "rebuild set-transfer-speed" command. 
+            String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED,
+                    vplexSystem.getSystemType(), null);
+            _log.info("Migration speed is {}", speed);
+            String transferSize = mgirationSpeedToTransferSizeMap.get(speed);
+            
+            Workflow.Method vplexSetTransferSizeMethod = rebuildSetTransferSizeMethod(vplexVolume.getStorageController(), transferSize);
+            //Create a step for updating the transfer speed in VPLEX. 
+            workflow.createStep(TRANSFER_SPEED, String.format("VPlex %s setting transfer size speed",
+                            vplexSystem.getId().toString()), EXPORT_STEP, vplexURI, vplexSystem.getSystemType(), this.getClass(), vplexSetTransferSizeMethod, 
+                            null, null);
+            
             // Now make a Step to create the VPlex Virtual volumes.
             // This will be done from this controller.
             String stepId = workflow.createStepId();
@@ -5746,7 +5761,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     VPLEX_STEP,
                     String.format("VPlex %s creating virtual volume",
                             vplexSystem.getId().toString()),
-                    EXPORT_STEP, vplexURI,
+                            TRANSFER_SPEED, vplexURI,
                     vplexSystem.getSystemType(), this.getClass(), vplexExecuteMethod,
                     vplexRollbackMethod, stepId);
 
@@ -5904,6 +5919,29 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         return new Workflow.Method(CREATE_VIRTUAL_VOLUME_FROM_IMPORT_METHOD_NAME,
                 vplexURI, vplexVolumeURI, existingVolumeURI, newVolumeURI,
                 vplexSystemProject, vplexSystemTenant, newCosURI, newLabel);
+    }
+    
+    private Workflow.Method rebuildSetTransferSizeMethod(URI vplexURI, String transferSize) {
+    	return new Workflow.Method(REBUILD_SET_TRANSFER_SIZE, vplexURI,  transferSize);
+    }
+    
+    public void rebuildSetTransferSize(URI vplexURI, String transferSize, String stepId) 
+    		throws WorkflowException {
+    	try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+            // Get the API client.
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            
+            client.setTransferSize(transferSize);
+            WorkflowStepCompleter.stepSucceded(stepId);
+    	} catch(Exception ex){
+    		ServiceError serviceError; 
+    		 _log.error("Exception while setting transfer size");
+    		 String opName = ResourceOperationTypeEnum.REBUILD_SET_TRANSFER_SPEED.getName();
+    		 serviceError = VPlexApiException.errors.rebuildSetTransferSpeed(opName, ex);
+    		 WorkflowStepCompleter.stepFailed(stepId, serviceError);
+    	}
     }
 
     /**

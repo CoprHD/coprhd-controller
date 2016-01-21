@@ -285,6 +285,7 @@ public enum ResourceOperationTypeEnum {
     REMOVE_VDC("REMOVE VDC", "remove a VDC from ViPR"),
     DISCONNECT_VDC("DISCONNECT VDC", "temporarily disconnect a VDC from ViPR"),
     RECONNECT_VDC("RECONNECT VDC", "reconnect a VDC to ViPR"),
+    REBUILD_SET_TRANSFER_SPEED("REBUILD_SET_TRANSFER_SPEED", "Rebuild Set Tranfer Speed"),
     UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED("UPGRADE VPLEX LOCAL TO DISTRIBUTED", "Upgrade a VPLEX local volume to distributed"),
     WAIT_ON_VPLEX_VOLUME_REBUILD("WAIT ON VPLEX VOLUME REBUILD", "Wait on VPLEX volume rebuild"),
     ADD_ALIAS("ADD ALIAS", "add one or more aliases"),

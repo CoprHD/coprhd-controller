@@ -15,7 +15,7 @@ public class CinderOsService {
 	private String binary;
 	private String zone;
 	private String state;
-	private String  updated_at;
+	private String updated_at;
 	private String host;
 	private String disabled_reason;
 	

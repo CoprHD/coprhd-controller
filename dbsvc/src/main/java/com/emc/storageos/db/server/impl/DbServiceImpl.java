@@ -368,6 +368,7 @@ public class DbServiceImpl implements DbService {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(Constants.GLOBAL_ID);
             cfg.setKind(configKind);
+            cfg.setConfig(Constants.SCHEMA_VERSION, this._serviceInfo.getVersion());
 
             // persist configuration
             _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), cfg);

@@ -366,6 +366,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             List<URI> combined = Arrays.asList(sourceURI, targetURI);
             completer = new FileMirrorCancelTaskCompleter(combined, opId);
             getRemoteMirrorDevice(system).doCancelMirrorLink(system, target, completer);
+            WorkflowStepCompleter.stepExecuting(opId);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {

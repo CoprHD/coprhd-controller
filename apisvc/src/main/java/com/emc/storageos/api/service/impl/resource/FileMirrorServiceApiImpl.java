@@ -177,7 +177,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                     descriptorType = FileDescriptor.Type.FILE_DATA;
                 } else {
                     _log.warn("Attempted to delete an Mirror target that had an active Mirror source");
-                    throw APIException.badRequests.cannotDeleteSRDFTargetWithActiveSource(fileURI,
+                    throw APIException.badRequests.cannotDeleteMirrorFileShareTargetWithActiveSource(fileURI,
                             fileShare.getParentFileShare().getURI());
                 }
             } else {

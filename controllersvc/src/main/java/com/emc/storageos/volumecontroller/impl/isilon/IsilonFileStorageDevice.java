@@ -2225,17 +2225,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         String policyName = targetFileShare.getLabel();
 
         VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
-        String rpoValue = null;
+        String schedule = null;
         if (virtualPool != null) {
-            if (virtualPool.getFrRpoValue() != null) {
-                rpoValue = virtualPool.getFrRpoValue().toString();
+            if (virtualPool.getFrRpoValue() == 0) {
+                // Zero RPO value means policy has to be started manually-NO Schedule
+                schedule = "";
+            } else {
+                schedule = createSchedule(virtualPool.getFrRpoValue().toString(), virtualPool.getFrRpoType());
             }
         }
-
-        BiosCommandResult cmdResult = doCreateReplicationPolicy(sourceStorageSystem,
-                policyName,
-                sourceFileShare.getPath(),
-                targetStorageSystem.getIpAddress(), targetFileShare.getPath(), IsilonSyncPolicy.Action.sync, rpoValue, null);
+        BiosCommandResult cmdResult = doCreateReplicationPolicy(sourceStorageSystem, policyName, sourceFileShare.getPath(),
+                targetStorageSystem.getIpAddress(), targetFileShare.getPath(), IsilonSyncPolicy.Action.sync, "", schedule);
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
         } else {
@@ -2789,49 +2789,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return errorMessage;
     }
 
-
-    private String validatePolicySchedule(VirtualPool vpool, StringBuilder errorMsg) {
+    private String createSchedule(String fsRpoValue, String fsRpoType) {
         StringBuilder builder = new StringBuilder();
-        if (vpool != null) {
-
-            // validating schedule period
-            String fsRpoValue = vpool.getFrRpoValue().toString().toLowerCase();
-            String fsRpoType = vpool.getRpRpoType();
-            if (vpool.getFrRpoValue() < 1) {
-                errorMsg.append("required parameter schedule_period is missing or value: " + fsRpoValue
-                        + " is invalid");
-                _log.error(errorMsg.toString());
-                return errorMsg.toString();
-            }
-            switch (fsRpoValue) {
-                case "daily":
-                    builder.append("every ");
-                    builder.append(fsRpoValue);
-                    builder.append(" days");
-
-                    break;
-                case "weekly":
-                    builder.append("every ");
-                    builder.append(fsRpoValue);
-                    builder.append(" weeks");
-
-                    break;
-                case "monthly":
-                    
-                    break;
-                case "hours":
-                    break;
-                case "minites":
-                    break;
-                default:
-                    errorMsg.append("Schedule type: " + fsRpoType
-                            + " is invalid. Valid schedule types are daily, weekly and monthly");
-                    _log.error(errorMsg.toString());
-                    return errorMsg.toString();
-            }
+        switch (fsRpoType) {
+            case "HOURS":
+                builder.append("every 1 days every ");
+                builder.append(fsRpoValue);
+                builder.append(" hours between 12:00 AM and 11:59 PM");
+                break;
+            case "DAYS":
+                builder.append("every ");
+                builder.append(fsRpoValue);
+                builder.append(" days at 12:00 AM");
+                break;
         }
         return builder.toString();
     }
-
-
 }

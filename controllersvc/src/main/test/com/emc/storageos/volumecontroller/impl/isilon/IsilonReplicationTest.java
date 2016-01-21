@@ -34,7 +34,7 @@ public class IsilonReplicationTest {
 
     public static void testCreateReplicationPolicy() {
         IsilonReplicationTest.setUp();
-        result = _isi.doCreateReplicationPolicy(_device, "mudit_policy", "/ifs/vipr/muditjainsource", "10.247.96.116",
+        result = _isi.doCreateReplicationPolicy(_device, "mudit_policy", "/ifs/vipr/muditjainsource", "",
                 "/ifs/vipr/mudtjaintarget", IsilonSyncPolicy.Action.copy, "this_is_mudit_policy", "");
         result.getCommandStatus();
     }
@@ -118,5 +118,6 @@ public class IsilonReplicationTest {
         IsilonReplicationTest.testModifyReplicationPolicy();
         IsilonReplicationTest.testFailover();
         IsilonReplicationTest.testFailBack();
+
     }
 }

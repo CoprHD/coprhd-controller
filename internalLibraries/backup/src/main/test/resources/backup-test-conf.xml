@@ -29,7 +29,6 @@
         <property name="backupContext" ref="backupContext"/>
         <property name="keyspaceList">
             <list value-type="java.lang.String">
-                <value>GeoStorageOS</value>
                 <value>system</value>
             </list>
         </property>

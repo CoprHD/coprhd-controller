@@ -2637,7 +2637,6 @@ recoverpoint_ingest_host_setup()
 recoverpoint_ingest_setup()
 {
     echo '*** RP ingest setup ***'
-
     INGEST_NATIVEGUID=$VMAX1_SIMULATOR_NATIVEGUID
     RP_NATIVEGUID=$RECOVERPOINT_RP_SIM_NATIVEGUID
     if [ "$RP_QUICK_PARAM" != "quick" ]; then
@@ -2719,7 +2718,6 @@ recoverpoint_ingest_test()
 	RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_V1TGT}
 	RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY3}
     fi
-    exit;
 
     rpsnap=rpsnap_for_validation-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     if [ "${vpool}" = "rp${vplextag}_cdp" ]; then
@@ -3385,7 +3383,7 @@ recoverpoint_tests()
             fi
 	else
 	    if [ "$RPVPLEX_TESTS" = "1" ]; then
-		vplextag="rpvplex"
+		vplextag="vplex"
 	    elif [ "${RPMP_TESTS}" = "1" ]; then
 		vplextag="mp"
 	    fi

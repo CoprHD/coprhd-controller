@@ -326,6 +326,21 @@ public class TenantsService extends TaggedResource {
                     break;
                 }
             }
+        } else if (tenant.getNamespace() != null && (param.getNamespace() == null || param.getNamespace().isEmpty())) {
+            // existing namespce is being unmapped
+            // remove mapping in respective namespace CF
+            List<URI> allNamespaceURI = _dbClient.queryByType(ECSNamespace.class, true);
+            Iterator<ECSNamespace> nsItr = _dbClient.queryIterativeObjects(ECSNamespace.class, allNamespaceURI);
+            while (nsItr.hasNext()) {
+                ECSNamespace namesp = nsItr.next();
+                if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace()) &&
+                        namesp.getStorageDevice().toString().equals(param.getNamespaceStorage())) {
+                    namesp.setTenant(null);
+                    namesp.setMapped(false);
+                    _dbClient.updateObject(namesp);
+                    break;
+                }
+            }
         }
 
         if (!isUserMappingEmpty(param)) {

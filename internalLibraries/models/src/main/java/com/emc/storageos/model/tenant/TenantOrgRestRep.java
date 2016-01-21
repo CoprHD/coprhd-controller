@@ -115,7 +115,7 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * 
      * @valid none
      */
-    @XmlElement(name = "storage_system")
+    @XmlElement(name = "namespace_storage_system")
     public String getNamespaceStorage() {
         return namespaceStorage;
     }

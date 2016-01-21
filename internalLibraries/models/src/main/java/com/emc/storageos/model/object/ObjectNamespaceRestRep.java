@@ -56,7 +56,7 @@ public class ObjectNamespaceRestRep extends DiscoveredDataObjectRestRep {
         tenant = tenant;
     }
 
-    @XmlElement(name = "storage_system")
+    @XmlElement(name = "namespace_storage_system")
     public URI getStorageDevice() {
         return storageDevice;
     }

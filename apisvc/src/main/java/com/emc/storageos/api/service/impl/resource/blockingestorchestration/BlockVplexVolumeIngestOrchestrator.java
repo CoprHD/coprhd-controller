@@ -104,7 +104,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             VplexVolumeIngestionContext volumeContext = null;
 
-            if (requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
+            boolean isRpVplexContext = requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext;
+            if (isRpVplexContext) {
                 // if this volume is RP/VPLEX, we need to get the volume context
                 // from the RpVplexVolumeIngestionContext
                 volumeContext = 

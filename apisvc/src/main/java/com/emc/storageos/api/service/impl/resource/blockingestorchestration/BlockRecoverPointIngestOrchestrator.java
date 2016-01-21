@@ -29,6 +29,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
@@ -205,27 +206,11 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             UnManagedVolume unManagedVolume, Volume volume) {
         if (null == volume) {
             // We need to ingest the volume w/o the context of RP. (So, ingest a VMAX if it's VMAX, VPLEX if it's VPLEX, etc)
-            IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, 
+            IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume,
                     IngestStrategyFactory.DISREGARD_PROTECTION);
 
-            // by default we'll use the RP volume ingestion context, but...
-            IngestionRequestContext childRequestContext = rpVolumeContext;
-            // ...if this is an RP/VPLEX volume, we need to use the embedded
-            // VPLEX volume ingestion context now
-            boolean isRpVplexVolume = VolumeIngestionUtil.isRpVplexVolume(unManagedVolume);
-            if (isRpVplexVolume) {
-                if (rpVolumeContext instanceof RpVplexVolumeIngestionContext) {
-                    childRequestContext = 
-                            ((RpVplexVolumeIngestionContext) rpVolumeContext).getVplexVolumeIngestionContext();
-                }
-            }
+            volume = (Volume) ingestStrategy.ingestBlockObjects(rpVolumeContext, VolumeIngestionUtil.getBlockObjectClass(unManagedVolume));
 
-            volume = (Volume) ingestStrategy.ingestBlockObjects(childRequestContext, VolumeIngestionUtil.getBlockObjectClass(unManagedVolume));
-
-            if (isRpVplexVolume) {
-                // need to save the vplex backend ingestion context
-                childRequestContext.getVolumeContext().commit();
-            }
             _logger.info("Ingestion ended for unmanagedvolume {}", unManagedVolume.getNativeGuid());
             if (null == volume) {
                 throw IngestionException.exceptions.generalVolumeException(

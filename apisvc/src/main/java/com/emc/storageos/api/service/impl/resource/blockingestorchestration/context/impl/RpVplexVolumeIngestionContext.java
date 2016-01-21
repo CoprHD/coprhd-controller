@@ -14,11 +14,27 @@ public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionCo
         
         _vplexVolumeIngestionContext = new VplexVolumeIngestionContext(
                 unManagedVolume, dbClient, parentRequestContext);
-        
-        _vplexVolumeIngestionContext.setCurrentUnmanagedVolume(unManagedVolume);
     }
 
     public VplexVolumeIngestionContext getVplexVolumeIngestionContext() {
         return _vplexVolumeIngestionContext;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext#commit()
+     */
+    @Override
+    public void commit() {
+        _vplexVolumeIngestionContext.commit();
+        super.commit();
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext#rollback()
+     */
+    @Override
+    public void rollback() {
+        _vplexVolumeIngestionContext.rollback();
+        super.rollback();
     }
 }

@@ -44,7 +44,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.VirtualDataCenter.ConnectionStatus;
@@ -106,6 +108,9 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Autowired
     private Service service;
 
+    @Autowired
+    private DrUtil drUtil;
+    
     private Map<String, StorageOSUser> _localUsers;
 
     public void setLocalUsers(Map<String, StorageOSUser> localUsers) {
@@ -200,6 +205,11 @@ public class VirtualDataCenterService extends TaskResourceService {
         if (service.getId().endsWith("standalone")) {
             throw new IllegalStateException("standalone VDCs cannot be connected into a geo system");
         }
+        
+        List<Site> drSitesInCurrentVdc = drUtil.listSites();
+        if (drSitesInCurrentVdc.size() > 1) {
+            throw APIException.badRequests.notAllowedToAddVdcInDRConfig();
+        }
 
         ArgValidator.checkFieldNotEmpty(param.getCertificateChain(), "certificate_chain");
         verifyVdcCert(param.getCertificateChain(), param.getApiEndpoint(), true);
@@ -215,7 +225,6 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN, Role.SYSTEM_MONITOR })
     public VirtualDataCenterList getVirtualDataCenters() {
         VirtualDataCenterList vdcList = new VirtualDataCenterList();
 
@@ -230,7 +239,6 @@ public class VirtualDataCenterService extends TaskResourceService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN, Role.SYSTEM_MONITOR })
     public VirtualDataCenterRestRep getVirtualDataCenter(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, VirtualDataCenter.class, "id");
         VirtualDataCenter vdc = queryResource(id);
@@ -491,7 +499,6 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Path("/keystore")
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
     public CertificateChain getCertificateChain() {
         CertificateChain chain = new CertificateChain();
         try {
@@ -666,7 +673,6 @@ public class VirtualDataCenterService extends TaskResourceService {
      */
     @GET
     @Path("check-geo-distributed")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN, Role.SYSTEM_MONITOR })
     public Response checkGeoSetup() {
         Boolean isGeo = false;
         List<URI> ids = _dbClient.queryByType(VirtualDataCenter.class, true);

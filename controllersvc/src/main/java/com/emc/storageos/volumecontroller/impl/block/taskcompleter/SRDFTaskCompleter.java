@@ -30,6 +30,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 
 public class SRDFTaskCompleter extends TaskCompleter {
 
@@ -185,6 +186,9 @@ public class SRDFTaskCompleter extends TaskCompleter {
                 case STOP_SRDF_LINK:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
                     break;
+                case SYNC_SRDF_LINK:
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
+                    break;
                 default:
                     _logger.error("unrecognized SRDF operation type");
             }
@@ -219,8 +223,14 @@ public class SRDFTaskCompleter extends TaskCompleter {
             }
         } else if (v.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())
                 && !v.getLinkStatus().equals(Volume.LinkStatus.FAILED_OVER.name())) {
-            // A target volume in any state other than FAILED_OVER is write-disabled or not-ready.
-            return Volume.VolumeAccessState.NOT_READY;
+            if (Mode.ACTIVE.equals(Mode.valueOf(v.getSrdfCopyMode()))) {
+                // For Active mode target access state is always updated from the provider
+                // after each operation so just use that.
+                return Volume.VolumeAccessState.getVolumeAccessState(v.getAccessState());
+            } else {
+                // A target volume in any state other than FAILED_OVER is write-disabled or not-ready.
+                return Volume.VolumeAccessState.NOT_READY;
+            }
         }
 
         // Any other state is READWRITE

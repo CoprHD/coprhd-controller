@@ -28,6 +28,20 @@ public interface RPController extends ProtectionController {
     public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String op, String task) throws InternalException;
 
     /**
+     * Update consistency group policy.
+     *
+     * @param protectionDevice RP protection system URI
+     * @param consistencyGroup RP consistency group URI
+     * @param volumeURIs the volume URIs corresponding to the CG being updated
+     * @param newVpoolURI id of the new virtual pool
+     * @param task task object
+     *
+     * @throws InternalException
+     */
+    public void updateConsistencyGroupPolicy(URI protectionDevice, URI consistencyGroup, List<URI> volumeURIs, URI newVpoolURI,
+            String task) throws InternalException;
+
+    /**
      * Create a snapshot or snapshots of a volume or volumes.
      * Open issue: need to allow snapshots with different VirtualPool & pool
      *

@@ -59,7 +59,7 @@ class ComputeImageServers(object):
 
     def create_computeimageserver(self, name,imageserverip,
                 imageserversecondip,username, password, 
-                tftpbootdir, osinstalltimeout):
+                tftpbootdir, osinstalltimeout ,sshtimeout, imageimporttimeout):
 
         parms = {
                  'name': name,
@@ -68,8 +68,10 @@ class ComputeImageServers(object):
                  'imageserver_ip': imageserverip,
                  'imageserver_secondip': imageserversecondip,
                  'tftpBootDir': tftpbootdir,
-                 'osinstall_timeout': osinstalltimeout
-        }
+                 'osinstall_timeout': osinstalltimeout ,
+                 'ssh_timeout': sshtimeout,
+                 'imageimport_timeout': imageimporttimeout
+                 }
         
         
         body = json.dumps(parms)
@@ -127,7 +129,7 @@ class ComputeImageServers(object):
     Updates the Compute image server, and (re)discovers it
     '''
     def update_computeimageserver(self, name, label,imageserverip, imageserversecondip,
-                username, password, tftpbootdir, osinstalltimeout):
+                username, password, tftpbootdir, osinstalltimeout, sshtimeout, imageimporttimeout):
 
         parms = {}
         
@@ -144,7 +146,11 @@ class ComputeImageServers(object):
         if(tftpbootdir):
             parms['tftpBootDir'] = tftpbootdir
         if(osinstalltimeout):
-            parms['osinstall_timeout'] = osinstalltimeout            
+            parms['osinstall_timeout'] = osinstalltimeout
+        if(sshtimeout):
+            parms['ssh_timeout'] = sshtimeout
+        if(imageimporttimeout):
+            parms['imageimport_timeout'] = imageimporttimeout            
 
         uri = self.query_computeimageserver(name)
         body = json.dumps(parms)
@@ -228,7 +234,7 @@ def computeimageserver_create(args):
     
             obj.create_computeimageserver(args.name,args.imageserverip,
                             args.imageserversecondip, args.user, passwd,
-                            args.tftpbootdir, args.osinstalltimeout)
+                            args.tftpbootdir, args.osinstalltimeout ,args.sshtimeout , args.imageimporttimeout)
     
         except SOSError as e:
             raise common.format_err_msg_and_raise("create", "computeimageserver",
@@ -266,6 +272,18 @@ def compute_image_server_sub_common_parser(cc_common_parser):
                                   metavar='<osinstalltimeoutseconds>',
                                   help='osinstalltimeout seconds of compute image server',
                                   required=True)
+    mandatory_args.add_argument('-sshtimeout', '-sshtm', 
+                                  dest='sshtimeout',
+                                  metavar='<sshtimeoutseconds>',
+                                  help='sshtimeout seconds of compute image server',
+                                  default = 20 ,
+                                  required=False)
+    mandatory_args.add_argument('-imageimporttimeout', '-iitm', 
+                                  dest='imageimporttimeout',
+                                  metavar='<imageimporttimeoutseconds>',
+                                  help='imageimporttimeout seconds of compute image server',
+                                  default= 1800 ,
+                                  required=False)
 
 
  
@@ -421,6 +439,14 @@ def update_computeimageserver_parser(subcommand_parsers, common_parser):
                                   dest='osinstalltimeout',
                                   metavar='<osinstalltimeoutseconds>',
                                   help='osinstalltimeout seconds of compute image server')
+    update_parser.add_argument('-sshtimeout','-sshtm',
+                                  dest='sshtimeout',
+                                  metavar='<sshtimeoutseconds>',
+                                  help='sshtimeout seconds of compute image server')
+    update_parser.add_argument('-imageimporttimeout','-iitm',
+                                  dest='imageimporttimeout',
+                                  metavar='<imageimporttimeoutseconds>',
+                                  help='imageimporttimeout seconds of compute image server')
     
     update_parser.set_defaults(func=computeimageserver_update) 
     
@@ -434,7 +460,7 @@ def computeimageserver_update(args):
 
         obj.update_computeimageserver(args.name, args.label, args.imageserverip,
                         args.imageserversecondip, args.user, passwd,
-                        args.tftpbootdir, args.osinstalltimeout)
+                        args.tftpbootdir, args.osinstalltimeout, args.sshtimeout, args.imageimporttimeout)
 
     except SOSError as e:
         raise common.format_err_msg_and_raise("update", "computeimageserver",

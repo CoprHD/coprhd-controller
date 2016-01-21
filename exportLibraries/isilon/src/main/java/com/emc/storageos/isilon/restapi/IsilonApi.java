@@ -63,6 +63,8 @@ public class IsilonApi {
 
     private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
+    private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
+    private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -1585,6 +1587,61 @@ public class IsilonApi {
             }
         }
         return isNfsv4Enabled;
+    }
+    
+    
+    /**
+     * Checks to see if the SyncIQ service is enabled on the isilon device
+     * 
+     * @return boolean true if exists, false otherwise
+     */
+    public boolean isSyncIQEnabled(String firmwareVersion) throws IsilonException {
+        ClientResponse resp = null;
+        boolean isSyncIqEnabled = false;
+        
+        try {
+            // Verify the Sync service is enable or not
+        	// JSON response for the below should have service=on
+            resp = _client.get(_baseUrl.resolve(URI_SYNCIQ_SERVICE_STATUS));
+            JSONObject jsonResp = resp.getEntity(JSONObject.class);
+            if (jsonResp.has("settings") && jsonResp.getJSONObject("settings") != null) {
+            	if (jsonResp.getJSONObject("settings").has("service")) {
+            		 String syncService = jsonResp.getJSONObject("settings").getString("service");
+                     if (syncService != null && !syncService.isEmpty()) {
+                     	sLogger.info("IsilonApi - SyncIQ service status {} ", syncService);
+                     	if("on".equalsIgnoreCase(syncService)) {
+                     		isSyncIqEnabled = true;
+                     	}
+                     }
+            	}
+            }
+        } catch (Exception e) {
+            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+        return isSyncIqEnabled;
+    }
+    
+    /**
+     * Get SyncIq license information from the Isilon array
+     * 
+     * @return IsilonReplicationLicenseInfo object
+     * @throws IsilonException
+     * @throws JSONException
+     */
+
+    public String getReplicationLicenseInfo() throws IsilonException, JSONException {
+    	String licenseStatus = "Unknown";
+        ClientResponse clientResp = _client.get(_baseUrl.resolve(URI_REPLICATION_LICENSE_INFO));
+        JSONObject jsonResp = clientResp.getEntity(JSONObject.class);
+        if (jsonResp.has("status")) {
+        	licenseStatus = jsonResp.get("status").toString();
+        	return licenseStatus;
+        }
+        return licenseStatus;
     }
     
     private String getURIWithZoneName(String id, String zoneName) {

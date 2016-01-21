@@ -1,0 +1,17 @@
+{
+  baseKey:"UnexportMultiVolume.Block",
+  serviceId:"UnexportMultiVolume",
+  fields:{
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volumes:{
+      type:"assetType.vipr.exportedBlockVolume",
+      lockable:false,
+      select: "many"
+     }
+  }
+}

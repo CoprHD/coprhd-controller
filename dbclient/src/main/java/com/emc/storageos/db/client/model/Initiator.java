@@ -20,6 +20,8 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     private String _hostName;
     // to do - This is temporary until initiator service is remove
     private String _clusterName;
+    // Lazily initialized, cached hashCode
+    private volatile int hashCode;
 
     /**
      * Default Constructor. This is the constructor used by the API.
@@ -218,20 +220,24 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
         }
 
         Initiator that = (Initiator) object;
-        if (this._id.equals(that._id)) {
-            return true;
+        if (!this._id.equals(that._id)) {
+            return false;
         }
 
         String thisPort = this.getInitiatorPort();
         String thatPort = that.getInitiatorPort();
         return thisPort.equals(thatPort);
     }
-    
+
     @Override
     public int hashCode() {
-        if (this._id == null) {
-            return 0;
+        int result = hashCode;
+        if (result == 0) {
+            result = 17;
+            result = 31 * result + _id.hashCode();
+            result = 31 * result + this.getInitiatorPort().hashCode();
+            hashCode = result;
         }
-        return this._id.hashCode();
+        return result;
     }
 }

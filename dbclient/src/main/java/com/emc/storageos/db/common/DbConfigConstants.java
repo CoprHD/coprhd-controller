@@ -51,4 +51,7 @@ public abstract class DbConfigConstants {
 
     // Timestamp for the last data sync with the acitve site
     public static final String LAST_DATA_SYNC_TIME = "lastDataSyncTime";
+
+    // Default GC grace period
+    public static final int DEFAULT_GC_GRACE_PERIOD = 5 * 24 * 60 * 60; // 5 days, in seconds
 }

@@ -1988,19 +1988,28 @@ public class HostService extends TaskResourceService {
             ComputeImage img) throws APIException {
 
         URI imageServerURI = cs.getComputeImageServer();
-        if (imageServerURI == null) {
-            throw APIException.badRequests.noImageServerAssociatedToComputeSystem(cs.getLabel());
+        _log.info("Verify if selected image {} exists on imageServer {}",
+                img.getLabel(), imageServerURI);
+        if (NullColumnValueGetter.isNullURI(imageServerURI)) {
+            _log.info(
+                    "Compute system {} does not have an image server associated with it. Cannot proceed with OS install.",
+                    img.getLabel());
+            throw APIException.badRequests
+                    .noImageServerAssociatedToComputeSystem(cs.getLabel());
         } else {
             ComputeImageServer imageServer = queryObject(
                     ComputeImageServer.class, imageServerURI, true);
             StringSet computeImagesSet = imageServer.getComputeImages();
             if (computeImagesSet == null
                     || !computeImagesSet.contains(img.getId().toString())) {
+                _log.info("Selected image {} does not exist on imageServer {}",
+                        img.getLabel(), imageServer.getLabel());
                 throw APIException.badRequests
                         .imageNotPresentOnComputeImageServer(img.getLabel(),
                                 imageServer.getLabel());
             }
+            _log.info("Selected image {} exists on imageServer {}",
+                    img.getLabel(), imageServer.getLabel());
         }
-        _log.info("Verified that selected image {} exists on imageServer {}", img.getLabel(), imageServerURI);
     }
 }

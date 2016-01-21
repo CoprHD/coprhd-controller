@@ -24,7 +24,6 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
 /**
@@ -80,6 +79,13 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     }
 
     @Override
+    public void
+            updateConsistencyGroupPolicy(URI protectionDevice, URI consistencyGroup, List<URI> volumeURIs, URI newVpoolURI, String task)
+                    throws InternalException {
+        execFS("updateConsistencyGroupPolicy", protectionDevice, consistencyGroup, volumeURIs, newVpoolURI, task);
+    }
+
+    @Override
     public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
             String opId) throws InternalException {
         execFS("createSnapshot", protectionDevice, storageDevice, snapshotList, createInactive, readOnly, opId);
@@ -101,5 +107,4 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     public void deleteSnapshot(URI protectionDevice, URI snapshot, String task) throws InternalException {
         execFS("deleteSnapshot", protectionDevice, snapshot, task);
     }
-
 }

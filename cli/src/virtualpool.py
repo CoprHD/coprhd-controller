@@ -467,6 +467,61 @@ class VirtualPool(object):
         if(protectiontype == "ha"):
             return copyEntries[0]
         return copyEntries
+    
+    def get_file_remote_copies(self, copies):
+        nh_obj = VirtualArray(self.__ipAddr, self.__port)
+        remoteCopies = []
+        for copy in copies:
+            copyParam = []
+            try:
+                copyParam = copy.split(":")
+            except Exception as e:
+                raise SOSError(SOSError.CMD_LINE_ERR,
+                            " Please provide valid format " +
+                            "varray:vpool") 
+            copyEntry = dict()
+            if(len(copyParam) > 0):
+                varray = nh_obj.varray_query(copyParam[0])
+                copyEntry['varray'] = varray
+                if(len(copyParam) > 1):
+                    copyEntry['vpool'] = self.vpool_query(copyParam[1], "file")
+                remoteCopies.append(copyEntry)
+        return remoteCopies         
+    
+    def get_file_replication_params(self, policy, copies=None, addCopies=None,
+                                    removeCopies=None):
+        nh_obj = VirtualArray(self.__ipAddr, self.__port)
+        policyParams = []
+        try:
+            policyParams = policy.split(":")
+        except Exception as e:
+            raise SOSError(SOSError.CMD_LINE_ERR,
+                               " Please provide valid format " +
+                               "replicationtype:copymode:rpovalue:rpotype ")
+        replicationpolicy = dict()
+        if(not len(policyParams)):
+            raise SOSError(SOSError.CMD_LINE_ERR,
+                               " Please provide valid replication policy ")
+        
+        replicationpolicy['replication_type'] = policyParams[0].upper()
+        if(len(policyParams) > 1):
+            replicationpolicy['copy_mode'] = policyParams[1].upper()
+        if(len(policyParams) > 2):
+            replicationpolicy['rpo_value'] = policyParams[2]
+        if(len(policyParams) > 3):
+            replicationpolicy['rpo_type'] = policyParams[3].upper()
+        
+        replicationParams = dict()
+        if(policy is not None and replicationpolicy is not None):
+            replicationParams['file_replication_policy'] = replicationpolicy
+        if(copies is not None):
+            replicationParams['copies'] = self.get_file_remote_copies(copies)
+        if(addCopies is not None):
+            replicationParams['add_copies'] = self.get_file_remote_copies(addCopies)
+        if(removeCopies is not None):
+            replicationParams['remove_copies'] = self.get_file_remote_copies(removeCopies)  
+        
+        return replicationParams    
 
     def vpool_create(self, name, description, vpooltype, protocols,
                      varrays, provisiontype, rp, rp_policy,
@@ -475,7 +530,9 @@ class VirtualPool(object):
                      multivolconsistency, autotierpolicynames,
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
-                     thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport, mindatacenters):
+                     thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
+                     fr_policy, fr_copies, mindatacenters):
+
         '''
         This is the function will create the VPOOL with given name and type.
         It will send REST API request to ViPR instance.
@@ -541,18 +598,23 @@ class VirtualPool(object):
                 parms['min_datacenters'] = mindatacenters
 
         if(vpooltype == 'file'):
+            file_vpool_protection_param = dict()
             # max snapshot for file protection
             if(max_snapshots):
                 vpool_protection_snapshots_param = dict()
                 vpool_protection_snapshots_param[
                     'max_native_snapshots'] = max_snapshots
-
-                file_vpool_protection_param = dict()
                 file_vpool_protection_param[
-                    'snapshots'] = vpool_protection_snapshots_param
+                    'snapshots'] = vpool_protection_snapshots_param  
+            if(fr_policy is not None):
+                file_vpool_protection_param[
+                    'replication_params'] = self.get_file_replication_params(
+                                            fr_policy, fr_copies)    
+            if(max_snapshots is not None or
+               fr_policy is not None):
                 # file vpool params
                 parms['protection'] = file_vpool_protection_param
-
+                    
             if(max_mirrors or rp or srdf):
                 raise SOSError(
                     SOSError.CMD_LINE_ERR,
@@ -707,7 +769,9 @@ class VirtualPool(object):
             expandable, autotierpolicynames, ha, fastpolicy, minpaths,
             maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
-            thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport, mindatacenters):
+            thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
+            fr_policy, fr_addcopies, fr_removecopies, mindatacenters):
+
         '''
         This is the function will update the VPOOL.
         It will send REST API request to ViPR instance.
@@ -802,7 +866,8 @@ class VirtualPool(object):
             parms['varray_changes'] = {'remove': {'varrays': nhurilist}}
 
         if(max_mirrors or max_snapshots or srdfadd or srdfremove or
-           rp_policy or add_rp or remove_rp):
+           rp_policy or add_rp or remove_rp or 
+           fr_policy or fr_addcopies or fr_removecopies):
             vpool_protection_param = dict()
             if (max_snapshots):
                 # base class attribute
@@ -850,9 +915,13 @@ class VirtualPool(object):
 
                 vpool_protection_param['recoverpoint'] = \
                     vpool_protection_rp_params
-
+            if(fr_policy is not None or 
+               fr_addcopies is not None or fr_removecopies is not None):    
+                vpool_protection_param['replication_params'] = \
+                    self.get_file_replication_params(
+                            fr_policy, None, fr_addcopies, fr_removecopies)
             parms['protection'] = vpool_protection_param
-
+            
         if (use_matched_pools is not None):
             if(use_matched_pools.upper() == "TRUE"):
                 parms['use_matched_pools'] = "true"
@@ -1051,6 +1120,17 @@ def create_parser(subcommand_parsers, common_parser):
                                'eg:journalsize:journalvarray:journalvpool:standbyvarray:standbyvpool:copymode:rpovalue:rpotype',
                                dest='rp_policy',
                                metavar='<rp_source_policy>')
+    create_parser.add_argument('-file_replication_policy', '-frpol',
+                               help='File Replication policy, ' +
+                               'eg:replicationtype:copymode:rpovalue:rpotype',
+                               dest='fr_policy',
+                               metavar='<file_replication_policy>')
+    create_parser.add_argument('-file_replication_copies',
+                               help='File Replication remote copies, ' +
+                               'eg:varray1:vpool1 varray2:vpool2',
+                               dest='fr_copies',
+                               metavar='<file_replication_copies>',
+                               nargs='+')
     create_parser.add_argument('-systemtype', '-st',
                                help='Supported System Types',
                                metavar='<systemtype>',
@@ -1205,6 +1285,8 @@ def vpool_create(args):
                                args.frontendbandwidth,
                                args.iopersec,
                                args.autoCrossConnectExport,
+                               args.fr_policy,
+                               args.fr_copies,
                                args.mindatacenters)
     except SOSError as e:
         if (e.err_code == SOSError.VALUE_ERR):
@@ -1404,6 +1486,24 @@ def update_parser(subcommand_parsers, common_parser):
                                'eg:journalsize:copymode:rpovalue:rpotype',
                                dest='rp_policy',
                                metavar='<rp_source_policy>')
+    update_parser.add_argument('-file_replication_policy', '-frpol',
+                               help='File Replication policy, ' +
+                               'eg:replicationtype:copymode:rpovalue:rpotype',
+                               dest='fr_policy',
+                               metavar='<file_replication_policy>')
+    update_parser.add_argument('-fr_addcopies',
+                               help='File Replication remote copies, ' +
+                               'eg:varray1:vpool1 varray2:vpool2',
+                               dest='fr_addcopies',
+                               metavar='<fr_addcopies>',
+                               nargs='+')
+    update_parser.add_argument('-fr_removecopies',
+                               help='File Replication remote copies, ' +
+                               'eg:varray1:vpool1 varray2:vpool2',
+                               dest='fr_removecopies',
+                               metavar='<fr_removecopies>',
+                               nargs='+')
+    
     quota.add_update_parser_arguments(update_parser)
     update_parser.set_defaults(func=vpool_update)
 
@@ -1434,7 +1534,9 @@ def vpool_update(args):
            args.autoCrossConnectExport is not None or
            args.rpadd is not None or args.rpremove is not None or
            args.quota_enable is not None or args.quota_capacity is not None or
-           args.systemtype is not None or args.drivetype is not None):
+           args.systemtype is not None or args.drivetype is not None or
+           args.fr_policy is not None or args.fr_addcopies is not None or
+           args.fr_removecopies is not None):
             obj = VirtualPool(args.ip, args.port)
             obj.vpool_update(args.name,
                              args.label,
@@ -1470,6 +1572,8 @@ def vpool_update(args):
                              args.frontendbandwidth,
                              args.iopersec,
                              args.autoCrossConnectExport,
+                             args.fr_policy, args.fr_addcopies,
+                             args.fr_removecopies,
                              args.mindatacenters)
         else:
             raise SOSError(SOSError.CMD_LINE_ERR,

@@ -673,6 +673,19 @@ public class SmisCommandHelper implements SmisConstants {
         return args.toArray(new CIMArgument[] {});
     }
 
+    public CIMArgument[] getSRDFActivePauseLinkInputArguments(Collection<CIMObjectPath> syncPaths, Object repSettingInstance,
+            boolean sync) {
+        List<CIMArgument> args = new ArrayList<CIMArgument>();
+        args.add(_cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true));
+        args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SUSPENDED));
+        args.add(_cimArgument.uint16(CP_OPERATION, (sync ? FRACTURE_VALUE : SUSPEND_SYNC_PAIR)));
+        args.add(_cimArgument.bool(CP_FORCE, true));
+        args.add(_cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})));
+        args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance));
+
+        return args.toArray(new CIMArgument[] {});
+    }
+
     public CIMArgument[] getSRDFSplitInputArguments(Collection<CIMObjectPath> syncPaths, Object repSettingInstance) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FRACTURE_VALUE),
@@ -813,6 +826,15 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getResumeSyncListInputArguments(Collection<CIMObjectPath> syncPaths) {
         return new CIMArgument[] {
                 _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
+                _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
+        };
+    }
+
+    public CIMArgument[] getResumeActiveListInputArguments(Collection<CIMObjectPath> syncPaths) {
+        return new CIMArgument[] {
+                _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
+                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED),
                 _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
                 _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
@@ -2286,7 +2308,7 @@ public class SmisCommandHelper implements SmisConstants {
     public boolean doApplyRecoverPointTag(final StorageSystem storageSystem,
             Volume volume, boolean flag) throws Exception {
         boolean tagSet = false;
-    	// Set/Unset the RP tag (if applicable)
+        // Set/Unset the RP tag (if applicable)
         if (volume != null && storageSystem != null && volume.checkForRp() && storageSystem.getSystemType() != null
                 && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
             List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
@@ -2341,7 +2363,7 @@ public class SmisCommandHelper implements SmisConstants {
                 _log.info("Found the volume was already in the proper RecoverPoint tag state");
                 tagSet = true;
             } else {
-                _log.error(String.format("Encountered an error while trying to %s the RecoverPoint tag", tag ? "enable" : "disable"), e);                
+                _log.error(String.format("Encountered an error while trying to %s the RecoverPoint tag", tag ? "enable" : "disable"), e);
             }
         }
         return tagSet;
@@ -3757,6 +3779,10 @@ public class SmisCommandHelper implements SmisConstants {
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class,
                         volumeUri);
                 nativeGuid = NativeGUIDGenerator.generateNativeGuid(storage, snapshot);
+            } else if (URIUtil.isType(volumeUri, BlockMirror.class)) {
+                BlockMirror mirror = _dbClient.queryObject(BlockMirror.class,
+                        volumeUri);
+                nativeGuid = NativeGUIDGenerator.generateNativeGuid(storage, mirror);
             }
             volumePaths.put(nativeGuid, volumeUri);
         }
@@ -4255,8 +4281,27 @@ public class SmisCommandHelper implements SmisConstants {
         return getPrefix(storage) + "SmisDevice";
     }
 
+    /**
+     * Simple puts the thread to sleep for the passed duration.
+     * 
+     * @param duration How long to pause in milliseconds.
+     */
+    static void pauseThread(long duration) {
+        try {
+            Thread.sleep(duration);
+        } catch (Exception e) {
+            _log.warn("Exception while trying to sleep", e);
+        }
+    }
+
     public Object callRefreshSystem(StorageSystem storage,
             SimpleFunction toCallAfterRefresh)
+            throws WBEMException {
+        return callRefreshSystem(storage, toCallAfterRefresh, false);
+    }
+
+    public Object callRefreshSystem(StorageSystem storage,
+            SimpleFunction toCallAfterRefresh, boolean force)
             throws WBEMException {
         Object result = null;
         String lockKey = String.format("callRefreshSystem-%s",
@@ -4266,6 +4311,19 @@ public class SmisCommandHelper implements SmisConstants {
                 storage = _dbClient.queryObject(StorageSystem.class, storage.getId());
                 long currentMillis = Calendar.getInstance().getTimeInMillis();
                 long deltaLastRefreshValue = currentMillis - storage.getLastRefresh();
+                if (deltaLastRefreshValue < REFRESH_THRESHOLD && force) {
+                    // In case of SRDF Active mode resume operation, its possible that second call
+                    // to refreshSystem might be done where REFRESH_THRESHOLD value might not be met so we
+                    // will pause thread for the remainder of the time as we need to make sure refresh
+                    // system is executed to be able to get correct access state for the target volumes.
+                    long sleepDuration = REFRESH_THRESHOLD - deltaLastRefreshValue;
+                    _log.info(String.format("Sleep for %d msecs before calling refresh because last "
+                            + "refresh was done %d msecs ago", sleepDuration, deltaLastRefreshValue));
+                    pauseThread(sleepDuration);
+                    currentMillis = Calendar.getInstance().getTimeInMillis();
+                    deltaLastRefreshValue = currentMillis - storage.getLastRefresh();
+                }
+
                 // Do a basic calculation of how long we had to wait for the
                 // acquireLock to finish. If were waiting for a long time, then
                 // presumably the deltaLastRefreshValue would be non-zero and much
@@ -5339,26 +5397,42 @@ public class SmisCommandHelper implements SmisConstants {
             if (!snapshots.isEmpty()) {
                 volume = _dbClient.queryObject(Volume.class, snapshots.get(0).getParent());
             }
-        }
-        else if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
+        } else if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
             volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
+        } else if (URIUtil.isType(blockObjectURI, BlockMirror.class)) {
+            BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, blockObjectURI);
+            policyName = getPolicyByBlockObject(mirror.getPool(), autoTierPolicyName, mirror.getAutoTieringPolicyUri());
         }
 
         if (volume != null) {
-            StoragePool storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
-            if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
-                    || (NullColumnValueGetter.isNullURI(volume.getAutoTieringPolicyUri()))) {
-                policyName = policyName.append(Constants.OPTIMIZED_SLO).append(Constants._plusDelimiter)
-                        .append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter).append(storagePool.getPoolName());
-            } else {
-                AutoTieringPolicy autoTierPolicy = _dbClient.queryObject(AutoTieringPolicy.class, volume.getAutoTieringPolicyUri());
-                policyName = policyName.append(autoTierPolicy.getVmaxSLO()).append(Constants._plusDelimiter)
-                        .append(autoTierPolicy.getVmaxWorkload().toUpperCase()).append(Constants._plusDelimiter)
-                        .append(storagePool.getPoolName());
-            }
+            policyName = getPolicyByBlockObject(volume.getPool(), autoTierPolicyName, volume.getAutoTieringPolicyUri());
         }
         return policyName.toString();
+    }
+
+    /**
+     * Get the policy by BlockObject autoTieringPolicy URI.
+     * 
+     * @param pool
+     * @param autoTierPolicyName
+     * @param policyURI
+     * @return
+     */
+    private StringBuffer getPolicyByBlockObject(URI pool, String autoTierPolicyName, URI policyURI) {
+        StoragePool storagePool = _dbClient.queryObject(StoragePool.class, pool);
+        StringBuffer policyName = new StringBuffer();
+        if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
+                || (NullColumnValueGetter.isNullURI(policyURI))) {
+            policyName = policyName.append(Constants.OPTIMIZED_SLO).append(Constants._plusDelimiter)
+                    .append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter).append(storagePool.getPoolName());
+        } else {
+            AutoTieringPolicy autoTierPolicy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
+            policyName = policyName.append(autoTierPolicy.getVmaxSLO()).append(Constants._plusDelimiter)
+                    .append(autoTierPolicy.getVmaxWorkload().toUpperCase()).append(Constants._plusDelimiter)
+                    .append(storagePool.getPoolName());
+        }
+        return policyName;
     }
 
     /**

@@ -72,6 +72,9 @@ public abstract class AttributeMatcher {
         unique_policy_names,
         remote_copy,
         long_term_retention_policy,
+        file_replication_type,
+        file_replication_copy_mode,
+        file_replication,
         min_datacenters,
         quota
     }

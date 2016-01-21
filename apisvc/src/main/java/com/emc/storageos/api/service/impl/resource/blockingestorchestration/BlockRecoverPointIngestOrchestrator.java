@@ -105,13 +105,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     public static final DataObject.Flag[] RP_INTERNAL_VOLUME_FLAGS = new DataObject.Flag[] { Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE,
             Flag.NO_METERING, Flag.NO_PUBLIC_ACCESS };
 
-    // The ingest strategy factory, used for ingesting the volumes using the appropriate orchestrator (VPLEX, block, etc)
-    private IngestStrategyFactory ingestStrategyFactory;
-
-    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
-        this.ingestStrategyFactory = ingestStrategyFactory;
-    }
-
     private static final String LABEL_NA = "N/A";
 
     @Override
@@ -212,7 +205,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             UnManagedVolume unManagedVolume, Volume volume) {
         if (null == volume) {
             // We need to ingest the volume w/o the context of RP. (So, ingest a VMAX if it's VMAX, VPLEX if it's VPLEX, etc)
-            IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, true);
+            IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, 
+                    IngestStrategyFactory.DISREGARD_PROTECTION);
 
             // by default we'll use the RP volume ingestion context, but...
             IngestionRequestContext childRequestContext = rpVolumeContext;

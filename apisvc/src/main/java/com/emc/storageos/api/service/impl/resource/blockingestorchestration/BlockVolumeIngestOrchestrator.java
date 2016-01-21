@@ -40,18 +40,6 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockVolumeIngestOrchestrator.class);
 
-    // A reference to the ingest strategy factory.
-    protected IngestStrategyFactory ingestStrategyFactory;
-
-    /**
-     * Setter for the ingest strategy factory.
-     * 
-     * @param ingestStrategyFactory A reference to the ingest strategy factory.
-     */
-    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
-        this.ingestStrategyFactory = ingestStrategyFactory;
-    }
-
     @Override
     protected <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
             throws IngestionException {

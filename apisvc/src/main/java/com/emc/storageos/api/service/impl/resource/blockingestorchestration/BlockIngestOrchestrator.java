@@ -80,6 +80,18 @@ public abstract class BlockIngestOrchestrator {
         _dbClient = dbClient;
     }
 
+    // A reference to the ingest strategy factory.
+    protected IngestStrategyFactory ingestStrategyFactory;
+
+    /**
+     * Setter for the ingest strategy factory.
+     * 
+     * @param ingestStrategyFactory A reference to the ingest strategy factory.
+     */
+    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
+        this.ingestStrategyFactory = ingestStrategyFactory;
+    }
+
     /**
      * Ingesta BlockObjects Volume, Snapshot, or Clone. All Replica subclasses should extend this.
      * 

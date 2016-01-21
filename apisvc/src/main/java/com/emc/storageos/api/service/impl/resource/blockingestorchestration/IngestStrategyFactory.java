@@ -19,6 +19,8 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 
 public class IngestStrategyFactory {
 
+    public static final boolean DISREGARD_PROTECTION = true;
+
     private static final Logger _logger = LoggerFactory.getLogger(IngestStrategyFactory.class);
     
     private BlockIngestOrchestrator blockVolumeIngestOrchestrator;
@@ -29,6 +31,8 @@ public class IngestStrategyFactory {
     
     private BlockIngestOrchestrator blockVplexVolumeIngestOrchestrator;
 
+    private BlockIngestOrchestrator blockRpVplexIngestOrchestrator;
+    
     private BlockIngestExportOrchestrator maskPerHostIngestOrchestrator;
 
     private BlockIngestExportOrchestrator multipleMaskPerHostIngestOrchestrator;
@@ -78,6 +82,15 @@ public class IngestStrategyFactory {
     public void setBlockVplexVolumeIngestOrchestrator(
             BlockIngestOrchestrator blockVplexVolumeIngestOrchestrator) {
         this.blockVplexVolumeIngestOrchestrator = blockVplexVolumeIngestOrchestrator;
+    }
+
+    public BlockIngestOrchestrator getBlockRpVplexIngestOrchestrator() {
+        return blockRpVplexIngestOrchestrator;
+    }
+
+    public void setBlockRpVplexIngestOrchestrator(
+            BlockIngestOrchestrator blockRpVplexIngestOrchestrator) {
+        this.blockRpVplexIngestOrchestrator = blockRpVplexIngestOrchestrator;
     }
 
     public void setBlockRecoverPointIngestOrchestrator(
@@ -136,7 +149,7 @@ public class IngestStrategyFactory {
     }
 
     public enum ReplicationStrategy {
-        LOCAL, REMOTE, VPLEX, RP
+        LOCAL, REMOTE, VPLEX, RP, RPVPLEX
     }
     
     public enum VolumeType {
@@ -199,6 +212,7 @@ public class IngestStrategyFactory {
         REMOTE_VOLUME,
         VPLEX_VOLUME,
         RP_VOLUME,
+        RPVPLEX_VOLUME,
         NONE;
 
         public static IngestStrategyEnum getIngestStrategy(String strategyName) {
@@ -290,6 +304,10 @@ public class IngestStrategyFactory {
             ingestStrategy.setIngestResourceOrchestrator(blockRecoverPointIngestOrchestrator);
             break;
 
+        case RPVPLEX_VOLUME:
+            ingestStrategy.setIngestResourceOrchestrator(blockRpVplexIngestOrchestrator);
+            break;
+
         default:
             break;
 
@@ -310,11 +328,16 @@ public class IngestStrategyFactory {
                 SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString());
 
         String replicationStrategy;
-        // order is actually important here because a VPLEX volume could also be RP-enabled
-        if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
-            replicationStrategy = ReplicationStrategy.VPLEX.name();
-        } else if (!disregardProtection && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
+        
+        boolean isVplexVolume = VolumeIngestionUtil.isVplexVolume(unManagedVolume);
+        boolean isRpEnabled = VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
+        
+        if (isVplexVolume && isRpEnabled) {
+            replicationStrategy = ReplicationStrategy.RPVPLEX.name();
+        } else if (!disregardProtection && isRpEnabled) {
             replicationStrategy = ReplicationStrategy.RP.name();
+        } else if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
+            replicationStrategy = ReplicationStrategy.VPLEX.name();
         } else if (null == remoteMirrorEnabledInVolume || !Boolean.parseBoolean(remoteMirrorEnabledInVolume)) {
             replicationStrategy = ReplicationStrategy.LOCAL.name();
         } else {

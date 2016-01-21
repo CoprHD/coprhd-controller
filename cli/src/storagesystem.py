@@ -842,7 +842,7 @@ class StorageSystem(object):
 
     def discover_storagesystem(
             self, device_name=None, serialno=None,
-            device_type=None, sync=False,synctimeout):
+            device_type=None, sync=False,synctimeout=0):
 
         # Discover all case
         if(device_name is None and device_type is None and serialno is None):
@@ -860,7 +860,7 @@ class StorageSystem(object):
         self.discover_storagesystem_by_uri(urideviceid, sync,synctimeout)
         return
 
-    def discover_storagesystem_by_uri(self, uri=None, sync=False,synctimeout):
+    def discover_storagesystem_by_uri(self, uri=None, sync=False,synctimeout=0):
         '''
         Makes a REST API call to discover storage system
         '''

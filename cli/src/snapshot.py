@@ -16,7 +16,7 @@ import json
 import time
 from threading import Timer
 from common import SOSError
-import sys
+
 
 class Snapshot(object):
 
@@ -136,7 +136,7 @@ class Snapshot(object):
         )
 
     def snapshot_create(self, otype, typename, ouri,
-                        snaplabel, inactive, rptype, sync ,readonly=False,synctimeout):
+                        snaplabel, inactive, rptype, sync ,readonly=False,synctimeout=0):
         '''new snapshot is created, for a given shares or volumes
             parameters:
                 otype      : either file or block or object

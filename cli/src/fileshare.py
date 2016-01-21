@@ -16,7 +16,6 @@ import socket
 import commands
 from common import SOSError
 from threading import Timer
-import sys
 
 class Fileshare(object):
 
@@ -520,7 +519,7 @@ class Fileshare(object):
 
 
     # Deletes a fileshare given a fileshare name
-    def delete(self, name, forceDelete=False, delete_type='FULL', sync=False,synctimeout):
+    def delete(self, name, forceDelete=False, delete_type='FULL', sync=False,synctimeout=0):
         '''
         Deletes a fileshare based on fileshare name
         Parameters:
@@ -685,7 +684,7 @@ class Fileshare(object):
 
 
     # Deletes a fileshare given a fileshare uri
-    def delete_by_uri(self, uri, forceDelete=False, delete_type='FULL', sync=False,synctimeout):
+    def delete_by_uri(self, uri, forceDelete=False, delete_type='FULL', sync=False,synctimeout=0):
         '''
         Deletes a fileshare based on fileshare uri
         Parameters:
@@ -856,7 +855,7 @@ class Fileshare(object):
                               project_name, fileshare_name, task_id)
         )
     
-    def expand(self, name, new_size, sync=False,synctimeout):
+    def expand(self, name, new_size, sync=False,synctimeout=0):
 
         fileshare_detail = self.show(name)
         current_size = float(fileshare_detail["capacity_gb"])

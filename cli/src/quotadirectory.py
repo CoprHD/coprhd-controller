@@ -18,7 +18,7 @@ import socket
 import time
 from threading import Timer
 from common import SOSError
-import sys
+
 
 '''
 The class definition for the operation on the ViPR QuotaDirectory

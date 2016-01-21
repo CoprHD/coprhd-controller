@@ -1175,7 +1175,7 @@ class Volume(object):
 
     # Deletes a volume given a volume name
     def delete(self, name, volume_name_list=None, sync=False,
-               forceDelete=False, vipronly=False,synctimeout):
+               forceDelete=False, vipronly=False,synctimeout=0):
         '''
         Deletes a volume based on volume name
         Parameters:
@@ -1208,7 +1208,7 @@ class Volume(object):
 
     # Deletes a volume given a volume uri
     def delete_by_uri(self, uri, sync=False,
-                      forceDelete=False, vipronly=False,synctimeout):
+                      forceDelete=False, vipronly=False,synctimeout=0):
         '''
         Deletes a volume based on volume uri
         Parameters:
@@ -1312,7 +1312,7 @@ class Volume(object):
                               project_name, volume_name, task_id)
         )
 
-    def expand(self, name, new_size, sync=False,synctimeout):
+    def expand(self, name, new_size, sync=False,synctimeout=0):
 
         #volume_uri = self.volume_query(name)
         volume_detail = self.show(name)

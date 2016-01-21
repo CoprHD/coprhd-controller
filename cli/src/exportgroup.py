@@ -23,7 +23,7 @@ from hostinitiators import HostInitiator
 from host import Host
 from virtualarray import VirtualArray
 import uuid
-import json,sys
+import json
 
 
 class ExportGroup(object):
@@ -389,7 +389,7 @@ class ExportGroup(object):
 
     def exportgroup_remove_volumes(self, sync, exportgroupname, tenantname,
                                    projectname, volumenames, snapshots=None,
-                                   cg=None, blockmirror=None,synctimeout):
+                                   cg=None, blockmirror=None,synctimeout=0):
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
@@ -423,7 +423,7 @@ class ExportGroup(object):
     def exportgroup_remove_volumes_by_uri(self, exportgroup_uri, volumeIdList,
                                           sync=False, tenantname=None,
                                           projectname=None, snapshots=None,
-                                          cg=None,synctimeout):
+                                          cg=None,synctimeout=0):
         # if snapshot given then snapshot added to exportgroup
         volume_snapshots = volumeIdList
         if(snapshots):

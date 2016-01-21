@@ -2,6 +2,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration.con
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionContext {
@@ -36,5 +37,17 @@ public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionCo
     public void rollback() {
         _vplexVolumeIngestionContext.rollback();
         super.rollback();
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext#findCreatedBlockObject(java.lang.String)
+     */
+    @Override
+    public BlockObject findCreatedBlockObject(String nativeGuid) {
+        BlockObject blockObject = _vplexVolumeIngestionContext.findCreatedBlockObject(nativeGuid);
+        if (blockObject == null) {
+            blockObject = super.findCreatedBlockObject(nativeGuid);
+        }
+        return blockObject;
     }
 }

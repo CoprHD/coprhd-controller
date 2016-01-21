@@ -938,6 +938,7 @@ def create_parser(subcommand_parsers, common_parser):
     
     create_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     
@@ -945,9 +946,8 @@ def create_parser(subcommand_parsers, common_parser):
 
 
 def fileshare_create(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     size = common.to_bytes(args.size)
     if not size:
         raise SOSError(SOSError.CMD_LINE_ERR,
@@ -1058,6 +1058,7 @@ def delete_parser(subcommand_parsers, common_parser):
                                action='store_true')
     delete_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     delete_parser.add_argument(
@@ -1077,9 +1078,8 @@ def delete_parser(subcommand_parsers, common_parser):
 
 
 def fileshare_delete(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     if(not args.tenant):
         args.tenant = ""
     obj = Fileshare(args.ip, args.port)
@@ -1521,15 +1521,15 @@ def export_parser(subcommand_parsers, common_parser):
                                action='store_true')
     export_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     export_parser.set_defaults(func=fileshare_export)
 
 
 def fileshare_export(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
 
     try:
         if(args.protocol == "CIFS"):
@@ -1628,15 +1628,15 @@ def unexport_parser(subcommand_parsers, common_parser):
                                  action='store_true')
     unexport_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     unexport_parser.set_defaults(func=fileshare_unexport)
 
 
 def fileshare_unexport(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
 
         if(args.protocol == "CIFS"):
@@ -2175,15 +2175,15 @@ def expand_parser(subcommand_parsers, common_parser):
     
     expand_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     expand_parser.set_defaults(func=fileshare_expand)
 
 
 def fileshare_expand(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     size = common.to_bytes(args.size)
     if(not size):
         raise SOSError(SOSError.CMD_LINE_ERR, 'error: Invalid input for -size')

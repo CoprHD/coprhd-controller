@@ -1176,6 +1176,7 @@ def create_parser(subcommand_parsers, common_parser):
                                action='store_true')
     create_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1197,9 +1198,8 @@ def create_parser(subcommand_parsers, common_parser):
 
 
 def snapshot_create(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -1512,15 +1512,15 @@ def delete_parser(subcommand_parsers, common_parser):
                                action='store_true')
     delete_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     delete_parser.set_defaults(func=snapshot_delete)
 
 
 def snapshot_delete(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -1642,6 +1642,7 @@ def export_file_parser(subcommand_parsers, common_parser):
                                action='store_true')
     export_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1649,9 +1650,8 @@ def export_file_parser(subcommand_parsers, common_parser):
 
 
 def snapshot_export_file(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
 
@@ -1776,6 +1776,7 @@ def export_volume_parser(subcommand_parsers, common_parser):
                                action='store_true')
     export_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1783,9 +1784,8 @@ def export_volume_parser(subcommand_parsers, common_parser):
 
 
 def snapshot_export_volume(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -1871,6 +1871,7 @@ def unexport_file_parser(subcommand_parsers, common_parser):
                                  action='store_true')
     unexport_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1878,9 +1879,8 @@ def unexport_file_parser(subcommand_parsers, common_parser):
 
 
 def snapshot_unexport_file(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         if(args.protocol == "CIFS"):
@@ -1974,6 +1974,7 @@ def unexport_volume_parser(subcommand_parsers, common_parser):
                                  action='store_true')
     unexport_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1981,9 +1982,8 @@ def unexport_volume_parser(subcommand_parsers, common_parser):
 
 
 def snapshot_unexport_volume(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -2310,15 +2310,15 @@ def activate_parser(subcommand_parsers, common_parser):
                                  action='store_true')
     activate_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     mandatory_args.set_defaults(func=snapshot_activate)
 
 
 def snapshot_activate(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -2403,6 +2403,7 @@ def restore_parser(subcommand_parsers, common_parser):
                                 action='store_true')
     restore_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -2410,9 +2411,8 @@ def restore_parser(subcommand_parsers, common_parser):
 
 
 def snapshot_restore(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -2491,6 +2491,7 @@ def resync_parser(subcommand_parsers, common_parser):
                                 action='store_true')
     resync_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -2498,9 +2499,8 @@ def resync_parser(subcommand_parsers, common_parser):
 
 
 def snapshot_resync(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(

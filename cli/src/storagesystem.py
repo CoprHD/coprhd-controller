@@ -1193,6 +1193,7 @@ def discover_parser(subcommand_parsers, common_parser):
     
     discover_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1200,9 +1201,8 @@ def discover_parser(subcommand_parsers, common_parser):
 
 
 def storagesystem_discover(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = StorageSystem(args.ip, args.port)
     # discover storage all
     if(args.all):

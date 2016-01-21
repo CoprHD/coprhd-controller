@@ -729,15 +729,15 @@ def delete_parser(subcommand_parsers, common_parser):
     
     delete_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     delete_parser.set_defaults(func=exportgroup_delete)
 
 
 def exportgroup_delete(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = ExportGroup(args.ip, args.port)
     try:
         obj.exportgroup_delete(args.name, args.project, args.tenant, args.sync,args.synctimeout)
@@ -959,6 +959,7 @@ def add_volume_parser(subcommand_parsers, common_parser):
     
     add_volume_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -966,9 +967,8 @@ def add_volume_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_add_volumes(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_volumes(
@@ -1039,6 +1039,7 @@ def remove_volume_parser(subcommand_parsers, common_parser):
                                       action='store_true')
     remove_volume_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1046,9 +1047,8 @@ def remove_volume_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_remove_volumes(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
 
@@ -1105,6 +1105,7 @@ def add_initiator_parser(subcommand_parsers, common_parser):
     
     add_initiator_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1112,9 +1113,8 @@ def add_initiator_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_add_initiators(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_initiator(args.name, args.tenant,
@@ -1171,6 +1171,7 @@ def remove_initiator_parser(subcommand_parsers, common_parser):
     
     remove_initiator_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1178,9 +1179,8 @@ def remove_initiator_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_remove_initiators(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_remove_initiator(
@@ -1231,6 +1231,7 @@ def add_cluster_parser(subcommand_parsers, common_parser):
     
     add_cluster_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1238,9 +1239,8 @@ def add_cluster_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_add_cluster(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_cluster(
@@ -1289,6 +1289,7 @@ def remove_cluster_parser(subcommand_parsers, common_parser):
     
     remove_cluster_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1296,9 +1297,8 @@ def remove_cluster_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_remove_cluster(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_remove_cluster(
@@ -1345,6 +1345,7 @@ def add_host_parser(subcommand_parsers, common_parser):
     
     add_host_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1352,9 +1353,8 @@ def add_host_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_add_host(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_host(
@@ -1404,6 +1404,7 @@ def remove_host_parser(subcommand_parsers, common_parser):
     
     remove_host_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -1411,9 +1412,8 @@ def remove_host_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_remove_host(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_remove_host(

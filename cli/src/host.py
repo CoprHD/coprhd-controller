@@ -1582,6 +1582,7 @@ def compute_host_osinstall_parser(subcommand_parsers, common_parser):
                                action='store_true')
     os_install_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     
@@ -1589,9 +1590,8 @@ def compute_host_osinstall_parser(subcommand_parsers, common_parser):
 
 
 def compute_host_os_install(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     hostObj = Host(args.ip, args.port)
 
     rootpasswd = common.get_password("host")

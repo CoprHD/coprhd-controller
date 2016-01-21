@@ -932,7 +932,6 @@ def timeout_handler():
 def block_until_complete(componentType, resource_uri, task_id, ipAddr, port,synctimeout):
         global IS_TASK_TIMEOUT
         IS_TASK_TIMEOUT = False
-        print synctimeout
         if synctimeout:
             t = Timer(synctimeout, timeout_handler)
         else:

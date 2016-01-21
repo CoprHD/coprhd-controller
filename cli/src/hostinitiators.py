@@ -451,6 +451,7 @@ def create_parser(subcommand_parsers, common_parser):
                                action='store_true')
     create_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     
@@ -474,9 +475,8 @@ Preprocessor for the initiator create operation
 
 
 def initiator_create(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     if(args.protocol == "FC" and args.initiatorwwn is None):
         raise SOSError(
             SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +

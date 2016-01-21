@@ -308,6 +308,7 @@ def create_parser(subcommand_parsers, common_parser):
     
     create_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -320,9 +321,8 @@ Preprocessor for the quotadirectory create operation
 '''
 
 def quotadirectory_create(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = QuotaDirectory(args.ip, args.port)
   
     try:
@@ -536,15 +536,15 @@ def delete_parser(subcommand_parsers, common_parser):
     
     delete_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     delete_parser.set_defaults(func=quotadirectory_delete)
 
 
 def quotadirectory_delete(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = QuotaDirectory(args.ip, args.port)
     try:
         resourceUri = obj.storageResource_query(
@@ -628,6 +628,7 @@ def update_parser(subcommand_parsers, common_parser):
                                action='store_true')
     update_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     
@@ -637,9 +638,8 @@ def update_parser(subcommand_parsers, common_parser):
 
 
 def quotadirectory_update(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = QuotaDirectory(args.ip, args.port)
     try:
         resourceUri = obj.storageResource_query(

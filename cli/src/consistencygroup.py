@@ -560,7 +560,7 @@ def update_parser(subcommand_parsers, common_parser):
                                action='store_true')
     
     update_parser.add_argument('-synctimeout',
-                               dest='sync',
+                               dest='synctimeout',
                                help='Synchronous timeout in Seconds',
                                default=0, type=int)
     
@@ -569,9 +569,8 @@ def update_parser(subcommand_parsers, common_parser):
 
 
 def consistencygroup_update(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         obj = ConsistencyGroup(args.ip, args.port)
         res = obj.update(args.name, args.project, args.tenant,

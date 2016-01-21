@@ -19,7 +19,7 @@ from threading import Timer
 from virtualarray import VirtualArray
 from storagesystem import StorageSystem
 import consistencygroup
-import sys
+
 
 
 
@@ -1797,10 +1797,7 @@ def create_parser(subcommand_parsers, common_parser):
                                action='store_true')
     create_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
-                               default=0,
-                               type=int)
-    create_parser.add_argument('-synctimeout','-syncto',
-                               help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     create_parser.set_defaults(func=volume_create)
@@ -1865,8 +1862,9 @@ def rp_journal_parser(subcommand_parsers, common_parser):
                                help='Execute in synchronous mode',
                                action='store_true')
     
-    create_parser.add_argument('-synctimeout','-syncto',
+    rp_journal_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     rp_journal_parser.set_defaults(func=rp_journal_create)
@@ -1947,6 +1945,7 @@ def volume_clone_common_parser(cc_common_parser):
                        help='Synchronous mode enabled')
     cc_common_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
 
@@ -2362,9 +2361,8 @@ def volume_clone_get(args):
 
 
 def volume_create(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Volume(args.ip, args.port)
     size = common.to_bytes(args.size)
     if(not size):
@@ -2400,9 +2398,8 @@ def volume_create(args):
             
 
 def rp_journal_create(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Volume(args.ip, args.port)
     size = common.to_bytes(args.size)
     if(not size):
@@ -2515,6 +2512,7 @@ def delete_parser(subcommand_parsers, common_parser):
                                action='store_true')
     delete_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     delete_parser.add_argument('-forceDelete', '-fd',
@@ -2530,9 +2528,8 @@ def delete_parser(subcommand_parsers, common_parser):
 
 
 def volume_delete(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Volume(args.ip, args.port)
 
     if(len(args.name) > 1 and args.sync):
@@ -2624,15 +2621,15 @@ def export_parser(subcommand_parsers, common_parser):
                                action='store_true')
     export_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     export_parser.set_defaults(func=volume_export)
 
 
 def volume_export(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Volume(args.ip, args.port)
     try:
         if(not args.tenant):
@@ -2701,15 +2698,15 @@ def unexport_parser(subcommand_parsers, common_parser):
                                  action='store_true')
     unexport_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     unexport_parser.set_defaults(func=volume_unexport)
 
 
 def volume_unexport(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Volume(args.ip, args.port)
     if(not args.tenant):
         args.tenant = ""
@@ -4053,15 +4050,15 @@ def expand_parser(subcommand_parsers, common_parser):
                                action='store_true')
     expand_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
+                               dest='synctimeout',
                                default=0,
                                type=int)
     expand_parser.set_defaults(func=volume_expand)
 
 
 def volume_expand(args):
-    if args.sync != True and args.synctimeout !=0:
-        print "ERROR ! Without Sync , we cannot use synctimeout , Please Use synctimeout with sync"
-        sys.exit()
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     size = common.to_bytes(args.size)
     if(not size):
         raise SOSError(SOSError.CMD_LINE_ERR,

@@ -119,6 +119,11 @@ public class CinderCloneOperations implements CloneOperations
             log.debug("Creating volume with the id " + volumeId + " on Openstack cinder node");
             if (volumeId != null)
             {
+                // Cinder volume/snapshot clones are not sync with source, so
+                // set the replication state as DETACHED
+                cloneObj.setReplicaState(ReplicationState.DETACHED.name());
+                dbClient.persistObject(cloneObj);
+                
                 Map<String, URI> volumeIds = new HashMap<String, URI>();
                 volumeIds.put(volumeId, cloneObj.getId());
                 ControllerServiceImpl.enqueueJob(new QueueJob(

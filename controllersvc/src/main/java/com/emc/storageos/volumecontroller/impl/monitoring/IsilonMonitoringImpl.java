@@ -40,7 +40,7 @@ public class IsilonMonitoringImpl implements IMonitoringStorageSystem {
     private IsilonApiFactory _isilonApiFactory;
     private RecordableEventManager _recordableEventManager;
     // interval for events polling thread
-    private long _intervalSeconds = MonitoringJobConsumer.MONITORING_INTERVAL * 60;
+    private final long _intervalSeconds = MonitoringJobConsumer.MONITORING_INTERVAL * 60;
     // Planned overlap for polling intervals between consecutive requests.
     private final long plannedIntervalOverlapSeconds = 3;
 
@@ -162,7 +162,7 @@ public class IsilonMonitoringImpl implements IMonitoringStorageSystem {
      * Wrapper class for Isilon devices monitoring
      */
     public class MonitoredDevice {
-        private URI _storageSystemURI;
+        private final URI _storageSystemURI;
         private long _lastPolled;
         long _latestTimeThreshold;  // most recent timestamp of events received in one request
         long _mostRecentTimestampInPollingCycle;
@@ -203,8 +203,9 @@ public class IsilonMonitoringImpl implements IMonitoringStorageSystem {
                     long startTime = _lastPolled - plannedIntervalOverlapSeconds; // absolute start time in seconds
                     long startTimeRelative = startTime - curTime;
                     // we use 0 value for end time to indicate relative current time on Isilon system.
-                    events = api.queryEvents(startTimeRelative, 0).getList(); // need to use relative time for remote host (absolute time
-                                                                              // may not match on remote host)
+                    // need to use relative time for remote host (absolute time may not match on remote host)
+                    events = api.queryEvents(startTimeRelative, 0, storagesystem.getFirmwareVersion()).getList();
+
                     // Filter out events with timestamp less or equal to most recent timestamp of events in the previous request.
                     // This is required due to the fact that request intervals may overlap on the remote Isilon host.
                     List<IsilonEvent> filteredEvents = filterEvents(events);

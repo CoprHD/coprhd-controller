@@ -136,8 +136,7 @@ public class ProcStats extends ProcModels implements StatConstants {
             }
         }
 
-        throw SyssvcException.syssvcExceptions.syssvcInternalError(
-                "cmdline file does not exist for process:" + pid + ". Or command line is invalid.");
+        throw SyssvcException.syssvcExceptions.serviceNameNotFoundException(pid);
     }
 
     /**

@@ -14,7 +14,7 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | ecs | init | quick |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>] | sanzoning'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
@@ -120,7 +120,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|ecs|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
+    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|ecs|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -238,6 +238,7 @@ RECOVERY_CORRUPTED_NODE_IP=
 SHORTENED_HOST=`hostname`
 : ${TENANT=$SHORTENED_HOST}
 : ${PROJECT=sanity}
+: ${SRDF_PROJECT=dontuseme}
 
 SVCUSER=svcuser
 
@@ -802,6 +803,8 @@ project_setup()
 
     project show $PROJECT &> /dev/null && return $?
     project create $PROJECT --tenant $TENANT 
+    project show $SRDF_PROJECT &> /dev/null && return $?
+    project create $SRDF_PROJECT --tenant $TENANT
     if [ "$EXTRA_PARAM" = "search" ] ; then
         project search $(echo $PROJECT | head -c 2)
         project tag "$PROJECT" $TAG
@@ -1148,7 +1151,7 @@ srdf_setup_once()
 { 
     login_nd_configure_smtp_nd_add_licenses
     tenant_setup
-    run blockconsistencygroup create $PROJECT $CONSISTENCY_GROUP_SRDF
+    run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
@@ -1285,7 +1288,7 @@ srdf_cos_change_meta()
 {
    # Create non-protected meta volume, then move it to a cos that has protection
    srdfvolumeccmeta="${SRDF_VOLUME}-coschangemeta"
-   run volume create ${srdfvolumeccmeta} $PROJECT $NH $COS_VMAXBLOCK_SRDF_TARGET 300GB
+   run volume create ${srdfvolumeccmeta} $SRDF_PROJECT $NH $COS_VMAXBLOCK_SRDF_TARGET 300GB
    echo "Created volume, now sleeping..."
    sleep 60
    echo "Changing cos..."
@@ -1293,7 +1296,7 @@ srdf_cos_change_meta()
    echo "Changed cos"
    sleep 60
    echo "Deleting volume"
-   run volume delete $PROJECT/${srdfvolumeccmeta} --wait
+   run volume delete $SRDF_PROJECT/${srdfvolumeccmeta} --wait
 }
 
 
@@ -1301,12 +1304,12 @@ srdf_cos_change_meta()
 srdf_basic_sync_test()
 {
    srdfvolume="${SRDF_VOLUME}_sync"
-   run volume create ${srdfvolume}1 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB
    sleep 300
    #run volume create ${srdfvolume}2 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB --consistencygroup $CONSISTENCY_GROUP_SRDF
    #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB --count 2
    #run volume delete $PROJECT/${srdfvolume}2 --wait
-   run volume delete $PROJECT/${srdfvolume}1 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-2 --wait
 }
@@ -1314,14 +1317,14 @@ srdf_basic_sync_test()
 srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
-   run volume create ${srdfvolume}1 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
-   run volume create ${srdfvolume}2 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
    echo "Created 2 volumes... now going to sleep..."
    sleep 60
    echo "Deleting volumes..."
    #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --count 2
-   run volume delete $PROJECT/${srdfvolume}2 --wait
-   run volume delete $PROJECT/${srdfvolume}1 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-2 --wait
 }
@@ -1898,44 +1901,6 @@ rpvplex_ha()
         --highavailability vplex_local
 }
 
-# Regular vpool used as base for change vpool tests
-rp_regular()
-{
-    cos create block rp_regular$1 true \
-        --description 'Regular vpool used as base for change vpool tests' \
-        --protocols FC \
-        --numpaths 2 \
-        --provisionType 'Thin' \
-        --neighborhoods $RECOVERPOINT_VARRAY1 \
-        --max_snapshots 10
-}
-
-# Regular VPLEX local vpool used as base for change vpool tests
-rpvplex_local_regular()
-{
-    cos create block rpvplex_local_regular$1 true \
-        --description 'Regular VPLEX local vpool used as base for change vpool tests' \
-        --protocols FC \
-        --numpaths 2 \
-        --provisionType 'Thin' \
-        --neighborhoods $RECOVERPOINT_VARRAY1 \
-        --highavailability vplex_local
-}
-
-# Regular VPLEX dist vpool used as base for change vpool tests
-rpvplex_dist_regular()
-{
-    cos create block rpvplex_dist_regular$1 true \
-        --description 'Regular VPLEX dist vpool used as base for change vpool tests' \
-        --protocols FC \
-        --numpaths 2 \
-        --provisionType 'Thin' \
-        --neighborhoods $RECOVERPOINT_VARRAY1 \
-        --highavailability vplex_distributed \
-        --haNeighborhood $RECOVERPOINT_VARRAY2 \
-        --haCos rpvplex_ha
-}
-
 # RP CDP
 rp_cdp()
 {
@@ -2102,14 +2067,51 @@ mp_clr()
         --activeProtectionAtHASite false
 }
 
+# RP - NO PROTECTION
+rp_noprotection()
+{
+    cos create block rp_noprotection$1 true \
+        --description 'RP - NO PROTECTION'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency
+}
+
+# RP+VPLEX LOCAL - NO PROTECTION
+rpvplexlocal_noprotection()
+{
+    cos create block rpvplexlocal_noprotection$1 true \
+        --description 'RP+VPLEX LOCAL - NO PROTECTION'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --highavailability vplex_local
+}
+
+# RP+VPLEX DIST - NO PROTECTION
+rpvplexdist_noprotection()
+{
+    cos create block rpvplexdist_noprotection$1 true \
+        --description 'RP+VPLEX DIST - NO PROTECTION'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha
+}
+
 rp_vpool_setup()
 {
     rp_targets
     rpvplex_targets
     rpvplex_ha
-    rp_regular
-    rpvplex_local_regular
-    rpvplex_dist_regular
     rp_cdp
     rp_crr
     rp_clr
@@ -2119,6 +2121,9 @@ rp_vpool_setup()
     mp_cdp
     mp_crr
     mp_clr
+    rp_noprotection
+    rpvplexlocal_noprotection
+    rpvplexdist_noprotection
 }
 
 rp_varray_setup()
@@ -2454,7 +2459,6 @@ recoverpoint_failover_test()
     run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 }
 
-# Support will be added in ViPR 2.4 SP1
 recoverpoint_cg_failover_test()
 {
 	# The name of the consistency group to swap
@@ -2614,17 +2618,15 @@ recoverpoint_cg_failover_test()
 recoverpoint_vpool_change_test()
 {
     base_volume=${1}
-    base_vpool=${2}
-    base_varray=${3}
+    noprotection_vpool=${2}
+    rp_vpool=${3}
+    rp_cg=${4}
 
-    rp_vpool=${4}
-    rp_cg=${5}
+    echo 'Change Virtual Pool - Remove Protection'
+    run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
 
-    echo 'Create base volume'
-    run volume create ${base_volume} $PROJECT ${base_varray} ${base_vpool} 1GB --count=2
-
-    echo 'Change vpool of base volume to RP'
-    run volume change_cos ${PROJECT}/${base_volume}-1 ${rp_vpool}
+    echo 'Change Virtual Pool - Add Protection'
+    run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
 }
 
 recoverpoint_add_journal_volume()
@@ -2751,6 +2753,10 @@ recoverpoint_tests()
         rpvplex_src_varray=$RECOVERPOINT_VARRAY1
         mp_src_varray=$RECOVERPOINT_VARRAY1
 
+        rp_noprotection_vpool='rp_noprotection'
+        rpvplex_noprotection_vpool='rpvplexdist_noprotection'
+        mp_noprotection_vpool='rpvplexdist_noprotection'
+
         rp_type=''
 
         if [ "$RP_CDP" = "1" ]; then
@@ -2761,14 +2767,13 @@ recoverpoint_tests()
             rp_tgt_varray=$RECOVERPOINT_VARRAY1
 			rp_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rp_tgt_vpool='rp_targets'
-            rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
 			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rpvplex_tgt_vpool='rpvplex_targets'
-            rpvplex_base_cvp1='rpvplex_local_regular'
-            rpvplex_base_cvp2='rpvplex_dist_regular'
+            # RP+VPLEX CDP uses VPLEX local, set this for no protection vpool
+            rpvplex_noprotection_vpool='rpvplexlocal_noprotection'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
@@ -2785,14 +2790,11 @@ recoverpoint_tests()
             rp_tgt_varray=$RECOVERPOINT_VARRAY3
 			rp_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rp_tgt_vpool='rp_targets'
-            rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY3
 			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rpvplex_tgt_vpool='rpvplex_targets'
-            rpvplex_base_cvp1='rpvplex_local_regular'
-            rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
@@ -2809,14 +2811,11 @@ recoverpoint_tests()
             rp_tgt_varray=$RECOVERPOINT_VARRAY3
 			rp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
             rp_tgt_vpool='rp_targets'
-            rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
 			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
             rpvplex_tgt_vpool='rpvplex_targets'
-            rpvplex_base_cvp1='rpvplex_local_regular'
-            rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
@@ -2841,42 +2840,21 @@ recoverpoint_tests()
         mpvolumetarget=${mpvolume}'-target-'${mp_active_tgt_varray}
 
         # Setup test volumes...
-        # Either use volumes that have gone through the change vpool process or
-        # use straight up created RP volumes.
-        if [ "$RP_CHANGE_VPOOL" = "1" ]; then
-            echo '*** RP change vpool volumes ***'
+        echo '*** RP create volumes ***'
 
-            if [ "$RP_TESTS" = "1" ]; then
-                echo 'RP change vpool...'
-                recoverpoint_vpool_change_test ${rpvolume} ${rp_base_cvp} ${rp_src_varray} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
-            fi
+        if [ "$RP_TESTS" = "1" ]; then
+            echo 'RP volume create...'
+            run volume create ${rpvolume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+        fi
 
-            if [ "$RPVPLEX_TESTS" = "1" ]; then
-                echo 'RP+VPLEX change vpool...NOT SUPPORTED YET!!'
-                #recoverpoint_vpool_change_test ${rpvplexvolume} ${rpvplex_base_cvp1} ${rpvplex_src_varray} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
-            fi
+        if [ "$RPVPLEX_TESTS" = "1" ]; then
+            echo 'RP+VPLEX volume create...'
+            run volume create ${rpvplexvolume} $PROJECT ${rpvplex_src_varray} ${rpvplex_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_VPLEX_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+        fi
 
-            if [ "$MP_TESTS" = "1" ]; then
-                echo 'MP change vpool...NOT SUPPORTED YET!!'
-            fi
-
-        else
-            echo '*** RP create volumes ***'
-
-            if [ "$RP_TESTS" = "1" ]; then
-                echo 'RP volume create...'
-                run volume create ${rpvolume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-            fi
-
-            if [ "$RPVPLEX_TESTS" = "1" ]; then
-                echo 'RP+VPLEX volume create...'
-                run volume create ${rpvplexvolume} $PROJECT ${rpvplex_src_varray} ${rpvplex_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_VPLEX_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-            fi
-
-            if [ "$MP_TESTS" = "1" ]; then
-                echo 'MetroPoint volume create...'
-                run volume create ${mpvolume} $PROJECT ${mp_src_varray} ${mp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_METROPOINT_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-            fi
+        if [ "$MP_TESTS" = "1" ]; then
+            echo 'MetroPoint volume create...'
+            run volume create ${mpvolume} $PROJECT ${mp_src_varray} ${mp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_METROPOINT_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
         fi
 
         # Have to account for "-1" being added to volume name if
@@ -2886,6 +2864,26 @@ recoverpoint_tests()
             volume_name_modifier=''
         else
             volume_name_modifier='-1'
+        fi
+
+        # Run change vpool tests on the volume if the flag is set.
+        if [ "$RP_CHANGE_VPOOL" = "1" ]; then
+            echo '*** RP change vpool volumes ***'
+
+            if [ "$RP_TESTS" = "1" ]; then
+                echo 'RP change vpool...'
+                recoverpoint_vpool_change_test ${rpvolume}${volume_name_modifier} ${rp_noprotection_vpool} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
+            fi
+
+            if [ "$RPVPLEX_TESTS" = "1" ]; then
+                echo 'RP+VPLEX change vpool'
+                recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+            fi
+
+            if [ "$MP_TESTS" = "1" ]; then
+                echo 'MP change vpool'
+                recoverpoint_vpool_change_test ${mpvolume}${volume_name_modifier} ${mp_noprotection_vpool} ${mp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+            fi
         fi
 
 		# Compile a list of target volume names that have been created for RP
@@ -2916,8 +2914,8 @@ recoverpoint_tests()
         if [ "$RP_RUN_VOLUME_CREATE_ONLY" = "0" ]; then
             if [ "$RP_TESTS" = "1" ]; then
                 echo 'RP tests...'
-		# Add Journal Test
-		recoverpoint_add_journal_volume ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
+                # Add Journal Test
+                recoverpoint_add_journal_volume ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
 		
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier} ${rp_src_varray}
@@ -2925,31 +2923,31 @@ recoverpoint_tests()
                 # Failover Test
                 recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
 				
-				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
-				# recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
+				# CG Failover/Swap Test
+				recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
             fi
 
             # RP+VPLEX test cases
             if [ "$RPVPLEX_TESTS" = "1" ]; then
                 echo 'RP+VPLEX tests...'
                 # Add Journal Test
-		recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+                recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
 		
-		# Snapshot/Bookmark Test
+                # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier} ${rpvplex_src_varray}
 
                 # Failover Test
                	recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
 				
-				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
-				# recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
+				# CG Failover/Swap Test
+				recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
             fi
 
             # MP test cases
             if [ "$MP_TESTS" = "1" ]; then
                 echo 'MetroPoint tests...'
-		# Add Journal Test
-		recoverpoint_add_journal_volume ${mp_active_tgt_varray} ${mp_active_tgt_varray} ${mp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+                # Add Journal Test
+                recoverpoint_add_journal_volume ${mp_active_tgt_varray} ${mp_active_tgt_varray} ${mp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
 		
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier} ${mp_src_varray}
@@ -2957,8 +2955,8 @@ recoverpoint_tests()
                 # Failover Test
                 recoverpoint_failover_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier}
 				
-				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
-				# recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${mp_src_varray} ${mp_tgt_volumes} ${mp_tgt_varrays}
+				# CG Failover/Swap Test
+				recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${mp_src_varray} ${mp_tgt_volumes} ${mp_tgt_varrays}
             fi
         fi
 
@@ -6945,6 +6943,70 @@ output_conf(){
     echo "user=$WS_UID" >> "$file"
     echo "secretkey=$WS_SECRET" >> "$file"
     echo "bucket=${WS_SETUP_BUCKETS# }" >> "$file"
+}
+
+vplexsnap_setup()
+{
+    echo "**** Executing vplexsnap setup"
+    vplex_setup
+}
+
+vplexsnap_tests()
+{
+    echo "**** Executing VPLEX snapshot export tests"
+
+    hname=$(hostname)
+    if [ $hname = "standalone" ]; then
+        hname=$SHORTENED_HOST
+    fi
+    echo "hostname is $hname"
+
+    localVolume=$hname-${RANDOM}-VPlexLocal1
+    localSnapshot=$hname-${RANDOM}-VPlexLocalSnap
+    host=$PROJECT.lss.emc.com
+    hostLbl=$PROJECT
+    PWWN1=10:00:00:E0:7E:00:00:0F
+    WWNN1=20:00:00:E0:7E:00:00:0F
+    PWWN2=10:00:00:90:FA:18:0E:99
+    WWNN2=20:00:00:90:FA:18:0E:99
+
+    echo "**** Creating source VPLEX local volume"
+    run volume create $localVolume $PROJECT $NH cosvplexlocal $BLK_SIZE
+
+    echo "**** Creating VPLEX snapshot for source"
+    run blocksnapshot create $PROJECT/$localVolume $localSnapshot
+    blocksnapshot list $PROJECT/$localVolume
+    blocksnapshot show $PROJECT/$localVolume/$localSnapshot
+
+    echo "**** Creating VPLEX volume from snapshot"
+    blocksnapshot expose $PROJECT/$localVolume/$localSnapshot
+
+    echo "**** Creating host"
+    hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
+
+    echo "**** Creating initiators"
+    initiator create $hostLbl FC $PWWN1 --node $WWNN1
+    initiator create $hostLbl FC $PWWN2 --node $WWNN2
+
+    echo "**** Export VPLEX volume built from snapshot"
+    run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$localSnapshot+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
+
+    echo "**** Unexport VPLEX volume built from snapshot"
+    run export_group delete $PROJECT/$hname-1$host
+
+    echo "**** Deleting VPLEX volume built on snapshot"
+    run volume delete $PROJECT/$localSnapshot --wait
+
+    echo "**** Deleting snapshot"
+    run blocksnapshot delete $PROJECT/$localVolume/$localSnapshot
+
+    echo "**** Deleting source VPLEX local volume"
+    run volume delete $PROJECT/$localVolume --wait
+
+    echo "**** Deleting Host"
+    hosts delete $hostLbl
+
+    echo "**** Completed VPLEX snapshot export tests"
 }
 
 ${SS}_setup

@@ -15,12 +15,42 @@ from bourne import Bourne
 #----------------------------------------------------------------------
 def export_group_create(args):
     bourne.connect(args.ip)
-    o = bourne.export_group_create(args.name, args.project, args.neighborhood, args.type, args.volspec, args.inits, args.hosts, args.clusters)
+    path_param = dict()
+    path_param['max_paths'] = "0"
+    try:
+        path_param['max_paths'] = args.maxpath
+        path_param['min_paths'] = args.minpath
+        path_param['paths_per_initiator'] = args.pathsperinit
+        if (args.ports):
+	    storage_ports = []
+	    storagePortList = args.ports.split(',')
+	    print 'port list: ', storagePortList
+	    for storagePort in storagePortList:
+	       storage_ports.append(bourne.storageport_query(storagePort))
+	    path_param['storage_ports'] = storage_ports
+    except:
+       print 'No path parameters (optional)'
+    o = bourne.export_group_create(args.name, args.project, args.neighborhood, args.type, args.volspec, args.inits, args.hosts, args.clusters, path_param)
 
 def export_group_update(args):
     bourne.connect(args.ip)
+    path_param = dict()
+    path_param['max_paths'] = "0"
+    try:
+        path_param['max_paths'] = args.maxpath
+        path_param['min_paths'] = args.minpath
+        path_param['paths_per_initiator'] = args.pathsperinit
+        if (args.ports):
+	    storage_ports = []
+	    storagePortList = args.ports.split(',')
+	    print 'port list: ', storagePortList
+	    for storagePort in storagePortList:
+	       storage_ports.append(bourne.storageport_query(storagePort))
+	    path_param['storage_ports'] = storage_ports
+    except:
+        print 'No path parameters (optional)'
     groupId = bourne.export_group_query(args.groupId)
-    o = bourne.export_group_update(groupId, args.addVolspec, args.addInits, args.addHosts, args.addClusters, args.remVols, args.remInits, args.remHosts, args.remClusters)
+    o = bourne.export_group_update(groupId, args.addVolspec, args.addInits, args.addHosts, args.addClusters, args.remVols, args.remInits, args.remHosts, args.remClusters, path_param)
 
 def export_group_delete(args):
     bourne.connect(args.ip)
@@ -126,6 +156,10 @@ create.add_argument('--volspec', help = 'volume spec "volume1|lun1,volume2|lun2"
 create.add_argument('--inits', help = 'comma-separated list of host/init labels')
 create.add_argument('--hosts', help = 'comma-separated list of host labels')
 create.add_argument('--clusters', help = 'comma-separated list of tenant/cluster labels')
+create.add_argument('--maxpath', help = 'maximum number storage paths')
+create.add_argument('--minpath', help = 'minimum number storage paths')
+create.add_argument('--pathsperinit', help = 'paths per initiator')
+create.add_argument('--ports', help = 'storage ports for export')
 
 # export_group update groupId 
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -138,6 +172,10 @@ update.add_argument('--remVols', help = 'comma-separated list of proj/vol labels
 update.add_argument('--remInits', help = 'comma-separated list of host/init labels')
 update.add_argument('--remHosts', help = 'comma-separated list of host labels')
 update.add_argument('--remClusters', help = 'comma-separated list of tenant/cluster labels')
+update.add_argument('--maxpath', help = 'maximum number storage paths')
+update.add_argument('--minpath', help = 'minimum number storage paths')
+update.add_argument('--pathsperinit', help = 'paths per initiator')
+update.add_argument('--ports', help = 'storage ports for export')
 
 # export_group delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

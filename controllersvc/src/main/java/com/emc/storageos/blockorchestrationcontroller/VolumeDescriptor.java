@@ -74,6 +74,7 @@ public class VolumeDescriptor implements Serializable {
     public static final String PARAM_VPOOL_CHANGE_VPOOL_ID = "vpoolChangeVpoolId";
     public static final String PARAM_VPOOL_OLD_VPOOL_ID = "vpoolOldVpoolId";
     public static final String PARAM_IS_COPY_SOURCE_ID = "isCopySourceId";
+    public static final String PARAM_DO_NOT_DELETE_VOLUME = "doNotDeleteVolume";
 
     public VolumeDescriptor(Type type,
             URI deviceURI, URI volumeURI, URI poolURI, URI consistencyGroupURI,
@@ -275,8 +276,6 @@ public class VolumeDescriptor implements Serializable {
 
     /**
      * Helper method to retrieve the source vpool change volume hiding in the volume descriptors.
-     * Needed primarily for rollback as the old vpool URI will be in the map:
-     * Map<Volume URI, Old Vpool URI>
      * 
      * @param descriptors list of volumes
      * @return Map<URI,URI> of the vpool change volume and the old vpool associated to it.
@@ -286,7 +285,7 @@ public class VolumeDescriptor implements Serializable {
         if (descriptors != null) {
             for (VolumeDescriptor volumeDescriptor : descriptors) {
                 if (volumeDescriptor.getParameters() != null) {
-                    if ((URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID) != null) {
+                    if (volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID) != null) {
                         URI volumeURI = (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID);
                         URI oldVpoolURI = (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID);
                         sourceVolumes.put(volumeURI, oldVpoolURI);
@@ -310,6 +309,26 @@ public class VolumeDescriptor implements Serializable {
                 return vd1.getType().getOrder() - vd2.getType().getOrder();
             }
         });
+    }
+    
+    /**
+     * Returns all descriptors that have the PARAM_DO_NOT_DELETE_VOLUME flag set to true.
+     * 
+     * @param descriptors List of descriptors to check
+     * @return all descriptors that have the PARAM_DO_NOT_DELETE_VOLUME flag set to true
+     */
+    public static List<VolumeDescriptor> getDoNotDeleteDescriptors(List<VolumeDescriptor> descriptors) {
+        List<VolumeDescriptor> doNotDeleteDescriptors = new ArrayList<VolumeDescriptor>();
+        if (descriptors != null && !descriptors.isEmpty()) {
+            for (VolumeDescriptor descriptor : descriptors) {
+                if (descriptor.getParameters() != null
+                        && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null
+                        && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME).equals(Boolean.TRUE)) {                
+                    doNotDeleteDescriptors.add(descriptor);
+                }
+            } 
+        }
+        return doNotDeleteDescriptors;
     }
 
     @Override

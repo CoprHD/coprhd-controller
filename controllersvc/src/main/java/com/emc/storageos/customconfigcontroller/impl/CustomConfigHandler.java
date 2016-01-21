@@ -188,6 +188,34 @@ public class CustomConfigHandler {
     }
 
     /**
+     * Resolves custom name for a given CustomName configuration type
+     * name, a scope and the list of values specified in the data source
+     *
+     * @param name the configuration type name
+     * @param scope the scope to be used to find the configuration value.
+     * @param dataSource the object containing the variable values
+     *            to be used replaced in the CustomName mask.
+     * @return resolved custom name for a given CustomName configuration
+     */
+    public String resolve(String name, String scope,
+            DataSource dataSource) throws CustomConfigControllerException {
+        StringMap scopeMap = new StringMap();
+        CustomConfigType item = getCustomConfigType(name);
+        if (item != null) {
+            for (String key : item.getScope().keySet()) {
+                List<String> scopeVals = java.util.Arrays.asList(item.getScope().get(key).split(","));
+                if (scopeVals.contains(scope)) {
+                    scopeMap.put(key, scope);
+                }
+            }
+        }
+        String value = getCustomConfigValue(name, scopeMap);
+        CustomConfigResolver resolver = configResolvers.get(item.getConfigType());
+        String result = resolver.resolve(item, scopeMap, value, dataSource);
+        return result;
+    }
+
+    /**
      * Performs the necessary checks to ensure the user-specified value for a
      * configuration is valid.
      * <ol>

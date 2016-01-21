@@ -146,8 +146,7 @@ public class VPlexApiMigrationManager {
             if (VPlexApiConstants.MIGRATION_PAUSED.equals(migrationStatus)) {
                 // Skip those already paused.
                 continue;
-            }
-            else if (!VPlexApiConstants.MIGRATION_INPROGRESS.equals(migrationInfo.getStatus())) {
+            } else if (!VPlexApiConstants.MIGRATION_INPROGRESS.equals(migrationInfo.getStatus())) {
                 // TBD maybe queued as well? Not sure if you can pause a queued migration?
                 throw VPlexApiException.exceptions
                         .cantPauseMigrationNotInProgress(migrationInfo.getName());
@@ -227,8 +226,7 @@ public class VPlexApiMigrationManager {
             if (VPlexApiConstants.MIGRATION_INPROGRESS.equals(migrationStatus)) {
                 // Skip those in progress.
                 continue;
-            }
-            else if (!VPlexApiConstants.MIGRATION_PAUSED.equals(migrationStatus)) {
+            } else if (!VPlexApiConstants.MIGRATION_PAUSED.equals(migrationStatus)) {
                 throw VPlexApiException.exceptions
                         .cantResumeMigrationNotPaused(migrationInfo.getName());
             }
@@ -570,15 +568,22 @@ public class VPlexApiMigrationManager {
         // Find the requested migrations. An exception will be thrown if
         // they are not all found.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-        List<VPlexMigrationInfo> migrationInfoList = discoveryMgr
-                .findMigrations(migrationNames);
-
+        List<VPlexMigrationInfo> migrationInfoList = null;
+        try {
+            migrationInfoList = discoveryMgr.findMigrations(migrationNames);
+        } catch (VPlexApiException vae) {
+            // migrations might have deleted from VPLEX, then we just need to delete them from ViPR DB.
+            s_logger.info("No migration found in the VPLEX", vae);
+            return;
+        }
+        
         // Verify that the migrations are in a state in which they can be removed.
         StringBuilder migrationArgBuilder = new StringBuilder();
         for (VPlexMigrationInfo migrationInfo : migrationInfoList) {
             String migrationStatus = migrationInfo.getStatus();
             if ((!VPlexApiConstants.MIGRATION_COMMITTED.equals(migrationStatus)) &&
-                    (!VPlexApiConstants.MIGRATION_CANCELED.equals(migrationStatus))) {
+                    (!VPlexApiConstants.MIGRATION_CANCELED.equals(migrationStatus)) &&
+                    (!VPlexApiConstants.MIGRATION_ERROR.equals(migrationStatus))) {
                 throw VPlexApiException.exceptions
                         .cantRemoveMigrationInvalidState(migrationInfo.getName());
             }
@@ -788,8 +793,8 @@ public class VPlexApiMigrationManager {
      *             volume.
      */
     private VPlexMigrationInfo migrateLocalVirtualVolumeDevice(String migrationName,
-            VPlexVirtualVolumeInfo virtualVolumeInfo, Map<VolumeInfo,
-            VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow, String transferSize)
+            VPlexVirtualVolumeInfo virtualVolumeInfo, Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow,
+            String transferSize)
             throws VPlexApiException {
 
         // Find the local device.
@@ -1251,9 +1256,8 @@ public class VPlexApiMigrationManager {
                     // components, i.e., the local device names.
                     String srcDeviceName = VPlexApiConstants.DEVICE_PREFIX + srcVolumeName;
                     String tgtDeviceName = VPlexApiConstants.DEVICE_PREFIX + tgtVolumeName;
-                    List<VPlexDistributedDeviceComponentInfo> componentList =
-                            _vplexApiClient.getVirtualVolumeManager()
-                                    .getDistributedDeviceComponents(distDeviceInfo.getName());
+                    List<VPlexDistributedDeviceComponentInfo> componentList = _vplexApiClient.getVirtualVolumeManager()
+                            .getDistributedDeviceComponents(distDeviceInfo.getName());
                     for (VPlexResourceInfo component : componentList) {
                         if (component.getName().equals(srcDeviceName)) {
                             _vplexApiClient.getVirtualVolumeManager()

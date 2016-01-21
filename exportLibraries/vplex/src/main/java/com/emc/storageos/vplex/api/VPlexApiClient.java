@@ -288,7 +288,7 @@ public class VPlexApiClient {
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterId = clusterInfo.getName();
             // for each cluster get the virtual volume information.
-            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList =
+            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList = 
                     _discoveryMgr.getVirtualVolumesForCluster(clusterId);
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : clusterVirtualVolumeInfoList) {
                 virtualVolumeInfo.addCluster(clusterId);

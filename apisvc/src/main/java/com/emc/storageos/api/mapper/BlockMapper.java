@@ -376,7 +376,8 @@ public class BlockMapper {
                 // CG.
                 Volume volume = dbClient.queryObject(Volume.class, volumes.iterator().next());
 
-                if (from.getTypes().contains(BlockConsistencyGroup.Types.RP.toString()) && volume.getProtectionSet() != null) {
+                if (from.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())
+                        && !NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
                     // Get the protection set from the first volume and set the appropriate fields
                     ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                     to.setRpConsistenyGroupId(protectionSet.getProtectionId());

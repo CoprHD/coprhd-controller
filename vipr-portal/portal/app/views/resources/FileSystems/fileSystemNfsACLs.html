@@ -1,0 +1,31 @@
+#{if nfsAcls}
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th  colspan="5">&{'resources.filesystem.nfs.mount.path'}</th>
+     
+      <th style="text-align:right;">&{'resources.actions'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list items:nfsAcls, as:'nfsAcl'}
+      <tr>
+        <td colspan="5">
+          <img src="/public/img/serviceCatalog/icon_folder_NFS.png" style="width: 32px;"/> ${nfsAcl.fSMountPath}
+        </td>
+        
+        
+        <td style="text-align:right;">
+          <a href="@{listNfsAcl(params.fileSystemId, nfsAcl.fSMountPath, nfsAcl.subDir)}" class="btn btn-default btn-xs" >&{'button.updateAcl'}</a>
+        </td>        
+      </tr>
+    #{/list}
+   
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.filesystem.nfs.acl.none'}
+#{/else}
+<div class="pull-right"><button type="button" onclick="showDialogClick()" class="btn btn-xs btn-success"><i v-icon=plus></i> &{'button.addNfsAcl'}</button></div>
+

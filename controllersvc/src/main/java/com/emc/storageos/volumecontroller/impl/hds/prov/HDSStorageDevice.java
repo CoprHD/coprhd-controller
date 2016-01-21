@@ -263,7 +263,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
 
             if (volume.getThinlyProvisioned()) {
                 asyncTaskMessageId = hdsApiClient.modifyThinVolume(systemObjectID,
-                        HDSUtils.getLogicalUnitObjectId(volume.getNativeId(), storageSystem), size);
+                        HDSUtils.getLogicalUnitObjectId(volume.getNativeId(), storageSystem), size, storageSystem.getModel());
             }
 
             if (null != asyncTaskMessageId) {
@@ -381,7 +381,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             if (!multiVolumeTaskCompleter.isVolumeTaskCompletersEmpty()) {
                 if (null != thickLogicalUnitIdList && !thickLogicalUnitIdList.isEmpty()) {
                     String asyncThickLUsJobId = hdsApiClient.deleteThickLogicalUnits(systemObjectId,
-                            thickLogicalUnitIdList);
+                            thickLogicalUnitIdList, storageSystem.getModel());
                     if (null != asyncThickLUsJobId) {
                         ControllerServiceImpl.enqueueJob(new QueueJob(new HDSDeleteVolumeJob(
                                 asyncThickLUsJobId, volumes.get(0).getStorageController(),
@@ -391,7 +391,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
 
                 if (null != thinLogicalUnitIdList && !thinLogicalUnitIdList.isEmpty()) {
                     String asyncThinHDSJobId = hdsApiClient.deleteThinLogicalUnits(
-                            systemObjectId, thinLogicalUnitIdList);
+                            systemObjectId, thinLogicalUnitIdList, storageSystem.getModel());
 
                     // Not sure whether this really works as tracking two jobs
                     // in single operation.
@@ -822,7 +822,8 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                     // step in volume expand)
                     // Otherwise, call synchronously (for example when cleanup is part of meta
                     // volume create rollback)
-                    String asyncMessageId = hdsApiClient.deleteThickLogicalUnits(HDSUtils.getSystemObjectID(storageSystem), volumeIds);
+                    String asyncMessageId = hdsApiClient.deleteThickLogicalUnits(HDSUtils.getSystemObjectID(storageSystem), volumeIds,
+                            storageSystem.getModel());
 
                     if (cleanupCompleter.isWFStep()) {
                         if (asyncMessageId != null) {
@@ -888,7 +889,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                             targetObj.getNativeId()).first;
             hdsApiProtectionManager.modifyShadowImagePair(replicationGroupObjectID,
                     replicationInfo.getObjectID(),
-                    HDSApiProtectionManager.ShadowImageOperationType.split);
+                    HDSApiProtectionManager.ShadowImageOperationType.split, storageObj.getModel());
 
             // Update state in case we are waiting for synchronization
             // after creation of a new full copy that was not created
@@ -985,7 +986,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                     if (ldevItr.hasNext()) {
                         LDEV ldev = ldevItr.next();
                         String asyncMessageId = hdsApiClient.modifyThinVolumeTieringPolicy(systemObjectID,
-                                logicalUnit.getObjectID(), ldev.getObjectID(), autoTierPolicyName);
+                                logicalUnit.getObjectID(), ldev.getObjectID(), autoTierPolicyName, storage.getModel());
                         if (null != asyncMessageId) {
                             HDSJob modifyHDSJob = new HDSModifyVolumeJob(asyncMessageId, volume.getStorageController(),
                                     taskCompleter, HDSModifyVolumeJob.VOLUME_MODIFY_JOB);

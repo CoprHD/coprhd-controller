@@ -95,7 +95,7 @@ public class CheckPoolSettingExistenceProcessor extends PoolProcessor {
 
                 if (checkPoolSettingExistsBasedOnTierMethodology(tierMethodology, pool,
                         poolSettingId) && tierSelection == Constants.RELATIVE_PERFORMANCE_ORDER) {
-                    poolSettingsList.remove(poolCapabilitiesPath.toString() + Constants.HYPEN + tierMethodology);
+                    poolSettingsList.remove(poolCapabilitiesPath.toString() + Constants.HYPHEN + tierMethodology);
                 }
 
             }

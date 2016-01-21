@@ -279,37 +279,38 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
 
     @Override
     public void removeMirrorFromDeviceMaskingGroup(StorageSystem system, List<URI> mirrorList,
-                    TaskCompleter completer) throws DeviceControllerException {
-            _log.info("removeMirrorFromGroup operation START");
-            try{
-                    BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, mirrorList.get(0));
-                    CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(system, mirror.getReplicationGroupInstance(),
-                                    SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+                                                   TaskCompleter completer) throws DeviceControllerException {
+        _log.info("removeMirrorFromGroup operation START");
+        try{
+            BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, mirrorList.get(0));
+            CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(system, mirror.getReplicationGroupInstance(),
+                    SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
 
-                    List<URI> replicasPartOfGroup = _helper.findVolumesInReplicationGroup(system, maskingGroupPath, mirrorList);
-                    if (replicasPartOfGroup.isEmpty()) {
-                            _log.info("Mirrors {} already removed from Device Masking Group {}",
-                                    Joiner.on(", ").join(mirrorList), maskingGroupPath);
-                    } else {
+            List<URI> replicasPartOfGroup = _helper.findVolumesInReplicationGroup(system, maskingGroupPath, mirrorList);
+            if (replicasPartOfGroup.isEmpty()) {
+                _log.info("Mirrors {} already removed from Device Masking Group {}",
+                        Joiner.on(", ").join(mirrorList), maskingGroupPath);
+            } else {
                 String[] members = _helper.getBlockObjectAlternateNames(replicasPartOfGroup);
                 CIMObjectPath[] memberPaths = _cimPath.getVolumePaths(system, members);
-                            CIMArgument[] inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, false);
-                            CIMArgument[] outArgs = new CIMArgument[5];
+                CIMArgument[] inArgs = _helper.getRemoveAndUnmapMaskingGroupMembersInputArguments(
+                        maskingGroupPath, memberPaths, system, false);
+                CIMArgument[] outArgs = new CIMArgument[5];
 
-                            _log.info("Invoking remove mirrors {} from Device Masking Group equivalent to its Replication Group {}",
-                                    Joiner.on(", ").join(members), mirror.getReplicationGroupInstance());
-                            _helper.invokeMethodSynchronously(system, _cimPath.getControllerConfigSvcPath(system),
-                                            SmisConstants.REMOVE_MEMBERS, inArgs, outArgs, null);
-                    }
+                _log.info("Invoking remove mirrors {} from Device Masking Group equivalent to its Replication Group {}",
+                        Joiner.on(", ").join(members), mirror.getReplicationGroupInstance());
+                _helper.invokeMethodSynchronously(system, _cimPath.getControllerConfigSvcPath(system),
+                        SmisConstants.REMOVE_MEMBERS, inArgs, outArgs, null);
+            }
 
-                    completer.ready(_dbClient);
-            } catch (Exception e) {
-        _log.error(
-                "Failed to remove mirrors from its Device Masking Group. Mirrors: {}",
-                Joiner.on(", ").join(mirrorList), e);
-        ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-        completer.error(_dbClient, serviceError);
-    }
-            _log.info("removeMirrorFromGroup operation END");
+            completer.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error(
+                    "Failed to remove mirrors from its Device Masking Group. Mirrors: {}",
+                    Joiner.on(", ").join(mirrorList), e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            completer.error(_dbClient, serviceError);
+        }
+        _log.info("removeMirrorFromGroup operation END");
     }
 }

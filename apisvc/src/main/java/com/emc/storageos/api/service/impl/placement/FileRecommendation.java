@@ -17,6 +17,7 @@ public class FileRecommendation extends Recommendation {
 
     private static final long serialVersionUID = 1L;
     private List<URI> _storagePortUris;
+    private URI vNASURI;
 
     public FileRecommendation(Recommendation recommendation) {
         setDeviceType(recommendation.getDeviceType());
@@ -35,5 +36,13 @@ public class FileRecommendation extends Recommendation {
     public void setStoragePorts(List<URI> storagePortUris) {
         this._storagePortUris = storagePortUris;
     }
+    
+    public URI getvNAS() {
+		return vNASURI;
+	}
+
+	public void setvNAS(URI vNASURI) {
+		this.vNASURI = vNASURI;
+	}
 
 }

@@ -74,4 +74,7 @@ public interface CustomConfigConstants {
 
     public String MIGRATION_SPEED = "VPlexMigrationSpeed";
     public String NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED = "NasDynamicPerformancePlacementEnabled";
+    public String USE_PHYSICAL_NAS_FOR_PROVISIONING = "NasUsePhysicalNASForProvisioning";
+    
+    
 }

@@ -8,6 +8,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Properties;
 
 import javax.ws.rs.core.UriBuilder;
 
@@ -26,6 +27,9 @@ import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
+import com.emc.storageos.model.file.NfsACL;
+import com.emc.storageos.model.file.NfsACLUpdateParams;
+import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
@@ -95,6 +99,17 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     protected String getShareACLsUrl() {
         return getIdUrl() + "/shares/{shareName}/acl";
     }
+    
+	/**
+	 * Gets the base URL for NFS ACL for a filesystem:
+	 * <tt>/file/filesystems/{id}/acl</tt>
+	 * 
+	 * @return the NFS ACL URL.
+	 */
+	protected String getNfsACLsUrl() {
+		return "/file/filesystems/{id}/acl";
+	}
+    
 
     @Override
     protected List<FileShareRestRep> getBulkResources(BulkIdParam input) {
@@ -395,6 +410,66 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     public List<ShareACL> getShareACLs(URI id, String shareName) {
         ShareACLs response = client.get(ShareACLs.class, getShareACLsUrl(), id, shareName);
         return defaultList(response.getShareACLs());
+    }
+    
+    /**
+     * Gets the all NFS ACLs for the given file system by ID.
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{id}/acl?allDir=true</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * 
+     * @return the list of NFS ACLs for the given file system.
+     */
+    public List<NfsACL> getAllNfsACLs(URI id) {
+        Properties queryParam = new Properties();
+        queryParam.setProperty("allDirs", "true");
+        NfsACLs response = client.get(NfsACLs.class, getNfsACLsUrl(),
+                queryParam, id);
+        return defaultList(response.getNfsACLs());
+    }
+
+    /**
+     * Gets the NFS ACLs for the given file system by ID.
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{id}/acl?subDir=<subDirId></tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param subDir
+     *            the subDir to get list of ACLS associated.
+     * @return the list of NFS ACLs for the given file system.
+     */
+    public List<NfsACL> getNfsACLs(URI id, String subDir) {
+        Properties queryParam = new Properties();
+
+        NfsACLs response;
+        if (subDir != null && !"null".equals(subDir)) {
+            queryParam.setProperty("subDir", subDir);
+            response = client.get(NfsACLs.class, getNfsACLsUrl(), queryParam,
+                    id);
+        } else {
+            response = client.get(NfsACLs.class, getNfsACLsUrl(), id);
+        }
+        return defaultList(response.getNfsACLs());
+    }
+
+    /**
+     * Update file system NFSv4 ACL
+     * 
+     * API Call: <tt>PUT /file/filesystems/{id}/acl</tt>
+     * 
+     * @param id
+     *            the ID of the filesystem.
+     * @param param
+     *            the update/create configuration
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> updateNfsACL(URI id, NfsACLUpdateParams param) {
+        UriBuilder builder = client.uriBuilder(getNfsACLsUrl());
+        URI targetUri = builder.build(id);
+        return putTaskURI(param, targetUri);
     }
 
     /**

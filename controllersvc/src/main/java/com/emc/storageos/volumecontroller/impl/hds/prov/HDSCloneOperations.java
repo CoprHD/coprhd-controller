@@ -100,7 +100,7 @@ public class HDSCloneOperations implements CloneOperations {
             ReplicationInfo replicationInfo = hdsApiProtectionManager.
                     createShadowImagePair(replicationGroupObjectID, pairName,
                             HDSUtils.getSystemArrayType(storageSystem), HDSUtils.getSystemSerialNumber(storageSystem),
-                            source.getNativeId(), cloneVolume.getNativeId());
+                            source.getNativeId(), cloneVolume.getNativeId(), storageSystem.getModel());
             log.info("Replication Info object :{}", replicationInfo.toXMLString());
             log.info("createInactive :{}", createInactive);
             cloneVolume.setSyncActive(false);

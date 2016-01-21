@@ -201,6 +201,8 @@ public class ComputeImageServerService extends TaskResourceService {
         String username = createParams.getImageServerUser();
         String password = createParams.getImageServerPassword();
         Integer installTimeout = createParams.getOsInstallTimeout();
+        Integer sshTimeout = createParams.getSshTimeout();
+        Integer imageImportTimeout = createParams.getImageImportTimeout();
 
         ArgValidator.checkFieldNotEmpty(bootDir, TFTPBOOTDIR);
         ArgValidator.checkFieldNotEmpty(osInstallAddress,
@@ -209,6 +211,10 @@ public class ComputeImageServerService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(password, IMAGESERVER_PASSWORD);
         ArgValidator.checkFieldNotNull(installTimeout, OS_INSTALL_TIMEOUT_MS);
         ArgValidator.checkFieldRange(installTimeout, 0, 2147483, "seconds", "osInstallTimeout");
+        ArgValidator.checkFieldNotNull(sshTimeout, OS_INSTALL_TIMEOUT_MS);
+        ArgValidator.checkFieldRange(sshTimeout, 0, 2147483, "seconds", "sshTimeout");
+        ArgValidator.checkFieldNotNull(imageImportTimeout, OS_INSTALL_TIMEOUT_MS);
+        ArgValidator.checkFieldRange(installTimeout, 0, 2147483, "seconds", "imageImportTimeout");
 
         ComputeImageServer imageServer = new ComputeImageServer();
         imageServer.setId(URIUtil.createId(ComputeImageServer.class));
@@ -221,6 +227,10 @@ public class ComputeImageServerService extends TaskResourceService {
                 TimeUnit.SECONDS.toMillis(installTimeout)).intValue());
         imageServer.setImageServerSecondIp(osInstallAddress);
         imageServer.setImageDir(_coordinator.getPropertyInfo().getProperty(IMAGE_SERVER_IMAGEDIR));
+        imageServer.setSshTimeoutMs(new Long(
+                TimeUnit.SECONDS.toMillis(sshTimeout)).intValue());
+        imageServer.setImageImportTimeoutMs(new Long(
+                TimeUnit.SECONDS.toMillis(imageImportTimeout)).intValue());
 
         auditOp(OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES, true, null,
                 imageServer.getId().toString(), imageServer.getImageServerIp());
@@ -316,6 +326,8 @@ public class ComputeImageServerService extends TaskResourceService {
             String username = param.getImageServerUser();
             String password = param.getImageServerPassword();
             Integer installTimeout = param.getOsInstallTimeout();
+            Integer sshTimeout = param.getSshTimeout();
+            Integer imageImportTimeout = param.getImageImportTimeout();
             if (StringUtils.isNotBlank(imageServerName)
                     && !imageServerName
                             .equalsIgnoreCase(imageServer.getLabel())) {
@@ -340,6 +352,16 @@ public class ComputeImageServerService extends TaskResourceService {
                 ArgValidator.checkFieldRange(installTimeout, 0, 2147483, "seconds", "osInstallTimeout");
                 imageServer.setOsInstallTimeoutMs(new Long(
                         TimeUnit.SECONDS.toMillis(installTimeout)).intValue());
+            }
+            if(null != sshTimeout){
+                ArgValidator.checkFieldRange(sshTimeout, 0, 2147483, "seconds", "sshTimeout");
+                imageServer.setSshTimeoutMs(new Long(
+                        TimeUnit.SECONDS.toMillis(sshTimeout)).intValue());
+            }
+            if(null != imageImportTimeout){
+                ArgValidator.checkFieldRange(imageImportTimeout, 0, 2147483, "seconds", "imageImportTimeout");
+                imageServer.setImageImportTimeoutMs(new Long(
+                        TimeUnit.SECONDS.toMillis(imageImportTimeout)).intValue());
             }
             if (StringUtils.isNotBlank(bootDir)) {
                 if (!CollectionUtils.isEmpty(availImages)
@@ -531,14 +553,18 @@ public class ComputeImageServerService extends TaskResourceService {
     private void disassociateComputeImages(ComputeImageServer imageServer) {
         StringSet successImages = imageServer.getComputeImages();
         if (!CollectionUtils.isEmpty(successImages)) {
-            for (String image : successImages) {
-                imageServer.getComputeImages().remove(image);
+            Iterator<String> itr = successImages.iterator();
+            while (itr.hasNext()) {
+                itr.next();
+                itr.remove();
             }
         }
         StringSet failedImages = imageServer.getFailedComputeImages();
         if (!CollectionUtils.isEmpty(failedImages)) {
-            for (String image : failedImages) {
-                imageServer.getFailedComputeImages().remove(image);
+            Iterator<String> itr = failedImages.iterator();
+            while (itr.hasNext()) {
+                itr.next();
+                itr.remove();
             }
         }
     }

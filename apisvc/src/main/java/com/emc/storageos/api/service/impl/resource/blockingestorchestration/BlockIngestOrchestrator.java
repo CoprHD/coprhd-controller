@@ -964,10 +964,10 @@ public abstract class BlockIngestOrchestrator {
                 taskStatus = new StringBuffer();
                 taskStatusMap.put(currentUnManagedVolume.getNativeGuid(), taskStatus);
             }
-            // we don't need to include vplex backend 
+            // we don't need to include vplex backend
             // volume guids in the list returned to the user
             if (vplexBackendVolumeGUIDs != null) {
-                _logger.info("removing the subset of vplex backend volume GUIDs from the error message: " 
+                _logger.info("removing the subset of vplex backend volume GUIDs from the error message: "
                         + vplexBackendVolumeGUIDs);
                 // have to convert this because getUningestedReplicas returns an immutable set
                 Set<String> mutableSet = new HashSet<String>();
@@ -976,7 +976,7 @@ public abstract class BlockIngestOrchestrator {
                 unIngestedReplicas = mutableSet;
             }
             taskStatus.append(String.format("The umanaged volume %s has been partially ingested, but not all replicas "
-                    + "have been ingested. Uningested replicas: %s.", currentUnManagedVolume.getLabel(), 
+                    + "have been ingested. Uningested replicas: %s.", currentUnManagedVolume.getLabel(),
                     Joiner.on(", ").join(unIngestedReplicas)));
             // clear the map and stop traversing
             parentReplicaMap.clear();

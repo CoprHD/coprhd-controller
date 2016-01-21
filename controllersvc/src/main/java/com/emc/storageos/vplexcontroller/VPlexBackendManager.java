@@ -722,7 +722,8 @@ public class VPlexBackendManager {
         Map<URI, List<StoragePort>> map = new HashMap<URI, List<StoragePort>>();
 
         // find all the available storage ports
-        Map<NetworkLite, List<StoragePort>> tempMap = _blockStorageScheduler.selectStoragePortsInNetworks(array.getId(), networks, varray);
+        Map<NetworkLite, List<StoragePort>> tempMap = _blockStorageScheduler
+                .selectStoragePortsInNetworks(array.getId(), networks, varray, null);
 
         // if the user requests to use only pre-zoned ports, then filter to pre-zoned ports only
         if (_networkDeviceController.getNetworkScheduler().portAllocationUseExistingZones(array.getSystemType(), true)) {
@@ -738,7 +739,7 @@ public class VPlexBackendManager {
     }
 
     public ExportMask generateExportMask(URI arrayURI, String namePrefix,
-            Map<URI, List<StoragePort>> portGroup,
+            Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             StringSetMap zoningMap) {
 
@@ -762,8 +763,10 @@ public class VPlexBackendManager {
         }
         // Add all the ports in the Port Group
         for (URI networkURI : portGroup.keySet()) {
-            for (StoragePort port : portGroup.get(networkURI)) {
-                exportMask.addTarget(port.getId());
+            for (List<StoragePort> portList : portGroup.get(networkURI)) {
+                for (StoragePort port : portList) {
+                    exportMask.addTarget(port.getId());
+                }
             }
         }
         // Add the mask to the result
@@ -939,12 +942,19 @@ public class VPlexBackendManager {
         // First we must determine the Initiator Groups and PortGroups to be used.
         VplexBackEndMaskingOrchestrator orca = getOrch(array);
 
+        // set VPLEX director count to set number of paths per director
+        if (orca instanceof VplexXtremIOMaskingOrchestrator) {
+            // get VPLEX director count
+            int directorCount = getVplexDirectorCount(initiatorGroups);
+            ((VplexXtremIOMaskingOrchestrator) orca).setVplexDirectorCount(directorCount);
+        }
+
         // get the allocatable ports - if the custom config requests pre-zoned ports to be used
         // get the existing zones in zonesByNetwork
         Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
         Map<URI, List<StoragePort>> allocatablePorts =
                 getAllocatablePorts(array, _networkMap.keySet(), varrayURI, zonesByNetwork, stepId);
-        Set<Map<URI, List<StoragePort>>> portGroups =
+        Set<Map<URI, List<List<StoragePort>>>> portGroups =
                 orca.getPortGroups(allocatablePorts, _networkMap, varrayURI, initiatorGroups.size());
 
         // Now generate the Masking Views that will be needed.
@@ -952,7 +962,7 @@ public class VPlexBackendManager {
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
         // get the assigner needed - it is with a pre-zoned ports assigner or the default
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones(array.getSystemType(), zonesByNetwork);
-        for (Map<URI, List<StoragePort>> portGroup : portGroups) {
+        for (Map<URI, List<List<StoragePort>>> portGroup : portGroups) {
             String maskName = clusterName.replaceAll("[^A-Za-z0-9_]", "_");
             _log.info("Generating ExportMask: " + maskName);
             if (!igIterator.hasNext()) {
@@ -990,6 +1000,22 @@ public class VPlexBackendManager {
             exportMasksMap.put(exportMask, exportGroup);
         }
         return exportMasksMap;
+    }
+
+    /**
+     * Gets the number of VPLEX directors.
+     *
+     * @param initiatorGroups the initiator groups
+     * @return the vplex director count
+     */
+    public int getVplexDirectorCount(Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups) {
+        Set<String> directors = new HashSet<String>();
+        for (Map<String, Map<URI, Set<Initiator>>> initiatorGroup : initiatorGroups) {
+            for (String director : initiatorGroup.keySet()) {
+                directors.add(director);
+            }
+        }
+        return directors.size();
     }
 
     /**

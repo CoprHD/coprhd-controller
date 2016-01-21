@@ -5,6 +5,7 @@
 package models.datatable;
 
 import models.ComputeImageTypes;
+import util.ComputeImageUtils;
 import util.datatable.DataTable;
 
 import com.emc.storageos.model.compute.ComputeImageRestRep;
@@ -40,8 +41,11 @@ public class ComputeImagesDataTable extends DataTable {
             this.imageUrl = computeImage.getImageUrl();
             this.computeImageStatus = computeImage.getComputeImageStatus();
             String displayStatus = computeImage.getComputeImageStatus();
-            if (displayStatus.equalsIgnoreCase("AVAILABLE")) {
+            ComputeImageRestRep cirr = ComputeImageUtils.getComputeImage(id);
+            if (displayStatus.equalsIgnoreCase("AVAILABLE") && cirr.getFailedImageServers().size() == 0) {
                 this.discoveryStatus = "COMPLETE";
+            } else if (displayStatus.equalsIgnoreCase("AVAILABLE") && cirr.getFailedImageServers().size() > 0) {
+                this.discoveryStatus = "PARTIAL_SUCCESS";
             } else if (displayStatus.equalsIgnoreCase("NOT_AVAILABLE")) {
                 this.discoveryStatus = "ERROR";
             } else {

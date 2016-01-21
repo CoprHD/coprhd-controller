@@ -1,0 +1,25 @@
+{
+  baseKey:"CreateVplexVolumeFromSnapshot.Block",
+  serviceId:"CreateVplexVolumeFromSnapshot",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+
+    storageType:{
+      type:"assetType.vipr.blockVolumeOrConsistencyType",
+      lockable:true,
+      initialValue:"volume"
+    },
+
+    volume:{
+      type:"assetType.vipr.vplexVolumeWithSnapshots"
+    },
+    
+    snapshots:{
+      type:"assetType.vipr.vplexBlockSnapshot",
+      select: "many"
+    }        
+  }
+}

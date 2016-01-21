@@ -89,15 +89,15 @@ public class PoolCapabilitiesProcessor extends PoolProcessor {
             CIMObjectPath capabilitiesPath, Map<String, Object> keyMap) {
         List<String> expectedPoolSettingsTier = (List<String>) keyMap
                 .get(Constants.VNXPOOLCAPABILITIES_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPHEN
                 + Constants.NO_DATA_MOVEMENT);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPHEN
                 + Constants.AUTO_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPHEN
                 + Constants.HIGH_AVAILABLE_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPHEN
                 + Constants.LOW_AVAILABLE_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPHEN
                 + Constants.START_HIGH_THEN_AUTO_TIER);
     }
 

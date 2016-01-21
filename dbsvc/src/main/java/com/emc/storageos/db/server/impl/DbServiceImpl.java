@@ -486,7 +486,7 @@ public class DbServiceImpl implements DbService {
         return true;
     }
 
-    /*
+    /**
      * We need to turn off encryption if upgrade from 1.*,2.*,2.1 to higher version for dbsvc because
      * we enable db encryption since 2.2, otherwise first reboot node can't communicate with others .
      */
@@ -516,7 +516,16 @@ public class DbServiceImpl implements DbService {
         return true;
     }
 
+    /**
+     * Use a db initialized flag file to block the peripheral services from starting.
+     * This gurantees CPU cyles for the core services during boot up.
+     */
     protected void setDbInitializedFlag() {
+        // set the flag file only for dbsvc (not for geodbsvc) since it always uses more time to 
+        // complete comparing to the other
+        if (isGeoDbsvc())
+            return;
+
         File dbInitializedFlag = new File(DB_INITIALIZED_FLAG_FILE);
         try {
             if (!dbInitializedFlag.exists()) {

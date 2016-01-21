@@ -51,6 +51,7 @@ public class PathConstants {
     public static final String COMPUTE_ELEMENT_BY_COMPUTE_SYSTEM_URL = COMPUTE_SYSTEMS_URL
             + "/{computeSystemId}/compute-elements";
     public static final String COMPUTE_IMAGE_URL = "/compute/images";
+    public static final String COMPUTE_IMAGE_SERVER_URL = "/compute/imageservers";
     public static final String VARRAY_URL = "/vdc/varrays";
     public static final String NETWORK_BY_VARRAY_URL = VARRAY_URL + "/{virtualArrayId}/networks";
     public static final String STORAGE_PORT_BY_VARRAY_URL = VARRAY_URL + "/{virtualArrayId}/storage-ports";

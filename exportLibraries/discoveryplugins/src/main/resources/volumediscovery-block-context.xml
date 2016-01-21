@@ -91,7 +91,7 @@
 				
 				<ref bean="getVNXTierSetting"/>
 			   
-				<ref bean="setSupportedVPoolsForReplicas" />
+				<ref bean="runReplicaPostProcessing" />
 			</list>
 		</property>
 	</bean>
@@ -836,9 +836,8 @@
 	<bean id="replicationRelationshipProcessor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.ReplicationRelationshipProcessor" />
 
-	<!-- General call to set supported VPools for replicas. The supported VPools of replicas will be the same as that of the source -->
 	<!-- This should be executed at the end of the unmanaged volume discovery -->
-	<bean id="setSupportedVPoolsForReplicas" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+	<bean id="runReplicaPostProcessing" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="arguments">
 			<list>
 				<ref bean="volumeToReplica" />
@@ -846,8 +845,8 @@
 			</list>
 		</property>
 		<property name="instance" ref="volumeDiscoveryPostProcessor" />
-		<property name="method" value="setSupportedVPoolsForReplicas" />
-		<property name="message" value="Invoking setSupportedVPoolsForReplicas" />
+		<property name="method" value="runReplicaPostProcessing" />
+		<property name="message" value="Invoking runReplicaPostProcessing" />
 	</bean>
 
 	<bean id="volumeToReplica" class="com.emc.storageos.plugins.common.domainmodel.Argument">

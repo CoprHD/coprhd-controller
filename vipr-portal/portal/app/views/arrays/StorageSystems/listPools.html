@@ -8,7 +8,7 @@
   #{breadcrumb.item @arrays.StorageSystems.edit(storageSystem.id)}${storageSystem.name}#{/breadcrumb.item}
   #{breadcrumb.dropdown currentPage:'StorageSystems.pools.title' }
     #{breadcrumb.item @arrays.StorageSystems.ports(storageSystem.id)}&{'StorageSystems.listPorts.title'}#{/breadcrumb.item}
-     #{if storageSystem.getSystemType() == 'vnxfile'}
+     #{if storageSystem.getSystemType() == 'vnxfile'  || storageSystem.getSystemType() == 'isilon'}
     #{breadcrumb.item @arrays.StorageSystems.virtualNasServers(storageSystem.id)}&{'StorageSystems.vnas.title'}#{/breadcrumb.item}
   #{/if}
   #{/breadcrumb.dropdown}

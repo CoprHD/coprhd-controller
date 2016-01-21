@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.joiner.Joiner;
@@ -968,7 +969,6 @@ public class VPlexUtil {
         return sharedVplexExportMask;
     }
 
-    
     /**
      * Check if the backend volumes for the vplex volumes in a consistency group are in the same storage system.
      * 
@@ -979,25 +979,25 @@ public class VPlexUtil {
      * 
      */
     public static boolean isVPLEXCGBackendVolumesInSameStorage(List<Volume> vplexVolumes, DbClient dbClient) {
-        Set<String> backendSystems = new HashSet<String> ();
+        Set<String> backendSystems = new HashSet<String>();
         Set<String> haBackendSystems = new HashSet<String>();
         boolean result = true;
         for (Volume vplexVolume : vplexVolumes) {
             Volume srcVolume = getVPLEXBackendVolume(vplexVolume, true, dbClient);
             backendSystems.add(srcVolume.getStorageController().toString());
-            
+
             Volume haVolume = getVPLEXBackendVolume(vplexVolume, false, dbClient);
             if (haVolume != null) {
                 haBackendSystems.add(haVolume.getStorageController().toString());
             }
-            
+
         }
         if (backendSystems.size() > 1 || haBackendSystems.size() > 1) {
             result = false;
         }
         return result;
     }
-    
+
     /**
      * Verifies if the passed volumes are all the volumes in the same backend arrays in the passed
      * consistency group.
@@ -1010,7 +1010,7 @@ public class VPlexUtil {
         List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, dbClient, null);
         return verifyVolumesInCG(volumes, cgVolumes, dbClient);
     }
-    
+
     /**
      * Verifies if the passed volumes are all the volumes in the same backend arrays in the passed
      * consistency group volumes.
@@ -1059,16 +1059,17 @@ public class VPlexUtil {
             List<String> selectedVols = entry.getValue();
             List<String> cgVols = cgBackendSystemToVolumesMap.get(systemId);
             if (selectedVols.size() < cgVols.size()) {
-                //not all volumes from the same backend system are selected.
+                // not all volumes from the same backend system are selected.
                 result = false;
                 break;
             }
         }
         return result;
     }
-    
+
     /**
      * Check if the volume is in an ingested VPlex consistency group
+     * 
      * @param volume The volume to be checked on
      * @param dbClient
      * @return true or false
@@ -1348,6 +1349,58 @@ public class VPlexUtil {
                 default :
                     // fall through
             }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Determines if the passed VPLEX volume is built on top of a target
+     * volume for a block snapshot.
+     * 
+     * @param dbClient A reference to a database client.
+     * @param vplexVolume A reference to a VPLEX volume.
+     * 
+     * @return true of the Volume is built on a block snapshot, false otherwise.
+     */
+    public static boolean isVolumeBuiltOnBlockSnapshot(DbClient dbClient, Volume vplexVolume) {
+        boolean isBuiltOnSnapshot = false;
+        Volume srcSideBackendVolume = getVPLEXBackendVolume(vplexVolume, true, dbClient, false);
+        if (srcSideBackendVolume != null) {
+            String nativeGuid = srcSideBackendVolume.getNativeGuid();
+            List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(dbClient, nativeGuid);
+            if (!snapshots.isEmpty()) {
+                // There is a snapshot with the same native GUID as the source
+                // side backend volume, and therefore the VPLEX volume is built
+                // on a block snapshot target volume.
+                isBuiltOnSnapshot = true;
+            }
+        }
+
+        return isBuiltOnSnapshot;
+    }
+    
+    /**
+     * Determines if the back-end is OpenStack Cinder, if yes returns true
+     * otherwise returns false.
+     * 
+     * @param fcObject
+     * @param dbClient
+     * @return
+     */
+    public static boolean isOpenStackBackend(BlockObject fcObject, DbClient dbClient) {
+        
+        URI backendStorageSystem = null;
+        if(fcObject instanceof Volume) {            
+            Volume backendVolume = getVPLEXBackendVolume((Volume)fcObject, true, dbClient, true);
+            backendStorageSystem = backendVolume.getStorageController();
+        } else {
+            backendStorageSystem = fcObject.getStorageController();
+        }
+        StorageSystem backendStorage = dbClient.queryObject(StorageSystem.class, backendStorageSystem);
+        String systemType = backendStorage.getSystemType();
+        if(DiscoveredDataObject.Type.openstack.name().equals(systemType)) {
+            return true;
         }
         
         return false;

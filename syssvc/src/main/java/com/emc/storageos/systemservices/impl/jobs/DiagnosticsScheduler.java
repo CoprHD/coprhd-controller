@@ -11,6 +11,7 @@ import com.emc.storageos.systemservices.impl.healthmonitor.DiagnosticsExec;
 import com.emc.storageos.systemservices.impl.healthmonitor.LogAnalyser;
 import com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata;
 import com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestsMetadata;
+import com.emc.storageos.systemservices.impl.jobs.common.JobConstants;
 import com.emc.vipr.model.sys.healthmonitor.DiagTest;
 
 import org.slf4j.Logger;

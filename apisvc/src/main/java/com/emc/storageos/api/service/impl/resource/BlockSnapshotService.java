@@ -39,17 +39,23 @@ import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
 import com.emc.storageos.api.service.impl.response.ProjOwnedSnapResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
@@ -203,10 +209,10 @@ public class BlockSnapshotService extends TaskResourceService {
 
         // Get the block service API implementation for the snapshot parent volume.
         Volume parentVolume = _permissionsHelper.getObjectById(snap.getParent(), Volume.class);
-        
-        // Check that there are no pending tasks for these snapshots.        
+
+        // Check that there are no pending tasks for these snapshots.
         checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), snapshots);
-        
+
         for (BlockSnapshot snapshot : snapshots) {
             Operation snapOp = _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), task,
                     ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT);
@@ -217,9 +223,18 @@ public class BlockSnapshotService extends TaskResourceService {
         // snapshot is the source side backend volume, which will have the same
         // vpool as the VPLEX volume and therefore, the correct implementation
         // should be returned.
-        BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
-
-        blockServiceApiImpl.deleteSnapshot(snap, task);
+        try {
+            BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
+            blockServiceApiImpl.deleteSnapshot(snap, task);
+        } catch (APIException | InternalException e) {
+            String errorMsg = String.format("Exception attempting to delete snapshot %s: %s", snap.getId(), e.getMessage());
+            _log.error(errorMsg);
+            for (TaskResourceRep taskResourceRep : response.getTaskList()) {
+                taskResourceRep.setState(Operation.Status.error.name());
+                taskResourceRep.setMessage(errorMsg);
+                _dbClient.error(BlockSnapshot.class, taskResourceRep.getResource().getId(), task, e);
+            }
+        }
 
         auditOp(OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                 id.toString(), snap.getLabel(), snap.getParent().getName(), device.getId().toString());
@@ -269,12 +284,12 @@ public class BlockSnapshotService extends TaskResourceService {
         // Validate an get the snapshot to be restored.
         ArgValidator.checkFieldUriType(id, BlockSnapshot.class, "id");
         BlockSnapshot snapshot = (BlockSnapshot) queryResource(id);
-        
+
         // Get the block service API implementation for the snapshot parent volume.
         Volume parentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
-        
+
         // Make sure that we don't have some pending
-        // operation against the parent volume      
+        // operation against the parent volume
         checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), Arrays.asList(parentVolume));
 
         // Get the storage system for the volume
@@ -406,14 +421,14 @@ public class BlockSnapshotService extends TaskResourceService {
         op.setResourceType(ResourceOperationTypeEnum.ACTIVATE_VOLUME_SNAPSHOT);
         ArgValidator.checkFieldUriType(id, BlockSnapshot.class, "id");
         BlockSnapshot snapshot = (BlockSnapshot) queryResource(id);
-        
+
         // Get the block service API implementation for the snapshot parent volume.
         Volume parentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
-        
+
         // Make sure that we don't have some pending
-        // operation against the parent volume        
+        // operation against the parent volume
         checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), Arrays.asList(parentVolume));
-        
+
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
         BlockController controller = getController(BlockController.class, device.getSystemType());
 
@@ -453,30 +468,29 @@ public class BlockSnapshotService extends TaskResourceService {
         return toTask(snapshot, task, op);
     }
 
-
     /**
      * Generates a group synchronized between volume Replication group
      * and snapshot Replication group.
      * 
      * @prereq There should be existing Storage synchronized relations
-     * between volumes and snapshots.
+     *         between volumes and snapshots.
      * 
-     * @param id   [required] - the URN of a ViPR block snapshot
+     * @param id [required] - the URN of a ViPR block snapshot
      * 
      * @return TaskList
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     @Path("/{id}/start")
     public TaskResourceRep startSnapshot(@PathParam("id") URI id)
-        throws InternalException {
+            throws InternalException {
 
         // Validate and get the snapshot.
         ArgValidator.checkFieldUriType(id, BlockSnapshot.class, "id");
-        BlockSnapshot snapshot = (BlockSnapshot)queryResource(id);
-        
+        BlockSnapshot snapshot = (BlockSnapshot) queryResource(id);
+
         // Get the block service API implementation for the snapshot parent volume.
         Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
         // Get the storage system for the volume
@@ -521,16 +535,16 @@ public class BlockSnapshotService extends TaskResourceService {
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList createFullCopy(@PathParam("id") URI id,
-            VolumeFullCopyCreateParam param) throws InternalException {        
+            VolumeFullCopyCreateParam param) throws InternalException {
         BlockSnapshot snapshot = (BlockSnapshot) queryResource(id);
-        
+
         // Get the block service API implementation for the snapshot parent volume.
         Volume parentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
-        
+
         // Make sure that we don't have some pending
-        // operation against the parent volume        
+        // operation against the parent volume
         checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), Arrays.asList(parentVolume));
-        
+
         return getFullCopyManager().createFullCopy(id, param);
     }
 
@@ -726,5 +740,183 @@ public class BlockSnapshotService extends TaskResourceService {
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
             PermissionsHelper permissionsHelper) {
         return new ProjOwnedSnapResRepFilter(user, permissionsHelper, BlockSnapshot.class);
+    }
+
+    /**
+     * Exposes the target volume associated with BlockSnapshot instance with the passed id
+     * as a ViPR Volume. Currently, the BlockSnapshot instance must represent a snapshot
+     * whose parent volume is the backend volume for a VPLEX volume. That is, it must be a
+     * VPLEX snapshot. The purpose is to expose the backend snapshot as a VPLEX volume so
+     * that access to the snapshot is via the VPLEX rather than directly via the backend
+     * storage system.
+     * 
+     * @brief Expose snapshot as a volume.
+     * 
+     * @prereq None
+     * 
+     * @param id The URI of the BlockSnapshot instance.
+     * 
+     * @return A TaskResourceRep.
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/expose")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskResourceRep exposeSnapshotAsVolume(@PathParam("id") URI id) {
+
+        // Validate and get the block snapshot.
+        ArgValidator.checkFieldUriType(id, BlockSnapshot.class, "id");
+        BlockSnapshot snapshot = (BlockSnapshot) queryResource(id);
+
+        // Verify it is a block snapshot for a VPLEX volume.
+        URI sourceVolumeURI = snapshot.getParent().getURI();
+        Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
+        if (!Volume.checkForVplexBackEndVolume(_dbClient, sourceVolume)) {
+            throw APIException.badRequests.cantExposeNonVPLEXSnapshot(id.toString());
+        }
+
+        // Verify it is not marked for deletion.
+        if (snapshot.getInactive()) {
+            throw APIException.badRequests.cantExposeInactiveSnapshot(id.toString());
+        }
+
+        // Verify that it has been activated such that the target volume
+        // reflects the source volume data. Otherwise, when the snapshot
+        // is activated, the read cache for the VPLEX volume would be invalid.
+        if (!snapshot.getIsSyncActive()) {
+            throw APIException.badRequests.cantExposeUnsynchronizedSnapshot(id.toString());
+        }
+
+        // Verify it has yet to be used to create a VPLEX volume.
+        // A snapshot can only be used to create a single VPLEX volume.
+        // This is because multiple VPLEX volumes cannot use the same
+        // backend volume. We know it has already been imported to
+        // VPLEX if there is an active volume in the database with the
+        // same native GUID as the snapshot.
+        String snapshotNativeGuid = snapshot.getNativeGuid();
+        if (!CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid).isEmpty()) {
+            throw APIException.badRequests.cantExposeSnapshotAlreadyExposed(id.toString());
+        }
+
+        // Get the virtual pool of the snapshot source volume. We need to set
+        // a virtual pool for the VPLEX volume that will be created. Currently,
+        // we use the virtual pool for the source volume, even though it may not
+        // apply for the VPLEX volume we create. It really should not matter much
+        // as we will limit the operations on this VPLEX volume to Export/Unexport,
+        // so really, the only parameters we need are the PATH parameters, which
+        // implies this VPLEX volume would have the same path constraints. The
+        // alternative is to create a generic internal virtual pool.
+        VirtualPool sourceVolumeVpool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
+
+        // Create a new INTERNAL Volume instance using the volume info
+        // in the block snapshot. VPLEX volumes are created from Volume
+        // instances rather then BlockObject instances, so we cannot use
+        // the BlockSnapshot directly. The other alternative is to modify
+        // all code involved with VPLEX volume creation and all code that
+        // accesses or modifies the backend volumes for VPLEX volumes. This
+        // would be a large, invasive undertaking.
+        Volume backendVolume = prepareVPLEXBackendVolumeFromSnapshot(snapshot, sourceVolume);
+
+        // Create a unique task identifier.
+        String taskId = UUID.randomUUID().toString();
+
+        // Get the VPLEX block service implementation and call the routine to
+        // import a non-VPLEX volume into VPLEX.
+        try {
+            VPlexBlockServiceApiImpl vplexBlocSvcApi = (VPlexBlockServiceApiImpl) getBlockServiceImpl("vplex");
+            vplexBlocSvcApi.importVirtualVolume(snapshot.getStorageController(), backendVolume, sourceVolumeVpool, taskId);
+        } catch (Exception e) {
+            _log.error("Exception importing snapshot to VPLEX", e);
+            backendVolume.setInactive(true);
+            _dbClient.persistObject(backendVolume);
+            throw e;
+        }
+
+        // Create and return the task for this request. NOte that we
+        // create the operation on the snapshot, but the import routine
+        // will expect the operation to be on the volume. We updated the
+        // completer to update the status on the snapshot as well if we
+        // find a snapshot with the same native guid as the volume.
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.CREATE_VPLEX_VOLUME_FROM_SNAPSHOT);
+        _dbClient.createTaskOpStatus(BlockSnapshot.class, id, taskId, op);
+        snapshot.getOpStatus().put(taskId, op);
+
+        // Return the task.
+        return toTask(snapshot, taskId, op);
+    }
+
+    /**
+     * Creates a Volume instance to represent the snapshot target volume represented
+     * by the passed BlockSnapshot instance.
+     * 
+     * @param snapshot A reference to a BlockSnapshot instance.
+     * @param sourceVolume A reference to the snapshot source Volume.
+     * 
+     * @return A new INTERNAL Volume instance representing the snapshot target volume.
+     */
+    private Volume prepareVPLEXBackendVolumeFromSnapshot(BlockSnapshot snapshot, Volume sourceVolume) {
+
+        // Create a new Volume instance and populate its fields with the
+        // target volume information in the passed snapshot. Note that
+        // not all fields need be populated. This is an INTERNAL volume
+        // and the operations on the VPLEX volume created on top of it
+        // will be limited. We set the fields that accurately reflect
+        // the volume and are necessary to allow it to be used as a
+        // backend volume for a VPLEX volume and to allow that VPLEX
+        // volume to subsequently be exported to hosts/clusters.
+        Volume volume = new Volume();
+        volume.setId(URIUtil.createId(Volume.class));
+        volume.setLabel(snapshot.getLabel());
+        volume.setWWN(snapshot.getWWN());
+        volume.setNativeId(snapshot.getNativeId());
+        volume.setNativeGuid(snapshot.getNativeGuid());
+        volume.setAlternateName(snapshot.getAlternateName());
+        volume.setDeviceLabel(snapshot.getDeviceLabel());
+        volume.setProvisionedCapacity(snapshot.getProvisionedCapacity());
+        volume.setAllocatedCapacity(snapshot.getAllocatedCapacity());
+        volume.setVirtualArray(snapshot.getVirtualArray());
+        volume.setProject(snapshot.getProject());
+        volume.setStorageController(snapshot.getStorageController());
+        StringSet protocols = new StringSet();
+        protocols.addAll(snapshot.getProtocol());
+        volume.setProtocol(protocols);
+        volume.addInternalFlags(DataObject.Flag.INTERNAL_OBJECT);
+        volume.setOpStatus(new OpStatusMap());
+
+        // Some of the volume parameters must come from the source volume
+        // of the passed block snapshot including the Tenant.
+        volume.setTenant(sourceVolume.getTenant());
+
+        // The snapshot does not contain the user requested capacity.
+        volume.setCapacity(sourceVolume.getCapacity());
+
+        // The snapshot target should be thin if the source volume was
+        // thinly provisioned. This will control be used to control whether
+        // or not thin rebuilds occur when the volume we create is
+        // distributed.
+        volume.setThinlyProvisioned(sourceVolume.getThinlyProvisioned());
+
+        // The source side backend volume for a VPLEX volume always
+        // has the same virtual pool as the VPLEX volume, and we will
+        // use the source volume virtual pool for the VPLEX volume.
+        volume.setVirtualPool(sourceVolume.getVirtualPool());
+
+        // Set auto tier policy from the source volume. This comes
+        // into play in vmax3 export operations.
+        volume.setAutoTieringPolicyUri(sourceVolume.getAutoTieringPolicyUri());
+
+        // The pool is not currently set as the BlockSnapshot does not
+        // keep the storage pool for the target volume. This did not
+        // cause issues for the allowed operations (export/unexport/delete)
+        // for the VPLEX volume built on the snapshot. We could alternatively
+        // try and set the storage pool in the block snapshot instance so
+        // we have the actual storage pool.
+        // volume.setPool(TBD);
+
+        // Create the instance in the database.
+        _dbClient.createObject(volume);
+
+        return volume;
     }
 }

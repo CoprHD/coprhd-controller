@@ -53,24 +53,23 @@
             });
         } else {
             $('#imageNameType').hide();
+            $('#successfullImports').hide();
         }
         if (cloneMode) {
             $('#computeImageCloneFields').show();
             $('#computeImageUrlField').hide();
+            $('#successfullImports').hide();
         } else {
             $('#computeImageCloneFields').hide();
         }
 
     });
 
-
-
     function setDefaults() {
         
     }
 
   
-    
   </script>
 #{/set}
 
@@ -129,6 +128,29 @@
       #{/field}
     </div>
   
+    <div id='successfullImports'>
+	  <fieldset>
+        #{field 'computeImages.availableImageServers'}
+		  %{
+		    field.required = false
+		    field.atts = ['readonly':'readonly']
+		    field.value = availableImageServersNames
+		    field.helpTextKey = field.name + '.description'
+		  }%
+		    #{Form.inputTextControlGroup field:field /}
+	    #{/field}
+		#{field 'computeImages.failedImageServers'}
+		  %{
+		    field.required = false
+		    field.disabled = editMode == true
+		    field.value = failedImageServersNames
+		    field.helpTextKey = field.name + '.description'
+		  }%
+		    #{Form.inputTextControlGroup field:field /}
+		#{/field}
+	  </fieldset>
+    </div>
+
     #{if computeImages?.id}
       #{field 'computeImages.id'}
           <input type="hidden" name="${field.name}" value="${field.value}">
@@ -143,3 +165,5 @@
     #{Form.saveCancel cancelHref:referrer/}
 #{/form}
 </div>
+
+    

@@ -53,7 +53,7 @@ public class NetAppClusterFacade {
         }
         _svmName = svmName;
         log.info("Connecting to NetApp server: " + host + ":" + port + ":" + svmName);
-        server = new Server(host, port, username, password, useHTTPS, isSVM, svmName);
+        server = new Server(host, port, username, password, useHTTPS, isSVM, svmName, true);
     }
 
     public static NetAppClusterFacade create(Map<String, String> connectionParams) {

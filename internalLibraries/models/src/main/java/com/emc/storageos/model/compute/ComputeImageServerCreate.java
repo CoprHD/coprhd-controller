@@ -20,6 +20,8 @@ public class ComputeImageServerCreate {
     private String imageServerPassword;
     private String tftpBootDir;
     private Integer osInstallTimeout;
+    private Integer sshTimeout;
+    private Integer imageImportTimeout;
 
     public ComputeImageServerCreate() {
     }
@@ -33,11 +35,13 @@ public class ComputeImageServerCreate {
      * @param imageServerPassword
      * @param tftpBootDir
      * @param osInstallTimeout
+     * @param sshTimeout
+     * @param imageImportTimeout
      */
     public ComputeImageServerCreate(String name, String imageServerAddress,
             String imageServerSecondIp, String imageServerUser,
             String imageServerPassword, String tftpBootDir,
-            Integer osInstallTimeout) {
+            Integer osInstallTimeout, Integer sshTimeout, Integer imageImportTimeout) {
         super();
         this.name = name;
         this.imageServerIp = imageServerAddress;
@@ -46,6 +50,8 @@ public class ComputeImageServerCreate {
         this.imageServerPassword = imageServerPassword;
         this.tftpBootDir = tftpBootDir;
         this.osInstallTimeout = osInstallTimeout;
+        this.sshTimeout = sshTimeout;
+        this.imageImportTimeout = imageImportTimeout;
     }
 
     /**
@@ -164,6 +170,38 @@ public class ComputeImageServerCreate {
      */
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * @return the sshTimeout
+     */
+    @XmlElement(required = true, name = "ssh_timeout")
+    @JsonProperty("ssh_timeout")
+    public Integer getSshTimeout() {
+        return sshTimeout;
+    }
+
+    /**
+     * @param sshTimeout the sshTimeout to set
+     */
+    public void setSshTimeout(Integer sshTimeout) {
+        this.sshTimeout = sshTimeout;
+    }
+
+    /**
+     * @return the imageImportTimeout
+     */
+    @XmlElement(required = true, name = "imageimport_timeout")
+    @JsonProperty("imageimport_timeout")
+    public Integer getImageImportTimeout() {
+        return imageImportTimeout;
+    }
+
+    /**
+     * @param imageImportTimeout the imageImportTimeout to set
+     */
+    public void setImageImportTimeout(Integer imageImportTimeout) {
+        this.imageImportTimeout = imageImportTimeout;
     }
 
 }

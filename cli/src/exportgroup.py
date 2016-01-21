@@ -315,8 +315,9 @@ class ExportGroup(object):
          '''
 
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
+                                maxpaths, minpaths, pathsperinitiator,
                                 projectname, volumenames, snapshots=None,
-                                cg=None):
+                                cg=None, blockmirror=None ):
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
@@ -328,10 +329,21 @@ class ExportGroup(object):
         # incase of snapshots from volume, this will hold the source volume
         # URI.
         volume_snapshots = []
+        mirror_param = {}
         if(volumenames):
             volume_snapshots = self._get_resource_lun_tuple(
                 volumenames, "volumes", None, tenantname,
                 projectname, None)
+        
+        #if block mirror needs to be exported
+        if(blockmirror is not None):
+            from volume import Volume
+            vol = Volume(self.__ipAddr, self.__port)
+            fullpathvol = tenantname + "/" + projectname + "/" + volumenames[0]
+            block_mirror_uri = vol.mirror_protection_show(fullpathvol, blockmirror[0])
+            mirror_param = {}
+            mirror_param['id'] = block_mirror_uri['id']
+            volume_snapshots = [mirror_param]
 
         # if snapshot given then snapshot added to exportgroup
         if(snapshots and len(snapshots) > 0):
@@ -356,7 +368,18 @@ class ExportGroup(object):
 
         volChanges = {}
         volChanges['add'] = volume_snapshots
+        path_parameters = {}
+        
+        if (maxpaths):
+            path_parameters['max_paths'] = maxpaths
+        if (minpaths):
+            path_parameters['min_paths'] = minpaths
+        if(pathsperinitiator is not None):
+            path_parameters['paths_per_initiator'] = pathsperinitiator
+            
+        parms['path_parameters'] = path_parameters
         parms['volume_changes'] = volChanges
+       
         o = self.send_json_request(exportgroup_uri, parms)
         return self.check_for_sync(o, sync)
 
@@ -366,7 +389,7 @@ class ExportGroup(object):
 
     def exportgroup_remove_volumes(self, sync, exportgroupname, tenantname,
                                    projectname, volumenames, snapshots=None,
-                                   cg=None):
+                                   cg=None, blockmirror=None):
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
@@ -379,6 +402,13 @@ class ExportGroup(object):
         for vol in volumenames:
             fullvolname = tenantname + "/" + projectname + "/" + vol
             volumeIdList.append(volumeObject.volume_query(fullvolname))
+        
+        if(blockmirror is not None):
+            volumeIdList = []
+            for bmr in blockmirror:
+                fullpathvol = tenantname + "/" + projectname + "/" + volumenames[0]
+                block_mirror_uri = volumeObject.mirror_protection_show(fullpathvol, bmr)
+                volumeIdList.append(block_mirror_uri['id'])
 
         return (
             self.exportgroup_remove_volumes_by_uri(
@@ -882,11 +912,37 @@ def add_volume_parser(subcommand_parsers, common_parser):
                                    help="List of snapshot lunId pair in the " +
                                         "format <snapshot_name>:<lun_id>",
                                    default=None)
+    add_volume_parser.add_argument('-blockmirror', '-bmr',
+                                   metavar='<Block Mirror for volume>',
+                                   dest='blockmirror', nargs='+',
+                                   help="List of block mirrors lunId pair in the " +
+                                        "format <block_mirror_name>:<lun_id>",
+                                   default=None)
     add_volume_parser.add_argument('-consistencygroup', '-cg',
                                    metavar='<consistencygroup>',
                                    dest='consistencygroup',
                                    help='name of consistencygroup',
                                    default=None)
+    add_volume_parser.add_argument(
+        '-maxpaths', '-mxp',
+        help='The maximum number of paths that can be ' +
+        'used between a host and a storage volume',
+        metavar='<MaxPaths>',
+        dest='maxpaths',
+        type=int)
+    add_volume_parser.add_argument(
+        '-minpaths', '-mnp',
+        help='The minimum  number of paths that can be used ' +
+        'between a host and a storage volume',
+        metavar='<MinPaths>',
+        dest='minpaths',
+        type=int)
+    add_volume_parser.add_argument('-pathsperinitiator', '-ppi',
+                               help='The number of paths per initiator',
+                               metavar='<PathsPerInitiator>',
+                               dest='pathsperinitiator',
+                               type=int)
+    
 
     add_volume_parser.add_argument('-synchronous', '-sync',
                                    dest='sync',
@@ -901,7 +957,9 @@ def exportgroup_add_volumes(args):
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_volumes(
             args.sync, args.name, args.tenant,
-            args.project, args.volume, args.snapshot, args.consistencygroup)
+            args.maxpaths,
+            args.minpaths, args.pathsperinitiator,
+            args.project, args.volume, args.snapshot, args.consistencygroup, args.blockmirror)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_vol", "exportgroup",
                                               e.err_text, e.err_code)
@@ -952,6 +1010,12 @@ def remove_volume_parser(subcommand_parsers, common_parser):
                                       metavar='<tenantname>',
                                       dest='tenant',
                                       help='container tenant name')
+    remove_volume_parser.add_argument('-blockmirror', '-bmr',
+                                      metavar='<Block Mirror for volume>',
+                                      dest='blockmirror', nargs='+',
+                                      help="List of block mirrors lunId pair in the " +
+                                      "format <block_mirror_name>:<lun_id>",
+                                      default=None)
 
     remove_volume_parser.add_argument('-synchronous', '-sync',
                                       dest='sync',
@@ -967,7 +1031,7 @@ def exportgroup_remove_volumes(args):
 
         objExGroup.exportgroup_remove_volumes(
             args.sync, args.name, args.tenant, args.project,
-            args.volume, args.snapshot, args.consistencygroup)
+            args.volume, args.snapshot, args.consistencygroup, args.blockmirror)
 
     except SOSError as e:
         raise common.format_err_msg_and_raise("remove_vol", "exportgroup",

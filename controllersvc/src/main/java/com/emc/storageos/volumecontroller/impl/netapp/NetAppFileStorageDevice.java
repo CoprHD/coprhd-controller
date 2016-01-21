@@ -332,7 +332,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         _log.info("NetAppFileStorageDevice doExport - start");
         // Verify inputs.
         validateExportArgs(exportList);
@@ -533,7 +533,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doUnexport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doUnexport: {} - start", args.getFileObjId());
@@ -633,7 +633,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         // To be in-sync with isilon implementation, currently forceGroup is
         // set to null which will set the group name as "everyone" by default.
         String forceGroup = null;
@@ -693,7 +693,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doDeleteShare - start");
@@ -1830,6 +1830,18 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
 
         return result;
 
+    }
+
+    @Override
+    public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netapp.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netapp.operationNotSupported());
     }
 
 }

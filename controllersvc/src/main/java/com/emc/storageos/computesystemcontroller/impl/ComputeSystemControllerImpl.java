@@ -1066,8 +1066,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
 
                 for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
-                    // do not unexport volumes from exclusive exports if the host has a boot volume id
-                    boolean isBootVolumeExport = export.forHost() && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
+                    // do not unexport volumes from exclusive or initiator exports if the host has a boot volume id
+                    boolean isBootVolumeExport = (export.forHost() || export.forInitiator())
+                            && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
                             && export.hasBlockObject(host.getBootVolumeId());
                     if (!isBootVolumeExport) {
                         ExportGroupState egh = getExportGroupState(exportGroups, export);
@@ -1081,13 +1082,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             _log.info("Number of deleted clusters: " + deletedClusters.size());
 
             for (URI clusterId : deletedClusters) {
-                // the cluster's hosts will already be processed as deletedHosts
-                List<ExportGroup> clusterExportGroups = getSharedExports(clusterId);
-                for (ExportGroup export : clusterExportGroups) {
-                    ExportGroupState egh = getExportGroupState(exportGroups, export);
-                    egh.removeCluster(clusterId);
+                Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
+                if (!cluster.getAutoExportEnabled()) {
+                    _log.info("Cluster " + clusterId + " can not be deleted because it has auto exports disabled");
+                } else {
+                    // the cluster's hosts will already be processed as deletedHosts
+                    List<ExportGroup> clusterExportGroups = getSharedExports(clusterId);
+                    for (ExportGroup export : clusterExportGroups) {
+                        ExportGroupState egh = getExportGroupState(exportGroups, export);
+                        egh.removeCluster(clusterId);
+                    }
                 }
-
             }
 
             _log.info("Number of ExportGroupStates: " + exportGroups.size());

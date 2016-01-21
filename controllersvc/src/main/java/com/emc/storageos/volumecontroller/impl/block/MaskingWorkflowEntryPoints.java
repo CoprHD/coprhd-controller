@@ -183,7 +183,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
             // so fetch the 0th URI
             ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURIs.get(0));
 
-            _blockScheduler.updateZoningMap(mask, eg.getVirtualArray());
+            _blockScheduler.updateZoningMap(mask, eg.getVirtualArray(), exportGroupURI);
 
             WorkflowStepCompleter.stepSucceded(token);
 

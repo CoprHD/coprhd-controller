@@ -5,6 +5,17 @@
 
 package com.emc.storageos.vnx.xmlapi;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.StringTokenizer;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,17 +23,6 @@ import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.StringTokenizer;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Responsible for sending VNX CLI commands to the VNX File System using SSH.
@@ -859,10 +859,10 @@ public class VNXFileSshApi {
 
         return userInfo;
     }
-    
+
     public String getModelInfo() {
         String modelStr = new String("VNX7500");
-        
+
         try {
             // Prepare arguments for CLI command
             StringBuilder data = new StringBuilder();
@@ -873,12 +873,12 @@ public class VNXFileSshApi {
 
             if (result.isCommandSuccess()) {
                 // Parse message to get user properties
-            	String tmpModelStr = result.getMessage();
-            	if(tmpModelStr != null && tmpModelStr.startsWith("VNX")) {
-            		modelStr = tmpModelStr;
-            	}
+                String tmpModelStr = result.getMessage();
+                if (tmpModelStr != null && tmpModelStr.startsWith("VNX")) {
+                    modelStr = tmpModelStr;
+                }
             }
-            
+
         } catch (Exception ex) {
             StringBuilder message = new StringBuilder();
             message.append("VNX File getModel failed ");
@@ -926,6 +926,9 @@ public class VNXFileSshApi {
             cmd.append(" -o ");
             cmd.append("id=" + id);
         }
+        // added for eNAS
+        cmd.append(" -option ");
+        cmd.append(" slice=y ");
         return cmd.toString();
 
         // nas_fs -name sebastian_test -type uxfs -create size=10M pool=tsi_pool1
@@ -1001,7 +1004,7 @@ public class VNXFileSshApi {
                         && !message.isEmpty()
                         && (message.contains("unable to acquire lock(s)") ||
                                 message.contains("NAS_DB locked object is stale") ||
-                        message.contains("Temporarily no Data Mover is available"))) {
+                                message.contains("Temporarily no Data Mover is available"))) {
                     try {
                         // Delaying execution since NAS_DB object is locked till
                         // current execution complete

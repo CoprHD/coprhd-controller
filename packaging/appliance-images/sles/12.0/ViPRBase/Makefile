@@ -1,6 +1,6 @@
 RUN_DIR=`pwd`
 NAME=ViPRBase
-VERSION=2.4.0.0
+VERSION=2.4.1.0
 JOB=1
 CONF=${RUN_DIR}/${NAME}.conf
 CREATE_APPLIANCE_DIR=/opt/ADG/createAppliance

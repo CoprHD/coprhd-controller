@@ -1,0 +1,88 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.adminDashboard', 'nav.backup'] /}
+
+#{DataTable.header titleKey:'Backup.list.title'/}
+#{DataTable.crudTable id:'backup', 
+                      dataTable:dataTable, 
+                      deleteConfirm:messages.get('backup.deleteConfirm')}
+  
+#{/DataTable.crudTable}
+
+<script>
+render.uploadBtn = function(o, val) {
+	var odata = o.aData;
+	var name= odata.name;
+	var url = #{jsAction @upload()/};
+	var href = url(odata)+"/"+name;
+	if (val.indexOf("_enable")>0){
+		return "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
+	}else{
+		return "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  disabled class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
+	}
+}
+
+render.uploadProgressIcon = function(o, val) {
+	 if (!o) {
+	        return "";
+	    }
+	    var labels = {
+	        'NOT_STARTED': 'label-default',
+	        'IN_PROGRESS': 'label-info',
+	        'FAILED':   'label-danger',
+	        'DONE':    'label-success',
+	        'CANCELLED': 'label-danger'
+	    }
+	    var icons = {
+	        'NOT_STARTED':     'glyphicon glyphicon-time',
+	        'IN_PROGRESS': 'glyphicon glyphicon-refresh rotate',
+	        'DONE':    'glyphicon glyphicon-ok',
+	        'CANCELLED': 'glyphicon glyphicon-warning-sign',
+	        'FAILED':       'glyphicon glyphicon-remove'
+	    };
+	    var label = defaultValue(labels[o.aData.status], 'label-default');
+	    var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
+	    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span>';
+}
+
+render.uploadProgressMessage = function(o, val) {
+    if (!o) {
+        return "";
+    }
+    var messages = {
+        'NOT_STARTED':     Messages.get("renderFunctions.backupupload.status.notstarted"),
+        'IN_PROGRESS':   Messages.get("renderFunctions.backupupload.status.progress"),
+        'FAILED': Messages.get("renderFunctions.backupupload.status.failed"),
+        'DONE':    Messages.get("renderFunctions.backupupload.status.done"),
+        'CANCELLED':    Messages.get("renderFunctions.backupupload.status.cancel")
+    };
+    
+    var errors = {
+           'FTP_NOT_CONFIGURED':     Messages.get("renderFunctions.backupupload.error.notconf"),
+           'BACKUP_NOT_EXIST':   Messages.get("renderFunctions.backupupload.error.notexist"),
+           'INVALID_BACKUP': Messages.get("renderFunctions.backupupload.error.invalid"),
+           'UPLOAD_FAILURE':    Messages.get("renderFunctions.backupupload.error.failure")
+        };
+
+    var message = o.aData.status;
+    var errorMsg = o.aData.error;
+    if (!message) {
+        message = defaultValue(messages[o.aData.status], Messages.get("renderFunction.discovery.status.unknown"));
+    }
+    if (errorMsg != null){
+    	return '<span>' + messages[o.aData.status] +' - '+errors[o.aData.error] + '</span>';
+    }
+    return '<span>' + messages[o.aData.status] + '</span>';
+}
+
+render.uploadProgress = function(o, val) {
+    return render.uploadProgressIcon(o, val) + " " + render.uploadProgressMessage(o, val);
+}
+    table.backup.dataTable.afterCreate(function(table) {
+        var dataTable = table.getDataTable();
+        var itemsJson = #{jsAction @itemsJson(':ids')/};
+        watchUploadState(dataTable, itemsJson, ['uploadstatus','error','upload']);
+    });
+
+
+
+</script>

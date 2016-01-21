@@ -87,6 +87,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         return _workflowService;
     }
 
+    @Override
     public void setWorkflowService(WorkflowService _workflowService) {
         this._workflowService = _workflowService;
     }
@@ -118,12 +119,12 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
     }
 
     @Override
-    public Set<Map<URI, List<StoragePort>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
+    public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap,
             URI varrayURI,
             int nInitiatorGroups) {
         _log.debug("START - getPortGroups");
-        Set<Map<URI, List<StoragePort>>> portGroups = new HashSet<Map<URI, List<StoragePort>>>();
+        Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
         Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
 
         // Port Group is always 1 for Cinder as of now.
@@ -135,7 +136,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         StoragePortsAllocator allocator = new StoragePortsAllocator();
 
         for (int i = 0; i < CINDER_NUM_PORT_GROUP; i++) {
-            Map<URI, List<StoragePort>> portGroup = new HashMap<URI, List<StoragePort>>();
+            Map<URI, List<List<StoragePort>>> portGroup = new HashMap<URI, List<List<StoragePort>>>();
             StringSet portNames = new StringSet();
 
             for (URI netURI : allocatablePorts.keySet()) {
@@ -145,7 +146,10 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                         portsAllocatedPerNetwork.get(netURI),
                         net,
                         varrayURI);
-                portGroup.put(netURI, allocatedPorts);
+                if (portGroup.get(netURI) == null) {
+                    portGroup.put(netURI, new ArrayList<List<StoragePort>>());
+                }
+                portGroup.get(netURI).add(allocatedPorts);
                 allocatablePorts.get(netURI).removeAll(allocatedPorts);
                 for (StoragePort port : allocatedPorts) {
                     portNames.add(port.getPortName());
@@ -161,7 +165,8 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         return portGroups;
     }
 
-    public StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
+    @Override
+    public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
         return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);

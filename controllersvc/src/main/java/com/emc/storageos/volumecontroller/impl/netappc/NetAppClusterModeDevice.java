@@ -272,7 +272,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         _log.info("NetAppClusterModeDevice doExport - start");
         // Verify inputs.
         validateExportArgs(exportList);
@@ -528,7 +528,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         // To be in-sync with isilon implementation, currently forceGroup is
         // set to null which will set the group name as "everyone" by default.
         String forceGroup = null;
@@ -579,7 +579,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppClusterModeDevice doDeleteShare - start");
@@ -646,7 +646,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doUnexport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppClusterModeDevice doUnexport: {} - start", args.getFileObjId());
@@ -859,7 +859,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> dbSnapshots)
-                    throws ControllerException {
+            throws ControllerException {
         if (null == args.getFsName()) {
             throw new DeviceControllerException(
                     "Filesystem name is either missing or empty",
@@ -1040,7 +1040,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qtree)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppClusterModeDevice doCreateQuotaDirectory - start");
@@ -1119,7 +1119,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qtree)
-                    throws ControllerException {
+            throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
 
         try {
@@ -1825,5 +1825,17 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
         _log.info("NetAppClusterApi::createQtree -> qtreePath = {}", qtreePath);
         return qtreePath;
 
+    }
+
+    @Override
+    public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netappc.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netappc.operationNotSupported());
     }
 }

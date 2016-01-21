@@ -1,0 +1,16 @@
+<dl class="dl-horizontal">
+
+    <dt>&{'computeImageServers.computeImageServerStatus'}</dt>
+    <dd>${computeImageServer.computeImageServerStatus ?: '-'}</dd>
+    <dt>&{'computeImageServers.tftpBootDir'}</dt>
+    <dd>${computeImageServer.tftpBootDir ?: '-'}</dd>
+    #{if computeImageServer.computeImages}
+        <dt>&{'computeImageServers.availableComputeImages'}</dt>
+        <dd>${computeImageServer.computeImages.collect{ it.name }.join(", ")?: '-'}</dd>
+    #{/if}
+    #{if computeImageServer.failedImages}
+        <dt>&{'computeImageServers.failedComputeImages'}</dt>
+        <dd>${computeImageServer.failedImages.collect{ it.name }.join(", ")?: '-'}</dd>
+    #{/if}
+
+</dl>

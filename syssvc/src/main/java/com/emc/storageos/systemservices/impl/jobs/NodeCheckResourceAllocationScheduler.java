@@ -8,6 +8,7 @@ package com.emc.storageos.systemservices.impl.jobs;
 import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.storageos.systemservices.impl.healthmonitor.NodeResourceAllocationChecker;
+import com.emc.storageos.systemservices.impl.jobs.common.JobConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

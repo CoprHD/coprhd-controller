@@ -56,6 +56,7 @@
                 <ref bean="vplexMigrationSpeed"/>
                 <ref bean="vplexVmaxMaskingViewMaximumVolumes"/>
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
+                <ref bean="nasUsePhysicalNASForProvisioning"/>
             </list>
         </property>
     </bean>
@@ -809,6 +810,23 @@
         <property name="defaultValues">
             <map>
                 <entry key="default" value="false"/>
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="nasUsePhysicalNASForProvisioning" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="NasUsePhysicalNASForProvisioning"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+				<entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="true"/>
             </map>
         </property>
     </bean>

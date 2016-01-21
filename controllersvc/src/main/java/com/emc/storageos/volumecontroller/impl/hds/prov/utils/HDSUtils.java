@@ -26,9 +26,9 @@ import com.emc.storageos.hds.api.HDSApiClient;
 import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.hds.model.EchoCommand;
 import com.emc.storageos.hds.model.Error;
-import com.emc.storageos.hds.model.Pool;
-import com.emc.storageos.hds.model.ISCSIName;
 import com.emc.storageos.hds.model.HostStorageDomain;
+import com.emc.storageos.hds.model.ISCSIName;
+import com.emc.storageos.hds.model.Pool;
 import com.emc.storageos.hds.model.WorldWideName;
 import com.emc.storageos.plugins.AccessProfile;
 import com.google.common.base.Function;
@@ -264,6 +264,9 @@ public class HDSUtils {
             // for HUS VM, we should ignore the first digit.
             arraySerialNumInHex = Integer.toHexString(Integer.parseInt(arraySerialNum
                     .substring(1)));
+        } else if (luObjectID.contains(HDSConstants.VSP_G1000_MODEL)) {
+            // for VSP G100,
+            arraySerialNumInHex = Integer.toHexString(Integer.parseInt(arraySerialNum));
         } else {
             arraySerialNumInHex = String.format("%08x", Integer
                     .parseInt(arraySerialNum));
@@ -290,6 +293,9 @@ public class HDSUtils {
             // for HUS VM, we should ignore the first digit.
             arraySerialNumInHex = Integer.toHexString(Integer.parseInt(serialNum
                     .substring(1)));
+        } else if (storage.getModel().contains(HDSConstants.VSP_G1000_ARRAYFAMILY_MODEL)) {
+            // for VSP G100,
+            arraySerialNumInHex = Integer.toHexString(Integer.parseInt(serialNum));
         } else {
             arraySerialNumInHex = String.format("%08x", Integer
                     .parseInt(serialNum));

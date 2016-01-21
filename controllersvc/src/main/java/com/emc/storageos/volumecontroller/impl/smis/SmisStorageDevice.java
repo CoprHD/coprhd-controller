@@ -415,10 +415,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
         MetaVolumeTaskCompleter metaVolumeTaskCompleter = new MetaVolumeTaskCompleter(
                 volumeCompleter);
-        boolean canBeExpanded = false;
-        try {
-            _helper.doApplyRecoverPointTag(storageSystem, volume, false);
-
+        try {        	
+        	boolean tagSet = _helper.doApplyRecoverPointTag(storageSystem, volume, false);
+        	if (!tagSet) {
+        		TaskCompleter taskCompleter = metaVolumeTaskCompleter.getVolumeTaskCompleter();
+        		ServiceError error = DeviceControllerErrors.smis.errorSettingRecoverPointTag("disable");
+                taskCompleter.error(_dbClient, error);
+                return;               
+        	}
             // First of all check if we need to do cleanup of dangling meta volumes left from previous failed
             // expand attempt (may happen when rollback of expand failed due to smis connection issues -- typically cleanup
             // is done by expand rollback)
@@ -538,8 +542,15 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 ServiceError error = DeviceControllerErrors.smis.volumeExpandIsNotSupported(storageSystem.getNativeGuid());
                 taskCompleter.error(_dbClient, error);
                 return;
-            }
-            _helper.doApplyRecoverPointTag(storageSystem, volume, false);
+            }            
+            
+            boolean tagSet = _helper.doApplyRecoverPointTag(storageSystem, volume, false);
+        	if (!tagSet) {
+        		ServiceError error = DeviceControllerErrors.smis.errorSettingRecoverPointTag("disable");
+                taskCompleter.error(_dbClient, error);
+                return;
+        	}
+            
             CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);
             CIMArgument[] inArgs = _helper.getExpandVolumeInputArguments(storageSystem, pool, volume,
                     size);
@@ -637,7 +648,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 // Compare the volume labels of the to-be-deleted and existing volumes
                 /**
                  * This will fail in the case when the user just changes the label of the
-                 * volume...till we subsribe to indications from the provider, we will live with
+                 * volume...until we subscribe to indications from the provider, we will live with
                  * that.
                  */
                 String volToDeleteLabel = volume.getDeviceLabel();
@@ -1024,7 +1035,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * This interface will return a mapping of the port name to the URI of the ExportMask in which
      * it is contained.
-     *
+     * 
      * @param storage
      *            [in] - StorageSystem object representing the array
      * @param initiatorNames
@@ -1202,7 +1213,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * This method is for adding volumes to a consistency group. Be aware that this method is going
      * to be invoked by the SmisCreateVolumeJob, after there is a successful completion of the
      * volume create.
-     *
+     * 
      * @param storage
      * @param consistencyGroup
      * @param volumes
@@ -1310,7 +1321,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     /**
      * Method will remove the volume from the consistency group to which it currently belongs.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object
      * @param volume
@@ -1367,8 +1378,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
                                 SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
                         _log.info("Removing volume {} from device masking group {}", volume.getNativeId(), maskingGroupPath.toString());
-                        inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath,
-                                volumePaths, true);
+                        inArgs = _helper.getRemoveAndUnmapMaskingGroupMembersInputArguments(maskingGroupPath,
+                                volumePaths, storage, true);
                         _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
                                 SmisConstants.REMOVE_MEMBERS, inArgs, outArgs, null);
                     } else {
@@ -1398,7 +1409,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * the volume. Typically, on VNX arrays, if there's a restore operation against an 'advanced'
      * snap, there will be backup snapshot created. There isn't any easy way to get to this backup
      * using the SMI-S API, so we'll have to clean them all up when we go to delete the volume.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object
      * @param volume
@@ -1434,7 +1445,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Method will look up backup snapshots that were created when a snapshot restore operation was
      * performed, then clean them up. This would be required in order to do the volume delete.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object representing the array
      * @param volume
@@ -1473,7 +1484,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Method will look up backup snapshots that were created when a snapshot restore operation was
      * performed, then clean them up. This would be required in order to delete the ReplicationGroup.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object representing the array
      * @param replicationGroupPath
@@ -2315,7 +2326,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             } else {
                 String[] members = _helper.getBlockObjectAlternateNames(replicasPartOfGroup);
                 CIMObjectPath[] memberPaths = _cimPath.getVolumePaths(storage, members);
-                CIMArgument[] inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, true);
+                CIMArgument[] inArgs = _helper.getRemoveAndUnmapMaskingGroupMembersInputArguments(
+                        maskingGroupPath, memberPaths, storage, true);
                 CIMArgument[] outArgs = new CIMArgument[5];
 
                 _log.info("Invoking remove replicas {} from Device Masking Group equivalent to its Replication Group {}",
@@ -2555,7 +2567,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Before the clone could be deleted, if the clone is from a CG, we will
      * remove the target group, then reset the replicationGroupInstance for the clones in the group.
-     *
+     * 
      * @param storage
      * @param clones
      * @throws Exception
@@ -2608,7 +2620,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     /**
      * This method tests if the array represented by 'storageSystem' supports volume expand.
-     *
+     * 
      * @param storageSystem [IN] - StorageSystem object to check the volume expand capabilities
      * @return true iff The array indicates that it supports volume expand.
      */
@@ -2642,5 +2654,36 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
         return false;
     }
-
+    
+    @Override
+    public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        try {
+            int volumeCount = 0;
+            String[] volumeNativeIds = new String[volumes.size()];
+            StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                    "Untag Volume Start - Array:%s", storageSystem.getSerialNumber()));
+            MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;            
+            for (Volume volume : volumes) {
+                logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
+                _helper.doApplyRecoverPointTag(storageSystem, volume, false);
+            }                        
+        } catch (WBEMException e) {
+            _log.error("Problem making SMI-S call: ", e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e
+                    .getMessage());
+            taskCompleter.error(_dbClient, error);
+        } catch (Exception e) {
+            _log.error("Problem in doUntagVolume: ", e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doUntagVolume",
+                    e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        }
+        StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                "Untag Volume End - Array: %s", storageSystem.getSerialNumber()));
+        for (Volume volume : volumes) {
+            logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
+        }
+        _log.info(logMsgBuilder.toString());        
+    }
 }

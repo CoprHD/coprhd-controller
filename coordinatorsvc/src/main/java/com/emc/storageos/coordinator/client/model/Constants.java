@@ -114,4 +114,5 @@ public interface Constants {
 
     // Db downtime tracker
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
+    public static final String  DB_CONSISTENCY_STATUS = "dbconsistencystatus";
 }

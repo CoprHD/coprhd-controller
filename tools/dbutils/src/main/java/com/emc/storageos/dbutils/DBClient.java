@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.dbutils;
 
+import com.emc.storageos.db.client.impl.DbConsistencyChecker;
+import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
+import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -703,9 +706,9 @@ public class DBClient {
         this.activeOnly = activeOnly;
     }
 
-	public void setShowModificationTime(boolean showModificationTime) {
-		this.showModificationTime = showModificationTime;
-	}
+    public void setShowModificationTime(boolean showModificationTime) {
+        this.showModificationTime = showModificationTime;
+    }
 
     /**
      * Read the schema record from db and dump it into a specified file
@@ -1115,18 +1118,23 @@ public class DBClient {
         }
     }
 
-    public void checkDB(boolean generateCleanupFile) {
+    public void checkDB() {
         try {
-            _dbClient.checkDataObjects();
-            _dbClient.checkIndexingCFs(generateCleanupFile);
-            _dbClient.checkCFIndices();
+            DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper(_dbClient);
+            DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
+            int corruptedCount = checker.check();
 
-            String msg = "\nAll the checks have been done.";
-            String fileMsg = String.format(
-                    "\nClean up cql files [%s] are created in current folder. please read into them for detail cleanup operations.",
-                    CleanupFileWriter.getGeneratedFileNames());
-            System.out.println(msg + fileMsg);
-            log.info(msg + fileMsg);
+            String msg = "\nAll the checks have been done, ";
+            if (corruptedCount != 0) {
+                String fileMsg = String.format(
+                        "inconsistent data found.\nClean up files [%s] are created. please read into them for futher operations.",
+                        DbCheckerFileWriter.getGeneratedFileNames());
+                msg += fileMsg;
+            } else {
+                msg += "no inconsistent data found.";
+            }
+            System.out.println(msg);
+            log.info(msg);
         } catch (ConnectionException e) {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "

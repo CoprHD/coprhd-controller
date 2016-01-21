@@ -7,12 +7,17 @@ package com.emc.vipr.client.system;
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
 import static com.emc.vipr.client.system.impl.PathConstants.*;
 
+import java.net.URI;
+
 import javax.ws.rs.core.UriBuilder;
 
+import com.emc.storageos.model.db.DbConsistencyStatusRestRep;
 import com.emc.vipr.client.impl.RestClient;
+import com.emc.vipr.client.system.impl.PathConstants;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.DownloadProgress;
 import com.emc.vipr.model.sys.TargetVersionResponse;
+import com.sun.jndi.toolkit.url.Uri;
 
 public class Upgrade {
     private static final String VERSION_PARAM = "version";
@@ -177,4 +182,29 @@ public class Upgrade {
         return getClusterInfo(false).getCurrentState();
     }
 
+    /*
+     * Method to trigger Db Consistency Check
+     * API Call: POST /control/db/consistency
+     */
+
+    public String triggerDbCheck() {
+        UriBuilder builder = client.uriBuilder(CHECKDB_GET_URL);
+        return client.postURI(String.class, builder.build());
+    }
+
+    /*
+     * GET /control/db/consistency
+     */
+    public DbConsistencyStatusRestRep getDbCheckState() {
+        return client.get(DbConsistencyStatusRestRep.class, CHECKDB_GET_URL);
+    }
+
+    /*
+     * Method to cancel database consistency check
+     * API call POST:/control/db/consistency/cancel
+     */
+    public String cancelDbCheck() {
+        UriBuilder builder = client.uriBuilder(CHECKDB_CANCEL_URL);
+        return client.postURI(String.class, builder.build());
+    }
 }

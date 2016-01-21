@@ -698,4 +698,11 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return Collections.EMPTY_MAP;
     }
+    
+    @Override
+    public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        // If this operation is unsupported by default it's Ok.
+        return;
+    }
 }

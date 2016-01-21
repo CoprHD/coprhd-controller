@@ -4,12 +4,12 @@
  */
 package com.emc.vipr.client;
 
+import java.net.URI;
+
 import com.emc.storageos.model.tenant.TenantResponse;
 import com.emc.storageos.model.user.UserInfo;
 import com.emc.vipr.client.core.*;
 import com.emc.vipr.client.impl.RestClient;
-
-import java.net.URI;
 
 public class ViPRCoreClient {
     protected RestClient client;
@@ -177,6 +177,10 @@ public class ViPRCoreClient {
     
     public ComputeVirtualPools computeVpools() {
         return new ComputeVirtualPools(this, client);
+    }
+
+    public ComputeImageServers computeImageServers() {
+        return new ComputeImageServers(this, client);
     }
 
     public ComputeImages computeImages() {

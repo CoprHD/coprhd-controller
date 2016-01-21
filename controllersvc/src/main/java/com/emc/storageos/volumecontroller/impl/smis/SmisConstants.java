@@ -88,6 +88,7 @@ public interface SmisConstants {
     static final int VP_SNAP_VALUE = 32768;
     static final int INSTRUMENTATION_DECIDES_VALUE = 2;
     static final int CREATE_NEW_TARGET_VALUE = 2;
+    static final int IMPLEMENTATION_DECIDES = 4;
     static final int STORAGE_ELEMENT_CAPACITY_EXPANSION_VALUE = 12;
 
     static final String SE_REPLICATIONSETTING_DATA = "SE_ReplicationSettingData";
@@ -96,6 +97,8 @@ public interface SmisConstants {
     static final int DISSOLVE_VALUE = 9;
     static final int SNAPSHOT_REPLICATION_TYPE = 6;
     static final int MIRROR_REPLICATION_TYPE = 2;
+    static final int SYNC_MIRROR_REMOTE_REPLICATION_TYPE = 4;
+    static final int ASYNC_MIRROR_REMOTE_REPLICATION_TYPE = 5;
     static final int EMULATION_VALUE = 10;
 
     static final String DEFAULT_INSTANCE = "DefaultInstance";
@@ -385,6 +388,7 @@ public interface SmisConstants {
     static final String CP_EMC_FORCE = "EMCForce";
     static final String CP_MAX_UNITS_CONTROLLED = "MaxUnitsControlled";
     static final String CP_SUPPORTED_STORAGE_ELEMENT_FEATURES = "SupportedStorageElementFeatures";
+    static final String CP_EMC_UNMAP_ELEMENTS = "EMCUnmapElements";
 
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";

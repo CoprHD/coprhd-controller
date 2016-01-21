@@ -150,7 +150,7 @@ public abstract class AbstractFASTPolicyProcessor extends Processor {
         // always bourne created Group will have fixed format SerialID+FASTPolicyName_DeviceGroup
         String bourneCreatedDeviceGroupName = groupID.split(Constants.PATH_DELIMITER_REGEX)[2];
         String fastPolicyName = bourneCreatedDeviceGroupName.substring(0,
-                bourneCreatedDeviceGroupName.lastIndexOf(Constants.HYPEN));
+                bourneCreatedDeviceGroupName.lastIndexOf(Constants.HYPHEN));
         return fastPolicyName;
     }
 

@@ -55,7 +55,7 @@ angular.module('tags').directive({
         	 scope.portsUrl = storagePortsUrl({'storageId': scope.row.id});
         	 scope.vnasUrl = storageVnasUrl({'storageId': scope.row.id});
         	 scope.isVnasEnable = false;
-        	 var systemWithNas = ["EMC VNX File"];
+        	 var systemWithNas = ["EMC VNX File","EMC Isilon"];
         	 var found = $.inArray(scope.row.type, systemWithNas) > -1;
              if(found){
              	scope.isVnasEnable = true;

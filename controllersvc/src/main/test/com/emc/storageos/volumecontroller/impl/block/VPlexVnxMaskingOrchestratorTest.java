@@ -26,10 +26,10 @@ import com.emc.storageos.util.DummyDbClient;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.placement.PortAllocatorTestContext;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocatorTest;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
-import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.vplexcontroller.VPlexBackendManager;
 
 /**
@@ -72,7 +72,7 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
                 "net1", "net2", null, false);
         Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, true, true);
-        Set<Map<URI, List<StoragePort>>> portGroups = orca.getPortGroups(
+        Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(
                 allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
@@ -118,12 +118,12 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
     static Integer maskCounter = 1;
 
     private static void makeExportMasks(URI arrayURI, VPlexVnxMaskingOrchestrator orca,
-            Set<Map<URI, List<StoragePort>>> portGroups,
+            Set<Map<URI, List<List<StoragePort>>>> portGroups,
             Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups,
             Map<URI, NetworkLite> networkMap) {
         // Iterate through the PortGroups generating zoning info and an ExportMask
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
-        Iterator<Map<URI, List<StoragePort>>> pgIterator = portGroups.iterator();
+        Iterator<Map<URI, List<List<StoragePort>>>> pgIterator = portGroups.iterator();
 
         while (igIterator.hasNext()) {
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
@@ -131,7 +131,7 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
             if (!pgIterator.hasNext()) {
                 break;
             }
-            Map<URI, List<StoragePort>> portGroup = pgIterator.next();
+            Map<URI, List<List<StoragePort>>> portGroup = pgIterator.next();
             maskCounter++;
             _log.info("Generating ExportMask: " + maskName);
             StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones("vnxblock", null);

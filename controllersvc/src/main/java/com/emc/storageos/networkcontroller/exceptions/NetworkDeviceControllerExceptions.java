@@ -210,6 +210,9 @@ public interface NetworkDeviceControllerExceptions {
     public NetworkDeviceControllerException nameZoneNotEnoughEndPoints();
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public NetworkDeviceControllerException nameZoneLongerThanAllowed(String zoneName, final int zoneNameAllowedLength);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException portStorageDeviceNotFound(final String storageSystemUri, final String portLabel);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)

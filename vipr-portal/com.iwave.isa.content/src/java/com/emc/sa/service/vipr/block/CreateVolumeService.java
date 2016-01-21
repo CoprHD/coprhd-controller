@@ -4,79 +4,46 @@
  */
 package com.emc.sa.service.vipr.block;
 
-import static com.emc.sa.service.ServiceParams.CONSISTENCY_GROUP;
-import static com.emc.sa.service.ServiceParams.NAME;
-import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
-import static com.emc.sa.service.ServiceParams.PROJECT;
-import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
-import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
-import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
-
 import java.net.URI;
+import java.util.List;
 
-import com.emc.sa.engine.bind.Param;
+import com.emc.sa.engine.bind.Bindable;
+import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.block.BlockStorageUtils.VolumeParams;
+import com.emc.sa.service.vipr.block.BlockStorageUtils.VolumeTable;
+import com.google.common.collect.Lists;
 
 @Service("CreateVolume")
 public class CreateVolumeService extends ViPRService {
 
-    @Param(VIRTUAL_POOL)
-    protected URI virtualPool;
+    @Bindable(itemType = VolumeTable.class)
+    protected VolumeTable[] volumeTable;
 
-    @Param(PROJECT)
-    protected URI project;
+    @Bindable
+    protected VolumeParams volumeParams = new VolumeParams();
+    
+    protected List<CreateBlockVolumeHelper> createBlockVolumeHelpers = Lists.newArrayList();
 
-    @Param(SIZE_IN_GB)
-    protected Double sizeInGb;
+    
+    @Override
+    public void init() throws Exception {
+        super.init();
 
-    @Param(VIRTUAL_ARRAY)
-    protected URI virtualArray;
-
-    @Param(value = NUMBER_OF_VOLUMES, required = false)
-    protected Integer count;
-
-    @Param(NAME)
-    protected String volumeName;
-
-    @Param(value = CONSISTENCY_GROUP, required = false)
-    protected URI consistencyGroup;
-
+        // for each pair of volume name and size, create a createBlockVolumeHelper
+        for (VolumeTable volumes : volumeTable) {
+            CreateBlockVolumeHelper createBlockVolumeHelper = new CreateBlockVolumeHelper();
+            BindingUtils.bind(createBlockVolumeHelper, BlockStorageUtils.createParam(volumes, volumeParams));
+            createBlockVolumeHelpers.add(createBlockVolumeHelper);
+        }
+    }
+    
     @Override
     public void execute() throws Exception {
-        BlockStorageUtils.createVolumes(project, virtualArray, virtualPool, volumeName, sizeInGb, count,
-                consistencyGroup);
-    }
-
-    public URI getVirtualPool() {
-        return virtualPool;
-    }
-
-    public void setVirtualPool(URI virtualPool) {
-        this.virtualPool = virtualPool;
-    }
-
-    public URI getProject() {
-        return project;
-    }
-
-    public void setProject(URI project) {
-        this.project = project;
-    }
-
-    public Double getSizeInGb() {
-        return sizeInGb;
-    }
-
-    public void setSizeInGb(Double sizeInGb) {
-        this.sizeInGb = sizeInGb;
-    }
-
-    public URI getVirtualArray() {
-        return virtualArray;
-    }
-
-    public void setVirtualArray(URI virtualArray) {
-        this.virtualArray = virtualArray;
+        if (!createBlockVolumeHelpers.isEmpty()) {
+            List<URI> volumeIds = Lists.newArrayList();
+            volumeIds.addAll(BlockStorageUtils.createMultipleVolumes(createBlockVolumeHelpers));
+        }
     }
 }

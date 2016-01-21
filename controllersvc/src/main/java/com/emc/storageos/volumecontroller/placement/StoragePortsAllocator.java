@@ -25,7 +25,9 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.util.NetworkLite;
 
 /**
@@ -300,6 +302,7 @@ public class StoragePortsAllocator {
     /**
      * Returns the Engine index. Use for VMAX/HDS/VPLEX only.
      * For HDS, ViPR treats controllers as engines and provides redundancy at engine level.
+     * For XtremIO, ViPR treats X-bricks as engines and provides redundancy at engine level.
      * 
      * @param port
      * @param haDomain
@@ -319,7 +322,11 @@ public class StoragePortsAllocator {
         } else if (arrayType == StorageSystem.Type.hds) {
             // For HDS, controllers are being treated as Engines in ViPR.
             return haDomain.getSlotNumber();
-        } else {// not a VMAX/SYMMETRIX or Vplex, so it has no engines
+        } else if (arrayType == StorageSystem.Type.xtremio) {
+            // For XtremIO, X-bricks are being treated as Engines in ViPR.
+            // X-brick has 2 Storage controllers: X1-SC1, X1-SC2
+            return haDomain.getAdapterName().split(Constants.HYPHEN)[0];
+        } else {// not a VMAX or Vplex or HDS or XtremIO, so it has no engines
             return null;
         }
     }
@@ -940,7 +947,7 @@ public class StoragePortsAllocator {
      * @param dbClient
      * @return
      */
-    private String getSwitchName(StoragePort port, DbClient dbClient) {
+    public String getSwitchName(StoragePort port, DbClient dbClient) {
         URIQueryResultList uriList = new URIQueryResultList();
         dbClient.queryByConstraint(
                 AlternateIdConstraint.Factory

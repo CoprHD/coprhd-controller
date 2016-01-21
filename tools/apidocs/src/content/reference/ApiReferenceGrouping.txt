@@ -94,6 +94,7 @@ com.emc.storageos.systemservices.impl.resource.LicensingService
 com.emc.storageos.systemservices.impl.resource.LogService
 com.emc.storageos.systemservices.impl.resource.PasswordService
 com.emc.storageos.systemservices.impl.resource.UpgradeService
+com.emc.storageos.systemservices.impl.resource.DbConsistencyService
 
 =Other Services
 com.emc.storageos.api.service.impl.resource.AuditService

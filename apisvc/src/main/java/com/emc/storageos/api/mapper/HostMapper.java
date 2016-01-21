@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
@@ -23,6 +24,7 @@ import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.block.export.ExportPathParametersRep;
 import com.emc.storageos.model.host.HostInterfaceRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
@@ -66,7 +68,8 @@ public class HostMapper {
     }
 
     public static ExportGroupRestRep map(ExportGroup from, List<Initiator> initiators,
-            Map<String, Integer> volumes, List<Host> hosts, List<Cluster> clusters) {
+            Map<String, Integer> volumes, List<Host> hosts, List<Cluster> clusters,
+            List<ExportPathParams> exportPathParams) {
         if (from == null) {
             return null;
         }
@@ -97,6 +100,18 @@ public class HostMapper {
             for (Cluster cluster : clusters) {
                 to.getClusters().add(map(cluster));
 
+            }
+        }
+        
+        if (exportPathParams != null && !exportPathParams.isEmpty()) {
+            for (ExportPathParams pathParam : exportPathParams) {
+                ExportPathParametersRep pathParamRep = map(pathParam);
+                for (Map.Entry<String, String> entry : from.getPathParameters().entrySet()) {
+                    if (entry.getValue().equals(pathParam.getId().toString())) {
+                        pathParamRep.getBlockObjects().add(entry.getKey());
+                    }
+                }
+                to.getPathParams().add(pathParamRep);
             }
         }
         if (from.getProject() != null) {
@@ -173,6 +188,20 @@ public class HostMapper {
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.findVcenterTenant()));
         to.setOsVersion(from.getOsVersion());
         to.setCascadeTenancy(from.getCascadeTenancy());
+        return to;
+    }
+    
+    public static ExportPathParametersRep map(ExportPathParams from) {
+        if (from == null) {
+            return null;
+        }
+        ExportPathParametersRep to = new ExportPathParametersRep();
+        to.setMaxPaths(from.getMaxPaths());
+        to.setMinPaths(from.getMinPaths());
+        to.setPathsPerInitiator(from.getPathsPerInitiator());
+        for (String portId : from.getStoragePorts()) {
+            to.getStoragePorts().add(URI.create(portId));
+        }
         return to;
     }
 }

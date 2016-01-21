@@ -243,15 +243,16 @@ public class HDSApiExportManager {
      * @param systemId
      * @param hsdId
      * @param wwnList
+     * @param model
      * @return
      * @throws Exception
      */
     public HostStorageDomain addWWNToHostStorageDomain(String systemId, String hsdId,
-            List<String> wwnList) throws Exception {
+            List<String> wwnList, String model) throws Exception {
         InputStream responseStream = null;
         HostStorageDomain hsd = null;
         try {
-            String addWWNToHSDQuery = constructWWNQuery(systemId, hsdId, wwnList);
+            String addWWNToHSDQuery = constructWWNQuery(systemId, hsdId, wwnList, model);
             log.info("Query to add FC initiators to HostStorageDomain: {}", addWWNToHSDQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI, addWWNToHSDQuery);
@@ -291,14 +292,15 @@ public class HDSApiExportManager {
      * @param systemId
      * @param hsdId
      * @param wwnList
+     * @param model
      * @return
      * @throws Exception
      */
     public void deleteWWNsFromHostStorageDomain(String systemId, String hsdId,
-            List<String> wwnList) throws Exception {
+            List<String> wwnList, String model) throws Exception {
         InputStream responseStream = null;
         try {
-            String removeWWNFromHSDQuery = constructDeleteWWNQuery(systemId, hsdId, wwnList);
+            String removeWWNFromHSDQuery = constructDeleteWWNQuery(systemId, hsdId, wwnList, model);
             log.info("Query to delete FC initiators to HostStorageDomain: {}", removeWWNFromHSDQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI, removeWWNFromHSDQuery);
@@ -330,16 +332,17 @@ public class HDSApiExportManager {
      * 
      * @param systemId
      * @param hsdId
-     * @param wwnList
+     * @param scsiNameList
+     * @param model
      * @return
      * @throws Exception
      */
     public HostStorageDomain addISCSIInitatorsToHostStorageDomain(String systemId, String hsdId,
-            List<String> scsiNameList) throws Exception {
+            List<String> scsiNameList, String model) throws Exception {
         InputStream responseStream = null;
         HostStorageDomain hsd = null;
         try {
-            String addISCSINamesToHSDQuery = constructISCSIQuery(systemId, hsdId, scsiNameList);
+            String addISCSINamesToHSDQuery = constructISCSIQuery(systemId, hsdId, scsiNameList, model);
             log.info("Query to add SCSI Initiators to HostStorageDomain: {}", addISCSINamesToHSDQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI, addISCSINamesToHSDQuery);
@@ -378,15 +381,16 @@ public class HDSApiExportManager {
      * 
      * @param systemId
      * @param hsdId
-     * @param wwnList
+     * @param scsiNameList
+     * @param model
      * @return
      * @throws Exception
      */
     public void deleteISCSIsFromHostStorageDomain(String systemId, String hsdId,
-            List<String> scsiNameList) throws Exception {
+            List<String> scsiNameList, String model) throws Exception {
         InputStream responseStream = null;
         try {
-            String addISCSINamesToHSDQuery = constructRemoveISCSIQuery(systemId, hsdId, scsiNameList);
+            String addISCSINamesToHSDQuery = constructRemoveISCSIQuery(systemId, hsdId, scsiNameList, model);
             log.info("Query to remove SCSI Initiators from HostStorageDomain: {}", addISCSINamesToHSDQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI, addISCSINamesToHSDQuery);
@@ -442,7 +446,6 @@ public class HDSApiExportManager {
      */
     public List<HostStorageDomain> getHostStorageDomains(String systemId)
             throws Exception {
-        String hsdQueryWithParams = null;
         InputStream responseStream = null;
         StorageArray storageArray = null;
         List<HostStorageDomain> hsdList = null;
@@ -552,13 +555,13 @@ public class HDSApiExportManager {
      * @param wwnList
      * @return
      */
-    private String constructWWNQuery(String systemId, String hsdId, List<String> wwnList) {
+    private String constructWWNQuery(String systemId, String hsdId, List<String> wwnList, String model) {
         Map<String, Object> attributeMap = new HashMap<String, Object>();
-        List<Path> pathList = new ArrayList<Path>();
         StorageArray array = new StorageArray(systemId);
         Add addOp = new Add(HDSConstants.ADD_WWN_TO_HSD_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.ADD, addOp);
+        attributeMap.put(HDSConstants.MODEL, model);
         HostStorageDomain hsd = new HostStorageDomain(hsdId);
         attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
         List<WorldWideName> wwnObjList = new ArrayList<WorldWideName>();
@@ -588,13 +591,13 @@ public class HDSApiExportManager {
      * @param wwnList
      * @return
      */
-    private String constructDeleteWWNQuery(String systemId, String hsdId, List<String> wwnList) {
+    private String constructDeleteWWNQuery(String systemId, String hsdId, List<String> wwnList, String model) {
         Map<String, Object> attributeMap = new HashMap<String, Object>();
-        List<Path> pathList = new ArrayList<Path>();
         StorageArray array = new StorageArray(systemId);
         Delete deleteOp = new Delete(HDSConstants.ADD_WWN_TO_HSD_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.DELETE, deleteOp);
+        attributeMap.put(HDSConstants.MODEL, model);
         HostStorageDomain hsd = new HostStorageDomain(hsdId);
         attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
         List<WorldWideName> wwnObjList = new ArrayList<WorldWideName>();
@@ -624,14 +627,14 @@ public class HDSApiExportManager {
      * @param wwnList
      * @return
      */
-    private String constructISCSIQuery(String systemId, String hsdId, List<String> scsiNameList) {
+    private String constructISCSIQuery(String systemId, String hsdId, List<String> scsiNameList, String model) {
 
         Map<String, Object> attributeMap = new HashMap<String, Object>();
-        List<Path> pathList = new ArrayList<Path>();
         StorageArray array = new StorageArray(systemId);
         Add addOp = new Add(HDSConstants.ISCSI_NAME_FOR_HSD_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.ADD, addOp);
+        attributeMap.put(HDSConstants.MODEL, model);
         HostStorageDomain hsd = new HostStorageDomain(hsdId);
         attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
         List<ISCSIName> iSCSIObjList = new ArrayList<ISCSIName>();
@@ -661,13 +664,14 @@ public class HDSApiExportManager {
      * @param wwnList
      * @return
      */
-    private String constructRemoveISCSIQuery(String systemId, String hsdId, List<String> scsiNameList) {
+    private String constructRemoveISCSIQuery(String systemId, String hsdId, List<String> scsiNameList, String model) {
 
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         StorageArray array = new StorageArray(systemId);
         Delete deleteOp = new Delete(HDSConstants.ISCSI_NAME_FOR_HSD_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.DELETE, deleteOp);
+        attributeMap.put(HDSConstants.MODEL, model);
         HostStorageDomain hsd = new HostStorageDomain(hsdId);
         attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
         List<ISCSIName> iSCSIObjList = new ArrayList<ISCSIName>();
@@ -694,13 +698,15 @@ public class HDSApiExportManager {
      * @param systemId
      * @param targetPortID
      * @param hsdNickName
-     * @param domainType
+     * @param hostMode.
+     * @param hostModeOption
+     * @param model
      * @return
      * @throws Exception
      */
     public HostStorageDomain addHostStorageDomain(String systemId, String targetPortID,
             String domainType, String hsdName, String hsdNickName, String hostMode,
-            String hostModeOption) throws Exception {
+            String hostModeOption, String model) throws Exception {
         InputStream responseStream = null;
         HostStorageDomain hsd = null;
         try {
@@ -710,6 +716,7 @@ public class HDSApiExportManager {
             Add addOp = new Add(HDSConstants.HOST_STORAGE_DOMAIN);
             attributeMap.put(HDSConstants.STORAGEARRAY, array);
             attributeMap.put(HDSConstants.ADD, addOp);
+            attributeMap.put(HDSConstants.MODEL, model);
             HostStorageDomain inputHsd = new HostStorageDomain(targetPortID, hsdName, domainType, hsdNickName);
             inputHsd.setHostMode(hostMode);
             inputHsd.setHostModeOption(hostModeOption);
@@ -757,19 +764,18 @@ public class HDSApiExportManager {
      * @param systemId
      * @param targetPortId
      * @param domainId
-     * @param lunList
-     * @param devNum
+     * @param deviceLunList
+     * @param model
      * @throws Exception
      */
     public List<Path> addLUN(String systemId, String targetPortId, String domainId,
-            Map<String, String> deviceLunList) throws Exception {
+            Map<String, String> deviceLunList, String model) throws Exception {
         InputStream responseStream = null;
-        Path path = null;
         List<Path> pathList = new ArrayList<Path>();
 
         try {
             String addLUNQuery = constructAddLUNQuery(systemId, targetPortId, domainId,
-                    deviceLunList, pathList);
+                    deviceLunList, pathList, model);
             log.info("Query to addLUN Query: {}", addLUNQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI, addLUNQuery);
@@ -809,17 +815,20 @@ public class HDSApiExportManager {
      * @param targetPortId
      * @param domainId
      * @param deviceLunList
+     * @param pathList
+     * @param model
      * @return
      * @throws Exception
      */
     private String constructAddLUNQuery(String systemId, String targetPortId,
-            String domainId, Map<String, String> deviceLunList, List<Path> pathList) throws Exception {
+            String domainId, Map<String, String> deviceLunList, List<Path> pathList, String model) throws Exception {
 
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         StorageArray array = new StorageArray(systemId);
         Add addOp = new Add(HDSConstants.LUN_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.ADD, addOp);
+        attributeMap.put(HDSConstants.MODEL, model);
 
         if (null != deviceLunList && !deviceLunList.isEmpty()) {
             for (String device : deviceLunList.keySet()) {
@@ -845,9 +854,7 @@ public class HDSApiExportManager {
      * 
      */
     public List<FreeLun> getFreeLUNInfo(String systemId, String hsdId) throws Exception {
-        String freeLunQueryWithParams = null;
         InputStream responseStream = null;
-        Object params[] = null;
         HostStorageDomain hostStorageDomain = null;
         List<FreeLun> freeLunList = null;
         try {
@@ -905,9 +912,10 @@ public class HDSApiExportManager {
      * 
      * @param systemObjectId
      * @param hsdObjectId
+     * @param model
      * @throws Exception
      */
-    public void deleteHostStorageDomain(String systemObjectId, String hsdObjectId) throws Exception {
+    public void deleteHostStorageDomain(String systemObjectId, String hsdObjectId, String model) throws Exception {
         InputStream responseStream = null;
         try {
             Map<String, Object> attributeMap = new HashMap<String, Object>();
@@ -915,6 +923,7 @@ public class HDSApiExportManager {
             Delete deleteOp = new Delete(HDSConstants.HOST_STORAGE_DOMAIN);
             attributeMap.put(HDSConstants.STORAGEARRAY, array);
             attributeMap.put(HDSConstants.DELETE, deleteOp);
+            attributeMap.put(HDSConstants.MODEL, model);
             HostStorageDomain inputHsd = new HostStorageDomain(hsdObjectId);
             attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, inputHsd);
 
@@ -953,13 +962,15 @@ public class HDSApiExportManager {
      * Delete the LUN Path from HSD of a given storage array.
      * 
      * @param systemObjectId
-     * @param hsdObjectId
+     * @param pathObjectIdList
+     * @param model
+     * 
      * @throws Exception
      */
-    public void deleteLunPathsFromSystem(String systemObjectId, List<String> pathObjectIdList) throws Exception {
+    public void deleteLunPathsFromSystem(String systemObjectId, List<String> pathObjectIdList, String model) throws Exception {
         InputStream responseStream = null;
         try {
-            String deleteLunPathsQuery = constructDeleteLunPathsQuery(systemObjectId, pathObjectIdList);
+            String deleteLunPathsQuery = constructDeleteLunPathsQuery(systemObjectId, pathObjectIdList, model);
             log.info("Query to delete Lun paths: {}", deleteLunPathsQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI,
@@ -996,12 +1007,13 @@ public class HDSApiExportManager {
      * @param lunPathObjectIdList
      * @return
      */
-    private String constructDeleteLunPathsQuery(String systemId, List<String> lunPathObjectIdList) {
+    private String constructDeleteLunPathsQuery(String systemId, List<String> lunPathObjectIdList, String model) {
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         List<Path> pathList = new ArrayList<Path>();
         StorageArray array = new StorageArray(systemId);
         Delete deleteOp = new Delete(HDSConstants.LUN_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
+        attributeMap.put(HDSConstants.MODEL, model);
         attributeMap.put(HDSConstants.DELETE, deleteOp);
 
         if (null != lunPathObjectIdList && !lunPathObjectIdList.isEmpty()) {

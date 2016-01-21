@@ -9,7 +9,7 @@
     },
     
     snapshot:{
-      type:"assetType.vipr.blockSnapshot",
+      type:"assetType.vipr.exportedBlockSnapshot",
       lockable:false
      },
      

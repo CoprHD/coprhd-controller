@@ -6,5 +6,13 @@
         <dt>&{'computeImages.lastImportStatusMessage'}</dt>
         <dd>${computeImage.lastImportStatusMessage ?: '-'}</dd>
     #{/if}
+    #{if computeImage.availableImageServers}
+        <dt>&{'computeImages.availableImageServers'}</dt>
+        <dd>${computeImage.availableImageServers.collect{ it.name }.join(", ")?: '-'}</dd>
+    #{/if}
+    #{if computeImage.failedImageServers}
+        <dt>&{'computeImages.failedImageServers'}</dt>
+        <dd>${computeImage.failedImageServers.collect{ it.name }.join(", ")?: '-'}</dd>
+    #{/if}
 
 </dl>

@@ -56,7 +56,7 @@ public interface MethodNotAllowedExceptions {
     public MethodNotAllowedException notSupportedForVNXE();
 
     @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
-    public MethodNotAllowedException notSupportedForExtremeIO();
+    public MethodNotAllowedException notSupportedForXtremIO();
 
     @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
     public MethodNotAllowedException notSupportedForScaleIO();

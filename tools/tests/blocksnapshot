@@ -141,6 +141,14 @@ def snapshot_search(args):
     else:
         print 'Result: ', array
 
+def snapshot_expose(args):
+    bourne.connect(args.ip)
+    uri = bourne.block_snapshot_query(args.name)
+    start = time.time()
+    (o, s, m) = bourne.block_snapshot_expose(uri)
+    total = time.time() - start
+    print "Expose snapshot completed in", "{0:.2f}".format(total), "seconds, status is " + s + "\n" + m
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -213,6 +221,9 @@ search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search n
 search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
 search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
 
+# expose
+expose = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+expose.add_argument('name', help = 'name of snapshot')
 
 #----------------------------------------------------------------------
 # Main script
@@ -260,6 +271,9 @@ try:
     elif(cmd == "search"):
         args = search.parse_args()
         snapshot_search(args)
+    elif(cmd == "expose"):
+        args = expose.parse_args()
+        snapshot_expose(args)
     else:
         parser.print_help()
 

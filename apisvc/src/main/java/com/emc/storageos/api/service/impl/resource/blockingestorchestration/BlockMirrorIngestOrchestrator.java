@@ -73,14 +73,6 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
     }
 
     /**
-     * There is no validation required for mirrors. Hence returning void argument.
-     */
-    @Override
-    protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
-        return;
-    }
-
-    /**
      * Create block Mirror object from the UnManagedVolume object.
      * 
      * @param unManagedVolume
@@ -106,6 +98,11 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         String syncType = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.SYNC_TYPE.toString(), unManagedVolume.getVolumeInformation());
         mirror.setSyncType(syncType);
+        String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, system, vPool);
+        validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
+        if (null != autoTierPolicyId) {
+            updateTierPolicyProperties(autoTierPolicyId, mirror);
+        }
         return mirror;
     }
 }

@@ -205,6 +205,7 @@ public class VirtualPoolUtils {
         List<VirtualPoolCommonRestRep> virtualPools = Lists.newArrayList();
         virtualPools.addAll(getViprClient().blockVpools().getByVirtualArray(virtualArray));
         virtualPools.addAll(getViprClient().fileVpools().getByVirtualArray(virtualArray));
+        virtualPools.addAll(getViprClient().objectVpools().getByVirtualArray(virtualArray));
         return virtualPools;
     }
 

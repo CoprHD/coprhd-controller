@@ -85,10 +85,6 @@ public class SoftwareVersionTest {
         selfTest("vipr-1.0.0.0.500");
         selfTest("vipr-1.0.0.33.r500");
         selfTest("vipr-1.0.0.33.500");
-        selfTest("vipr-2-1.0.0.0.r500");
-        selfTest("vipr-2-1.0.0.0.500");
-        selfTest("vipr-2-1.0.0.33.r500");
-        selfTest("vipr-2-1.0.0.33.500");
         pairTest("vipr-1.0.0.0.r500", "vipr-1.0.0.0.r501");
         pairTest("vipr-1.0.0.0.r500", "vipr-1.0.0.0.500");
         pairTest("vipr-1.0.0.0.r499", "vipr-1.0.0.0.500");

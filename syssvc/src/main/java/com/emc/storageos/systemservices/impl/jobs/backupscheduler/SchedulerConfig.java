@@ -24,6 +24,7 @@ import com.emc.storageos.security.mail.MailHelper;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.services.util.Strings;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
 
@@ -377,5 +378,37 @@ public class SchedulerConfig {
         if (targetInfo == null) {
             throw new Exception("Can't get version information from coordinator client");
         }
+    }
+
+    /**
+     * Query upload status from ZK
+     */
+    public BackupUploadStatus queryBackupUploadStatus() {
+        Configuration cfg = coordinatorClient.queryConfiguration(
+                BackupConstants.BACKUP_UPLOAD_STATUS, Constants.GLOBAL_ID);
+        Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
+        BackupUploadStatus uploadStatus = new BackupUploadStatus(allItems);
+        log.info("Upload status is: {}", uploadStatus);
+        return uploadStatus;
+    }
+
+    /**
+     * Persist upload status to ZK
+     */
+    public void persistBackupUploadStatus(BackupUploadStatus status) {
+        Map<String, String> allItems = (status != null) ? status.getAllItems(): null;
+        if (allItems == null || allItems.size() == 0){
+            return;
+        }
+        ConfigurationImpl config = new ConfigurationImpl();
+        config.setKind(BackupConstants.BACKUP_UPLOAD_STATUS);
+        config.setId(Constants.GLOBAL_ID);
+
+        log.info("Setting upload status: {}", status);
+        for (Map.Entry<String, String> entry : allItems.entrySet()) {
+            config.setConfig(entry.getKey(), entry.getValue());
+        }
+        coordinatorClient.persistServiceConfiguration(config);
+        log.info("Persist backup upload status to zk successfully");
     }
 }

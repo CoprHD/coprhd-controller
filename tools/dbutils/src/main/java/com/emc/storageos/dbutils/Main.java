@@ -60,8 +60,6 @@ public class Main {
 
     public static final String BLACKLIST = "blacklist";
 
-    public static final String GENERATE_CLEANUP_CQL = "-generate_cleanup_cql";
-
     private static DBClient _client = null;
 
     private static final String LOG_FILE_PATH = "/opt/storageos/logs/dbutils.log";
@@ -115,10 +113,8 @@ public class Main {
                 Command.RECOVER_VDC_CONFIG.name().toLowerCase(), RECOVER_DUMP, RECOVER_LOAD);
         System.out.printf("\t%s [%s] [%s] Geodb blacklist.%n",
                 Command.GEOBLACKLIST.name().toLowerCase(), "-reset|set", "<vdc short id>");
-        System.out.printf("\t%s [%s] Check correctness for URI and serialize in db%n",
-                Command.CHECK_DB.name().toLowerCase(), GENERATE_CLEANUP_CQL);
-        System.out
-                .printf("\t\tNote: Specifing %s can generate the cleanup cql file%n", GENERATE_CLEANUP_CQL);
+        System.out.printf("\t%s\tCheck data consistency of the whole database%n",
+                Command.CHECK_DB.name().toLowerCase());
         System.out.printf("\t%s -db|-geodb [-new] [-crossVdc]%n",
                 Command.REPAIR_DB.name().toLowerCase());
         System.out.printf("\t\tNote: %s option can only be executed as %s user%n",

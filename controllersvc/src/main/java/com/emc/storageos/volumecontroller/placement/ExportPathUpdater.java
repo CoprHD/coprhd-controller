@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -29,6 +30,7 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
+import com.google.common.base.Joiner;
 
 public class ExportPathUpdater {
     private static final Logger _log = LoggerFactory.getLogger(ExportPathUpdater.class);
@@ -59,6 +61,15 @@ public class ExportPathUpdater {
                 volume.getLabel(), volume.getId()));
         Set<URI> volumeURISet = new HashSet<URI>();
         volumeURISet.add(volume.getId());
+        
+        // Check that the ExportGroup has not overridden the Vpool path parameters.
+        if (exportGroup.getPathParameters().containsKey(volume.getId().toString())) {
+            // Cannot do a Vpool path change because parameters have been set in Export Group 
+            _log.info(String.format(
+              "No changes will be made to ExportGroup %s (%s) because it has explicit path parameters overiding the Vpool", 
+              exportGroup.getLabel(), exportGroup.getId()));
+            return;
+        }
 
         // Search through the Export Masks looking for any containing this Volume.
         // We only process ViPR created Export Masks, others are ignored.
@@ -92,8 +103,8 @@ public class ExportPathUpdater {
      */
     public void validateChangePathParams(URI volumeURI, ExportPathParams newParam) {
         BlockObject volume = BlockObject.fetch(_dbClient, volumeURI);
-        _log.info(String.format("Validating path parameters for volume %s (%s)",
-                volume.getLabel(), volume.getId()));
+        _log.info(String.format("Validating path parameters for volume %s (%s) new path parameters %s",
+                volume.getLabel(), volume.getId(), newParam.toString()));
         // Locate all the ExportMasks containing the given volume, and their Export Group.
         Map<ExportMask, ExportGroup> maskToGroupMap =
                 ExportUtils.getExportMasks(volume, _dbClient);
@@ -166,6 +177,7 @@ public class ExportPathUpdater {
                 }
             }
         }
+        _log.info("Unused initiators that will be provisioned: ", Joiner.on(",").join(unusedInitiators));
         return unusedInitiators;
     }
 
@@ -189,7 +201,19 @@ public class ExportPathUpdater {
             BlockObject volume, String token) throws Exception {
         Set<URI> volumeURISet = new HashSet<URI>();
         volumeURISet.add(volume.getId());
-        ExportPathParams newParam = blockScheduler.calculateExportPathParmForVolumes(volumeURISet, 0);
+        
+        // Check that the ExportGroup has not overridden the Vpool path parameters.
+        if (exportGroup.getPathParameters().containsKey(volume.getId().toString())) {
+            // Cannot do a Vpool path change because parameters have been set in Export Group 
+            _log.info(String.format(
+              "No changes will be made to ExportGroup %s (%s) because it has explicit path parameters overiding the Vpool", 
+              exportGroup.getLabel(), exportGroup.getId()));
+            return;
+        }
+        
+        ExportPathParams newParam = blockScheduler.calculateExportPathParamForVolumes(
+                volumeURISet, 0, storage.getId(), exportGroup.getId());
+        _log.info("New path parameters requested: " +  newParam.toString());
 
         // Search through the Export Masks looking for any containing this Volume.
         // We only process ViPR created Export Masks, others are ignored.
@@ -208,8 +232,12 @@ public class ExportPathUpdater {
             }
             ExportPathParams maskParam = BlockStorageScheduler
                     .calculateExportPathParamForExportMask(_dbClient, mask);
+            _log.info(String.format(
+              "Existing mask %s (%s) path parameters: %s", 
+              mask.getMaskName(), mask.getId(),  maskParam.toString()));
 
             if (newParam.getPathsPerInitiator() > maskParam.getPathsPerInitiator()) {
+                _log.info("Increase paths per initiator not supported");
                 // We want to increase paths per initiator
                 // Not supported yet, code will be added here.
             } else if (newParam.getMaxPaths() > maskParam.getMaxPaths()) {
@@ -223,6 +251,7 @@ public class ExportPathUpdater {
                             mask, unusedInitiators, token);
                 }
             } else if (newParam.getMaxPaths() < maskParam.getMaxPaths()) {
+                _log.info("Decrease max paths not supported");
                 // We want to lower MaxPaths. See if no other volume has a higher MaxPaths.
                 // Not supported yet, code will be added here.
             }

@@ -258,7 +258,7 @@ public class VNXeStorageDevice extends VNXeOperations
      * ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", "No Job returned from deleteFileSystem");
      * return BiosCommandResult.createErrorResult(error);
      * }
-     *
+     * 
      * }catch (VNXeException e) {
      * _logger.error("Delete file system got the exception", e);
      * if (completer != null) {
@@ -1035,7 +1035,7 @@ public class VNXeStorageDevice extends VNXeOperations
      * MetaVolumeRecommendation recommendation,
      * TaskCompleter volumeCompleter) throws DeviceControllerException {
      * // TODO Auto-generated method stub
-     *
+     * 
      * }
      */
 
@@ -2499,5 +2499,24 @@ public class VNXeStorageDevice extends VNXeOperations
     public void doDetachListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported());
+    }
+    
+    @Override
+    public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        // If this operation is unsupported by default it's not necessarily an error
+        return;
     }
 }

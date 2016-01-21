@@ -8,13 +8,13 @@ import java.util.List;
 
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.service.Service;
-import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
+import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 
 @Service("Aix-CreateAndMountBlockVolume")
 public class CreateAndMountVolumeService extends AixService {
     @Bindable
-    private CreateBlockVolumeHelper createVolumeHelper = new CreateBlockVolumeHelper();
+    private CreateBlockVolumeForHostHelper createVolumeHelper = new CreateBlockVolumeForHostHelper();
 
     private MountBlockVolumeHelper mountBlockVolumeHelper;
 

@@ -36,7 +36,9 @@ public class ScheduledBackupTag {
         }
     };
     private static final Date MIN_DATE = new Date(0);
-    private static final String ZIP_FILE_SURFIX = ".zip";
+    protected static final String ZIP_FILE_SURFIX = ".zip";
+    protected static final String BACKUP_TAG_SEPERATOR = "-";
+    private static final String INVALID_ZIP_FILE_SURFIX = "-invalid.zip";
 
     public static Date parseTimestamp(String timestampStr) throws ParseException {
         return dateFormat.get().parse(timestampStr);
@@ -106,5 +108,9 @@ public class ScheduledBackupTag {
 
     public static String toZipFileName(String tag, int totalNodes, int backupNodes) {
         return String.format(UPLOAD_ZIP_FILENAME_FORMAT, tag, totalNodes, backupNodes, ZIP_FILE_SURFIX);
+    }
+
+    public static String toInvalidFileName(String fileName) {
+        return fileName.replaceFirst(ZIP_FILE_SURFIX + "$", INVALID_ZIP_FILE_SURFIX);
     }
 }

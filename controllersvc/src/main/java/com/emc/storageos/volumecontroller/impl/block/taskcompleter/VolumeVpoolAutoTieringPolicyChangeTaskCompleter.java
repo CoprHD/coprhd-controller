@@ -6,6 +6,7 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +19,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.VPlexUtil;
 
 public class VolumeVpoolAutoTieringPolicyChangeTaskCompleter extends
         VolumeVpoolChangeTaskCompleter {
@@ -53,6 +55,7 @@ public class VolumeVpoolAutoTieringPolicyChangeTaskCompleter extends
                         "An error occurred during virtual pool change "
                                 + "- restore the old auto tiering policy to the volume(s): {}",
                         serviceCoded.getMessage());
+                List<Volume> volumesToUpdate = new ArrayList<Volume>();
                 for (URI id : getIds()) {
                     Volume volume = dbClient.queryObject(Volume.class, id);
                     _log.info("rolling back auto tiering policy on volume {}({})",
@@ -64,8 +67,11 @@ public class VolumeVpoolAutoTieringPolicyChangeTaskCompleter extends
                     volume.setAutoTieringPolicyUri(policyURI);
                     _log.info("set volume's auto tiering policy back to {}",
                             policyURI);
-                    dbClient.persistObject(volume);
+                    volumesToUpdate.add(volume);
+
+                    rollBackPolicyOnVplexBackendVolume(volume, volumesToUpdate, dbClient);
                 }
+                dbClient.updateObject(volumesToUpdate);
                 break;
             case ready:
                 // The new auto tiering policy has already been stored in the volume
@@ -90,5 +96,40 @@ public class VolumeVpoolAutoTieringPolicyChangeTaskCompleter extends
                 break;
         }
         super.complete(dbClient, status, serviceCoded);
+    }
+
+    /**
+     * Roll back policy on vplex backend volumes.
+     */
+    private void rollBackPolicyOnVplexBackendVolume(Volume volume, List<Volume> volumesToUpdate, DbClient dbClient) {
+        // Check if it is a VPlex volume, and get backend volumes
+        Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
+        if (backendSrc != null) {
+            _log.info("rolling back auto tiering policy on VPLEX backend source volume {}({})",
+                    backendSrc.getId(), backendSrc.getLabel());
+            URI policyURI = oldVolToPolicyMap.get(backendSrc.getId());
+            if (policyURI == null) {
+                policyURI = NullColumnValueGetter.getNullURI();
+            }
+            backendSrc.setAutoTieringPolicyUri(policyURI);
+            _log.info("set volume's auto tiering policy back to {}",
+                    policyURI);
+            volumesToUpdate.add(backendSrc);
+
+            // VPlex volume, check if it is distributed
+            Volume backendHa = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient, false);
+            if (backendHa != null) {
+                _log.info("rolling back auto tiering policy on VPLEX backend distributed volume {}({})",
+                        backendHa.getId(), backendHa.getLabel());
+                policyURI = oldVolToPolicyMap.get(backendHa.getId());
+                if (policyURI == null) {
+                    policyURI = NullColumnValueGetter.getNullURI();
+                }
+                backendHa.setAutoTieringPolicyUri(policyURI);
+                _log.info("set volume's auto tiering policy back to {}",
+                        policyURI);
+                volumesToUpdate.add(backendHa);
+            }
+        }
     }
 }

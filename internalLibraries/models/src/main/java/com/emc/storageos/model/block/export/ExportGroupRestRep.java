@@ -30,6 +30,7 @@ public class ExportGroupRestRep extends DataObjectRestRep {
     private RelatedResourceRep virtualArray;
     private String generatedName;
     private String type;
+    private List<ExportPathParametersRep> pathParams;
 
     /**
      * Name of the block export.
@@ -170,5 +171,18 @@ public class ExportGroupRestRep extends DataObjectRestRep {
 
     public void setClusters(List<ClusterRestRep> clusters) {
         this.clusters = clusters;
+    }
+
+    @XmlElementWrapper(name = "path_params", required = false)
+    @XmlElement(name = "path_param")
+    public List<ExportPathParametersRep> getPathParams() {
+        if (pathParams == null) {
+            pathParams = new ArrayList<ExportPathParametersRep>();
+        }
+        return pathParams;
+    }
+
+    public void setPathParams(List<ExportPathParametersRep> pathParams) {
+        this.pathParams = pathParams;
     }
 }

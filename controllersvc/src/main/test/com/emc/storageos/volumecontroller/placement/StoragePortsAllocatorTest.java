@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.PropertyConfigurator;
@@ -22,7 +23,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.util.DummyDbClient;
 import com.emc.storageos.util.NetworkLite;
-import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 
 /**
@@ -884,6 +884,8 @@ public class StoragePortsAllocatorTest {
             haDomain.setNativeGuid("SYMMETRIX+" + portName);
         } else if (portGroup != null && portGroup.startsWith("director-")) {
             haDomain.setNativeGuid("VPLEX+" + port.getPortGroup());
+        } else if (portGroup.startsWith("X")) {
+            haDomain.setNativeGuid("XTREMIO+" + port.getPortGroup());
         } else {
             haDomain.setNativeGuid("VNX+" + portName);
         }
@@ -907,6 +909,9 @@ public class StoragePortsAllocatorTest {
                 }
             }
             haDomain.setSlotNumber(portName.substring(3, index));
+        } else if (portName.startsWith("X")) {
+            haDomain.setAdapterName(portGroup);
+            type = StorageSystem.Type.xtremio;
         } else {
             haDomain.setSlotNumber("0");
         }

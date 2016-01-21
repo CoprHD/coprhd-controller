@@ -25,6 +25,8 @@ public class ExportUpdateParam {
     private InitiatorsUpdateParam initiators;
     private HostsUpdateParam hosts;
     private ClustersUpdateParam clusters;
+    // Export path parameters can be specified for any included volumes.
+    private ExportPathParameters exportPathParameters;
 
     public ExportUpdateParam() {
     }
@@ -116,4 +118,13 @@ public class ExportUpdateParam {
         }
         volumes.removeVolume(volumeId);
     }
+
+    @XmlElement(name="path_parameters", required=false)
+    public ExportPathParameters getExportPathParameters() {
+                return exportPathParameters;
+            }
+
+    public void setExportPathParameters(ExportPathParameters exportPathParameters) {
+                this.exportPathParameters = exportPathParameters;
+            }
 }

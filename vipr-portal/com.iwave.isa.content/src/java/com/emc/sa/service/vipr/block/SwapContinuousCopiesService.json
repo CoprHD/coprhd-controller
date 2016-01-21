@@ -8,6 +8,12 @@
             lockable: true
         },
 
+        storageType:{
+      	    type:"assetType.vipr.blockVolumeOrConsistencyType",
+      	    lockable:true,
+      	    initialValue:"volume"
+        },
+
         volumes:{
             type:"assetType.vipr.protectedBlockVolume"
         },

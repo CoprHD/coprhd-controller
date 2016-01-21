@@ -179,6 +179,7 @@ public class VdcControllerTest {
     /**
      * Adding vdc2 to vdc1
      */
+    // Test hanging in IDE and "gradlew test"
     @Test
     public void testAddToSingleVdc() throws Exception {
         dbClient.buildInitData(1);
@@ -222,6 +223,7 @@ public class VdcControllerTest {
     /**
      * Adding vdc4 to a connected vdc1/2/3
      */
+    // Test hanging in IDE and "gradlew test"
     @Test
     public void testAddToMultipleVdc() throws Exception {
         // create a mockdb with 3 existing vdc
@@ -262,6 +264,7 @@ public class VdcControllerTest {
         Assert.assertTrue(clientManager.client.countForSyncCall == 3);
     }
 
+    // Test hanging in IDE and "gradlew test"
     @Test
     public void testAddVdcPrecheckFailure() throws Exception {
         // create a mock db with 2 existing vdc
@@ -289,6 +292,7 @@ public class VdcControllerTest {
     /**
      * Remove vdc2 from vdc1
      */
+    // Test hanging in IDE and "gradlew test"
     @Test
     public void testRemoveVdc() throws Exception {
         // create a mock db with 2 existing vdc
@@ -322,6 +326,7 @@ public class VdcControllerTest {
     /**
      * Remove vdc2 from vdc1
      */
+    // Test hanging in IDE and "gradlew test"
     @Test
     public void testRemoveVdcPreCheck() throws Exception {
         // create a mock db with 2 existing vdc
@@ -355,6 +360,7 @@ public class VdcControllerTest {
     /**
      * Remove vdc2 from vdc1
      */
+    // Test hanging in IDE and "gradlew test"
     @Test
     public void testRemoveVdcInUsePreCheck() throws Exception {
         // create a mock db with 2 existing vdc
@@ -384,6 +390,7 @@ public class VdcControllerTest {
     /**
      * Remove vdc3 from vdc1/vdc2
      */
+    // Test hanging in IDE and "gradlew test"
     @Test
     public void testRemoveVdcFromThreeSiteGeo() throws Exception {
         // create a mock db with 3 existing vdc

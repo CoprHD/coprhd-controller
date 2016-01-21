@@ -24,9 +24,10 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
+import com.emc.storageos.imageservercontroller.impl.ImageServerControllerImpl;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
 import com.emc.storageos.model.compute.ComputeImageServerRestRep;
@@ -102,6 +103,25 @@ public class ComputeMapper {
         return to;
     }
 
+    public static ComputeImageRestRep map(ComputeImage from) {
+        if (from == null) {
+            return null;
+        }
+        ComputeImageRestRep to = new ComputeImageRestRep();
+        mapDataObjectFields(from, to);
+        to.setImageName(from.getImageName());
+        to.setImageUrl(from.getImageUrl());
+        to.setImageType(from.getImageType());
+        to.setComputeImageStatus(from.getComputeImageStatus());
+        to.setLastImportStatusMessage(from.getLastImportStatusMessage());
+        List<NamedRelatedResourceRep> availableServersList = new ArrayList<NamedRelatedResourceRep>();
+        List<NamedRelatedResourceRep> failedServersList = new ArrayList<NamedRelatedResourceRep>();
+        to.setAvailableImageServers(availableServersList);
+        to.setFailedImageServers(failedServersList);
+
+        return to;
+    }
+
     public static ComputeImageRestRep map(ComputeImage from,
             List<ComputeImageServer> availableServers,
             List<ComputeImageServer> failedServers) {
@@ -111,7 +131,7 @@ public class ComputeMapper {
         ComputeImageRestRep to = new ComputeImageRestRep();
         mapDataObjectFields(from, to);
         to.setImageName(from.getImageName());
-        to.setImageUrl(from.getImageUrl());
+        to.setImageUrl(ImageServerControllerImpl.maskImageURLPassword(from.getImageUrl()));
         to.setImageType(from.getImageType());
         to.setComputeImageStatus(from.getComputeImageStatus());
         to.setLastImportStatusMessage(from.getLastImportStatusMessage());
@@ -137,8 +157,8 @@ public class ComputeMapper {
     }
 
     /**
-     * Utility mapper method to map fields of {@link ComputeImageServer}
-     * columnFamily to {@link ComputeImageServerRestRep} rest representation.
+     * Utility mapper method to map fields of {@link ComputeImageServer} columnFamily to {@link ComputeImageServerRestRep} rest
+     * representation.
      * 
      * @param dbclient
      *            {@link DbClient} instance
@@ -168,6 +188,10 @@ public class ComputeMapper {
         to.setImageServerUser(from.getImageServerUser());
         to.setOsInstallTimeout(new Long(TimeUnit.MILLISECONDS.toSeconds(from
                 .getOsInstallTimeoutMs())).intValue());
+        to.setSshTimeout(new Long(TimeUnit.MILLISECONDS.toSeconds(from
+                .getSshTimeoutMs())).intValue());
+        to.setImageImportTimeout(new Long(TimeUnit.MILLISECONDS.toSeconds(from
+                .getImageImportTimeoutMs())).intValue());
         to.setComputeImages(new ArrayList<NamedRelatedResourceRep>());
         to.setFailedImages(new ArrayList<NamedRelatedResourceRep>());
         if (from.getComputeImages() != null) {

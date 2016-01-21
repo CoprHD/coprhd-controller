@@ -464,7 +464,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         setChanged("virtualArrays");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = VpoolProtectionVarraySettings.class)
+    @RelationIndex(cf = "VpoolProtRelationIndex", type = VpoolProtectionVarraySettings.class)
     @IndexByKey
     @Name("protectionVarraySettings")
     public StringMap getProtectionVarraySettings() {

@@ -2000,23 +2000,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
     
-//    protected List<AssetOption> constructSnapshotWithSnapshotSessionForCGOptions(List<NamedRelatedResourceRep> snapshots, List<NamedRelatedResourceRep> snapshotSessions) {
-//        List<AssetOption> options = Lists.newArrayList();       
-//        // Create a map of linked target URIs to snapshot session names for convenience when creating
-//        // the option labels.
-//        Map<URI, String> linkedSnapshotToSnapshotSessionMap = new HashMap<URI, String>();
-//        for (NamedRelatedResourceRep snapshotSession : snapshotSessions) {
-//            for (RelatedResourceRep linkedTarget : snapshotSession.getLinkedTarget()) {
-//                linkedSnapshotToSnapshotSessionMap.put(linkedTarget.getId(), snapshotSession.getName());
-//            }
-//        }        
-//        for (BlockSnapshotRestRep snapshot : snapshots) {
-//            options.add(new AssetOption(snapshot.getId(), getBlockSnapshotLinkedLabel(snapshot, linkedSnapshotToSnapshotSessionMap)));
-//        }
-//        AssetOptionsUtils.sortOptionsByLabel(options);
-//        return options;
-//    }
-    
     protected List<AssetOption> constructSnapshotSessionOptions(ViPRCoreClient client, URI project, List<BlockSnapshotSessionRestRep> snapshotSessions) {
         List<AssetOption> options = Lists.newArrayList();
         Map<URI, VolumeRestRep> volumeNames = getProjectVolumeNames(client, project);

@@ -6,7 +6,6 @@ package com.emc.storageos.systemservices.impl.resource;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;

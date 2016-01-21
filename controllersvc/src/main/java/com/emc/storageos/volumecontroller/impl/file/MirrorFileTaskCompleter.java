@@ -24,12 +24,10 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
 	public MirrorFileTaskCompleter(Class clazz, List<URI> ids, String opId) {
 		super(clazz, ids, opId);
-		// TODO Auto-generated constructor stub
 	}
 
 	public MirrorFileTaskCompleter(Class clazz, URI id, String opId) {
 		super(clazz, id, opId);
-		// TODO Auto-generated constructor stub
 	}
 	
 	public MirrorFileTaskCompleter(URI sourceURI, URI targetURI, String opId) {
@@ -50,7 +48,6 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 	@Override
 	protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
 			throws DeviceControllerException {
-		// TODO Auto-generated method stub
         setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
         updateFileSystemStatus(dbClient, status);

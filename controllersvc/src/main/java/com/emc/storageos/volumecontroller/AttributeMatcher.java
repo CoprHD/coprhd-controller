@@ -75,10 +75,10 @@ public abstract class AttributeMatcher {
         file_replication_type,
         file_replication_copy_mode,
         file_replication,
-        source_storage_system,
-        remote_copy_mode,
         min_datacenters,
-        quota
+        quota,
+        source_storage_system,
+        remote_copy_mode
     }
 
     /**

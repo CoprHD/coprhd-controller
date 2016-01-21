@@ -134,7 +134,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * Create a nice event based on the File Share
      * 
      * @param fs FileShare for which the event is about
-     * @param type Type of event such as VolumeCreated or VolumeDeleted
+     * @param type Type of event such as FileShareCreated or FileShareDeleted
      * @param description Description for the event if needed
      */
     public static void recordFsEvent(DbClient dbClient, FileShare fs, String type, String description, String extensions) {
@@ -144,7 +144,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
-        // TODO fix the bogus user ID once we have AuthZ working
+        // fix the bogus user ID once we have AuthZ working
         RecordableBourneEvent event = ControllerUtils.convertToRecordableBourneEvent(fs, type, description,
                 extensions, dbClient, EVENT_SERVICE_TYPE, RecordType.Event.name(), EVENT_SERVICE_SOURCE);
 
@@ -156,11 +156,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     /**
-     * Create a nice event based on the volume
+     * Create a nice event based on the FileShare
      * 
      * @param snap Snapshot for which the event is about
      * @param fs FileShare from which the snapshot was created
-     * @param type Type of event such as VolumeCreated or VolumeDeleted
+     * @param type Type of event such as FileShareCreated or FileShareDeleted
      * @param description Description for the event if needed
      */
     public static void recordSnapshotEvent(DbClient dbClient, Snapshot snap, FileShare fs, String type,
@@ -171,11 +171,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
-        // TODO fix the bogus user ID once we have AuthZ working
+        // fix the bogus user ID once we have AuthZ working
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                           // user ID TODO when AAA fixed
+                URI.create("ViPR-User"),                                           // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -203,11 +203,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
-        // TODO fix the bogus user ID once we have AuthZ working
+        // fix the bogus user ID once we have AuthZ working
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                           // user ID TODO when AAA fixed
+                URI.create("ViPR-User"),                                           // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -1104,8 +1104,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     @Override
     public void modifyFS(URI storage, URI pool, URI fs, String opId) throws ControllerException {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
@@ -1252,7 +1250,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 }
             }
 
-            // TODO: Iterate through the snapshot list from device and if a
+            // Iterate through the snapshot list from device and if a
             // snapshot is found on the device but not in the DB, add the
             // newly discovered snapshot to the DB.
         }
@@ -1385,14 +1383,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     @Override
     public void discoverStorageSystem(AsyncTask[] tasks) throws ControllerException {
-        // TODO Auto-generated method stub
 
     }
 
     @Override
     public void scanStorageProviders(AsyncTask[] tasks)
             throws ControllerException {
-        // TODO Auto-generated method stub
     }
 
     public static void recordFileDeviceOperation(DbClient dbClient, OperationTypeEnum opType, boolean opStatus, String evDesc,
@@ -1511,8 +1507,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public void startMonitoring(AsyncTask task, Type deviceType)
             throws ControllerException {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
@@ -3414,8 +3408,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 	public String addStepsForDeleteFileSystems(Workflow workflow,
 			String waitFor, List<FileDescriptor> filesystems, String taskId)
 			throws InternalException {
-		// TODO Auto-generated method stub
-		
 	    List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                 FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
                 FileDescriptor.Type.FILE_MIRROR_SOURCE);

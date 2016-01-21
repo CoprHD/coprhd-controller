@@ -889,7 +889,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // set protection level
             // String protection = args.getFSProtectionLevel();
             // Call isilon api to set protection level
-            // TODO
+
 
             _log.info("IsilonFileStorageDevice doCreateFS {} - complete", args.getFsId());
             return BiosCommandResult.createSuccessfulResult();
@@ -959,7 +959,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception e) {
             _log.error("doExpandFS failed.", e);
-            // TODO convert this to a ServiceError and create/or reuse a service
+            // convert this to a ServiceError and create/or reuse a service
             // code
             ServiceError serviceError = DeviceControllerErrors.isilon.unableToExpandFileSystem();
             return BiosCommandResult.createErrorResult(serviceError);
@@ -1025,7 +1025,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception e) {
             _log.error("doShare failed.", e);
-            // TODO convert this to a ServiceError and create/or reuse a service
+            // convert this to a ServiceError and create/or reuse a service
             // code
             ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
             return BiosCommandResult.createErrorResult(serviceError);
@@ -1122,7 +1122,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult getFSSnapshotList(StorageSystem storage, FileDeviceInputOutput args,
             List<String> snapshots) throws ControllerException {
 
-        // TODO: Implement method
         String op = "getFSSnapshotList";
         String devType = storage.getSystemType();
         BiosCommandResult result = BiosCommandResult
@@ -2278,7 +2277,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                 policy = isi.getReplicationPolicy(policyName);
                 while (policy.getLastJobState().equals(JobState.running)) {
-                    // TODO wait till job is finished
+                    // wait till job is finished
                     policy = isi.getReplicationPolicy(policyName);
                 }
                 if (policy.getLastJobState().equals(JobState.finished)) {
@@ -2453,7 +2452,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             IsilonSyncTargetPolicy targetPolicy = isi.getTargetReplicationPolicy(policyName);
             while (targetPolicy.getLastJobState().equals(JobState.running)
                     && targetPolicy.getFoFbState().equals(FOFB_STATES.enabling_writes)) {
-                // TODO wait till job is finished
+                // wait till job is finished
                 targetPolicy = isi.getTargetReplicationPolicy(policyName);
             }
             if (targetPolicy.getLastJobState().equals(JobState.finished)
@@ -2542,7 +2541,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         secondaryLocalTargetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
         while (secondaryLocalTargetPolicy.getLastJobState().equals(JobState.running)
                 && secondaryLocalTargetPolicy.getFoFbState().equals(FOFB_STATES.creating_resync_policy)) {
-            // TODO wait till job is finished
+            // wait till job is finished
             secondaryLocalTargetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
         }
 
@@ -2573,8 +2572,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
-        // TODO Auto-generated method stub
-
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source);
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
 
@@ -2604,8 +2601,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        // TODO Auto-generated method stub
-        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
+              FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
         String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), target.getLabel());
         BiosCommandResult cmdResult = doCancelReplicationPolicy(system, policyName);
         if (cmdResult.getCommandSuccess()) {
@@ -2619,7 +2615,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doDetachMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
-        // TODO Auto-generated method stub
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source);
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
         String policyName = targetFileShare.getLabel();
@@ -2635,13 +2630,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        // TODO Auto-generated method stub
-
+        
     }
 
     @Override
     public void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
-        // TODO Auto-generated method stub
 
     }
 
@@ -2656,7 +2649,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public void doDeleteMirror(StorageSystem storage, URI mirror, Boolean createInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        // TODO Auto-generated method stub
         mirrorOperations.deleteSingleMirrorFileShare(storage, mirror, taskCompleter);
 
     }

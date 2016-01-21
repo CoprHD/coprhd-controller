@@ -154,15 +154,12 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     public void performNativeContinuousCopies(URI storage, URI sourceFileShare,
             List<URI> mirrorURIs, String opType, String opId)
             throws ControllerException {
-        // TODO Auto-generated method stub
-        //call local mirror operations
     }
 
     @Override
     public void performRemoteContinuousCopies(URI storage, URI copyId,
             String opType, String opId) throws ControllerException {
-        // TODO Auto-generated method stub
-        //TBD remote mirror operations
+        
     }
     
     /**
@@ -181,9 +178,9 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
         Map<URI, FileShare> uriFileShareMap = queryFileShares(fileDescriptors);
         //call to create mirror session
-        waitFor = createFileMirrorSession(workflow, waitFor, sourceDescriptors, uriFileShareMap);
+        String newWaitFor = createFileMirrorSession(workflow, waitFor, sourceDescriptors, uriFileShareMap);
         
-        return waitFor;
+        return newWaitFor;
     }
     
     /**

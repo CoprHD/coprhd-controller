@@ -15,18 +15,17 @@ public class FileDeleteWorkflowCompleter extends FileWorkflowCompleter{
 
 	public FileDeleteWorkflowCompleter(URI fsUri, String task) {
 		super(fsUri, task);
-		// TODO Auto-generated constructor stub
+		
 	}
 
 	@Override
 	protected void complete(DbClient dbClient, Status status,
 			ServiceCoded serviceCoded) {
-		// TODO Auto-generated method stub
 		super.complete(dbClient, status, serviceCoded);
 	}
 
 	public FileDeleteWorkflowCompleter(List<URI> fsUris, String task) {
 		super(fsUris, task);
-		// TODO Auto-generated constructor stub
+		
 	}
 }

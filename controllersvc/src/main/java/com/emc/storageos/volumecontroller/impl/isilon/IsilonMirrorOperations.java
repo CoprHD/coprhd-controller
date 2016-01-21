@@ -31,21 +31,18 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         _factory = factory;
     }
 
-    public void setDbClient(DbClient dbc) {
-        _dbClient = dbc;
+    public void setDbClient(DbClient dbClient) {
+        _dbClient = dbClient;
     }
 
     @Override
     public void createSingleMirrorFileShare(StorageSystem storage, URI mirror,
             Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
-        // TODO Auto-generated method stub
 
     }
 
     @Override
     public void deleteSingleMirrorFileShare(StorageSystem storage, URI mirror,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        // TODO Auto-generated method stub
-
     }
 }

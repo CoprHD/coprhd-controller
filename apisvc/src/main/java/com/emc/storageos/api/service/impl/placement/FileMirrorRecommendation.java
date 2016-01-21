@@ -17,11 +17,9 @@ public class FileMirrorRecommendation extends FileRecommendation {
 
     public FileMirrorRecommendation(FileRecommendation sourceFileRecommendation) {
         super(sourceFileRecommendation);
-        // TODO Auto-generated constructor stub
     }
 
     public FileMirrorRecommendation() {
-        // TODO Auto-generated constructor stub
     }
     
     public static class Target implements Serializable {
@@ -30,7 +28,7 @@ public class FileMirrorRecommendation extends FileRecommendation {
         private URI targetDevice;
         private URI targetPool;
         
-        private List<URI> _targetStoragePortUris;
+        private List<URI> targetStoragePortUris;
         private URI targetvNASURI;
 
         public URI getTargetStorageDevice() {
@@ -50,11 +48,11 @@ public class FileMirrorRecommendation extends FileRecommendation {
         }
         
         public List<URI> getTargetStoragePortUris() {
-            return _targetStoragePortUris;
+            return targetStoragePortUris;
         }
 
-        public void setTargetStoragePortUris(List<URI> _targetStoragePortUris) {
-            this._targetStoragePortUris = _targetStoragePortUris;
+        public void setTargetStoragePortUris(List<URI> targetStoragePortUris) {
+            this.targetStoragePortUris = targetStoragePortUris;
         }
 
         public URI getTargetvNASURI() {

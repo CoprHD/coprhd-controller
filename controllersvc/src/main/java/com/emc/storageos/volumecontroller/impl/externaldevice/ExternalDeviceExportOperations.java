@@ -151,6 +151,15 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                         ServiceError serviceError = ExternalDeviceException.errors.createExportMaskFailed("createExportMask", errorMsg);
                         taskCompleter.error(dbClient, serviceError);
                     }
+                } else {
+                    // Used recommended ports.
+                    // Update volumes Lun Ids in export mask based on driver selection
+                    for (String volumeUriString : volumeToHLUMap.keySet()) {
+                        String targetLunId = volumeToHLUMap.get(volumeUriString);
+                        exportMask.getVolumes().put(volumeUriString, targetLunId);
+                    }
+                    dbClient.updateObject(exportMask);
+                    taskCompleter.ready(dbClient);
                 }
             } else {
                 // failed
@@ -171,7 +180,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void deleteExportMask(StorageSystem storage, URI exportMask, List<URI> volumeURIList, List<URI> targetURIList, List<com.emc.storageos.db.client.model.Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void deleteExportMask(StorageSystem storage, URI exportMask, List<URI> volumeURIList, List<URI> targetURIList,
+                                 List<com.emc.storageos.db.client.model.Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
 
     }
 
@@ -279,7 +289,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                         String targetLunId = volumeToHLUMap.get(volumeUriString);
                         exportMask.getVolumes().put(volumeUriString, targetLunId);
                     }
-
                     dbClient.updateObject(exportMask);
                     taskCompleter.ready(dbClient);
                 }
@@ -302,8 +311,59 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void removeVolume(StorageSystem storage, URI exportMask, List<URI> volume, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void removeVolume(StorageSystem storage, URI exportMaskUri, List<URI> volumeUris, TaskCompleter taskCompleter) throws DeviceControllerException {
 
+        // Unexport volumes from all initiators in export mask.
+        log.info("{} removeVolume START...", storage.getSerialNumber());
+        log.info("Export mask id: {}", exportMaskUri);
+        log.info("Volumes to remove: {}", volumeUris);
+
+        try {
+            BlockStorageDriver driver = _externalDevice.getDriver(storage.getSystemType());
+            ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
+
+            StringSet maskInitiators = exportMask.getInitiators();
+            List<String> initiatorList = new ArrayList<>();
+            for (String initiatorUri : maskInitiators) {
+                initiatorList.add(initiatorUri);
+            }
+            log.info("Export mask existing initiators: {} ", initiatorList);
+
+            // Prepare volumes. We send to driver only new volumes for the export mask.
+            List<StorageVolume> driverVolumes = new ArrayList<>();
+            prepareVolumes(storage, volumeUris, driverVolumes);
+
+            // Prepare initiators
+            Set<com.emc.storageos.db.client.model.Initiator>  initiators =
+                    ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
+            List<Initiator> driverInitiators = new ArrayList<>();
+            prepareInitiators(initiators, driverInitiators);
+
+            // Ready to call driver
+            DriverTask task = driver.unexportVolumesFromInitiators(driverInitiators, driverVolumes);
+            // TODO: this is short cut for now, assuming synchronous driver implementation
+            // TODO: Support for async case TBD.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                String msg = String.format("Removed volumes from export: %s.", task.getMessage());
+                log.info(msg);
+                dbClient.updateObject(exportMask);
+                taskCompleter.ready(dbClient);
+            } else {
+                // failed
+                // TODO support async
+                String errorMsg = String.format("Failed to remove volumes from export mask: %s .", task.getMessage());
+                log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("removeVolume", errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception ex) {
+            log.error("Problem in removeVolume: ", ex);
+            String errorMsg = String.format("Failed to remove volumes from export mask: %s .", ex.getMessage());
+            log.error(errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("removeVolume", errorMsg);
+            taskCompleter.error(dbClient, serviceError);
+        }
+        log.info("{} removeVolume END...", storage.getSerialNumber());
     }
 
 
@@ -316,7 +376,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
-        return null;
+        return mask;
     }
 
     @Override
@@ -340,6 +400,16 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             volumeToHLUMap.put(driverVolume.getNativeId(), volumeURIHLU.getHLU());
         }
     }
+
+    private void prepareVolumes(StorageSystem storage, List<URI> volumeUris, List<StorageVolume> driverVolumes) {
+
+        for (URI volumeUri : volumeUris) {
+            Volume volume = dbClient.queryObject(Volume.class, volumeUri);
+            StorageVolume driverVolume = createDriverVolume(storage, volume);
+            driverVolumes.add(driverVolume);
+        }
+    }
+
 
     private void prepareInitiators(Collection<com.emc.storageos.db.client.model.Initiator> initiatorList, List<Initiator> driverInitiators) {
         for (com.emc.storageos.db.client.model.Initiator initiator : initiatorList) {

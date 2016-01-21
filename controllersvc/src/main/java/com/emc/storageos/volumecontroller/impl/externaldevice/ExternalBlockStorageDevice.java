@@ -398,6 +398,29 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
     }
 
+    @Override
+    public void doExportRemoveVolume(StorageSystem storage,
+                                     ExportMask exportMask, URI volume, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} doExportRemoveVolume START ...", storage.getSerialNumber());
+        exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(), Arrays.asList(volume), taskCompleter);
+        _log.info("{} doExportRemoveVolume END ...", storage.getSerialNumber());
+    }
+
+    @Override
+    public void doExportRemoveVolumes(StorageSystem storage,
+                                      ExportMask exportMask, List<URI> volumes,
+                                      TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} doExportRemoveVolumes START ...", storage.getSerialNumber());
+        exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(), volumes,
+                taskCompleter);
+        _log.info("{} doExportRemoveVolumes END ...", storage.getSerialNumber());
+    }
+
+    @Override
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+        return exportMaskOperationsHelper.refreshExportMask(storage, mask);
+    }
 
     @Override
     public void doConnect(StorageSystem storageSystem) {

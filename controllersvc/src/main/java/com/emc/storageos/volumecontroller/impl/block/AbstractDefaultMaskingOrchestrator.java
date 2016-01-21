@@ -1211,7 +1211,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                         storage, exportGroup, computeInitiatorURIs, volumeMap, token);
                 previousStep = result.getStepId();
 
-                // Have to store export group id to be available at device level/
+                // Have to store export group id to be available at device level.
                 WorkflowService.getInstance().storeStepData(previousStep, exportGroup.getId());
             }
         }

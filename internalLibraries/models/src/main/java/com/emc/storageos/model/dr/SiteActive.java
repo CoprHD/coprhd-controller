@@ -14,6 +14,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SiteActive {
 
     private boolean isActiveSite;
+    private String localSiteName;
 
     public SiteActive() {
         isActiveSite = false;
@@ -24,7 +25,16 @@ public class SiteActive {
         return isActiveSite;
     }
 
-    public void setIsActive(boolean sitePrimary) {
-        this.isActiveSite = sitePrimary;
+    public void setIsActive(boolean ActiveSite) {
+        this.isActiveSite = ActiveSite;
+    }
+    
+    @XmlElement(name = "local_site_name")
+    public String getLocalSiteName() {
+        return this.localSiteName;
+    }
+
+    public void setLocalSiteName(String siteName) {
+        this.localSiteName = siteName;
     }
 }

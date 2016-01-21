@@ -1,0 +1,17 @@
+%{
+titleKey = 'ipsec.title';
+descriptionKey = 'ipsec.description';
+}%
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.security', 'nav.ipsec'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+<div class="container">
+    #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+    #{alerts/}
+    <fieldset>
+        #{Form.button name:'button.ipsec.rotate.keys', class:'primary', icon:'repeat', href:@rotateIPsecPreSharedKeys()/}
+        &nbsp;&nbsp;&nbsp;<span id="keyRotationDescription" class="text-danger">&{'ipsec.key.rotation.description'}</span>
+    </fieldset>
+</div>

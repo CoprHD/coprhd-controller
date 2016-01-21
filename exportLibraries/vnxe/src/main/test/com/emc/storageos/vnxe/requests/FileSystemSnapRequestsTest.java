@@ -82,7 +82,7 @@ public class FileSystemSnapRequestsTest {
         FileSystemSnapRequests req = new FileSystemSnapRequests(_client);
         VNXeCommandJob response = null;
         try {
-            response = req.deleteFileSystemSnap("98784247867");
+            response = req.deleteFileSystemSnap("98784247867", "3.1.0");
         } catch (VNXeException e) {
             logger.error("VNXeException occured", e);
         }
@@ -95,7 +95,7 @@ public class FileSystemSnapRequestsTest {
         FileSystemSnapRequests req = new FileSystemSnapRequests(_client);
         VNXeCommandJob response = null;
         try {
-            response = req.restoreFileSystemSnap("98784247833", null);
+            response = req.restoreFileSystemSnap("98784247833", null, "3.1.0");
         } catch (VNXeException e) {
             logger.error("VNXeException occured", e);
         }

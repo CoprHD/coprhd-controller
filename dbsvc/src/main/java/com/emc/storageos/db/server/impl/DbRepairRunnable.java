@@ -9,6 +9,7 @@ import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.services.util.Strings;
 
 import org.apache.cassandra.service.StorageService;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
@@ -45,7 +46,6 @@ public class DbRepairRunnable implements Runnable {
     private boolean isGeoDbsvc;
     private DbRepairJobState state;
     private int maxRetryTimes;
-    private boolean crossVdc;
     private boolean noNewRepair;
 
     // Status reporting to caller that scheduled this thread to run.
@@ -53,13 +53,12 @@ public class DbRepairRunnable implements Runnable {
     private StartStatus status;
 
     public DbRepairRunnable(ScheduledExecutorService executor, CoordinatorClient coordinator, String keySpaceName, boolean isGeoDbsvc,
-            int maxRetryTimes, boolean crossVdc, boolean noNewRepair) {
+            int maxRetryTimes, boolean noNewRepair) {
         this.executor = executor;
         this.coordinator = coordinator;
         this.keySpaceName = keySpaceName;
         this.isGeoDbsvc = isGeoDbsvc;
         this.maxRetryTimes = maxRetryTimes;
-        this.crossVdc = crossVdc;
         this.noNewRepair = noNewRepair;
     }
 
@@ -79,7 +78,7 @@ public class DbRepairRunnable implements Runnable {
 
         Collections.sort(nodeIds);
 
-        return Strings.join(",", nodeIds);
+        return StringUtils.join(nodeIds, ',');
     }
 
     public static String getStateKey(String keySpaceName, boolean isGeoDbsvc) {
@@ -122,7 +121,7 @@ public class DbRepairRunnable implements Runnable {
 
         log.info("Previous repair state: {}", this.state.toString());
 
-        StartStatus status = getRepairStatus(getClusterStateDigest(), this.maxRetryTimes, this.crossVdc);
+        StartStatus status = getRepairStatus(getClusterStateDigest(), this.maxRetryTimes);
         if (status == StartStatus.STARTED) {
             log.info("Starting repair with state: {}", this.state.toString());
             String workerId = getSelfLockNodeId(lock);
@@ -148,7 +147,7 @@ public class DbRepairRunnable implements Runnable {
         };
 
         return new RepairJobRunner(StorageService.instance, this.keySpaceName, this.executor,
-                !this.crossVdc, listener, this.state.getCurrentToken(), this.state.getCurrentDigest());
+                listener, this.state.getCurrentToken(), this.state.getCurrentDigest());
     }
 
     private static class ScopeNotifier implements AutoCloseable {
@@ -180,7 +179,7 @@ public class DbRepairRunnable implements Runnable {
      */
     public void preConfig() {
         this.state = queryRepairState(this.coordinator, this.keySpaceName, this.isGeoDbsvc);
-        this.state.inProgress(this.getClusterStateDigest(), this.crossVdc);
+        this.state.inProgress(this.getClusterStateDigest());
         log.info("preConfig db repair state:{}", this.state.toString());
         this.saveStates();
     }
@@ -245,11 +244,11 @@ public class DbRepairRunnable implements Runnable {
         }
     }
 
-    public StartStatus getRepairStatus(String clusterDigest, int maxRetryTimes, boolean crossVdc) {
-        log.info(String.format("Trying to start repair with digest: %s, max retries: %d, cross VDC: %s, noNewRepair: %s",
-                clusterDigest, maxRetryTimes, Boolean.toString(crossVdc), this.noNewRepair));
+    public StartStatus getRepairStatus(String clusterDigest, int maxRetryTimes) {
+        log.info(String.format("Trying to start repair with digest: %s, max retries: %d, noNewRepair: %s",
+                clusterDigest, maxRetryTimes, this.noNewRepair));
 
-        if (this.state.canResume(clusterDigest, maxRetryTimes, crossVdc)) {
+        if (this.state.canResume(clusterDigest, maxRetryTimes)) {
             log.info("Resuming previous repair");
             this.state.increaseRetry();
             return StartStatus.STARTED;
@@ -268,7 +267,7 @@ public class DbRepairRunnable implements Runnable {
             return StartStatus.NOTHING_TO_RESUME;
         } else {
             log.info("Starting new repair");
-            this.state = new DbRepairJobState(clusterDigest, crossVdc);
+            this.state = new DbRepairJobState(clusterDigest);
         }
 
         return StartStatus.STARTED;

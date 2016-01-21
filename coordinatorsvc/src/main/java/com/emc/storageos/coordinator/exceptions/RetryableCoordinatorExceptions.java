@@ -61,5 +61,7 @@ public interface RetryableCoordinatorExceptions {
     @DeclareServiceCode(ServiceCode.COORDINATOR_SVC_NOT_FOUND)
     public RetryableCoordinatorException unableToStartWork(final String workItem,
             final Throwable cause);
-
+    
+    @DeclareServiceCode(ServiceCode.COORDINATOR_SITE_NOT_FOUND)
+    public RetryableCoordinatorException cannotFindSite(final String siteId);
 }

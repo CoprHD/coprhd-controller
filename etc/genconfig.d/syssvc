@@ -14,7 +14,7 @@ _get_backup_props() {
 }
 
 _get_sys_props() {
-    _get_props node_suffix node_name node_id network_ipaddr_effective
+    _get_props node_suffix node_name node_id network_ipaddr_effective back_compat_preyoda
 }
 
 _get_metadata_props() {

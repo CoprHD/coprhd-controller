@@ -3514,9 +3514,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Create a Step to add the SAN Zone
             String zoningStepId = workflow.createStepId();
-            Workflow.Method zoningMethod = new Workflow.Method("zoneAddInitiatorStep",
+            Workflow.Method zoningMethod = zoneAddInitiatorStepMethod(
                     vplexURI, exportURI, hostInitiatorURIs, varrayURI);
-            Workflow.Method zoningRollbackMethod = new Workflow.Method("zoneRollback", exportURI, zoningStepId);
+            Workflow.Method zoningRollbackMethod = zoneRollbackMethod(exportURI, zoningStepId);
             zoningStepId = workflow.createStep(ZONING_STEP,
                     String.format("Zone initiator %s to ExportGroup %s(%s)",
                             initListStr, exportGroup.getLabel(), exportURI),
@@ -3539,12 +3539,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         return lastStepId;
     }
+    
+    private Workflow.Method zoneAddInitiatorStepMethod(URI vplexURI, URI exportURI,
+            List<URI> initiatorURIs, URI varrayURI) {
+        return new Workflow.Method("zoneAddInitiatorStep", vplexURI, exportURI, initiatorURIs, varrayURI);
+    }
 
     /**
      * Workflow step to add an initiator. Calls NetworkDeviceController.
-     * 
+     * Arguments here should match zoneAddInitiatorStepMethod above except for stepId.
      * @param exportURI
      * @param initiatorURIs
+     * @param varrayURI
      * @throws WorkflowException
      */
     public void zoneAddInitiatorStep(URI vplexURI, URI exportURI,
@@ -3588,9 +3594,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
-
+    
+    private Workflow.Method zoneRollbackMethod(URI exportGroupURI, String contextKey) {
+        return new Workflow.Method("zoneRollback", exportGroupURI, contextKey);
+    }
     /**
      * TODO: Remove - it's in NetworkDeviceController
+     * Args should match zoneRollbackMethod above except for taskId.
      * 
      * @param exportGroupURI
      * @param contextKey
@@ -7944,9 +7954,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Create a Step to add the SAN Zone
             String zoningStepId = workflow.createStepId();
-            Workflow.Method zoningMethod = new Workflow.Method("zoneAddInitiatorStep",
-                    vplex.getId(), exportGroup.getId(), newInitiators);
-            Workflow.Method zoningRollbackMethod = new Workflow.Method("zoneRollback", exportGroup.getId(),
+            Workflow.Method zoningMethod = zoneAddInitiatorStepMethod(
+                    vplex.getId(), exportGroup.getId(), newInitiators, varrayURI);
+            Workflow.Method zoningRollbackMethod = zoneRollbackMethod(exportGroup.getId(),
                     zoningStepId);
             zoningStepId = workflow.createStep(ZONING_STEP,
                     String.format("Zone initiator %s to ExportGroup %s(%s)",

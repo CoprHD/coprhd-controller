@@ -72,10 +72,11 @@ public class LazyLoadTests extends DbsvcTestBase {
 
         _dbVersionInfo = new DbVersionInfo();
         _dbVersionInfo.setSchemaVersion("1.1");
-        _dataDir = new File("./dbtest");
+        _dataDir = new File(dataDir);
         if (_dataDir.exists() && _dataDir.isDirectory()) {
             cleanDirectory(_dataDir);
         }
+        _dataDir.mkdir();
 
         DataObjectScanner scanner = new DataObjectScanner();
         scanner.setPackages("com.emc.storageos.db.modelclient.model");

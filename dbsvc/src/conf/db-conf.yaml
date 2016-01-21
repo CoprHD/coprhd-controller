@@ -58,6 +58,9 @@ authenticator: org.apache.cassandra.auth.AllowAllAuthenticator
 # authorization backend, implementing IAuthority; used to limit access/provide permissions
 authorizer: org.apache.cassandra.auth.AllowAllAuthorizer
 
+# authorization backend, implementing IInternodeAuthenticatorAuthority; used to limit node ip access
+internode_authenticator: org.apache.cassandra.auth.AllowAllInternodeAuthenticator
+
 # The partitioner is responsible for distributing rows (by key) across
 # nodes in the cluster.  Any IPartitioner may be used, including your
 # own as long as it is on the classpath.  Out of the box, Cassandra
@@ -204,6 +207,8 @@ seed_provider:
       parameters:
           - coordinators: "coordinator://localhost:2181"
             id: "db-standalone"
+            seeds: ""
+            siteid: "a6cbcc20-99a8-4461-a3f6-0a8aa4433646"
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from
@@ -487,7 +492,7 @@ cross_node_timeout: false
 #
 # You can use a custom Snitch by setting this to the full class name
 # of the snitch, which will be assumed to be on your classpath.
-endpoint_snitch: SimpleSnitch
+endpoint_snitch: GossipingPropertyFileSnitch
 
 # controls how often to perform the more expensive part of host score
 # calculation

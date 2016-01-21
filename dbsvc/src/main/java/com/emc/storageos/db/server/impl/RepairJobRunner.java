@@ -83,11 +83,6 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      */
     private String _lastToken = null;
 
-    /**
-     * Flag to indicate if restrict db repair at local site
-     */
-    private boolean _isLocal = false;
-
     private ProgressNotificationListener listener;
 
     private StorageServiceMBean svcProxy;
@@ -107,12 +102,11 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      * @param listener
      * @param startToken
      */
-    public RepairJobRunner(StorageServiceMBean svcProxy, String keySpaceName, ScheduledExecutorService exe, boolean isLocal,
+    public RepairJobRunner(StorageServiceMBean svcProxy, String keySpaceName, ScheduledExecutorService exe, 
             ProgressNotificationListener listener, String startToken, String clusterStateDigest) {
         this.svcProxy = svcProxy;
         this.keySpaceName = keySpaceName;
         _exe = exe;
-        this._isLocal = isLocal;
         _lastToken = startToken;
         this.listener = listener;
         this.clusterStateDigest = clusterStateDigest;
@@ -226,7 +220,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 this.listener.onStartToken(range.end, getProgress());
 
                 svcProxy.forceKeyspaceRepairRange(range.begin, range.end, this.keySpaceName,
-                        true, _isLocal);
+                        true, false);
 
                 if (!_success) {
                     _log.error("Fail to repair range {} {}. Stopping the job",

@@ -51,6 +51,7 @@
     <bean id="auditLogManager"
         class="com.emc.storageos.security.audit.AuditLogManager">
       <property name="dbClient" ref="dbclient"/>
+      <property name="coordinator" ref="coordinator" />
     </bean>
     
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
@@ -79,11 +80,12 @@
 
     <bean id="vdcConfService" class="com.emc.storageos.geo.service.impl.resource.VdcConfigService">
         <property name="service" ref="serviceinfo"/>
+        <property name="sysUtils" ref="sysUtils" />
+        <property name="ipsecConfig" ref="ipsecConfig" />
     </bean>
 
     <bean id="vdcConfHelper" class="com.emc.storageos.geo.service.impl.util.VdcConfigHelper"/>
 
-    <bean id="vdcConfigUtil" class="com.emc.storageos.db.client.util.VdcConfigUtil"/>
     <bean id="vdcLockHelper" class="com.emc.storageos.geo.vdccontroller.impl.VdcOperationLockHelper">
         <property name="dbClient" ref="dbclient"/>
         <property name="service" ref="serviceinfo"/>
@@ -212,7 +214,9 @@
         <property name="ciphersToInclude" ref="strongCiphers"/>
         <property name="coordinator" ref="coordinator"/>  
     </bean>
-
+	
+	<bean id="sysUtils" class="com.emc.storageos.services.util.SysUtils" />
+	
     <!--
     <bean id="restLinkFactory" class="com.emc.storageos.api.service.impl.response.RestLinkFactory">
         <property name="dbClient" ref="dbclient"/>

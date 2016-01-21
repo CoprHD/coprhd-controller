@@ -176,6 +176,7 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
     @JsonIgnore
     public void movePreviousBack() {
         if (this.previous == null) {
+            this.status = null;
             return;
         }
         this.startTime = this.previous.getStartTime();

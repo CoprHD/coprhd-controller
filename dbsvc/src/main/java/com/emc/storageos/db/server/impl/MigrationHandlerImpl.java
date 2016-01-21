@@ -149,6 +149,12 @@ public class MigrationHandlerImpl implements MigrationHandler {
      */
     @Override
     public boolean run() throws DatabaseException {
+        if (schemaUtil.isStandby()) {
+            // no migration on standby site
+            log.info("Migration does not run on standby");
+            return true;
+        } 
+        
         Date startTime = new Date();
         // set state to migration_init and wait for all nodes to reach this state
         setDbConfig(DbConfigConstants.MIGRATION_INIT);
@@ -175,7 +181,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
             // need to copy geo-replicated resources from local to geo db.
             statusChecker.waitForAllNodesMigrationInit(Constants.GEODBSVC_NAME);
         }
-
+        
         InterProcessLock lock = null;
         String currentSchemaVersion = null;
         int retryCount = 0;
@@ -360,12 +366,12 @@ public class MigrationHandlerImpl implements MigrationHandler {
      * Checks and registers db configuration information
      */
     private void setDbConfig(String name) {
-        Configuration config = coordinator.queryConfiguration(
+        Configuration config = coordinator.queryConfiguration(coordinator.getSiteId(),
                 coordinator.getVersionedDbConfigPath(service.getName(), service.getVersion()), service.getId());
         if (config != null) {
             if (config.getConfig(name) == null) {
                 config.setConfig(name, Boolean.TRUE.toString());
-                coordinator.persistServiceConfiguration(config);
+                coordinator.persistServiceConfiguration(coordinator.getSiteId(), config);
             }
         } else {
             throw new IllegalStateException("unexpected error, configuration is null");

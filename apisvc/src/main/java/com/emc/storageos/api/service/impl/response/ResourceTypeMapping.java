@@ -122,9 +122,9 @@ import com.emc.storageos.model.ResourceTypeEnum;
 public class ResourceTypeMapping {
     private static final Logger _log = LoggerFactory.getLogger(ResourceTypeMapping.class);
     // Mapping of Resource Type -> DB Class
-    private static final Map<ResourceTypeEnum, Class<? extends DataObject>> classMapping = new HashMap<ResourceTypeEnum, Class<? extends DataObject>>();
+    private static final Map<ResourceTypeEnum, Class<? extends DataObject>> classMapping = new HashMap<>();
     // Reverse mapping of DB Class -> Resource Type
-    private static final Map<Class<? extends DataObject>, ResourceTypeEnum> resourceMapping = new HashMap<Class<? extends DataObject>, ResourceTypeEnum>();
+    private static final Map<Class<? extends DataObject>, ResourceTypeEnum> resourceMapping = new HashMap<>();
 
     static {
         classMapping.put(FILE, FileShare.class);

@@ -3220,48 +3220,57 @@ public class FileDeviceController implements FileController {
     }
 
     /**
-     * To get all the ACLs associated with the a FileShare
+     * To get all the ACLs of File System or a mention subDir.
      * 
-     * @param fs File Share
+     * @param fs File System
      * @param subDir Sub directory
      * @return List of NFS ACL present in DB.
      */
     private List<NFSShareACL> queryAllNfsACLInDB(FileShare fs, String subDir, FileDeviceInputOutput args) {
-        List<NFSShareACL> nfsShareAcl = null;
+        List<NFSShareACL> allNfsShareAcl = null;
+        List<NFSShareACL> returnNfsShareAcl = null;
+        List<NFSShareACL> fsNfsShareAcl = new ArrayList<NFSShareACL>();
+        List<NFSShareACL> subDirNfsShareAcl = new ArrayList<NFSShareACL>();
+
         _log.info("Querying all Nfs File System ACL Using FsId {}", fs.getId());
         try {
-        	
-        	ContainmentConstraint containmentConstraint = null;
 
-        	if ( args.getFileOperation() ) {
-        		containmentConstraint = ContainmentConstraint.Factory
-        				.getFileNfsAclsConstraint(fs.getId());
-        		
-        	} else {
-        		containmentConstraint = ContainmentConstraint.Factory
-        				.getSnapshotNfsAclsConstraint(args.getSnapshotId());
-        	}
-            
-            nfsShareAcl = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, NFSShareACL.class,
+            ContainmentConstraint containmentConstraint = null;
+
+            if (args.getFileOperation()) {
+                containmentConstraint = ContainmentConstraint.Factory
+                        .getFileNfsAclsConstraint(fs.getId());
+
+            } else {
+                containmentConstraint = ContainmentConstraint.Factory
+                        .getSnapshotNfsAclsConstraint(args.getSnapshotId());
+            }
+
+            allNfsShareAcl = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, NFSShareACL.class,
                     containmentConstraint);
 
         } catch (Exception e) {
             _log.error("Error while querying {}", e);
         }
+
+        returnNfsShareAcl = fsNfsShareAcl;
+        String absolutefsPath = fs.getPath();
+        String absoluteDirPath = "";
         if (subDir != null && !subDir.isEmpty()) {
 
-            // Filter for a specific Sub Directory export
-            // fs path + subdir path is same as acl filesystem path
-            String absoluteSubdir = fs.getPath() + "/" + subDir;
-            for (NFSShareACL nfsAcl : nfsShareAcl) {
-                if (!nfsAcl.getFileSystemPath().equals(absoluteSubdir)) {
-                    // list of the ace
-                    nfsShareAcl.remove(nfsAcl);
+            absoluteDirPath = absolutefsPath + "/" + subDir;
+            returnNfsShareAcl = subDirNfsShareAcl;
+        }
+        for (NFSShareACL nfsAcl : allNfsShareAcl) {
+            if (nfsAcl.getFileSystemPath().equals(absoluteDirPath)) {
+                subDirNfsShareAcl.add(nfsAcl);
 
-                }
+            } else if (nfsAcl.getFileSystemPath().equals(absolutefsPath)) {
+                fsNfsShareAcl.add(nfsAcl);
             }
         }
-        return nfsShareAcl;
+
+        return returnNfsShareAcl;
     }
 
     /**

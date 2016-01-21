@@ -1,0 +1,81 @@
+%{
+  titleKey = 'disasterRecovery.' + (disasterRecovery?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'disasterRecovery.description';
+  image = '/public/img/assets/Cluster.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.config', 'nav.disasterRecovery'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'disasterRecovery.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container" >
+  <form-header title-key="${titleKey}"
+               description-key="disasterRecovery.add.title"
+               image-val="/public/img/assets/Cluster.png">
+  </form-header>
+
+  #{alerts/}
+  
+  %{ editing = disasterRecovery?.id }%
+  
+  #{form @save(), class:'form form-horizontal', autocomplete:"off"}
+    #{if disasterRecovery?.id}
+      #{field 'disasterRecovery.id'}
+         <input type="hidden" name="${field.name}" value="${field.value}">
+      #{/field}
+    #{/if}
+    #{field 'referrer'}
+      <input type="hidden" name="${field.name}" value="${referrer}">
+    #{/field}
+
+  <fieldset>
+    #{field 'disasterRecovery.name'}
+      %{
+        field.cssClass = 'span6 initialFocus';
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'disasterRecovery.description'}
+      %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+	#{if !editing }
+	    #{field 'disasterRecovery.VirtualIP'}
+            %{
+                field.required = true
+      		}%
+      		#{Form.inputTextControlGroup field:field /}
+        #{/field}
+	    #{field 'disasterRecovery.userName'}
+	      %{
+	        field.required = true
+	      }%
+	      #{Form.inputTextControlGroup field:field /}
+	    #{/field}
+	    #{field 'disasterRecovery.userPassword'}
+	      %{
+	        field.required = true
+	      }%
+	      #{Form.inputPasswordControlGroup field:field /}
+	    #{/field}
+	    #{field 'disasterRecovery.confirmPassword'}
+	      %{
+	        field.required = true
+	      }%
+	      #{Form.inputPasswordControlGroup field:field /}
+	    #{/field}
+    #{/if}
+  </fieldset>
+  
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@list()}
+  #{/Form.saveCancelButtonBar}
+  #{/form}
+</div>

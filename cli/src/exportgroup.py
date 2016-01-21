@@ -357,13 +357,18 @@ class ExportGroup(object):
 
         volChanges = {}
         volChanges['add'] = volume_snapshots
+        path_parameters = {}
+        
         if (maxpaths):
-            volChanges['max_paths'] = maxpaths
+            path_parameters['max_paths'] = maxpaths
         if (minpaths):
-            volChanges['min_paths'] = minpaths
+            path_parameters['min_paths'] = minpaths
         if(pathsperinitiator is not None):
-            volChanges['paths_per_initiator'] = pathsperinitiator
+            path_parameters['paths_per_initiator'] = pathsperinitiator
+            
+        parms['path_parameters'] = path_parameters
         parms['volume_changes'] = volChanges
+       
         o = self.send_json_request(exportgroup_uri, parms)
         return self.check_for_sync(o, sync)
 

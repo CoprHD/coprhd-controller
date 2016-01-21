@@ -319,7 +319,7 @@ public class RPHelper {
                 if (cg != null) {
                     List<Volume> allJournals = getCgVolumes(cg.getId(), Volume.PersonalityTypes.METADATA.toString());                    
                     if (allJournals != null && !allJournals.isEmpty()) {
-                    	Set<URI> allJournalURIs = new HashSet<URI> ();
+                    	Set<URI> allJournalURIs = new HashSet<URI>();
                     	for (Volume journalVolume : allJournals) {
                     		allJournalURIs.add(journalVolume.getId());
                     	}
@@ -419,7 +419,7 @@ public class RPHelper {
 
                     _log.info(String.format("Adding %s descriptor to %s%s volume [%s] (%s)",
                             volumeType, operationType,
-                            (volumeType.equals(LOG_MSG_VOLUME_TYPE_RP) ? "" : "virtual "),
+                            (volumeType.equals(LOG_MSG_VOLUME_TYPE_RP) ? "" : " virtual"),
                             volume.getLabel(), volume.getId()));
                     volumeDescriptors.add(descriptor);
                 }
@@ -450,7 +450,7 @@ public class RPHelper {
                         // a previous failed delete may have already removed associated volumes
                         if (associatedVolume != null && !associatedVolume.getInactive()) {
                             descriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, associatedVolume.getStorageController(),
-                                    associatedVolume.getId(), null, null);
+                                    associatedVolume.getId(), associatedVolume.getPool(), associatedVolume.getConsistencyGroup(), null);
                             // Add a flag to not delete these backing volumes if this is a Source volume and
                             // the deletion type is Remove Protection
                             if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
@@ -1734,16 +1734,17 @@ public class RPHelper {
             if (RPHelper.isVPlexVolume(volume)) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                    if (associatedVolume != null
-                            && !associatedVolume.getInactive()
-                            && !NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
-                            && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
-                        associatedVolume.setVirtualPool(oldVpool.getId());
-                        dbClient.updateObject(associatedVolume);
-                        _log.info(String.format("Backing volume [%s] has had it's virtual pool rolled back to [%s].",
-                                associatedVolume.getLabel(),
-                                oldVpool.getLabel()));
-                    }
+                    if (associatedVolume != null && !associatedVolume.getInactive()) {                                            
+                        if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
+                                && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
+                            associatedVolume.setVirtualPool(oldVpool.getId());                                                
+                            _log.info(String.format("Backing volume [%s] has had it's virtual pool rolled back to [%s].",
+                                        associatedVolume.getLabel(),
+                                        oldVpool.getLabel()));
+                        }
+                        associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                        dbClient.updateObject(associatedVolume);                    
+                    }                    
                 }
             }
 

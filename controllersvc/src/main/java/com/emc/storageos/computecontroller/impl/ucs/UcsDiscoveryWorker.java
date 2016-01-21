@@ -22,7 +22,6 @@ import java.util.Set;
 import javax.xml.bind.JAXBElement;
 
 import org.apache.commons.lang.StringUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,8 +31,8 @@ import com.emc.cloud.platform.ucs.out.model.FabricVlan;
 import com.emc.cloud.platform.ucs.out.model.FabricVsan;
 import com.emc.cloud.platform.ucs.out.model.FcPIo;
 import com.emc.cloud.platform.ucs.out.model.LsRequirement;
-import com.emc.cloud.platform.ucs.out.model.LsbootDef;
 import com.emc.cloud.platform.ucs.out.model.LsServer;
+import com.emc.cloud.platform.ucs.out.model.LsbootDef;
 import com.emc.cloud.platform.ucs.out.model.LsbootIScsi;
 import com.emc.cloud.platform.ucs.out.model.LsbootLan;
 import com.emc.cloud.platform.ucs.out.model.LsbootLanImagePath;
@@ -62,15 +61,15 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ComputeBootDef;
 import com.emc.storageos.db.client.model.ComputeBootPolicy;
+import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.ComputeElementHBA;
+import com.emc.storageos.db.client.model.ComputeFabricUplinkPort;
+import com.emc.storageos.db.client.model.ComputeFabricUplinkPortChannel;
 import com.emc.storageos.db.client.model.ComputeLanBoot;
 import com.emc.storageos.db.client.model.ComputeLanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeSanBoot;
 import com.emc.storageos.db.client.model.ComputeSanBootImage;
 import com.emc.storageos.db.client.model.ComputeSanBootImagePath;
-import com.emc.storageos.db.client.model.ComputeElement;
-import com.emc.storageos.db.client.model.ComputeElementHBA;
-import com.emc.storageos.db.client.model.ComputeFabricUplinkPort;
-import com.emc.storageos.db.client.model.ComputeFabricUplinkPortChannel;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.ComputeVnic;
@@ -81,6 +80,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.UCSVhbaTemplate;
 import com.emc.storageos.db.client.model.UCSVnicTemplate;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -390,8 +390,8 @@ public class UcsDiscoveryWorker {
                 computeElement.setAvailable(false);
             }
 
-            computeElement.setUuid(null);
-            computeElement.setDn(null);
+            computeElement.setUuid(computeBlade.getUuid());
+            computeElement.setDn(NullColumnValueGetter.getNullStr());
         }
     }
 
@@ -1860,7 +1860,7 @@ public class UcsDiscoveryWorker {
 
     /**
      * Created COPP-38 to track the sonar issue.
-     * 
+     *
      * @param vsanList
      * @param fcInterfaceMap
      * @return

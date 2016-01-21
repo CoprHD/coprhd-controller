@@ -23,7 +23,9 @@ public enum ZkPath {
     AUTHN("/authservice"),
     STATE("/state"),
     LOCKDATA("/lockdata"),
-    KVSTORE("/kvstore");
+    KVSTORE("/kvstore"),
+    SITES("/sites"),
+    BARRIER("/barrier");
 
     private final String _path;
 

@@ -14,7 +14,7 @@ public class IsilonNFSACL {
 
     public enum AccessRights {
         dir_gen_read, dir_gen_execute,
-        std_write_dac
+        dir_gen_write, dir_gen_all
     }
 
     public class Persona {

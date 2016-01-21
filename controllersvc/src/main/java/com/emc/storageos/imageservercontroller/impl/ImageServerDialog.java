@@ -238,7 +238,7 @@ public class ImageServerDialog extends SSHDialog {
     public boolean wget(String url, String fileName, int timeout) {
         boolean result = false;
         StringBuilder buf = new StringBuilder();
-        String command = String.format(ImageServerDialogProperties.getString("cmd.wget"), url, fileName);
+        String command = String.format(ImageServerDialogProperties.getString("cmd.wget"), url, "'" + fileName+ "'");
         sendWaitFor(command, timeout, prompts, buf);
         log.debug(buf.toString());
 
@@ -272,7 +272,7 @@ public class ImageServerDialog extends SSHDialog {
      */
     public void mount(String iso, String dir) {
         StringBuilder buf = new StringBuilder();
-        String command = String.format(ImageServerDialogProperties.getString("cmd.mount"), iso, dir);
+        String command = String.format(ImageServerDialogProperties.getString("cmd.mount"), "'" + iso+ "'", dir);
         sendWaitFor(command, defaultTimeout, prompts, buf);
         log.debug(buf.toString());
     }

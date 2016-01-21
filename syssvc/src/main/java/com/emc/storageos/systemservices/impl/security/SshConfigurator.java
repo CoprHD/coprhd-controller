@@ -55,6 +55,7 @@ public class SshConfigurator {
     private InterProcessLock sshLock;
 
     public void run() throws Exception {
+        log.info("Checking if need to sync SSH configuration ...");
 
         if (!PlatformUtils.isAppliance()) {
             log.info("This is not a ViPR appliance so skip ssh configuration.");
@@ -77,6 +78,7 @@ public class SshConfigurator {
 
             // Go here if regeneration required
             doRun();
+            log.info("SSH configuration is synced");
         } finally {
             coordinatorHelper.releaseLock(sshLock);
         }
@@ -191,7 +193,6 @@ public class SshConfigurator {
 
         // Set to false to bypass the stability check of system. There should no contention with UpgradeManager
         coordinator.setTargetInfo(sshProps, false);
-        propertyManager.wakeupAllNodes();
 
         log.info("All ssh configurations are saved to system properties successfully");
     }

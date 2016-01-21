@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 public class DbConsistencyCheckerHelper {
     private static final Logger _log = LoggerFactory.getLogger(DbConsistencyCheckerHelper.class);
+    private static final int INDEX_OBJECTS_BATCH_SIZE = 10000;
 
     private DbClientImpl dbClient;
 
@@ -70,12 +71,12 @@ public class DbConsistencyCheckerHelper {
                         } catch (Exception ex) {
                             dirtyCount++;
                             logMessage(String.format(
-                                    "Inconsistency: Fail to query object for '%s' with err %s ",
+                                    "Inconsistency found: Fail to query object for '%s' with err %s ",
                                     uri, ex.getMessage()), true, toConsole);
                         }
                     } catch (Exception ex) {
                         dirtyCount++;
-                        logMessage(String.format("Row key '%s' failed to convert to URI in CF %s with exception %s",
+                        logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s with exception %s",
                                 row.getKey(), doType.getDataObjectClass()
                                         .getName(),
                                 ex.getMessage()), true, toConsole);
@@ -146,7 +147,7 @@ public class DbConsistencyCheckerHelper {
                         if (!isColumnInIndex) {
                             dirtyCount++;
                             logMessage(String.format(
-                                    "Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
+                                    "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
                                     indexedField.getDataObjectType().getSimpleName(), row.getKey(), indexedField.getName(),
                                     indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
                                     true, toConsole);
@@ -200,6 +201,11 @@ public class DbConsistencyCheckerHelper {
                     ColumnFamily<String, CompositeColumnName> objCf = objCfs
                             .get(objEntry.getClassName());
 
+                    if (objCf == null) {
+                        logMessage(String.format("DataObject does not exist for %s", row.getKey()), true, toConsole);
+                        continue;
+                    }
+
                     Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
                     if (objKeysIdxEntryMap == null) {
                         objKeysIdxEntryMap = new HashMap<>();
@@ -212,12 +218,38 @@ public class DbConsistencyCheckerHelper {
                     }
                     idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
                 }
+                
+                if (getObjsSize(objsToCheck) >= INDEX_OBJECTS_BATCH_SIZE ) {
+                    corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
+                }
             }
         }
 
         // Detect whether the DataObject CFs have the records
+        corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
+
+        return corruptRowCount;
+    }
+
+    private int getObjsSize(Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck) {
+        int size = 0;
+        for (Map<String, List<IndexEntry>> objMap : objsToCheck.values()) {
+            for (List<IndexEntry> objs : objMap.values()) {
+                size += objs.size();
+            }
+        }
+        return size;
+    }
+
+    /*
+     * We need to process index objects in batch to avoid occupy too many memory
+     * */
+    private int processBatchIndexObjects(IndexAndCf indexAndCf, boolean toConsole,
+            Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck) throws ConnectionException {
+        int corruptRowCount = 0;
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
             Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
+
             OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace
                     .prepareQuery(objCf).getRowSlice(objKeysIdxEntryMap.keySet())
                     .withColumnRange(new RangeBuilder().setLimit(1).build())
@@ -227,7 +259,7 @@ public class DbConsistencyCheckerHelper {
                     List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
                     for (IndexEntry idxEntry : idxEntries) {
                         corruptRowCount++;
-                        logMessage(String.format("Inconsistency: Index(%s, type: %s, id: %s, column: %s) is existing "
+                        logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
                                 + "but the related object record(%s, id: %s) is missing.",
                                 indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                 idxEntry.getIndexKey(), idxEntry.getColumnName(),
@@ -246,7 +278,7 @@ public class DbConsistencyCheckerHelper {
                 }
             }
         }
-
+        objsToCheck.clear();
         return corruptRowCount;
     }
 
@@ -493,7 +525,7 @@ public class DbConsistencyCheckerHelper {
         } else if (dbIndex instanceof PrefixDbIndex) {
             indexKey = field.getPrefixIndexRowKey(column.getStringValue());
         } else if (dbIndex instanceof ScopedLabelDbIndex) {
-            indexKey = field.getPrefixIndexRowKey(column.getStringValue());
+            indexKey = field.getPrefixIndexRowKey(ScopedLabel.fromString(column.getStringValue()));
         } else if (dbIndex instanceof AggregateDbIndex) {
             // Not support this index type yet.
         } else {

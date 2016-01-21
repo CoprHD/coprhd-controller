@@ -78,7 +78,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                             RPHelper.rollbackProtectionOnVolume(volume, oldVpool, dbClient);
                         } else if (RPHelper.isVPlexVolume(volume)) {
                             // Special rollback for just VPLEX
-                            rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient);
+                            rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
                             volumesToUpdate.add(volume);
                         }
                     }
@@ -129,15 +129,19 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
 
     /**
      * Roll back vPool on vplex backend volumes.
+     * @param volume VPLEX Volume to rollback backend vpool on
+     * @param volumesToUpdate List of all volumes to update
+     * @param dbClient DBClient
+     * @param oldVpoolURI The old vpool URI
      */
-    private void rollBackVpoolOnVplexBackendVolume(Volume volume, List<Volume> volumesToUpdate, DbClient dbClient) {
+    private void rollBackVpoolOnVplexBackendVolume(Volume volume, List<Volume> volumesToUpdate, DbClient dbClient, URI oldVpoolURI) {
         // Check if it is a VPlex volume, and get backend volumes
         Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
         if (backendSrc != null) {
             _log.info("Rolling back virtual pool on VPLEX backend Source volume {}({})", backendSrc.getId(), backendSrc.getLabel());
 
-            backendSrc.setVirtualPool(oldVpool);
-            _log.info("Set volume's virtual pool back to {}", oldVpool);
+            backendSrc.setVirtualPool(oldVpoolURI);
+            _log.info("Set volume's virtual pool back to {}", oldVpoolURI);
             volumesToUpdate.add(backendSrc);
 
             // VPlex volume, check if it is distributed
@@ -145,7 +149,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
             if (backendHa != null) {
                 _log.info("Rolling back virtual pool on VPLEX backend Distributed volume {}({})", backendHa.getId(), backendHa.getLabel());
 
-                VirtualPool oldVpoolObj = dbClient.queryObject(VirtualPool.class, oldVpool);
+                VirtualPool oldVpoolObj = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
                 VirtualPool oldHAVpool = VirtualPool.getHAVPool(oldVpoolObj, dbClient);
                 if (oldHAVpool == null) { // it may not be set
                     oldHAVpool = oldVpoolObj;

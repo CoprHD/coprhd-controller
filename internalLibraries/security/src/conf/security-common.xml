@@ -41,6 +41,11 @@
         <property name="caCertFile" value="${product.home:/opt/storageos}/conf/cacerts"/>
     </bean>
 
+    <bean id="ipsecConfig" class="com.emc.storageos.security.ipsec.IPsecConfig">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="defaultPskFile" value="${product.home:/opt/storageos}/conf/psk.default"/>
+    </bean>
+
     <!-- Uncomment this to disable token encoding/decoding, signing
     <bean id="tokenEncodingDisabler" class="com.emc.storageos.security.TokenEncodingDisabler"/>
     -->

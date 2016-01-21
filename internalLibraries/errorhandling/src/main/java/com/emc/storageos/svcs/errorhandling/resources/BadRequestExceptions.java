@@ -2421,6 +2421,18 @@ public interface BadRequestExceptions {
     public BadRequestException migrationHasntStarted(String migrationId);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException siteIdNotFound();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationOnlyAllowedOnSyncedSite(final String siteId, final String siteState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationOnlyAllowedOnPausedSite(final String siteId, final String siteState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationNotAllowedOnActiveSite();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidQuotaRequestForObjectStorage(String type);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

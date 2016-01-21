@@ -72,13 +72,15 @@ public class Upgrade extends Controller {
      * Method to trigger Database consistency check
      */
     public static void checkDbStatus() {
+    	ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo();
+    	String clusterState = calculateClusterState(clusterInfo);
         try {
             BourneUtil.getSysClient().upgrade().triggerDbCheck();
         } catch (Exception e) {
             Logger.error(e, "Checking Database Consistency");
             flash.error(e.getMessage());
         }
-        render();
+        render(clusterInfo,clusterState);
     }
 
     public static void checkDbStatusOK() {

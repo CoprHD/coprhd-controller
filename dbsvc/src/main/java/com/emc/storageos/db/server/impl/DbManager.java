@@ -12,9 +12,13 @@ import com.emc.storageos.management.jmx.recovery.DbManagerMBean;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+
 import org.apache.cassandra.config.Config;
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.YamlConfigurationLoader;
 import org.apache.cassandra.exceptions.ConfigurationException;
+import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.service.StorageService;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -22,11 +26,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jmx.export.annotation.ManagedResource;
 
+import java.net.InetAddress;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -78,7 +84,7 @@ public class DbManager implements DbManagerMBean {
      */
     private boolean startNodeRepair(String keySpaceName, int maxRetryTimes, boolean crossVdc, boolean noNewReapir) throws Exception {
         DbRepairRunnable runnable = new DbRepairRunnable(this.executor, this.coordinator, keySpaceName,
-                this.schemaUtil.isGeoDbsvc(), maxRetryTimes, crossVdc, noNewReapir);
+                this.schemaUtil.isGeoDbsvc(), maxRetryTimes, noNewReapir);
         // call preConfig() here to set IN_PROGRESS for db repair triggered by schedule since we use it in getDbRepairStatus.
         runnable.preConfig();
         synchronized (runnable) {
@@ -170,7 +176,7 @@ public class DbManager implements DbManagerMBean {
         }
 
         log.info("Removing Cassandra node {} on vipr node {}", nodeGuid, nodeId);
-        StorageService.instance.removeNode(nodeGuid);
+        schemaUtil.ensureRemoveNode(nodeGuid);
     }
 
     @Override
@@ -303,5 +309,25 @@ public class DbManager implements DbManagerMBean {
                 }
             }
         }, REPAIR_INITIAL_WAIT_FOR_DBSTART_MINUTES, repairFreqMin, TimeUnit.MINUTES);
+    }
+
+    @Override
+    public boolean isDataCenterUnreachable(String dcName) {
+        log.info("Check availability of data center {}", dcName);
+        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+        for (InetAddress nodeIp : liveNodes) {
+            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+            String dc = snitch.getDatacenter(nodeIp);
+            log.info("node {} belongs to data center {} ", nodeIp, dc);
+            if (dc.equals(dcName)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void removeDataCenter(String dcName) {
+        schemaUtil.removeDataCenter(dcName, false);
     }
 }

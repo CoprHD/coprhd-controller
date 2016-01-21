@@ -208,6 +208,7 @@ seed_provider:
       parameters:
           - coordinators: "<foreach iterator="iter" separator=", ">coordinator://${network_${iter}_ipaddr_service}:2181</foreach>"
             seeds: "${vdc_seeds_ipaddr}"
+            siteid: "${site_id}"
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from
@@ -586,11 +587,11 @@ server_encryption_options:
     cipher_suites: [TLS_RSA_WITH_AES_128_CBC_SHA]
 # enable or disable client/server encryption.
 client_encryption_options:
-    enabled: ${dbclient_encrypt}
-    keystore: /opt/storageos/conf/geostorageos.ks
-    keystore_password: geostorageos
-    truststore: /opt/storageos/conf/geostorageos.ts
-    truststore_password: geostorageos
+    enabled: false
+    # keystore: /opt/storageos/conf/geostorageos.ks
+    # keystore_password: geostorageos
+    # truststore: /opt/storageos/conf/geostorageos.ts
+    # truststore_password: geostorageos
     # More advanced defaults below:
     # protocol: TLS
     # algorithm: SunX509

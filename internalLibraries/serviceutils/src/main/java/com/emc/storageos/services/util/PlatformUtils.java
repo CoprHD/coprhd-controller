@@ -311,7 +311,7 @@ public class PlatformUtils {
      * @return Product ident
      */
     public static String getProductIdent() throws IOException {
-        byte[] productIdent = FileUtils.readDataFromFile(PRODUCT_IDENT_PATH);
+    	byte[] productIdent = FileUtils.readDataFromFile(PRODUCT_IDENT_PATH);
         return new String(productIdent).trim();
     }
 }

@@ -2065,9 +2065,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 for (Volume volume : volumes) {
                     _log.info(String.format("Volume [%s] (%s) needs to have it's replication set removed from RP",
                             volume.getLabel(), volume.getId()));
+                        
                     // Delete the replication set if there are more volumes (other replication sets).
                     // If there are no other replications sets we will simply delete the CG instead.
                     volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(), _dbClient));
+                    
                     // Volume Info to give RP to clean up the RSets
                     replicationSetsToRemove.add(volumeProtectionInfo);
                     // Source volume to be removed from Protection Set
@@ -2191,6 +2193,25 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             URI cgId = entry.getKey();
             Set<URI> volumes = entry.getValue();
             BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+            
+            boolean deleteEntireCG = RPHelper.cgSourceVolumesContainsAll(_dbClient, consistencyGroup.getId(), volumes);
+            if (!deleteEntireCG) {
+                // If we're not deleting the entire CG, we need to ensure that none of the
+                // link statuses on the volumes are in the failed-over state. Deleting 
+                // replication sets is not allowed while image access is enabled.
+                for (URI volumeURI : volumes) {
+                    Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+                    if (volume != null 
+                            && Volume.LinkStatus.FAILED_OVER.name().equalsIgnoreCase(volume.getLinkStatus())) {
+                        String imageAccessEnabledError = String.format("Can not delete or remove protection from volume [%s](%s) "
+                                + "while image access is enabled in RecoverPoint", 
+                                volume.getLabel(), volume.getId());
+                        _log.error(imageAccessEnabledError);
+                        throw DeviceControllerExceptions.recoverpoint.cgDeleteStepInvalidParam(imageAccessEnabledError);
+                    }
+                }
+            }
+            
             // All protection sets can be deleted at the same time, but only one step per protection set can be running
             String cgWaitFor = waitFor;
 
@@ -5629,15 +5650,32 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
                 new VolumeDescriptor.Type[] {});
         
-        // Check to see if there are any volumes flagged to not be fully deleted.
+        // Check to see if there are any BLOCK_DATA volumes flagged to not be fully deleted.
         // These volumes could potentially need to have some untag operation performed 
         // on the underlying array even though they won't be deleted.
-        List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(blockDataDescriptors); 
+        List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(blockDataDescriptors);
+        
+        // Breakup the descriptors further into RP and RP+VPLEX descriptors
+        List<VolumeDescriptor> rpDescriptors = new ArrayList<VolumeDescriptor>();
+        List<VolumeDescriptor> rpVPlexDescriptors = new ArrayList<VolumeDescriptor>();
+        for (VolumeDescriptor descr : doNotDeleteDescriptors) {
+            Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
+            // Check to see if this volume is associated to a RP+VPLEX Source volume.
+            if (RPHelper.isAssociatedToRpVplexType(volume, _dbClient, PersonalityTypes.SOURCE)) {
+                rpVPlexDescriptors.add(descr);
+            } else {
+                rpDescriptors.add(descr);
+            }
+        }
         
         if (doNotDeleteDescriptors != null && !doNotDeleteDescriptors.isEmpty()) {
-            _log.info(String.format("Adding steps to untag volumes"));
-            // Next, call the BlockDeviceController to perform untag operations.
-            waitFor = blockDeviceController.addStepsForUntagVolumes(workflow, waitFor, doNotDeleteDescriptors, taskId);
+            // Call the BlockDeviceController to perform untag operations on the volumes. 
+            // NOTE: Only needed for RP volumes.
+            waitFor = blockDeviceController.addStepsForUntagVolumes(workflow, waitFor, rpDescriptors, taskId);
+            
+            // Call the BlockDeviceController to remove the volumes from any backend array CGs.
+            // NOTE: Only needed for RP+VPLEX/MP volumes.
+            waitFor = blockDeviceController.addStepsForUpdateConsistencyGroup(workflow, waitFor, null, rpVPlexDescriptors);
         }
         
         // Grab any volume from the list so we can grab the protection system. This 

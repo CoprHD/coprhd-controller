@@ -8,8 +8,9 @@ import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
-
 import com.emc.storageos.services.util.Strings;
+
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,7 +158,7 @@ public class BackupExecutor {
         // Remove out-of-date backup tags from master list
         if (this.cfg.retainedBackups.size() > this.cfg.copiesToKeep) {
             log.info("Found backups {} in retain list, keeping last {}",
-                    Strings.join(",", this.cfg.retainedBackups.toArray(new String[this.cfg.retainedBackups.size()])),
+                    StringUtils.join(this.cfg.retainedBackups, ','),
                     this.cfg.copiesToKeep);
             do {
                 this.cfg.retainedBackups.remove(this.cfg.retainedBackups.first());

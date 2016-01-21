@@ -2051,6 +2051,14 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
 
+        // Check for VirtualPool whether it has NFS v4 enabled
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+            // Throw an error
+            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool does not support "
+                    + StorageProtocol.File.NFSv4.name() + " protocol");
+        }
+
         // Get All ACLs of FS from data base and group them based on path!!
         NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, subDir);
         NfsACLs acls = util.getNfsAclFromDB(allDirs);

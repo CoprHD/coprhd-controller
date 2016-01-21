@@ -61,6 +61,14 @@ _gen_prop2() {
     #'node_id
     [ -z ${_GENCONFIG_node_id} ] && export _GENCONFIG_node_id='standalone'
 
+    #'site_id')
+    export _GENCONFIG_site_id=$(_genconfig_site_id ${_GENCONFIG_site_id})
+
+    #'site_is_standby'
+    if [ -z ${_GENCONFIG_site_is_standby} ] ; then
+        export _GENCONFIG_site_is_standby='false'
+    fi
+
     #'node_index')
     export _GENCONFIG_node_index=$(_genconfig_node_index ${_GENCONFIG_node_id})
 
@@ -211,6 +219,11 @@ _gen_prop2() {
             local var2="_GENCONFIG_network_${node_index}_ipaddr"
             eval export ${var}=${!var2}
         fi
+        var="_GENCONFIG_vdc_vdc1_network_${node_index}_ipaddr6"
+        if [ -z "${!var}" ]; then
+            local var2="_GENCONFIG_network_${node_index}_ipaddr6"
+            eval export ${var}=${!var2}
+        fi
     done
 
     local OLD_IFS="${IFS}"; IFS="${IFS},"
@@ -245,6 +258,18 @@ _gen_prop2() {
         # IPv4 as default stack. On kiwi build machine, there is no ipv4 and ipv6
         # addresses. Simply let it go with ipv4
         export _GENCONFIG_NETWORK_STACK="IPv4"
+    fi
+
+    # _GENCONFIG_back_compat_preyoda
+    # set default value if VdcManager has no chance to start yet during first boot
+    if [ -z "${_GENCONFIG_back_compat_preyoda}" ]; then
+        if [ -n "${_GENCONFIG_vdc_config_hashcode}" ]; then
+            # upgrade from previous version
+            export _GENCONFIG_back_compat_preyoda="true"
+        else
+            # fresh install
+            export _GENCONFIG_back_compat_preyoda="false"
+        fi
     fi
 
 }
@@ -289,6 +314,14 @@ _genconfig_system_init() {
 	
     #only owner and group user can access db folder
     chmod 750 "/data/db"
+
+    # data versioning support
+    _genconfig_data_versioning
+   
+    # generae dr flag to disable sasvc, controllersvc and vasasvc
+    for svc in controller sa vasa ; do
+        _genconfig_dr_flag ${svc}
+    done
 }
 
 _genconfig_exec_scripts() {
@@ -306,6 +339,67 @@ _genconfig_exec_scripts() {
         . "${script}"
     else
         _fatal "there's no such notifier as ${1}"
+    fi
+}
+
+# setup data directory for dbsvc, geodbsvc and coordinatorsvc to link with
+# specified data versioning tag. All of them should switch as a whole to avoid
+# data inconsistency.
+_genconfig_data_versioning() {
+   local tgt_dataver=${_GENCONFIG_target_data_revision}
+   local committed=${_GENCONFIG_target_data_revision_committed}
+   if [ -n "${tgt_dataver}" ]; then
+       if [ "${committed}" != "true" ] ; then
+           # uncommited data revision detected. Coodinatorsvc and dbsvc should
+           # not start 
+           touch "/data/UNCOMMITTED_DATA_REVISION"
+       else
+           _genconfig_setup_versioning_dir "/data/db" "1" ${tgt_dataver}
+           _genconfig_setup_versioning_dir "/data/geodb" "1" ${tgt_dataver}
+           _genconfig_setup_versioning_dir "/data/zk" "version-2" ${tgt_dataver}
+           rm -f /data/zk/myid
+       fi
+   fi
+}
+
+# setup versioning directory for a specific service.
+# $1 root data directory
+# $2 revision pointer. It should be soft link to current data copy
+# $3 target data revision
+_genconfig_setup_versioning_dir() {
+    # check if the pointer is expected
+    local curdir=${1}/${2}
+    if [ -L ${curdir} ] ; then
+        local dir=$(readlink ${curdir})
+        local curver=$(basename ${dir})
+        if [ "${3}" == "${curver}" ] ; then
+            # nothing to do if the pointer is linked to expected revision
+            return
+        fi
+    fi
+
+    # create target revision dir if it does not exists
+    local tgtdir="${1}/${3}"
+    if [ ! -d "${tgtdir}" ] ; then
+        mkdir ${tgtdir}
+        chown storageos:storageos ${tgtdir}
+    fi
+
+    # change the pointer to target revision
+    rm -fR ${curdir}
+    ln -s ${tgtdir} ${curdir}
+    chown -h storageos:storageos ${curdir}
+}
+
+_genconfig_dr_flag() {
+    local drflag="/var/run/storageos/${1}_disabled"
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
+        touch ${drflag}
+        chown storageos:storageos ${drflag}
+    else
+        if [ -e ${drflag} ]; then
+            rm -f ${drflag}
+        fi
     fi
 }
 

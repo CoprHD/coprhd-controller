@@ -827,5 +827,42 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
         log.info("Nothing to do here.  Cinder does not require a wait for synchronization");
         completer.ready(dbClient);
     }
+    
+    @Override
+    public void doCreateConsistencyGroup(StorageSystem storage,
+            URI consistencyGroup, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        log.info("{} doCreateConsistencyGroup START ...", storage.getSerialNumber());
+        taskCompleter.ready(dbClient);
+        log.info("{} doCreateConsistencyGroup END ...", storage.getSerialNumber());
+    }
+
+    @Override
+    public void doDeleteConsistencyGroup(StorageSystem storage,
+            URI consistencyGroup, Boolean markInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
+        taskCompleter.ready(dbClient);
+        log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
+        
+    }
+    
+    @Override
+    public void doAddToConsistencyGroup(StorageSystem storage,
+            URI consistencyGroupId, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        log.info("{} doAddToConsistencyGroup START ...", storage.getSerialNumber());
+        taskCompleter.ready(dbClient);
+        log.info("{} doAddToConsistencyGroup END ...", storage.getSerialNumber());
+    }
+
+    @Override
+    public void doRemoveFromConsistencyGroup(StorageSystem storage,
+            URI consistencyGroupId, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        log.info("{} doRemoveFromConsistencyGroup START ...", storage.getSerialNumber());
+        taskCompleter.ready(dbClient);
+        log.info("{} doRemoveFromConsistencyGroup END ...", storage.getSerialNumber());
+    }
 
 }

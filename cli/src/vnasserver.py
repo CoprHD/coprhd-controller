@@ -29,7 +29,7 @@ class VnasServer(object):
     URI_VNASSERVER_SHOW = '/vdc/vnas-servers/{0}'
     URI_VNASSERVER_ASSIGN = '/projects/{0}/assign-vnas-servers'
     URI_VNASSERVER_UNASSIGN = '/projects/{0}/unassign-vnas-servers' 
-    
+    URI_TENANT = "/tenant"
 
     def __init__(self, ipAddr, port):
         '''
@@ -198,6 +198,14 @@ class VnasServer(object):
             return o
 
     
+    def getTenantName(self):
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "GET",
+                                             VnasServer.URI_TENANT,
+                                             None)
+        o = common.json_decode(s)
+        tenant_name = o['name']
+        return tenant_name    
 #
 # Vns server Main parser routine
 
@@ -339,9 +347,10 @@ def assign_parser(subcommand_parsers, common_parser):
 
 def vnasserver_assign(args):
     obj = VnasServer(args.ip, args.port)
-    
+    tenant_name = obj.getTenantName()
+    project_name = tenant_name + "/" + args.project
     try:
-        obj.assign(args.name, args.project)
+        obj.assign(args.name, project_name)
     except SOSError as e:
         common.format_err_msg_and_raise("assign project", "vnasserver",
                                         e.err_text, e.err_code)

@@ -66,4 +66,5 @@ public class PathConstants {
     public static final String USER_SCOPE_URL = "/user-scope";
     public static final String USER_SCOPE = "/{scope}";
 
+    public static final String IPSEC_KEY_URL = "/ipsec";
 }

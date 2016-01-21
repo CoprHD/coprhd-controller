@@ -120,12 +120,22 @@ URI_FILE_QUOTA_DIR_BASE         = URI_SERVICES_BASE + '/file/quotadirectories'
 URI_FILE_QUOTA_DIR              = URI_FILE_QUOTA_DIR_BASE + '/{0}'
 URI_FILE_QUOTA_DIR_DELETE       = URI_FILE_QUOTA_DIR + '/deactivate'
 
+URI_DR                     = URI_SERVICES_BASE  + '/site'
+URI_DR_GET                 = URI_DR   + '/{0}'
+URI_DR_DELETE              = URI_DR   + '/{0}'
+URI_DR_PAUSE               = URI_DR   + '/{0}' + '/pause'
+URI_DR_RESUME              = URI_DR   + '/{0}' + '/resume'
+URI_DR_SWITCHOVER          = URI_DR    + '/{0}/switchover'
+URI_DR_FAILOVER            = URI_DR   + '/{0}/failover'
+
 URI_VDC                     = URI_SERVICES_BASE  + '/vdc'
 URI_VDC_GET                 = URI_VDC    + '/{0}'
 URI_VDC_DISCONNECT_POST     = URI_VDC    + '/{0}/disconnect'
 URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
+
+URI_IPSEC               = '/ipsec'
 
 URI_VDCINFO                 =  '/object/vdcs' 
 URI_VDCINFO_GET             = URI_VDCINFO    + '/vdc' + '/{0}'
@@ -1096,6 +1106,7 @@ class Bourne:
                 raise Exception('Timed out waiting for request in pending state: ' + op)
 
             if (obj_op['state'] == 'error' and not ignore_error):
+                self.pretty_print_json(obj_op)
                 raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
 
         return obj_op
@@ -3247,6 +3258,78 @@ class Bourne:
     def show_element(self, uri, resourceuri):
         return self.api('GET', resourceuri.format(uri))
 
+    #
+    #Disaster Recovery APIs
+    #
+
+    def dr_add_standby(self, name, description, vip, username, password):
+        parms = {
+            'name'              : name,
+            'description'       : description,
+            'vip'               : vip,
+            'username'          : username,
+            'password'          : password
+        }
+
+        print "DR ADD STANDBY Params = ", parms
+        resp = self.api('POST', URI_DR, parms, {})
+        print "DR ADD STANDBY RESP = ", resp
+        self.assert_is_dict(resp)
+        return resp
+
+    def dr_list_standby(self):
+        resp = self.api('GET', URI_DR)
+        print "DR LIST STANDBY RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
+    def dr_get_standby(self,uuid):
+        resp = self.api('GET', URI_DR_GET.format(uuid))
+        print "DR GET STANDBY RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
+    def dr_delete_standby(self,uuid):
+        resp = self.api('DELETE', URI_DR_DELETE.format(uuid))
+        print "DR DELETE STANDBY RESP = ",resp
+        return resp
+
+    def dr_switchover(self,uri):
+        resp = self.api('POST', URI_DR_SWITCHOVER.format(uri))
+        print "DR SWITCHOVER RESP = ",resp
+
+    def dr_pause_standby(self,uuid):
+        resp = self.api('POST', URI_DR_PAUSE.format(uuid))
+        print "DR PAUSE STANDBY RESP = ",resp
+        return resp
+
+    def dr_resume_standby(self,uuid):
+        resp = self.api('POST', URI_DR_RESUME.format(uuid))
+        print "DR RESUME STANDBY RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
+    def dr_failover(self,uuid):
+        resp = self.api('POST', URI_DR_FAILOVER.format(uuid))
+        print "DR FAILOVER RESP = ",resp
+        return resp
+
+    #
+    # IPsec APIs
+    #
+
+    def ipsc_rotate_key(self):
+        resp = self.api('POST', URI_IPSEC)
+        return resp
+
+    def ipsc_check(self):
+        resp = self.api('GET', URI_IPSEC)
+        return resp
+
+    #
+    #VDC APIs
+    #
+
     def vdc_show(self, uri):
         return self.api('GET', URI_VDC_GET.format(uri))
 
@@ -4808,7 +4891,7 @@ class Bourne:
         try:
             s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         except:
-            print o;
+            s = 'error'
         return (o, s)
 
     def export_group_add_volume(self, groupId, volspec):

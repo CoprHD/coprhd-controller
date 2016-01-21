@@ -25,7 +25,9 @@ public class ServiceErrorException extends ViPRHttpException {
 
     @Override
     public String getLocalizedMessage() {
-        return String.format("Error %s: %s", getCode(), getDetailedMessage());
+        String message = getDetailedMessage() == null || getDetailedMessage().isEmpty() ?
+                getCodeDescription() : getDetailedMessage();
+        return String.format("Error %s: %s", getCode(), message);
     }
 
     @Override

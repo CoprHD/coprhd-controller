@@ -531,14 +531,18 @@ public class ComputeImageServerService extends TaskResourceService {
     private void disassociateComputeImages(ComputeImageServer imageServer) {
         StringSet successImages = imageServer.getComputeImages();
         if (!CollectionUtils.isEmpty(successImages)) {
-            for (String image : successImages) {
-                imageServer.getComputeImages().remove(image);
+            Iterator<String> itr = successImages.iterator();
+            while (itr.hasNext()) {
+                itr.next();
+                itr.remove();
             }
         }
         StringSet failedImages = imageServer.getFailedComputeImages();
         if (!CollectionUtils.isEmpty(failedImages)) {
-            for (String image : failedImages) {
-                imageServer.getFailedComputeImages().remove(image);
+            Iterator<String> itr = failedImages.iterator();
+            while (itr.hasNext()) {
+                itr.next();
+                itr.remove();
             }
         }
     }

@@ -390,6 +390,12 @@ public class FileControllerImplTest {
         public boolean checkGeoCompatible(String expectVersion) {
             return true;
         }
+
+        @Override
+        public boolean hasUsefulData() {
+            // TODO Auto-generated method stub
+            return false;
+        }
     }
 
     @BeforeClass

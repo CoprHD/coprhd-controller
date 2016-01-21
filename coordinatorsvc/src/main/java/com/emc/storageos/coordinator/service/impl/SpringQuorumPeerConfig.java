@@ -5,6 +5,7 @@
 
 package com.emc.storageos.coordinator.service.impl;
 
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -20,10 +21,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.services.util.FileUtils;
 
 public class SpringQuorumPeerConfig extends QuorumPeerConfig {
     private static final Logger log = LoggerFactory.getLogger(SpringQuorumPeerConfig.class);
     private static final String SERVER_ID_FILE = "myid";
+    // readonly mode should only be enabled on standby site to support unplanned failover
+    // on the active site it should be disabled otherwise the existing behavior of coordinatorsvc will be changed
+    public static final String READONLY_MODE_ENABLED = "readonlymode.enabled";
 
     private int _id;
     private Properties _properties;
@@ -36,10 +41,14 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
         _properties = properties;
     }
 
+    public int getNumberOfParitipants() {
+        return servers.size() - observers.size();
+    }
+    
     public void init() throws ConfigException, IOException {
-        dataDir = (String) _properties.get("dataDir");
+        String dataDir = (String) _properties.get("dataDir");
 
-        // emit server id file
+        //create zk data directory if it doesn't exist
         File serverIdDir = new File(dataDir);
         if (!serverIdDir.exists()) {
             if (!serverIdDir.mkdirs()) {
@@ -48,23 +57,33 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
             }
         }
 
-        File serverId = new File(dataDir, SERVER_ID_FILE);
-        if (!serverId.exists()) {
+        //create zk server id file if it doesn't exist or not match current server id
+        File serverId = new File(serverIdDir, SERVER_ID_FILE);
+        boolean shouldRecreate = true;
+        if (serverId.exists()) {
+            String s = new String(FileUtils.readDataFromFile(serverId.getAbsolutePath()));
+            int currentId = Integer.parseInt(s);
+            if (currentId == _id) {
+                shouldRecreate = false;
+            }
+         }
+        if (shouldRecreate) {
             FileWriter writer = new FileWriter(serverId);
             writer.write(Integer.toString(_id));
             writer.close();
         }
-
+        Properties prop = new Properties();
+        prop.putAll(_properties);
         // Pre-process the properties to parse and remove server.* key/value
         // In future, if _properties is still used somewhere else after init, we need to clone it keep original values
-        preprocessQuorumServers(_properties);
-        parseProperties(_properties);
+        preprocessQuorumServers(prop);
+        parseProperties(prop);
     }
-
+    
     protected void preprocessQuorumServers(Properties zkProp) throws ConfigException {
         log.info("Preprocess quorum server from properties before send to ZK");
 
-        Iterator<Entry<Object, Object>> iterator = _properties.entrySet().iterator();
+        Iterator<Entry<Object, Object>> iterator = zkProp.entrySet().iterator();
         while (iterator.hasNext()) {
             Entry<Object, Object> entry = iterator.next();
             String key = entry.getKey().toString().trim();
@@ -73,6 +92,10 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
                 createQuorumServer(key, value);
                 iterator.remove();
             }
+        }
+
+        if (zkProp.containsKey(READONLY_MODE_ENABLED)) {
+            System.setProperty(READONLY_MODE_ENABLED, zkProp.getProperty(READONLY_MODE_ENABLED));
         }
     }
 
@@ -105,5 +128,25 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
                 throw new ConfigException("Unrecognised peertype: " + value);
             }
         }
+    }
+    
+    /**
+     * Create a new config based on current properties and new properties
+     * 
+     * @param newProp
+     * @param serverId
+     * @return
+     * @throws IOException
+     * @throws ConfigException
+     */
+    public SpringQuorumPeerConfig createNewConfig(Properties newProp, int serverId) throws IOException, ConfigException {
+        SpringQuorumPeerConfig newConfig = new SpringQuorumPeerConfig();
+        newConfig.setMachineId(serverId);
+        Properties prop = new Properties(); 
+        prop.putAll(_properties);
+        prop.putAll(newProp);
+        newConfig.setProperties(prop);
+        newConfig.init();
+        return newConfig;
     }
 }

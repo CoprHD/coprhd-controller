@@ -54,6 +54,7 @@
     <bean id="auditLogManager"
         class="com.emc.storageos.security.audit.AuditLogManager">
       <property name="dbClient" ref="dbclient"/>
+      <property name="coordinator" ref="coordinator" />
     </bean>
         
     <bean id="blockstoragescheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
@@ -104,6 +105,7 @@
         <property name="scheduleUtils" ref="storagescheduler" />
         <property name="customConfigHandler" ref="customConfigHandler" />
         <property name="configInfo" ref="configinfo" />
+        <property name="permissionsHelper" ref="permissionsHelper"/>
     </bean>
 
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
@@ -605,6 +607,16 @@
                 </bean>
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
                 <ref local="userGroupService"/>
+
+                <bean class="com.emc.storageos.api.service.impl.resource.DisasterRecoveryService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="apiSignatureGenerator" ref="keyGenerator"/>
+                    <property name="sysUtils" ref="sysUtils" />
+                    <property name="ipsecConfig" ref="ipsecConfig" />
+                    <property name="dbCommonInfo" ref="dbcommoninfo"/>
+                    <property name="drUtil" ref="drUtil" />
+                </bean>
             </set>
         </property>
     </bean>
@@ -734,5 +746,6 @@
   	<property name="dbClient" ref="dbclient"/>
   </bean>
   
+  <bean id="sysUtils" class="com.emc.storageos.services.util.SysUtils" />
 </beans>
 

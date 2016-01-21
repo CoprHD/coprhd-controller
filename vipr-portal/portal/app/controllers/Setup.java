@@ -162,6 +162,7 @@ public class Setup extends Controller {
      */
     private static void completeInitialSetup(Map<String, String> properties) {
         SetupUtils.markSetupComplete();
+        ConfigPropertyUtils.rotateIpsecKey(BourneUtil.getSysClient());
         ConfigPropertyUtils.saveProperties(BourneUtil.getSysClient(), properties);
         complete();
     }

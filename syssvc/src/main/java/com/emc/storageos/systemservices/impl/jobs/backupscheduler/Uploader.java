@@ -6,6 +6,7 @@ package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
 import java.io.OutputStream;
 import java.nio.channels.UnsupportedAddressTypeException;
+import java.util.List;
 
 /**
  * This class uploads backups to user supplied external file server.
@@ -50,4 +51,22 @@ public abstract class Uploader {
      * @throws Exception
      */
     public abstract OutputStream upload(String fileName, long offset) throws Exception;
+
+    /**
+     * List files with specific prefix on server.
+     *
+     * @param prefix files with the prefix to be listed.
+     * @return List contain file names.
+     * @throws Exception
+     */
+    public abstract List<String> listFiles(String prefix) throws Exception;
+
+    /**
+     * Rename specific file on server.
+     *
+     * @param sourceFileName to be renamed filename on server
+     * @param destFileName   rename to filename on server
+     * @throws Exception
+     */
+    public abstract void rename(String sourceFileName, String destFileName) throws Exception;
 }

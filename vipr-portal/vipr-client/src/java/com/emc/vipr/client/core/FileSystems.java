@@ -523,7 +523,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     /**
      * Begins creating a continuous copies for the given file system.
      * <p>
-     * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/start</tt>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/start</tt>
      * 
      * @param id
      *            the ID of the file system.
@@ -534,5 +534,36 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     public Task<FileShareRestRep> startFileContinuousCopies(URI id, CopiesParam input) {
         TaskList task = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/start", id);
         return null;//new Task<FileShareRestRep>(client, task.getTaskList(), BlockMirrorRestRep.class);
+    }
+    
+    /**
+     * Begins deactivating a number of continuous copies for the given file system.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/deactivate</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the copy configurations.
+     * @return tasks for monitoring the progress of the operation.
+     */
+    public Tasks<FileShareRestRep> deactivateFileContinuousCopies(URI id, CopiesParam input) {
+        return postTasks(input, getContinuousCopiesUrl() + "/deactivate", id);
+    }
+    
+    /**
+     * Begins pausing a number of continuous copies for a given file system.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/pause</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the copy configurations.
+     * @return tasks for monitoring the progress if the operations.
+     */
+    public Tasks<FileShareRestRep> pauseFileContinuousCopies(URI id, CopiesParam input) {
+        TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/pause", id);
+        return new Tasks<FileShareRestRep>(client, tasks.getTaskList(), FileShareRestRep.class);
     }
 }

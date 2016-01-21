@@ -8,6 +8,8 @@ import java.net.URI;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.storageos.model.file.FileShareRestRep;
+import com.emc.vipr.client.Task;
 
 @Service("CreateFileContinuousCopy")
 public class CreateFileContinuousCopyService extends ViPRService {
@@ -16,12 +18,12 @@ public class CreateFileContinuousCopyService extends ViPRService {
     protected URI fileSystem;
     
     @Param(NAME)
-    protected URI name;
+    protected String name;
     
     @Override
     public void execute() throws Exception {
-        // TODO Auto-generated method stub
-
+        //Task<FileShareRestRep> copy = FileStorageUtils.createFileContinuousCopy(fileSystem, name);
+        FileStorageUtils.createFileContinuousCopy(fileSystem, name);
     }
 
 }

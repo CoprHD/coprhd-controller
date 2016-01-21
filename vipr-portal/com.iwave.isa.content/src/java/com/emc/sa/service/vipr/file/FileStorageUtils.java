@@ -23,7 +23,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
 import com.emc.sa.engine.bind.Param;
-import com.emc.sa.service.vipr.block.tasks.CreateContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.CreateFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshotExport;
@@ -32,6 +31,7 @@ import com.emc.sa.service.vipr.file.tasks.CreateFileSystem;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSystemExport;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSystemQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSystemShare;
+import com.emc.sa.service.vipr.file.tasks.DeactivateFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.DeactivateFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.DeactivateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.DeactivateFileSnapshotExportRule;
@@ -52,13 +52,13 @@ import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.GetSharesForFileSnapshot;
+import com.emc.sa.service.vipr.file.tasks.PauseFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -324,6 +324,19 @@ public class FileStorageUtils {
         Task<FileShareRestRep> copies = execute(new CreateFileContinuousCopy(fileId, name));
         addAffectedResource(copies);
         return copies;
+    }
+    
+    public static void removeContinuousCopiesForFile(URI fileId, Collection<URI> continuousCopyIds) {
+        //removeBlockResourcesFromExports(continuousCopyIds);
+        for (URI continuousCopyId : continuousCopyIds) {
+            removeFileContinuousCopy(fileId, continuousCopyId);
+        }
+    }
+    
+    private static void removeFileContinuousCopy(URI fileId, URI continuousCopyId) {
+        execute(new PauseFileContinuousCopy(fileId, continuousCopyId));
+        Tasks<FileShareRestRep> tasks = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId));
+        addAffectedResources(tasks);
     }
 
     public static URI createFileSnapshot(URI fileSystemId, String name) {

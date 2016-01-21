@@ -5,7 +5,6 @@ import java.net.URI;
 import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.vipr.client.Task;
 

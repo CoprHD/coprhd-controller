@@ -313,12 +313,13 @@ public class TenantsService extends TaggedResource {
                 }
             }
             tenant.setNamespace(param.getNamespace());
+            tenant.setNamespaceStorage(param.getNamespaceStorage());
             //Update tenant info in respective namespace CF
             List<URI> allNamespaceURI = _dbClient.queryByType(ECSNamespace.class, true);
             Iterator<ECSNamespace> nsItr = _dbClient.queryIterativeObjects(ECSNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
                 ECSNamespace namesp = nsItr.next();
-                if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace()) &&
+                if (namesp.getNativeId().equalsIgnoreCase(param.getNamespace()) &&
                         namesp.getStorageDevice().toString().equals(param.getNamespaceStorage())) {
                     namesp.setTenant(tenant.getId());
                     namesp.setMapped(true);
@@ -334,10 +335,12 @@ public class TenantsService extends TaggedResource {
             while (nsItr.hasNext()) {
                 ECSNamespace namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace()) &&
-                        namesp.getStorageDevice().toString().equals(param.getNamespaceStorage())) {
+                        namesp.getStorageDevice().toString().equals(tenant.getNamespaceStorage())) {
                     namesp.setTenant(null);
                     namesp.setMapped(false);
                     _dbClient.updateObject(namesp);
+                    tenant.setNamespace(null);
+                    tenant.setNamespaceStorage(null);
                     break;
                 }
             }
@@ -440,6 +443,7 @@ public class TenantsService extends TaggedResource {
         if (param.getNamespace() != null && param.getNamespaceStorage() != null) {
             checkForDuplicateNamespace(param.getNamespace());
             subtenant.setNamespace(param.getNamespace());
+            subtenant.setNamespaceStorage(param.getNamespaceStorage());
             //Update tenant info in respective namespace CF
             List<URI> allNamespaceURI = _dbClient.queryByType(ECSNamespace.class, true);
             Iterator<ECSNamespace> nsItr = _dbClient.queryIterativeObjects(ECSNamespace.class, allNamespaceURI);

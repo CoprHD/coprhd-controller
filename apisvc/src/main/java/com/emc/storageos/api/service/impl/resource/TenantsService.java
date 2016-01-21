@@ -336,11 +336,11 @@ public class TenantsService extends TaggedResource {
                 ECSNamespace namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace()) &&
                         namesp.getStorageDevice().toString().equals(tenant.getNamespaceStorage())) {
-                    namesp.setTenant(null);
+                    namesp.setTenant(URI.create("NONE"));//updateobject resets only non-null fields
                     namesp.setMapped(false);
                     _dbClient.updateObject(namesp);
-                    tenant.setNamespace(null);
-                    tenant.setNamespaceStorage(null);
+                    tenant.setNamespace("NONE");
+                    tenant.setNamespaceStorage("NONE");
                     break;
                 }
             }

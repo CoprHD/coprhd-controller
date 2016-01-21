@@ -2744,4 +2744,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException bucketACLNotFoundFound(String opType, String acl);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException bucketACLAlreadyExists(String opType, String acl);
 }

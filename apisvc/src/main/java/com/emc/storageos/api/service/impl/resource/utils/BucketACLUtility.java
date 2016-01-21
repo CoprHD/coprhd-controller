@@ -304,7 +304,7 @@ public class BucketACLUtility {
                     }
 
                     case ACL_EXISTS: {
-                        throw APIException.badRequests.shareACLAlreadyExists(
+                        throw APIException.badRequests.bucketACLAlreadyExists(
                                 opName, bucketACE.toString());
                     }
                     // case ACL_NOT_FOUND:
@@ -333,12 +333,12 @@ public class BucketACLUtility {
                 break;
             }
             case MODIFY: {
-                verifyModifyShareACLs(bucketACL.getBucketACL());
+                verifyModifyBucketACL(bucketACL.getBucketACL());
 
                 break;
             }
             case DELETE: {
-                verifyDeleteShareACLs(bucketACL.getBucketACL());
+                verifyDeleteBucketACL(bucketACL.getBucketACL());
                 break;
             }
         }
@@ -388,7 +388,7 @@ public class BucketACLUtility {
         }
     }
 
-    private void verifyModifyShareACLs(List<BucketACE> bucketACEList) {
+    private void verifyModifyBucketACL(List<BucketACE> bucketACEList) {
         if (bucketACEList == null) {
             return;
         }
@@ -429,7 +429,7 @@ public class BucketACLUtility {
         }
     }
 
-    private void verifyDeleteShareACLs(List<BucketACE> bucketACEList) {
+    private void verifyDeleteBucketACL(List<BucketACE> bucketACEList) {
         if (bucketACEList == null) {
             return;
         }
@@ -507,11 +507,11 @@ public class BucketACLUtility {
             containmentConstraint = ContainmentConstraint.Factory
                     .getBucketAclsConstraint(this.bucketId);
 
-            List<ObjectBucketACL> dbBucketShareAcl = CustomQueryUtility
+            List<ObjectBucketACL> dbBucketBucketAcl = CustomQueryUtility
                     .queryActiveResourcesByConstraint(this.dbClient,
                             ObjectBucketACL.class, containmentConstraint);
 
-            return dbBucketShareAcl;
+            return dbBucketBucketAcl;
 
         } catch (Exception e) {
             _log.error("Error while querying DB for ACL of a bucket {}", e);

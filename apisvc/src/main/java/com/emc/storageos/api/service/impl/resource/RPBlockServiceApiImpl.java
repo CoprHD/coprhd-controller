@@ -2036,7 +2036,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         String systemType = storageSystem.getSystemType();
         if ((DiscoveredDataObject.Type.vplex.name().equals(systemType))
                 || (DiscoveredDataObject.Type.vmax.name().equals(systemType))
-                || (DiscoveredDataObject.Type.vnxblock.name().equals(systemType))) {
+                || (DiscoveredDataObject.Type.vnxblock.name().equals(systemType)) 
+                || (DiscoveredDataObject.Type.xtremio.name().equals(systemType))) {
 
             // Get the current vpool
             VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());

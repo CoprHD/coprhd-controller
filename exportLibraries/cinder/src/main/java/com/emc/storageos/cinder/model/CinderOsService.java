@@ -11,13 +11,13 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 @JsonRootName(value="service")
 @XmlRootElement(name="service")
 public class CinderOsService {
-	public String status;
-	public String binary;
-	public String zone;
-	public String state;
-	public String updated_at;
-	public String host;
-	public String disabled_reason;
+	private String status;
+	private String binary;
+	private String zone;
+	private String state;
+	private String  updated_at;
+	private String host;
+	private String disabled_reason;
 	
 public String getStatus() {
     return status;
@@ -50,13 +50,6 @@ public void setState(String state) {
     this.state = state;
 }
 
-public String getUpdatedAt() {
-    return updated_at;
-}
-
-public void setUpdatedAt(String updatedAt) {
-    this.updated_at = updatedAt;
-}
 
 public String getHost() {
     return host;
@@ -66,12 +59,21 @@ public void setHost(String host) {
     this.host = host;
 }
 
-public String getDisabledReason() {
+
+public String getUpdated_at() {
+    return updated_at;
+}
+
+public void setUpdated_at(String updated_at) {
+    this.updated_at = updated_at;
+}
+
+public String getDisabled_reason() {
     return disabled_reason;
 }
 
-public void setDisabledReason(String disabledReason) {
-    this.disabled_reason = disabledReason;
+public void setDisabled_reason(String disabled_reason) {
+    this.disabled_reason = disabled_reason;
 }
 
 }

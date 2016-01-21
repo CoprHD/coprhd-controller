@@ -98,6 +98,7 @@
                 </bean>
                 <bean class="com.emc.storageos.systemservices.impl.resource.UpgradeService">
                     <property name="proxy" ref="coordinatorclientext" />
+                    <property name="drUtil" ref="drUtil" />
                     <property name="upgradeManager" ref="upgradeManager" />
                     <property name="upgradeVoters">
                     	<list>

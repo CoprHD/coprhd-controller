@@ -4,6 +4,7 @@
  */
 package controllers.infra;
 
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.db.DbConsistencyStatusRestRep;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.vipr.model.sys.ClusterInfo;
@@ -115,7 +116,7 @@ public class Upgrade extends Controller {
             return true;
         }
         for (SiteRestRep site : sites) {
-            if (site.getState().equals("STANDBY_PAUSED")) {
+            if (SiteState.STANDBY_PAUSED.toString().equals(site.getState())) {
                 return true;
             }
         }

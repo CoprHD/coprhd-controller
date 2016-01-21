@@ -84,7 +84,6 @@ public class UpgradeService {
 
     public void setProxy(CoordinatorClientExt proxy) {
         _coordinator = proxy;
-        drUtil = new DrUtil(_coordinator.getCoordinatorClient());
     }
 
     public void setUpgradeManager(UpgradeManager upgradeManager) {
@@ -93,6 +92,10 @@ public class UpgradeService {
 
     public void setUpgradeVoters(List<UpgradeVoter> voters) {
         _upgradeVoters = voters;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
     }
 
     /**

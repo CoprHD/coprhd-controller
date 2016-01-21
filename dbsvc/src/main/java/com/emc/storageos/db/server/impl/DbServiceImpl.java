@@ -61,8 +61,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
  */
 public class DbServiceImpl implements DbService {
     private static final Logger _log = LoggerFactory.getLogger(DbServiceImpl.class);
-    private static final String DB_SCHEMA_LOCK = "dbschema";
-    private static final String GEODB_SCHEMA_LOCK = "geodbschema";
+
     private static final String DB_NO_ENCRYPT_FLAG_FILE = "/data/db/no_db_encryption";
     private static final String DB_INITIALIZED_FLAG_FILE = "/var/run/storageos/dbsvc_initialized";
     private static final Integer INIT_LOCAL_DB_NUM_TOKENS = 256;
@@ -216,7 +215,7 @@ public class DbServiceImpl implements DbService {
      * @return
      */
     private String getSchemaLockName() {
-        return isGeoDbsvc() ? GEODB_SCHEMA_LOCK : DB_SCHEMA_LOCK;
+        return isGeoDbsvc() ? DbConfigConstants.GEODB_SCHEMA_LOCK : DbConfigConstants.DB_SCHEMA_LOCK;
     }
 
     public String getConfigValue(String key) {

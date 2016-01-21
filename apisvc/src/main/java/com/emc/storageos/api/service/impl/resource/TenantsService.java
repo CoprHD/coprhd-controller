@@ -319,7 +319,7 @@ public class TenantsService extends TaggedResource {
             while (nsItr.hasNext()) {
                 ECSNamespace namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace()) &&
-                        namesp.getStorageDevice().equals(param.getNamespaceStorage())) {
+                        namesp.getStorageDevice().toString().equals(param.getNamespaceStorage())) {
                     namesp.setTenant(tenant.getId());
                     namesp.setMapped(true);
                     _dbClient.updateObject(namesp);
@@ -431,7 +431,7 @@ public class TenantsService extends TaggedResource {
             while (nsItr.hasNext()) {
                 ECSNamespace namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(subtenant.getNamespace()) &&
-                        namesp.getStorageDevice().equals(param.getNamespaceStorage())) {
+                        namesp.getStorageDevice().toString().equals(param.getNamespaceStorage())) {
                     namesp.setTenant(subtenant.getId());
                     namesp.setMapped(true);
                     _dbClient.updateObject(namesp);

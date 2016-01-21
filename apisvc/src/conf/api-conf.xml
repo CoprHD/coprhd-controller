@@ -235,6 +235,7 @@
         <property name="blockMirrorIngestOrchestrator" ref="blockMirrorIngestOrchestrator"/>
         <property name="blockRemoteReplicationIngestOrchestrator" ref="blockRemoteReplicationIngestOrchestrator"/>
         <property name="blockVplexVolumeIngestOrchestrator" ref="blockVplexVolumeIngestOrchestrator"/>
+        <property name="blockRpVplexIngestOrchestrator" ref="blockRpVplexIngestOrchestrator"/>
         <property name="maskPerHostIngestOrchestrator" ref="maskPerHostIngestOrchestrator"/>
         <property name="multipleMaskPerHostIngestOrchestrator" ref="multipleMaskPerHostIngestOrchestrator"/>
         <property name="unexportedVolumeIngestOrchestrator" ref="unexportedVolumeIngestOrchestrator"/>

@@ -331,12 +331,14 @@ public class IngestStrategyFactory {
         
         boolean isVplexVolume = VolumeIngestionUtil.isVplexVolume(unManagedVolume);
         boolean isRpEnabled = VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
-        
-        if (isVplexVolume && isRpEnabled) {
-            replicationStrategy = ReplicationStrategy.RPVPLEX.name();
-        } else if (!disregardProtection && isRpEnabled) {
+//        
+//        if (isVplexVolume && isRpEnabled) {
+//            replicationStrategy = ReplicationStrategy.RPVPLEX.name();
+//        } else 
+            
+        if (!disregardProtection && isRpEnabled) {
             replicationStrategy = ReplicationStrategy.RP.name();
-        } else if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
+        } else if (isVplexVolume) {
             replicationStrategy = ReplicationStrategy.VPLEX.name();
         } else if (null == remoteMirrorEnabledInVolume || !Boolean.parseBoolean(remoteMirrorEnabledInVolume)) {
             replicationStrategy = ReplicationStrategy.LOCAL.name();

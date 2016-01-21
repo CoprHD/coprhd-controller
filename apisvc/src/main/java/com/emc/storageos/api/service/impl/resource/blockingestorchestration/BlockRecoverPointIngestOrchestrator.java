@@ -212,7 +212,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             IngestionRequestContext childRequestContext = rpVolumeContext;
             // ...if this is an RP/VPLEX volume, we need to use the embedded
             // VPLEX volume ingestion context now
-            if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
+            boolean isRpVplexVolume = VolumeIngestionUtil.isRpVplexVolume(unManagedVolume);
+            if (isRpVplexVolume) {
                 if (rpVolumeContext instanceof RpVplexVolumeIngestionContext) {
                     childRequestContext = 
                             ((RpVplexVolumeIngestionContext) rpVolumeContext).getVplexVolumeIngestionContext();
@@ -220,6 +221,11 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             }
 
             volume = (Volume) ingestStrategy.ingestBlockObjects(childRequestContext, VolumeIngestionUtil.getBlockObjectClass(unManagedVolume));
+
+            if (isRpVplexVolume) {
+                // need to save the vplex backend ingestion context
+                childRequestContext.getVolumeContext().commit();
+            }
             _logger.info("Ingestion ended for unmanagedvolume {}", unManagedVolume.getNativeGuid());
             if (null == volume) {
                 throw IngestionException.exceptions.generalVolumeException(

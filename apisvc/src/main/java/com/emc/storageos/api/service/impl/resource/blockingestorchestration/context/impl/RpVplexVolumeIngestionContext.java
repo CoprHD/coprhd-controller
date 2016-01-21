@@ -14,6 +14,8 @@ public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionCo
         
         _vplexVolumeIngestionContext = new VplexVolumeIngestionContext(
                 unManagedVolume, dbClient, parentRequestContext);
+        
+        _vplexVolumeIngestionContext.setCurrentUnmanagedVolume(unManagedVolume);
     }
 
     public VplexVolumeIngestionContext getVplexVolumeIngestionContext() {

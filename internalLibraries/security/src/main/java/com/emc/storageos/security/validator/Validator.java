@@ -380,6 +380,10 @@ public class Validator {
      */
 
     private static List<String> deDuplicate(List<String> input) {
+	if (input == null) {
+            return input;
+        }
+
         HashSet hs = new HashSet();
         hs.addAll(input);
 

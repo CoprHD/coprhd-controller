@@ -80,7 +80,7 @@ _isIPConsistent() {
     done 
    
     vdc_vipkey="vdc_vdc1_"$site_myid"_network_vip";
-    if [[ ${vdcpropMap[$vdc_vipkey]} == *"::"* ]]; then
+    if [[ ${vdcpropMap[$vdc_vipkey]} == *":"* ]]; then
         ovfenv_vip6key="network_vip6"
         [ -z ${vdcpropMap[$vdc_vipkey]} ] && vdcpropMap[$vdc_vipkey]="::0"
         [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vip6key]}" ] && echo "false" && return

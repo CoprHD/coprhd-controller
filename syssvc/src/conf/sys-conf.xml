@@ -259,6 +259,7 @@
         		<entry key="ipsec_enable" value-ref="ipsecEnableHandler"/>
         		<entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
         		<entry key="dr_failbackDegrade" value-ref="vdcDrFailbackDegradeHandler" />
+                <entry key="ip_change" value-ref="ipchangeHandler"/>
         	</map>
         </property>
     </bean>
@@ -434,6 +435,7 @@
 
     <bean id="IpReconfigManager" class="com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager" init-method="init">
         <property name="ovfProperties" ref="ovfProperties"/>
+        <property name="drUtil" ref="drUtil" />
     </bean>
 
     <bean id="apiNotifier" class="com.emc.storageos.systemservices.impl.property.APINotifier">
@@ -572,6 +574,14 @@
 	</bean>
 	
 	<bean id="vdcDrFailbackDegradeHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrFailbackDegradeHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+
+    <bean id="ipchangeHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPChangeHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>

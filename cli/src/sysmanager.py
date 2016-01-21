@@ -1224,8 +1224,12 @@ class Configuration(object):
         else:
             parms['name'] = newname
         site = self.show_site(name)
-        original_desc = site['description']
-        
+
+        if 'description' in site:
+            original_desc = site['description']
+        else :
+            original_desc = ""
+
         if(desc is None or len(desc) == 0):
             parms['description'] = original_desc
         else:
@@ -1243,8 +1247,7 @@ class Configuration(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET",
-            Configuration.URI_SITE_TIME.format(siteuuid), None)
-         
+            Configuration.URI_SITE_TIME.format(siteuuid), None) 
         o = common.json_decode(s)
         return o
     
@@ -2926,7 +2929,7 @@ def site_time(args):
     obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
     try:
         res = obj.site_time(args.name)
-        return res
+        return common.format_json_object(res)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "get time",

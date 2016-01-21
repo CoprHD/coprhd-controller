@@ -10,7 +10,6 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.security.geo.GeoClientCacheManager;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.security.ipsec.IpUtils;
@@ -36,14 +35,16 @@ public class IPSecMonitor implements Runnable {
     public static int IPSEC_CHECK_INTERVAL = 10;  // minutes
     public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
 
-    public ScheduledExecutorService scheduledExecutorService;
     private static ApplicationContext appCtx;
+
+    public ScheduledExecutorService scheduledExecutorService;
+    private boolean backCompatPreYoda = false;
 
     @Autowired
     private GeoClientCacheManager geoClientManager;
 
     @Autowired
-    CoordinatorClient coordinaotr;
+    CoordinatorClient coordinator;
 
     public void start() {
         log.info("start IPSecMonitor.");
@@ -108,35 +109,9 @@ public class IPSecMonitor implements Runnable {
             }
             log.info("step 4: ipsec check finish");
 
-            log.info("step 5: checking ipsec enabled post upgrading");
-            initGeoClientManager();
-            if (geoClientManager == null) {
-                log.info("GeoClientManager instance is not available. Skip checking.");
-                return;
-            }
-
-            checkIPsecEnabledPostUpgrade();
-
         } catch (Exception ex) {
             log.warn("error when run ipsec monitor: " + ex.getMessage());
         }
-    }
-
-    private void checkIPsecEnabledPostUpgrade() {
-
-    }
-
-    private void initGeoClientManager() {
-        if (geoClientManager != null) {
-            return;
-        }
-
-        geoClientManager = (GeoClientCacheManager) appCtx.getBean("geoClientCache");
-        coordinaotr = (CoordinatorClient) appCtx.getBean("coordinator");
-        DrUtil drUtil = new DrUtil(coordinaotr);
-        String vdcId = drUtil.getLocalVdcShortId();
-        GeoServiceClient geoClient = geoClientManager.getGeoClient(vdcId);
-        log.info("get geo client " + geoClient);
     }
 
     /**

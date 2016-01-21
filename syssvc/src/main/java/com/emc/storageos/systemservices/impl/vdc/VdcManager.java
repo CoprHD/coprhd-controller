@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.coordinator.client.model.*;
+import com.emc.storageos.security.geo.GeoClientCacheManager;
+import com.emc.storageos.security.geo.GeoServiceClient;
+import com.emc.storageos.systemservices.impl.ApplicationContextManager;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +38,7 @@ import com.emc.storageos.systemservices.impl.upgrade.UpgradeManager;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 
 
 /**
@@ -55,6 +59,9 @@ public class VdcManager extends AbstractManager {
     private UpgradeManager upgradeManager;
     @Autowired
     private AuditLogManager auditMgr;
+
+    @Autowired
+    GeoClientCacheManager geoClientManager;
 
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
@@ -96,7 +103,7 @@ public class VdcManager extends AbstractManager {
     public void setBackCompatPreYoda(Boolean backCompat) {
         backCompatPreYoda = backCompat;
     }
-    
+
     @Override
     protected URI getWakeUpUrl() {
         return SysClientFactory.URI_WAKEUP_VDC_MANAGER;
@@ -242,11 +249,30 @@ public class VdcManager extends AbstractManager {
                 log.error("Step5: Failed to set back compat yoda upgrade. {}", ex);
                 continue;
             }
-            
+
+            initGeoClientManager();
+
             // Step7: sleep
             log.info("Step7: sleep");
-            longSleep();
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                log.error("", e);
+            }
         }
+    }
+
+    private void initGeoClientManager() {
+        ApplicationContext appCtx = ApplicationContextManager.getApplicationContext();
+
+        if (geoClientManager != null) {
+            return;
+        }
+
+        geoClientManager = (GeoClientCacheManager) appCtx.getBean("geoClientCache");
+        String vdcId = drUtil.getLocalVdcShortId();
+        GeoServiceClient geoClient = geoClientManager.getGeoClient(vdcId);
+        log.info("Get geo client " + geoClient);
     }
 
     /**

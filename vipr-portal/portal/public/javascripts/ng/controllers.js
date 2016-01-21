@@ -488,6 +488,10 @@ angular.module("portalApp").controller({
                 $scope.quota.securityStyle = data.securityStyle;
                 $scope.quota.oplock = data.oplock
                 $scope.quota.size = $filter('number')(data.quotaSize, 0);
+                $scope.quota.softLimit = data.softLimit;
+                $scope.quota.notificationLimit = data.notificationLimit;
+                $scope.quota.softGrace = data.softGrace;
+                
             });
        }
     },

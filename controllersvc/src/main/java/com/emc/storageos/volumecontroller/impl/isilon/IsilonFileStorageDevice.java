@@ -2227,9 +2227,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
         String rpoValue = null;
         if (virtualPool != null) {
-            if (virtualPool.getFrRpoValue() != null) {
-                rpoValue = virtualPool.getFrRpoValue().toString();
-            }
+            StringBuilder errorStringBuilder = new StringBuilder();
+            rpoValue = validatePolicySchedule(virtualPool, errorStringBuilder);
         }
 
         BiosCommandResult cmdResult = doCreateReplicationPolicy(sourceStorageSystem,
@@ -2817,7 +2816,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                     break;
                 case "monthly":
-                    
+
                     break;
                 case "hours":
                     break;

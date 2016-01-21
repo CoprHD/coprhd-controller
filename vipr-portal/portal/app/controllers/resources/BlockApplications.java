@@ -46,6 +46,7 @@ public class BlockApplications extends ResourceController {
     
     public static void blockApplicationDetails(String id) {
     	renderArgs.put("dataTable", new VolumeApplicationDataTable());
+    	renderArgs.put("cloneTable", new CloneApplicationDataTable());
         VolumeGroupRestRep application =  AppSupportUtil.getApplication(id);
         render(application);
     }

@@ -2612,9 +2612,6 @@ public class FileService extends TaskResourceService {
         // Make sure that we don't have some pending
         // operation against the fileshare
         checkForPendingTasks(Arrays.asList(fileShare.getTenant().getURI()), Arrays.asList(fileShare));
-
-        FileShare file = queryFileObjectResource(uriFS);
-
         // Validate the list of copies
         ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
     }

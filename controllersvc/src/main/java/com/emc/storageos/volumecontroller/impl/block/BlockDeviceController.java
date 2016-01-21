@@ -20,9 +20,12 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Map.Entry;
 
 import javax.xml.bind.DataBindingException;
 
@@ -4403,7 +4406,71 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public String addStepsForPostDeleteVolumes(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumes, String taskId,
             VolumeWorkflowCompleter completer) {
-        // Nothing to do, no steps to add
+        // delete replication group if it becomes empty
+        // Get the list of descriptors which represent source volumes to be deleted
+        List<VolumeDescriptor> volumeDescriptors = VolumeDescriptor.filterByType(volumes,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.SRDF_SOURCE,
+                        VolumeDescriptor.Type.SRDF_EXISTING_SOURCE,
+                        VolumeDescriptor.Type.SRDF_TARGET }, null);
+
+        // If no source volumes, just return
+        if (volumeDescriptors.isEmpty()) {
+            _log.info("No post deletion step required");
+            return waitFor;
+        }
+
+        // Get the consistency groups. If no consistency group for source
+        // volumes,
+        // just return. Get CGs from all descriptors.
+        // Assume volumes could be in different CGs
+        Map<URI, Set<URI>> cgToVolumes = new HashMap<URI, Set<URI>>();
+        for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
+            URI volumeURI = volumeDescriptor.getVolumeURI();
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            if (volume != null && volume.isInCG()) {
+                URI cg = volume.getConsistencyGroup();
+                Set<URI> cgVolumeList = cgToVolumes.get(cg);
+                if (cgVolumeList == null) {
+                    cgVolumeList = new HashSet<URI>();
+                    cgToVolumes.put(cg, cgVolumeList);
+                }
+
+                cgVolumeList.add(volumeURI);
+            }
+        }
+
+        if (cgToVolumes.isEmpty()) {
+            return waitFor;
+        }
+
+        Set<Entry<URI, Set<URI>>> entrySet = cgToVolumes.entrySet();
+        for (Entry<URI, Set<URI>> entry : entrySet) {
+            // find member volumes in the group
+            URI cgURI = entry.getKey();
+            Set<URI> volumeURIs = entry.getValue();
+            List<Volume> volumeList = new ArrayList<Volume>();
+            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumeURIs);
+            while (volumeIterator.hasNext()) {
+                Volume volume = volumeIterator.next();
+                if (volume != null && !volume.getInactive()) {
+                    volumeList.add(volume);
+                }
+            }
+
+            // delete CG from array
+            if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
+                _log.info("Adding step to delete consistency group %s", cgURI);
+                URI storage = volumeList.get(0).getStorageController();
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                        String.format("Deleting replication group for consistency group %s", cgURI),
+                        waitFor, storage, storageSystem.getSystemType(),
+                        this.getClass(),
+                        deleteConsistencyGroupMethod(storage, cgURI, null, null, false),
+                        rollbackMethodNullMethod(), null);
+            }
+        }
+
         return waitFor;
     }
 

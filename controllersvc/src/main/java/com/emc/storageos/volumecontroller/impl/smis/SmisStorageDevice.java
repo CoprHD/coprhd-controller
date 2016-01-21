@@ -1722,21 +1722,24 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 return;
             }
 
-            // Check if the CG exists
-            CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
-            CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
-            CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
-            if (cgPathInstance != null) {
-                if (storage.deviceIsType(Type.vnxblock)) {
-                    cleanupAnyGroupBackupSnapshots(storage, cgPath);
-                }
+            // Check if the CG exists. No need to check VNX virtual RG
+            if (!(storage.deviceIsType(Type.vnxblock) && StringUtils.startsWith(groupName, SmisConstants.VNX_VIRTUAL_RG))) {
+                CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
+                CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
+                CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
 
-                // Invoke the deletion of the consistency group
-                CIMArgument[] inArgs;
-                CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
-                _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
-                        outArgs);
+                if (cgPathInstance != null) {
+                    if (storage.deviceIsType(Type.vnxblock)) {
+                        cleanupAnyGroupBackupSnapshots(storage, cgPath);
+                    }
+
+                    // Invoke the deletion of the consistency group
+                    CIMArgument[] inArgs;
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
+                    _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
+                            outArgs);
+                }
             }
 
             // Remove the replication group name from the SystemConsistencyGroup field

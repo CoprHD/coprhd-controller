@@ -232,16 +232,16 @@ public class MiscService extends TaskResourceService {
         {
         	volumeService.setState("up");
         	volumeService.setStatus("enabled");
-        	volumeService.setDisabledReason(null);
+        	volumeService.setDisabled_reason(null);
         } else
         {
         	volumeService.setState("down");
         	volumeService.setStatus("disabled");
-        	volumeService.setDisabledReason("No storage system is discovered");
+        	volumeService.setDisabled_reason("No storage system is discovered");
         }
         
         curDate = new Date();
-        volumeService.setUpdatedAt(format.format(curDate));
+        volumeService.setUpdated_at(format.format(curDate));
         osServicesResp.getServices().add(volumeService);
               
         List<Service> schedulerSvcs = _coordinator.locateAllSvcsAllVers("controllersvc");
@@ -254,15 +254,15 @@ public class MiscService extends TaskResourceService {
         {          
         	schedulerService.setState("down");
         	schedulerService.setStatus("disabled");
-            schedulerService.setDisabledReason("controller service is not available");              	
+            schedulerService.setDisabled_reason("controller service is not available");              	
         }else	
         {        	
         	schedulerService.setState("up");
         	schedulerService.setStatus("enabled");
-        	schedulerService.setDisabledReason(null);      
+        	schedulerService.setDisabled_reason(null);      
         }  
         curDate = new Date();
-        schedulerService.setUpdatedAt(format.format(curDate));
+        schedulerService.setUpdated_at(format.format(curDate));
         osServicesResp.getServices().add(schedulerService);
                
         return CinderApiUtils.getCinderResponse(osServicesResp, header, false);

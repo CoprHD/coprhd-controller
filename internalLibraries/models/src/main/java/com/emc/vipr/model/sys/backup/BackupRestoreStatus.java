@@ -86,7 +86,7 @@ public class BackupRestoreStatus {
         RESTORE_SUCCESS (false, false ,false, "Restore success");
 
         private boolean cancellable = false;
-        private boolean removeDownloadedFiles= false;
+        private boolean removeDownloadedFiles = false;
         private boolean removeListener = false;
         private String message = "";
 

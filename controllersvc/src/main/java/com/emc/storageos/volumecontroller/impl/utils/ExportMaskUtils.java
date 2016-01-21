@@ -17,6 +17,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sun.net.util.IPAddressUtil;
+
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.db.client.DbClient;
@@ -59,8 +61,6 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
-
-import sun.net.util.IPAddressUtil;
 
 public class ExportMaskUtils {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskUtils.class);
@@ -480,11 +480,11 @@ public class ExportMaskUtils {
         boolean rp = false;
         for (Initiator initiator : initiators) {
             String host = initiator.getHostName();
-            
+
             if (initiator.checkInternalFlags(Flag.RECOVERPOINT)) {
                 rp = true;
             }
-            
+
             if (host != null) {
                 hosts.add(host);
             }
@@ -508,10 +508,10 @@ public class ExportMaskUtils {
         }
 
         // In the case of RP, we want the naming defaults to use the cluster name as the hostname.
-        // This assumes: 
+        // This assumes:
         // 1. initiator list is all RP initiators
         // 2. cluster name is filled-in in each initiator
-        // 3. Default custom naming is being used 
+        // 3. Default custom naming is being used
         if (rp && clusters.iterator().hasNext()) {
             host = clusters.iterator().next();
         }
@@ -623,7 +623,7 @@ public class ExportMaskUtils {
             exportMask.removeFromExistingVolumes(volume);
         }
 
-        Integer hlu = wwnToHluMap.get(volume.getWWN()) != null ? 
+        Integer hlu = wwnToHluMap.get(volume.getWWN()) != null ?
                 wwnToHluMap.get(volume.getWWN()) : ExportGroup.LUN_UNASSIGNED;
         exportMask.addVolume(volume.getId(), hlu);
         exportMask.setNativeId(nativeId);
@@ -955,7 +955,7 @@ public class ExportMaskUtils {
         List<URI> targetURIs = StringSetUtil.stringSetToUriList(exportMask.getStoragePorts());
         List<StoragePort> ports = dbClient.queryObject(StoragePort.class, targetURIs);
         for (StoragePort port : ports) {
-            if (port.getTaggedVirtualArrays() == null 
+            if (port.getTaggedVirtualArrays() == null
                     || !port.getTaggedVirtualArrays().contains(varrayURI.toString())) {
                 return false;
             }

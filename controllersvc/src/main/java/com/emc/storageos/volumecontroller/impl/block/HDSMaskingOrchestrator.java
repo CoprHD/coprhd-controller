@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -30,6 +31,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -46,6 +48,8 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Sets;
 
 /**
  * This class will contain HDS specific masking orchestration implementations.
@@ -716,7 +720,9 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 List<ExportMask> exportMaskstoRemoveVolume = new ArrayList<ExportMask>();
 
                 for (ExportMask exportMask : exportMasks) {
-                    if (isRemoveAllVolumes(exportMask, volumes)) {
+                    // Delete mask only if there are no existing volumes & no shared mask across EG's.
+                    if (isRemoveAllVolumes(exportMask, volumes) && exportMask.getExistingVolumes().isEmpty()
+                            && !checkIfTheMaskIsSharedAcrossEGs(exportMask)) {
                         exportMaskstoDelete.add(exportMask);
                     } else {
                         exportMaskstoRemoveVolume.add(exportMask);
@@ -964,6 +970,9 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // list of export masks to delete as all initiators are removed
                 List<ExportMask> exportMaskDelete = new ArrayList<ExportMask>();
 
+                // list of export masks to delete volumes for shared export masks.
+                List<ExportMask> exportMaskRemoveVolumes = new ArrayList<ExportMask>();
+
                 // map of masks to initiators being removed needed to remove zones
                 Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
                 String zoningStep = null;
@@ -978,10 +987,17 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                     computeResourceToInitiators.get(computeKey));
                             _log.info("Processing export mask  {} with initiators {}", storageURI, Joiner.on(",").join(initiators));
                             maskToInitiatorsMap.put(exportMask.getId(), computeResourceToInitiators.get(computeKey));
-                            if (isRemoveAllInitiators(exportMask, initiators)) {
-                                exportMaskDelete.add(exportMask);
+                            if (checkIfTheMaskIsSharedAcrossEGs(exportMask)) {
+                                _log.info("Mask is shared across Export Groups. Hence removing volumes alone.", exportMask.getId());
+                                // If the mask is shared then remove only the shared volumes.
+                                exportMaskRemoveVolumes.add(exportMask);
                             } else {
-                                exportMaskRemoveInitiator.add(exportMask);
+                                // check if there are no existing initiators before delete the complete mask.
+                                if (isRemoveAllInitiators(exportMask, initiators) && checkIfNoExistingInitiators(exportMask, initiators)) {
+                                    exportMaskDelete.add(exportMask);
+                                } else {
+                                    exportMaskRemoveInitiator.add(exportMask);
+                                }
                             }
                         }
                     }
@@ -999,7 +1015,21 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 exportGroup, exportMask, null);
                     }
                 }
-                if (!maskToInitiatorsMap.isEmpty()) {
+                // If the mask is shared between export groups, then just remove only the export group volumes.
+                if (!exportMaskRemoveVolumes.isEmpty()) {
+                    List<URI> volumes = getVolumesToRemove(exportGroup);
+                    String removeVolumeStep = null;
+                    for (ExportMask exportMask : exportMaskRemoveVolumes) {
+                        removeVolumeStep = generateExportMaskRemoveVolumesWorkflow(workflow, null, storage,
+                                exportGroup, exportMask, volumes, null);
+                    }
+                    if (!volumes.isEmpty()) {
+                        generateZoningRemoveVolumesWorkflow(workflow, removeVolumeStep,
+                                exportGroup, exportMaskRemoveVolumes, volumes);
+                    }
+                }
+
+                if (!maskToInitiatorsMap.isEmpty() && exportMaskRemoveVolumes.isEmpty()) {
                     generateZoningRemoveInitiatorsWorkflow(workflow, previousStep,
                             exportGroup, maskToInitiatorsMap);
                 }
@@ -1024,6 +1054,40 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 throw DeviceControllerException.exceptions.exportGroupRemoveInitiatorsFailed(e);
             }
         }
+    }
+
+    private List<URI> getVolumesToRemove(ExportGroup exportGroup) {
+        List<URI> egVolumes = new ArrayList<URI>();
+        if (!exportGroup.getVolumes().isEmpty()) {
+            egVolumes = (List<URI>) Collections2
+                    .transform(exportGroup.getVolumes().keySet(), CommonTransformerFunctions.FCTN_STRING_TO_URI);
+        }
+        return egVolumes;
+    }
+
+    /**
+     * Check if the ExportMask is shared by other ExportGroups.
+     * 
+     * @param exportMask
+     * @return
+     */
+    private boolean checkIfTheMaskIsSharedAcrossEGs(ExportMask exportMask) {
+        List<ExportGroup> groups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
+        return groups.size() > 1;
+    }
+
+    /**
+     * Checks if there are any existing initiators in the ExportMask.
+     * 
+     * @param exportMask
+     * @return
+     */
+    private boolean checkIfNoExistingInitiators(ExportMask exportMask, List<Initiator> initiatorsToRemove) {
+        StringSet existingInitiators = exportMask.getExistingInitiators();
+        Collection<String> initiatorWwns = Collections2.transform(initiatorsToRemove,
+                CommonTransformerFunctions.fctnInitiatorToPortName());
+        existingInitiators.removeAll(initiatorWwns);
+        return existingInitiators.isEmpty();
     }
 
     /**
@@ -1087,8 +1151,14 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
              * right set of initiators and volumes to be removed from both the export Groups.
              */
             for (ExportMask exportMask : exportMasks) {
-                previousStep = generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup,
-                        exportMask, null);
+                if (checkIfTheMaskIsSharedAcrossEGs(exportMask)) {
+                    Set<String> masksToDelete = getSharedMasksAcrossExportGroups(exportMask, exportGroup);
+                    // If the exportMask is shared then remove volumes & initiators.
+                    // check if all initiators are shared.
+                } else {
+                    previousStep = generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup,
+                            exportMask, null);
+                }
             }
 
             generateZoningDeleteWorkflow(workflow, previousStep, exportGroup, exportMasks);
@@ -1102,6 +1172,25 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         } catch (Exception e) {
             throw DeviceControllerException.exceptions.exportGroupDeleteFailed(e);
         }
+    }
+
+    private Set<String> getSharedMasksAcrossExportGroups(ExportMask exportMask, ExportGroup currentExportGroup) {
+        List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
+        StringSet initiatorsToDelete = currentExportGroup.getInitiators();
+        StringSet maskToDelete = exportMask.getInitiators();
+        Set<String> masksDelete = new HashSet<String>();
+        for (ExportGroup exportGroup : exportGroups) {
+            // leave the current ExportGroup.
+            if (URIUtil.identical(exportGroup.getId(), currentExportGroup.getId())) {
+                continue;
+            }
+            StringSet egInitiators = exportGroup.getInitiators();
+            Set<String> diff = Sets.difference(initiatorsToDelete, egInitiators);
+            if (diff.isEmpty()) {
+                masksDelete.addAll(exportGroup.getExportMasks());
+            }
+        }
+        return maskToDelete;
     }
 
     /**

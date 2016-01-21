@@ -1389,11 +1389,12 @@ public class HDSExportOperations implements ExportMaskOperations {
             }
             if (!computeResourceToPortNames.isEmpty()) {
                 // Check all cluster initiators first
-                matchedHostGroups = fetchMatchingHostGroups(storage, allHsdList, initiatorNames, sharedVolumesMap);
+                matchedHostGroups = fetchMatchingHostGroups(storage, allHsdList, initiatorNames, sharedVolumesMap, isSharedExport);
                 // If we don't find any then get the HostGroups for individual hosts
                 if (matchedHostGroups.isEmpty() && isSharedExport) {
                     for (Map.Entry<String, List<String>> entry : computeResourceToPortNames.entrySet()) {
-                        matchedHostGroups.addAll(fetchMatchingHostGroups(storage, allHsdList, entry.getValue(), sharedVolumesMap));
+                        matchedHostGroups.addAll(fetchMatchingHostGroups(storage, allHsdList, entry.getValue(), sharedVolumesMap,
+                                isSharedExport));
                     }
                     // unlikely there are no shared volumes, meaning only found exclusive Host Groups. Hence clear those HostGroups
                     if (sharedVolumesMap.isEmpty()) {
@@ -1444,8 +1445,10 @@ public class HDSExportOperations implements ExportMaskOperations {
     }
 
     private List<HostStorageDomain> fetchMatchingHostGroups(StorageSystem storage, List<HostStorageDomain> allHsdList,
-            List<String> initiatorNames, Map<String, Integer> sharedVolumesMap) {
+            List<String> initiatorNames, Map<String, Integer> matchedHsdVolumesMap, boolean isSharedExport) {
         List<HostStorageDomain> matchedHostGroups = new ArrayList<HostStorageDomain>();
+        List<Path> allVolumePaths = new ArrayList<Path>();
+        List<Path> matchedHsdPaths = new ArrayList<Path>();
         for (HostStorageDomain hsd : allHsdList) {
             List<String> initiatorsExistsOnHSD = getInitiatorsExistsOnHSD(
                     hsd.getWwnList(), hsd.getIscsiList());
@@ -1454,18 +1457,50 @@ public class HDSExportOperations implements ExportMaskOperations {
             if (diff.isEmpty() && initiatorsExistsOnHSD.size() == initiatorNames.size()) {
                 log.info("Found a matching HSD {} for initiators {} ", hsd.getObjectID(), initiatorNames);
                 matchedHostGroups.add(hsd);
+                matchedHsdPaths.addAll(hsd.getPathList());
                 // Get shared volumes only from matched Host Groups.
-                if (sharedVolumesMap.isEmpty()) {
+                if (matchedHsdVolumesMap.isEmpty()) {
                     // Initialize when the map is empty
-                    sharedVolumesMap.putAll(getVolumeInfo(storage, hsd.getPathList()));
+                    matchedHsdVolumesMap.putAll(getVolumeInfo(storage, hsd.getPathList()));
                 } else {
                     // Eliminates the non-shared volumes.
                     Map<String, Integer> tmpMap = getVolumeInfo(storage, hsd.getPathList());
-                    sharedVolumesMap.keySet().retainAll(tmpMap.keySet());
+                    log.info("Eliminating the non-shared volumes {} from matched HSD volumes", tmpMap.keySet(), matchedHsdVolumesMap);
+                    matchedHsdVolumesMap.keySet().retainAll(tmpMap.keySet());
+                }
+            } else {
+                allVolumePaths.addAll(hsd.getPathList());
+            }
+        }
+        // remove the shared volumes from the Exclusive Host Groups.
+        if (!isSharedExport) {
+            removeSharedVolumesFromExclusiveHosts(storage, matchedHsdPaths, allVolumePaths);
+            log.debug("Clearing the shared VolumesMap {}", matchedHsdVolumesMap);
+            matchedHsdVolumesMap.clear();
+            matchedHsdVolumesMap.putAll(getVolumeInfo(storage, matchedHsdPaths));
+            log.info("Updated matching non-shared VolumesMap {}", matchedHsdVolumesMap);
+        }
+        return matchedHostGroups;
+    }
+
+    /**
+     * Removes the shared volumes from the Exclusive provisioning.
+     * 
+     * @param storage
+     * @param sharedVolumesMap
+     * @param allVolumePaths
+     */
+    private void removeSharedVolumesFromExclusiveHosts(StorageSystem storage, List<Path> matchedHsdVolumePaths,
+            List<Path> allVolumePaths) {
+        List<Path> hsdVolumePathsToRemove = new ArrayList<Path>();
+        for (Path hsdVolumePath : allVolumePaths) {
+            for (Path matchedHsdVolumePath : matchedHsdVolumePaths) {
+                if (hsdVolumePath.getDevNum().equalsIgnoreCase(matchedHsdVolumePath.getDevNum())) {
+                    hsdVolumePathsToRemove.add(matchedHsdVolumePath);
                 }
             }
         }
-        return matchedHostGroups;
+        matchedHsdVolumePaths.removeAll(hsdVolumePathsToRemove);
     }
 
     private Map<String, Integer> getVolumeInfo(StorageSystem storage, List<Path> pathList) {
@@ -1725,6 +1760,10 @@ public class HDSExportOperations implements ExportMaskOperations {
                 Set<String> discoveredInitiators = new HashSet<String>();
                 String maskName = null;
                 Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
+                List<HostStorageDomain> allHsdList = exportManager
+                        .getHostStorageDomains(systemObjectID);
+                List<Path> volumeListExcludesCurrent = getHostGroupsVolumePaths(allHsdList, hsdList);
+
                 for (String hsdObjectIdFromDb : hsdList) {
                     HostStorageDomain hsd = exportManager.getHostStorageDomain(
                             systemObjectID, hsdObjectIdFromDb);
@@ -1734,9 +1773,10 @@ public class HDSExportOperations implements ExportMaskOperations {
                         continue;
                     }
                     maskName = (null == hsd.getName()) ? hsd.getNickname() : hsd.getName();
-
+                    Map<String, Integer> hsdVolumeHluMap = getVolumeInfo(storage, hsd.getPathList());
+                    removeSharedVolumesFromExclusiveHosts(storage, hsd.getPathList(), volumeListExcludesCurrent);
                     // Get volumes and initiators for the masking instance
-                    discoveredVolumes.putAll(getVolumesFromHSD(hsd, storage));
+                    discoveredVolumes.putAll(hsdVolumeHluMap);
                     discoveredInitiators.addAll(getInitiatorsFromHSD(hsd));
                 }
                 StringSet existingInitiators = (StringSet) ((mask.getExistingInitiators() != null) ?
@@ -1816,6 +1856,16 @@ public class HDSExportOperations implements ExportMaskOperations {
 
     }
 
+    private List<Path> getHostGroupsVolumePaths(List<HostStorageDomain> allHsdList, Set<String> hsdList) {
+        List<Path> hostGroupVolumePaths = new ArrayList<Path>();
+        for (HostStorageDomain hsd : allHsdList) {
+            if (!hsdList.contains(hsd.getObjectID())) {
+                hostGroupVolumePaths.addAll(hsd.getPathList());
+            }
+        }
+        return hostGroupVolumePaths;
+    }
+
     /**
      * Return the initiators from HSD passed in.
      * 
@@ -1838,24 +1888,6 @@ public class HDSExportOperations implements ExportMaskOperations {
             }
         }
         return initiatorsList;
-    }
-
-    /**
-     * Return a map[deviceId] => lun from the give HostStorageDomain.
-     * 
-     * @param hsd
-     * @return
-     */
-    private Map<String, Integer> getVolumesFromHSD(HostStorageDomain hsd, StorageSystem storage) {
-        Map<String, Integer> volumesFromHSD = new HashMap<String, Integer>();
-        List<Path> pathList = hsd.getPathList();
-        if (null != pathList) {
-            for (Path path : pathList) {
-                String volumeWWN = HDSUtils.generateHitachiVolumeWWN(storage, path.getDevNum());
-                volumesFromHSD.put(volumeWWN, Integer.valueOf(path.getLun()));
-            }
-        }
-        return volumesFromHSD;
     }
 
     /**

@@ -1268,7 +1268,7 @@ public class StorageSystemService extends TaskResourceService {
     public ObjectNamespaceRestRep getECSNamespace(@PathParam("id") URI id,
             @PathParam("nsId") URI nsId) {
         // Make sure storage system is registered.
-        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        ArgValidator.checkFieldUriType(id, ECSNamespace.class, "id");
         StorageSystem system = queryResource(id);
         ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
 

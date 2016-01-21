@@ -29,7 +29,7 @@ public class ObjectNamespaceRestRep extends DiscoveredDataObjectRestRep {
         this.nsName = nsName;
     }
 
-    @XmlElement(name = "nativeId")
+    @XmlElement(name = "namespace_id")
     public String getNativeId() {
         return nativeId;
     }
@@ -56,7 +56,7 @@ public class ObjectNamespaceRestRep extends DiscoveredDataObjectRestRep {
         tenant = tenant;
     }
 
-    @XmlElement(name = "storageDevice")
+    @XmlElement(name = "storage_system")
     public URI getStorageDevice() {
         return storageDevice;
     }

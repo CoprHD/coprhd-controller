@@ -302,7 +302,8 @@ public class TenantsService extends TaggedResource {
             tenant.setDescription(param.getDescription());
         }
         
-        if (param.getNamespace() != null && !param.getNamespace().isEmpty()) {
+        if (param.getNamespace() != null && !param.getNamespace().isEmpty() &&
+                param.getNamespaceStorage() != null) {
             checkForDuplicateNamespace(param.getNamespace());
 
             if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
@@ -421,7 +422,7 @@ public class TenantsService extends TaggedResource {
         subtenant.setParentTenant(new NamedURI(parent.getId(), param.getLabel()));
         subtenant.setLabel(param.getLabel());
         subtenant.setDescription(param.getDescription());
-        if (param.getNamespace() != null) {
+        if (param.getNamespace() != null && param.getNamespaceStorage() != null) {
             checkForDuplicateNamespace(param.getNamespace());
             subtenant.setNamespace(param.getNamespace());
             //Update tenant info in respective namespace CF

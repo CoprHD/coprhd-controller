@@ -338,7 +338,6 @@ public class BlockServiceUtils {
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
         for (Volume vol : volumes) {
             // return only visible volumes. i.e skip backend or internal volumes
-            // TODO check with others
             if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                 result.add(vol);
             }

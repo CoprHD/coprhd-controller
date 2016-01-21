@@ -364,6 +364,13 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         clone.setAssociatedSourceVolume(volume.getId());
         clone.setReplicationGroupInstance(repGroupName);
 
+        // For clones of new volumes added to Application, get the clone set name and set it
+        if (volume.getApplication(_dbClient) != null) {
+            List<Volume> fullCopies = ControllerUtils.getFullCopiesPartOfReplicationGroup(repGroupName, _dbClient);
+            String cloneSetName = (fullCopies.iterator().next()).getFullCopySetName();
+            clone.setFullCopySetName(cloneSetName);
+        }
+
         StringSet fullCopies = volume.getFullCopies();
         if (fullCopies == null) {
             fullCopies = new StringSet();
@@ -372,6 +379,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
         fullCopies.add(clone.getId().toString());
         _dbClient.createObject(clone);
+        _dbClient.updateObject(volume);
 
         return clone;
     }

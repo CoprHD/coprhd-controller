@@ -1260,6 +1260,33 @@ public class ControllerUtils {
     }
 
     /**
+     * Returns true, if the clone is part of an Application, false otherwise.
+     * In addition to this, if a non-null {@link TaskCompleter} is provided the {@VolumeGroup} instance
+     * added to it.
+     *
+     * @param clone URI of the clone/fullcopy
+     * @param dbClient DbClient instance
+     * @param completer Optional TaskCompleter instance.
+     * @return true/false dependent on the clone being part of an application.
+     */
+    public static boolean checkCloneInApplication(URI cloneURI, DbClient dbClient, TaskCompleter completer) {
+        Volume clone = dbClient.queryObject(Volume.class, cloneURI);
+        URI sourceVolume = clone.getAssociatedSourceVolume();
+        Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
+                dbClient.queryObject(Volume.class, sourceVolume) : null;
+        VolumeGroup volumeGroup = (source != null)
+                ? source.getApplication(dbClient) : null;
+
+        if (volumeGroup != null) {
+            if (completer != null) {
+                completer.addVolumeGroupId(volumeGroup.getId());
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
      * 
      * @param volume
@@ -1436,6 +1463,31 @@ public class ControllerUtils {
     }
 
     /**
+     * Returns true if the request is made for subset of array groups within the Volume Group.
+     * For Partial request, PARTIAL Flag was set on the requested Volume.
+     *
+     * @param dbClient the db client
+     * @param volume the volume
+     * @return true, if the request is Partial
+     */
+    public static boolean checkVolumeForVolumeGroupPartialRequest(DbClient dbClient, Volume volume) {
+        boolean partial = false;
+        if (volume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+            partial = true;
+        } else {
+            // check on other volumes part of the array group.
+            List<Volume> volumes = ControllerUtils.getVolumesPartOfRG(volume.getReplicationGroupInstance(), dbClient);
+            for (Volume vol : volumes) {
+                if (vol.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                    partial = true;
+                    break;
+                }
+            }
+        }
+        return partial;
+    }
+
+    /**
      * Get volume group's volumes.
      * skip internal volumes
      *
@@ -1474,4 +1526,48 @@ public class ControllerUtils {
         }
         return arrayGroupToVolumes;
     }
+
+    /**
+     * Gets all clones for the given set name.
+     */
+    public static List<Volume> getClonesBySetName(String cloneSetName, DbClient dbClient) {
+        List<Volume> setClones = new ArrayList<Volume>();
+        if (cloneSetName != null) {
+            URIQueryResultList list = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                    getFullCopiesBySetName(cloneSetName), list);
+            Iterator<Volume> iter = dbClient.queryIterativeObjects(Volume.class, list);
+            while (iter.hasNext()) {
+                setClones.add(iter.next());
+            }
+        }
+        return setClones;
+    }
+
+    /*
+     * Check replicationGroup contains all and only volumes provided
+     *
+     * Assumption - all volumes provided are in the same replicationGroup
+     *
+     * @param dbClient
+     * @param rpName replication group name
+     * @param volumes volumes in the same replication group
+     * @return boolean
+     */
+    public static boolean replicationGroupHasNoOtherVolume(DbClient dbClient, String rpName, List<URI> volumes, URI storage) {
+        List<Volume> rpVolumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(rpName));
+        int rpVolumeCount = 0;
+        for (Volume rpVol : rpVolumes) {
+            URI storageUri = rpVol.getStorageController();
+            if (storageUri.toString().equals(storage.toString())) {
+                rpVolumeCount++;
+            }
+        }
+
+        s_logger.info("rpVolumeCount {} volume size {}", rpVolumeCount, volumes.size());
+        return rpVolumeCount == volumes.size();
+    }
+
 }

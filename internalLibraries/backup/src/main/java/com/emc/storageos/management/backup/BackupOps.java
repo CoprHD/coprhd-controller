@@ -10,6 +10,8 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.text.Format;
 import java.text.SimpleDateFormat;
@@ -28,6 +30,7 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.model.property.PropertyInfo;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -519,6 +522,40 @@ public class BackupOps {
 
     public boolean isGeoBackup(String backupFileName) {
         return backupFileName.contains("multivdc");
+    }
+
+    public synchronized void setDownloadStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long increasedSize,
+                                               boolean increaseCompletedNodeNumber) {
+        log.info("Set download status backupName={} status={} backupSize={} increasedSize={} increaseCompletedNodeNumber={}",
+                new Object[] {backupName, status, backupSize, increasedSize, increaseCompletedNodeNumber});
+
+        BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
+        if (status != null && status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ) {
+            if (!s.getStatus().canBeCanceled()) {
+                return;
+            }
+        }
+
+        s.setBackupName(backupName);
+
+        if (status != null) {
+            s.setStatus(status);
+        }
+
+        if (backupSize > 0) {
+            s.setBackupSize(backupSize);
+        }
+
+        if (increasedSize > 0) {
+            long newSize = s.getDownoadSize() + increasedSize;
+            s.setDownoadSize(newSize);
+        }
+
+        if (increaseCompletedNodeNumber) {
+            s.increaseNodeCompleted();
+        }
+
+        persistBackupRestoreStatus(s, false);
     }
 
 
@@ -1138,11 +1175,34 @@ public class BackupOps {
         return goodNodes;
     }
 
-    public List<Service> getAllSysSvc() {
-        return coordinatorClient.locateAllServices(
+    public Map<String, URI> getNodesInfo() throws URISyntaxException {
+        List<Service> services = coordinatorClient.locateAllServices(
                 ((CoordinatorClientImpl) coordinatorClient).getSysSvcName(),
                 ((CoordinatorClientImpl) coordinatorClient).getSysSvcVersion(),
                 (String) null, null);
+
+        //get URL schema and port
+        Service svc = services.get(0);
+        URI uri = svc.getEndpoint();
+        int port = uri.getPort();
+        String scheme = uri.getScheme();
+
+        DrUtil util = new DrUtil();
+        util.setCoordinator(coordinatorClient);
+        Site localSite = util.getLocalSite();
+        Map<String, String> addresses = localSite.getHostIPv4AddressMap();
+        if (addresses.isEmpty()) {
+            addresses = localSite.getHostIPv6AddressMap();
+        }
+
+        Map<String, URI> nodesInfo = new HashMap();
+
+        for (Map.Entry<String, String> addr : addresses.entrySet()) {
+            String nodeUri = scheme +"://" + addr.getValue()+ ":" + port + "/";
+            nodesInfo.put(addr.getKey(), new URI(nodeUri));
+        }
+
+        return nodesInfo;
     }
 
     /**

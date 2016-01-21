@@ -543,13 +543,21 @@ public class BackupService {
     private void notifyOtherNodes(String backupName) {
         URI pushUri = SysClientFactory.URI_NODE_BACKUPS_PULL;
 
-        List<Service> sysSvcs = backupOps.getAllSysSvc();
-        for (Service svc : sysSvcs) {
-            URI endpoint = svc.getEndpoint();
-            log.info("Notify {} hostname={}", endpoint, svc.getNodeName());
-
-            SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
-            sysClient.post(pushUri, null, backupName);
+        URI endpoint = null;
+        try {
+            Map<String, URI > nodes = backupOps.getNodesInfo();
+            log.info("nodes to notify {}", nodes);
+            for (URI addr : nodes.values()) {
+                endpoint = addr;
+                log.info("Notify {}", addr);
+                SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
+                sysClient.post(pushUri, null, backupName);
+            }
+        }catch (Exception e) {
+            String errMsg = String.format("Failed to send %s to %s", pushUri, endpoint);
+            log.error(errMsg);
+            backupOps.setDownloadStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_FAILED, 0, 0, false);
+            throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
         }
     }
 

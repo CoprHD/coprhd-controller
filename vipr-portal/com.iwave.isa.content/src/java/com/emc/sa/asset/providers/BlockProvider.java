@@ -1028,8 +1028,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             snapshots = client.blockSnapshots().getByVolume(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotRestRep>());
             snapshotSessions = client.blockSnapshotSessions().getByVolume(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotSessionRestRep>());            
         } else {
-            snapshots = client.blockSnapshots().getByCG(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotRestRep>());
-            snapshotSessions = client.blockSnapshotSessions().getByCG(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotSessionRestRep>());            
+            snapshots = client.blockSnapshots().getByConsistencyGroup(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotRestRep>());
+            snapshotSessions = client.blockSnapshotSessions().getByConsistencyGroup(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotSessionRestRep>());            
         }
         return constructSnapshotWithSnapshotSessionOptions(snapshots, snapshotSessions);
     }

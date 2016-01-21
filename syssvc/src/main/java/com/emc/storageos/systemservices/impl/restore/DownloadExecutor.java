@@ -215,7 +215,9 @@ public final class DownloadExecutor implements  Runnable {
         }
 
         ZipEntry zentry = zin.getNextEntry();
+        log.info("lbytt compressed size={}", zentry.getCompressedSize());
         while (zentry != null) {
+            log.info("lbytt compressed size={} {}", zentry.getCompressedSize(), zentry);
             if (isMyBackupFile(zentry)) {
                 downloadMyBackupFile(backupFolder, zentry.getName(), zin);
             }

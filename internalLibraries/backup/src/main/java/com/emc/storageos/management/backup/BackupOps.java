@@ -33,6 +33,7 @@ import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.curator.utils.ZKPaths;
 import org.slf4j.Logger;
@@ -1203,6 +1204,12 @@ public class BackupOps {
         }
 
         return nodesInfo;
+    }
+
+    public boolean isSiteStable() {
+        ClusterInfo.ClusterState state = coordinatorClient.getControlNodesState();
+        log.info("lby state={}", state);
+        return state == ClusterInfo.ClusterState.STABLE;
     }
 
     /**

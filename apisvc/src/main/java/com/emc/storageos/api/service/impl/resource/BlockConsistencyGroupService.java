@@ -1152,7 +1152,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                         blockServiceApiImpl.verifyRemoveVolumeFromCG(volume, cgVolumes);
                     }
                     // Check if the volume is assigned to an application
-                    VolumeGroup application = volume.getCopyTypeVolumeGroup(_dbClient);
+                    VolumeGroup application = volume.getApplication(_dbClient);
                     if (application != null) {
                         throw APIException.badRequests.removeVolumeFromCGNotAllowed(volume.getLabel(), application.getLabel());
                     }

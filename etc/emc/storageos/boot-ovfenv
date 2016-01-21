@@ -44,6 +44,70 @@ _checkConfigurable() {
     fi
 }
 
+_isIPConsistent() {
+    declare -A vdcpropMap
+    vdcprops=$(/etc/systool --getvdcprops)
+    while read -r line
+    do
+      IFS='=' read -ra pair <<< "$line"
+      vdcpropMap[${pair[0]}]=${pair[1]}
+    done <<< "$vdcprops"
+    
+    declare -A ovfenvpropMap
+    ovfenvprops=$(/etc/getovfproperties --readCDROM)
+    while read -r line
+    do
+      IFS='=' read -ra pair <<< "$line"
+      ovfenvpropMap[${pair[0]}]=${pair[1]}
+    done <<< "$ovfenvprops"
+    
+    site_myid=${vdcpropMap["site_myid"]}
+    
+    declare node_count=0
+    node_count=$((${ovfenvpropMap["node_count"]}))
+    declare node_index=0
+    while [ $node_index -lt $node_count ]; do
+      node_index=$(($node_index+1))
+    
+      vdc_ipv4key="vdc_vdc1_"$site_myid"_network_"$node_index"_ipaddr";
+      ovfenv_ipv4key="network_"$node_index"_ipaddr";
+      [ "${vdcpropMap[$vdc_ipv4key]}" != "${ovfenvpropMap[$ovfenv_ipv4key]}" ] && echo "false" && return
+    
+      vdc_ipv6key="vdc_vdc1_"$site_myid"_network_"$node_index"_ipaddr6";
+      ovfenv_ipv6key="network_"$node_index"_ipaddr6";
+      [ -z ${vdcpropMap[$vdc_ipv6key]} ] && vdcpropMap[$vdc_ipv6key]="::0"
+      [ "${vdcpropMap[$vdc_ipv6key]}" != "${ovfenvpropMap[$ovfenv_ipv6key]}" ] && echo "false" && return
+    done 
+   
+    vdc_vipkey="vdc_vdc1_"$site_myid"_network_vip";
+    if [[ ${vdcpropMap[$vdc_vipkey]} == *"::"* ]]; then
+        ovfenv_vip6key="network_vip6"
+        [ -z ${vdcpropMap[$vdc_vipkey]} ] && vdcpropMap[$vdc_vipkey]="::0"
+        [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vip6key]}" ] && echo "false" && return
+    else
+        ovfenv_vipkey="network_vip"
+        [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vipkey]}" ] && echo "false" && return
+    fi 
+    
+    echo "true" && return
+}
+
+_checkIPConsistencyInMultiSitesEnv() {
+    echo -n "In multiple sites env, check if IP is consistent between ovfenv and vdc properties"
+    
+    # Single site IP change via vSphere or Installer will be handled furtherly by IpReconfigManger
+    /etc/systool --getvdcprops | grep site_ids | grep ','
+    [ $? -ne 0 ] && return
+
+    ret=$(_isIPConsistent)
+    if [ $ret == "false" ]; then
+        echo -e "\n\e[1;31m***\n*** IP configuration can not be altered from vSphere or Installer in multiple sites env.\n*** Please power off, revert it and follow the user guide to change IP in multiple sites environment.\n***\n*** Press any key to power off this VM\n***\e[0m"
+        read -n 1
+        /etc/systool --poweroff
+        exit
+    fi
+}
+
 _set_storageos_variable() {
     sed -i "s,${1}=\"[a-z\-]*\",${1}=\"${2}\",g" ${STORAGEOS_SYSCONFIG}
 }
@@ -90,6 +154,10 @@ case ${1} in
         /etc/diskresizetool
 
         /opt/storageos/bin/ipreconfig ${STORAGEOS_IPRECONFIG_MODE}
+
+        if [ "${STORAGEOS_BOOT_MODE}" == "normal" ]; then
+            _checkIPConsistencyInMultiSitesEnv
+        fi
 
         echo -n "Initializing configuration properties"
         /etc/systool --initializeprops 2>>/var/log/genconfig.log || rc_failed 1

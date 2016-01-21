@@ -210,4 +210,19 @@
     <bean id="catalogConfigUtils" class="com.emc.sa.api.utils.CatalogConfigUtils">
         <property name="coordinator" ref="coordinator"/>
     </bean>
+    
+    <bean id="drOrderCleanupHandler" class="com.emc.sa.engine.OrderCleanupHandler">
+    	<property name="name" value="SasvcOrderCleanupHandler"/>
+    </bean>
+    
+    <bean id="drQueueCleanupHandler" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler">
+    	<property name="name" value="SasvcQueueCleanupHandler"/>
+    	<property name="queueNames">
+    		<list>
+    			<value>OrderCompletionQueue</value>
+    			<value>OrderExecutionQueue</value>
+    		</list>
+    	</property>
+    </bean>
+    
 </beans>

@@ -140,4 +140,7 @@ public interface FatalCoordinatorExceptions {
     
     @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
     public FatalCoordinatorException unableToDeletePath(String path, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
+    public FatalCoordinatorException unableToCheckNodeExists(String path, final Throwable cause);
 }

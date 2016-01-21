@@ -264,7 +264,7 @@ public class BlockFullCopyManager {
         boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE : param.getCreateInactive();
 
         // if Volume is part of Application (COPY type VolumeGroup)
-        VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
+        VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
                 ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
         boolean partialRequest = fcSourceObj.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
         VirtualArray varray = null;

@@ -20,9 +20,11 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.DataBindingException;
 
@@ -588,9 +590,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
 
-        // Create the CG on each system it has yet to be created on. We do not want to create backend
-        // CG for VPLEX CG.
-        List<URI> deviceURIs = new ArrayList<URI>();
+        // Create the CG on each system it has yet to be created on.
+        Map<URI, Set<String>> deviceURIs = new HashMap<URI, Set<String>>();
         for (VolumeDescriptor descr : volumes) {
             // If the descriptor's associated volume is the backing volume for a RP+VPlex
             // journal/target volume, we want to ignore its storage system. We do not want to
@@ -602,25 +603,32 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (NullColumnValueGetter.isNotNullValue(rpName)) {
                 _log.info("Creating backend CG.");
                 URI deviceURI = descr.getDeviceURI();
-                if (!deviceURIs.contains(deviceURI)) {
-                    deviceURIs.add(deviceURI);
+                Set<String> rpNames = deviceURIs.get(deviceURI);
+                if (rpNames == null) {
+                    rpNames = new HashSet<String>(); 
                 }
+                rpNames.add(rpName);
+                deviceURIs.put(deviceURI, rpNames);
             }
         }
 
         boolean createdCg = false;
-        for (URI deviceURI : deviceURIs) {
-            // If the consistency group has already been created in the array, just return
-            if (!consistencyGroup.created(deviceURI)) {
-                // Create step to create consistency group
-                waitFor = workflow.createStep(stepGroup,
-                        String.format("Creating consistency group  %s", consistencyGroupURI), waitFor,
-                        deviceURI, getDeviceType(deviceURI),
-                        this.getClass(),
-                        createConsistencyGroupMethod(deviceURI, consistencyGroupURI),
-                        deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, null, null, false), null);
-                createdCg = true;
-                _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
+        for (Map.Entry<URI, Set<String>> entry : deviceURIs.entrySet()) {
+            URI deviceURI = entry.getKey();
+            Set<String> rpNames = entry.getValue();
+            for (String rpName : rpNames) {
+                // If the consistency group has already been created in the array, just return
+                if (!consistencyGroup.created(deviceURI, rpName)) {
+                    // Create step to create consistency group
+                    waitFor = workflow.createStep(stepGroup,
+                            String.format("Creating consistency group  %s", consistencyGroupURI), waitFor,
+                            deviceURI, getDeviceType(deviceURI),
+                            this.getClass(),
+                            createConsistencyGroupMethod(deviceURI, consistencyGroupURI, rpName),
+                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rpName, null, false), null);
+                    createdCg = true;
+                    _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
+                }
             }
         }
 
@@ -3230,7 +3238,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
                     _dbClient.queryObject(Volume.class, sourceVolume) : null;
-            VolumeGroup volumeGroup = (source != null && source.isInVolumeGroup())
+            VolumeGroup volumeGroup = (source != null)
                     ? source.getApplication(_dbClient) : null;
             if (volumeGroup != null
                     && !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, source)) {
@@ -5177,6 +5185,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         String waitFor = null;
         List<URI> addVolumesList = new ArrayList<URI>(); // non CG volumes
         try {
+            List<URI> volumesToAdd = null;
+            if (addVolList != null) {
+                volumesToAdd = addVolList.getVolumes();
+            }
+            completer = new ApplicationTaskCompleter(application, volumesToAdd, removeVolumeList, cgs, opId);
+
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false, opId);
@@ -5211,6 +5225,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             this.getClass(),
                             removeFromConsistencyGroupMethod(storageUri, cguri, removeVols),
                             addToConsistencyGroupMethod(storage, cguri, null, removeVols), null);
+                    // remove replication group if the CG will become empty
+                    String groupName = vol.getReplicationGroupInstance();
+                    if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, groupName, removeVols, storageUri)) {
+                        waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                                String.format("Deleting replication group for consistency group %s", cguri),
+                                waitFor, storage, storageSystem.getSystemType(),
+                                this.getClass(),
+                                deleteConsistencyGroupMethod(storage, cguri, groupName, null, false),
+                                rollbackMethodNullMethod(), null);
+                    }
                 }
             }
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
@@ -5305,7 +5329,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             }
 
-            completer = new ApplicationTaskCompleter(application, addVolList.getVolumes(), removeVolumeList, cgs, opId);
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);
             String successMessage = String.format(

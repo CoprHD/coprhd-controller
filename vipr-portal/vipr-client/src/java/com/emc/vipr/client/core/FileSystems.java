@@ -566,4 +566,19 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/pause", id);
         return new Tasks<FileShareRestRep>(client, tasks.getTaskList(), FileShareRestRep.class);
     }
+    
+    /**
+     * Begins initiating failover for a given file system.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/failover</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the input configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Tasks<FileShareRestRep> failover(URI id, CopiesParam input) {
+        return postTasks(input, getContinuousCopiesUrl() + "/failover", id);
+    }
 }

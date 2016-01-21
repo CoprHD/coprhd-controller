@@ -42,6 +42,7 @@ import com.emc.sa.service.vipr.file.tasks.DeactivateFileSystemExportRule;
 import com.emc.sa.service.vipr.file.tasks.DeactivateFileSystemShare;
 import com.emc.sa.service.vipr.file.tasks.DeactivateQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.ExpandFileSystem;
+import com.emc.sa.service.vipr.file.tasks.FailoverFileSystem;
 import com.emc.sa.service.vipr.file.tasks.FindFileSnapshotExportRules;
 import com.emc.sa.service.vipr.file.tasks.FindFileSystemExportRules;
 import com.emc.sa.service.vipr.file.tasks.FindNfsExport;
@@ -336,6 +337,13 @@ public class FileStorageUtils {
     private static void removeFileContinuousCopy(URI fileId, URI continuousCopyId) {
         execute(new PauseFileContinuousCopy(fileId, continuousCopyId));
         Tasks<FileShareRestRep> tasks = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId));
+        addAffectedResources(tasks);
+    }
+    
+    
+    public static void failoverFileSystem(URI fileId, URI targetId) {
+        execute(new PauseFileContinuousCopy(fileId, targetId));
+        Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId));
         addAffectedResources(tasks);
     }
 

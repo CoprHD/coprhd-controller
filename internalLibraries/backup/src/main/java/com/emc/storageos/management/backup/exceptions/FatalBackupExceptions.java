@@ -117,4 +117,7 @@ public interface FatalBackupExceptions {
 
     @DeclareServiceCode(ServiceCode.BACKUP_DISABLED_AS_REACH_LIMIT)
     public FatalBackupException manualBackupNumberExceedLimit(final int currentNumber, final int maxNumber);
+
+    @DeclareServiceCode(ServiceCode.BACKUP_DISABLED_AS_ON_STANDBY)
+    public FatalBackupException forbidBackupOnStandbySite();
 }

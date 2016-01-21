@@ -885,9 +885,6 @@ public class VNXFileCommApi {
                 }
             }
 
-            // Map<String,String> userInfo =
-            // (Map<String,String>)_provExecutor.getKeyMap().get(VNXFileConstants.USER_INFO);
-
             // Format and issue separate ssh api commands for each new file system and subdirectory
             List<VNXFileExport> newExportEntries = new ArrayList<VNXFileExport>();
             sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());

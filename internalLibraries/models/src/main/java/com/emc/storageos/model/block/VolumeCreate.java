@@ -24,7 +24,7 @@ public class VolumeCreate {
     private URI varray;
     private URI project;
     private URI consistencyGroup;
-    private URI host;
+    private URI computeResource;
 
     public VolumeCreate() {
     }
@@ -158,11 +158,11 @@ public class VolumeCreate {
      * The host to which the volume is exported
      * @return
      */
-	public URI getHost() {
-		return host;
+	public URI getComputeResource() {
+		return computeResource;
 	}
 
-	public void setHost(URI host) {
-		this.host = host;
+	public void setComputeResource(URI computeResource) {
+		this.computeResource = computeResource;
 	}
 }

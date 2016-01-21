@@ -77,7 +77,7 @@ public class CreateBlockVolumeHelper {
         return this.count;
     }
     
-    public URI getHost(){
+    public URI getComputeResource(){
     	return null;
     }
 }

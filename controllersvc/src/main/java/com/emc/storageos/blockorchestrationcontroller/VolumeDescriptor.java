@@ -65,7 +65,7 @@ public class VolumeDescriptor implements Serializable {
     private URI _consistencyGroup;   // The consistency group this volume belongs to
     private Long _volumeSize;        // Used to separate multi-volume create requests
     private URI _migrationId;        // Reference to the migration object for this volume
-    private URI _host; 				  //Host to which the volume will be exported to, as part of the provisioning.
+    private URI _computeResource;    // Host/Cluster to which the volume will be exported to, as part of the provisioning.
 
     // Layer/device specific parameters (key/value) for this volume (serializable!)
     private Map<String, Object> parameters = new HashMap<String, Object>();
@@ -422,11 +422,11 @@ public class VolumeDescriptor implements Serializable {
         this._migrationId = _migrationId;
     }
 
-	public URI getHost() {
-		return _host;
+	public URI getComputeResource() {
+		return _computeResource;
 	}
 
-	public void setHost(URI _host) {
-		this._host = _host;
+	public void setComputeResource(URI _computeResource) {
+		this._computeResource = _computeResource;
 	}
 }

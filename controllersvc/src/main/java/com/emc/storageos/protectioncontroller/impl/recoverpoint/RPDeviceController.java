@@ -46,8 +46,10 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -269,8 +271,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         private String rpSite;
         private URI varray;
         private List<URI> volumes;
-        private URI host;
-        boolean isJournalExport;
+        private URI computeResource;
+        private boolean isJournalExport;
 
         public RPExport() {
         }
@@ -316,12 +318,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             this.volumes = volumes;
         }
         
-        public URI getHost(){
-        	return host;
+        public URI getComputeResource(){
+        	return computeResource;
         }
         
-        public void setHost(URI host) {
-        	this.host = host;
+        public void setComputeResource(URI computeResource) {
+        	this.computeResource = computeResource;
         }
         
         public boolean getIsJournalExport() {
@@ -1178,13 +1180,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     exportGroupVolumesAdded.put(exportGroup.getId(), volumesToAdd.keySet());
                 }
 
-                //Update host information on the Source volume
-                if (rpExport.getHost() != null) {
-                	_log.info("RP Export: add host information to export");
-                	if (exportGroup.getHosts() == null) {
-                		exportGroup.setHosts(new StringSet());
-                	}
-                	exportGroup.getHosts().add(rpExport.getHost().toString());
+                //Update Host/Cluster export information if the source volume is exported information on the Source volume
+                if (rpExport.getComputeResource() != null) {                	
+                	URI computeResource = rpExport.getComputeResource();                	
+                	// TODO : Bharath - determine whether the passed in ID is a host or cluster ID.
+                	_log.info("RP Export: ComputeResource : " + computeResource.toString());
+                	
+                	if (computeResource.toString().contains("Cluster") || computeResource.toString().contains("cluster")) {
+                		Cluster cluster = _dbClient.queryObject(Cluster.class, computeResource);                		
+                		exportGroup.addCluster(cluster);
+                	} else {
+                		Host host = _dbClient.queryObject(Host.class, rpExport.getComputeResource());
+                		exportGroup.addHost(host);
+                	}        
                 }
                 
                 // Persist the export group
@@ -1877,16 +1885,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     if (vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
                     	for(VolumeDescriptor desc : volumeDescriptors) {
                     		if (desc.getVolumeURI().equals(vol.getId())) {
-                    			if (!NullColumnValueGetter.isNullURI(desc.getHost())) {
-	                            	_log.info("Add host information for the source volume");
-	                    			rpExport.setHost(desc.getHost());
+                    			if (!NullColumnValueGetter.isNullURI(desc.getComputeResource())) {
+	                            	_log.info("Add Host/Cluster information for source volume exports");
+	                    			rpExport.setComputeResource(desc.getComputeResource());
 	                    			break;
                     			}
                     		}
                     	}
                     }
                     _log.info("Add Volume: " + volumeLabel + " to export: " + rpExport);
-
                     rpExport.getVolumes().add(volumeId);
                 }
             }

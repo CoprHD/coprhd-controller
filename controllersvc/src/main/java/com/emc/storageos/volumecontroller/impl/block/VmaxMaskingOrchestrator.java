@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
@@ -34,6 +35,7 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -1338,7 +1340,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
    
     /**
-     * This method follows the RP+VMAX best practices rules.
+     * This method checks to see if the RP+VMAX best practice rules are followed. 
      * 
      * If host information is specified in the ExportGroup (this is the case when "Create Block volume for host" service catalog is chosen):
      * 	a) Determine all the host masking views corresponding to the host. 
@@ -1370,7 +1372,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     	}
     	
     	//If this an RP Export (non-journal) but there is no host information, return the existing maskMap. 
-    	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) && !exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL) && exportGroup.getHosts() == null) {
+    	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) && !exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL) && exportGroup.getHosts() == null && exportGroup.getClusters() == null) {
     		_log.info("ExportGroup doesnt specify any hosts, return");
     		return masksMap;
     	}
@@ -1384,46 +1386,58 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     	     	if (rpMaskingView.getMaskName().contains("JOURNAL") || rpMaskingView.getMaskName().contains("journal")) {
     	     		matchingMaskMap.put(maskMap.getKey(), maskMap.getValue());
     	     	}
-    	    }    		
-    	        	  
+    	    }    		    	        	
     	    return matchingMaskMap;
     	}
-    	
-    	//Get the host to which the volume is being exported       	
-    	URI host = URI.create(exportGroup.getHosts().iterator().next());
-    	
+    	    
     	//Get the initiators of this host
-    	List<String> hostInitiatorNames = new ArrayList<String>();    	
+    	List<String> initiators = new ArrayList<String>();    	
     	URIQueryResultList uriQueryList = new URIQueryResultList();
       
-       _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getContainedObjectsConstraint(host, Initiator.class, "host"), uriQueryList);
-        
-       Iterator<URI> uriIter = uriQueryList.iterator();
-        while(uriIter.hasNext()) {
-            Initiator initiator = _dbClient.queryObject(Initiator.class, uriIter.next());
-            hostInitiatorNames.add(Initiator.normalizePort(initiator.getInitiatorPort()));   
-            _log.info("Host initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
-        }
+    	if (exportGroup.getClusters() != null && !exportGroup.getClusters().isEmpty()) {
+    		_log.info("Exporting to Cluster");
+    		 List<URI> clusterHostUris = ComputeSystemHelper.getChildrenUris(_dbClient, URI.create(exportGroup.getClusters().iterator().next()), Host.class, "cluster");    		
+    		for (URI clusterHostUri : clusterHostUris) {
+    			 URIQueryResultList list = new URIQueryResultList();
+    			_dbClient.queryByConstraint(
+    				ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterHostUri, Initiator.class, "host"), list);
+    			Iterator<URI> uriIter = list.iterator();
+    	        while(uriIter.hasNext()) {
+    	            Initiator initiator = _dbClient.queryObject(Initiator.class, uriIter.next());
+    	            initiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));   
+    	            _log.info("ComputeResource (Cluster-Host) initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
+    	        }
+    		}
+    	} else if(exportGroup.getHosts() != null && !exportGroup.getHosts().isEmpty()) {
+    		_log.info("Exporting to Host");
+    		_dbClient.queryByConstraint(
+    				ContainmentConstraint.Factory.getContainedObjectsConstraint(URI.create(exportGroup.getHosts().iterator().next()), Initiator.class, "host"), uriQueryList);
+    		Iterator<URI> uriIter = uriQueryList.iterator();
+            while(uriIter.hasNext()) {
+                Initiator initiator = _dbClient.queryObject(Initiator.class, uriIter.next());
+                initiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));   
+                _log.info("ComputeResource (Host) initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
+            }
+    	}       
         
         //Fetch all the existing masks for the host
-        Map<String, Set<URI>> hostMaskingViews = getDevice().findExportMasks(storage, hostInitiatorNames, true);
+    	Map<String, Set<URI>> crMaskingViews = getDevice().findExportMasks(storage, initiators, true);
     	                        
         //In the case of an RP  volume, the masksMap contains all the masks matching the RP initiators that was passed down. 
         //We need to weed through this list to find only those masking view that is compatible with the list of host masking views.
         for(Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {        	
         	ExportMask rpMaskingView = maskMap.getKey();
         	        	
-        	for (Entry<String, Set<URI>> hostMaskingViewMap : hostMaskingViews.entrySet()) {
-        		Set<URI> hostMVs  = hostMaskingViewMap.getValue();
-        		for (URI hostMV : hostMVs) {
-        			ExportMask hostMaskingView = _dbClient.queryObject(ExportMask.class, hostMV);
+        	for (Entry<String, Set<URI>> crMaskingViewEntry : crMaskingViews.entrySet()) {
+        		Set<URI> crMVs  = crMaskingViewEntry.getValue();
+        		for (URI crMV : crMVs) {
+        			ExportMask crMaskingView = _dbClient.queryObject(ExportMask.class, crMV);
         		
         			//Find a masking view for the RP, if one exists, that matches
-        			if (hostMaskingView.getStoragePorts().size() == rpMaskingView.getStoragePorts().size() && 
-        					hostMaskingView.getStoragePorts().containsAll(rpMaskingView.getStoragePorts())) {    					
+        			if (crMaskingView.getStoragePorts().size() == rpMaskingView.getStoragePorts().size() && 
+        					crMaskingView.getStoragePorts().containsAll(rpMaskingView.getStoragePorts())) {    					
         				if (!matchingMaskMap.containsKey(rpMaskingView)) {
-        					_log.info(String.format("Found a RP masking view %s that has the same storage ports as the host %s to which we are exporting the volume. OK to use " , rpMaskingView.getMaskName(), hostMaskingView.getMaskName()));
+        					_log.info(String.format("Found a RP masking view %s that has the same storage ports as the computer resource (host/cluster) %s to which we are exporting the volume. OK to use " , rpMaskingView.getMaskName(), crMaskingView.getMaskName()));
         					matchingMaskMap.put(rpMaskingView, maskMap.getValue());
         					        				
         					//TODO: may break when we find the first one. if there are multiple RP mv's that each map to a host mv, then everything is returned.
@@ -1436,7 +1450,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
         
         if (matchingMaskMap.isEmpty()) {
-        	_log.info("No RP masks found that correspond to the host masks");        	
+        	_log.info("No RP masks found that correspond to the compute resources' masks");      
+        	if (!masksMap.isEmpty()) {
+        		_log.info("There are existing RP masks, will check to see if it can be re-used");
+        		return masksMap;        		
+        	}
         }
                  	
     	return matchingMaskMap;

@@ -83,13 +83,14 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             StoragePool pool = validateAndReturnStoragePoolInVAarray(unManagedVolume, requestContext.getVarray());
 
             // validate quota is exceeded for storage systems and pools
-            checkSystemResourceLimitsExceeded(requestContext.getStorageSystem(), unManagedVolume, requestContext.getExhaustedStorageSystems());
+            checkSystemResourceLimitsExceeded(requestContext.getStorageSystem(), unManagedVolume,
+                    requestContext.getExhaustedStorageSystems());
             checkPoolResourceLimitsExceeded(requestContext.getStorageSystem(), pool, unManagedVolume, requestContext.getExhaustedPools());
             String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, requestContext.getStorageSystem(), requestContext.getVpool());
             validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, requestContext.getVpool());
 
-            volume = createVolume(requestContext.getStorageSystem(), volumeNativeGuid, pool, 
-                    requestContext.getVarray(), requestContext.getVpool(), unManagedVolume, 
+            volume = createVolume(requestContext.getStorageSystem(), volumeNativeGuid, pool,
+                    requestContext.getVarray(), requestContext.getVpool(), unManagedVolume,
                     requestContext.getProject(), requestContext.getTenant(), autoTierPolicyId);
         }
 
@@ -174,8 +175,9 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             _logger.info("All the related replicas and parent has been ingested ",
                     unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as
-            // inactive after successful export
-            if (!unManagedVolumeExported) {
+            // inactive after successful expor. tDo not mark inactive for RP volumes because the RP masks should still be ingested
+            // even though they are not exported to host/cluster. RP volumes will be marked inactive after successful ingestion of RP masks.
+            if (!unManagedVolumeExported && !VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
                 unManagedVolume.setInactive(true);
                 requestContext.getUnManagedVolumesToBeDeleted().add(unManagedVolume);
             }
@@ -186,7 +188,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             volume.addInternalFlags(INTERNAL_VOLUME_FLAGS);
             for (BlockSnapshotSession snapSession : snapSessions) {
                 snapSession.addInternalFlags(INTERNAL_VOLUME_FLAGS);
-        }
+            }
             _dbClient.updateObject(snapSessions);
         }
 

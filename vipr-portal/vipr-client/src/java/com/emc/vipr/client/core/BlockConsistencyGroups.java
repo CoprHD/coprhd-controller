@@ -380,28 +380,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
         BlockSnapshotSessionList response = client.get(BlockSnapshotSessionList.class, url, consistencyGroupId);
         return response.getSnapSessionRelatedResourceList();
     } 
-    
-//    
-//    /**
-//     * List snapshot sessions in the consistency group
-//     * <p>
-//     * API Call: <tt>GET /block/consistency-groups/{id}/protection/snapshot-sessions</tt>
-//     *
-//     * @param consistencyGroupId
-//     *            the ID of the consistency group
-//     * @return The list of snapshot sessions in the consistency group
-//     */
-//    public List<BlockSnapshotSessionRestRep> getSnapshotSessions(URI consistencyGroupId, ResourceFilter<BlockSnapshotSessionRestRep> filter) {
-//        //final String url = getIdUrl() + "/protection/snapshot-sessions";
-//        //BlockSnapshotSessionList response = client.get(BlockSnapshotSessionList.class, url, consistencyGroupId);
-//        return getByRefs(getSnapshotSessions(consistencyGroupId), filter);
-//    } 
-//    
-    
-    
-    
-    
-    
+ 
     /**
      * Create consistency group snapshot session
      * <p>

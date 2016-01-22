@@ -79,7 +79,7 @@ public interface ForbiddenExceptions {
     @DeclareServiceCode(ServiceCode.LICENSE_OPERATION_FORBIDDEN)
     public ForbiddenException permissionDeniedForTrialLicense(final String type);
     
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    @DeclareServiceCode(ServiceCode.DR_OPERATION_FORBIDDEN)
     public ForbiddenException disallowOperationOnDrStandby(final String activeSiteIp);
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)

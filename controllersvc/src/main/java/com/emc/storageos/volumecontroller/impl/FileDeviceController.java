@@ -50,6 +50,8 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
@@ -62,6 +64,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -76,7 +79,12 @@ import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 
+import static java.util.Arrays.asList;
 /**
  * Generic File Controller Implementation that does all of the database
  * operations and calls methods on the array specific implementations
@@ -84,13 +92,15 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * @author burckb
  * 
  */
-public class FileDeviceController implements FileController {
+public class FileDeviceController implements FileOrchestrationInterface, FileController {
 
     private DbClient _dbClient;
     private static final String EVENT_SERVICE_TYPE = "file";
     private static final String EVENT_SERVICE_SOURCE = "FileController";
     private static final Logger _log = LoggerFactory.getLogger(FileDeviceController.class);
     private Map<String, FileStorageDevice> _devices;
+    
+    private WorkflowService _workflowService;
 
     private RecordableEventManager _eventManager;
     private AuditLogManager _auditMgr;
@@ -114,12 +124,17 @@ public class FileDeviceController implements FileController {
     private FileStorageDevice getDevice(String deviceType) {
         return _devices.get(deviceType);
     }
+    
+    public void setWorkflowService(WorkflowService workflowService) {
+        _workflowService = workflowService;
+    }
+    
 
     /**
      * Create a nice event based on the File Share
      * 
      * @param fs FileShare for which the event is about
-     * @param type Type of event such as VolumeCreated or VolumeDeleted
+     * @param type Type of event such as FileShareCreated or FileShareDeleted
      * @param description Description for the event if needed
      */
     public static void recordFsEvent(DbClient dbClient, FileShare fs, String type, String description, String extensions) {
@@ -129,7 +144,7 @@ public class FileDeviceController implements FileController {
         }
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
-        // TODO fix the bogus user ID once we have AuthZ working
+        // fix the bogus user ID once we have AuthZ working
         RecordableBourneEvent event = ControllerUtils.convertToRecordableBourneEvent(fs, type, description,
                 extensions, dbClient, EVENT_SERVICE_TYPE, RecordType.Event.name(), EVENT_SERVICE_SOURCE);
 
@@ -141,11 +156,11 @@ public class FileDeviceController implements FileController {
     }
 
     /**
-     * Create a nice event based on the volume
+     * Create a nice event based on the FileShare
      * 
      * @param snap Snapshot for which the event is about
      * @param fs FileShare from which the snapshot was created
-     * @param type Type of event such as VolumeCreated or VolumeDeleted
+     * @param type Type of event such as FileShareCreated or FileShareDeleted
      * @param description Description for the event if needed
      */
     public static void recordSnapshotEvent(DbClient dbClient, Snapshot snap, FileShare fs, String type,
@@ -156,11 +171,11 @@ public class FileDeviceController implements FileController {
         }
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
-        // TODO fix the bogus user ID once we have AuthZ working
+        // fix the bogus user ID once we have AuthZ working
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                           // user ID TODO when AAA fixed
+                URI.create("ViPR-User"),                                           // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -188,11 +203,11 @@ public class FileDeviceController implements FileController {
         }
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
-        // TODO fix the bogus user ID once we have AuthZ working
+        // fix the bogus user ID once we have AuthZ working
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                           // user ID TODO when AAA fixed
+                URI.create("ViPR-User"),                                           // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -261,7 +276,10 @@ public class FileDeviceController implements FileController {
             setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
             args.setTenantOrg(tenant);
             args.setProject(proj);
-
+            
+            //work flow and we need to add TaskCompleter(TBD for vnxfile)
+            WorkflowStepCompleter.stepExecuting(opId);
+            
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateFS(storageObj, args);
             if (!result.getCommandPending()) {
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
@@ -279,9 +297,15 @@ public class FileDeviceController implements FileController {
             if (!result.getCommandPending()) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, result.isCommandSuccess(), "", "", fsObj);
             }
+            //work flow 
+            WorkflowStepCompleter.stepSucceded(opId); 
         } catch (Exception e) {
             String[] params = { storage.toString(), pool.toString(), fs.toString(), e.getMessage() };
             _log.error("Unable to create file system: storage {}, pool {}, FS {}: {}", params);
+           
+            //work flow fail
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             updateTaskStatus(opId, fileObject, e);
             if ((fsObj != null) && (storageObj != null)) {
                 fsObj.setInactive(true);
@@ -314,7 +338,8 @@ public class FileDeviceController implements FileController {
                 args.addFileShare(fsObj);
                 args.setFileOperation(isFile);
                 BiosCommandResult result;
-
+                //work flow service
+            	WorkflowStepCompleter.stepExecuting(opId);
                 if (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType) && !fsObj.getInactive()) {
                     result = BiosCommandResult.createSuccessfulResult();
                 } else {
@@ -328,7 +353,8 @@ public class FileDeviceController implements FileController {
                     return;
                 }
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
-
+                // work flow service
+                WorkflowStepCompleter.stepSucceded(opId); 
                 if (result.isCommandSuccess() && (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(deleteType))) {
                     fsObj.setInactive(true);
                     if (forceDelete) {
@@ -408,6 +434,13 @@ public class FileDeviceController implements FileController {
                     e.getMessage().toString() };
             _log.error("Unable to delete file system or snapshot: storage {}, FS/snapshot {}, forceDelete {}: {}", params);
             updateTaskStatus(opId, fileObject, e);
+            
+            //work flow fail for fileshare delete
+            if (URIUtil.isType(uri, FileShare.class)) {
+            	ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            	WorkflowStepCompleter.stepFailed(opId, serviceError);
+            }
+            
             if (URIUtil.isType(uri, FileShare.class)) {
                 if ((fsObj != null) && (storageObj != null)) {
                     recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, false, e.getMessage(), "", fsObj,
@@ -1071,8 +1104,6 @@ public class FileDeviceController implements FileController {
 
     @Override
     public void modifyFS(URI storage, URI pool, URI fs, String opId) throws ControllerException {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
@@ -1219,7 +1250,7 @@ public class FileDeviceController implements FileController {
                 }
             }
 
-            // TODO: Iterate through the snapshot list from device and if a
+            // Iterate through the snapshot list from device and if a
             // snapshot is found on the device but not in the DB, add the
             // newly discovered snapshot to the DB.
         }
@@ -1352,14 +1383,12 @@ public class FileDeviceController implements FileController {
 
     @Override
     public void discoverStorageSystem(AsyncTask[] tasks) throws ControllerException {
-        // TODO Auto-generated method stub
 
     }
 
     @Override
     public void scanStorageProviders(AsyncTask[] tasks)
             throws ControllerException {
-        // TODO Auto-generated method stub
     }
 
     public static void recordFileDeviceOperation(DbClient dbClient, OperationTypeEnum opType, boolean opStatus, String evDesc,
@@ -1478,8 +1507,6 @@ public class FileDeviceController implements FileController {
     @Override
     public void startMonitoring(AsyncTask task, Type deviceType)
             throws ControllerException {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
@@ -3324,5 +3351,162 @@ public class FileDeviceController implements FileController {
             args.setvNAS(vNAS);
         }
 	}
+    
+    /**
+     * Get the deviceType for a StorageSystem.
+     *
+     * @param deviceURI -- StorageSystem URI
+     * @return deviceType String
+     */
+    String getDeviceType(URI deviceURI) throws ControllerException {
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, deviceURI);
+        if (storageSystem == null) {
+            throw DeviceControllerException.exceptions.getDeviceTypeFailed(deviceURI.toString());
+        }
+        return storageSystem.getSystemType();
+    }
+    
+    static final String CREATE_FILESYSTEMS_STEP = "FileDeviceCreateFileShares";
+    static final String MODIFY_FILESYSTEMS_STEP = "FileDeviceModifyFileShares";
+    static final String DELETE_FILESYSTEMS_STEP = "FileDeviceDeleteFileShares";
+    static final String CREATE_FS_MIRRORS_STEP =  "FileDeviceCreateMirrors";
 
+	@Override
+	public String addStepsForCreateFileSystems(Workflow workflow,
+			String waitFor, List<FileDescriptor> filesystems, String taskId)
+			throws InternalException {
+		
+	    if(filesystems != null && !filesystems.isEmpty()) {
+            
+            List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
+                    FileDescriptor.Type.FILE_DATA,
+                    FileDescriptor.Type.FILE_EXISTING_SOURCE,
+                    FileDescriptor.Type.FILE_MIRROR_SOURCE,
+                    FileDescriptor.Type.FILE_MIRROR_TARGET);
+
+            for(FileDescriptor descriptor : sourceDescriptors) {
+
+                List<URI> fileURIs = FileDescriptor.getFileSystemURIs(asList(descriptor));
+
+                //create step
+                waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
+                        String.format("Creating File systems:%n%s", taskId),
+                        waitFor, descriptor.getDeviceURI(),
+                        getDeviceType(descriptor.getDeviceURI()),
+                        this.getClass(),
+                        createFileSharesMethod(descriptor),
+                        rollbackCreateFileSharesMethod(descriptor.getDeviceURI(), fileURIs), null);
+            }
+        }
+        
+       		
+		//find out which value we should return
+		return waitFor = CREATE_FILESYSTEMS_STEP;
+	}
+	
+	@Override
+	public String addStepsForDeleteFileSystems(Workflow workflow,
+			String waitFor, List<FileDescriptor> filesystems, String taskId)
+			throws InternalException {
+	    List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
+                FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
+                FileDescriptor.Type.FILE_MIRROR_SOURCE);
+		
+		// Segregate by device.
+        Map<URI, List<FileDescriptor>> deviceMap = FileDescriptor.getDeviceMap(sourceDescriptors);
+        
+        // Add a step to delete the fileshares in each device.
+        for (URI deviceURI : deviceMap.keySet()) {
+        	filesystems = deviceMap.get(deviceURI);
+        	
+            List<URI> fileshareURIs = FileDescriptor.getFileSystemURIs(filesystems);
+            for(URI uriFile: fileshareURIs) {
+                FileShare fsObj = _dbClient.queryObject(FileShare.class, uriFile);
+                if(fsObj != null && fsObj.getMirrorfsTargets() != null) {
+                    
+                    for (String mirrorTarget : fsObj.getMirrorfsTargets()) {
+                        URI targetURI = URI.create(mirrorTarget);
+                        FileShare fsTargObj = _dbClient.queryObject(FileShare.class, targetURI);
+                        workflow.createStep(DELETE_FILESYSTEMS_STEP,
+                                String.format("Deleting fileshares:%n%s", asList(targetURI)),
+                                waitFor, fsTargObj.getStorageDevice(), getDeviceType(fsTargObj.getStorageDevice()),
+                                this.getClass(),
+                                deleteFileSharesMethod(fsTargObj.getStorageDevice(), asList(targetURI), 
+                                        filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
+                                null, null);
+                    }
+                }
+                workflow.createStep(DELETE_FILESYSTEMS_STEP,
+                        String.format("Deleting fileshares:%n%s", fileshareURIs),
+                        waitFor, deviceURI, getDeviceType(deviceURI),
+                        this.getClass(),
+                        deleteFileSharesMethod(deviceURI, fileshareURIs, 
+                        		filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
+                        null, null);
+            }
+        }
+        return waitFor = DELETE_FILESYSTEMS_STEP;
+	}
+
+	@Override
+	public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
+			List<FileDescriptor> fileDescriptors, String taskId)
+			throws InternalException {
+		//TBD
+		return null;
+	}
+	
+	
+	/**
+	 * Return a Workflow.Method for createFileShares.
+	 * @param fileDescriptor
+	 * @return
+	 */
+    private Workflow.Method createFileSharesMethod(FileDescriptor fileDescriptor) {
+        return new Workflow.Method("createFS", fileDescriptor.getDeviceURI(), fileDescriptor.getPoolURI(), 
+        		fileDescriptor.getFsURI(), fileDescriptor.getSuggestedNativeFsId());
+    }
+    
+    /**
+     * Return a Workflow.Method for rollbackCreateFileSystems
+     *
+     * @param systemURI
+     * @param fileURIs
+     * @return Workflow.Method
+     */
+    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs) {
+        return new Workflow.Method("rollBackCreateFileShares", systemURI, fileURIs);
+    }
+    
+    @Override
+    public void rollBackCreateFileShares(URI systemURI, List<URI> fileURIs, String opId){
+    	
+    	try {
+			WorkflowStepCompleter.stepExecuting(opId);
+			for (URI fileshareId: fileURIs) {
+				FileShare fsObj = _dbClient.queryObject(FileShare.class, fileshareId);
+				this.delete(fsObj.getStorageDevice(), fsObj.getPool(), fsObj.getId(), 
+					false, FileControllerConstants.DeleteTypeEnum.FULL.toString(), opId);
+			}
+			WorkflowStepCompleter.stepSucceded(opId); 
+		} catch (Exception e) {
+			 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+	            WorkflowStepCompleter.stepFailed(opId, serviceError);
+		}
+    }
+    
+   
+    
+    /**
+     * Return a Workflow.Method for deleteFileShares.
+     *
+     * @param systemURI
+     * @param fileShareURIs
+     * @return
+     */
+    private Workflow.Method deleteFileSharesMethod(URI systemURI, List<URI> fileShareURIs, 
+    		boolean forceDelete, String deleteType, String taskId) {
+    	FileShare fsObj = _dbClient.queryObject(FileShare.class, fileShareURIs.get(0));
+        return new Workflow.Method("delete", fsObj.getStorageDevice(), fsObj.getPool(), fsObj.getId(), forceDelete, deleteType);
+    }
 }

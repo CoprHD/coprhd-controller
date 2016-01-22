@@ -123,6 +123,7 @@ URI_FILE_QUOTA_DIR_DELETE       = URI_FILE_QUOTA_DIR + '/deactivate'
 
 URI_DR                     = URI_SERVICES_BASE  + '/site'
 URI_DR_GET                 = URI_DR   + '/{0}'
+URI_DR_GET_DETAILS         = URI_DR   + '/{0}' + '/details'
 URI_DR_DELETE              = URI_DR   + '/{0}'
 URI_DR_PAUSE               = URI_DR   + '/{0}' + '/pause'
 URI_DR_RESUME              = URI_DR   + '/{0}' + '/resume'
@@ -136,7 +137,9 @@ URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
 
-URI_IPSEC               = '/ipsec'
+URI_IPSEC                   = '/ipsec'
+URI_IPSEC_STATUS            = '/ipsec?status={0}'
+URI_IPSEC_KEY               = '/ipsec/key'
 
 URI_VDCINFO                 =  '/object/vdcs' 
 URI_VDCINFO_GET             = URI_VDCINFO    + '/vdc' + '/{0}'
@@ -541,7 +544,7 @@ COOKIE_FILE                     = os.getenv('BOURNE_COOKIE_FILE', 'cookiejar')
 # It only effects the connection process itself, not the downloading of the response body
 REQUEST_TIMEOUT_SECONDS = 120
 # Total time for server reconnection
-MAX_WAIT_TIME_IN_SECONDS=240
+MAX_WAIT_TIME_IN_SECONDS=480
 
 CONTENT_TYPE_JSON='application/json'
 CONTENT_TYPE_XML='application/xml'
@@ -3307,6 +3310,12 @@ class Bourne:
         self.assert_is_dict(resp)
         return resp
 
+    def dr_get_standby_details(self,uuid):
+        resp = self.api('GET', URI_DR_GET_DETAILS.format(uuid))
+        print "DR GET STANDBY DETAILS RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
     def dr_delete_standby(self,uuid):
         resp = self.api('DELETE', URI_DR_DELETE.format(uuid))
         print "DR DELETE STANDBY RESP = ",resp
@@ -3336,12 +3345,16 @@ class Bourne:
     # IPsec APIs
     #
 
-    def ipsc_rotate_key(self):
-        resp = self.api('POST', URI_IPSEC)
+    def ipsec_rotate_key(self):
+        resp = self.api('POST', URI_IPSEC_KEY)
         return resp
 
-    def ipsc_check(self):
+    def ipsec_check(self):
         resp = self.api('GET', URI_IPSEC)
+        return resp
+
+    def ipsec_change_status(self,status):
+        resp = self.api('POST', URI_IPSEC_STATUS.format(status))
         return resp
 
     #

@@ -41,6 +41,10 @@
           "baseService": "UnexportVolume"
         },
         {
+          "image": "icon_host_multi_remove.png",
+          "baseService": "UnexportMultiVolume"
+        },
+        {
           "image": "Service_Discover_Unmanaged_Volumes.png",
           "baseService": "DiscoverUnmanagedVolumes"
         },
@@ -347,6 +351,41 @@
         {
           "image": "icon_provision_aix_remove.png",
           "baseService": "Aix-UnmountAndDeleteBlockVolume"
+        }
+      ]
+    }, 
+    {
+      "title": "block.hpux.title",
+      "image": "icon_hpux.png",
+      "description": "block.hpux.description",
+      "services": [
+        {
+          "image": "icon_provision_hpux_add.png",
+          "baseService": "Hpux-CreateAndMountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_hpux_remove.png",
+          "baseService": "Hpux-UnmountBlockVolume"
+        },
+        {
+          "image": "icon_provision_hpux_remove.png",
+          "baseService": "Hpux-UnmountAndDeleteBlockVolume"
+        },
+        {
+          "image": "icon_storage_hpux_add.png",
+          "baseService": "Hpux-MountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_hpux_expand.png",
+          "baseService": "Hpux-ExpandBlockVolume"
         }
       ]
     }, 

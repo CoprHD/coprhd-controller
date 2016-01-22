@@ -411,6 +411,10 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                 return request;
             }
             String method = request.getMethod();
+            // allow keystore related operation
+            if (path.contains("keystore")) {
+                return request;
+            }
             // allow all GET request or bulk request
             if (method.equalsIgnoreCase("GET") || path.endsWith("/bulk")) {
                 return request;

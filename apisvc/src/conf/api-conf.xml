@@ -470,6 +470,7 @@
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.cinder.MiscService">
                     <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
                 </bean>
                     
                 <bean class="com.emc.storageos.api.service.impl.resource.cinder.ExportService">

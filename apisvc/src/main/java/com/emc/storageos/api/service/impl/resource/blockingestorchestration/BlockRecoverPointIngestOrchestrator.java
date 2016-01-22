@@ -707,8 +707,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.invalidRPVirtualPool(unManagedVolume.getLabel(), virtualPool.getLabel());
         }
 
-        // check if the RP protected volume has any mirrors. If yes, throw an error as we don't support this configuration in ViPR as of now
         if (VolumeIngestionUtil.checkUnManagedVolumeHasReplicas(unManagedVolume)) {
+            // check if the RP protected volume has any mirrors. If yes, throw an error as we don't support this configuration in ViPR as of
+            // now
             StringSet mirrors = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.MIRRORS.toString(),
                     unManagedVolume.getVolumeInformation());
             if (mirrors != null && !mirrors.isEmpty()) {
@@ -716,6 +717,23 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 _logger.info("Unmanaged RP volume {} has mirrors: {} associated which is not supported", unManagedVolume.getLabel(),
                         mirrorsString);
                 throw IngestionException.exceptions.rpUnManagedVolumeCannotHaveMirrors(unManagedVolume.getLabel(), mirrorsString);
+            }
+            // If the RP volume has snaps, check if the vpool allows snaps.
+            StringSet snapshots = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.SNAPSHOTS.toString(),
+                    unManagedVolume.getVolumeInformation());
+            if (snapshots != null && !snapshots.isEmpty()) {
+                int numOfSnaps = snapshots.size();
+                if (VirtualPool.vPoolSpecifiesSnapshots(virtualPool)) {
+                    if (numOfSnaps > virtualPool.getMaxNativeSnapshots()) {
+                        String reason = "volume has more snapshots (" + numOfSnaps + ") than vpool allows";
+                        _logger.error(reason);
+                        throw IngestionException.exceptions.validationException(reason);
+                    }
+                } else {
+                    String reason = "vpool does not allow snapshots, but volume has " + numOfSnaps + " snapshot(s)";
+                    _logger.error(reason);
+                    throw IngestionException.exceptions.validationException(reason);
+                }
             }
         }
     }

@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.emc.storageos.db.client.model.Volume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,11 +89,14 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 true, token);
 
         // Create two steps, one for the ExportGroup actions and one for Zoning.
-        String maskingStepId = generateExportGroupCreateSteps(workflow, null,
+        List<String> maskingSteps = generateExportGroupCreateSteps(workflow, null,
                 device, storage, exportGroup, initiatorURIs, volumeMap, false, token);
 
-        // Have to store export group id to be available at device level/
-        // WorkflowService.getInstance().storeStepData(maskingStepId, exportGroup.getId());
+        // Have to store export group id to be available at device level for each masking step.
+        for (String stepId : maskingSteps) {
+            WorkflowService.getInstance().storeStepData(stepId, exportGroup.getId());
+        }
+
         /*
          * This step is for zoning. It is not specific to a single
          * NetworkSystem, as it will look at all the initiators and targets and
@@ -107,7 +111,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 workflow, EXPORT_GROUP_MASKING_TASK, exportGroup, null,
                 volumeMap);
 
-        if (maskingStepId != null && null != zoningStep)
+        if (!maskingSteps.isEmpty() && null != zoningStep)
         {
             // Execute the plan and allow the WorkflowExecutor to fire the
             // taskCompleter.
@@ -117,7 +121,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
         }
     }
 
-    public String generateExportGroupCreateSteps(Workflow workflow,
+    private List<String> generateExportGroupCreateSteps(Workflow workflow,
                                                  String previousStep, BlockStorageDevice device,
                                                  StorageSystem storage, ExportGroup exportGroup,
                                                  List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoneStepNeeded, String token)
@@ -148,13 +152,14 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
         Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
         _log.info("Done with matching export masks.");
 
+        List<String> newSteps;
         if (matchingExportMaskURIs == null || matchingExportMaskURIs.isEmpty()) {
 
             _log.info(String.format(
                     "No existing mask found w/ initiators { %s }",
                     Joiner.on(",").join(portNames)));
 
-            stepId = createNewExportMaskWorkflowForInitiators(initiatorURIs,
+            newSteps = createNewExportMaskWorkflowForInitiators(initiatorURIs,
                     exportGroup, workflow, volumeMap, storage, token,
                     previousStep);
         } else {
@@ -169,7 +174,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
              */
             throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         }
-        return stepId;
+        return newSteps;
     }
 
     @Override
@@ -198,13 +203,16 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 if (exportMask.getStorageDevice().equals(storageURI)) {
                     _log.info("export_volume_add: adding volume to an existing export");
                     exportMask.addVolumes(volumeMap);
+                    // Have to add volumes to user created volumes set in the mask since
+                    // generateExportMaskAddVolumesWorkflow() call below does not do this.
+                    for (URI volumeUri : volumeMap.keySet()) {
+                        Volume volume = (Volume)_dbClient.queryObject(volumeUri);
+                        exportMask.addToUserCreatedVolumes(volume);
+                    }
                     _dbClient.updateObject(exportMask);
 
                     List<URI> volumeURIs = new ArrayList<>();
                     volumeURIs.addAll(volumeMap.keySet());
-
-                    List<ExportMask> masks = new ArrayList<>();
-                    masks.add(exportMask);
 
                     String maskingStep = generateExportMaskAddVolumesWorkflow(workflow,
                             null, storage, exportGroup, exportMask, volumeMap);
@@ -212,10 +220,6 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     // We do not need zoning step, since storage ports should not change.
                     // Have to store export group id to be available at device level.
                     WorkflowService.getInstance().storeStepData(maskingStep, exportGroup.getId());
-                   // String zoningMapUpdateStep = generateZoningMapUpdateWorkflow(
-                   //         workflow, maskingStep, exportGroup, storage);
-                   // generateZoningAddVolumesWorkflow(workflow, maskingStep,
-                   //         exportGroup, masks, volumeURIs);
                 }
             }
 
@@ -225,7 +229,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
             workflow.executePlan(taskCompleter, successMessage);
         }
         else
-        { // Todo: complete this .....
+        {
             // This is the case when export group does not have export mask for storage array where the volumes belongs.
             // In this case we will create new export masks for the storage array and each compute resource in the export group.
             // Essentially for every existing mask we will add a new mask for the array and initiators in the existing mask.
@@ -246,25 +250,19 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
                         true, token);
-                String stepId;
 
                 // This call will create steps for a new mask for each compute resource
-                // and new volumes. For example if there are 3 compute resources in the group,
+                // and new volumes. For example, if there are 3 compute resources in the group,
                 // the step will create 3 new masks for these resources and new volumes.
-                stepId = createNewExportMaskWorkflowForInitiators(initiatorURIs,
+                List<String> maskingSteps= createNewExportMaskWorkflowForInitiators(initiatorURIs,
                         exportGroup, workflow, volumeMap, storage, token,
                         null);
 
-                // Set up work flow steps.
-//                Workflow workflow = _workflowService.getNewWorkflow(
-//                        MaskingWorkflowEntryPoints.getInstance(),
-//                        "exportGroupAddVolumes - Create a new mask", true,
-//                        token);
-//
-//                generateExportMaskCreateWorkflow(workflow, null, storage,
-//                        exportGroup, initiatorURIs, volumeMap, token);
-                //generateZoningMapUpdateWorkflow(workflow,
-                //        EXPORT_GROUP_MASKING_TASK, exportGroup, storage);
+                // Have to store export group id to be available at device level for each masking step.
+                for (String stepId : maskingSteps) {
+                    WorkflowService.getInstance().storeStepData(stepId, exportGroup.getId());
+                }
+
                 generateZoningCreateWorkflow(workflow,
                         EXPORT_GROUP_MASKING_TASK, exportGroup, null,
                         volumeMap);
@@ -286,7 +284,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
     @Override
     public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, String token)
             throws Exception {
-        /* Map new intitiators to existing export masks in the export group based on common compute resource (each mask belongs to
+        /* Map new initiators to existing export masks in the export group based on common compute resource (each mask belongs to
          * specific compute resource and there can be only one mask for storage array and compute resource).
          * Add initiators to the corresponding export masks found in the mapping.
          * For initiators which do not have corresponding export mask we will create new export mask for compute resource and

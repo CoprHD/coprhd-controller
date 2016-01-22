@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
@@ -90,8 +91,9 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             }
             // Prepare volumes
             List<StorageVolume> driverVolumes = new ArrayList<>();
-            Map<String, String> volumeToHLUMap = new HashMap<>();
-            prepareVolumes(storage, volumeURIHLUs, driverVolumes, volumeToHLUMap);
+            Map<String, String> driverVolumeToHLUMap = new HashMap<>();
+            Map<String, URI> volumeNativeIdToUriMap = new HashMap<>();
+            prepareVolumes(storage, volumeURIHLUs, driverVolumes, driverVolumeToHLUMap, volumeNativeIdToUriMap);
 
             // Prepare initiators
             List<Initiator> driverInitiators = new ArrayList<>();
@@ -112,7 +114,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             prepareCapabilities(pathParams, capabilities);
             MutableBoolean usedRecommendedPorts = new MutableBoolean(true);
             // Ready to call driver
-            DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, volumeToHLUMap,
+            DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, driverVolumeToHLUMap,
                     recommendedPorts, availablePorts, capabilities, usedRecommendedPorts,
                     selectedPorts);
 
@@ -137,9 +139,10 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                         }
                         updateStoragePortsInExportMask(exportMask, initiatorList, exportGroup, selectedPortsForMask);
                         // Update volumes Lun Ids in export mask based on driver selection
-                        for (String volumeUriString : volumeToHLUMap.keySet()) {
-                            String targetLunId = volumeToHLUMap.get(volumeUriString);
-                            exportMask.getVolumes().put(volumeUriString, targetLunId);
+                        for (String volumeNativeId : driverVolumeToHLUMap.keySet()) {
+                            String targetLunId = driverVolumeToHLUMap.get(volumeNativeId);
+                            URI volumeUri = volumeNativeIdToUriMap.get(volumeNativeId);
+                            exportMask.getVolumes().put(volumeUri.toString(), targetLunId);
                         }
 
                         dbClient.updateObject(exportMask);
@@ -154,9 +157,10 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 } else {
                     // Used recommended ports.
                     // Update volumes Lun Ids in export mask based on driver selection
-                    for (String volumeUriString : volumeToHLUMap.keySet()) {
-                        String targetLunId = volumeToHLUMap.get(volumeUriString);
-                        exportMask.getVolumes().put(volumeUriString, targetLunId);
+                    for (String volumeNativeId : driverVolumeToHLUMap.keySet()) {
+                        String targetLunId = driverVolumeToHLUMap.get(volumeNativeId);
+                        URI volumeUri = volumeNativeIdToUriMap.get(volumeNativeId);
+                        exportMask.getVolumes().put(volumeUri.toString(), targetLunId);
                     }
                     dbClient.updateObject(exportMask);
                     taskCompleter.ready(dbClient);
@@ -180,9 +184,60 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void deleteExportMask(StorageSystem storage, URI exportMask, List<URI> volumeURIList, List<URI> targetURIList,
-                                 List<com.emc.storageos.db.client.model.Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void deleteExportMask(StorageSystem storage, URI exportMaskUri, List<URI> volumeUris, List<URI> targetUris,
+                                 List<com.emc.storageos.db.client.model.Initiator> initiators, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
 
+        // Unexport export mask volumes from export mask initiators.
+        log.info("{} deleteExportMask START...", storage.getSerialNumber());
+        log.info("Export mask id: {}", exportMaskUri);
+        try {
+            BlockStorageDriver driver = _externalDevice.getDriver(storage.getSystemType());
+            ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
+
+            StringSet maskInitiatorUris = exportMask.getInitiators();
+            List<String> initiatorUris = new ArrayList<>();
+            for (String initiatorUri : maskInitiatorUris) {
+                initiatorUris.add(initiatorUri);
+            }
+            log.info("Export mask existing initiators: {} ", initiatorUris);
+
+            StringMap volumes = exportMask.getVolumes();
+            log.info("Export mask existing volumes: {} ", volumes!=null ? volumes.keySet() : null);
+
+            // Prepare volumes.
+            List<StorageVolume> driverVolumes = new ArrayList<>();
+            prepareVolumes(storage, volumeUris, driverVolumes);
+            // Prepare initiators
+            Set<com.emc.storageos.db.client.model.Initiator>  maskInitiators =
+                    ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
+            List<Initiator> driverInitiators = new ArrayList<>();
+            prepareInitiators(initiators, driverInitiators);
+
+            // Ready to call driver
+            DriverTask task = driver.unexportVolumesFromInitiators(driverInitiators, driverVolumes);
+            // TODO: this is short cut for now, assuming synchronous driver implementation
+            // TODO: Support for async case TBD.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                String msg = String.format("Deleted export mask: %s.", task.getMessage());
+                log.info(msg);
+                taskCompleter.ready(dbClient);
+            } else {
+                // failed
+                // TODO support async
+                String errorMsg = String.format("Failed to delete export mask: %s .", task.getMessage());
+                log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("deleteExportMask", errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception ex) {
+            log.error("Problem in removeVolume: ", ex);
+            String errorMsg = String.format("Failed to remove volumes from export mask: %s .", ex.getMessage());
+            log.error(errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("deleteExportMask", errorMsg);
+            taskCompleter.error(dbClient, serviceError);
+        }
+        log.info("{} deleteExportMask END...", storage.getSerialNumber());
     }
 
     @Override
@@ -231,8 +286,9 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             }
             // Prepare volumes. We send to driver only new volumes for the export mask.
             List<StorageVolume> driverVolumes = new ArrayList<>();
-            Map<String, String> volumeToHLUMap = new HashMap<>();
-            prepareVolumes(storage, volumeURIHLUs, driverVolumes, volumeToHLUMap);
+            Map<String, String> driverVolumeToHLUMap = new HashMap<>();
+            Map<String, URI> volumeNativeIdToUriMap = new HashMap<>();
+            prepareVolumes(storage, volumeURIHLUs, driverVolumes, driverVolumeToHLUMap, volumeNativeIdToUriMap);
 
             // Prepare initiators
             Set<com.emc.storageos.db.client.model.Initiator>  initiators =
@@ -261,7 +317,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             prepareCapabilities(pathParams, capabilities);
             MutableBoolean usedRecommendedPorts = new MutableBoolean(true);
             // Ready to call driver
-            DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, volumeToHLUMap,
+            DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, driverVolumeToHLUMap,
                     recommendedPorts, availablePorts, capabilities, usedRecommendedPorts,
                     selectedPorts);
 
@@ -285,9 +341,10 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                     // Driver used recommended ports for a new volume.
                     // No port change in export mask is needed.
                     // Update volumes Lun Ids in export mask based on driver selection
-                    for (String volumeUriString : volumeToHLUMap.keySet()) {
-                        String targetLunId = volumeToHLUMap.get(volumeUriString);
-                        exportMask.getVolumes().put(volumeUriString, targetLunId);
+                    for (String volumeNativeId : driverVolumeToHLUMap.keySet()) {
+                        String targetLunId = driverVolumeToHLUMap.get(volumeNativeId);
+                        URI volumeUri = volumeNativeIdToUriMap.get(volumeNativeId);
+                        exportMask.getVolumes().put(volumeUri.toString(), targetLunId);
                     }
                     dbClient.updateObject(exportMask);
                     taskCompleter.ready(dbClient);
@@ -311,7 +368,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void removeVolume(StorageSystem storage, URI exportMaskUri, List<URI> volumeUris, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void removeVolume(StorageSystem storage, URI exportMaskUri, List<URI> volumeUris, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
 
         // Unexport volumes from all initiators in export mask.
         log.info("{} removeVolume START...", storage.getSerialNumber());
@@ -346,7 +404,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 String msg = String.format("Removed volumes from export: %s.", task.getMessage());
                 log.info(msg);
-                dbClient.updateObject(exportMask);
                 taskCompleter.ready(dbClient);
             } else {
                 // failed
@@ -390,14 +447,24 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     private void prepareVolumes(StorageSystem storage, VolumeURIHLU[] volumeURIHLUs, List<StorageVolume> driverVolumes,
-                                Map<String, String> volumeToHLUMap) {
+                                Map<String, String> driverVolumeToHLUMap, Map<String, URI> volumeNativeIdToUriMap) {
 
         for (VolumeURIHLU volumeURIHLU : volumeURIHLUs) {
             URI volumeURI = volumeURIHLU.getVolumeURI();
             Volume volume = dbClient.queryObject(Volume.class, volumeURI);
             StorageVolume driverVolume = createDriverVolume(storage, volume);
             driverVolumes.add(driverVolume);
-            volumeToHLUMap.put(driverVolume.getNativeId(), volumeURIHLU.getHLU());
+            // We send volume lun number to driver in decimal format.
+            Integer decimalHLU;
+            if (volumeURIHLU.getHLU().equals(ExportGroup.LUN_UNASSIGNED_STR))
+            { // cannot parse "ffffffff" with Integer.parseInt(volumeURIHLU.getHLU(), 16),
+              // got "NumberFormatException". Looks as Java error.
+                decimalHLU = ExportGroup.LUN_UNASSIGNED;
+            } else {
+                decimalHLU = Integer.parseInt(volumeURIHLU.getHLU(), 16);
+            }
+            driverVolumeToHLUMap.put(driverVolume.getNativeId(), decimalHLU.toString());
+            volumeNativeIdToUriMap.put(driverVolume.getNativeId(), volumeURI);
         }
     }
 

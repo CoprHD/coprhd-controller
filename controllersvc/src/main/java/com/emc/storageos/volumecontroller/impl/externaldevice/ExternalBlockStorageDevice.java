@@ -418,6 +418,16 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
+    public void doExportGroupDelete(StorageSystem storage,
+                                    ExportMask exportMask, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} doExportGroupDelete START ...", storage.getSerialNumber());
+        exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(), new ArrayList<URI>(),
+                new ArrayList<URI>(), new ArrayList<Initiator>(), taskCompleter);
+        _log.info("{} doExportGroupDelete END ...", storage.getSerialNumber());
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         return exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }

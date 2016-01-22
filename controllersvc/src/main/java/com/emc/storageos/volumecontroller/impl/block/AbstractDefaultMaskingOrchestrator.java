@@ -1196,9 +1196,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * @return
      * @throws Exception
      */
-    protected String createNewExportMaskWorkflowForInitiators(List<URI> initiatorURIs,
+    protected List<String> createNewExportMaskWorkflowForInitiators(List<URI> initiatorURIs,
             ExportGroup exportGroup, Workflow workflow, Map<URI, Integer> volumeMap,
             StorageSystem storage, String token, String previousStep) throws Exception {
+        List<String> newSteps = new ArrayList<>();
+
         if (!initiatorURIs.isEmpty()) {
             Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
                     exportGroup, initiatorURIs);
@@ -1210,12 +1212,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 GenExportMaskCreateWorkflowResult result = generateDeviceSpecificExportMaskCreateWorkFlow(workflow, previousStep,
                         storage, exportGroup, computeInitiatorURIs, volumeMap, token);
                 previousStep = result.getStepId();
-
-                // Have to store export group id to be available at device level.
-                WorkflowService.getInstance().storeStepData(previousStep, exportGroup.getId());
+                newSteps.add(previousStep);
             }
         }
-        return previousStep;
+        if (newSteps.isEmpty() && previousStep != null ) {
+            newSteps.add(previousStep);
+        }
+        return newSteps;
     }
 
     /**

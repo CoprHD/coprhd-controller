@@ -23,9 +23,9 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 @MessageBundle
 public interface ExternalDeviceExceptions {
 
-    @DeclareServiceCode(ServiceCode.NO_DRIVER_DEFINED_FOR_DEVICE_ERROR)
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_NO_DRIVER_DEFINED_FOR_DEVICE_ERROR)
     public ExternalDeviceException noDriverDefinedForDevice(String systemName);
 
-    @DeclareServiceCode(ServiceCode.NO_NATIVEID_DEFINED_FOR_STORAGE_PORT_ERROR)
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_NO_NATIVEID_DEFINED_FOR_STORAGE_PORT_ERROR)
     public ExternalDeviceException noNativeIdDefinedForPort(String storageSystem, String storagePort);
 }

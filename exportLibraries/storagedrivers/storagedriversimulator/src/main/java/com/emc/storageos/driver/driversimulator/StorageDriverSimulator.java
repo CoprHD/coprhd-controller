@@ -158,6 +158,10 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         _log.info("Discovery of storage ports for storage system {} .", storageSystem.getNativeId());
 
         // get port index
+      //  Map<String, List<String>> portIndexes = driverRegistry.getDriverAttributesForKey("simulatordriver","portIndexes");
+        // get index
+      //  List<String> indexList = portIndexes.get(storageSystem.getNativeId());
+
         Integer index = systemNameToPortIndexName.get(storageSystem.getNativeId());
         if(index == null) {
             index = ++portIndex;

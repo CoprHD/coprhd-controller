@@ -169,8 +169,13 @@ public class MaskingWorkflowEntryPoints implements Controller {
                 new RollbackExportGroupCreateCompleter(exportGroupURI, exportMaskURI, token);
         // Take the context of the step in flight and feed it into our current step
         // in order to only perform rollback of operations we successfully performed.
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
-        WorkflowService.getInstance().storeStepData(token, context);
+        ExportOperationContext context = null;
+        try {
+            context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
+            WorkflowService.getInstance().storeStepData(token, context);
+        } catch (ClassCastException e) {
+            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", e);
+        }
         _log.info("Rolling back operations: " + context);
         doExportGroupDelete(storageURI, exportGroupURI, exportMaskURI, taskCompleter, token);
     }
@@ -278,8 +283,12 @@ public class MaskingWorkflowEntryPoints implements Controller {
                         list, token);
         // Take the context of the step in flight and feed it into our current step
         // in order to only perform rollback of operations we successfully performed.
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
-        WorkflowService.getInstance().storeStepData(token, context);
+        try {
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
+            WorkflowService.getInstance().storeStepData(token, context);
+        } catch (ClassCastException e) {
+            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", e);
+        }
         doExportGroupRemoveVolumes(storageURI, exportGroupURI, exportMaskURI, list,
                 taskCompleter, token);
     }
@@ -478,8 +487,13 @@ public class MaskingWorkflowEntryPoints implements Controller {
                         initiatorURIs, token);
         // Take the context of the step in flight and feed it into our current step
         // in order to only perform rollback of operations we successfully performed.
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
-        WorkflowService.getInstance().storeStepData(token, context);
+
+        try {
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
+            WorkflowService.getInstance().storeStepData(token, context);
+        } catch (ClassCastException e) {
+            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", e);
+        }
         doExportGroupRemoveInitiators(storageURI, exportGroupURI, exportMaskURI,
                 initiatorURIs, true, taskCompleter, token);
     }

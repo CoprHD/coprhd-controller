@@ -395,29 +395,17 @@ public class DbClientImpl implements DbClient {
         return objs.get(0);
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id) {
         return queryObject(clazz, Arrays.asList(id));
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids) {
         return queryObject(clazz, ids, false);
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly) {
         DataObjectType doType = TypeMap.getDoType(clazz);
 

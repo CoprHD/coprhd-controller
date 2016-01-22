@@ -120,7 +120,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // File Replication RPO type
     private String _frRpoType;
     // File Replication RPO type
-    private String _replicationCopyMode;
+    private String _fileReplicationCopyMode;
     
     
     // File Repilcation copies
@@ -130,10 +130,16 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         LOCAL, REMOTE, NONE;
         public static boolean lookup(final String name) {
             for (FileReplicationType value : values()) {
-                if (value.name().equals(name)) {
+                if (value.name().equalsIgnoreCase(name)) {
                     return true;
                 }
             }
+            return false;
+        }
+        public static boolean validFileReplication(final String name) {
+        	if (LOCAL.name().equalsIgnoreCase(name) || REMOTE.name().equalsIgnoreCase(name)) {
+        		return true;
+        	}
             return false;
         }
     }
@@ -850,7 +856,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("rpRpoValue")
     public Long getRpRpoValue() {
-        return _rpRpoValue;
+        // Return 0 if value is not set.  This helps with upgrade scenarios.
+        return _rpRpoValue == null ? 0 : _rpRpoValue;
     }
 
     public void setRpRpoValue(Long rpRpoValue) {
@@ -1061,6 +1068,18 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             return false;
         }
         return true;
+    }
+    
+    /**
+     * Returns whether or not the passed VirtualPool specifies Protection
+     * 
+     * @param virtualPool
+     *            A reference to the VirtualPool.
+     * @return true if the VirtualPool specifies RP protection, false otherwise.
+     */
+    public static boolean vPoolSpecifiesFileReplication(final VirtualPool virtualPool) {
+    	return (virtualPool.getFileReplicationType() != null  &&
+    			FileReplicationType.validFileReplication(virtualPool.getFileReplicationType()));        
     }
 
     /**
@@ -1464,11 +1483,11 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     
     @Name("replicationCopyMode")
     public String getFileReplicationCopyMode() {
-        return _replicationCopyMode;
+        return _fileReplicationCopyMode;
     }
 
     public void setFileReplicationCopyMode(String replicationCopyMode) {
-        this._replicationCopyMode = replicationCopyMode;
+        this._fileReplicationCopyMode = replicationCopyMode;
         setChanged("replicationCopyMode");
     }
 

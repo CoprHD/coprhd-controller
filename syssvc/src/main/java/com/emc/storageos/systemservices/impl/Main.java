@@ -8,6 +8,7 @@ import com.emc.storageos.systemservices.impl.security.IPSecMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 
 public class Main {
@@ -25,6 +26,7 @@ public class Main {
 
             // start ipsec monitor
             IPSecMonitor ipsecMonitor = (IPSecMonitor) ctx.getBean(IPSEC_MONITOR_BEAN);
+            ipsecMonitor.setApplicationContext(ctx);
             ipsecMonitor.start();
 
             ctx.refresh();

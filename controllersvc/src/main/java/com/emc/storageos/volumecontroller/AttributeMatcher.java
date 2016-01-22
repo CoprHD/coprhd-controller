@@ -15,9 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 
 /**
  * AttributeMatcher is base class for all attribute matchers which provides base functionality
@@ -76,7 +76,9 @@ public abstract class AttributeMatcher {
         file_replication_copy_mode,
         file_replication,
         min_datacenters,
-        quota
+        quota,
+        source_storage_system,
+        remote_copy_mode
     }
 
     /**

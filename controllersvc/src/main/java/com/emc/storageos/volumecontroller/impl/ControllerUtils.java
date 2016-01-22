@@ -1510,12 +1510,21 @@ public class ControllerUtils {
      * Group volumes by array group.
      *
      * @param volumes the volumes
+     * @param dbClient TODO
      * @return the map of array group to volumes
      */
-    public static Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes) {
+    public static Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes, DbClient dbClient) {
         Map<String, List<Volume>> arrayGroupToVolumes = new HashMap<String, List<Volume>>();
         for (Volume volume : volumes) {
             String repGroupName = volume.getReplicationGroupInstance();
+            if (repGroupName == null && volume.isVPlexVolume(dbClient)) {
+                StringSet backedVols = volume.getAssociatedVolumes();
+                if (backedVols.iterator().hasNext()) {
+                    Volume backedVol = dbClient.queryObject(Volume.class, URI.create(backedVols.iterator().next()));
+                    repGroupName = backedVol.getReplicationGroupInstance();
+                }
+
+            }
             if (arrayGroupToVolumes.get(repGroupName) == null) {
                 arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());
             }

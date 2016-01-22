@@ -1019,6 +1019,23 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     /**
+     * Check if the volume is a vplex volume
+     * 
+     * @param volume The volume to be checked
+     * @return true or false
+     */
+    public boolean isVPlexVolume(DbClient dbClient) {
+        boolean result = false;
+        URI storageUri = getStorageController();
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageUri);
+        String systemType = storage.getSystemType();
+        if (systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
+            result = true;
+        }
+        return result;
+    }
+
+    /**
      * gets the COPY type VolumeGroup.
      *
      * @param dbClient the db client

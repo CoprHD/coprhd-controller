@@ -77,13 +77,11 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -3314,7 +3312,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         taskCompleter.addVolumeGroupId(volumeGroup.getId());
 
         List<Volume> allVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-        Map<String, List<Volume>> arrayGroupToVolumes = ControllerUtils.groupVolumesByArrayGroup(allVolumes);
+        Map<String, List<Volume>> arrayGroupToVolumes = ControllerUtils.groupVolumesByArrayGroup(allVolumes, _dbClient);
         for (String arrayGroupName : arrayGroupToVolumes.keySet()) {    // AG - Array Group
             List<Volume> arrayGroupVolumes = arrayGroupToVolumes.get(arrayGroupName);
             List<URI> fullCopyVolumesAG = getFullCopiesForVolumes(fullCopyVolumes, arrayGroupVolumes);
@@ -5881,7 +5879,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (ControllerUtils.checkCloneInApplication(fullCopies.get(0), _dbClient, completer)) {
                 _log.info("Full copy is part of an Application");
             }
-            arrayGroupToFullCopies = ControllerUtils.groupVolumesByArrayGroup(fullCopyVolumeObjects);
+            arrayGroupToFullCopies = ControllerUtils.groupVolumesByArrayGroup(fullCopyVolumeObjects, _dbClient);
         } else {
             arrayGroupToFullCopies = new HashMap<String, List<Volume>>();
             arrayGroupToFullCopies.put("NO_ARRAY_GROUP", fullCopyVolumeObjects);

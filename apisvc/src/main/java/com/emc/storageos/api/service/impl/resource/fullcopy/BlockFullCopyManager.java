@@ -273,11 +273,14 @@ public class BlockFullCopyManager {
             // get all volumes
             List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             // group volumes by Array Group
-            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumes);
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumes, _dbClient);
             fcSourceObjList = new ArrayList<BlockObject>();
             for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
+                s_logger.debug("arrayGroupName :{}", arrayGroupName);
                 List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
+                s_logger.debug("vollist size :{}", volumeList.size());
                 fcSourceObj = volumeList.iterator().next();
+                s_logger.debug("fcSourceObj.getNativeGuid :{}", fcSourceObj.getNativeGuid());
                 // Get the project for the full copy source object.
                 Project project = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
 

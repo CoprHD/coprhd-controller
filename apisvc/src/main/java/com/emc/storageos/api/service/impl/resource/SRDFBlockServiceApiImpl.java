@@ -517,6 +517,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     /**
      * SRDF between VMAX3 to VMAX2 is failing due to configuration mismatch (OPT#475186).
      * As a workaround, calculate the VMAX2 volume size based on the VMAX3 cylinder size.
+     * 
      * @param targetVolume
      * @param vpool
      */
@@ -597,6 +598,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
         return false;
     }
+
     @Override
     public TaskList createVolumes(final VolumeCreate param, final Project project,
             final VirtualArray varray, final VirtualPool cos,
@@ -694,7 +696,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      * @throws InternalException
      */
     @Override
-    public <T extends DataObject> String checkForDelete(final T object) throws InternalException {
+    public <T extends DataObject> String checkForDelete(final T object, List<Class<? extends DataObject>> excludeTypes)
+            throws InternalException {
         // The standard dependency checker really doesn't fly with SRDF because we need to determine
         // if we can do
         // a tear-down of the volume, and that tear-down involved cleaning up dependent
@@ -746,7 +749,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             // Because that can only have happened if the RDF relationship was already torn down.
             if (volumeIDs.size() == 1) {
                 String depMsg = _dependencyChecker.checkDependencies(object.getId(),
-                        object.getClass(), true);
+                        object.getClass(), true, excludeTypes);
                 if (depMsg != null) {
                     return depMsg;
                 }

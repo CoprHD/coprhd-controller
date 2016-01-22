@@ -6,11 +6,10 @@ package com.emc.sa.asset.providers;
 
 import java.util.List;
 
-import com.emc.sa.asset.AssetOptionsContext;
-import com.emc.sa.asset.BaseAssetOptionsProvider;
-
 import org.springframework.stereotype.Component;
 
+import com.emc.sa.asset.AssetOptionsContext;
+import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.vipr.model.catalog.AssetOption;
@@ -23,7 +22,6 @@ public class ProjectProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(api(ctx).projects().getByTenant(ctx.getTenant()));
     }
 
-    @Asset("projectFilter")
     public List<AssetOption> getProjectFilters(AssetOptionsContext ctx) {
         List<AssetOption> options = createBaseResourceOptions(api(ctx).projects().getByTenant(ctx.getTenant()));
         options.add(0, new AssetOption("All", "All"));

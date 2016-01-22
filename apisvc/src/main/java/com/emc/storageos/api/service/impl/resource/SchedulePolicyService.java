@@ -80,9 +80,9 @@ public class SchedulePolicyService extends TaggedResource {
     }
 
     /**
-     * Get project object from id
+     * Get schedule policy object from id
      * 
-     * @param id the URN of a ViPR Project
+     * @param id the URN of a CoprHD Schedule Policy
      * @return
      */
     private SchedulePolicy getPolicyById(URI id, boolean checkInactive) {

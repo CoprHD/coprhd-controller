@@ -31,8 +31,6 @@ public class IngestStrategyFactory {
     
     private BlockIngestOrchestrator blockVplexVolumeIngestOrchestrator;
 
-    private BlockIngestOrchestrator blockRpVplexIngestOrchestrator;
-    
     private BlockIngestExportOrchestrator maskPerHostIngestOrchestrator;
 
     private BlockIngestExportOrchestrator multipleMaskPerHostIngestOrchestrator;
@@ -82,15 +80,6 @@ public class IngestStrategyFactory {
     public void setBlockVplexVolumeIngestOrchestrator(
             BlockIngestOrchestrator blockVplexVolumeIngestOrchestrator) {
         this.blockVplexVolumeIngestOrchestrator = blockVplexVolumeIngestOrchestrator;
-    }
-
-    public BlockIngestOrchestrator getBlockRpVplexIngestOrchestrator() {
-        return blockRpVplexIngestOrchestrator;
-    }
-
-    public void setBlockRpVplexIngestOrchestrator(
-            BlockIngestOrchestrator blockRpVplexIngestOrchestrator) {
-        this.blockRpVplexIngestOrchestrator = blockRpVplexIngestOrchestrator;
     }
 
     public void setBlockRecoverPointIngestOrchestrator(
@@ -212,7 +201,6 @@ public class IngestStrategyFactory {
         REMOTE_VOLUME,
         VPLEX_VOLUME,
         RP_VOLUME,
-        RPVPLEX_VOLUME,
         NONE;
 
         public static IngestStrategyEnum getIngestStrategy(String strategyName) {
@@ -302,10 +290,6 @@ public class IngestStrategyFactory {
 
         case RP_VOLUME:
             ingestStrategy.setIngestResourceOrchestrator(blockRecoverPointIngestOrchestrator);
-            break;
-
-        case RPVPLEX_VOLUME:
-            ingestStrategy.setIngestResourceOrchestrator(blockRpVplexIngestOrchestrator);
             break;
 
         default:

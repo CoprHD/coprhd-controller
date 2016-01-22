@@ -235,7 +235,6 @@
         <property name="blockMirrorIngestOrchestrator" ref="blockMirrorIngestOrchestrator"/>
         <property name="blockRemoteReplicationIngestOrchestrator" ref="blockRemoteReplicationIngestOrchestrator"/>
         <property name="blockVplexVolumeIngestOrchestrator" ref="blockVplexVolumeIngestOrchestrator"/>
-        <property name="blockRpVplexIngestOrchestrator" ref="blockRpVplexIngestOrchestrator"/>
         <property name="maskPerHostIngestOrchestrator" ref="maskPerHostIngestOrchestrator"/>
         <property name="multipleMaskPerHostIngestOrchestrator" ref="multipleMaskPerHostIngestOrchestrator"/>
         <property name="unexportedVolumeIngestOrchestrator" ref="unexportedVolumeIngestOrchestrator"/>
@@ -272,11 +271,6 @@
         <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
         <property name="tenantsService" ref="tenantsService"/>
         <property name="coordinator" ref="coordinator"/>
-    </bean>
-
-    <bean id ="blockRpVplexIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRpVplexIngestOrchestrator">
-        <property name="dbClient" ref="dbclient"/>
-        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
     </bean>
 
     <bean id ="maskPerHostIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.MaskPerHostIngestOrchestrator">

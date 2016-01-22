@@ -17,8 +17,6 @@ public class FileMirrorCancelTaskCompleter extends FileWorkflowCompleter{
 
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded serviceCoded) {
-        // TODO Auto-generated method stub
-        
         super.complete(dbClient, status, serviceCoded);
     }
 

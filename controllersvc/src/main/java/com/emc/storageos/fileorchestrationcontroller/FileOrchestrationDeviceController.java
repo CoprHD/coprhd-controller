@@ -109,7 +109,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void deleteFileSystems(List<FileDescriptor> fileDescriptors,
             String taskId) throws ControllerException {
-        // TODO Auto-generated method stub
         String waitFor = null;    // the wait for key returned by previous call
         List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fileShareUris, taskId);
@@ -158,8 +157,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void expandFileSystem(List<FileDescriptor> fileDescriptors,
             String taskId) throws ControllerException {
-        // TODO Auto-generated method stub
-
     }
 
     @SuppressWarnings("serial")
@@ -169,8 +166,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         public void workflowComplete(Workflow workflow, Object[] args)
                 throws WorkflowException {
             List<URI> filesystems = (List<URI>) args[0];
-            // String msg = FileDeviceController.getVolumesMsg(_dbClient, filesystems);
-            // s_logger.info("Processed volumes:\n" + msg);
+            // String msg = FileDeviceController.getFileSharesMsg(_dbClient, filesystems);
+            // s_logger.info("Processed FileShares:\n" + msg);
         }
     }
 
@@ -210,7 +207,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         this._fileDeviceController = fileDeviceController;
     }
 
-    public FileReplicationDeviceController getReplicationFileDeviceController() {
+    public FileReplicationDeviceController getFileReplicationFileDeviceController() {
         return _fileReplicationDeviceController;
     }
 

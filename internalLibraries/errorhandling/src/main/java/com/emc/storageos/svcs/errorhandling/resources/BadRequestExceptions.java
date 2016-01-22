@@ -2742,4 +2742,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException backupIntervalIsInvalid(String interval);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);
 }

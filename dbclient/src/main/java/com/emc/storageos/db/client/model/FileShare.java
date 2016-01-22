@@ -146,8 +146,8 @@ public class FileShare extends FileObject implements ProjectResource {
         return _mirrorfsTargets;
     }
 
-    public void setMirrorfsTargets(StringSet _mirrorfsTargets) {
-        this._mirrorfsTargets = _mirrorfsTargets;
+    public void setMirrorfsTargets(StringSet mirrorfsTargets) {
+        this._mirrorfsTargets = mirrorfsTargets;
         setChanged("mirrorfsTargets");
         
     }
@@ -157,8 +157,8 @@ public class FileShare extends FileObject implements ProjectResource {
         return _parentFileShare;
     }
     
-    public void setParentFileShare(NamedURI _parentFileShare) {
-        this._parentFileShare = _parentFileShare;
+    public void setParentFileShare(NamedURI parentFileShare) {
+        this._parentFileShare = parentFileShare;
         setChanged("parentFileShare");
     }
     
@@ -167,8 +167,8 @@ public class FileShare extends FileObject implements ProjectResource {
         return _accessState;
     }
 
-    public void setAccessState(String _accessState) {
-        this._accessState = _accessState;
+    public void setAccessState(String accessState) {
+        this._accessState = accessState;
         setChanged("accessState");
     }
 
@@ -177,8 +177,8 @@ public class FileShare extends FileObject implements ProjectResource {
         return _mirrorStatus;
     }
 
-    public void setMirrorStatus(String _mirrorStatus) {
-        this._mirrorStatus = _mirrorStatus;
+    public void setMirrorStatus(String mirrorStatus) {
+        this._mirrorStatus = mirrorStatus;
         setChanged("mirrorStatus");
     }
     
@@ -188,8 +188,8 @@ public class FileShare extends FileObject implements ProjectResource {
         return _personality;
     }
     
-    public void setPersonality(String _personality) {
-        this._personality = _personality;
+    public void setPersonality(String personality) {
+        this._personality = personality;
         setChanged("personality");
     }
 

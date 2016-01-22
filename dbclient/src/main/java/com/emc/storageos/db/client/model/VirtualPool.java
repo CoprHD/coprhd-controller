@@ -120,7 +120,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // File Replication RPO type
     private String _frRpoType;
     // File Replication RPO type
-    private String _replicationCopyMode;
+    private String _fileReplicationCopyMode;
     
     
     // File Repilcation copies
@@ -1483,11 +1483,11 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     
     @Name("replicationCopyMode")
     public String getFileReplicationCopyMode() {
-        return _replicationCopyMode;
+        return _fileReplicationCopyMode;
     }
 
     public void setFileReplicationCopyMode(String replicationCopyMode) {
-        this._replicationCopyMode = replicationCopyMode;
+        this._fileReplicationCopyMode = replicationCopyMode;
         setChanged("replicationCopyMode");
     }
 

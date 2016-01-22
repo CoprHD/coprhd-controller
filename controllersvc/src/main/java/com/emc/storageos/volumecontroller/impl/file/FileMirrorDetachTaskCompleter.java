@@ -15,19 +15,16 @@ public class FileMirrorDetachTaskCompleter extends FileWorkflowCompleter{
 
     public FileMirrorDetachTaskCompleter(URI fsUri, String task) {
         super(fsUri, task);
-        // TODO Auto-generated constructor stub
     }
 
     @Override
     protected void complete(DbClient dbClient, Status status,
             ServiceCoded serviceCoded) {
-        // TODO Auto-generated method stub
         super.complete(dbClient, status, serviceCoded);
     }
 
     public FileMirrorDetachTaskCompleter(List<URI> fsUris, String task) {
         super(fsUris, task);
-        // TODO Auto-generated constructor stub
     }
 
 }

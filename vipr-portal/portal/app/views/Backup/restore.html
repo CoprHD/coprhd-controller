@@ -118,8 +118,22 @@
                 }
                 var totalSize = result.backupSize;
                 var downloadSize = result.downloadSize;
-                var progress = downloadSize / totalSize > 100 ? 100 : parseInt(downloadSize / totalSize);
-                console.info("1=%s 2=%s 4=%s ", totalSize, downloadSize, description);
+                var realPercent = downloadSize / totalSize * 100;
+                var basePercent = 50;
+                var progress = 0;
+                if(realPercent >= 100) {
+                    progress = basePercent + realPercent / 10;
+                    if(progress >= 100) {
+                        progress = 99;
+                    }
+                } else {
+                    progress = realPercent;
+                    if (progress >= basePercent) {
+                        progress = basePercent;
+                    }
+                }
+
+                console.info("1=%s 2=%s 3=%s 4=%s ", totalSize, downloadSize, progress, description);
                 updateProgressBar("Status", progress);
 
                 if (result.status == "DOWNLOAD_SUCCESS") {

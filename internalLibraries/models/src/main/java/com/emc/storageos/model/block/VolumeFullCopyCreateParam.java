@@ -4,14 +4,8 @@
  */
 package com.emc.storageos.model.block;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
-
 import com.emc.storageos.model.vpool.ProtectionType;
 
 @XmlRootElement(name = "volume_full_copy_create")
@@ -23,12 +17,6 @@ public class VolumeFullCopyCreateParam {
     private Integer count;
     private Boolean createInactive;
 
-    // fields for Application API
-    /** By default, consider clones to be created for all array groups in Application */
-    private Boolean partial = Boolean.FALSE;
-    /** Volume list will be considered only when it is partial. List has to have one Volume from each Array Group */
-    private List<URI> volumes;
-
     public VolumeFullCopyCreateParam() {
     }
 
@@ -38,16 +26,6 @@ public class VolumeFullCopyCreateParam {
         this.name = name;
         this.count = count;
         this.createInactive = createInactive;
-    }
-
-    public VolumeFullCopyCreateParam(String type, String name, Integer count,
-            Boolean createInactive, Boolean partial, List<URI> volumes) {
-        this.type = type;
-        this.name = name;
-        this.count = count;
-        this.createInactive = createInactive;
-        this.partial = partial;
-        this.volumes = volumes;
     }
 
     /**
@@ -114,41 +92,4 @@ public class VolumeFullCopyCreateParam {
         this.createInactive = createInactive;
     }
 
-    /**
-     * Boolean which indicates whether we need to take clone for the entire Application or for subset.
-     * By default it is set to false, and consider that clones to be created for all array replication groups in an Application.
-     * If set to true, volumes list should be provided with volumes one from each Array replication group.
-     * 
-     * @valid true
-     * @valid false
-     */
-    @XmlElement(name = "partial", required = false, defaultValue = "false")
-    public Boolean getPartial() {
-        return partial;
-    }
-
-    public void setPartial(Boolean partial) {
-        this.partial = partial;
-    }
-
-    @XmlElementWrapper(required = false, name = "volumes")
-    /**
-     * List of Volume IDs.
-     * This field is applicable only if partial is set to true,
-     * meaning Clones need not be created for the entire Application, instead create clones for the specified array replication groups.
-     * List can have volumes one from each Array replication group.
-     * 
-     * @valid example:  list of valid URIs
-     */
-    @XmlElement(required = false, name = "volume")
-    public List<URI> getVolumes() {
-        if (volumes == null) {
-            volumes = new ArrayList<URI>();
-        }
-        return volumes;
-    }
-
-    public void setVolumes(List<URI> volumes) {
-        this.volumes = volumes;
-    }
 }

@@ -2045,7 +2045,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 boolean isVPlex = consistencyGroup.checkForType(Types.VPLEX);
                 String groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName);
                 // If this is for VPlex, we would create backend consistency group if it does not exist yet.
-                if (!consistencyGroup.nameExistsForStorageSystem(storage.getId(), groupName)) {
+                if (!consistencyGroup.created(storage.getId(), groupName)) {
                     if (isVPlex) {
                         createCG = true;
                         _log.info(String.format("No consistency group exists for the storage: %s", storage.getId()));
@@ -2374,7 +2374,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (null != replicas && !replicas.isEmpty()) {
                 for (URI replicaURI : replicas) {
                     BlockObject blockObj = _dbClient.queryObject(BlockObject.class, replicaURI);
-                    blockObj.setReplicationGroupInstance(null);
+                    blockObj.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
                     _dbClient.updateObject(blockObj);
                 }
             }
@@ -2427,6 +2427,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 if (blockObject != null) {
                     blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                     blockObject.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+                    // unset the Set name on clones
+                    if (blockObject instanceof Volume && ((Volume) blockObject).getFullCopySetName() != null) {
+                        ((Volume) blockObject).setFullCopySetName(NullColumnValueGetter.getNullStr());
+                    }
                     objectsToUpdate.add(blockObject);
                 }
             }

@@ -185,13 +185,17 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // Prepare clones for each recommendation
         List<Volume> volumesList = new ArrayList<Volume>();
         List<Volume> toUpdate = new ArrayList<Volume>();
+        boolean inApplication = false;
+        if (blockObject instanceof Volume && ((Volume) blockObject).getApplication(_dbClient) != null) {
+            inApplication = true;
+        }
         int volumeCounter = (capabilities.getResourceCount() > 1) ? 1 : 0;
         for (VolumeRecommendation recommendation : placementRecommendations) {
 
             Volume volume = StorageScheduler.prepareFullCopyVolume(_dbClient, name,
                     blockObject, recommendation, volumeCounter, capabilities, createInactive);
             // For Application, set the user provided clone name on all the clones to identify clone set
-            if (blockObject instanceof Volume && ((Volume) blockObject).getApplication(_dbClient) != null) {
+            if (inApplication) {
                 volume.setFullCopySetName(cloneSetName);
                 toUpdate.add(volume);
             }
@@ -233,7 +237,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
 
         // if Volume is part of Application (COPY type VolumeGroup)
-        VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
+        VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
                 ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
         if (volumeGroup != null &&
                 !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, (Volume) fcSourceObj)) {
@@ -296,7 +300,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         Set<URI> fullCopyURIs = null;
         Map<URI, Volume> fullCopyMap = null;
         List<Volume> volumeGroupVolumes = null;
-        VolumeGroup volumeGroup = sourceVolume.isInVolumeGroup() ? sourceVolume.getApplication(_dbClient) : null;
+        VolumeGroup volumeGroup = sourceVolume.getApplication(_dbClient);
         boolean partialRequest = fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
         if (volumeGroup != null && !partialRequest) {
             s_logger.info("Volume {} is part of Application, restoring all full copies in the Application.", sourceVolume.getId());
@@ -313,6 +317,11 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 Volume fcSourceObject = volumeList.iterator().next();
                 // Get the full copy from source object belonging to same set
                 URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
+                if (fullCopyURI == null) {
+                    s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
+                            fullCopySetName, fcSourceObject.getLabel());
+                    continue;
+                }
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
 
                 fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));
@@ -395,7 +404,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         Set<URI> fullCopyURIs = null;
         Map<URI, Volume> fullCopyMap = null;
         List<Volume> volumeGroupVolumes = null;
-        VolumeGroup volumeGroup = sourceVolume.isInVolumeGroup() ? sourceVolume.getApplication(_dbClient) : null;
+        VolumeGroup volumeGroup = sourceVolume.getApplication(_dbClient);
         boolean partialRequest = fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
         if (volumeGroup != null && !partialRequest) {
             s_logger.info("Volume {} is part of Application, resynchronizing all full copies in the Application.", sourceVolume.getId());
@@ -412,6 +421,11 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 Volume fcSourceObject = volumeList.iterator().next();
                 // Get the full copy from source object belonging to same set
                 URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
+                if (fullCopyURI == null) {
+                    s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
+                            fullCopySetName, fcSourceObject.getLabel());
+                    continue;
+                }
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
 
                 fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));

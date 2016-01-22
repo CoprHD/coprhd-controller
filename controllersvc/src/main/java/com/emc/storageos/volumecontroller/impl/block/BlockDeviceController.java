@@ -79,13 +79,11 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -3238,7 +3236,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
                     _dbClient.queryObject(Volume.class, sourceVolume) : null;
-            VolumeGroup volumeGroup = (source != null && source.isInVolumeGroup())
+            VolumeGroup volumeGroup = (source != null)
                     ? source.getApplication(_dbClient) : null;
             if (volumeGroup != null
                     && !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, source)) {
@@ -3574,7 +3572,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    private static final String DETACH_CLONE_WF_NAME = "RESYNC_CLONE_WORKFLOW";
+    private static final String DETACH_CLONE_WF_NAME = "DETACH_CLONE_WORKFLOW";
 
     @Override
     public void detachFullCopy(URI storage, List<URI> fullCopyVolumes, String taskId)
@@ -4442,7 +4440,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(clones, completer);
 
             for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
-                _log.info("Activating full copy group {}", arrayGroupName);
+                _log.info("Restoring full copy group {}", arrayGroupName);
                 List<Volume> fullCopyObjects = arrayGroupToFullCopies.get(arrayGroupName);
                 List<URI> fullCopyURIs = new ArrayList<URI>(transform(fullCopyObjects, fctnDataObjectToID()));
                 Volume firstFullCopy = fullCopyObjects.get(0);
@@ -4624,7 +4622,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(clones, completer);
 
             for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
-                _log.info("Activating full copy group {}", arrayGroupName);
+                _log.info("Resynchronizing full copy group {}", arrayGroupName);
                 List<Volume> fullCopyObjects = arrayGroupToFullCopies.get(arrayGroupName);
                 List<URI> fullCopyURIs = new ArrayList<URI>(transform(fullCopyObjects, fctnDataObjectToID()));
                 Volume firstFullCopy = fullCopyObjects.get(0);

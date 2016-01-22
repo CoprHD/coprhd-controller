@@ -115,7 +115,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             URI cgURI = fcSourceVolume.getConsistencyGroup();
             if (!isNullURI(cgURI)) {
                 // if volume is part of COPY type Volume Group, get only the Array Group volumes
-                if (fcSourceVolume.isInVolumeGroup() && fcSourceVolume.getApplication(_dbClient) != null) {
+                if (fcSourceVolume.getApplication(_dbClient) != null) {
                     fcSourceObjList.addAll(
                             ControllerUtils.getVolumesPartOfRG(fcSourceVolume.getReplicationGroupInstance(), _dbClient));
                 } else {
@@ -264,7 +264,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         Set<URI> fullCopyURIs = null;
         Map<URI, Volume> fullCopyMap = null;
         List<Volume> volumeGroupVolumes = null;
-        VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
+        VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
                 ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
         boolean partialRequest = fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
         if (volumeGroup != null && !partialRequest) {
@@ -282,6 +282,11 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 Volume fcSourceObject = volumeList.iterator().next();
                 // Get the full copy from source object belonging to same set
                 URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
+                if (fullCopyURI == null) {
+                    s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
+                            fullCopySetName, fcSourceObject.getLabel());
+                    continue;
+                }
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
 
                 fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));
@@ -373,7 +378,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         Set<URI> fullCopyURIs = null;
         Map<URI, Volume> fullCopyMap = null;
         List<Volume> volumeGroupVolumes = null;
-        VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
+        VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
                 ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
         boolean partialRequest = fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
         if (volumeGroup != null && !partialRequest) {
@@ -391,6 +396,11 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 Volume fcSourceObject = volumeList.iterator().next();
                 // Get the full copy from source object belonging to same set
                 URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
+                if (fullCopyURI == null) {
+                    s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
+                            fullCopySetName, fcSourceObject.getLabel());
+                    continue;
+                }
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
 
                 fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));
@@ -402,7 +412,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             // full copies for volumes or snaps in CGs prior to Jedi, there should
             // be a full copy for all volumes in the CG.
             fullCopyMap = getFullCopySetMap(fcSourceObj, fullCopyVolume);
-            fullCopyURIs = fullCopyMap.keySet();            
+            fullCopyURIs = fullCopyMap.keySet();
         }
 
         // If full copy volume is already detached, return detach action is

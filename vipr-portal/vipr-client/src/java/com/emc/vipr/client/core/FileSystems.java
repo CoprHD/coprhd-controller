@@ -17,6 +17,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
@@ -580,5 +581,18 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Tasks<FileShareRestRep> failover(URI id, CopiesParam input) {
         return postTasks(input, getContinuousCopiesUrl() + "/failover", id);
+    }
+    
+    /**
+     * Changes the virtual pool for the given file system.
+     * <p>
+     * API Call: <tt>PUT /file/filesystems/{id}/vpool-change</tt>
+     * 
+     * @param input
+     *            the virtual pool change configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Tasks<FileShareRestRep> changeFileVirtualPool(VolumeVirtualPoolChangeParam input) {
+        return postTasks(input, baseUrl + "/vpool-change");
     }
 }

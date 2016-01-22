@@ -2745,6 +2745,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotFindAssoicatedPolicy(URI fp);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException assoicatedPolicyTenantMismach(URI fp, URI fs);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicatePolicyAssociation(URI fp);
 }

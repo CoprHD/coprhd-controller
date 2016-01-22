@@ -338,6 +338,7 @@ public class FileDeviceController implements FileController {
                         doFSDeleteQuotaDirsFromDB(args);                   // Delete Quota Directory from DB
                         deleteShareACLsFromDB(args);                       // Delete CIFS Share ACLs from DB
                         doDeleteExportRulesFromDB(true, null, args);       // Delete Export Rules from DB
+                        doDeletePolicyReferenceFromDB(fsObj);
                     }
                     generateZeroStatisticsRecord(fsObj);
                 }
@@ -2017,6 +2018,23 @@ public class FileDeviceController implements FileController {
                 }
             }
         }
+    }
+
+    private void doDeletePolicyReferenceFromDB(FileShare fs) {
+
+        _log.info("Removing policy reference for file system  " + fs.getName());
+        for (String policy : fs.getFilePolicies()) {
+
+            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, URI.create(policy));
+
+            /*
+             * StringSet fsURIs = fp.getResourceURI();
+             * fsURIs.remove(fs.getId());
+             * 
+             * fp.setResourceURI(fsURIs);
+             */
+        }
+
     }
 
     private void doDeleteSnapshotsFromDB(FileShare fs, boolean allDirs, String subDir, FileDeviceInputOutput args) throws Exception {

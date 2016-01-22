@@ -2265,6 +2265,9 @@ public class FileService extends TaskResourceService {
         SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
 
+        if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+            throw APIException.badRequests.assoicatedPolicyTenantMismach(filePolicyUri, id);
+        }
         // Check for VirtualPool support snapshot or not
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
 
@@ -2338,7 +2341,12 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(filePolicyUri, SchedulePolicy.class, "filePolicyUri");
         ArgValidator.checkUri(filePolicyUri);
         SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
+
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
+
+        if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+            throw APIException.badRequests.assoicatedPolicyTenantMismach(filePolicyUri, id);
+        }
         // check file Share contain this policy of not.
         if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssoicatedPolicy(filePolicyUri);

@@ -1014,7 +1014,7 @@ public class DbServiceImpl implements DbService {
     }
 
     /**
-     * Output more clear message in the log when new node down during node recovery introduced by CASSANDRA-2434.
+     * Output more clear message in the log when new node down during node recovery introduced by CASSANDRA-2434 in cassandra 2.1.
     */
     private void printRecoveryWorkAround(Exception e) {
         if (e.getMessage().startsWith("A node required to move the data consistently is down (")) {

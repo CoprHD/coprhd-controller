@@ -469,6 +469,11 @@ public class StoragePortsAllocator {
                         allocatedDirectorTypes, allocatedDirectors, allocatedCpus,
                         allocatedSwitches, allocatedStoragePorts, context);
             }
+            _log.info("Previously allocated engines: " + allocatedEngines.toString());
+            _log.info("Previously allocated director types: " + allocatedDirectorTypes.toString());
+            _log.info("Previously allocated directors: " + allocatedDirectors.toString());
+            _log.info("Previously allocated cpus: " + allocatedCpus.toString());
+            _log.info("Previously allocated switches: " + allocatedSwitches.toString());
             // Set allocatedPort to null so as not to initially trigger rule17
             allocatedPort = null;
         }

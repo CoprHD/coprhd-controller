@@ -490,7 +490,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 if (assignedPorts != null) {
                     alreadyAssigned = assignedPorts.size();
                     if (alreadyAssigned >= pathParams.getPathsPerInitiator()) {
-                        _log.info(String.format("Existing assignments sufficient for initiator %s (%s)", 
+                        _log.info(String.format("Assignments sufficient for initiator %s (%s)", 
                                 initiator.getInitiatorPort(), initiator.getHostName()));
                         entry.getValue().remove(0);
                         // This counts as we added something because we processed a previous mapping

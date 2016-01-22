@@ -94,7 +94,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
-import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 
 /**
  * APIs implementation to standby sites lifecycle management such as add-standby, remove-standby, failover, pause
@@ -1124,13 +1123,6 @@ public class DisasterRecoveryService {
         return false;
     }
 
-    private DbRepairStatus getSiteRepairStatus(Site site) {
-        InternalSiteServiceClient client = new InternalSiteServiceClient();
-        client.setCoordinatorClient(coordinator);
-        client.setServer(site.getVip());
-        return client.getSiteDbrepairStatus();
-    }
-
     /**
      * Query the details, such as transition timings, for specific standby site
      * 
@@ -1157,9 +1149,6 @@ public class DisasterRecoveryService {
 
             standbyDetails.setDataSynced(isDataSynced(standby));
             standbyDetails.setlastUpdateTime(new Date(standby.getLastStateUpdateTime()));
-            DbRepairStatus status = getSiteRepairStatus(standby);
-            standbyDetails.setRepairStatus(status.getStatus().toString());
-            standbyDetails.setRepairCompleteTime(status.getLastCompletionTime());
 
             ClusterInfo.ClusterState clusterState = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());
             if(clusterState != null) {

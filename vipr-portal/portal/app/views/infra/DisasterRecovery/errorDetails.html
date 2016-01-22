@@ -54,15 +54,6 @@
         $('#lastUpdateTime-' + '${uuid}').text(epocLastTime);
     </script>
   #{/if}
-  <dt>&{'disasterRecovery.dbRepairStatus'}</dt>
-  <dd id="dbrepair-${uuid}">--</dd>
-  <script>
-      if ("${disasterSiteDetails.repairStatus}" == "SUCCESS") {
-          $('#dbrepair-' + '${uuid}').text("Last Complete Time: " + formatLocalDateTime(new Date('${disasterSiteDetails.repairCompleteTime}')));
-      } else {
-          $('#dbrepair-' + '${uuid}').text("${disasterSiteDetails.repairStatus}");
-      }
-  </script>
   <dt>&{'disasterRecovery.networkLatencyInMs'}</dt>
   <dd>${disasterSiteDetails.networkLatencyInMs}</dd>
 </dl>

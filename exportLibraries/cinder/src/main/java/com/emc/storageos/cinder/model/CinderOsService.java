@@ -5,6 +5,8 @@
 package com.emc.storageos.cinder.model;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import org.codehaus.jackson.annotate.JsonProperty;
+import com.google.gson.annotations.SerializedName;
 
 import org.codehaus.jackson.map.annotate.JsonRootName;
 
@@ -15,9 +17,14 @@ public class CinderOsService {
 	private String binary;
 	private String zone;
 	private String state;
-	private String updated_at;
+
+	@SerializedName("updated_at")
+    @JsonProperty(value = "updated_at")
+	private String updatedAt;
 	private String host;
-	private String disabled_reason;
+	@SerializedName("disabled_reason")
+    @JsonProperty(value = "disabled_reason")	
+	private String disabledReason;
 	
 public String getStatus() {
     return status;
@@ -60,20 +67,20 @@ public void setHost(String host) {
 }
 
 
-public String getUpdated_at() {
-    return updated_at;
+public String getUpdatedAt() {
+    return updatedAt;
 }
 
-public void setUpdated_at(String updated_at) {
-    this.updated_at = updated_at;
+public void setUpdatedAt(String updatedAt) {
+    this.updatedAt = updatedAt;
 }
 
-public String getDisabled_reason() {
-    return disabled_reason;
+public String getDisabledReason() {
+    return disabledReason;
 }
 
-public void setDisabled_reason(String disabled_reason) {
-    this.disabled_reason = disabled_reason;
+public void setDisabledReason(String disabledReason) {
+    this.disabledReason = disabledReason;
 }
 
 }

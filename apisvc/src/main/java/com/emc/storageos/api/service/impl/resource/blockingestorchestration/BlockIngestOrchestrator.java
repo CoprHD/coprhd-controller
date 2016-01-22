@@ -411,10 +411,21 @@ public abstract class BlockIngestOrchestrator {
             deviceLabel = blockObject.getNativeGuid();
         }
 
-        blockObject.setDeviceLabel(deviceLabel);
-        blockObject.setLabel(deviceLabel);
+        managedVolumeSetLabel(blockObject, deviceLabel);
         blockObject.setNativeId(nativeId);
         blockObject.setAlternateName(nativeId);
+    }
+
+
+    /**
+     * Set the label and device label, given an unmanaged volume
+     * 
+     * @param blockObject block object
+     * @param deviceLabel device label
+     */
+    protected void managedVolumeSetLabel(BlockObject blockObject, String deviceLabel) {
+        blockObject.setLabel(deviceLabel);
+        blockObject.setDeviceLabel(deviceLabel);
     }
 
     /**

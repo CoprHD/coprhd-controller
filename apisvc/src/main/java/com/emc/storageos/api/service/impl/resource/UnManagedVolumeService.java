@@ -217,7 +217,6 @@ public class UnManagedVolumeService extends TaskResourceService {
             throw APIException.badRequests.exceedingLimit("unmanaged volumes", getMaxBulkSize());
         }
         TaskList taskList = new TaskList();
-        List<UnManagedVolume> unManagedVolumes = new ArrayList<UnManagedVolume>();
         Map<String, String> taskMap = new HashMap<String, String>();        
         BaseIngestionRequestContext requestContext = null;
         try {

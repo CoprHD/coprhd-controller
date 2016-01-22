@@ -1405,7 +1405,7 @@ public class VPlexApiClient {
         // make configuration changes on the VPLEX) to allow the VPLEX time
         // to persist changes completely and cause this issue to be far less
         // likely to occur.
-        VPlexApiUtils.pauseThread(5000);
+        //VPlexApiUtils.pauseThread(5000);
         return response;
     }
 

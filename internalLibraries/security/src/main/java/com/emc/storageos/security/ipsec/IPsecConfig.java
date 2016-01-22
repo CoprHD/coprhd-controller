@@ -11,6 +11,9 @@
 package com.emc.storageos.security.ipsec;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.security.exceptions.*;
+import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper;
 import org.apache.commons.codec.binary.StringUtils;
 import org.apache.commons.lang.RandomStringUtils;
@@ -29,8 +32,9 @@ public class IPsecConfig {
 
     private static final String IPSEC_CONFIG_LOCK = "IPsecConfigLock";
     private static final String IPSEC_CONFIG_KIND = "ipsec";
-    private static final String IPSEC_CONFIG_ID = "ipsec";
+    private static final String IPSEC_CONFIG_ID = "ipsec_config";
     private static final String IPSEC_PSK_KEY = "ipsec_key";
+    private static final String IPSEC_STATUS = "ipsec_status";
     private static final int KEY_LENGHT = 64;
 
     // Properties injected by spring
@@ -45,7 +49,7 @@ public class IPsecConfig {
      * @throws Exception
      */
     public String getPreSharedKey() throws Exception {
-        String preSharedKey = getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
+        String preSharedKey = getPreSharedKeyFromZK();
         if (StringUtil.isBlank(preSharedKey)) {
             log.info("No pre shared key in zk, loading from file ...");
             preSharedKey = loadDefaultIpsecKeyFromFile();
@@ -53,13 +57,25 @@ public class IPsecConfig {
         return preSharedKey;
     }
 
+    public String getPreSharedKeyFromZK() throws CoordinatorException {
+        try {
+            return getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
+        } catch (Exception e) {
+            throw CoordinatorException.fatals.unableToDecodeDataFromCoordinator(e);
+        }
+    }
+
     /**
      * write pre-shared key to ZK.
      * @param preSharedKey
      * @throws Exception
      */
-    public void setPreSharedKey(String preSharedKey) throws Exception {
-        getCoordinatorHelper().createOrUpdateConfig(preSharedKey, IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
+    public void setPreSharedKey(String preSharedKey) throws CoordinatorException {
+        try {
+            getCoordinatorHelper().createOrUpdateConfig(preSharedKey, IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
+        } catch (Exception e) {
+            throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
+        }
     }
 
     /**
@@ -69,7 +85,6 @@ public class IPsecConfig {
     public String generateKey() {
         return RandomStringUtils.random(KEY_LENGHT, true, true);
     }
-
 
     private String loadDefaultIpsecKeyFromFile() throws Exception {
         BufferedReader in = new BufferedReader(new FileReader(new File(defaultPskFile)));
@@ -102,5 +117,34 @@ public class IPsecConfig {
      */
     public void setDefaultPskFile(String defaultPskFile) {
         this.defaultPskFile = defaultPskFile;
+    }
+
+    /**
+     * get ipsec status of current vdc
+     *
+     * @return
+     * @throws Exception
+     */
+    public String getIpsecStatus() {
+        try {
+            return getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATUS);
+        } catch (Exception e) {
+            throw SecurityException.fatals.failToChangeIPsecStatus(e.getMessage());
+        }
+    }
+
+    /**
+     * write ipsec status to ZK
+     *
+     * @param status
+     * @throws Exception
+     */
+    public void setIpsecStatus(String status) {
+        try {
+            getCoordinatorHelper().createOrUpdateConfig(status.toLowerCase(),
+                    IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATUS);
+        } catch (Exception e) {
+            throw SecurityException.fatals.failToChangeIPsecStatus(e.getMessage());
+        }
     }
 }

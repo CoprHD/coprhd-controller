@@ -85,7 +85,9 @@
         <property name="backCompatPreYoda" ref="backCompatPreYoda" />
     </bean>
 
-    <bean id="dbManager" class="com.emc.storageos.db.server.impl.DbManager"/>
-
+    <bean id="dbManager" class="com.emc.storageos.db.server.impl.DbManager">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="schemaUtil" ref="dbschemautil"/>
+    </bean>
 	
 </beans>

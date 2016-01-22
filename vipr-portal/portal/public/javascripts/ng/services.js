@@ -88,6 +88,10 @@ angular.module("services", []).directive({
                 if (item.type == "text") {
                     type = '<input-text>';
                     tagAttrs = {'maxlength': validation.max || 1024}; //Maximum length of an OrderParameter is 1024
+                } else if (item.type == "date") {
+                    type = '<date-picker>';
+                } else if (item.type == "time") {
+                    type = '<time-picker>';
                 } else if (item.type == "password" || item.type == "password.verify") {
                     type = '<input-password>';
                     tagAttrs = {'maxlength': validation.max || 1024}; //Maximum length of an OrderParameter is 1024

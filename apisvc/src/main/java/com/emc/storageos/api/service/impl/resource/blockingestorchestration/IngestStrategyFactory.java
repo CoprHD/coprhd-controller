@@ -19,6 +19,8 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 
 public class IngestStrategyFactory {
 
+    public static final boolean DISREGARD_PROTECTION = true;
+
     private static final Logger _logger = LoggerFactory.getLogger(IngestStrategyFactory.class);
     
     private BlockIngestOrchestrator blockVolumeIngestOrchestrator;
@@ -310,11 +312,14 @@ public class IngestStrategyFactory {
                 SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString());
 
         String replicationStrategy;
-        // order is actually important here because a VPLEX volume could also be RP-enabled
-        if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
-            replicationStrategy = ReplicationStrategy.VPLEX.name();
-        } else if (!disregardProtection && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
+
+        boolean isVplexVolume = VolumeIngestionUtil.isVplexVolume(unManagedVolume);
+        boolean isRpEnabled = VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
+
+        if (!disregardProtection && isRpEnabled) {
             replicationStrategy = ReplicationStrategy.RP.name();
+        } else if (isVplexVolume) {
+            replicationStrategy = ReplicationStrategy.VPLEX.name();
         } else if (null == remoteMirrorEnabledInVolume || !Boolean.parseBoolean(remoteMirrorEnabledInVolume)) {
             replicationStrategy = ReplicationStrategy.LOCAL.name();
         } else {
@@ -345,12 +350,14 @@ public class IngestStrategyFactory {
     public IngestExportStrategy buildIngestExportStrategy(UnManagedVolume unManagedVolume) {
         boolean isVolumeExported = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
                 SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString()));
+        // being RP enabled implies the volume is exported to the RP device
+        boolean isRpEnabled = VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
         String systemType = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.SYSTEM_TYPE.toString(),
                 unManagedVolume.getVolumeInformation());
         _logger.info("system type is " + systemType);
         
         IngestExportStrategyEnum exportStrategy = IngestExportStrategyEnum.NO_MASK;
-        if (isVolumeExported) {
+        if (isVolumeExported || isRpEnabled) {
             exportStrategy = IngestExportStrategyEnum.getIngestStrategy(systemType);
         }
         _logger.info("export strategy is " + exportStrategy.name());

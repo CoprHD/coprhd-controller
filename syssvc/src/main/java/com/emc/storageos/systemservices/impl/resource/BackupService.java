@@ -604,8 +604,10 @@ public class BackupService {
         log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
                 new Object[] {backupName, isLocal, password, isGeoFromScratch});
 
-        if (!backupOps.isSiteStable()) {
-            backupOps.setDownloadStatus(backupName, BackupRestoreStatus.Status.RESTORE_FAILED, 0, 0, false);
+        if (!backupOps.isClusterStable()) {
+            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
+            s.setMessage("The cluster is not stable");
+            backupOps.setDownloadStatus(backupName, s, 0, 0, false);
             throw SyssvcException.syssvcExceptions.restoreFailed(backupName, "The cluster is not stable");
         }
 

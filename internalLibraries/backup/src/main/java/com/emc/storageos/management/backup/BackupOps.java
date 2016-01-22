@@ -1206,9 +1206,9 @@ public class BackupOps {
         return nodesInfo;
     }
 
-    public boolean isSiteStable() {
+    public boolean isClusterStable() {
         ClusterInfo.ClusterState state = coordinatorClient.getControlNodesState();
-        log.info("lby state={}", state);
+        log.info("cluster state={}", state);
         return state == ClusterInfo.ClusterState.STABLE;
     }
 

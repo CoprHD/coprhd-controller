@@ -1215,9 +1215,11 @@ public class TenantsService extends TaggedResource {
             isValidSnapshotExpire = ArgValidator.validateSnapshotExpireParam(param.getSnapshotExpire());
             if (!isValidSnapshotExpire) {
                 int expireTime = param.getSnapshotExpire().getExpireValue();
-                _log.error("Invalid schedule snapshot expire time {}. Try an expire time between 2 hours to 10 years",
-                        expireTime);
-                throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime);
+                int minExpireTime = 2;
+                int maxExpireTime = 10;
+                _log.error("Invalid schedule snapshot expire time {}. Try an expire time between {} hours to {} years",
+                        expireTime, minExpireTime, maxExpireTime);
+                throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime, minExpireTime, maxExpireTime);
             }
         }
 

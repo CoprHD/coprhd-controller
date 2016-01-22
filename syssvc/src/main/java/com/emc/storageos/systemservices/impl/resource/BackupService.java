@@ -603,6 +603,14 @@ public class BackupService {
                                   @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
         log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
                 new Object[] {backupName, isLocal, password, isGeoFromScratch});
+
+        if (!backupOps.isClusterStable()) {
+            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
+            s.setMessage("The cluster is not stable");
+            backupOps.setDownloadStatus(backupName, s, 0, 0, false);
+            throw SyssvcException.syssvcExceptions.restoreFailed(backupName, "The cluster is not stable");
+        }
+
         File backupDir= getBackupDir(backupName, isLocal);
 
         String[] restoreCommand=new String[]{restoreCmd,

@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.jsoup.helper.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -19,8 +17,7 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
  * Representation for a ViPR site, both primary and standby
  */
 public class Site {
-    private static final Logger log = LoggerFactory.getLogger(Site.class);
-
+    private static final String NO_ACTIVE_SITE_MESSAGE = "<no active site>";
     private static final String KEY_NAME = "name";
     private static final String KEY_DESCRIPTION = "description";
     private static final String KEY_VIP = "vip";
@@ -36,6 +33,8 @@ public class Site {
     private static TreeMap<String, String> treeMapSorter = new TreeMap<String, String>();
     
     public static final String CONFIG_KIND = "disasterRecoverySites";
+    
+    public static final Site DUMMY_ACTIVE_SITE;
 
     private String uuid;
     private String vdcShortId;
@@ -51,6 +50,14 @@ public class Site {
     private String networkHealth;
     private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
+    
+    static {
+        DUMMY_ACTIVE_SITE = new Site();
+        DUMMY_ACTIVE_SITE.setUuid("");
+        DUMMY_ACTIVE_SITE.setVip(NO_ACTIVE_SITE_MESSAGE);
+        DUMMY_ACTIVE_SITE.setName(NO_ACTIVE_SITE_MESSAGE);
+        DUMMY_ACTIVE_SITE.setState(SiteState.NONE);
+    }
 
     public Site() {
     }
@@ -337,4 +344,5 @@ public class Site {
         builder.append(", uuid=").append(uuid).append("]");
         return builder.toString();
     }
+    
 }

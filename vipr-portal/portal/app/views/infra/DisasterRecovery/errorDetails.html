@@ -43,11 +43,14 @@
   	</script>
   #{/if}
   <dt>&{'disasterRecovery.lastOperation.time'}</dt>
-  <dd id="lastUpdateTime">--</dd>
+  <dd id="lastUpdateTime-${uuid}">--</dd>
   #{if lastUpdateTime }
   	<script>
   		var epocLastTime = '${disasterSiteDetails.lastUpdateTime}';
-   		$('#lastUpdateTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocLastTime)));
+  		if (epocLastTime != "Up To Date") {
+  			epocLastTime = formatLocalDateTime(new Date(epocLastTime));
+  		}
+   		$('#lastUpdateTime-' + '${uuid}').text(epocLastTime);
   	</script>
   #{/if}
   <dt>&{'disasterRecovery.networkLatencyInMs'}</dt>

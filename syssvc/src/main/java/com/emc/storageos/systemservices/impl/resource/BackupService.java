@@ -530,13 +530,7 @@ public class BackupService {
             throw new RuntimeException(e);
         }
 
-        BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName, false);
-        status.setBackupName(backupName);
-        status.setBackupSize(size);
-        status.setStatus(BackupRestoreStatus.Status.DOWNLOADING);
-        status.resetNodeCompleted();
-        log.info("Set backup file size status={}", status);
-        backupOps.persistBackupRestoreStatus(status, false);
+        backupOps.setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, size, 0, false, true);
     }
 
     private void notifyOtherNodes(String backupName) {
@@ -555,7 +549,7 @@ public class BackupService {
         }catch (Exception e) {
             String errMsg = String.format("Failed to send %s to %s", pushUri, endpoint);
             log.error(errMsg);
-            backupOps.setDownloadStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_FAILED, 0, 0, false);
+            backupOps.setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_FAILED, 0, 0, false, false);
             throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
         }
     }
@@ -574,10 +568,7 @@ public class BackupService {
     public Response cancelDownloading() {
         log.info("To cancel the current download");
 
-        if (downloadTask != null) {
-            log.info("To stop current download task");
-            downloadTask.cancelDownload();
-        }
+        backupOps.cancelDownload();
 
         log.info("done");
         return Response.status(202).build();
@@ -604,11 +595,14 @@ public class BackupService {
         log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
                 new Object[] {backupName, isLocal, password, isGeoFromScratch});
 
+        if (!backupOps.isActiveSite()) {
+            setRestoreFailed(backupName, "The current site is not an active site");
+            //no return here
+        }
+
         if (!backupOps.isClusterStable()) {
-            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
-            s.setMessage("The cluster is not stable");
-            backupOps.setDownloadStatus(backupName, s, 0, 0, false);
-            throw SyssvcException.syssvcExceptions.restoreFailed(backupName, "The cluster is not stable");
+            setRestoreFailed(backupName, "The cluster is not stable");
+            //no return here
         }
 
         File backupDir= getBackupDir(backupName, isLocal);
@@ -622,6 +616,14 @@ public class BackupService {
 
         log.info("done");
         return Response.status(202).build();
+    }
+
+    private Response setRestoreFailed(String backupName, String msg) {
+        BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
+        s.setMessage(msg);
+
+        backupOps.setRestoreStatus(backupName, s, 0, 0, false, false);
+        throw SyssvcException.syssvcExceptions.restoreFailed(backupName, msg);
     }
 
     /**

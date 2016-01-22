@@ -442,7 +442,45 @@ public class BackupOps {
     /**
      * Persist download status to ZK
      */
-    public void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal) {
+    public synchronized void setRestoreStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long increasedSize,
+                                              boolean increaseCompletedNodeNumber, boolean resetCompletedNumber) {
+        log.info("Set download status backupName={} status={} backupSize={} increasedSize={} increaseCompletedNodeNumber={}",
+                new Object[]{backupName, status, backupSize, increasedSize, increaseCompletedNodeNumber});
+
+        BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
+        if (status != null && status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ) {
+            if (!s.getStatus().canBeCanceled()) {
+                return;
+            }
+        }
+
+        s.setBackupName(backupName);
+
+        if (status != null) {
+            s.setStatus(status);
+        }
+
+        if (backupSize > 0) {
+            s.setBackupSize(backupSize);
+        }
+
+        if (increasedSize > 0) {
+            long newSize = s.getDownoadSize() + increasedSize;
+            s.setDownoadSize(newSize);
+        }
+
+        if (increaseCompletedNodeNumber) {
+            s.increaseNodeCompleted();
+        }
+
+        if (resetCompletedNumber) {
+            s.resetNodeCompleted();
+        }
+
+        persistBackupRestoreStatus(s, false);
+    }
+
+    private void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal) {
         log.info("Persist backup restore status {}", status);
         Map<String, String> allItems = status.toMap();
 
@@ -525,40 +563,30 @@ public class BackupOps {
         return backupFileName.contains("multivdc");
     }
 
-    public synchronized void setDownloadStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long increasedSize,
-                                               boolean increaseCompletedNodeNumber) {
-        log.info("Set download status backupName={} status={} backupSize={} increasedSize={} increaseCompletedNodeNumber={}",
-                new Object[] {backupName, status, backupSize, increasedSize, increaseCompletedNodeNumber});
+    public void cancelDownload() {
+        Map<String, String> map = getCurrentBackupInfo();
+        log.info("To cancel current download {}", map);
+        String backupName = map.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
+        boolean isLocal = Boolean.parseBoolean(map.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY));
+        log.info("backupname={}, isLocal={}", backupName, isLocal);
 
-        BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
-        if (status != null && status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ) {
-            if (!s.getStatus().canBeCanceled()) {
-                return;
-            }
+        if (backupName.isEmpty()) {
+            log.info("No backup is downloading, so ignore cancel");
+            return;
         }
 
-        s.setBackupName(backupName);
+        BackupRestoreStatus s = queryBackupRestoreStatus(backupName, isLocal);
 
-        if (status != null) {
-            s.setStatus(status);
+        if (!s.getStatus().canBeCanceled()) {
+            log.info("The current backup can't be canceled because its status is {}", s);
+            return;
         }
 
-        if (backupSize > 0) {
-            s.setBackupSize(backupSize);
+        if (!isLocal) {
+            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, 0, 0, false, false);
+            log.info("Persist the cancel flag into ZK");
         }
-
-        if (increasedSize > 0) {
-            long newSize = s.getDownoadSize() + increasedSize;
-            s.setDownoadSize(newSize);
-        }
-
-        if (increaseCompletedNodeNumber) {
-            s.increaseNodeCompleted();
-        }
-
-        persistBackupRestoreStatus(s, false);
     }
-
 
     class CreateBackupCallable extends BackupCallable<Void> {
         @Override
@@ -1212,6 +1240,11 @@ public class BackupOps {
         return state == ClusterInfo.ClusterState.STABLE;
     }
 
+    public boolean isActiveSite() {
+        DrUtil util = new DrUtil();
+        util.setCoordinator(coordinatorClient);
+        return util.isActiveSite();
+    }
     /**
      * Create a connection to the JMX agent
      */

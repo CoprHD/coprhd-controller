@@ -138,7 +138,7 @@ public class IngestStrategyFactory {
     }
 
     public enum ReplicationStrategy {
-        LOCAL, REMOTE, VPLEX, RP, RPVPLEX
+        LOCAL, REMOTE, VPLEX, RP
     }
     
     public enum VolumeType {
@@ -312,14 +312,10 @@ public class IngestStrategyFactory {
                 SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString());
 
         String replicationStrategy;
-        
+
         boolean isVplexVolume = VolumeIngestionUtil.isVplexVolume(unManagedVolume);
         boolean isRpEnabled = VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
-//        
-//        if (isVplexVolume && isRpEnabled) {
-//            replicationStrategy = ReplicationStrategy.RPVPLEX.name();
-//        } else 
-            
+
         if (!disregardProtection && isRpEnabled) {
             replicationStrategy = ReplicationStrategy.RP.name();
         } else if (isVplexVolume) {

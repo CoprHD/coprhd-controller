@@ -23,10 +23,10 @@ import java.util.Random;
 @ContextConfiguration(locations = { "/scaleio-driver-prov.xml" })
 public class ScaleIOStorageDriverTest {
 
-    String SYS_NATIVE_ID_A = "6ee6d94e5a3517b8";
-    String SYS_NATIVE_ID_B = "3eb4708d2b3ea454";
+    String SYS_NATIVE_ID_A = "3b51b60900000000";
+    String SYS_NATIVE_ID_B = "08af5d6100000000";
     String IP_ADDRESS_A = "10.193.17.97";
-    String IP_ADDRESS_B = "10.193.17.35";
+    String IP_ADDRESS_B = "10.193.17.88";
 
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
@@ -40,7 +40,7 @@ public class ScaleIOStorageDriverTest {
     public void setUp() throws Exception {
         Registry registry = new InMemoryRegistryImpl();
         driver = new ScaleIOStorageDriver();
-        driver.setHandleFactory(handleFactory);
+        //driver.setHandleFactory(handleFactory);
         driver.setDriverRegistry(registry);
     }
 
@@ -168,13 +168,12 @@ public class ScaleIOStorageDriverTest {
         StorageSystem validStorageSystem = new StorageSystem();
         StorageSystem invalidStorageSystem = new StorageSystem();
 
-        validStorageSystem.setSystemName("pdomain");
-        validStorageSystem.setNativeId("");
+        validStorageSystem.setNativeId("3eb4708d2b3ea454");
         validStorageSystem.setSystemType("scaleio");
         validStorageSystem.setPortNumber(443);
         validStorageSystem.setUsername("admin");
         validStorageSystem.setPassword("Scaleio123");
-        validStorageSystem.setIpAddress("10.193.17.97");
+        validStorageSystem.setIpAddress("10.193.17.88");
 
         // Valid list of storage systems
         storageSystems.add(validStorageSystem);
@@ -186,7 +185,7 @@ public class ScaleIOStorageDriverTest {
 
         invalidStorageSystem.setSystemName("TestInvalidSystem");
         invalidStorageSystem.setSystemType("scaleio");
-        // invalidStorageSystem.setPortNumber();
+        invalidStorageSystem.setPortNumber(443);
         invalidStorageSystem.setUsername("username");
         invalidStorageSystem.setPassword("password");
         invalidStorageSystem.setIpAddress("10.193.17.99");
@@ -216,7 +215,6 @@ public class ScaleIOStorageDriverTest {
         StorageSystem validStorageSystem = new StorageSystem();
         StorageSystem invalidStorageSystem = new StorageSystem();
 
-        validStorageSystem.setSystemName("pdomain");
         validStorageSystem.setSystemType("scaleio");
         validStorageSystem.setPortNumber(443);
         validStorageSystem.setUsername("admin");
@@ -243,7 +241,7 @@ public class ScaleIOStorageDriverTest {
         System.out.println(task);
 
         Assert.assertNotNull(task);
-        Assert.assertEquals(task.getStatus().toString(), "READY");
+        Assert.assertEquals(task.getStatus().toString(), "ABORTED");
     }
 
     @Test
@@ -252,7 +250,7 @@ public class ScaleIOStorageDriverTest {
         StorageSystem invalidStorageSystem = new StorageSystem();
         List<StoragePort> storagePorts = new ArrayList<>();
 
-        validStorageSystem.setSystemName("pdomain");
+        validStorageSystem.setNativeId("08af5d6100000000");
         validStorageSystem.setSystemType("scaleio");
         validStorageSystem.setPortNumber(443);
         validStorageSystem.setUsername("admin");
@@ -276,7 +274,7 @@ public class ScaleIOStorageDriverTest {
         task = driver.discoverStoragePorts(validStorageSystem, storagePorts);
 
         Assert.assertNotNull(task);
-        Assert.assertNotEquals(task.getStatus().toString(), "READY");
+        Assert.assertEquals(task.getStatus().toString(), "READY");
 
         // Valid system, valid list
         task = driver.discoverStoragePorts(validStorageSystem, storagePorts);
@@ -288,7 +286,7 @@ public class ScaleIOStorageDriverTest {
         task = driver.discoverStoragePorts(invalidStorageSystem, storagePorts);
 
         Assert.assertNotNull(task);
-        Assert.assertNotEquals(task.getStatus().toString(), "READY");
+        Assert.assertEquals(task.getStatus().toString(), "ABORTED");
 
     }
 

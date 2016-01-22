@@ -1,11 +1,12 @@
+/*
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOProtectionDomain;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOSDS;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOStoragePool;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOSystem;
+import com.emc.storageos.driver.scaleio.api.restapi.response.*;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -16,16 +17,17 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver implements BlockStorageDriver{
 	private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
-	private ScaleIORestHandleFactory handleFactory;
+	String fullyQualifiedXMLConfigName = "/scaleio-driver-prov.xml";
+	ApplicationContext context = new ClassPathXmlApplicationContext(fullyQualifiedXMLConfigName);
+	ScaleIORestHandleFactory scaleIORestHandleFactory = (ScaleIORestHandleFactory) context.getBean("scaleIORestHandleFactory");
 
-	public void setHandleFactory(ScaleIORestHandleFactory handleFactory) {
-		this.handleFactory = handleFactory;
-	}
 
 	/**
 	 * Create storage volumes with a given set of capabilities.
@@ -327,16 +329,15 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 		DriverTask task = createDriverTask(ScaleIOConstants.TASK_TYPE_DISCOVER_STORAGE_SYSTEM);
 		for (StorageSystem storageSystem : storageSystems) {
 			try {
-				log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - Start", storageSystem.getIpAddress(), storageSystem.getSystemName());
-				ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
+				log.info("StorageDriver: discoverStorageSystem information for storage system {}, nativeID {} - Start", storageSystem.getIpAddress(), storageSystem.getNativeId());
+				ScaleIORestClient scaleIOHandle = scaleIORestHandleFactory.getClientHandle(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
 				if (scaleIOHandle != null) {
 					ScaleIOSystem scaleIOSystem = scaleIOHandle.getSystem();
 					List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
 					for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
-						String domainName = protectionDomain.getName();
-						if (compare(domainName, storageSystem.getSystemName())) {
+						String domainID = protectionDomain.getSystemId();
+						if (compare(domainID, storageSystem.getNativeId())) {
 							storageSystem.setSerialNumber(protectionDomain.getId());
-							storageSystem.setNativeId(protectionDomain.getId());
 							storageSystem.setSystemName(protectionDomain.getName());
 							String version = scaleIOSystem.getVersion().replaceAll("_", ".").substring(ScaleIOConstants.START_POS, ScaleIOConstants.END_POS);
 							storageSystem.setFirmwareVersion(version);
@@ -347,11 +348,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 							}
 							task.setStatus(DriverTask.TaskStatus.READY);
 							setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
-							log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - End", storageSystem.getIpAddress(), storageSystem.getSystemName());
+							log.info("StorageDriver: discoverStorageSystem information for storage system {}, , nativeID {} - End", storageSystem.getIpAddress(), storageSystem.getNativeId());
 						}
 					}
 				} else {
-					log.info("StorageDriver: Failed to get an handle for the storage system {}, name {}", storageSystem.getIpAddress(), storageSystem.getSystemName());
+					log.info("StorageDriver: Failed to get an handle for the storage system {}, nativeID {}", storageSystem.getIpAddress(), storageSystem.getNativeId());
 					task.setStatus(DriverTask.TaskStatus.ABORTED);
 				}
 			} catch (Exception e) {
@@ -374,19 +375,18 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 		DriverTask task = createDriverTask(ScaleIOConstants.TASK_TYPE_DISCOVER_STORAGE_POOLS);
 		try {
 			log.info("StorageDriver: Discovery of storage pools for storage system {} .", storageSystem.getNativeId());
-			ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
+			ScaleIORestClient scaleIOHandle = scaleIORestHandleFactory.getClientHandle(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
 			if (scaleIOHandle != null) {
 				List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
 				for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
-					String domainName = protectionDomain.getName();
-					if (domainName.equalsIgnoreCase(storageSystem.getSystemName())) {
+					String domainID = protectionDomain.getSystemId();
+					if (compare(domainID, storageSystem.getNativeId())) {
 						List<ScaleIOStoragePool> scaleIOStoragePoolList = scaleIOHandle.getProtectionDomainStoragePools(protectionDomain.getId());
 						StoragePool pool;
 						for (ScaleIOStoragePool storagePool : scaleIOStoragePoolList) {
 							pool = new StoragePool();
-							pool.setStorageSystemId(storageSystem.getNativeId());
-							log.info("Discovered Pool {}, storageSystem {}", pool.getNativeId(), pool.getStorageSystemId());
 							pool.setNativeId(storagePool.getId());
+							log.info("Discovered Pool {}, storageSystem {}", pool.getNativeId(), pool.getStorageSystemId());
 							pool.setStorageSystemId(protectionDomain.getId());
 							pool.setPoolName(storagePool.getName());
 							Set<StoragePool.Protocols> protocols = new HashSet<>();
@@ -431,39 +431,32 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 		DriverTask task = createDriverTask(ScaleIOConstants.TASK_TYPE_DISCOVER_STORAGE_PORTS);
 		try {
 			log.info("StorageDriver: Discovery of storage ports for storage system {} .", storageSystem.getNativeId());
-			ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
+			ScaleIORestClient scaleIOHandle = scaleIORestHandleFactory.getClientHandle(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
 			if (scaleIOHandle != null) {
-				List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
 				List<ScaleIOSDS> allSDSs = scaleIOHandle.queryAllSDS();
-				for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
-					String domainName = protectionDomain.getName();
-					String protectionDomainId = protectionDomain.getId();
-					if (compare(domainName, storageSystem.getSystemName())) {
-						StoragePort port;
-						for (ScaleIOSDS sds : allSDSs) {
-							String pdId = sds.getProtectionDomainId();
-							if (compare(pdId, protectionDomainId)) {
-								String sdsId = sds.getId();
-								List<ScaleIOSDS.IP> ips = sds.getIpList();
-								String sdsIP = null;
-								if (ips != null && !ips.isEmpty()) {
-									sdsIP = ips.get(0).getIp();
-								}
-								if (sdsId != null) {
-									port = new StoragePort();
-									// String nativeId = URIUtil
-									port.setDeviceLabel(String.format("%s-%s-StoragePort", domainName, sdsId));
-									port.setPortName(sdsId);
-									port.setPortNetworkId(sdsId);
-									port.setStorageSystemId(storageSystem.getNativeId());
-									port.setTransportType(StoragePort.TransportType.ScaleIO);
-									port.setOperationalStatus(StoragePort.OperationalStatus.OK);
-									port.setIpAddress(sdsIP);
-									port.setPortGroup(sdsId);
-									port.setPortType(StoragePort.PortType.frontend);
-									storagePorts.add(port);
-								}
-							}
+				for (ScaleIOSDS sds : allSDSs) {
+					StoragePort port;
+					String pdId = sds.getProtectionDomainId();
+					if (compare(pdId, storageSystem.getNativeId())) {
+						String sdsId = sds.getId();
+						List<ScaleIOSDS.IP> ips = sds.getIpList();
+						String sdsIP = null;
+						if (ips != null && !ips.isEmpty()) {
+							sdsIP = ips.get(0).getIp();
+						}
+
+						if (sdsId != null && compare(sds.getSdsState(),ScaleIOConstants.OPERATIONAL_STATUS_CONNECTED)) {
+							port = new StoragePort();
+							port.setDeviceLabel(String.format("%s-%s-StoragePort", sds.getName(), sdsId));
+							port.setPortName(sds.getName());
+							port.setPortNetworkId(sdsId);
+							port.setStorageSystemId(storageSystem.getNativeId());
+							port.setTransportType(StoragePort.TransportType.ScaleIO);
+							port.setOperationalStatus(StoragePort.OperationalStatus.OK);
+							port.setIpAddress(sdsIP);
+							port.setPortGroup(sdsId);
+							port.setPortType(StoragePort.PortType.frontend);
+							storagePorts.add(port);
 						}
 					}
 				}

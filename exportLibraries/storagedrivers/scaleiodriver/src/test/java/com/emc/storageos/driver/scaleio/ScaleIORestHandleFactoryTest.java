@@ -15,7 +15,7 @@ public class ScaleIORestHandleFactoryTest {
 
     private static Logger log = LoggerFactory.getLogger(ScaleIORestHandleFactoryTest.class);
     String SYS_NATIVE_ID = "6ee6d94e5a3517b8";
-    String IP_ADDRESS = "10.193.17.97";
+    String IP_ADDRESS = "10.193.17.88";
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";

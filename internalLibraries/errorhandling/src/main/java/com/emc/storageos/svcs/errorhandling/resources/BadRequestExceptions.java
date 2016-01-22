@@ -308,7 +308,7 @@ public interface BadRequestExceptions {
     public BadRequestException invalidScheduleSnapshotExpireType(final String expireType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidScheduleSnapshotExpireValue(int expireValue);
+    public BadRequestException invalidScheduleSnapshotExpireValue(int expireValue, int minValue, int maxValue);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidAutoTieringPolicy();
@@ -2686,7 +2686,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidIpsecStatus();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllowedToAddVdcInDRConfig();
 
@@ -2754,7 +2754,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException backupIntervalIsInvalid(String interval);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);
 

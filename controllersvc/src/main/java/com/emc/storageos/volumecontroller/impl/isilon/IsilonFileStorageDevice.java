@@ -891,7 +891,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // String protection = args.getFSProtectionLevel();
             // Call isilon api to set protection level
 
-
             _log.info("IsilonFileStorageDevice doCreateFS {} - complete", args.getFsId());
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
@@ -2600,7 +2599,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-              FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
+        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
         String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), target.getLabel());
         BiosCommandResult cmdResult = doCancelReplicationPolicy(system, policyName);
         if (cmdResult.getCommandSuccess()) {
@@ -2629,7 +2628,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        
+
     }
 
     @Override
@@ -2652,13 +2651,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
-
     @Override
     public BiosCommandResult assignFilePolicy(StorageSystem storage, FileDeviceInputOutput args) {
-        // for isilon we need to crate a new policy for each individual file system
+        // for isilon we need to create a new policy for each individual file system
 
         SchedulePolicy fp = args.getFilePolicy();
-        String snapshotScheduleName = "Vipr_" + fp.getPolicyName() + "_" + args.getFsName();
+        String snapshotScheduleName = "Coprhd_" + fp.getPolicyName() + "_" + args.getFsName();
         String pattern = snapshotScheduleName + "_%Y-%m-%d_%H-%M";
         String Schedulevalue = getIsilonScheduleString(fp);
         Integer expireValue = getSnapshotExpireValue(fp);
@@ -2678,7 +2676,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
 
         SchedulePolicy fp = args.getFilePolicy();
-        String snapshotScheduleName = "Vipr_" + fp.getPolicyName() + "_" + args.getFsName();
+        String snapshotScheduleName = "Coprhd_" + fp.getPolicyName() + "_" + args.getFsName();
         IsilonApi isi = getIsilonDevice(storageObj);
         try {
             isi.deleteSnapshotSchedule(snapshotScheduleName);

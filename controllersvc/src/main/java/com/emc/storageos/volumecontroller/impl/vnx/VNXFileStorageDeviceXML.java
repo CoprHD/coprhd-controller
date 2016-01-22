@@ -1397,6 +1397,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.netappc.operationNotSupported());
+                DeviceControllerErrors.vnx.operationNotSupported());
     }
 }

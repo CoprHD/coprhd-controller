@@ -2387,7 +2387,7 @@ public class FileService extends TaskResourceService {
             @PathParam("filePolicyUri") URI filePolicyUri) throws InternalException {
 
         // log input received.
-        _log.info("Assign Policy on File System : request received for {}  with {}", id, filePolicyUri);
+        _log.info("Assigning file policy {} to file system {}", filePolicyUri, id);
         String task = UUID.randomUUID().toString();
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");

@@ -375,6 +375,7 @@ public class ECSApi {
     
     /**
      * Updates the bucket ACL
+     * 
      * @param bucketName
      * @param payload
      * @throws ECSException
@@ -386,15 +387,17 @@ public class ECSApi {
         final String path = MessageFormat.format(URI_UPDATE_BUCKET_ACL, bucketName);
         try {
             clientResp = put(path, payload);
-        } catch (Exception e) {
-            _log.error("Error occured while ACL update for bucket : {}", bucketName, e);
-        } finally {
             if (null == clientResp) {
                 throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, "no response from ECS");
             } else if (clientResp.getStatus() != 200) {
                 throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, getResponseDetails(clientResp));
             }
-            closeResponse(clientResp);
+        } catch (Exception e) {
+            _log.error("Error occured while ACL update for bucket : {}", bucketName, e);
+        } finally {
+            if (clientResp != null) {
+                closeResponse(clientResp);
+            }
 
         }
 

@@ -539,7 +539,7 @@ public class BucketACLUtility {
 
         // Construct ACL Index
         StringBuffer aclIndex = new StringBuffer();
-        aclIndex.append(this.bucketId).append(domainOfReqAce).append(userOrGroupOrCustomGroup);
+        aclIndex.append(this.bucketId).append(domainOfReqAce).append(userOrGroupOrCustomGroup.toLowerCase());
 
         acl = this.queryACLByIndex(aclIndex.toString());
 

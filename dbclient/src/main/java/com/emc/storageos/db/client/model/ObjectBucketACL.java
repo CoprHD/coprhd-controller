@@ -150,7 +150,7 @@ public class ObjectBucketACL extends DataObject {
             if (this.bucketId != null) {
                 aclIndexBuffer.append(this.bucketId)
                         .append(this.domain == null ? "" : this.domain)
-                        .append(userOrGroupOrCustom);
+                        .append(userOrGroupOrCustom.toLowerCase());
                 this.setBucketACLIndex(aclIndexBuffer.toString());
             }
         }

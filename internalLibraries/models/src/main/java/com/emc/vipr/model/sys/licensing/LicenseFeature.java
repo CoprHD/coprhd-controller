@@ -20,6 +20,7 @@ public class LicenseFeature implements Serializable {
     private static final long serialVersionUID = -5873033105809411374L;
     public static final String MODELID_DELIMETER = ":";
     public static final String OLD_LICENSE_SUBMODEL = "OUTDATED";   // For original managed capacity license
+    public static final String TRIAL_LICENSE_SUBMODEL = "TRIAL";   // For trial license
 
 
     private String serial;
@@ -293,13 +294,16 @@ public class LicenseFeature implements Serializable {
         this.trialLicense = trialLicense;
     }
 
-    // VIPR_CONTROLLER
+    // e.g.: VIPR_CONTROLLER
     public String getLicenseFeature() {
         return getModelId().split(MODELID_DELIMETER)[0];
     }
 
-    // TIER1/TIER2/TIER3/ARRAY
+    // e.g.: TIER1/TIER2/TIER3/ARRAY
     public String getLicenseType() {
+        if (isTrialLicense()) {
+            return TRIAL_LICENSE_SUBMODEL;
+        }
         return getModelId().contains(MODELID_DELIMETER) ? getModelId().split(MODELID_DELIMETER)[1] : OLD_LICENSE_SUBMODEL;
     }
 }

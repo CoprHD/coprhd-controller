@@ -64,6 +64,11 @@ public class IsilonApi {
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
     private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
     private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
+    private static final URI URI_REPLICATION_POLICIES = URI.create("/platform/1/sync/policies/");
+    private static final URI URI_REPLICATION_JOBS = URI.create("/platform/1/sync/jobs");
+    private static final URI URI_TARGET_REPLICATION_POLICIES = URI.create("platform/1/sync/target/policies/");
+    private static final URI URI_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/reports?policy_name=");
+    private static final URI URI_TARGET_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/target/reports?policy_name=");
     private static final URI URI_SNAPSHOTIQ_LICENSE_INFO = URI.create("/platform/1/snapshot/license");
     private static final URI URI_SNAPSHOT_SCHEDULES = URI.create("/platform/1/snapshot/schedules");
 
@@ -191,6 +196,8 @@ public class IsilonApi {
     }
 
     /**
+     * 
+     * /**
      * Get list of all sub directories of fspath
      * 
      * @param fspath directory path to lookup
@@ -1754,6 +1761,106 @@ public class IsilonApi {
             return licenseStatus;
         }
         return licenseStatus;
+    }
+
+    /**
+     * Get Replication Policy information from the Isilon array
+     * 
+     * @return IsilonSyncPolicy object
+     * @throws IsilonException
+     */
+    public IsilonSyncPolicy getReplicationPolicy(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", IsilonSyncPolicy.class);
+    }
+
+    /**
+     * Get Target Replication Policy information from the Isilon array
+     * 
+     * @return IsilonSyncPolicy object
+     * @throws IsilonException
+     */
+    public IsilonSyncTargetPolicy getTargetReplicationPolicy(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_TARGET_REPLICATION_POLICIES), id, "policies", IsilonSyncTargetPolicy.class);
+    }
+
+    /**
+     * Create Replication Policy
+     * 
+     * @param replicationPolicy IsilonSyncPolicy object
+     * @return String identifier for the policy created
+     * @throws IsilonException
+     */
+    public String createReplicationPolicy(IsilonSyncPolicy replicationPolicy) throws IsilonException {
+        return create(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", replicationPolicy);
+    }
+
+    /**
+     * Modify Replication Policy
+     * 
+     * @param id identifier/name of the Replication Policy to modify
+     * @param syncPolicy IsilonSyncPolicy object with the modified properties
+     * @throws IsilonException
+     */
+    public void modifyReplicationPolicy(String id, IsilonSyncPolicy syncPolicy) throws IsilonException {
+        modify(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", syncPolicy);
+    }
+
+    /**
+     * Delete replication policy
+     * 
+     * @param id identifier for the replication policy object to delete
+     * @throws IsilonException
+     */
+    public void deleteReplicationPolicy(String id) throws IsilonException {
+        delete(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies");
+    }
+
+    /**
+     * Get Replication Jobs information from the Isilon array
+     * 
+     * @param id identifier for the replication policy
+     * @return Replication Jobs object
+     * @throws IsilonException
+     */
+    public IsilonSyncJob getReplicationJob(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_REPLICATION_JOBS), id, "jobs", IsilonSyncJob.class);
+    }
+
+    /**
+     * Start a Replication Job
+     * 
+     * @param IsilonSyncJob Object
+     * @return policy_name
+     * @throws IsilonException
+     */
+    public String modifyReplicationJob(IsilonSyncJob job) throws IsilonException {
+        return create(_baseUrl.resolve(URI_REPLICATION_JOBS), "jobs", job);
+    }
+
+    /**
+     * Get Replication Reports information from the Isilon array
+     * 
+     * @param Name for the replication policy
+     * @return Replication Report Object
+     * @throws IsilonException
+     */
+
+    public IsilonList<IsilonSyncPolicyReport> getReplicationPolicyReports(String policyName) throws IsilonException {
+        URI uri = URI.create(URI_REPLICATION_POLICY_REPORTS.toString() + policyName);
+        return list(_baseUrl.resolve(uri), "reports", IsilonSyncPolicyReport.class, "");
+    }
+
+    /**
+     * Get Target Replication Reports information from the Isilon array
+     * 
+     * @param Name for the replication policy
+     * @return Replication Report Object
+     * @throws IsilonException
+     */
+
+    public IsilonList<IsilonSyncPolicyReport> getTargetReplicationPolicyReports(String policyName) throws IsilonException {
+        URI uri = URI.create(URI_TARGET_REPLICATION_POLICY_REPORTS.toString() + policyName);
+        return list(_baseUrl.resolve(uri), "reports", IsilonSyncPolicyReport.class, "");
     }
 
     private String getURIWithZoneName(String id, String zoneName) {

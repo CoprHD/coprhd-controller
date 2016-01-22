@@ -64,7 +64,6 @@ import com.emc.storageos.model.vpool.FileReplicationPolicy;
 import com.emc.storageos.model.vpool.FileVirtualPoolBulkRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionUpdateParam;
-import com.emc.storageos.model.vpool.FileVirtualPoolReplicationUpdateParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolList;
@@ -614,6 +613,13 @@ public class FileVirtualPoolService extends VirtualPoolService {
                             throw APIException.badRequests.invalidReplicationRPOType(replPolicy.getRpoType());
                         }
                     }
+                    if (null != replPolicy.getRpoType()) {
+                        if (FileReplicationRPOType.lookup(replPolicy.getRpoType()) != null) {
+                            vPool.setFrRpoType(replPolicy.getRpoType());
+                        } else {
+                            throw APIException.badRequests.invalidReplicationRPOType(replPolicy.getRpoType());
+                        }
+                    }
                 }
 
                 if (FileReplicationType.REMOTE.name().equalsIgnoreCase(vPool.getFileReplicationType()) &&
@@ -686,8 +692,8 @@ public class FileVirtualPoolService extends VirtualPoolService {
      */
     private boolean checkAttributeValuesChanged(FileVirtualPoolUpdateParam param, VirtualPool vpool) {
         return super.checkAttributeValuesChanged(param, vpool)
-                || checkLongTermRetentionChanged(param.getLongTermRetention(), vpool.getLongTermRetention())
-                || checkProtectionChanged(vpool, param.getProtection());
+                || checkLongTermRetentionChanged(param.getLongTermRetention(), vpool.getLongTermRetention()
+                        || checkProtectionChanged(vpool, param.getProtection()));
 
     }
 
@@ -731,13 +737,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
 
         // Check for file replication protection
         if (to.getReplicationParam() != null) {
-            FileReplicationPolicy replPolicy = to.getReplicationParam().getSourcePolicy();
-
-            if (replPolicy != null) {
-                if (isReplicationPolicyChanged(from, to.getReplicationParam())) {
-                    return true;
-                }
-            }
             if ((null != to.getReplicationParam().getAddRemoteCopies()
                     && !to.getReplicationParam().getAddRemoteCopies().isEmpty())
                     || (null != to.getReplicationParam().getRemoveRemoteCopies()
@@ -753,34 +752,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
         }
         _log.info("No protection changes");
         return false;
-    }
-
-    private static boolean isReplicationPolicyChanged(VirtualPool vPool,
-            FileVirtualPoolReplicationUpdateParam replParam) {
-
-        if (replParam != null && replParam.getSourcePolicy() != null) {
-            FileReplicationPolicy replPolicy = replParam.getSourcePolicy();
-            // If no replication was enable!!
-            if (vPool.getFileReplicationType() == null) {
-                return true;
-            }
-            if (!vPool.getFileReplicationType().equalsIgnoreCase(replPolicy.getReplicationType())) {
-                return true;
-            }
-            if (replPolicy.getCopyMode() != null &&
-                    !replPolicy.getCopyMode().equalsIgnoreCase(vPool.getFileReplicationCopyMode())) {
-                return true;
-            }
-            if (replPolicy.getRpoType() != null &&
-                    !replPolicy.getRpoType().equalsIgnoreCase(vPool.getFrRpoType())) {
-                return true;
-            }
-            if (replPolicy.getRpoValue() != null && vPool.getFrRpoValue() != replPolicy.getRpoValue()) {
-                return true;
-            }
-        }
-        return false;
-
     }
 
     /**

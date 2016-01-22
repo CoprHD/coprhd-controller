@@ -51,11 +51,12 @@ import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 
 /**
  * DataDomain specific file controller implementation.
  */
-public class DataDomainFileStorageDevice implements FileStorageDevice {
+public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
 
     private static final Logger _log = LoggerFactory.getLogger(DataDomainFileStorageDevice.class);
 

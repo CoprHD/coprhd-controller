@@ -56,26 +56,103 @@
     </form>
 </div>
 
+<div id="system-logs" ng-controller="AuditLogCtrl">
+    <div class="filter-text">
+        <div class="buttons">
+            <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#filter-dialog"
+                    data-type="filter">
+                <span v-icon="filter"></span> {{'auditLog.changefilter' | t}}
+            </button>
+            <button type="button" class="btn btn-sm btn-default" data-toggle="modal" data-target="#filter-dialog"
+                    data-type="download">
+                <span v-icon="download"></span> {{'auditLog.download' | t}}
+            </button>
+        </div>
+        <div class="description" ng-bind-html="filterText"></div>
+        <div class="clearfix"></div>
+    </div>
+
+    <div class="modal fade" id="filter-dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">{{('systemLogs.'+filterDialog.type+'.title') | t}}</h4>
+                </div>
+                <div class="modal-body">
+                    <form class="form form-horizontal">
+                        <control-group v-field="filterDialog.resultStatus" width="9">
+                            <select-one options="resultStatusOptions"></select-one>
+                        </control-group>
+                        <control-group v-field="filterDialog.startTime" width="9">
+                            <date-picker ng-model="filterDialog.startTime_date" close="true"></date-picker>
+                            <time-picker ng-model="filterDialog.startTime_time"></time-picker>
+                        </control-group>
+                        <control-group v-field="filterDialog.endTime" width="9"
+                                       ng-show="filterDialog.type == 'download'">
+                            <date-picker ng-model="filterDialog.endTime_date" ng-hide="filterDialog.endTimeCurrentTime"
+                                         close="true"></date-picker>
+                            <time-picker ng-model="filterDialog.endTime_time"
+                                         ng-hide="filterDialog.endTimeCurrentTime"></time-picker>
+                            <div class="checkbox current-time-toggle">
+                                <label><input type="checkbox" ng-model="filterDialog.endTimeCurrentTime">
+                                    {{'filterDialog.currentTime' | t}}</label>
+                            </div>
+                        </control-group>
+                        <control-group v-field="filterDialog.serviceType" width="9">
+                            <input-text></input-text>
+                        </control-group>
+                        <control-group v-field="filterDialog.user" width="9">
+                            <input-text></input-text>
+                        </control-group>
+                        <control-group v-field="filterDialog.keyword" width="9">
+                            <input-text onkeydown="updateFilter(event.keyCode)"></input-text>
+                        </control-group>
+                        <control-group v-field="filterDialog.orderTypes" width="9"
+                                       ng-show="filterDialog.type == 'download'">
+                            <select-one options="orderTypeOptions"></select-one>
+                        </control-group>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" ng-click="downloadLogs()"
+                            ng-show="filterDialog.type == 'download'">
+                        <span v-icon="download"></span> {{'system.logs.download' | t}}
+                    </button>
+                    <button type="button" id="filterButton" class="btn btn-primary" ng-click="applyFilter()"
+                            ng-show="filterDialog.type == 'filter'">
+                        <span v-icon="filter"></span> {{'system.logs.update' | t}}
+                    </button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">
+                        <span v-icon="remove"></span> {{'button.close' | t}}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
 %{
 options = ['bFilter': false, 'fnServerParams': 'loadServerParams', 'sAjaxDataProp': '""', 'bServerSide':false]
 }%
-#{DataTable.table id:'auditLog', 
+#{DataTable.table id:'auditLog',
                   dataTable:dataTable,
                   source:@logsJson(),
                   expandable:true,
                   cssClass:'editableRows',
                   options:options /}
-#{DataTable.expandAction 'renderDetails', table:'auditLog', target:'tr'/}       
+#{DataTable.expandAction 'renderDetails', table:'auditLog', target:'tr'/}
 #{set 'moreScripts'}
 	#{get 'moreScripts'/}
 	<script type="text/javascript">
 
 	$(document).ready(function() {
 		var initialDate = moment(#{if currentDate}${currentDate.getTime()}#{/if});
-		
+
 		var hourString = initialDate.format("HH");
-		$('#hour-combobox').val(hourString); 
+		$('#hour-combobox').val(hourString);
 
 		initialDate.milliseconds(0);
 		initialDate.seconds(0);
@@ -83,7 +160,7 @@ options = ['bFilter': false, 'fnServerParams': 'loadServerParams', 'sAjaxDataPro
 		initialDate.hours(0);
 
 		auditLogDate.setTime(initialDate);
-		
+
 	  });
 
     function loadServerParams(aoData) {
@@ -100,7 +177,7 @@ options = ['bFilter': false, 'fnServerParams': 'loadServerParams', 'sAjaxDataPro
 
     function renderDetails(data) {
         var details = "<pre style='margin:15px;' class='auditLogs'>" + data._description + "</pre>";
-        
+
         return details;
     }
 
@@ -128,26 +205,26 @@ options = ['bFilter': false, 'fnServerParams': 'loadServerParams', 'sAjaxDataPro
         }
         return "";
     }
-    
+
     function renderDescription(o, val) {
     	return "<div class='auditLogsDescription'>" + o.aData._description + "</div>"
     }
-    
+
     function getSelectedDateTime() {
     	var time = auditLogDate.getTime();
-    	
+
     	var newDate = moment(time);
     	newDate.hours(0);
     	newDate.minutes(0);
     	newDate.seconds(0);
     	newDate.milliseconds(0);
-    	
+
     	var hourString = $("#hour-combobox").val();
     	newDate.hours(hourString);
 
     	return newDate.valueOf();
     }
-    
-    
+
+
 	</script>
 #{/set}

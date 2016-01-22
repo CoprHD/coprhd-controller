@@ -2572,6 +2572,13 @@ auditLog._serviceType=Service Type
 auditLog._userId=User
 auditLog._operationalStatus=Result
 auditLog._description=Description
+auditLog.download=Download
+auditLog.changefilter=Filter
+
+filterDialog.resultStatus=Status
+filterDialog.serviceType=Service Type
+filterDialog.user=User
+filterDialog.keyword=Keyword
 
 discovery.status.title=Discovery:
 discovery.status.created=Pending

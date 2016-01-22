@@ -916,17 +916,17 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     angular.forEach($scope.orderTypes, function(value) {
         this.push({id:value, name:translate("systemLogs.orderType."+value)});
     }, $scope.orderTypeOptions);
-    
+
     $scope.nodeIdOptions = [{id:'', name:translate('system.logs.allnodes')}];
     angular.forEach($scope.controlNodes, function(value) {
         this.push({id:value.nodeId, name:value.nodeName + " (" + value.nodeId + ")"});
     }, $scope.nodeIdOptions);
-    
+
     $scope.serviceOptions = [];
     angular.forEach($scope.allServices, function(value) {
         this.push({id:value, name:value});
     }, $scope.serviceOptions);
-    
+
     $scope.severityOptions = [];
     angular.forEach(SEVERITIES, function(value, key) {
         this.push({id:key, name:value});
@@ -1105,6 +1105,185 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         });
     }
     
+    function fetchError(data, status, headers, config) {
+        $scope.loading = false;
+        $scope.error = data;
+    }
+});
+
+angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $sce, $cookies) {
+    var LOGS_JSON = routes.SystemHealth_logsJson();
+    var APPLY_FILTER = routes.SystemHealth_logs();
+    var DOWNLOAD_LOGS = routes.SystemHealth_download();
+    var RESULT_STATUS = {
+        'S': 'SUCCESS',
+        'F': 'FAILURE'
+    };
+
+    $scope.resultStatusOptions = [];
+    angular.forEach(RESULT_STATUS, function(value, key) {
+        this.push({id:key, name:value});
+    }, $scope.resultStatusOptions);
+
+    $scope.descending = $cookies.sort === 'desc';
+    $scope.toggleSort = function() {
+        $scope.descending = !$scope.descending;
+        $cookies.sort = ($scope.descending ? 'desc' : 'asc');
+    };
+
+    $scope.filter = {
+        maxCount: 1000,
+        startTime: $scope.startTime,
+        resultStatus: $scope.resultStatus,
+        keyword: $scope.keyword
+    };
+    $scope.$watchCollection('filter', function() {
+        $scope.filterDialog = angular.extend({orderTypes: ''}, $scope.filter);
+    });
+
+    $scope.loading = false;
+    $scope.error = null;
+
+    $scope.moreLogs = function() {
+        if ($scope.loading) {
+            return;
+        }
+        var nextStartTime = getNextStartTime();
+        if (nextStartTime) {
+            var args = angular.extend(getFetchArgs(), { start: nextStartTime });
+            fetchLogs(args);
+        }
+    };
+
+    // Hooks for the filter/download dialog
+    angular.element("#filter-dialog").on("show.bs.modal", function (event) {
+        $scope.$apply(function() {
+            var button = $(event.relatedTarget);
+            var type = button.data('type');
+
+            $scope.filterDialog.type = type;
+            if (type == 'download') {
+                $scope.filterDialog.endTime = new Date().getTime();
+                $scope.filterDialog.endTime_date = getDate($scope.filterDialog.endTime);
+                $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);
+            }
+            $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
+            $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);
+        });
+    });
+
+    // Applies the filter from the dialog
+    $scope.applyFilter = function() {
+        angular.element('#filter-dialog').modal('hide');
+        var args = {
+            startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
+            resultStatus: $scope.filterDialog.resultStatus,
+            nodeId: $scope.filterDialog.nodeId,
+            service: $scope.filterDialog.service,
+            keyword: $scope.filterDialog.keyword
+        };
+        var url = APPLY_FILTER + "?" + encodeArgs(args);
+        window.location.href = url;
+    };
+
+    // Downloads the logs from the server
+    $scope.downloadLogs = function() {
+        angular.element('#filter-dialog').modal('hide');
+        var args = {
+            startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
+            endTime: getDateTime($scope.filterDialog.endTime_date, $scope.filterDialog.endTime_time),
+            resultStatus: $scope.filterDialog.resultStatus,
+            keyword: $scope.filterDialog.keyword,
+            orderTypes: $scope.filterDialog.orderTypes
+        };
+        if ($scope.filterDialog.endTimeCurrentTime) {
+            args.endTime = new Date().getTime();
+        }
+        var url = DOWNLOAD_LOGS + "?" + encodeArgs(args);
+        window.open(url, "_blank");
+    };
+
+    $scope.getLocalDateTime = function(o,datestring){
+        return render.localDate(o,datestring);
+    }
+
+    // Fill the table with data
+    fetchLogs(getFetchArgs());
+
+    function getDate(millis) {
+        return millis ? formatDate(millis, "YYYY-MM-DD") : "";
+    }
+
+    function getTime(millis) {
+        return millis ? formatDate(millis, "HH:mm") : "";
+    }
+
+    function getDateTime(dateStr, timeStr) {
+        if (dateStr && timeStr) {
+            return moment(dateStr + " " + timeStr, "YYYY-MM-DD HH:mm").toDate().getTime();
+        }
+        return null;
+    }
+
+    // Gets the next start time for fetching more logs
+    function getNextStartTime() {
+        if ($scope.logs && $scope.logs.length > 0) {
+            return $scope.logs[$scope.logs.length - 1].time_ms + 1;
+        }
+        return undefined;
+    }
+
+    function encodeArgs(args) {
+        var encoded = [];
+        angular.forEach(args, function(value, key) {
+            if (angular.isArray(value)) {
+                angular.forEach(value, function(value) {
+                    encoded.push(key+"="+encodeURIComponent(value));
+                });
+            }
+            else if (value) {
+                encoded.push(key+"="+encodeURIComponent(value));
+            }
+        });
+        return encoded.join("&");
+    }
+
+    function getFetchArgs() {
+        return {
+            maxcount: $scope.filter.maxCount,
+            start: $scope.filter.startTime,
+            resultStatus: $scope.filter.resultStatus,
+            log_name: $scope.filter.service,
+            msg_regex: getSearchRegex($scope.filter.keyword)
+        };
+    }
+
+    function getSearchRegex(message) {
+        return message ? ("(?i).*" + message + ".*") : undefined;
+    }
+
+    function fetchLogs(args) {
+        console.log("fetch args: "+JSON.stringify(args));
+        $scope.loading = true;
+        var params = { uri: "logs.json?" + encodeArgs(args) };
+        return $http.get(LOGS_JSON, { params: params }).
+            success(fetchSuccess).
+            error(fetchError);
+    }
+
+    function fetchSuccess(data, status, headers, config) {
+        $scope.loading = false;
+        $scope.error = null;
+        $scope.logs = ($scope.logs || []);
+
+        angular.forEach(data, function(value) {
+            // Ignore log messages with no time
+            if (value.time_ms) {
+                $scope.logs.push(value);
+            }
+        });
+    }
+
     function fetchError(data, status, headers, config) {
         $scope.loading = false;
         $scope.error = data;

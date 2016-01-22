@@ -167,8 +167,8 @@ public class BlockStorageScheduler {
         // Get the existing assignments in object form.
         Map<Initiator, List<StoragePort>> existingAssignments =
                 generateInitiatorsToStoragePortsMap(existingZoningMap, varray);
-        // Group the new initiators by their networks - filter out those not in a network or already in the existingZoningMap
-        Map<NetworkLite, List<Initiator>> initiatorsByNetwork = getNewInitiatorsByNetwork(newInitiators, existingZoningMap, _dbClient);
+        // Group the new initiators by their networks - filter out those not in a network 
+        Map<NetworkLite, List<Initiator>> initiatorsByNetwork = getInitiatorsByNetwork(newInitiators, existingZoningMap, _dbClient);
         Map<Initiator, NetworkLite> initiatorsToNetworkLiteMap = getInitiatorToNetworkLiteMap(initiatorsByNetwork);
         // Get the storage ports in the storage system that can be used in the initiators networks
         Map<NetworkLite, List<StoragePort>> portsByNetwork =
@@ -1873,7 +1873,6 @@ public class BlockStorageScheduler {
                 assignStoragePorts(storage, virtualArrayUri, initiators,
                         pathParams, preZonedZoningMap, volumeURIs);
 
-        ExportUtils.addPrezonedAssignments(existingZoningMap, assignments, preZonedZoningMap);
         return assignments;
     }
 
@@ -2088,14 +2087,13 @@ public class BlockStorageScheduler {
 
     /**
      * Creates a map of initiators grouped and keyed by their network.
-     * Initiators which are not in any network are not returned. Initiators
-     * in zoningMap are not returned.
+     * Initiators which are not in any network are not returned. 
      * 
      * @param initiators the initiators
      * @param client
      * @return a map of network-to-initiators
      */
-    public Map<NetworkLite, List<Initiator>> getNewInitiatorsByNetwork(Collection<Initiator> initiators,
+    private Map<NetworkLite, List<Initiator>> getInitiatorsByNetwork(Collection<Initiator> initiators,
             StringSetMap zoninMap, DbClient dbClient) {
         Map<NetworkLite, List<Initiator>> map = new HashMap<NetworkLite, List<Initiator>>();
         NetworkLite network = null;
@@ -2103,11 +2101,6 @@ public class BlockStorageScheduler {
             network = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
             if (network == null) {
                 _log.info(String.format("Initiator %s (%s) is being removed from initiator list because it has no network association",
-                        initiator.getInitiatorPort(), initiator.getHostName()));
-                continue;
-            }
-            if (zoninMap != null && zoninMap.containsKey(initiator.getId().toString())) {
-                _log.info(String.format("Initiator %s (%s) is being removed from initiator list because it already exists in zoning map",
                         initiator.getInitiatorPort(), initiator.getHostName()));
                 continue;
             }

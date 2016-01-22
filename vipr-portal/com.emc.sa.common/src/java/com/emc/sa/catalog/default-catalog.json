@@ -533,6 +533,17 @@
           "baseService": "DeleteBucket"
         }
       ]
-    }
+    },
+    {
+      "title": "customservice.title",
+      "image": "icon_data_services.png",
+      "description": "customservice.description",
+      "services": [
+        {
+          "image": "icon_create_bucket.png",
+          "baseService": "CreateCustomService"
+        }
+      ]
+    },
   ]
 }

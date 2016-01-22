@@ -26,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
@@ -190,6 +189,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // Once we have a proper managed consistency group and protection set, we need to
             // sprinkle those references over the managed volumes.
             decorateVolumeInformationFinalIngest(volumeContext);
+        } else {
+            volume.addInternalFlags(RP_INTERNAL_VOLUME_FLAGS); // Add internal flags
         }
 
         return clazz.cast(volume);
@@ -220,12 +221,13 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // VPLEX volume ingestion context now
             if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
                 if (rpVolumeContext instanceof RpVplexVolumeIngestionContext) {
-                    childRequestContext = 
+                    childRequestContext =
                             ((RpVplexVolumeIngestionContext) rpVolumeContext).getVplexVolumeIngestionContext();
                 }
             }
 
-            volume = (Volume) ingestStrategy.ingestBlockObjects(childRequestContext, VolumeIngestionUtil.getBlockObjectClass(unManagedVolume));
+            volume = (Volume) ingestStrategy.ingestBlockObjects(childRequestContext,
+                    VolumeIngestionUtil.getBlockObjectClass(unManagedVolume));
             _logger.info("Ingestion ended for unmanagedvolume {}", unManagedVolume.getNativeGuid());
             if (null == volume) {
                 throw IngestionException.exceptions.generalVolumeException(
@@ -291,7 +293,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         String rpInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);
 
-        volume.addInternalFlags(RP_INTERNAL_VOLUME_FLAGS); // Add internal flags
         volume.setRpCopyName(rpCopyName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setRSetName(rpRSetName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setInternalSiteName(rpInternalSiteName); // This comes from UNMANAGED_CG discovery of Protection System

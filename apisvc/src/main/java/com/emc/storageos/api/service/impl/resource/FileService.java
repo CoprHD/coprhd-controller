@@ -202,7 +202,7 @@ public class FileService extends TaskResourceService {
     
     FilePlacementManager _filePlacementManager;
 
-    // Block service implementations
+    // File service implementations
     static volatile private Map<String, FileServiceApi> _fileServiceApis;
 
     public static FileServiceApi getFileServiceApis(String Type) {
@@ -355,17 +355,7 @@ public class FileService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
         }
         
-        if(cos.getFileReplicationType() != null) {
-            if(cos.getRpRpoType() != null) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_VALUE, cos.getRpRpoType());
-            }
-            if(cos.getRpCopyMode() != null) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_TYPE, cos.getFileReplicationCopyMode());
-            }
-            if(cos.getFrRpoValue() != null) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_VALUE, cos.getFrRpoValue());
-            }
-        }
+        setProtectionCapWrapper(cos, capabilities);
         
 
         // verify quota
@@ -435,6 +425,25 @@ public class FileService extends TaskResourceService {
         fs.setOpStatus(new OpStatusMap());
         _dbClient.createObject(fs);
         return fs;
+    }
+    
+    void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
+        if(vPool.getFileReplicationType() != null) { //file replication tyep either LOCAL OR REMOTE
+            if(vPool.getRpRpoType() != null) { //rpo type can be DAYS or HOURS
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_TYPE, vPool.getRpRpoType());
+            }
+            
+            if(vPool.getFrRpoValue() != null) { 
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_VALUE, vPool.getFrRpoValue());
+            }
+            //async or copy
+            //async - soure changes will mirror target
+            //copy - it kind backup, it is full copy
+            if(vPool.getFileReplicationCopyMode() != null) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_COPY_MODE, vPool.getFrRpoValue());
+            }
+            
+        }
     }
     
     /**
@@ -1471,7 +1480,7 @@ public class FileService extends TaskResourceService {
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
-                task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM);
+                                task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM);
         op.setDescription("Filesystem deactivate");
 
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
@@ -1484,10 +1493,10 @@ public class FileService extends TaskResourceService {
                 _log.error("Delete error", e);
             }
 
-            FileShare vol = _dbClient.queryObject(FileShare.class, fs.getId());
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
             op = fs.getOpStatus().get(task);
             op.error(e);
-            vol.getOpStatus().updateTaskStatus(task, op);
+            fileShare.getOpStatus().updateTaskStatus(task, op);
             _dbClient.persistObject(fs);
             throw e;
         }

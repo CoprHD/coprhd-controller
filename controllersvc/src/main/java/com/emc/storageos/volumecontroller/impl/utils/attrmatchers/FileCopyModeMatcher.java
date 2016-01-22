@@ -21,16 +21,13 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 
 /**
- * FileReplicationCopyModeMatcher - is an attribute matcher to select storage pools
+ * FileCopyModeMatcher - is an attribute matcher to select storage pools
  * with given replication copy mode.
- * 
- * 
- * @author lakhiv
- * 
+ *
  */
 
-public class FileReplicationCopyModeMatcher extends AttributeMatcher {
-    private static final Logger _logger = LoggerFactory.getLogger(FileReplicationCopyModeMatcher.class);
+public class FileCopyModeMatcher extends AttributeMatcher {
+    private static final Logger _logger = LoggerFactory.getLogger(FileCopyModeMatcher.class);
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {

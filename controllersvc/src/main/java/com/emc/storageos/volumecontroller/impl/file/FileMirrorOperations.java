@@ -33,6 +33,6 @@ public interface FileMirrorOperations {
      */
     void deleteSingleMirrorFileShare(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException;
 
-    // to be add management operation (pause, resume, failover, failback)
+    //add management operation (pause, resume, failover, failback)
 
 }

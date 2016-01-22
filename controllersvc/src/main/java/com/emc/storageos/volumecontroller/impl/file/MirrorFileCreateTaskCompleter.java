@@ -23,17 +23,16 @@ public class MirrorFileCreateTaskCompleter extends MirrorFileTaskCompleter {
     private URI vpoolChangeURI;
 	public MirrorFileCreateTaskCompleter(Class clazz, List<URI> ids, String opId) {
 		super(clazz, ids, opId);
-
 	}
 
 	public MirrorFileCreateTaskCompleter(Class clazz, URI id, String opId) {
 		super(clazz, id, opId);
-
 	}
 
 	public MirrorFileCreateTaskCompleter(URI sourceURI, URI targetURI,
 			URI vPoolChangeUri, String opId) {
 		super(sourceURI, targetURI, opId);
+
 		if(vPoolChangeUri != null) {
 		    vpoolChangeURI = vPoolChangeUri;
 		}

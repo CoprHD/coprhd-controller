@@ -60,7 +60,6 @@ public abstract class FileTaskCompleter extends TaskLockingCompleter {
     public static void recordBourneFileEvent(DbClient dbClient,
             URI id, String evtType, Operation.Status status, String desc)
             throws Exception {
-    	//TODO
     }
 
     /**
@@ -74,8 +73,6 @@ public abstract class FileTaskCompleter extends TaskLockingCompleter {
      */
     public void recordFileSystemOperation(DbClient dbClient, OperationTypeEnum opType, 
     		Operation.Status status, Object... extParam) {
-    	//TODO
-    	
     }
 
     protected String eventMessage(Operation.Status status, FileShare fileShare) {

@@ -13,30 +13,30 @@ import java.util.*;
 
 public class FileDescriptor implements Serializable {
 
-    public FileDescriptor(Type _type, URI _deviceURI, URI _fsURI, URI _poolURI,
-			Long _fileSize,
-			VirtualPoolCapabilityValuesWrapper _capabilitiesValues,
-			URI _migrationId, String _suggestedNativeFsId) {
+    public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
+			Long fileSize,
+			VirtualPoolCapabilityValuesWrapper capabilitiesValues,
+			URI migrationId, String suggestedNativeFsId) {
 		super();
-		this._type = _type;
-		this._deviceURI = _deviceURI;
-		this._fsURI = _fsURI;
-		this._poolURI = _poolURI;
-		this._fileSize = _fileSize;
-		this._capabilitiesValues = _capabilitiesValues;
-		this._migrationId = _migrationId;
-		this._suggestedNativeFsId = _suggestedNativeFsId;
+		this._type = type;
+		this._deviceURI = deviceURI;
+		this._fsURI = fsURI;
+		this._poolURI = poolURI;
+		this._fileSize = fileSize;
+		this._capabilitiesValues = capabilitiesValues;
+		this._migrationId = migrationId;
+		this._suggestedNativeFsId = suggestedNativeFsId;
 		
 	}
     
-    public FileDescriptor(Type _type, URI _deviceURI, URI _fsURI, URI _poolURI,
+    public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
 						String deletionType, boolean forceDelete) {
 		super();
 
-		this._type = _type;
-		this._deviceURI = _deviceURI;
-		this._fsURI = _fsURI;
-		this._poolURI = _poolURI;
+		this._type = type;
+		this._deviceURI = deviceURI;
+		this._fsURI = fsURI;
+		this._poolURI = poolURI;
 		this.deleteType = deletionType;
 		this.forceDelete = forceDelete;
 	}
@@ -99,64 +99,64 @@ public class FileDescriptor implements Serializable {
 		return _suggestedNativeFsId;
 	}
 
-	public void setSuggestedNativeFsId(String _suggestedNativeFsId) {
-		this._suggestedNativeFsId = _suggestedNativeFsId;
+	public void setSuggestedNativeFsId(String suggestedNativeFsId) {
+		this._suggestedNativeFsId = suggestedNativeFsId;
 	}
 
 	public Type getType() {
         return _type;
     }
 
-    public void setType(Type _type) {
-        this._type = _type;
+    public void setType(Type type) {
+        this._type = type;
     }
 
     public URI getDeviceURI() {
         return _deviceURI;
     }
 
-    public void setDeviceURI(URI _deviceURI) {
-        this._deviceURI = _deviceURI;
+    public void setDeviceURI(URI deviceURI) {
+        this._deviceURI = deviceURI;
     }
 
     public URI getFsURI() {
         return _fsURI;
     }
 
-    public void setFsURI(URI _fsURI) {
-        this._fsURI = _fsURI;
+    public void setFsURI(URI fsURI) {
+        this._fsURI = fsURI;
     }
 
     public URI getPoolURI() {
         return _poolURI;
     }
 
-    public void setPoolURI(URI _poolURI) {
-        this._poolURI = _poolURI;
+    public void setPoolURI(URI poolURI) {
+        this._poolURI = poolURI;
     }
 
     public VirtualPoolCapabilityValuesWrapper getCapabilitiesValues() {
         return _capabilitiesValues;
     }
 
-    public void setCapabilitiesValues(VirtualPoolCapabilityValuesWrapper _capabilitiesValues) {
-        this._capabilitiesValues = _capabilitiesValues;
+    public void setCapabilitiesValues(VirtualPoolCapabilityValuesWrapper capabilitiesValues) {
+        this._capabilitiesValues = capabilitiesValues;
     }
 
     public Long getFileSize() {
         return _fileSize;
     }
 
-    public void setFileSize(Long _fileSize) {
-        this._fileSize = _fileSize;
+    public void setFileSize(Long fileSize) {
+        this._fileSize = fileSize;
     }
 
     public URI getMigrationId() {
         return _migrationId;
     }
 
-    public void setMigrationId(URI _migrationId) {
-        this._migrationId = _migrationId;
+    public void setMigrationId(URI migrationId) {
+        this._migrationId = migrationId;
     }
 
     /**

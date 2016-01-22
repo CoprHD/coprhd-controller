@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT;
+import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_COPYMODE;
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_COUNT;
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_NAME;
 import static com.emc.sa.service.ServiceParams.SNAPSHOT_SESSION;
@@ -13,6 +14,7 @@ import static com.emc.sa.service.ServiceParams.VOLUMES;
 
 import java.util.List;
 
+import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -41,6 +43,9 @@ public class LinkBlockSnapshotService extends ViPRService {
     
     @Param(value = LINKED_SNAPSHOT_COUNT, required = false)
     protected Integer linkedSnapshotCount;
+    
+    @Param(value = LINKED_SNAPSHOT_COPYMODE, required = false)
+    protected String linkedSnapshotCopyMode;
 
     @Override
     public void precheck() {
@@ -49,12 +54,17 @@ public class LinkBlockSnapshotService extends ViPRService {
                 // Can not relink an existing snapshot and link a new snapshot at the same time
                 if (existingLinkedSnapshotIds != null && !existingLinkedSnapshotIds.isEmpty()) {
                     ExecutionUtils.fail("failTask.LinkBlockSnapshot.linkNewAndExistingSnapshot.precheck", new Object[] {}, new Object[] {});
-                }
-                
+                }                
                 // If trying to create a new Snapshot Session and the optional linkedSnapshotName 
                 // is populated, make sure that linkedSnapshotCount > 0.                      
                 if (linkedSnapshotCount == null || linkedSnapshotCount.intValue() <= 0) {
                     ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCount.precheck", new Object[] {}, new Object[] {});
+                }
+                // Ensure that copy mode is selected            
+                if (linkedSnapshotCopyMode == null
+                        || !(BlockProvider.LINKED_SNAPSHOT_COPYMODE_VALUE.equals(linkedSnapshotCopyMode)
+                                || BlockProvider.LINKED_SNAPSHOT_NOCOPYMODE_VALUE.equals(linkedSnapshotCopyMode))) {
+                    ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCopyMode.precheck", new Object[] {}, new Object[] {});
                 }
             }            
         }
@@ -65,7 +75,7 @@ public class LinkBlockSnapshotService extends ViPRService {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (String snapshotSessionId : snapshotSessionIds) {
                 Task<? extends DataObjectRestRep> task;
-                task = execute(new LinkBlockSnapshot(snapshotSessionId, existingLinkedSnapshotIds, linkedSnapshotName, linkedSnapshotCount, "nocopy"));
+                task = execute(new LinkBlockSnapshot(snapshotSessionId, existingLinkedSnapshotIds, linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode));
                 addAffectedResource(task);
             }
         } else {

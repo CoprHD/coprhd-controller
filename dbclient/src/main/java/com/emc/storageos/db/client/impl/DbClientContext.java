@@ -15,8 +15,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.KeyspaceTracerFactory;
+import com.netflix.astyanax.connectionpool.ConnectionContext;
+import com.netflix.astyanax.connectionpool.ConnectionPool;
 import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -28,7 +32,13 @@ import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.partitioner.Murmur3Partitioner;
 import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.retry.RetryPolicy;
+import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
+import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
+import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
+import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.KsDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -255,7 +265,7 @@ public class DbClientContext {
                 @Override
                 public void run() {
                     try {
-                        checkAndResetConsistencyLevel(drUtil, hostSupplier.getDbSvcName(), hostSupplier.getDbClientVersion());
+                        checkAndResetConsistencyLevel(drUtil, hostSupplier.getDbSvcName());
                     } catch (Exception ex) {
                         log.warn("Encounter Unexpected exception during check consistency level. Retry in next run", ex);
                     }
@@ -294,8 +304,17 @@ public class DbClientContext {
         cluster = clusterContext.getClient();
     }
 
+    /**
+     * Check if it is geodbsvc
+     *
+     * @return
+     */
+    public boolean isGeoDbsvc() {
+        return getKeyspaceName().equals(GEO_KEYSPACE_NAME);
+    }
+
     protected int getThriftPort() {
-        int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
+        int port = isGeoDbsvc() ? GEODB_THRIFT_PORT : DB_THRIFT_PORT;
         return port;
     }
 
@@ -318,6 +337,8 @@ public class DbClientContext {
             clusterContext.shutdown();
             clusterContext = null;
         }
+
+        exe.shutdownNow();
     }
 
     /**
@@ -337,21 +358,57 @@ public class DbClientContext {
             update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
             update.setStrategyOptions(strategyOptions);
 
-            waitForSchemaAgreement(null);
+            // ensure a schema agreement before updating the strategy options
+            // or else it's destined to fail due to SchemaDisagreementException
+            boolean hasUnreachableNodes = ensureSchemaAgreement();
 
             String schemaVersion;
-            if (kd != null) {
+            if (hasUnreachableNodes) {
+                schemaVersion = alterKeyspaceWithThrift(kd, update);
+            } else if (kd != null) {
                 schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
             } else {
                 schemaVersion = cluster.addKeyspace(update).getResult().getSchemaId();
             }
     
-            if (wait) {
+            if (wait && !hasUnreachableNodes) {
                 waitForSchemaAgreement(schemaVersion);
             }
         } catch (ConnectionException ex) {
             log.error("Fail to update strategy option", ex);
             throw DatabaseException.fatals.failedToChangeStrategyOption(ex.getMessage());
+        }
+    }
+
+    /**
+     * Update the keyspace definition using low-level thrift API
+     * This is to bypass the precheck logic in Astyanax that throws SchemaDisagreementException when there are
+     * unreachable nodes in the cluster. Refer to https://github.com/Netflix/astyanax/issues/443 for details.
+     *
+     * @param kd existing keyspace definition, could be null
+     * @param update new keyspace definition
+     * @return new schema version after the update
+     */
+    private String alterKeyspaceWithThrift(KeyspaceDefinition kd, KeyspaceDefinition update) throws ConnectionException {
+        final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
+        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) clusterContext.getConnectionPool();
+        final KsDef def = ((ThriftKeyspaceDefinitionImpl) update).getThriftKeyspaceDefinition();
+        if (kd != null) {
+            return pool.executeWithFailover(
+                    new AbstractOperationImpl<String>(ks.newTracer(CassandraOperationType.UPDATE_KEYSPACE)) {
+                        @Override
+                        public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
+                            return client.system_update_keyspace(def);
+                        }
+                    }, clusterContext.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
+        } else {
+            return pool.executeWithFailover(
+                    new AbstractOperationImpl<String>(ks.newTracer(CassandraOperationType.ADD_KEYSPACE)) {
+                        @Override
+                        public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
+                            return client.system_add_keyspace(def);
+                        }
+                    }, clusterContext.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
         }
     }
 
@@ -379,45 +436,65 @@ public class DbClientContext {
     }
 
     /**
-     * Add a specific dc to strategy options, and wait till the new schema reaches all sites.
-     * If the dc already exists in the current strategy options, nothing changes.
+     * Try to reach a schema agreement among all the reachable nodes
      *
-     * @param dcId the dc to be removed
-     * @param repFactor replication factor for the dc
-     * @throws Exception
+     * @return true if there are unreachable nodes
      */
-    public void addDcToStrategyOptions(String dcId, int repFactor) throws Exception {
-        Map<String, String> strategyOptions = getKeyspace().describeKeyspace().getStrategyOptions();
-        if (!strategyOptions.containsKey(dcId)) {
-            log.info("Add dc {} to strategy options", dcId);
-            strategyOptions.put(dcId, String.valueOf(repFactor));
+    public boolean ensureSchemaAgreement() {
+        long start = System.currentTimeMillis();
+        Map<String, List<String>> schemas = null;
+        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
+            try {
+                log.info("sleep for {} seconds before checking schema versions.",
+                        DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS / 1000);
+                Thread.sleep(DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS);
+            } catch (InterruptedException ex) {
+                log.warn("Interrupted during sleep");
+            }
 
-            setCassandraStrategyOptions(strategyOptions, true);
+            schemas = getSchemaVersions();
+            if (schemas.size() > 2) {
+                // there are more than two schema versions besides UNREACHABLE, keep waiting.
+                continue;
+            }
+            if (schemas.size() == 1) {
+                if (!schemas.containsKey(StorageProxy.UNREACHABLE)) {
+                    return false;
+                } else {
+                    // keep waiting if all nodes are unreachable
+                    continue;
+                }
+            }
+            // schema.size() == 2, if one of them is UNREACHABLE, return
+            if (schemas.containsKey(StorageProxy.UNREACHABLE)) {
+                return true;
+            }
+            // else continue waiting
         }
+        log.error("Unable to converge schema versions {}", schemas);
+        throw new IllegalStateException("Unable to converge schema versions");
     }
 
     /**
      * Waits for schema change to propagate through cluster
      *
-     * @param targetSchemaVersion version we are waiting for, if null returns as soon as schema versions converge.
+     * @param targetSchemaVersion version we are waiting for
      * @throws InterruptedException
      */
     public void waitForSchemaAgreement(String targetSchemaVersion) {
         long start = System.currentTimeMillis();
         Map<String, List<String>> versions = null;
         while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
-            if (targetSchemaVersion != null) {
-                log.info("schema version to sync to: {}", targetSchemaVersion);
-            }
+            log.info("schema version to sync to: {}", targetSchemaVersion);
             versions = getSchemaVersions();
 
             if (versions.size() == 1) {
-                if (targetSchemaVersion != null && !versions.containsKey(targetSchemaVersion)) {
+                if (!versions.containsKey(targetSchemaVersion)) {
                     log.warn("Unable to converge to target version. Schema versions:{}, target version:{}",
                             versions, targetSchemaVersion);
                     return;
                 }
-                log.info("schema versions converged");
+                log.info("schema versions converged to target version {}", targetSchemaVersion);
                 return;
             }
 
@@ -446,7 +523,7 @@ public class DbClientContext {
         return versions;
     }
 
-    private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName, String dbVersion) {
+    private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName) {
         ConsistencyLevel currentConsistencyLevel = getKeyspace().getConfig().getDefaultWriteConsistencyLevel();
         if (currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
             log.debug("Write consistency level is EACH_QUORUM. No need adjust");
@@ -455,11 +532,12 @@ public class DbClientContext {
         
         log.info("Db consistency level for {} is downgraded as LOCAL_QUORUM. Check if we need reset it back", svcName);
         for(Site site : drUtil.listStandbySites()) {
-            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+            if (site.getState().equals(SiteState.STANDBY_PAUSED) ||
+                    site.getState().equals(SiteState.STANDBY_DEGRADED)) {
                 continue; // ignore a standby site which is paused by customer explicitly
             }
             String siteUuid = site.getUuid();
-            int count = drUtil.getNumberOfLiveServices(siteUuid, svcName, dbVersion);
+            int count = drUtil.getNumberOfLiveServices(siteUuid, svcName);
             if (count <= site.getNodeCount() / 2) {
                 log.info("Service {} of quorum nodes on site {} is down. Still keep write consistency level to LOCAL_QUORUM", svcName, siteUuid);
                 return;

@@ -71,6 +71,12 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         return clazz.cast(mirrorObj);
     }
 
+    private void checkVpoolSupportsMirrors(VirtualPool vpool) {
+        if (!VirtualPool.vPoolSpecifiesMirrors(vpool, _dbClient)) {
+
+        }
+    }
+
     /**
      * ViPR doesn't support creating mirrors off RP protected volumes. So check if the mirror to be ingested has RP
      * protected parent. If yes, throw an ingestion exception
@@ -91,19 +97,27 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         }
         if (parentNativeGUID != null) {
             logger.info("Finding unmanagedvolume {} in vipr db", parentNativeGUID);
-            UnManagedVolume parentUnManagedVolume = null;
             URIQueryResultList umvUriList = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getVolumeInfoNativeIdConstraint(parentNativeGUID), umvUriList);
             if (umvUriList.iterator().hasNext()) {
                 logger.info("Found unmanagedvolume {} in vipr db", parentNativeGUID);
                 URI umvUri = umvUriList.iterator().next();
-                parentUnManagedVolume = _dbClient.queryObject(UnManagedVolume.class, umvUri);
-                if (parentUnManagedVolume != null && !parentUnManagedVolume.getInactive()
-                        && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(parentUnManagedVolume)) {
+                UnManagedVolume parentUnManagedVolume = _dbClient.queryObject(UnManagedVolume.class, umvUri);
+                if (parentUnManagedVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(parentUnManagedVolume)) {
                     logger.info("Unmanaged mirror {} has RP protected parent", unManagedVolume.getLabel());
                     throw IngestionException.exceptions.cannotIngestMirrorsOfRPVolumes(unManagedVolume.getLabel(),
                             parentUnManagedVolume.getLabel());
+                }
+            } else {
+                // the parent might already be ingested in the vipr db.
+                logger.info("Finding managed volume in vipr db corresponding to {}", parentNativeGUID);
+                BlockObject parentObject = VolumeIngestionUtil.getBlockObject(parentNativeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
+                        VolumeIngestionUtil.VOLUME), _dbClient);
+                if (parentObject != null && BlockObject.checkForRP(_dbClient, parentObject.getId())) {
+                    logger.info("Unmanaged mirror {} has RP protected parent", unManagedVolume.getLabel());
+                    throw IngestionException.exceptions.cannotIngestMirrorsOfRPVolumes(unManagedVolume.getLabel(),
+                            parentObject.getLabel());
                 }
             }
         }

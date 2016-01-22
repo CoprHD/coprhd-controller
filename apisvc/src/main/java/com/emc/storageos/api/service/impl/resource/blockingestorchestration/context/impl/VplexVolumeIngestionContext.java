@@ -208,7 +208,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * 
      * @param unManagedVolume the UnManagedVolume to set
      */
-    protected void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
+    private void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
         _currentBackendVolumeIngestionContext =
                 VolumeIngestionContextFactory.getVolumeIngestionContext(unManagedVolume, _dbClient, this);
     }

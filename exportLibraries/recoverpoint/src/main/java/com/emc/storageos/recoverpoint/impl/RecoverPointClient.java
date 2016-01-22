@@ -2117,16 +2117,20 @@ public class RecoverPointClient {
                 // Enable the whole CG.
                 logger.info("Enabling consistency group " + cgName);
                 functionalAPI.enableConsistencyGroup(cgUID, true);
+                // Make sure the CG is ready
+                RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+                imageManager
+                        .waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
+                logger.info("Protection enabled on CG " + cgName);
             } else {
                 // Enable the CG copy associated with the target
                 logger.info("Enabling CG copy " + cgCopyName + " on CG " + cgName);
                 functionalAPI.enableConsistencyGroupCopy(cgCopyUID, true);
+                // Make sure the CG copy is stopped
+                RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+                imageManager.waitForCGCopyLinkState(functionalAPI, cgCopyUID, PipeState.ACTIVE);
+                logger.info("Protection enabled on CG copy " + cgCopyName + " on CG " + cgName);
             }
-            // Make sure the CG is ready
-            RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-            imageManager
-                    .waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
-            logger.info("Protection enabled on CG copy " + cgCopyName + " on CG " + cgName);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToEnableProtection(
                     volumeInfo.getRpVolumeGroupID(), e);

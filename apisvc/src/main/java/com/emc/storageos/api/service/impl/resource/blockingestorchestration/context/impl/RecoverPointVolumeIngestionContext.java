@@ -222,15 +222,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         // commit the basic IngestionRequestContext collections
         _dbClient.createObject(getObjectsIngestedByExportProcessing());
         _dbClient.createObject(getObjectsToBeCreatedMap().values());
-        
-        // remove from the parent context creation map because it was just saved here 
-        String volumeNativeGuid =
-                getUnmanagedVolume().getNativeGuid().replace(
-                        VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-        if (_parentRequestContext.getObjectsToBeCreatedMap().containsKey(volumeNativeGuid)) {
-            _parentRequestContext.getObjectsToBeCreatedMap().remove(volumeNativeGuid);
-        }
-        
+
         for (List<DataObject> dos : getObjectsToBeUpdatedMap().values()) {
             _dbClient.updateObject(dos);
         }

@@ -961,7 +961,7 @@ def block_until_complete(componentType, resource_uri, task_id, ipAddr, port,sync
                                    " is failed with error: " + error_message)
 
             if(IS_TASK_TIMEOUT):
-                print "Operation timed out."
+                print "Task did not complete in %d secs. Task still in progress. Please check the logs for task status"%synctimeout
                 IS_TASK_TIMEOUT = False
                 break
         return

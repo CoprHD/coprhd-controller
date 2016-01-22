@@ -167,6 +167,21 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     /**
+     * Set the label and device label, given an unmanaged volume
+     * 
+     * @param blockObject block object
+     * @param deviceLabel device label
+     */
+    protected void managedVolumeSetLabel(BlockObject blockObject, String deviceLabel) {
+        if (deviceLabel.contains("(")) {
+            blockObject.setLabel(deviceLabel.substring(0, deviceLabel.indexOf('(')-1));
+            blockObject.setDeviceLabel(deviceLabel.substring(0, deviceLabel.indexOf('(')-1));
+        } else {
+            super.managedVolumeSetLabel(blockObject, deviceLabel);
+        }
+    }
+
+    /**
      * Validate the VplexBackendIngestionContext against the
      * VirtualPool and Tenant.
      * 

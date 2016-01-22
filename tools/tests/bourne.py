@@ -8396,8 +8396,12 @@ class Bourne:
         results = self.un_managed_volume_search(name)
         resources = results['resource']
         for resource in resources:
-             if (resource['match'] == name):
-                 return resource['id']
+	    # Look for exact match
+	    if (resource['match'] == name):
+		return resource['id']
+	    # Look for exact "startsWith" match (as in VPlex)
+	    if (resource['match'].startswith(name + " (")):
+		return resource['id']
         raise Exception('bad volume name ' + name)
 
     def un_managed_volume_search(self, name):

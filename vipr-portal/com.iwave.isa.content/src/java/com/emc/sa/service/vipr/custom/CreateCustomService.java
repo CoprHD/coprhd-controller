@@ -10,7 +10,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 
-@Service("CreateBucket")
+@Service("CreateCustom")
 public class CreateCustomService extends ViPRService {
 
     @Param(NAME)

@@ -702,10 +702,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         if ((Volume.PersonalityTypes.SOURCE.toString().equalsIgnoreCase(type)) &&
                 (virtualPool.getProtectionVarraySettings() == null)) {
             throw IngestionException.exceptions.invalidSourceRPVirtualPool(unManagedVolume.getLabel(), virtualPool.getLabel());
-        } else if (!(Volume.PersonalityTypes.SOURCE.toString().equalsIgnoreCase(type)) &&
-                (virtualPool.getProtectionVarraySettings() != null)) {
-            throw IngestionException.exceptions.invalidRPVirtualPool(unManagedVolume.getLabel(), virtualPool.getLabel());
-        }
+        } 
 
         // check if the RP protected volume has any mirrors. If yes, throw an error as we don't support this configuration in ViPR as of now
         if (VolumeIngestionUtil.checkUnManagedVolumeHasReplicas(unManagedVolume)) {

@@ -1019,9 +1019,9 @@ public class DbServiceImpl implements DbService {
     private void printRecoveryWorkAround(Exception e) {
         if (e.getMessage().startsWith("A node required to move the data consistently is down (")) {
             String sourceIp = e.getMessage().split("\\(")[1].split("\\)")[0];
-            _log.error("{} of node {} is unavailable during node recovery, please double check the node {} status. " +
-                    "Node recovery will fail in 30 minutes if {} not back to normal state.", isGeoDbsvc() ? "geodbsvc" : "dbsvc",
-                    sourceIp, sourceIp, sourceIp);
+            _log.error(String.format("%s of node %s is unavailable during node recovery, please double check the node %s status. " +
+                    "Node recovery will fail in 30 minutes if %s not back to normal state.", isGeoDbsvc() ? "geodbsvc" : "dbsvc",
+                    sourceIp, sourceIp, sourceIp));
         }
     }
 }

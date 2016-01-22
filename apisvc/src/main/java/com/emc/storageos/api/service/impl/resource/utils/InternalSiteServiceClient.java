@@ -15,6 +15,7 @@ import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.security.helpers.BaseServiceClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.WebResource;
@@ -29,6 +30,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
     private static final String SITE_INTERNAL_FAILOVER = INTERNAL_SITE_ROOT + "/failover?newActiveSiteUUid=%s&vdcVersion=%d";
     private static final String SITE_INTERNAL_FAILOVERPRECHECK = INTERNAL_SITE_ROOT + "/failoverprecheck";
     private static final String SITE_INTERNAL_LIST = INTERNAL_SITE_ROOT + "/list";
+    private static final String SITE_REPAIR_STATUS = "/control/cluster/dbrepair-status";
 
     final private Logger log = LoggerFactory
             .getLogger(InternalSiteServiceClient.class);
@@ -86,7 +88,22 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         }
         return resp;
     }
-    
+
+    /**
+     * Get db repair status
+     * @return
+     */
+    public DbRepairStatus getSiteDbrepairStatus() {
+        WebResource rRoot = createRequest(SITE_REPAIR_STATUS);
+        DbRepairStatus status = null;
+        try {
+            status = addSignature(rRoot)
+                    .get(DbRepairStatus.class);
+        } catch (UniformInterfaceException e) {
+            log.warn("could not get site db repair status from site {}. Err:", site.toBriefString(), e);
+        }
+        return status;
+    }
     public FailoverPrecheckResponse failoverPrecheck() {
         WebResource rRoot = createRequest(SITE_INTERNAL_FAILOVERPRECHECK);
         ClientResponse resp = null;

@@ -852,6 +852,7 @@ disasterRecovery.userPassword=Password
 disasterRecovery.confirmPassword=Confirm Password
 disasterRecovery.description=Description
 disasterRecovery.networkHealth=Network Health
+disasterRecovery.dbRepairStatus=Data Repair Status
 disasterRecovery.confirmPassword.not.match=User Password and Confirm Password do not match.
 disasterRecovery.deleteConfirm=WARNING: You are about to delete Standby Site. This action is unreversable. Are you sure want to delete this Standby Site?
 

@@ -20,6 +20,26 @@ public class SiteDetailRestRep {
     private Double networkLatencyInMs;
     private String clusterState;
     private boolean dataSynced;
+    private String repairStatus;
+    private Date repairCompleteTime;
+
+    @XmlElement(name = "repairStatus")
+    public String getRepairStatus() {
+        return repairStatus;
+    }
+
+    public void setRepairStatus(String repairStatus) {
+        this.repairStatus = repairStatus;
+    }
+
+    @XmlElement(name = "repairCompleteTime")
+    public Date getRepairCompleteTime() {
+        return repairCompleteTime;
+    }
+
+    public void setRepairCompleteTime(Date repairCompleteTime) {
+        this.repairCompleteTime = repairCompleteTime;
+    }
 
     @XmlElement(name = "dataSynced")
     public boolean isDataSynced() {

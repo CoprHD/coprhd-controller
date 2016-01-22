@@ -6,7 +6,6 @@
 package com.emc.storageos.systemservices.impl.util;
 
 import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteNetworkHealth;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.services.util.AlertsLogger;
@@ -94,14 +93,14 @@ public class DrSiteNetworkMonitor implements Runnable{
 
         //Check that active site is set to good Network Health
         Site active = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
-        if (!SiteNetworkHealth.GOOD.equals(active.getNetworkHealth()) || active.getNetworkLatencyInMs() != 0) {
-            active.setNetworkHealth(SiteNetworkHealth.GOOD);
+        if (!Site.NetworkHealth.GOOD.equals(active.getNetworkHealth()) || active.getNetworkLatencyInMs() != 0) {
+            active.setNetworkHealth(Site.NetworkHealth.GOOD);
             active.setNetworkLatencyInMs(0);
             coordinatorClient.persistServiceConfiguration(active.toConfiguration());
         }
 
         for (Site site : drUtil.listStandbySites()){
-            SiteNetworkHealth previousState = site.getNetworkHealth();
+            Site.NetworkHealth previousState = site.getNetworkHealth();
             String host = site.getVip();
             double ping = testPing(host,SOCKET_TEST_PORT);
 
@@ -115,25 +114,25 @@ public class DrSiteNetworkMonitor implements Runnable{
             _log.info("Ping: "+ping);
             site.setNetworkLatencyInMs(ping);
             if (ping > NETWORK_SLOW_THRESHOLD) {
-                site.setNetworkHealth(SiteNetworkHealth.SLOW);
+                site.setNetworkHealth(Site.NetworkHealth.SLOW);
                 _log.warn("Network for standby {} is slow",site.getName());
                 AlertsLogger.getAlertsLogger().warn(String.format("Network for standby {} is Broken:" +
                         "Latency was reported as {} ms",site.getName(),ping));
             }
             else if (ping < 0) {
-                site.setNetworkHealth(SiteNetworkHealth.BROKEN);
+                site.setNetworkHealth(Site.NetworkHealth.BROKEN);
                 _log.error("Network for standby {} is broken",site.getName());
                 AlertsLogger.getAlertsLogger().error(String.format("Network for standby {} is Broken:" +
                         "Latency was reported as {} ms",site.getName(),ping));
             }
             else {
-                site.setNetworkHealth(SiteNetworkHealth.GOOD);
+                site.setNetworkHealth(Site.NetworkHealth.GOOD);
             }
 
             coordinatorClient.persistServiceConfiguration(site.toConfiguration());
 
-            if (!SiteNetworkHealth.BROKEN.equals(previousState)
-                    && SiteNetworkHealth.BROKEN.equals(site.getNetworkHealth())){
+            if (!Site.NetworkHealth.BROKEN.equals(previousState)
+                    && Site.NetworkHealth.BROKEN.equals(site.getNetworkHealth())){
                 //send email alert
                 mailHandler.sendSiteNetworkBrokenMail(site);
             }

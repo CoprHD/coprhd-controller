@@ -37,6 +37,12 @@ public class Site {
     
     public static final String CONFIG_KIND = "disasterRecoverySites";
 
+    public enum NetworkHealth {
+        GOOD,
+        SLOW,
+        BROKEN
+    }
+
     private String uuid;
     private String vdcShortId;
     private String name;
@@ -48,7 +54,7 @@ public class Site {
     private long creationTime;
     private long lastStateUpdateTime;
     private double networkLatencyInMs;
-    private SiteNetworkHealth networkHealth;
+    private NetworkHealth networkHealth;
     private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
 
@@ -149,11 +155,11 @@ public class Site {
         this.networkLatencyInMs = networkLatencyInMs;
     }
 
-    public SiteNetworkHealth getNetworkHealth() {
+    public NetworkHealth getNetworkHealth() {
         return networkHealth;
     }
 
-    public void setNetworkHealth(SiteNetworkHealth networkHealth) {
+    public void setNetworkHealth(NetworkHealth networkHealth) {
         this.networkHealth = networkHealth;
     }
 
@@ -254,7 +260,7 @@ public class Site {
             this.vip = config.getConfig(KEY_VIP);
             String networkHealth = config.getConfig(KEY_NETWORK_HEALTH);
             if (networkHealth != null && !networkHealth.isEmpty()) {
-                this.networkHealth = Enum.valueOf(SiteNetworkHealth.class, networkHealth);
+                this.networkHealth = Enum.valueOf(NetworkHealth.class, networkHealth);
             }
             this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);

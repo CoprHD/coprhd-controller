@@ -95,6 +95,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;

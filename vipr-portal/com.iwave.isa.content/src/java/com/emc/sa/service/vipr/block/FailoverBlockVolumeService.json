@@ -21,5 +21,18 @@
     failoverTarget:{
       type: "assetType.vipr.failoverTarget"
     }
+    
+    imageToAccess:{
+    	type: "assetType.vipr.imageToAccess"
+    	lockable:true
+    }
+    
+    imageDate:{
+    	type:"date"
+    }
+    
+    imageTime:{
+    	type:"time"
+    }
   }
 }

@@ -150,7 +150,7 @@ public class VplexBackendVolumesToSeparateMasksStrategy implements VPlexBackendP
             // clusterIDsFound set.
             while (initiatorIterator.hasNext()) {
                 Initiator initiator = initiatorIterator.next();
-                String clusterID = wwnToClusterID.get(initiator.getInitiatorPort());
+                String clusterID = wwnToClusterID.get(Initiator.normalizePort(initiator.getInitiatorPort()));
                 if (clusterID != null) {
                     clusterIDsFound.add(clusterID);
                 }

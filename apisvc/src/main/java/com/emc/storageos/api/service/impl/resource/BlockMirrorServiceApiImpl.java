@@ -105,8 +105,11 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public <T extends DataObject> String checkForDelete(T object) {
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) {
         return null;
     }
 
@@ -557,7 +560,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         List<URI> promotees = null;
 
         if (isCG) {
-            // for group mirrors, deactivate task will detach and delete the mirror that user asked to deactivate, and promote other mirrors in the group
+            // for group mirrors, deactivate task will detach and delete the mirror that user asked to deactivate, and promote other mirrors
+            // in the group
             Map<BlockMirror, Volume> groupMirrorSourceMap = getGroupMirrorSourceMap(mirror, sourceVolume);
             mirrorURIs = new ArrayList<URI>(transform(new ArrayList<BlockMirror>(groupMirrorSourceMap.keySet()), FCTN_MIRROR_TO_URI));
 
@@ -783,12 +787,12 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     /**
      * Populate the given TaskList with tasks.
-     *
-     * @param source                Source volume acted on from request
-     * @param groupMirrorSourceMap  Map of mirrors to their source
-     * @param taskList              TaskList
-     * @param taskId                The task ID
-     * @param operationType         The operation type
+     * 
+     * @param source Source volume acted on from request
+     * @param groupMirrorSourceMap Map of mirrors to their source
+     * @param taskList TaskList
+     * @param taskId The task ID
+     * @param operationType The operation type
      */
     private void populateTaskList(Volume source, Map<BlockMirror, Volume> groupMirrorSourceMap, TaskList taskList, String taskId,
             ResourceOperationTypeEnum operationType) {

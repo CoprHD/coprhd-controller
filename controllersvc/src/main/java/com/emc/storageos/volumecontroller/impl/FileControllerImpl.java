@@ -222,4 +222,9 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
         execFS("deleteNFSAcls", storageURI, fsURI, subDir, opId);
 
     }
+
+	@Override
+	public void rollBackCreateFileShares(URI systemURI, List<URI> fileURIs, String opId) throws InternalException {
+		execFS("rollBackCreateFileShares", systemURI, fileURIs, opId);
+	}
 }

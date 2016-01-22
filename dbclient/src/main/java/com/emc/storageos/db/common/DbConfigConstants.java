@@ -54,4 +54,7 @@ public abstract class DbConfigConstants {
 
     // Default GC grace period
     public static final int DEFAULT_GC_GRACE_PERIOD = 5 * 24 * 60 * 60; // 5 days, in seconds
+    
+    public static final String DB_SCHEMA_LOCK = "dbschema";
+    public static final String GEODB_SCHEMA_LOCK = "geodbschema";
 }

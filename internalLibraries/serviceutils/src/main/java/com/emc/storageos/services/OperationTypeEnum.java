@@ -139,6 +139,9 @@ public enum OperationTypeEnum {
     DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed", "FileSystem snapshot share deleted"),
     RESTORE_FILE_SNAPSHOT("FileSystemRestored", "FileSystemRestoreFailed", "FileSystem restored"),
 
+    CREATE_FILE_MIRROR("FileSystemMirrorCreated", "FileSystemMirrorCreateFailed", "FileSystemMirror Create"),
+    DELETE_FILE_MIRROR("FileSystemMirrorDeleted", "FileSystemMirrorDeleteFailed", "FileSystemMirror Delete"),
+    
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
     UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),

@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
@@ -488,6 +489,25 @@ public class StorageScheduler implements Scheduler {
         if (null != remoteProtectionSettings && !remoteProtectionSettings.isEmpty()) {
             provMapBuilder.putAttributeInMap(Attributes.remote_copy.toString(),
                     VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteProtectionSettings));
+        }
+
+        if (VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_SOURCE.equalsIgnoreCase(capabilities.getPersonality())) {
+            // Run the placement algorithm for file replication!!!
+            if (vpool.getFileReplicationType() != null &&
+                    !FileReplicationType.NONE.name().equalsIgnoreCase(vpool.getFileReplicationType())) {
+
+                provMapBuilder.putAttributeInMap(Attributes.file_replication_type.toString(), vpool.getFileReplicationType());
+                if (vpool.getFileReplicationCopyMode() != null) {
+                    provMapBuilder.putAttributeInMap(Attributes.file_replication_copy_mode.toString(), vpool.getFileReplicationCopyMode());
+                }
+                Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings = VirtualPool.getFileRemoteProtectionSettings(vpool,
+                        _dbClient);
+                if (null != remoteCopySettings && !remoteCopySettings.isEmpty()) {
+                    provMapBuilder.putAttributeInMap(Attributes.file_replication.toString(),
+                            VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteCopySettings));
+                }
+
+            }
         }
 
         Map<String, Object> attributeMap = provMapBuilder.buildMap();

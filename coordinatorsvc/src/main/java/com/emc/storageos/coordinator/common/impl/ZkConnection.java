@@ -128,6 +128,7 @@ public class ZkConnection {
             });
             if (FileUtils.exists(siteIdFile)) {
                 siteId = new String(FileUtils.readDataFromFile(siteIdFile));
+                siteId = siteId.trim();
                 _logger.info("Current site id is {}", siteId);
             }
         } catch (Exception e) {

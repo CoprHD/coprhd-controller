@@ -13,9 +13,11 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.FileShare;
-
+import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.TaskLockingCompleter;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public abstract class FileTaskCompleter extends TaskLockingCompleter {
 	private static final String FILE_TASK_MSG_SUCCESS = "File operation completed successfully for filesystem %s";
@@ -33,6 +35,7 @@ public abstract class FileTaskCompleter extends TaskLockingCompleter {
      */
     public FileTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
+        setNotifyWorkflow(true);
     }
 
     /**
@@ -79,5 +82,17 @@ public abstract class FileTaskCompleter extends TaskLockingCompleter {
         return (status == Operation.Status.ready) ?
                 String.format(FILE_TASK_MSG_SUCCESS, fileShare.getLabel()) :
                 String.format(FILE_TASK_MSG_FAILURE, fileShare.getLabel());
+    }
+    
+    @Override
+    protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
+            throws DeviceControllerException {
+        _logger.info("FileTaskCompleter: set status to {}", status);
+        if (isNotifyWorkflow() == true) {
+            // If there is a workflow, update the step to complete.
+            updateWorkflowStatus(status, coded);
+        }
+        super.setStatus(dbClient, status, coded);
+
     }
 }

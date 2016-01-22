@@ -76,6 +76,7 @@ import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -249,6 +250,35 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 description,
                 descparams);
     }
+    
+    FileDeviceInputOutput prepareFileDeviceInputOutput(StorageSystem storageObj, FileShare fsObj, URI pool, String nativeId, String opId) {
+        
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+
+        String[] params = { storageObj.getId().toString(), pool.toString(), fsObj.getId().toString() };
+        
+        _log.info("Create FS: {}, {}, {}", params);
+        StoragePool poolObj = _dbClient.queryObject(StoragePool.class, pool);
+        VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, fsObj.getVirtualPool());
+        args.addFileShare(fsObj);
+        args.addStoragePool(poolObj);
+        args.setVPool(vPool);
+        args.setNativeDeviceFsId(nativeId);
+        args.setOpId(opId);
+
+        Project proj = _dbClient.queryObject(Project.class, fsObj.getProject());
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fsObj.getTenant());
+        setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
+        args.setTenantOrg(tenant);
+        args.setProject(proj);
+        
+        return args;
+        
+    }
+    
+    public void createFS(URI storage, URI pool, URI fs, String nativeId, String opId, TaskCompleter taskCompleter) {
+       
+    }
 
     @Override
     public void createFS(URI storage, URI pool, URI fs, String nativeId, String opId) throws ControllerException {
@@ -257,26 +287,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         StorageSystem storageObj = null;
         try {
             ControllerUtils.setThreadLocalLogData(fs, opId);
-            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            String[] params = { storage.toString(), pool.toString(), fs.toString() };
-            _log.info("Create FS: {}, {}, {}", params);
-            StoragePool poolObj = _dbClient.queryObject(StoragePool.class, pool);
-            fsObj = _dbClient.queryObject(FileShare.class, fs);
-            VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, fsObj.getVirtualPool());
-            fileObject = fsObj;
-            FileDeviceInputOutput args = new FileDeviceInputOutput();
-            args.addFileShare(fsObj);
-            args.addStoragePool(poolObj);
-            args.setVPool(vPool);
-            args.setNativeDeviceFsId(nativeId);
-            args.setOpId(opId);
-
-            Project proj = _dbClient.queryObject(Project.class, fsObj.getProject());
-            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fsObj.getTenant());
-            setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
-            args.setTenantOrg(tenant);
-            args.setProject(proj);
             
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            fsObj = _dbClient.queryObject(FileShare.class, fs);
+            
+            FileDeviceInputOutput args = prepareFileDeviceInputOutput(storageObj, fsObj, pool, nativeId, opId);
             //work flow and we need to add TaskCompleter(TBD for vnxfile)
             WorkflowStepCompleter.stepExecuting(opId);
             
@@ -284,15 +299,18 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (!result.getCommandPending()) {
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
             }
-
+            
+            //process the results
             if (result.isCommandSuccess()) {
+                //set the native id 
                 fsObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, fsObj));
+                //set inactive = false
                 fsObj.setInactive(false);
             } else if (!result.getCommandPending()) {
                 fsObj.setInactive(true);
             }
 
-            _dbClient.persistObject(fsObj);
+            _dbClient.updateObject(fsObj);
 
             if (!result.getCommandPending()) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, result.isCommandSuccess(), "", "", fsObj);

@@ -427,14 +427,12 @@ public class FileService extends TaskResourceService {
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
             fs.setThinlyProvisioned(Boolean.TRUE);
         }
-
-        fs.setOpStatus(new OpStatusMap());
-        Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.CREATE_FILE_SYSTEM);
-        fs.getOpStatus().createTaskStatus(task, op);
+        
         if (flags != null) {
             fs.addInternalFlags(flags);
         }
+        
+        fs.setOpStatus(new OpStatusMap());
         _dbClient.createObject(fs);
         return fs;
     }
@@ -454,8 +452,14 @@ public class FileService extends TaskResourceService {
             VirtualArray varray, VirtualPool vpool, DataObject.Flag[] flags, String task) {
     	TaskList taskList = new TaskList();
     	FileShare fs = prepareEmptyFileSystem(param, project, tenantOrg, varray, vpool, flags, task);
-    	TaskResourceRep fileTask = toTask(fs, task);
+    	
+    	Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.CREATE_FILE_SYSTEM);
+        
+        fs.getOpStatus().put(task, op);
+        TaskResourceRep fileTask = toTask(fs, task, op);
         taskList.getTaskList().add(fileTask);
+        
         _log.info(String.format("FileShare and Task Pre-creation Objects [Init]--  Source FileSystem: %s, Task: %s, Op: %s",
                 fs.getId(), fileTask.getId(), task));
     	return taskList;

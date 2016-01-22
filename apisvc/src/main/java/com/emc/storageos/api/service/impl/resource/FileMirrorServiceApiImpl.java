@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -406,9 +407,11 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         }
 
         fs.setOpStatus(new OpStatusMap());
+        
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_FILE_SYSTEM);
-        fs.getOpStatus().createTaskStatus(taskId, op);
+        op.setStartTime(Calendar.getInstance());
+        fs.getOpStatus().put(taskId, op);
 
         _dbClient.createObject(fs);
         return fs;

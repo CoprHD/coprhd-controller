@@ -853,7 +853,7 @@ disasterRecovery.confirmPassword=Confirm Password
 disasterRecovery.description=Description
 disasterRecovery.networkHealth=Network Health
 disasterRecovery.confirmPassword.not.match=User Password and Confirm Password do not match.
-disasterRecovery.deleteConfirm=WARNING: You are about to delete Standby Site. This action is unreversable. Are you sure want to delete this Standby Site?
+disasterRecovery.deleteConfirm=WARNING: You are about to delete Standby Site(s). This action is irreversible. Are you sure want to delete these Standby Site(s)?
 
 disasterRecovery.testButton=Test
 disasterRecovery.pauseButton=Pause
@@ -885,7 +885,6 @@ disasterRecovery.unknown=Unknown Standby site Id '%s'
 disasterRecovery.standby.testLink=Test Mode
 disasterRecovery.standby.pauseLink=Pause Synchronization
 disasterRecovery.standby.resumeLink=Resume Synchronization
-disasterRecovery.standby.deleteConfirm=WARNING: Are you sure you want to delete this Standby Site?
 disasterRecovery.standby.stopConfirm=Are you sure you want to Pause Standby Site?
 
 disasterRecovery.create.title=Add Standby

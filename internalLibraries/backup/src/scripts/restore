@@ -16,6 +16,7 @@ usage() {
     echo "       $0 <Backup Zip File>"
     echo "For example:"
     echo "       $0 /tmp/test.zip"
+    echo "NOTE: restore on standby site is not supported."
 }
 
 validate_parameters() {
@@ -197,6 +198,17 @@ clean_up() {
     loop_execute "${command}" "true"
 }
 
+gen_config() {
+    vdcpropsfile="/data/zk/version-2/vdcconfig.properties"
+    if [ ! -f $vdcpropsfile ]; then
+        return
+    fi
+    echo -n "Regenerating storageos configuration files based on restored vdc properties on all nodes.."
+    local command="mv ${vdcpropsfile} /tmp && /etc/systool --setvdcprops /tmp/vdcconfig.properties && /etc/systool --getprops | /etc/genconfig"
+    loop_execute "bash -c \"${command}\"" "true"
+    echo "done"
+}
+
 start_service() {
     echo -n "Starting storageos services on all nodes.."
     local command="/etc/storageos/storageos start"
@@ -265,11 +277,20 @@ get_nodeid() {
     echo "$nodeId"
 }
 
+check_standby() {
+    local is_standby=$(/etc/systool --getvdcprops | awk '/^site_is_standby=/ {print substr($0, length("site_is_standby=") + 1)}')
+    if [ "$is_standby" == "true" ]; then
+        echo "Restore on standby site is not supported."
+        exit 2
+    fi
+}
+
 if [ $# -eq 1 ]; then
     if [ $1 == "--help" -o $1 == "-h" -o $1 == "-help" ]; then
         usage
         exit 0
     fi
+    check_standby
     BACKUP_ZIP=$(readlink -f $1)
     validate_parameters
     init_variables
@@ -280,7 +301,7 @@ fi
 
 trap clean_up EXIT
 
-comands=(upload_backup confirm_vdc_status stop_service restore_data start_service)
+comands=(upload_backup confirm_vdc_status stop_service restore_data gen_config start_service)
 for cmd in ${comands[@]}
 do
     $cmd

@@ -47,6 +47,10 @@
           validation:{
               min:1
           }
+        },
+        linkedSnapshotCopyMode:{
+          type:"assetType.vipr.linkedSnapshotCopyMode",
+          required: "false"
         }
       }
     }

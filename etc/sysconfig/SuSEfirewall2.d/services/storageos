@@ -19,7 +19,7 @@
 # 9083  VASA service
 # 9998  CLI download
 # 9999  Nature installer publish port (via jmdns)
-# 8776  Storage Orcehstration For OpenStack REST APIs
+# 8776  Storage Orchestration For OpenStack REST APIs
 
 # UDP ports
 # 7    echo protocol

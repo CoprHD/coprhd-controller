@@ -1,0 +1,14 @@
+[Unit]
+Description=The AIO Simulator service
+After=CheckIP.service
+
+[Service]
+Type=fork
+ExecStart=/etc/init.d/SimService start
+ExecStop=/etc/init.d/SimService stop
+
+[Install]
+WantedBy=multi-user.target
+
+
+

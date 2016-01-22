@@ -51,6 +51,9 @@ public class ServiceFieldValidator {
         else if (ServiceField.TYPE_STORAGE_SIZE.equals(field.getType())) {
             validateStorageSizeField(service, field, fieldName, value);
         }
+        else if (ServiceField.TYPE_EXPAND_SIZE.equals(field.getType())) {
+            validateExpandSizeField(service, field, fieldName, value);
+        }
         else if (ServiceField.TYPE_BOOLEAN.equals(field.getType())) {
             validateBooleanField(service, field, fieldName, value);
         }
@@ -138,12 +141,36 @@ public class ServiceFieldValidator {
         boolean hasMinSize = field.getMin() != null;
         boolean hasMaxSize = (catalogService.getMaxSize() != null) && (catalogService.getMaxSize() >= 1);
 
-        Integer min = Math.max(1, hasMinSize ? field.getMin() : 1);
+        Integer min = hasMinSize ? field.getMin() : 0;
         Integer max = hasMaxSize ? catalogService.getMaxSize() : null;
 
         validateRange(fieldName, value, min, max);
     }
 
+    /**
+     * Validates a storage size field during expansion.
+     * 
+     * @param service
+     *            the catalog service.
+     * @param fieldName
+     *            the name of the field to validate.
+     * @param value
+     *            the field value.
+     * @param validation
+     *            the validation configuration.
+     */
+    private static void validateExpandSizeField(CatalogServiceRestRep catalogService, ServiceFieldRestRep field, String fieldName,
+            String value) {
+        validateNumber(fieldName, value);
+
+        boolean hasMinSize = field.getMin() != null;
+        boolean hasMaxSize = (catalogService.getMaxSize() != null) && (catalogService.getMaxSize() >= 1);
+
+        Integer min = Math.max(1, hasMinSize ? field.getMin() : 1);
+        Integer max = hasMaxSize ? catalogService.getMaxSize() : null;
+
+        validateRange(fieldName, value, min, max);
+    }
     private static void validateBooleanField(CatalogServiceRestRep catalogServiceRestRep, ServiceFieldRestRep field, String fieldName,
             String value) {
         if (StringUtils.isNotBlank(value)) {

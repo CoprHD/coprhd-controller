@@ -980,4 +980,8 @@ public class BlockStorageUtils {
         map.putAll(params.getParams());
         return map;
     }
+
+    public static boolean isVplexVolume(VolumeRestRep volume) {
+        return volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty();
+    }
 }

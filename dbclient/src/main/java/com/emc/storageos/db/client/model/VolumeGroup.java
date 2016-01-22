@@ -32,7 +32,8 @@ public class VolumeGroup extends DataObject {
     public static enum MigrationGroupBy {
         VOLUMES,
         HOSTS,
-        CLUSTERS
+        CLUSTERS,
+        APPLICATIONS
     }
 
     public static enum VolumeGroupRole {

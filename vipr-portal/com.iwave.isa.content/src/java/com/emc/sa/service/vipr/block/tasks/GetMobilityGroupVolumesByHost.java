@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.emc.sa.asset.providers.BlockProviderUtils;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -36,7 +37,7 @@ public class GetMobilityGroupVolumesByHost extends ViPRExecutionTask<List<URI>> 
 
         for (URI volume : volumes) {
             VolumeRestRep vol = getClient().blockVolumes().get(volume);
-            if (matchesVirtualPool(vol) && hasHaVolumes(vol)) {
+            if (matchesVirtualPool(vol) && BlockStorageUtils.isVplexVolume(vol)) {
                 for (RelatedResourceRep haVolume : vol.getHaVolumes()) {
                     if (matchesStorageSystem(haVolume)) {
                         mobilityGroupVolumes.add(volume);
@@ -54,10 +55,6 @@ public class GetMobilityGroupVolumesByHost extends ViPRExecutionTask<List<URI>> 
 
     private boolean matchesVirtualPool(VolumeRestRep vol) {
         return vol.getVirtualPool().getId() != null && vol.getVirtualPool().getId().equals(mobilityGroup.getSourceVirtualPool());
-    }
-
-    private boolean hasHaVolumes(VolumeRestRep vol) {
-        return vol.getHaVolumes() != null && !vol.getHaVolumes().isEmpty();
     }
 
     private Set<URI> getHostExportedVolumes() {

@@ -1,0 +1,140 @@
+%{
+  titleKey = 'MobilityGroups.' + (mobilityGroupForm?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = "mobilityGroup.edit.description"
+  image = '/public/img/assets/MobilityGroup.png'
+}%
+
+#{extends 'main.html' /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:mobilityGroupForm?.id ? true : false/}
+#{set 'moreScripts'}
+    #{get 'moreScripts'/}
+#{/set}
+  
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'MobilityGroup.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<script>
+$(document).ready(function() {
+	var editMode = #{get 'editMode'/};
+});
+</script>
+
+<div class="container">
+  #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image  /}
+
+  #{alerts/}
+
+  #{form @save(), id:'mobilityGroupForm',class:'form form-horizontal', autocomplete:"off"}
+  
+    #{if mobilityGroupForm?.id}
+        #{field 'mobilityGroupForm.id'}
+            <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    #{/if}
+    
+    #{if mobilityGroupForm?.roles}
+        #{field 'mobilityGroupForm.roles'}
+           <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    #{/if}
+
+    #{field "mobilityGroupForm.name"}
+      %{
+        field.cssClass = fieldCssClass
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field/}
+    #{/field}
+   
+   
+     #{field 'mobilityGroupForm.description'}
+        %{
+          field.cssClass = 'span0'
+          field.required = false
+        }%
+      #{Form.inputTextControlGroup field:field/}
+    #{/field}
+    
+    #{field 'mobilityGroupForm.migrationType'}
+        %{
+          field.cssClass = 'span0'
+          field.required = false
+          field.disabled = true
+          field.options = migrationTypes
+        }%
+      #{Form.selectOneControlGroup field:field/}
+    #{/field}
+    
+    #{field 'mobilityGroupForm.migrationGroupBy'}
+        %{
+          field.cssClass = 'span0'
+          field.required = false
+          field.disabled = true
+          field.options = migrationGroupBys
+        }%
+      #{Form.selectOneControlGroup field:field/}
+    #{/field}
+    
+    #{field 'mobilityGroupForm.sourceStorageSystem'}
+        %{
+          field.cssClass = 'span0'
+          field.required = false
+          field.disabled = true
+          field.options = sourceStorageSystems
+        }%
+      #{Form.selectOneControlGroup field:field/}
+    #{/field}
+    
+    #{field 'mobilityGroupForm.sourceVirtualPool'}
+        %{
+          field.cssClass = 'span0'
+          field.required = false
+          field.disabled = true
+          field.options = sourceVirtualPools
+        }%
+      #{Form.selectOneControlGroup field:field/}
+    #{/field}
+   
+    #{if mobilityGroupForm?.migrationGroupBy.equalsIgnoreCase('Hosts')}
+      #{field 'mobilityGroupForm.hosts'}
+          %{
+            field.cssClass = 'span0'
+            field.required = false
+          }%
+        #{Form.selectManyControlGroup field:field, options: hosts /}
+      #{/field}
+    #{/if}
+    #{if mobilityGroupForm?.migrationGroupBy.equalsIgnoreCase('Clusters')}
+      #{field 'mobilityGroupForm.clusters'}
+          %{
+            field.cssClass = 'span0'
+            field.required = false
+          }%
+        #{Form.selectManyControlGroup field:field, options: clusters /}
+      #{/field}
+    #{/if}
+    #{if mobilityGroupForm?.migrationGroupBy.equalsIgnoreCase('Applications')}
+      #{field 'mobilityGroupForm.applications'}
+          %{
+            field.cssClass = 'span0'
+            field.required = false
+          }%
+        #{Form.selectManyControlGroup field:field, options: applications /}
+      #{/field}
+    #{/if}
+    #{if mobilityGroupForm?.migrationGroupBy.equalsIgnoreCase('Volumes')}
+      #{field 'mobilityGroupForm.volumes'}
+          %{
+            field.cssClass = 'span0'
+            field.required = false
+          }%
+        #{Form.selectManyControlGroup field:field, options: volumes /}
+      #{/field}
+    #{/if}
+    
+    #{Form.saveCancel cancelHref:@cancel() /}
+  #{/form}
+</div>

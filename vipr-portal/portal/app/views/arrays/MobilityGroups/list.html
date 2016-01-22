@@ -1,0 +1,8 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.mobilityGroups'] /}
+
+#{DataTable.header titleKey:'MobilityGroup.list.title'/}
+#{DataTable.crudTable id:'mobilityGroup', 
+                      dataTable:dataTable,
+                      deleteConfirm:messages.get('MobilityGroup.deleteConfirm')}
+#{/DataTable.crudTable}

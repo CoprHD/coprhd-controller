@@ -783,7 +783,7 @@ public class IpReconfigManager implements Runnable {
                 return;
             }
 
-            if (site.getVip().contains("::")) {
+            if (site.getVip().contains(":")) {
                 site.setVip(localIpinfo.getIpv6Setting().getNetworkVip6());
             } else {
                 site.setVip(localIpinfo.getIpv4Setting().getNetworkVip());

@@ -1526,13 +1526,7 @@ public interface BadRequestExceptions {
             final String commaSeperatedPrincipals);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException inventoryDeleteNotSupportedonExportedVolumes(final String nativeGuid);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException notSupportedForInternalVolumes();
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException inventoryDeleteNotSupportedOnSnapshots(final String nativeGuid);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException consistencyGroupAddVolumeThatIsInDifferentProject(final String name,
@@ -2674,7 +2668,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidIpsecStatus();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllowedToAddVdcInDRConfig();
 

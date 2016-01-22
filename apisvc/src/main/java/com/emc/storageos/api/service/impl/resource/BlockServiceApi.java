@@ -79,13 +79,17 @@ public interface BlockServiceApi {
             String task) throws InternalException;
 
     /**
-     * Check if a resource can be deactivated safely.
+     * Check if a resource can be deactivated safely by checking for dependencies on other
+     * objects in the database.
      * 
-     * @return detail type of the dependency if exist, null otherwise
+     * @param object The object to check.
+     * @param excludeTypes The list of types to exclude from the dependency check.
+     * 
+     * @return The type of the dependency if one exist, null otherwise.
      * 
      * @throws InternalException
      */
-    public <T extends DataObject> String checkForDelete(T object) throws InternalException;
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException;
 
     /**
      * Attaches and starts new continuous copies for the given volume.
@@ -157,7 +161,7 @@ public interface BlockServiceApi {
 
     /**
      * Establish group relation between volume group and native continuous copy group.
-     *
+     * 
      * @param storageSystem the storage system
      * @param sourceVolume the source volume
      * @param blockMirror the block mirror
@@ -171,7 +175,7 @@ public interface BlockServiceApi {
 
     /**
      * Establish group relation between volume group and snapshot group.
-     *
+     * 
      * @param storageSystem the storage system
      * @param sourceVolume the source volume
      * @param snapshot the block snapshot
@@ -479,7 +483,7 @@ public interface BlockServiceApi {
 
     /**
      * Verifies replica count of the volumes to be added to CG.
-     *
+     * 
      * @param volumes List of volumes
      * @param cgVolumes List of active volumes in the CG
      * @param volsAlreadyInCG Volumes to be added are the same with those already in CG

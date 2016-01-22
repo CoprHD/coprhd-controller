@@ -2320,7 +2320,9 @@ public class VolumeIngestionUtil {
         snapshot.getProtocol().addAll(parentVolume.getProtocol());
         URI cgUri = parentVolume.getConsistencyGroup();
         // Do not associate parent's CG if it is a RP protected parent volume
-        if (!BlockObject.checkForRP(dbClient, parentVolume.getId()) && cgUri != null) {
+        boolean isRP = (parentVolume instanceof Volume && ((Volume) parentVolume).checkForRp())
+                || (parentVolume instanceof BlockSnapshot && ((BlockSnapshot) parentVolume).getProtectionController() != null);
+        if (!isRP && cgUri != null) {
             snapshot.setConsistencyGroup(cgUri);
         }
         // TODO - check how to populate snapsetlabel if in consistency group

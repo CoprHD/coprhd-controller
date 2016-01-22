@@ -3399,7 +3399,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
         URI systemURI = getVolumesToAddToApplication(addVols, addVolumes, volumeGroup, taskId);
         List<URI> removeVolIds = new ArrayList<URI>();
-        URI removeSystemURI = getVolumesToRemoveFormApplication(removeVolIds, removeVolumes);
+        URI removeSystemURI = getVolumesToRemoveFromApplication(removeVolIds, removeVolumes);
         if (systemURI == null) {
             systemURI = removeSystemURI;
         }
@@ -3421,9 +3421,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param removeVolIds output list of volume ids
      * @param removeVolumes input list of volumes
      * @return URI of the storage system the backing volumes are in (this will need to change)
-     * @return
      */
-    private URI getVolumesToRemoveFormApplication(List<URI> removeVolIds, List<Volume> removeVolumes) {
+    private URI getVolumesToRemoveFromApplication(List<URI> removeVolIds, List<Volume> removeVolumes) {
         URI systemURI = null;
 
         if (removeVolumes != null && !removeVolumes.isEmpty()) {

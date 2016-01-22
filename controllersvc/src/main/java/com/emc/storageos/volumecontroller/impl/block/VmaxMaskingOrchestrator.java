@@ -27,6 +27,7 @@ import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -37,8 +38,11 @@ import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -1343,12 +1347,13 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * This method checks to see if the RP+VMAX best practice rules are followed. 
      * 
      * If host information is specified in the ExportGroup (this is the case when "Create Block volume for host" service catalog is chosen):
-     * 	a) Determine all the host masking views corresponding to the host. 
+     * 	a) Determine all the masking views corresponding to the compute resource. 
      *  b) Determine, if any, all the RP masking views corresponding to the RP site specified.
-     *  c) Compare the storage ports from the host masking view and the RP masking view and see if there is a match. If a match is found, then return all the matching RP masking views.
+     *  c) Compare the storage ports from the masking view of the compute resource and the RP masking view and see if there is a match.
+     *     If a match is found, then return all the matching RP masking views.
      *  d) Returns an empty list of masks if there is no RP masking view that matches the given host masking view.
      *  
-     * If no host information is specified in the ExportGroup, just returns an empty list of masks.
+     * If no compute resource information is specified in the ExportGroup, just returns an empty list of masks.
      * 
      * This method also looks at existing RP masking view to check if those masks are intended for JOURNAL volumes only, 
      * If the ExportGroup is for RP_JOURNAL, then return the masking view with that contains the "journal" keyword in the mask name. 
@@ -1372,13 +1377,17 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     	}
     	
     	//If this an RP Export (non-journal) but there is no host information, return the existing maskMap. 
-    	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) && !exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL) && exportGroup.getHosts() == null && exportGroup.getClusters() == null) {
-    		_log.info("ExportGroup doesnt specify any hosts, return");
+    	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) && !exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL) 
+    			&& exportGroup.getHosts() == null && exportGroup.getClusters() == null) {
+    		_log.info("ExportGroup doesnt specify any hosts/clusters to which the volumes are exported, follow normal guidelines");
     		return masksMap;
     	}
     	
     	//If this is a RP Journal export operation, try to find an existing ExportMask that contains "Journal" keyword in the name. 
     	//If a matching mask is found, use it. (There should not be more than one journal mask on the VMAX)
+    	
+    	//TODO: Although unlikely, is it possible that there is more than one JOURNAL masking view with journal keyword in it?
+    	//If the answer to the above question is yes, we need a way to handle that.
     	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL)) {    		
     		_log.info("Looking for ExportMasks with JOURNAL keyword since the ExportGroup is intended for journal volumes only");
     	    for(Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {      
@@ -1386,7 +1395,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     	     	if (rpMaskingView.getMaskName().contains("JOURNAL") || rpMaskingView.getMaskName().contains("journal")) {
     	     		matchingMaskMap.put(maskMap.getKey(), maskMap.getValue());
     	     	}
-    	    }    		    	        	
+    	    }    		    	
+    
     	    return matchingMaskMap;
     	}
     	    
@@ -1420,14 +1430,21 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
     	}       
         
-        //Fetch all the existing masks for the host
-    	Map<String, Set<URI>> crMaskingViews = getDevice().findExportMasks(storage, initiators, true);
-    	                        
+        //Fetch all the existing masks for the compute resource
+    	Map<String, Set<URI>> crMaskingViews = getDevice().findExportMasks(storage, initiators, true);    	
+       	                        
         //In the case of an RP  volume, the masksMap contains all the masks matching the RP initiators that was passed down. 
-        //We need to weed through this list to find only those masking view that is compatible with the list of host masking views.
+        //We need to weed through this list to find only those masking view that is compatible with the list of masking views for the compute resource
         for(Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {        	
         	ExportMask rpMaskingView = maskMap.getKey();
-        	        	
+        	 
+        	//If we got this far, then we are looking for masks that are not meant for JOURNALs. 
+        	//Ignore RP masks with journal keyword.
+        	if (rpMaskingView.getMaskName().contains("Journal") || rpMaskingView.getMaskName().contains("journal")) {
+        		_log.info(String.format("%s is a journal mask, ignore it for RP source/target copy volume", rpMaskingView.getMaskName()));
+        		continue;
+        	}
+        	
         	for (Entry<String, Set<URI>> crMaskingViewEntry : crMaskingViews.entrySet()) {
         		Set<URI> crMVs  = crMaskingViewEntry.getValue();
         		for (URI crMV : crMVs) {
@@ -1438,11 +1455,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         					crMaskingView.getStoragePorts().containsAll(rpMaskingView.getStoragePorts())) {    					
         				if (!matchingMaskMap.containsKey(rpMaskingView)) {
         					_log.info(String.format("Found a RP masking view %s that has the same storage ports as the computer resource (host/cluster) %s to which we are exporting the volume. OK to use " , rpMaskingView.getMaskName(), crMaskingView.getMaskName()));
-        					matchingMaskMap.put(rpMaskingView, maskMap.getValue());
-        					        				
-        					//TODO: may break when we find the first one. if there are multiple RP mv's that each map to a host mv, then everything is returned.
-        					//If we break here, make sure that when the volumes are exported, the correct host masking view is picked, one that corresponds to the RP masking view
-        					//that was selected here.
+        					matchingMaskMap.put(rpMaskingView, maskMap.getValue());        					        				        				
         				}
         			}
         		}
@@ -1450,10 +1463,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
         
         if (matchingMaskMap.isEmpty()) {
-        	_log.info("No RP masks found that correspond to the compute resources' masks");      
+        	_log.info("No RP masks found that align with to the compute resources' masks");      
         	if (!masksMap.isEmpty()) {
-        		_log.info("There are existing RP masks, will check to see if it can be re-used");
+        		_log.info("There are existing RP masks but none align with the masks for the computeResource. Check to see if they can be re-used");
         		return masksMap;        		
+        	} else {
+        		_log.info("No existing masks found for the computeResource, proceed as normal");
         	}
         }
                  	

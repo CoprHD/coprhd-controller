@@ -39,7 +39,6 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
@@ -181,15 +180,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * Check if a resource can be deactivated safely
-     * 
-     * @return detail type of the dependency if exist, null otherwise
-     * @throws InternalException
+     * {@inheritDoc}
      */
     @Override
-    public <T extends DataObject> String checkForDelete(T object) throws InternalException {
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException {
         URI objectURI = object.getId();
-        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true);
+        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true, excludeTypes);
         if (depMsg != null) {
             return depMsg;
         }
@@ -347,7 +343,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     @Override
     public void deleteVolumes(URI systemURI, List<URI> volumeURIs, String deletionType, String task)
             throws InternalException {
-
         // Get volume descriptor for all volumes to be deleted.
         List<VolumeDescriptor> volumeDescriptors = getDescriptorsForVolumesToBeDeleted(
                 systemURI, volumeURIs, deletionType);
@@ -355,22 +350,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // Mark the volumes for deletion for a VIPR only delete, otherwise get
         // the controller and delete the volumes.
         if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deletionType)) {
-            for (URI volumeURI : volumeURIs) {
-                BlockObject bo = BlockObject.fetch(_dbClient, volumeURI);
-                if (bo instanceof Volume) {
-                    Volume volume = (Volume) bo;
-                    if (!volume.checkForRp() && volume.isVolumeExported(_dbClient)) {
-                        // Check to see if the volume is exported to a host in the non-RP case.
-                        throw APIException.badRequests.inventoryDeleteNotSupportedonExportedVolumes(volume.getNativeGuid());
-                    } else if (volume.checkForRp() && volume.isExportedNonRP(_dbClient)) {
-                        // Check to see if the volume is exported to anything other than RP.
-                        throw APIException.badRequests.inventoryDeleteNotSupportedonExportedVolumes(volume.getNativeGuid());
-                    }
-                } else if (bo instanceof BlockSnapshot) {
-                    throw APIException.badRequests.inventoryDeleteNotSupportedOnSnapshots(bo.getNativeGuid());
-                }
-
-            }
             // Do any cleanup necessary for the ViPR only delete.
             cleanupForViPROnlyDelete(volumeDescriptors);
 
@@ -421,6 +400,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      *            ViPR only delete
      */
     protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
+        // Remove volumes from ExportGroup(s) and ExportMask(s).
+        List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        for (URI volumeURI : volumeURIs) {
+            cleanVolumeFromExports(volumeURI, true);
+        }
     }
 
     /**
@@ -1429,13 +1413,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         if (!updatedExportGroupMap.isEmpty()) {
             List<ExportGroup> updatedExportGroups = new ArrayList<ExportGroup>(
                     updatedExportGroupMap.values());
-            _dbClient.persistObject(updatedExportGroups);
+            _dbClient.updateObject(updatedExportGroups);
         }
 
         if (!updatedExportMaskMap.isEmpty()) {
             List<ExportMask> updatedExportMasks = new ArrayList<ExportMask>(
                     updatedExportMaskMap.values());
-            _dbClient.persistObject(updatedExportMasks);
+            _dbClient.updateObject(updatedExportMasks);
         }
     }
 

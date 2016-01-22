@@ -79,13 +79,17 @@ public interface BlockServiceApi {
             String task) throws InternalException;
 
     /**
-     * Check if a resource can be deactivated safely.
+     * Check if a resource can be deactivated safely by checking for dependencies on other
+     * objects in the database.
      * 
-     * @return detail type of the dependency if exist, null otherwise
+     * @param object The object to check.
+     * @param excludeTypes The list of types to exclude from the dependency check.
+     * 
+     * @return The type of the dependency if one exist, null otherwise.
      * 
      * @throws InternalException
      */
-    public <T extends DataObject> String checkForDelete(T object) throws InternalException;
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException;
 
     /**
      * Attaches and starts new continuous copies for the given volume.

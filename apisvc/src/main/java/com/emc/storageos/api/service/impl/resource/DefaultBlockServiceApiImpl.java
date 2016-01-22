@@ -21,8 +21,6 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -148,6 +146,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     @Override
     protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
+        // Call super first.
+        super.cleanupForViPROnlyDelete(volumeDescriptors);
+
         // Clean up the relationship between volumes that are full
         // copies and and their source volumes.
         BlockFullCopyManager.cleanUpFullCopyAssociations(volumeDescriptors, _dbClient);

@@ -1775,7 +1775,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @throws InternalException
      */
     @Override
-    public <T extends DataObject> String checkForDelete(T object) throws InternalException {
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException {
         // The standard dependency checker really doesn't fly with RP because we need to determine if we can do
         // a tear-down of the volume, and that tear-down involved cleaning up dependent relationships.
         // So this will be a bit more manual and calculated. In order to determine if we can delete this object,
@@ -1809,7 +1809,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // down.
         if (volumeIDs.size() == 1) {
             String depMsg = _dependencyChecker.checkDependencies(object.getId(),
-                    object.getClass(), true);
+                    object.getClass(), true, excludeTypes);
             if (depMsg != null) {
                 return depMsg;
             }
@@ -2749,20 +2749,24 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
             List<URI> volumeURIs, String deletionType) {
-
+        // Get descriptors for all volumes impacted by the deletion of the requested volumes.
         List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs, deletionType, null);
 
+        // Filter these descriptors for a block volumes and VPLEX volumes.
         List<VolumeDescriptor> filteredDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA,
-                        VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
                 new VolumeDescriptor.Type[] {});
 
+        // Now get descriptors for the mirrors of these block and VPLEX volumes.
         for (VolumeDescriptor descriptor : filteredDescriptors) {
             URI volumeURI = descriptor.getDeviceURI();
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-            // Exclude inactive volumes
             if (volume != null && !volume.getInactive()) {
-                addDescriptorsForMirrors(volumeDescriptors, volume);
+                if (VolumeDescriptor.Type.BLOCK_DATA == descriptor.getType()) {
+                    addDescriptorsForMirrors(volumeDescriptors, volume);
+                } else if (VolumeDescriptor.Type.VPLEX_VIRT_VOLUME == descriptor.getType()) {
+                    vplexBlockServiceApiImpl.addDescriptorsForVplexMirrors(volumeDescriptors, volume);
+                }
             }
         }
 
@@ -2774,9 +2778,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
-        // For a VIPR only deletion make sure to clean up the export
-        // groups and mask so that they no longer reference associated
-        // volumes.
+        // Call super first.
+        super.cleanupForViPROnlyDelete(volumeDescriptors);
+
+        // Get the RP source volumes.
         List<VolumeDescriptor> sourceVolumeDescriptors = VolumeDescriptor
                 .getDescriptors(volumeDescriptors, VolumeDescriptor.Type.RP_SOURCE);
         List<URI> sourceVolumeURIs = new ArrayList<URI>();
@@ -2787,24 +2792,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 sourceVolumeURIs.add(sourceVolumeURI);
             }
         }
-        for (URI assocVolumeURI : _rpHelper.getVolumesToDelete(sourceVolumeURIs)) {
-            cleanVolumeFromExports(assocVolumeURI, true);
-        }
 
-        // For a VIPR only deletion make sure to clean up the export
-        // groups and mask so that they no longer reference associated
-        // volumes if there are any.
-        List<VolumeDescriptor> assocVolumeDescriptors = VolumeDescriptor
-                .getDescriptors(volumeDescriptors, VolumeDescriptor.Type.BLOCK_DATA);
-
-        if (assocVolumeDescriptors != null && !assocVolumeDescriptors.isEmpty()) {
-            List<URI> assocVolumeURIs = VolumeDescriptor.getVolumeURIs(assocVolumeDescriptors);
-            for (URI assocVolumeURI : assocVolumeURIs) {
-                cleanVolumeFromExports(assocVolumeURI, true);
-            }
-        }
-
-        // If we're deleting the last volume, we can delete the ProtectionSet object
+        // If we're deleting the last volume, we can delete the ProtectionSet object.
         Set<URI> psetsDeleted = new HashSet<URI>();
         for (URI sourceVolumeURI : sourceVolumeURIs) {
             Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);

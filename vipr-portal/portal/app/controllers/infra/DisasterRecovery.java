@@ -269,9 +269,7 @@ public class DisasterRecovery extends ViprResourceController {
                     DateTime pausedTime = new DateTime(disasterSiteDetails.getPausedTime().getTime());
                     renderArgs.put("pausedTime", pausedTime);
                 }
-                if (disasterSiteDetails.isDataSynced()) {
-                    renderArgs.put("lastUpdateTime", "Up To Date");
-                } else {
+                if (disasterSiteDetails.getlastUpdateTime() != null) {
                     DateTime lastUpdateTime = new DateTime(disasterSiteDetails.getlastUpdateTime().getTime());
                     renderArgs.put("lastUpdateTime", lastUpdateTime);
                 }

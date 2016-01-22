@@ -45,13 +45,14 @@
   <dt>&{'disasterRecovery.lastOperation.time'}</dt>
   <dd id="lastUpdateTime-${uuid}">--</dd>
   #{if lastUpdateTime }
-  	<script>
-  		var epocLastTime = '${disasterSiteDetails.lastUpdateTime}';
-  		if (epocLastTime != "Up To Date") {
-  			epocLastTime = formatLocalDateTime(new Date(epocLastTime));
-  		}
-   		$('#lastUpdateTime-' + '${uuid}').text(epocLastTime);
-  	</script>
+    <script>
+        if (${disasterSiteDetails.dataSynced}) {
+            var epocLastTime = "Up To Date";
+        } else {
+            var epocLastTime = formatLocalDateTime(new Date('${disasterSiteDetails.lastUpdateTime}'));
+        }
+        $('#lastUpdateTime-' + '${uuid}').text(epocLastTime);
+    </script>
   #{/if}
   <dt>&{'disasterRecovery.networkLatencyInMs'}</dt>
   <dd>${disasterSiteDetails.networkLatencyInMs}</dd>

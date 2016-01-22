@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
@@ -103,13 +102,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     // We want to allow customers to inventory-only delete volumes of volumes whose CG isn't fully ingested yet.
     public static final DataObject.Flag[] RP_INTERNAL_VOLUME_FLAGS = new DataObject.Flag[] { Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE,
             Flag.NO_METERING, Flag.NO_PUBLIC_ACCESS };
-
-    // The ingest strategy factory, used for ingesting the volumes using the appropriate orchestrator (VPLEX, block, etc)
-    private IngestStrategyFactory ingestStrategyFactory;
-
-    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
-        this.ingestStrategyFactory = ingestStrategyFactory;
-    }
 
     private static final String LABEL_NA = "N/A";
 
@@ -213,21 +205,13 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             UnManagedVolume unManagedVolume, Volume volume) {
         if (null == volume) {
             // We need to ingest the volume w/o the context of RP. (So, ingest a VMAX if it's VMAX, VPLEX if it's VPLEX, etc)
-            IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, true);
 
-            // by default we'll use the RP volume ingestion context, but...
-            IngestionRequestContext childRequestContext = rpVolumeContext;
-            // ...if this is an RP/VPLEX volume, we need to use the embedded
-            // VPLEX volume ingestion context now
-            if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
-                if (rpVolumeContext instanceof RpVplexVolumeIngestionContext) {
-                    childRequestContext =
-                            ((RpVplexVolumeIngestionContext) rpVolumeContext).getVplexVolumeIngestionContext();
-                }
-            }
+            IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume,
+                    IngestStrategyFactory.DISREGARD_PROTECTION);
 
-            volume = (Volume) ingestStrategy.ingestBlockObjects(childRequestContext,
+            volume = (Volume) ingestStrategy.ingestBlockObjects(rpVolumeContext,
                     VolumeIngestionUtil.getBlockObjectClass(unManagedVolume));
+
             _logger.info("Ingestion ended for unmanagedvolume {}", unManagedVolume.getNativeGuid());
             if (null == volume) {
                 throw IngestionException.exceptions.generalVolumeException(
@@ -857,6 +841,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 Volume volume = _dbClient.queryObject(Volume.class, volumeId);
                 if (volume == null) {
                     // Check the "just created" list in the volume context
+                    // TODO FIXME: this map uses the nativeGuid, not URI
                     if (volumeContext.getObjectsToBeCreatedMap().get(volumeId.toString()) != null) {
                         volume = (Volume) volumeContext.getObjectsToBeCreatedMap().get(volumeId.toString());
                         volumes.add(volume);

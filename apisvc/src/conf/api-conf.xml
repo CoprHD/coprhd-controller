@@ -285,7 +285,7 @@
         <property name="unexportedVolumeIngestOrchestrator" ref="unexportedVolumeIngestOrchestrator"/>
         <property name="blockRecoverPointIngestOrchestrator" ref="blockRecoverPointIngestOrchestrator"/>
     </bean>
-    
+
     <bean id ="blockVolumeIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockVolumeIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
         <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
@@ -298,14 +298,17 @@
     
     <bean id ="blockSnapshotIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockSnapIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
     </bean>
     
      <bean id ="blockMirrorIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockMirrorIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
     </bean>
     
     <bean id ="blockRemoteReplicationIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRemoteReplicationIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
     </bean>
     
     <bean id ="blockVplexVolumeIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockVplexVolumeIngestOrchestrator">
@@ -314,7 +317,7 @@
         <property name="tenantsService" ref="tenantsService"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
-    
+
     <bean id ="maskPerHostIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.MaskPerHostIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
     </bean>

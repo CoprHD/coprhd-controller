@@ -264,7 +264,8 @@ public class UnManagedVolumeService extends TaskResourceService {
                     volList.add(requestContext.getCurrentUnManagedVolumeUri());
                     VolumeIngestionUtil.checkIngestionRequestValidForUnManagedVolumes(volList, vpool, _dbClient);
 
-                    IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, false);
+                    IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, 
+                            !IngestStrategyFactory.DISREGARD_PROTECTION);
 
                     @SuppressWarnings("unchecked")
                     BlockObject blockObject = ingestStrategy.ingestBlockObjects(requestContext, 
@@ -417,7 +418,8 @@ public class UnManagedVolumeService extends TaskResourceService {
                     requestContext.getStorageSystemCache().put(storageSystemUri.toString(), system);
                 }
                 // Build the Strategy , which contains reference to Block object & export orchestrators
-                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, false);
+                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, 
+                        !IngestStrategyFactory.DISREGARD_PROTECTION);
 
                 @SuppressWarnings("unchecked")
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(requestContext, 

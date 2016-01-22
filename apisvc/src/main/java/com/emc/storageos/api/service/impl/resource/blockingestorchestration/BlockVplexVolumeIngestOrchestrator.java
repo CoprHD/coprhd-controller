@@ -67,9 +67,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     // best practice two paths from each VPLEX director for paths in a backend export group
     private static final int DEFAULT_BACKEND_NUMPATHS = 4;
 
-    // maps storage system URIs to StorageSystem objects
-    private final Map<String, StorageSystem> _systemMap = new HashMap<String, StorageSystem>();
-
     // the tenants service, used to generate the Project for the backend volumes
     private TenantsService _tenantsService;
 
@@ -107,7 +104,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             VplexVolumeIngestionContext volumeContext = null;
 
-            if (requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
+            boolean isRpVplexContext = requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext;
+            if (isRpVplexContext) {
                 // if this volume is RP/VPLEX, we need to get the volume context
                 // from the RpVplexVolumeIngestionContext
                 volumeContext = 
@@ -462,7 +460,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 validateBackendVolumeVpool(associatedVolume, backendRequestContext.getVpool());
 
-                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume, false);
+                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume, 
+                        IngestStrategyFactory.DISREGARD_PROTECTION);
 
                 @SuppressWarnings("unchecked")
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(backendRequestContext, 

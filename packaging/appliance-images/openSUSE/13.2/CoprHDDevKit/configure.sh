@@ -1,18 +1,79 @@
 #!/bin/bash
 #
-# Copyright 2015 EMC Corporation
+# Copyright 2015-2016 EMC Corporation
 # All Rights Reserved
 #
 
+function installDependencies
+{
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-oss --no-gpgcheck http://download.opensuse.org/distribution/13.2/repo/oss/suse suse-13.2-oss
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-non-oss --no-gpgcheck http://download.opensuse.org/distribution/13.2/repo/non-oss/suse suse-13.2-non-oss
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-monitoring --no-gpgcheck http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 suse-13.2-monitoring
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 suse-13.2-python
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-seife --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 suse-13.2-seife
+  zypper --non-interactive --no-gpg-checks install --no-recommends --force-resolution -r suse-13.2-oss ant apache2-mod_perl createrepo expect gcc-c++ gpgme inst-source-utils java-1_7_0-openjdk java-1_7_0-openjdk-devel \
+                                  kernel-default-devel kernel-source kiwi-desc-isoboot kiwi-desc-oemboot kiwi-desc-vmxboot kiwi-templates libtool \
+                                  openssh-fips perl-Config-General perl-Tk python-libxml2 python-py python-requests setools-libs python-setools qemu \
+                                  regexp rpm-build sshpass sysstat unixODBC xfsprogs xml-commons-jaxp-1.3-apis zlib-devel git git-core glib2-devel \
+                                  libgcrypt-devel libgpg-error-devel libopenssl-devel libserf-devel libuuid-devel libxml2-devel pam-devel pcre-devel \
+                                  perl-Error python-devel readline-devel subversion xmlstarlet xz-devel libpcrecpp0 libpcreposix0 ca-certificates-cacert \
+                                  p7zip python-iniparse python-gpgme yum keepalived
+  zypper --non-interactive --no-gpg-checks install --no-recommends --force-resolution -r suse-13.2-monitoring atop GeoIP-data libGeoIP1 GeoIP
+  zypper --non-interactive --no-gpg-checks install --no-recommends --force-resolution -r suse-13.2-seife sipcalc
+  zypper --non-interactive --no-gpg-checks install --no-recommends --force-resolution -r suse-13.2-python python-cjson
+}
 
-SCRIPT=$0
-OVF=$1
+function installNginx
+{
+  current=$(pwd)
+  mkdir -p /tmp/nginx
+  cd /tmp/nginx
+  wget 'http://nginx.org/download/nginx-1.6.2.tar.gz'
+  wget 'https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz'
+  wget 'https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz'
+  tar -xzvf nginx-1.6.2.tar.gz
+  tar -xzvf v0.3.0.tar.gz
+  tar -xzvf v0.25.tar.gz
+  cd nginx-1.6.2
+  patch -p1 < ../nginx_upstream_check_module-0.3.0/check_1.5.12+.patch
+  ./configure --add-module=../nginx_upstream_check_module-0.3.0 --add-module=../headers-more-nginx-module-0.25 --with-http_ssl_module --prefix=/usr --conf-path=/etc/nginx/nginx.conf
+  make
+  make install
+  rm -fr /tmp/nginx
+}
 
-cat ${OVF} | head -n -2 > ${OVF}.tmp
+function installUsers
+{
+  groupadd -g 444 storageos
+  useradd -r -d /opt/storageos -c "StorageOS" -g 444 -u 444 -s /bin/bash storageos
+}
 
-sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso,com.vmware.guestInfo\" ovf:required=\"false\">|g" ${OVF}.tmp
-sed -i "s|<vssd:VirtualSystemType>virtualbox-[0-9a-z.]\{1,\}</vssd:VirtualSystemType>|<vssd:VirtualSystemType>vmx-07</vssd:VirtualSystemType>|g" ${OVF}.tmp
-cat >> ${OVF}.tmp <<EOF
+function installNetworkConfigurationFile
+{
+  gateway=$(route -n | grep 'UG[ \t]' | awk '{print $2}')
+  ipaddr=$(ifconfig | awk '/inet addr/{print substr($2,6)}' | head -n 1)
+  cat >> /etc/ovfenv.properties <<EOF
+  network_1_ipaddr6=::0
+  network_1_ipaddr=${ipaddr}
+  network_gateway6=::0
+  network_gateway=${gateway}
+  network_netmask=255.255.255.0
+  network_prefix_length=64
+  network_vip6=::0
+  network_vip=${ipaddr}
+  node_count=1
+  node_id=vipr1
+EOF
+}
+
+function updateOVF
+{
+  OVF=$2
+
+  cat ${OVF} | head -n -2 > ${OVF}.tmp
+  sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso,com.vmware.guestInfo\" ovf:required=\"false\">|g" ${OVF}.tmp
+  sed -i "s|<vssd:VirtualSystemType>virtualbox-[0-9a-z.]\{1,\}</vssd:VirtualSystemType>|<vssd:VirtualSystemType>vmx-07</vssd:VirtualSystemType>|g" ${OVF}.tmp
+  cat >> ${OVF}.tmp <<EOF
     <ProductSection ovf:class="vm" ovf:required="false">
       <Info>VM specific properties</Info>
       <Property ovf:key="vmname" ovf:type="string" ovf:value="SetupVM"/>
@@ -61,11 +122,11 @@ cat >> ${OVF}.tmp <<EOF
 </Envelope>
 EOF
 
-LINE=$( grep -n "</VirtualHardwareSection>" ${OVF}.tmp | cut -f1 -d: )
-HEAD=$(( LINE-1 ))
-TAIL=$(( LINE+0 ))
-cat ${OVF}.tmp | head -n ${HEAD} > ${OVF}
-cat >> ${OVF} <<EOF
+  LINE=$( grep -n "</VirtualHardwareSection>" ${OVF}.tmp | cut -f1 -d: )
+  HEAD=$(( LINE-1 ))
+  TAIL=$(( LINE+0 ))
+  cat ${OVF}.tmp | head -n ${HEAD} > ${OVF}
+  cat >> ${OVF} <<EOF
       <Item>
         <rasd:AddressOnParent>1</rasd:AddressOnParent>
         <rasd:AutomaticAllocation>true</rasd:AutomaticAllocation>
@@ -76,5 +137,8 @@ cat >> ${OVF} <<EOF
       </Item>
 EOF
 
-cat ${OVF}.tmp | tail -n +${TAIL} >> ${OVF}
-rm ${OVF}.tmp
+  cat ${OVF}.tmp | tail -n +${TAIL} >> ${OVF}
+  rm ${OVF}.tmp
+}
+
+$1 "$@"

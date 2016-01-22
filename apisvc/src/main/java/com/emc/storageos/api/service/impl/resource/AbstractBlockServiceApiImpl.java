@@ -66,6 +66,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -1000,6 +1001,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             throw APIException.badRequests.noVolumesToSnap();
         }
 
+        // Validate VNX. Cannot create snapshot if volume is in virtual replication group
+        if (ControllerUtils.isInVNXVirtualRG(reqVolume, _dbClient)) {
+            throw APIException.badRequests.snapshotsNotSupportedForVNXVRG();
+        }
+
         // Verify the vpools of the volumes to be snapped support
         // snapshots and the maximum snapshots has not been reached.
         // Also, check for a duplicate name.
@@ -1547,7 +1553,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
          * For other arrays, or VMAX (CG has existing volumes, or non SMI-S 8.x), volumes to be added cannot have replicas
          */
         boolean isReplicaAllowed = false;
-        if ((volsAlreadyInCG || cgVolumes.isEmpty()) && ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient)) {
+        if ((volsAlreadyInCG || cgVolumes.isEmpty()) && ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient) || ControllerUtils.isVnxVolume(volumes.get(0), _dbClient) ) {
             isReplicaAllowed = true;
         }
 
@@ -1702,4 +1708,15 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     desc.getVolumeURI(), task));
         }
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void updateVolumesInVolumeGroup(VolumeGroupVolumeList addVolumes, 
+            List<Volume> removeVolumes, 
+            URI applicationId, String taskId) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+    
 }

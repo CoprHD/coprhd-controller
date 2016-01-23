@@ -29,9 +29,9 @@ public class ScaleIOStorageDriverTest {
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";
-    String VOLUME_ID_1A = "d584cac100000000";
-    String VOLUME_ID_2A = "d584cac300000002";
-    String SNAPSHOT_OF_1A = "d584cac200000001";
+    String VOLUME_ID_1A = "d584cb0c00000029";
+    String VOLUME_ID_2A = "d584cb0d0000002a";
+    String SNAPSHOT_OF_1A = "d584cb1900000000";
     String VOLUME_ID_1B = "83f1771b00000000";
     String VOLUME_ID_2B = "83f1771000000001";
     String INVALID_VOLUME_ID_1 = "83f177070000000";

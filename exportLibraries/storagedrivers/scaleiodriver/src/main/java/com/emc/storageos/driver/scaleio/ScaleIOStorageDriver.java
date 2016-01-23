@@ -782,11 +782,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 client = scaleIORestHandleFactory.getClientHandle(systemId, ip_address, Integer.parseInt(port), username, password);
                 return client;
             } catch (Exception e) {
-                log.error("Exception when creating rest client instance.", e);
+                log.error("Exception when creating rest client instance for storage system {} ", systemId, e);
                 return null;
             }
         } else {
-            log.info("Exception when retrieving connection information found.");
+            log.info("Exception when retrieving connection information found for storage system {}.", systemId);
             return null;
         }
     }

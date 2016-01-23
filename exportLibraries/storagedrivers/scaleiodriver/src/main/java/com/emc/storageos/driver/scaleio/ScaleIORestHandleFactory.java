@@ -63,7 +63,7 @@ public class ScaleIORestHandleFactory {
                         log.error("Failed to get Rest Handle", e);
                     }
                 }else{
-                    log.error("Some of the following are Missing: IP Address, username, password.");
+                    log.error("Some of the following for storage system {} are Missing: IP Address, username, password.",systemId);
                 }
             }
         }

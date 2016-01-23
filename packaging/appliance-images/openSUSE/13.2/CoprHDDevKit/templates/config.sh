@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2015 EMC Corporation
+# Copyright 2015-2016 EMC Corporation
 # All Rights Reserved
 #
 
@@ -73,6 +73,34 @@ cp -f /etc/inputrc /etc/inputrc-original
 LineNo=$(grep -A 5 -n ".*Normal keypad and cursor of xterm" /etc/inputrc | grep history-search-backward | cut -d- -f1)
 LineNo="$LineNo "$(grep -A 5 -n ".*Normal keypad and cursor of xterm" /etc/inputrc | grep set-mark | cut -d- -f1)
 for ln in $LineNo; do sed -i "$ln s/.*/#&/" /etc/inputrc; done
+
+mkdir -p /kiwi-hooks
+## BEGIN:/kiwi-hooks/preCallInit.sh - first boot configuration
+cat > /kiwi-hooks/preCallInit.sh <<EOF
+#!/bin/bash
+# ===
+# FILE: /kiwi-hooks/preCallInit.sh
+# ===
+
+# include KIWI modules
+/include
+
+# clenup temporary folders created by 'KIWILinuxRC.sh'
+rm -fr /run/initramfs
+rm -fr /Swap
+
+mkswap /dev/system*/LVSwap
+echo "\$( ls /dev/system*/LVSwap ) swap swap defaults 0 0" >> /etc/fstab
+swapon -a
+
+# turn off on screen console messages after first boot
+dmesg --console-off
+
+# cleanup kiwi-hooks folder
+rm -fr /kiwi-hooks
+EOF
+chmod u+x /kiwi-hooks/preCallInit.sh
+## END:/kiwi-hooks/preCallInit.sh
 
 mkdir -p /etc/init.d
 ## BEGIN:/etc/init.d/boot.getCoprHDEnv - setup ovf properties on first boot

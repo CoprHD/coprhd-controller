@@ -7,7 +7,7 @@
 #  Setup
 ##################################################
 export DO_NOT_START := yes
-WORKSPACE := $(shell pwd)
+WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHDDevKit
 VERSION := 2.5.0.0
 JOB := 999
@@ -26,7 +26,7 @@ OVF := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)/$(NAME).x86_64-$(VERSION).$(
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
 
 .DEFAULT: all
-.PHONY: downdloadISO downdloadRPM downdloadTGZ createREPO appliance clean destroy
+.PHONY: downdloadISO downdloadRPM downdloadTGZ createREPO appliance devkit clean destroy
 all: appliance
 
 ##################################################
@@ -93,6 +93,15 @@ destroy:
 	$(call targetLog,-)
 
 appliance: | $(OVF)
+
+devkit:
+	bash $(WORKSPACE)/configure.sh installRepositories
+	bash $(WORKSPACE)/configure.sh installPackages
+	bash $(WORKSPACE)/configure.sh installJava
+	bash $(WORKSPACE)/configure.sh installNginx
+	bash $(WORKSPACE)/configure.sh installStorageOS
+	bash $(WORKSPACE)/configure.sh installNetworkConfigurationFile
+	bash $(WORKSPACE)/configure.sh installXorg
 
 $(VMDK): | downdloadISO createREPO
 	$(call targetLog,+)

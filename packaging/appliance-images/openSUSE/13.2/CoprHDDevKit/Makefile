@@ -1,5 +1,5 @@
 #
-# Copyright 2015 EMC Corporation
+# Copyright 2015-2016 EMC Corporation
 # All Rights Reserved
 #
 
@@ -28,7 +28,7 @@ VMX := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmx
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
 
 .DEFAULT: all
-.PHONY: downloadISO createREPO ovf vmx appliance devkit clean destroy
+.PHONY: downloadISO downloadRPM createREPO ovf vmx appliance devkit clean destroy
 all: appliance
 
 ##################################################
@@ -50,12 +50,22 @@ downloadISO:
 	[ -s $(WORKSPACE)/iso/$(ISO_FILE) ] || wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
 	$(call targetLog,-)
 
-createREPO:
+downloadRPM:
+	$(call targetLog,+)
+	rm -fr $(WORKSPACE)/zypper/reposd
+	mkdir -p $(WORKSPACE)/zypper/{reposd,cache,solv,pkg}
+	zypper $(ZYPPER_PARAMS) addrepo --name repo-oss --no-gpgcheck --no-check http://download.opensuse.org/distribution/13.2/repo/oss repo-oss
+	zypper $(ZYPPER_PARAMS) refresh
+	zypper $(ZYPPER_PARAMS) --non-interactive download fribidi fbiterm
+	$(call targetLog,-)
+
+createREPO: | downloadRPM
 	$(call targetLog,+)
 	rm -fr $(WORKSPACE)/zypper/repo
 	mkdir -p $(WORKSPACE)/zypper/repo
-	make -f $(WORKSPACE)/../configure-network/Makefile
+	make --directory=$(WORKSPACE)/../configure-network
 	cp -f $(WORKSPACE)/../configure-network/RPMS/noarch/* $(WORKSPACE)/zypper/repo/
+	find $(WORKSPACE)/zypper/pkg -iname \*.rpm -exec cp -f {} $(WORKSPACE)/zypper/repo/ \;
 	createrepo $(WORKSPACE)/zypper/repo
 	$(call targetLog,-)
 

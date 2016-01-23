@@ -869,7 +869,7 @@ public class RecoverPointClient {
                     copyName = journalVolume.getRpCopyName();
                     ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName());
                     ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);
-                    DeviceUID journalDevice = RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn());
+                    DeviceUID journalDevice = RecoverPointUtils.getDeviceID(allSites, journalVolume.getInternalSiteName(), journalVolume.getWwn());
                     addedJournalVolumes.put(copyUID, journalDevice);
                     functionalAPI.addJournalVolume(copyUID, journalDevice);
                 }
@@ -1065,7 +1065,7 @@ public class RecoverPointClient {
                     for (CreateVolumeParams journalVolume : copyParam.getJournals()) {
                         logger.info("Configuring Journal : \n" + journalVolume.toString() + "\n for copy: " + copyParam.getName() +
                                 "; CG " + request.getCgName());
-                        copySettingsParam.getNewJournalVolumes().add(RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));
+                        copySettingsParam.getNewJournalVolumes().add(RecoverPointUtils.getDeviceID(allSites, journalVolume.getInternalSiteName(), journalVolume.getWwn()));
                     }
 
                     cgSettingsParam.getCopiesChanges().add(copySettingsParam);
@@ -1093,7 +1093,7 @@ public class RecoverPointClient {
             for (CreateVolumeParams volume : rsetParam.getVolumes()) {
 
                 UserVolumeSettingsChangesParam volSettings = new UserVolumeSettingsChangesParam();
-                volSettings.setNewVolumeID(RecoverPointUtils.getDeviceID(allSites, volume.getWwn()));
+                volSettings.setNewVolumeID(RecoverPointUtils.getDeviceID(allSites, volume.getInternalSiteName(), volume.getWwn()));
 
                 ClusterUID volSiteId = getRPSiteID(volume.getInternalSiteName(), clusterIdCache);
 
@@ -3410,7 +3410,7 @@ public class RecoverPointClient {
         // add journals
         for (CreateVolumeParams journalVolume : copyParams.getJournals()) {
             logger.info("Adding Journal : " + journalVolume.toString() + " for Production copy : " + copyParams.getName());
-            functionalAPI.addJournalVolume(copyUid, RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));
+            functionalAPI.addJournalVolume(copyUid, RecoverPointUtils.getDeviceID(allSites, journalVolume.getInternalSiteName(), journalVolume.getWwn()));
         }
 
         if (rSets != null) {
@@ -3429,7 +3429,7 @@ public class RecoverPointClient {
                     for (CreateVolumeParams volume : rSet.getVolumes()) {
                         if ((isProduction && volume.isProduction()) || (!isProduction && !volume.isProduction())) {
                             logger.info(String.format("Adding %s copy volume : %s", copyTypeStr, copyParams.toString()));
-                            functionalAPI.addUserVolume(copyUid, rSetUid, RecoverPointUtils.getDeviceID(allSites, volume.getWwn()));
+                            functionalAPI.addUserVolume(copyUid, rSetUid, RecoverPointUtils.getDeviceID(allSites, volume.getInternalSiteName(), volume.getWwn()));
                         }
                     }
                 }

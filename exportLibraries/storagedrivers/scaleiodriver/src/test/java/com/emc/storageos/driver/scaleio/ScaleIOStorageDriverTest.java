@@ -168,7 +168,7 @@ public class ScaleIOStorageDriverTest {
         StorageSystem validStorageSystem = new StorageSystem();
         StorageSystem invalidStorageSystem = new StorageSystem();
 
-        validStorageSystem.setNativeId("3eb4708d2b3ea454");
+        validStorageSystem.setSystemName("pdomain");
         validStorageSystem.setSystemType("scaleio");
         validStorageSystem.setPortNumber(443);
         validStorageSystem.setUsername("admin");

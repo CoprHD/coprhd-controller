@@ -100,30 +100,39 @@ public class VplexBackendVolumesToSeparateMasksStrategy implements VPlexBackendP
      * @param placedMasks [IN] - Mapping of ExportMask URI to ExportMask object
      */
     private void placeVolumeToMaskWithLeastNumberOfVolumes(URI volumeURI, Map<URI, ExportMask> placedMasks) {
-        log.info("These are exportMasks point to the same cluster: {}", placedMasks.keySet());
+        log.info("These exportMasks are pointing to the same cluster: {}", placedMasks.keySet());
         // We're going to try the smallest number of volumes in the ExportMask, so start
         // with the largest possible count size
         int leastNumberOfVolumes = Integer.MAX_VALUE;
         // As we go through the ExportMask URIs, save off those that don't have the least
         // number of volumes
         Set<URI> exportMaskWithMoreVolumes = new HashSet<>();
+        ExportMask currMaskWithLeastVolumes = null;
         for (ExportMask mask : placedMasks.values()) {
             // Try to determine the ExportMask with the least number of total volumes.
             int totalVolumeCount = mask.returnTotalVolumeCount();
             if (totalVolumeCount < leastNumberOfVolumes) {
+                if (currMaskWithLeastVolumes != null) {
+                    exportMaskWithMoreVolumes.add(currMaskWithLeastVolumes.getId());
+                }
                 leastNumberOfVolumes = totalVolumeCount;
+                currMaskWithLeastVolumes = mask;
             } else {
                 exportMaskWithMoreVolumes.add(mask.getId());
             }
         }
+        if (currMaskWithLeastVolumes != null) {
+            log.info(String.format("ExportMask %s was selected for volume %s, as it has %d total volumes",
+                    currMaskWithLeastVolumes.getId(), volumeURI, currMaskWithLeastVolumes.returnTotalVolumeCount()));
+        }
         log.info("Determined that this volume {} can be unplaced from these ExportMasks: {}", volumeURI, exportMaskWithMoreVolumes);
-        log.info("PlacementDescriptor before:\n{}", placementDescriptor.toString());
+        log.info("placeVolumeToMaskWithLeastNumberOfVolumes - PlacementDescriptor before:\n{}", placementDescriptor.toString());
         // For any export masks that were found to have more (or the same) number of volumes as
         // the ExportMask with the least, invalidate its placement in the descriptor
         for (URI exportMaskURI : exportMaskWithMoreVolumes) {
             placementDescriptor.unplaceVolumeFromMask(volumeURI, exportMaskURI);
         }
-        log.info("PlacementDescriptor after:\n{}", placementDescriptor.toString());
+        log.info("placeVolumeToMaskWithLeastNumberOfVolumes - PlacementDescriptor after:\n{}", placementDescriptor.toString());
     }
 
     /**

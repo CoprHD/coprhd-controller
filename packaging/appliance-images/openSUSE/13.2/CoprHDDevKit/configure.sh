@@ -29,6 +29,11 @@ function installPackages
   cp -f /etc/zypp/repos.d/suse-13.2-python.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-seife.repo /tmp/coprhd.d/
 
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 1 suse-13.2-oss
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 2 suse-13.2-monitoring.repo
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 2 suse-13.2-seife
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 3 suse-13.2-python
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 4 suse-13.2-non-oss.repo
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --no-recommends --force-resolution ant apache2-mod_perl atop ca-certificates-cacert ca-certificates-mozilla createrepo dhcpcd expect fontconfig fonts-config gcc-c++ GeoIP GeoIP-data git git-core glib2-devel gpgme grub2 ifplugd inst-source-utils iproute2 iputils java-1_7_0-openjdk java-1_7_0-openjdk-devel java-1_8_0-openjdk java-1_8_0-openjdk-devel keepalived kernel-default kernel-default-devel kernel-source kiwi kiwi-desc-isoboot kiwi-desc-oemboot kiwi-desc-vmxboot kiwi-templates libaudiofile1 libesd0 libgcrypt-devel libGeoIP1 libgpg-error-devel libmng2 libopenssl-devel libpcrecpp0 libpcreposix0 libqt4 libqt4-sql libqt4-x11 libSDL-1_2-0 libserf-devel libtool libuuid-devel libvpx1 libxml2-devel libXmu6 lvm2 make mozilla-nss-certs netcfg net-tools nfs-client openssh openssh-fips p7zip pam-devel parted pcre-devel perl-Config-General perl-Error perl-Tk plymouth python-cjson python-devel python-gpgme python-iniparse python-libxml2 python-py python-requests python-setools qemu readline-devel regexp rpm-build setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 subversion sudo SuSEfirewall2 sysconfig sysconfig-netconfig syslinux sysstat systemd-logger tar telnet unixODBC vim virtualbox virtualbox-guest-kmp-default virtualbox-host-kmp-default wget xbitmaps xfsprogs xml-commons-jaxp-1.3-apis xmlstarlet xorg-x11-essentials xorg-x11-fonts xorg-x11-server xz-devel yum zlib-devel
 
   rm -fr /tmp/coprhd.d
@@ -171,7 +176,7 @@ function updateOVF
   OVF=$2
 
   cat ${OVF} | head -n -2 > ${OVF}.tmp
-  sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso,com.vmware.guestInfo\" ovf:required=\"false\">|g" ${OVF}.tmp
+  sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso\" ovf:required=\"false\">|g" ${OVF}.tmp
   sed -i "s|<vssd:VirtualSystemType>virtualbox-[0-9a-z.]\{1,\}</vssd:VirtualSystemType>|<vssd:VirtualSystemType>vmx-07</vssd:VirtualSystemType>|g" ${OVF}.tmp
   cat >> ${OVF}.tmp <<EOF
     <ProductSection ovf:class="vm" ovf:required="false">

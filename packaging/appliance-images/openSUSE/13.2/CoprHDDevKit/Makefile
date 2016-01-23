@@ -14,6 +14,7 @@ JOB := 999
 VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso
 ISO_URL := http://download.opensuse.org/distribution/13.2/iso/$(ISO_FILE)
+RAM := 8192
 
 ##################################################
 #  Target files/folders
@@ -22,11 +23,12 @@ IMAGE_DIR := $(WORKSPACE)/image/$(JOB)
 OUTPUT_DIR := $(WORKSPACE)/output/$(JOB)
 BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 VMDK := $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
-OVF := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
+OVF := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
+VMX := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmx
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
 
 .DEFAULT: all
-.PHONY: downdloadISO downdloadRPM downdloadTGZ createREPO appliance devkit clean destroy
+.PHONY: downloadISO createREPO ovf vmx appliance devkit clean destroy
 all: appliance
 
 ##################################################
@@ -41,44 +43,19 @@ endef
 ##################################################
 #  Targets
 ##################################################
-downdloadISO:
+downloadISO:
 	$(call targetLog,+)
 	mkdir -p $(WORKSPACE)/iso/mount
 	[ ! -f /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) ] || ln -fs /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) $(WORKSPACE)/iso/
 	[ -s $(WORKSPACE)/iso/$(ISO_FILE) ] || wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
 	$(call targetLog,-)
 
-downdloadRPM:
-	$(call targetLog,+)
-	rm -fr $(WORKSPACE)/zypper/reposd
-	mkdir -p $(WORKSPACE)/zypper/{reposd,cache,solv,pkg}
-	@# openSUSE's OSS packages
-	zypper $(ZYPPER_PARAMS) addrepo --name repo-oss --no-gpgcheck --no-check http://download.opensuse.org/distribution/13.2/repo/oss repo-oss.repo
-	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) --non-interactive download python-py python-requests python-setools python-iniparse python-gpgme java-1_8_0-openjdk-devel
-	zypper $(ZYPPER_PARAMS) --non-interactive download libserf-devel fribidi fbiterm openssh-fips perl-Tk setools-libs sshpass sysstat ca-certificates-cacert yum keepalived strongswan strongswan-ipsec strongswan-libs0
-	@# openSUSE's non-OSS packages
-	zypper $(ZYPPER_PARAMS) addrepo --name devel-languages-python --no-gpgcheck --no-check http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 devel-languages-python.repo
-	zypper $(ZYPPER_PARAMS) addrepo --name server-monitoring --no-gpgcheck --no-check http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 server-monitoring.repo
-	zypper $(ZYPPER_PARAMS) addrepo --name home-seife-testing --no-gpgcheck --no-check http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 home-seife-testing.repo
-	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) --non-interactive download atop GeoIP-data libGeoIP1 GeoIP sipcalc python-cjson
-	$(call targetLog,-)
-
-downdloadTGZ:
-	$(call targetLog,+)
-	wget http://nginx.org/download/nginx-1.6.2.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/nginx-1.6.2.tar.gz
-	wget --no-check-certificate https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.3.0.tar.gz
-	wget --no-check-certificate https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.25.tar.gz
-	$(call targetLog,-)
-
-createREPO: | downdloadRPM downdloadTGZ
+createREPO:
 	$(call targetLog,+)
 	rm -fr $(WORKSPACE)/zypper/repo
 	mkdir -p $(WORKSPACE)/zypper/repo
 	make -f $(WORKSPACE)/../configure-network/Makefile
 	cp -f $(WORKSPACE)/../configure-network/RPMS/noarch/* $(WORKSPACE)/zypper/repo/
-	find $(WORKSPACE)/zypper/pkg -iname \*.rpm -exec cp -f {} $(WORKSPACE)/zypper/repo/ \;
 	createrepo $(WORKSPACE)/zypper/repo
 	$(call targetLog,-)
 
@@ -92,9 +69,20 @@ destroy:
 	rm -fr $(WORKSPACE)/{iso,build,image,output,zypper}
 	$(call targetLog,-)
 
-appliance: | $(OVF)
+appliance: | ovf vmx
+
+ovf: | $(OVF)
+	$(call targetLog,+)
+	chmod a+r $(BUILD_DIR)/*
+	$(call targetLog,-)
+
+vmx: | $(VMX)
+	$(call targetLog,+)
+	chmod a+r $(BUILD_DIR)/*
+	$(call targetLog,-)
 
 devkit:
+	$(call targetLog,+)
 	bash $(WORKSPACE)/configure.sh installRepositories
 	bash $(WORKSPACE)/configure.sh installPackages
 	bash $(WORKSPACE)/configure.sh installJava
@@ -102,18 +90,22 @@ devkit:
 	bash $(WORKSPACE)/configure.sh installStorageOS
 	bash $(WORKSPACE)/configure.sh installNetworkConfigurationFile
 	bash $(WORKSPACE)/configure.sh installXorg
+	$(call targetLog,-)
 
-$(VMDK): | downdloadISO createREPO
+$(VMDK): | downloadISO createREPO
 	$(call targetLog,+)
 	bash $(WORKSPACE)/patch.sh
+	mkdir -p $(WORKSPACE)/templates/root/tmp
 	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
+	cp -f $(WORKSPACE)/configure.sh $(WORKSPACE)/templates/root/tmp/
 	sed -i "s|__NAME__|$(NAME)|g" $(WORKSPACE)/templates/config.xml
 	sed -i "s|__ISO__|$(WORKSPACE)/iso/mount|g" $(WORKSPACE)/templates/config.xml
 	sed -i "s|__REPO__|$(WORKSPACE)/zypper/repo|g" $(WORKSPACE)/templates/config.xml
 	sed -i "s|__VERSION__|$(VERSION).$(JOB)|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__UUID__|$$RANDOM|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__RAM__|$(RAM)|g" $(WORKSPACE)/templates/config.xml
 	-! mountpoint -q $(IMAGE_DIR)/var/cache/kiwi || umount $(IMAGE_DIR)/var/cache/kiwi
 	-mountpoint -q $(WORKSPACE)/iso/mount || mount $(WORKSPACE)/iso/$(ISO_FILE) $(WORKSPACE)/iso/mount
-	rm -fr $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 	mkdir -p $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 	mkdir -p $(WORKSPACE)/image
 	mkdir -p $(WORKSPACE)/build
@@ -125,13 +117,17 @@ $(VMDK): | downdloadISO createREPO
 
 $(OVF): | $(VMDK)
 	$(call targetLog,+)
-	cp -f $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk.bak
-	VBoxManage createvm --name "$(NAME)-$(VERSION).$(JOB)" --register
-	VBoxManage modifyvm "$(NAME)-$(VERSION).$(JOB)" --memory 8192 --cpus 1 --acpi on --boot1 dvd --nic1 bridged --bridgeadapter1 eth0 --ostype Linux_64
+	VBoxManage createvm --name "$(NAME)-$(VERSION).$(JOB)" --basefolder $(OUTPUT_DIR) --register
+	VBoxManage modifyvm "$(NAME)-$(VERSION).$(JOB)" --memory $(RAM) --cpus 1 --acpi on --boot1 dvd --nic1 bridged --bridgeadapter1 eth0 --ostype Linux_64
 	VBoxManage storagectl "$(NAME)-$(VERSION).$(JOB)" --name "IDE Controller" --add ide
-	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
-	VBoxManage export "$(NAME)-$(VERSION).$(JOB)" --vsys 0 --product $(NAME) --version $(VERSION).$(JOB) --vendor $(VENDOR) --output $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
-	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)" --delete
-	mv -f $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk.bak $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
-	bash $(WORKSPACE)/configure.sh updateOVF $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
+	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(VMDK)
+	VBoxManage export "$(NAME)-$(VERSION).$(JOB)" --vsys 0 --product $(NAME) --version $(VERSION).$(JOB) --vendor $(VENDOR) --output $(OVF)
+	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)"
+	bash $(WORKSPACE)/configure.sh updateOVF $(OVF)
+	$(call targetLog,-)
+
+$(VMX): | $(VMDK)
+	$(call targetLog,+)
+	[ -f $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk ] || cp $(VMDK) $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
+	cp $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmx $(VMX)
 	$(call targetLog,-)

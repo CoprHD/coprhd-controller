@@ -149,20 +149,6 @@ user_confirm() {
     done
 }
 
-if [ $# -ne 1 ]; then
-    usage
-    exit 2
-fi
-
-if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
-    usage
-    exit 0
-fi
-
-RESTORE_DIR="/data/restore-`date +%s`"
-NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
-LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
-
 check_standby() {
     local is_standby=$(/etc/systool --getvdcprops | awk '/^site_is_standby=/ {print substr($0, length("site_is_standby=") + 1)}')
     if [ "$is_standby" == "true" ]; then
@@ -173,21 +159,24 @@ check_standby() {
 
 if [ $# -ne 1 ]; then
     usage
-    exit 1
+    exit 2
 fi
 
-if [ $1 == "--help" -o $1 == "-h" -o $1 == "-help" ]; then
+if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
     usage
     exit 0
 fi
 
 check_standby
 
+RESTORE_DIR="/data/restore-`date +%s`"
+NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
+LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
+
 if [ -d "$1" ] ; then
     RESTORE_DIR="$1" 
 else
     BACKUP_ZIP=$(readlink -f "$1")
-    init_variables
 fi
 
 trap clean_up EXIT
@@ -195,7 +184,6 @@ trap clean_up EXIT
 validate_parameters
 
 input_password
-
 
 comands=(upload_backup confirm_vdc_status)
 for cmd in ${comands[@]}

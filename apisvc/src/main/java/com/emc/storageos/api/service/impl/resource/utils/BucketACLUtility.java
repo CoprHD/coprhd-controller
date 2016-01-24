@@ -26,6 +26,11 @@ import com.emc.storageos.model.object.BucketACLUpdateParams.BucketACLOperationTy
 import com.emc.storageos.model.object.BucketACLUpdateParams.BucketPermissions;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
+
+/**
+ * Utility class for BUCKET ACL Operations.
+ *
+ */
 public class BucketACLUtility {
 
     private final static Logger _log = LoggerFactory
@@ -48,7 +53,6 @@ public class BucketACLUtility {
     // ("Suppressing Sonar violation for variable name should be in camel case")
 
     public BucketACLUtility(DbClient dbClient, String bucketName, URI bucketId) {
-        super();
         this.dbClient = dbClient;
         this.bucketName = bucketName;
         this.bucketId = bucketId;

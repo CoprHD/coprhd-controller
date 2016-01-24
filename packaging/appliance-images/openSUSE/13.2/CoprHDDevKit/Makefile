@@ -105,9 +105,10 @@ devkit:
 $(VMDK): | downloadISO createREPO
 	$(call targetLog,+)
 	bash $(WORKSPACE)/patch.sh
-	mkdir -p $(WORKSPACE)/templates/root/tmp
+	mkdir -p $(WORKSPACE)/templates/root/opt/ADG/conf
 	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
-	cp -f $(WORKSPACE)/configure.sh $(WORKSPACE)/templates/root/tmp/
+	cp -f $(WORKSPACE)/configure.sh $(WORKSPACE)/templates/root/opt/ADG/conf/
+	chmod u+x $(WORKSPACE)/templates/root/opt/ADG/conf/configure.sh
 	sed -i "s|__NAME__|$(NAME)|g" $(WORKSPACE)/templates/config.xml
 	sed -i "s|__ISO__|$(WORKSPACE)/iso/mount|g" $(WORKSPACE)/templates/config.xml
 	sed -i "s|__REPO__|$(WORKSPACE)/zypper/repo|g" $(WORKSPACE)/templates/config.xml

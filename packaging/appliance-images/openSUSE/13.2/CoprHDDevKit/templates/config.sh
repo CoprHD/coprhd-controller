@@ -55,13 +55,13 @@ suseConfig
 #======================================
 # CoprHDDevKit install
 #--------------------------------------
-bash /tmp/configure.sh installRepositories
-bash /tmp/configure.sh installPackages
-bash /tmp/configure.sh installJava
-bash /tmp/configure.sh installNginx
-bash /tmp/configure.sh installStorageOS
-bash /tmp/configure.sh installXorg
-rm -f /tmp/configure.sh
+bash /opt/ADG/conf/configure.sh installRepositories
+bash /opt/ADG/conf/configure.sh installPackages
+bash /opt/ADG/conf/configure.sh installJava
+bash /opt/ADG/conf/configure.sh installNginx
+bash /opt/ADG/conf/configure.sh installStorageOS
+bash /opt/ADG/conf/configure.sh installVagrant
+bash /opt/ADG/conf/configure.sh installXorg
 
 #======================================
 # CoprHDDevKit setup
@@ -85,7 +85,7 @@ cat > /kiwi-hooks/preCallInit.sh <<EOF
 # include KIWI modules
 /include
 
-# clenup temporary folders created by 'KIWILinuxRC.sh'
+# cleanup temporary folders created by 'KIWILinuxRC.sh'
 rm -fr /run/initramfs
 rm -fr /Swap
 

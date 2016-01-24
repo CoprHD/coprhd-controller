@@ -211,6 +211,20 @@ public class BucketACLUtility {
                         throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
                                 bucketACE.getUser(), bucketACE.getGroup(), bucketACE.getCustomGroup());
                     }
+                    
+                    case USER_AND_GROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), bucketACE.getGroup(), null);
+                    }
+                    case USER_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), null, bucketACE.getCustomGroup());
+                    }
+
+                    case GROUP_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                null, bucketACE.getGroup(), bucketACE.getCustomGroup());
+                    }
 
                     case USER_OR_GROUP_OR_CUSTOMGROUP_NOT_PROVIDED: {
 
@@ -287,6 +301,20 @@ public class BucketACLUtility {
                     case USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED: {
                         throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
                                 bucketACE.getUser(), bucketACE.getGroup(), bucketACE.getCustomGroup());
+                    }
+                    
+                    case USER_AND_GROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), bucketACE.getGroup(), null);
+                    }
+                    case USER_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), null, bucketACE.getCustomGroup());
+                    }
+
+                    case GROUP_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                null, bucketACE.getGroup(), bucketACE.getCustomGroup());
                     }
 
                     case USER_OR_GROUP_OR_CUSTOMGROUP_NOT_PROVIDED: {

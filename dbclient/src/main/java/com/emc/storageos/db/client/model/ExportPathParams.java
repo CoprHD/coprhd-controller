@@ -144,6 +144,9 @@ public class ExportPathParams extends DataObject {
 
     @Transient
     public Integer getMaxInitiatorsPerPort() {
+        if (maxInitiatorsPerPort == null) {
+            return 1;
+        }
         return maxInitiatorsPerPort;
     }
 

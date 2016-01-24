@@ -847,7 +847,20 @@ public class DisasterRecoveryService {
     public Response doSwitchover(@PathParam("uuid") String uuid) {
         log.info("Begin to switchover for standby UUID {}", uuid);
 
-        precheckForSwitchover(uuid);
+        precheckForSwitchoverForActiveSite(uuid);
+        
+        Map<String, InternalSiteServiceClient> clientCacheMap = new HashMap<String, InternalSiteServiceClient>();
+        List<Site> allStandbySites = drUtil.listStandbySites();
+
+        for (Site site : allStandbySites) {
+            if (!site.getUuid().equals(uuid) && site.getState() != SiteState.STANDBY_PAUSED) {
+                InternalSiteServiceClient client = new InternalSiteServiceClient(site);
+                client.setCoordinatorClient(coordinator);
+                client.setKeyGenerator(apiSignatureGenerator);
+                client.switchoverPrecheck();
+                clientCacheMap.put(site.getUuid(), client);
+            }
+        }
 
         String oldActiveUUID = drUtil.getActiveSite().getUuid();
 
@@ -878,8 +891,12 @@ public class DisasterRecoveryService {
             // trigger reconfig
             long vdcConfigVersion = System.currentTimeMillis(); // a version for all sites.
             for (Site eachSite : drUtil.listSites()) {
-                drUtil.updateVdcTargetVersion(eachSite.getUuid(), SiteInfo.DR_OP_SWITCHOVER, vdcConfigVersion, oldActiveSite.getUuid(),
+                if (clientCacheMap.containsKey(eachSite.getUuid())) {
+                    clientCacheMap.get(eachSite.getUuid()).switchover(newActiveSite.getUuid(), vdcConfigVersion);
+                }else {
+                    drUtil.updateVdcTargetVersion(eachSite.getUuid(), SiteInfo.DR_OP_SWITCHOVER, vdcConfigVersion, oldActiveSite.getUuid(),
                         newActiveSite.getUuid());
+                }
             }
 
             auditDisasterRecoveryOps(OperationTypeEnum.SWITCHOVER, AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
@@ -897,6 +914,50 @@ public class DisasterRecoveryService {
                 log.error(String.format("Lock release failed when switchover from %s to %s", oldActiveUUID, uuid));
             }
         }
+    }
+    
+    /**
+     * This is internal API to do precheck for switchover
+     * 
+     * @return return response with error message and service code
+     */
+    @POST
+    @Path("/internal/switchoverprecheck")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public void switchoverPrecheck() {
+        log.info("Precheck for switchover internally");
+
+        precheckForSwitchoverForLocalStandby();
+    }
+    
+    /**
+     * This is internal API to do switchover
+     * 
+     * @return return response with error message and service code
+     */
+    @POST
+    @Path("/internal/switchover")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response switchover(@QueryParam("newActiveSiteUUid") String newActiveSiteUUID, @QueryParam("vdcVersion") String vdcTargetVersion) {
+        log.info("Begin to switchover internally for standby UUID {}", newActiveSiteUUID);
+
+        Site newActiveSite = null;
+        Site oldActiveSite = null;
+        try {
+            newActiveSite = drUtil.getSiteFromLocalVdc(newActiveSiteUUID);
+            oldActiveSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSite().getUuid());
+            if (StringUtils.isEmpty(oldActiveSite.getSiteShortId())) {
+                oldActiveSite.setSiteShortId(newActiveSite.getVdcShortId());
+            }
+            
+            drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_SWITCHOVER, Long.parseLong(vdcTargetVersion), oldActiveSite.getUuid(),
+                        newActiveSite.getUuid());
+            return Response.status(Response.Status.ACCEPTED).build();
+        } catch (Exception e) {
+            log.error(String.format("Error happened when switchover to site %s", newActiveSiteUUID), e);
+            throw APIException.internalServerErrors.switchoverFailed(oldActiveSite.getName(), newActiveSite.getName(), e.getMessage());
+        }        
     }
 
     /**
@@ -1565,6 +1626,62 @@ public class DisasterRecoveryService {
                 new FailbackLeaderSelectorListener());
         leaderSelector.autoRequeue();
         leaderSelector.start();
+    }
+    
+    protected void precheckForSwitchoverForActiveSite(String standbyUuid) {
+        Site standby = null;
+
+        if (drUtil.isStandby()) {
+            throw new IllegalStateException("Operation is allowed on acitve site only");
+        }
+
+        try {
+            standby = drUtil.getSiteFromLocalVdc(standbyUuid);
+        } catch (CoordinatorException e) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getUuid(),
+                    "Standby uuid is not valid, can't find it");
+        }
+
+        if (standbyUuid.equals(drUtil.getActiveSite().getUuid())) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Can't switchover to an active site");
+        }
+
+        if (!drUtil.isSiteUp(standbyUuid)) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not up");
+        }
+
+        if (standby.getState() != SiteState.STANDBY_SYNCED) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not fully synced");
+        }
+        
+        if (isClusterStable()) {
+            throw new IllegalStateException("Cluster is not stable");
+        }
+        
+        List<Site> existingSites = drUtil.listStandbySites();
+        for (Site site : existingSites) {
+            if (site.getState() != SiteState.STANDBY_SYNCED && site.getState() != SiteState.STANDBY_PAUSED) {
+                throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(), "Standby site is not synced or paused");
+            }
+            
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
+            if (site.getState() != SiteState.STANDBY_PAUSED && state != ClusterInfo.ClusterState.STABLE) {
+                log.info("Site {} is not stable {}", site.getUuid(), state);
+                throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(),
+                        String.format("Site %s is not stable", site.getName()));
+            }
+        }
+    }
+    
+    private void precheckForSwitchoverForLocalStandby() {
+        if (isClusterStable()) {
+            throw new IllegalStateException("Cluster is not stable");
+        }
+        
+        Site currentSite = drUtil.getLocalSite();
+        if (currentSite.getState() != SiteState.STANDBY_SYNCED && currentSite.getState() != SiteState.STANDBY_PAUSED) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(currentSite.getName(), "Standby site is not synced or paused state");
+        }
     }
 
     private class FailbackLeaderSelectorListener extends LeaderSelectorListenerImpl {

@@ -28,6 +28,8 @@ public class InternalSiteServiceClient extends BaseServiceClient {
     private static final String INTERNAL_SITE_INIT_STANDBY = INTERNAL_SITE_ROOT + "/initstandby";
     private static final String SITE_INTERNAL_FAILOVER = INTERNAL_SITE_ROOT + "/failover?newActiveSiteUUid=%s&vdcVersion=%d";
     private static final String SITE_INTERNAL_FAILOVERPRECHECK = INTERNAL_SITE_ROOT + "/failoverprecheck";
+    private static final String SITE_INTERNAL_SWITCHOVERPRECHECK = INTERNAL_SITE_ROOT + "/switchoverprecheck";
+    private static final String SITE_INTERNAL_SWITCHOVER = INTERNAL_SITE_ROOT + "/switchover?newActiveSiteUUid=%s&vdcVersion=%d";
     private static final String SITE_INTERNAL_LIST = INTERNAL_SITE_ROOT + "/list";
 
     final private Logger log = LoggerFactory
@@ -127,5 +129,28 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         resp = addSignature(rRoot).get(ClientResponse.class);
         SiteList response = resp.getEntity(SiteList.class);
         return response;
+    }
+    
+    public void switchoverPrecheck() {
+        WebResource rRoot = createRequest(SITE_INTERNAL_SWITCHOVERPRECHECK);
+        
+        try {
+            addSignature(rRoot).post(ClientResponse.class);
+        } catch (Exception e) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(), e.getMessage());
+        }
+    }
+    
+    public void switchover(String newActiveSiteUUID, long vdcVersion) {
+        String getVdcPath = String.format(SITE_INTERNAL_SWITCHOVER, newActiveSiteUUID, vdcVersion);
+        WebResource rRoot = createRequest(getVdcPath);
+        
+        try {
+            addSignature(rRoot).post(ClientResponse.class);
+        } catch (Exception e) {
+            log.error("Fail to send request to switchover", e);
+            throw e;
+        }
+        
     }
 }

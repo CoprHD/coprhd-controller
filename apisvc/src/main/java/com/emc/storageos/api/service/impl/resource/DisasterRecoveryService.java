@@ -1674,7 +1674,7 @@ public class DisasterRecoveryService {
     }
     
     private void precheckForSwitchoverForLocalStandby() {
-        if (isClusterStable()) {
+        if (!isClusterStable()) {
             throw new IllegalStateException("Cluster is not stable");
         }
         

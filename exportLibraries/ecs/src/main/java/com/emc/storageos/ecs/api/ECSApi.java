@@ -394,6 +394,7 @@ public class ECSApi {
             }
         } catch (Exception e) {
             _log.error("Error occured while ACL update for bucket : {}", bucketName, e);
+            throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, e.getMessage());
         } finally {
             if (clientResp != null) {
                 closeResponse(clientResp);

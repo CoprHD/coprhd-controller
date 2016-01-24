@@ -374,7 +374,7 @@ public class BucketACLUtility {
             // If same acl exists, don't allow to add again.
             if (dbBucketAcl != null) {
                 _log.error(
-                        "Duplicate ACL in add request. User/group in ACL for bucket already exists: {}",
+                        "Duplicate ACL in add request. User/group/customgroup in ACL for bucket already exists: {}",
                         dbBucketAcl);
                 ace.cancelNextStep(BucketACLOperationErrorType.ACL_EXISTS);
                 break;
@@ -606,6 +606,11 @@ public class BucketACLUtility {
         return false;
     }
 
+    /**
+     * This method verifies user or group or customgroup.
+     * ACE accepts any one entry from group, user and custom group.
+     * 
+     */
     private void verifyUserGroupCustomgroup(BucketACE bucketACE) {
 
         String userOrGroupOrCustomgroup = null;
@@ -618,6 +623,15 @@ public class BucketACLUtility {
             bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_OR_GROUP_OR_CUSTOMGROUP_NOT_PROVIDED);
             _log.error("User or Group or Customgroup is missing.");
         } else if (bucketACE.getUser() != null && bucketACE.getGroup() != null && bucketACE.getCustomGroup() != null) {
+            bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED);
+            _log.error("Either user or group or customgroup should be provided. Never all of them.");
+        } else if (bucketACE.getUser() != null && bucketACE.getGroup() != null) {
+            bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED);
+            _log.error("Either user or group or customgroup should be provided. Never all of them.");
+        } else if (bucketACE.getUser() != null && bucketACE.getCustomGroup() != null) {
+            bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED);
+            _log.error("Either user or group or customgroup should be provided. Never all of them.");
+        } else if (bucketACE.getGroup() != null && bucketACE.getCustomGroup() != null) {
             bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED);
             _log.error("Either user or group or customgroup should be provided. Never all of them.");
         } else {
@@ -645,7 +659,7 @@ public class BucketACLUtility {
                 _log.error("There are multiple ACEs with same user or group or customgroup.");
             }
         }
-        // below code is to validate domain
+        // below code is to validate domain by splitting backslash
         if (bucketACE.getDomain() != null && bucketACE.getUser() != null) {
 
             if (bucketACE.getUser().contains("\\")) {

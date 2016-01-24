@@ -122,6 +122,19 @@ public class BucketACLUtility {
                         throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
                                 bucketACE.getUser(), bucketACE.getGroup(), bucketACE.getCustomGroup());
                     }
+                    case USER_AND_GROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), bucketACE.getGroup(), null);
+                    }
+                    case USER_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), null, bucketACE.getCustomGroup());
+                    }
+
+                    case GROUP_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                null, bucketACE.getGroup(), bucketACE.getCustomGroup());
+                    }
 
                     case USER_OR_GROUP_OR_CUSTOMGROUP_NOT_PROVIDED: {
 
@@ -630,13 +643,13 @@ public class BucketACLUtility {
             bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED);
             _log.error("Either user or group or customgroup should be provided. Never all of them.");
         } else if (bucketACE.getUser() != null && bucketACE.getGroup() != null) {
-            bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED);
+            bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_GROUP_PROVIDED);
             _log.error("Either user or group or customgroup should be provided. Never all of them.");
         } else if (bucketACE.getUser() != null && bucketACE.getCustomGroup() != null) {
-            bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED);
+            bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_CUSTOMGROUP_PROVIDED);
             _log.error("Either user or group or customgroup should be provided. Never all of them.");
         } else if (bucketACE.getGroup() != null && bucketACE.getCustomGroup() != null) {
-            bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED);
+            bucketACE.cancelNextStep(BucketACLOperationErrorType.GROUP_AND_CUSTOMGROUP_PROVIDED);
             _log.error("Either user or group or customgroup should be provided. Never all of them.");
         } else {
             String domain = bucketACE.getDomain();

@@ -246,7 +246,7 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Get node info from global scope.
+     * Get node info from local site.
      * 
      * @param clazz
      * @param kind
@@ -256,9 +256,26 @@ public class CoordinatorClientExt {
      */
     public <T extends CoordinatorSerializable> T getNodeGlobalScopeInfo(final Class<T> clazz, final String kind, final String id)
             throws Exception {
+        return getNodeGlobalScopeInfo(clazz, null, kind, id);
+    }
+
+    /**
+     * Get node info from specific site.
+     *
+     * @param clazz
+     * @param siteId
+     * @param kind
+     * @param id
+     * @param <T>
+     * @return
+     * @throws Exception
+     */
+    public <T extends CoordinatorSerializable> T getNodeGlobalScopeInfo(final Class<T> clazz, final String siteId,
+                                                                        final String kind, final String id)
+            throws Exception {
         final T info = clazz.newInstance();
 
-        final Configuration config = _coordinator.queryConfiguration(kind, id);
+        final Configuration config = _coordinator.queryConfiguration(siteId, kind, id);
         if (config != null && config.getConfig(NODE_INFO) != null) {
             final String infoStr = config.getConfig(NODE_INFO);
             _log.debug("getNodeGlobalScopelInfo({}): info={}", clazz.getName(), Strings.repr(infoStr));
@@ -988,8 +1005,12 @@ public class CoordinatorClientExt {
         }
     }
 
+    private List<Service> getAllServices(String siteId) throws Exception {
+        return _coordinator.locateAllServices(siteId, _svc.getName(), _svc.getVersion(), null, null);
+    }
+
     private List<Service> getAllServices() throws Exception {
-        return _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(), (String) null, null);
+        return getAllServices(_coordinator.getSiteId());
     }
 
     /**
@@ -1001,9 +1022,16 @@ public class CoordinatorClientExt {
      * @return List of NodeHandles for all nodes in the cluster
      */
     public List<String> getAllNodes() {
-        List<String> nodeIds = new ArrayList<String>();
+        return getAllNodes(_coordinator.getSiteId());
+    }
+
+    public List<String> getAllNodes(String siteId) {
+        if (siteId == null) {
+            siteId = _coordinator.getSiteId();
+        }
+        List<String> nodeIds = new ArrayList<>();
         try {
-            List<Service> svcs = getAllServices();
+            List<Service> svcs = getAllServices(siteId);
             for (Service svc : svcs) {
                 final String nodeId = svc.getId();
                 if (nodeId != null) {

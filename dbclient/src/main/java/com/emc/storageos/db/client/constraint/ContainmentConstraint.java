@@ -36,7 +36,6 @@ import com.emc.storageos.db.client.model.ComputeSanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.ComputeVnic;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.ECSNamespace;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
@@ -44,6 +43,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProxyToken;
@@ -764,10 +764,10 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(id, ExportGroup.class, field);
     }
         
-        public static ContainmentConstraint getStorageDeviceECSNamespaceConstraint(URI device) {
-            DataObjectType doType = TypeMap.getDoType(ECSNamespace.class);
+        public static ContainmentConstraint getStorageDeviceObjectNamespaceConstraint(URI device) {
+            DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
             ColumnField field = doType.getColumnField(STORAGE_DEVICE);
-            return new ContainmentConstraintImpl(device, ECSNamespace.class, field);
+            return new ContainmentConstraintImpl(device, ObjectNamespace.class, field);
         }
 }
 }

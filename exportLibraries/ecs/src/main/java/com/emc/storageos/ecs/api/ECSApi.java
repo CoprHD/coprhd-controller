@@ -18,7 +18,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.model.ECSNamespace;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
@@ -500,7 +500,7 @@ public class ECSApi {
             NamespaceDetailsCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
                     NamespaceDetailsCommandResult.class);
             nsRepGroup.setNamespaceName(ecsNsResult.getName());
-            nsRepGroup.setRgType(ECSNamespace.ECS_RepGroup_Type.NONE);
+            nsRepGroup.setRgType(ObjectNamespace.Object_StoragePool_Type.NONE);
 
             if (ecsNsResult.getAllowed_vpools_list().size() != 0) {
                 for (int index = 0; index < ecsNsResult.getAllowed_vpools_list().size(); index++) {
@@ -509,7 +509,7 @@ public class ECSApi {
                             !ecsNsResult.getAllowed_vpools_list().get(index).isEmpty())
                         nsRepGroup.setReplicationGroups(ecsNsResult.getAllowed_vpools_list().get(index));
                 }
-                nsRepGroup.setRgType(ECSNamespace.ECS_RepGroup_Type.ALLOWED);
+                nsRepGroup.setRgType(ObjectNamespace.Object_StoragePool_Type.ALLOWED);
             } else if (ecsNsResult.getDisallowed_vpools_list().size() != 0) {
                 for (int index = 0; index < ecsNsResult.getDisallowed_vpools_list().size(); index++) {
                     //Its possible to have replication group list blank
@@ -517,7 +517,7 @@ public class ECSApi {
                             !ecsNsResult.getDisallowed_vpools_list().get(index).isEmpty())
                         nsRepGroup.setReplicationGroups(ecsNsResult.getDisallowed_vpools_list().get(index));
                 }
-                nsRepGroup.setRgType(ECSNamespace.ECS_RepGroup_Type.DISALLOWED);
+                nsRepGroup.setRgType(ObjectNamespace.Object_StoragePool_Type.DISALLOWED);
             }
             return nsRepGroup;
         } catch (Exception e) {

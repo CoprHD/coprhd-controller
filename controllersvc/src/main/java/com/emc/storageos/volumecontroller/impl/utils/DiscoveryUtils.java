@@ -26,7 +26,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.ECSNamespace;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -738,22 +738,22 @@ public class DiscoveryUtils {
      * @param dbClient
      * @param storageSystemId
      */
-    public static void checkNamespacesNotVisible(List<ECSNamespace> discoveredNamespaces,
+    public static void checkNamespacesNotVisible(List<ObjectNamespace> discoveredNamespaces,
             DbClient dbClient, URI storageSystemId) {
         // Get the namespaces previousy discovered
-        URIQueryResultList ECSNamespaceURIs = new URIQueryResultList();
+        URIQueryResultList objectNamespaceURIs = new URIQueryResultList();
         dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceECSNamespaceConstraint(storageSystemId),
-                ECSNamespaceURIs);
-        Iterator<URI> ECSNamespaceIter = ECSNamespaceURIs.iterator();
+                ContainmentConstraint.Factory.getStorageDeviceObjectNamespaceConstraint(storageSystemId),
+                objectNamespaceURIs);
+        Iterator<URI> objectNamespaceIter = objectNamespaceURIs.iterator();
 
         List<URI> existingNamespacesURI = new ArrayList<URI>();
-        while (ECSNamespaceIter.hasNext()) {
-            existingNamespacesURI.add(ECSNamespaceIter.next());
+        while (objectNamespaceIter.hasNext()) {
+            existingNamespacesURI.add(objectNamespaceIter.next());
         }
 
         List<URI> discoveredNamespacesURI = new ArrayList<URI>();
-        for (ECSNamespace namespace : discoveredNamespaces) {
+        for (ObjectNamespace namespace : discoveredNamespaces) {
             discoveredNamespacesURI.add(namespace.getId());
         }
 
@@ -761,9 +761,9 @@ public class DiscoveryUtils {
         Set<URI> namespacesDiff = Sets.difference(new HashSet<URI>(existingNamespacesURI), new HashSet<URI>(discoveredNamespacesURI));
 
         if (!namespacesDiff.isEmpty()) {
-            Iterator<ECSNamespace> ECSNamespaceIt = dbClient.queryIterativeObjects(ECSNamespace.class, namespacesDiff, true);
-            while (ECSNamespaceIt.hasNext()) {
-                ECSNamespace namespace = ECSNamespaceIt.next();
+            Iterator<ObjectNamespace> objectNamespaceIt = dbClient.queryIterativeObjects(ObjectNamespace.class, namespacesDiff, true);
+            while (objectNamespaceIt.hasNext()) {
+                ObjectNamespace namespace = objectNamespaceIt.next();
                 _log.info("ECS Namespace deleted {} : {}", namespace.getNativeId(), namespace.getId());
                 namespace.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
                 namespace.setInactive(true);

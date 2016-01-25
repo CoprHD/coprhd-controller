@@ -54,8 +54,8 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.ECSNamespace;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageHADomain;
@@ -1215,21 +1215,21 @@ public class StorageSystemService extends TaskResourceService {
         StorageSystem system = queryResource(id);
         ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
 
-        ObjectNamespaceList ecsNamespaceList = new ObjectNamespaceList();
-        URIQueryResultList ecsNamespaceURIs = new URIQueryResultList();
+        ObjectNamespaceList objectNamespaceList = new ObjectNamespaceList();
+        URIQueryResultList objectNamespaceURIs = new URIQueryResultList();
         _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceECSNamespaceConstraint(id),
-                ecsNamespaceURIs);
-        Iterator<URI> ecsNsIter = ecsNamespaceURIs.iterator();
+                ContainmentConstraint.Factory.getStorageDeviceObjectNamespaceConstraint(id),
+                objectNamespaceURIs);
+        Iterator<URI> ecsNsIter = objectNamespaceURIs.iterator();
         while (ecsNsIter.hasNext()) {
             URI nsURI = ecsNsIter.next();
-            ECSNamespace namespace = _dbClient.queryObject(ECSNamespace.class,
+            ObjectNamespace namespace = _dbClient.queryObject(ObjectNamespace.class,
                     nsURI);
             if (namespace != null && !namespace.getInactive()) {
-                ecsNamespaceList.getNamespaces().add(toNamedRelatedResource(namespace, namespace.getNativeGuid()));
+                objectNamespaceList.getNamespaces().add(toNamedRelatedResource(namespace, namespace.getNativeGuid()));
             }
         }
-        return ecsNamespaceList;
+        return objectNamespaceList;
     }
     
     /**
@@ -1265,24 +1265,24 @@ public class StorageSystemService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/object-namespaces/{nsId}")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public ObjectNamespaceRestRep getECSNamespace(@PathParam("id") URI id,
+    public ObjectNamespaceRestRep getObjectNamespace(@PathParam("id") URI id,
             @PathParam("nsId") URI nsId) {
         // Make sure storage system is registered.
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
         StorageSystem system = queryResource(id);
         ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
 
-        ArgValidator.checkFieldUriType(nsId, ECSNamespace.class, "nativeId");
-        ECSNamespace ecsNamespace = _dbClient.queryObject(ECSNamespace.class, nsId);
-        ArgValidator.checkEntity(ecsNamespace, nsId, isIdEmbeddedInURL(nsId));
+        ArgValidator.checkFieldUriType(nsId, ObjectNamespace.class, "nativeId");
+        ObjectNamespace objectNamespace = _dbClient.queryObject(ObjectNamespace.class, nsId);
+        ArgValidator.checkEntity(objectNamespace, nsId, isIdEmbeddedInURL(nsId));
         
-        return toObjectNamespaceRestRep(ecsNamespace, _dbClient, _coordinator);
+        return toObjectNamespaceRestRep(objectNamespace, _dbClient, _coordinator);
     }
     
-    private ObjectNamespaceRestRep toObjectNamespaceRestRep(ECSNamespace ecsNamespace, DbClient dbClient,
+    private ObjectNamespaceRestRep toObjectNamespaceRestRep(ObjectNamespace objectNamespace, DbClient dbClient,
             CoordinatorClient coordinator) {
 
-        return map(ecsNamespace);
+        return map(objectNamespace);
     }
 
     @GET

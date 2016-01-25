@@ -157,9 +157,10 @@ public class ECSApiFactory {
 
 
 
-/*      public static void main(String[] args) {          
+      public static void main(String[] args) {          
       System.out.println("starting ecs main");
-      URI uri = URI.create(String.format("https://10.241.172.43:4443/login"));
+      //URI uri = URI.create(String.format("https://10.241.172.43:4443/login"));
+      URI uri = URI.create(String.format("https://10.247.142.65:4443/login")); 
       ECSApiFactory factory = new ECSApiFactory();
       factory.init();
       ECSApi ecsApi = factory.getRESTClient(uri, "root", "ChangeMe");
@@ -174,10 +175,13 @@ public class ECSApiFactory {
       
       //ecsApi.getStoragePools();
       
-      ecsApi.getNamespaces();
-      ECSNamespaceRepGroup ns = ecsApi.getNamespaceDetails("psns");
+      ecsApi.getNamespaces(); //dare perfect s3
+      ECSNamespaceRepGroup ns1 = ecsApi.getNamespaceDetails("dare");
+      ECSNamespaceRepGroup ns2 = ecsApi.getNamespaceDetails("s3");
+      ECSNamespaceRepGroup ns3 = ecsApi.getNamespaceDetails("perfect");
       int dummy = 2;
-      dummy = ns.getReplicationGroups().size();
+      dummy = ns3.getReplicationGroups().size();
+      dummy = 3;
       
       
       //ecsApi.getStoragePools();
@@ -188,6 +192,6 @@ public class ECSApiFactory {
       //ecsApi.createBucket("m1", "s3", "urn:storageos:ReplicationGroupInfo:b3bf2d47-d732-457c-bb9b-d260eb53a76a:global",
       //"4", "99", "55", "testlogin");
       //ecsApi.deleteBucket("esc_myproj_bucket1");
-      }*/
+      }
 
 }

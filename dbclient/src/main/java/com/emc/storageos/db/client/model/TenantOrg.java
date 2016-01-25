@@ -38,7 +38,7 @@ public class TenantOrg extends DataObject {
     // _namespace the tenant is one to one mapped.
     private String _namespace;
     
-    // object storage system to which the namespace belongs, stored as string
+    // object storage system to which the namespace belongs
     private URI _namespaceStorage;
 
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)

@@ -137,7 +137,9 @@ public class ExportMaskPlacementDescriptor {
     }
 
     /**
-     * Remove the placement of the volume from the mappings for the ExportMask.
+     * Remove the placement of the volume from the mappings for the ExportMask and
+     * also remove the maskToVolumes entry if we remove the last volume for that
+     * ExportMask URI key.
      *
      * @param volumeURI [IN] - Volume URI reference to be removed
      * @param exportMaskURI [IN] - ExportMask URI

@@ -1410,7 +1410,8 @@ public class VPlexUtil {
     /**
      * Returns a map of port wwn to cluster id ("1" or "2") for vplex ports
      *
-     * @param vplex StorageSystem
+     * @param dbClient [IN] - Client used for querying DB
+     * @param vplex [IN] - StorageSystem object to query
      * @return Map of port wwn to cluster id
      */
     public static Map<String, String> getPortIdToClusterMap(DbClient dbClient, StorageSystem vplex) {

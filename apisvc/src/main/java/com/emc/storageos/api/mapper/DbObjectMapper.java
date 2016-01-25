@@ -279,8 +279,10 @@ public class DbObjectMapper {
         rep.setDescription(from.getDescription());
         rep.setRoles(from.getRoles());
         Set<RelatedResourceRep> parents = Sets.newHashSet();
-        for (URI parent : from.getParents()) {
-            parents.add(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, parent));
+        if (from.getParents() != null) {
+            for (URI parent : from.getParents()) {
+                parents.add(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, parent));
+            }
         }
         rep.setParents(parents);
         rep.setMigrationType(from.getMigrationType());

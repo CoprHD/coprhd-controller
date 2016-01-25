@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
+import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
@@ -642,6 +643,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getFileSystemShareACLConstraint(String fileSystemShareACLIndex) {
             DataObjectType doType = TypeMap.getDoType(CifsShareACL.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemShareACLIndex"), fileSystemShareACLIndex);
+        }
+        
+        public static AlternateIdConstraint getBucketACLConstraint(String bucketACLIndex) {
+            DataObjectType doType = TypeMap.getDoType(ObjectBucketACL.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("bucketACLIndex"), bucketACLIndex);
         }
 
         public static AlternateIdConstraint getProtectionSetByNativeGuidConstraint(String nativeGuid) {

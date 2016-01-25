@@ -492,7 +492,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     /**
      * Orchestration method for adding members to a replication group.
-     *
+     * 
      * @param storage
      * @param consistencyGroup
      * @param replicationGroupName
@@ -651,7 +651,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     /**
      * Remove all snapshots from the volumes to be deleted.
-     *
+     * 
      * @param workflow
      * @param waitFor
      * @param volumeURIs
@@ -836,7 +836,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     /**
      * Orchestration method for removing members from a replication group.
-     *
+     * 
      * @param storage
      * @param consistencyGroup
      * @param repGroupName
@@ -893,7 +893,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     @Override
     public String addStepsForRestoreVolume(Workflow workflow, String waitFor, URI storage, URI pool, URI volume, URI snapshot,
-            Boolean updateOpStatus, String taskId, BlockSnapshotRestoreCompleter completer) throws InternalException {
+            Boolean updateOpStatus, String syncDirection, String taskId, BlockSnapshotRestoreCompleter completer) throws InternalException {
         // Nothing to do, no steps to add
         return waitFor;
     }

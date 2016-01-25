@@ -1413,7 +1413,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         	//If we got this far, then we are looking for masks that are not meant for JOURNALs. 
         	//Ignore RP masks with journal keyword.
         	if (rpMaskingView.getMaskName().contains("Journal") || rpMaskingView.getMaskName().contains("journal")) {
-        		_log.info(String.format("%s is a journal mask, ignore it for RP source/target copy volume", rpMaskingView.getMaskName()));
+        		_log.info(String.format("%s is a journal mask, not considering it for RP source/target copy volume", rpMaskingView.getMaskName()));
         		continue;
         	}
         	

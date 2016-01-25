@@ -55,7 +55,7 @@ public class CreateFileSystemQuotaDirectoryHelper {
     public void createFileSystemQuotaDirectories() {
         for (FileShareRestRep fs : fileSystems) {
             URI fsId = fs.getId();
-            FileStorageUtils.createFileSystemQuotaDirectory(fsId, name, oplock, securityStyle, size);
+            FileStorageUtils.createFileSystemQuotaDirectory(fsId, name, oplock, securityStyle, size, softLimit, advisoryLimit, gracePeriod);
         }
     }
 }

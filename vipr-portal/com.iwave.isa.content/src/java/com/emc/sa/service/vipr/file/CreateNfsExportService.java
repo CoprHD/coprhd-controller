@@ -52,7 +52,7 @@ public class CreateNfsExportService extends ViPRService {
         int tempAdvisoryLimit=(advisoryLimit!=null)?advisoryLimit:0; 
         int tempGracePeriod=(gracePeriod!=null)?gracePeriod:0;
         
-        URI fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, exportName, sizeInGb, tempSoftLimit, tempAdvisoryLimit, tempGracePeriod);
+        URI fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, exportName, sizeInGb, tempAdvisoryLimit,tempSoftLimit, tempGracePeriod);
         if (exportRules != null) {
             FileStorageUtils.createFileSystemExport(fileSystemId, comment, exportRules[0], null);
             if (exportRules.length > 1) {

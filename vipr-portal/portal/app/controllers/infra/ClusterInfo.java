@@ -279,19 +279,19 @@ public class ClusterInfo extends Controller {
             ipv6_setting.setNetworkPrefixLength(network_prefix_length);
 
             List<String> network_addrs6 = new ArrayList<String>();
-            network_addrs6.add(ipv6_network_addrs1.trim());
+            network_addrs6.add(ClusterIpv6Setting.decompressIpv6Address(ipv6_network_addrs1.trim()));
 
             if (!StringUtils.isEmpty(ipv6_network_addrs2)) {
-                network_addrs6.add(ipv6_network_addrs2.trim());
+                network_addrs6.add(ClusterIpv6Setting.decompressIpv6Address(ipv6_network_addrs2.trim()));
             }
             if (!StringUtils.isEmpty(ipv6_network_addrs3)) {
-                network_addrs6.add(ipv6_network_addrs3.trim());
+                network_addrs6.add(ClusterIpv6Setting.decompressIpv6Address(ipv6_network_addrs3.trim()));
             }
             if (!StringUtils.isEmpty(ipv6_network_addrs4)) {
-                network_addrs6.add(ipv6_network_addrs4.trim());
+                network_addrs6.add(ClusterIpv6Setting.decompressIpv6Address(ipv6_network_addrs4.trim()));
             }
             if (!StringUtils.isEmpty(ipv6_network_addrs5)) {
-                network_addrs6.add(ipv6_network_addrs5.trim());
+                network_addrs6.add(ClusterIpv6Setting.decompressIpv6Address(ipv6_network_addrs5.trim()));
             }
             ipv6_setting.setNetworkAddrs(network_addrs6);
 

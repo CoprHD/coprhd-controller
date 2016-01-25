@@ -31,6 +31,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.vipr.model.sys.ipreconfig.ClusterIpv6Setting;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
@@ -198,7 +199,13 @@ public class DisasterRecoveryService {
             standbySite.setCreationTime((new Date()).getTime());
             standbySite.setName(param.getName());
             standbySite.setVdcShortId(drUtil.getLocalVdcShortId());
-            standbySite.setVip(param.getVip());
+
+            String vip = param.getVip();
+            if (vip.contains(":")) {
+                vip = ClusterIpv6Setting.decompressIpv6Address(param.getVip().substring(1,param.getVip().length()-1));
+            }
+            standbySite.setVip(vip);
+
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
             standbySite.setNodeCount(standbyConfig.getNodeCount());

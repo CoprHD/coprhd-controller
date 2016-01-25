@@ -206,6 +206,10 @@ public interface VPlexErrors {
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError upgradeLocalToDistributedFailedException(final String opName,
             final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public ServiceError rebuildSetTransferSpeed(final String opName,
+            final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError upgradeLocalToDistributedFailed(final String opName);

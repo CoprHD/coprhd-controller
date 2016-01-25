@@ -1143,12 +1143,12 @@ public class DisasterRecoveryService {
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
             standbyDetails.setNetworkLatencyInMs(standby.getNetworkLatencyInMs());
-            if (standby.getState().equals(SiteState.STANDBY_PAUSED)) {
+            if (standby.getState().equals(SiteState.STANDBY_PAUSED) ||
+                    standby.getState().equals(SiteState.STANDBY_DEGRADED)) {
                 standbyDetails.setPausedTime(new Date(standby.getLastStateUpdateTime()));
             }
 
             standbyDetails.setDataSynced(isDataSynced(standby));
-            standbyDetails.setlastUpdateTime(new Date(standby.getLastStateUpdateTime()));
 
             ClusterInfo.ClusterState clusterState = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());
             if(clusterState != null) {

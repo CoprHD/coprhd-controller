@@ -29,33 +29,28 @@
   <dt>&{'disasterRecovery.error.creation.time'}</dt>
   <dd id="creationTime-${uuid}">--</dd>
   #{if creationTime }
-  	<script>
-  		var epocCreateTime = '${disasterSiteDetails.creationTime}';
-   		$('#creationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateTime)));
-  	</script>
-  #{/if}
-  <dt>&{'disasterRecovery.paused.time'}</dt>
-  <dd id="pausedTime-${uuid}">--</dd>
-  #{if pausedTime }
-  	<script>
-  		var epocPauseTime = '${disasterSiteDetails.pausedTime}';
-   		$('#pausedTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocPauseTime)));
-  	</script>
-  #{/if}
-  <dt>&{'disasterRecovery.lastOperation.time'}</dt>
-  <dd id="lastUpdateTime-${uuid}">--</dd>
-  #{if lastUpdateTime }
     <script>
-        if (${disasterSiteDetails.dataSynced}) {
-            var epocLastTime = "Up To Date";
-        } else {
-            var epocLastTime = formatLocalDateTime(new Date('${disasterSiteDetails.lastUpdateTime}'));
-        }
-        $('#lastUpdateTime-' + '${uuid}').text(epocLastTime);
+        var epocCreateTime = '${disasterSiteDetails.creationTime}';
+        $('#creationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateTime)));
     </script>
   #{/if}
   <dt>&{'disasterRecovery.networkLatencyInMs'}</dt>
   <dd>${disasterSiteDetails.networkLatencyInMs}</dd>
+  #{if isActive == false}
+      <dt>&{'disasterRecovery.paused.time'}</dt>
+      <dd id="pausedTime-${uuid}">Not Available</dd>
+      #{if disasterSiteDetails.dataSynced}
+      <script>
+          $('#pausedTime-' + '${uuid}').text("Up To Date");
+      </script>
+      #{/if}
+      #{elseif pausedTime}
+      <script>
+          var epocPauseTime = '${disasterSiteDetails.pausedTime}';
+          $('#pausedTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocPauseTime)));
+      </script>
+      #{/elseif}
+  #{/if}
 </dl>
 #{/else}
 

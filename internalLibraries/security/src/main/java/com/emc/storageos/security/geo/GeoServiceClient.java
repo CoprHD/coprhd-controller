@@ -634,6 +634,23 @@ public class GeoServiceClient extends BaseServiceClient {
 
     }
 
+    public void changeIpsecStatus(String peerVdcId, String status, String vdcConfigVersion) {
+        WebResource rRoot = createRequest(INTERVDC_IPSEC_SERVICE)
+                .queryParam("status",status)
+                .queryParam("vdc_config_version", vdcConfigVersion);
+        rRoot.accept(MediaType.APPLICATION_XML);
+        try {
+            addSignature(rRoot).post();
+        } catch (UnauthorizedException e) {
+            throw GeoException.fatals.remoteVdcAuthorizationFailed(peerVdcId, e);
+        } catch (GeoException e) {
+            throw e;
+        } catch (Exception e) {
+            throw GeoException.fatals.failedToSedPostCheckRequest(peerVdcId, e);
+        }
+
+    }
+
     public void rotateIpsecKey(String peerVdcId, IpsecParam ipsecParam) {
         WebResource rRoot = createRequest(INTERVDC_IPSEC_KEY_ROTATION_URI);
         rRoot.accept(MediaType.APPLICATION_XML);

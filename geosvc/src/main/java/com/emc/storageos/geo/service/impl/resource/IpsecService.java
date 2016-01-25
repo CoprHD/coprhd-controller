@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 @Path(value = GeoServiceClient.INTERVDC_IPSEC_SERVICE)
@@ -30,6 +31,18 @@ public class IpsecService {
 
     @Autowired
     private IPsecConfig ipsecConfig;
+
+    @POST
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public void changeIpsecStatus(@QueryParam("status") String status,
+                                  @QueryParam("status") String vdcConfigVersion) {
+        log.info("Processing a request for changing ipsec status to " + status);
+
+        ipsecConfig.setIpsecStatus(status);
+        log.info("Saved the ipsec status to ZK");
+
+        updateTargetSiteInfo(Long.parseLong(vdcConfigVersion));
+    }
 
     @POST
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})

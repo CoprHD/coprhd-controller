@@ -37,18 +37,6 @@ public class VPlexApiVirtualVolumeManager {
     private VPlexApiClient _vplexApiClient;
     
 
-    // migration speed to transfer size map
-    private static final Map<String, String> mgirationSpeedToTransferSizeMap;
-
-    static {
-        mgirationSpeedToTransferSizeMap = new HashMap<String, String>();
-        mgirationSpeedToTransferSizeMap.put("Lowest", "128KB");
-        mgirationSpeedToTransferSizeMap.put("Low", "2MB");
-        mgirationSpeedToTransferSizeMap.put("Medium", "8MB");
-        mgirationSpeedToTransferSizeMap.put("High", "16MB");
-        mgirationSpeedToTransferSizeMap.put("Highest", "32MB");
-    }
-
     /**
      * Package protected constructor.
      * 

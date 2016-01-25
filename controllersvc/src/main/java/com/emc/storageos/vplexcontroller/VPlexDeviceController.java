@@ -218,7 +218,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String UNEXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String VPLEX_STEP = "vplexVirtual";
-    private static final String TRANSFER_SPEED = "setTransferSpeed";
+    private static final String TRANSFER_SPEED_STEP = "setTransferSpeed";
     private static final String MIGRATION_CREATE_STEP = "migrate";
     private static final String MIGRATION_COMMIT_STEP = "commit";
     private static final String DELETE_MIGRATION_SOURCES_STEP = "deleteSources";
@@ -5744,9 +5744,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             
             Workflow.Method vplexSetTransferSizeMethod = rebuildSetTransferSizeMethod(vplexVolume.getStorageController(), transferSize);
             //Create a step for updating the transfer speed in VPLEX. 
-            workflow.createStep(TRANSFER_SPEED, String.format("VPlex %s setting transfer size speed",
+            workflow.createStep(TRANSFER_SPEED_STEP, String.format("VPlex %s setting transfer size speed",
                             vplexSystem.getId().toString()), EXPORT_STEP, vplexURI, vplexSystem.getSystemType(), this.getClass(), vplexSetTransferSizeMethod, 
-                            null, null);
+                            rollbackMethodNullMethod(), null);
             
             // Now make a Step to create the VPlex Virtual volumes.
             // This will be done from this controller.
@@ -5775,7 +5775,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     VPLEX_STEP,
                     String.format("VPlex %s creating virtual volume",
                             vplexSystem.getId().toString()),
-                            TRANSFER_SPEED, vplexURI,
+                            TRANSFER_SPEED_STEP, vplexURI,
                     vplexSystem.getSystemType(), this.getClass(), vplexExecuteMethod,
                     vplexRollbackMethod, stepId);
 

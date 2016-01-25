@@ -349,21 +349,25 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         List<URI> addParents = param.getAddParents();
-        for (URI addParent : addParents) {
-            String msg = setParent(volumeGroup, addParent.toString(), true);
-            if (msg != null && !msg.isEmpty()) {
-                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
+        if (addParents != null) {
+            for (URI addParent : addParents) {
+                String msg = setParent(volumeGroup, addParent.toString(), true);
+                if (msg != null && !msg.isEmpty()) {
+                    throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
+                }
+                isChanged = true;
             }
-            isChanged = true;
         }
 
         List<URI> removeParents = param.getRemoveParents();
-        for (URI removeParent : removeParents) {
-            String msg = setParent(volumeGroup, removeParent.toString(), false);
-            if (msg != null && !msg.isEmpty()) {
-                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
+        if (removeParents != null) {
+            for (URI removeParent : removeParents) {
+                String msg = setParent(volumeGroup, removeParent.toString(), false);
+                if (msg != null && !msg.isEmpty()) {
+                    throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
+                }
+                isChanged = true;
             }
-            isChanged = true;
         }
 
         if (isChanged) {

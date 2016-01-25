@@ -1196,7 +1196,7 @@ public class TenantsService extends TaggedResource {
         StringBuilder errorMsg = new StringBuilder();
 
         // Validate Schedule policy parameters
-        boolean isValidSchedule = ArgValidator.validateSchedulePolicyParam(param.getPolicySchedule(), schedulePolicy, errorMsg);
+        boolean isValidSchedule = SchedulePolicyService.validateSchedulePolicyParam(param.getPolicySchedule(), schedulePolicy, errorMsg);
         if (errorMsg != null && errorMsg.length() > 0) {
             _log.error("Failed to create schedule policy due to {} ", errorMsg.toString());
             throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());
@@ -1212,7 +1212,7 @@ public class TenantsService extends TaggedResource {
                         expireType);
                 throw APIException.badRequests.invalidScheduleSnapshotExpireType(expireType);
             }
-            isValidSnapshotExpire = ArgValidator.validateSnapshotExpireParam(param.getSnapshotExpire());
+            isValidSnapshotExpire = SchedulePolicyService.validateSnapshotExpireParam(param.getSnapshotExpire());
             if (!isValidSnapshotExpire) {
                 int expireTime = param.getSnapshotExpire().getExpireValue();
                 int minExpireTime = 2;

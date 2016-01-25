@@ -2715,6 +2715,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 builder.append(" month at ");
                 builder.append(schedule.getScheduleTime());
                 break;
+            default:
+                _log.error("Not a valid schedule frequency: " + schedule.getScheduleFrequency().toLowerCase());
+                return null;
 
         }
         return builder.toString();
@@ -2741,6 +2744,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     seconds = expireValue * 30 * 24 * 3600;
                     break;
                 case "never":
+                    return null;
+                default:
+                    _log.error("Not a valid expire type: " + expireType);
                     return null;
 
             }

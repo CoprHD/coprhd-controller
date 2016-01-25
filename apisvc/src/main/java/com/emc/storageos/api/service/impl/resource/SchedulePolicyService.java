@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,11 +29,14 @@ import com.emc.storageos.api.mapper.functions.MapSchedulePolicy;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.SchedulePolicy;
+import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.SchedulePolicy.SchedulePolicyType;
 import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.file.ScheduleSnapshotExpireParam;
 import com.emc.storageos.model.schedulepolicy.PolicyParam;
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyBulkRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyParam;
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -165,7 +169,7 @@ public class SchedulePolicyService extends TaggedResource {
 
         // Validate Schedule policy parameters
         StringBuilder errorMsg = new StringBuilder();
-        boolean isValidSchedule = ArgValidator.validateSchedulePolicyParam(param.getPolicySchedule(), schedulePolicy, errorMsg);
+        boolean isValidSchedule = validateSchedulePolicyParam(param.getPolicySchedule(), schedulePolicy, errorMsg);
         if (errorMsg != null && errorMsg.length() > 0) {
             _log.error("Failed to update schedule policy due to {} ", errorMsg.toString());
             throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());
@@ -181,7 +185,7 @@ public class SchedulePolicyService extends TaggedResource {
                         expireType);
                 throw APIException.badRequests.invalidScheduleSnapshotExpireType(expireType);
             }
-            isValidSnapshotExpire = ArgValidator.validateSnapshotExpireParam(param.getSnapshotExpire());
+            isValidSnapshotExpire = validateSnapshotExpireParam(param.getSnapshotExpire());
             if (!isValidSnapshotExpire) {
                 int expireTime = param.getSnapshotExpire().getExpireValue();
                 int minExpireTime = 2;
@@ -240,4 +244,130 @@ public class SchedulePolicyService extends TaggedResource {
         verifySystemAdmin();
         return queryBulkResourceReps(ids);
     }
+
+    /**
+     * validates whether the schedule policy parameters are valid or not
+     * 
+     * @param schedule - schedule policy parameters
+     * @param schedulePolicy - schedulePolicy object to set schedule values
+     * @param errorMsg - error message
+     * @return true/false
+     */
+    public static boolean validateSchedulePolicyParam(SchedulePolicyParam schedule, SchedulePolicy schedulePolicy, StringBuilder errorMsg) {
+
+        if (schedule != null) {
+
+            // check schedule frequency is valid or not
+            if (!ArgValidator.isValidEnum(schedule.getScheduleFrequency(), ScheduleFrequency.class)) {
+                errorMsg.append("Schedule frequency: " + schedule.getScheduleFrequency()
+                        + " is invalid. Valid schedule frequencies are days, weeks and months");
+            }
+
+            // validating schedule repeat period
+            if (schedule.getScheduleRepeat() < 1) {
+                errorMsg.append("required parameter schedule_repeat is missing or value: " + schedule.getScheduleRepeat()
+                        + " is invalid");
+                return false;
+            }
+
+            // validating schedule time
+            String period = " PM";
+            int hour, minute;
+            boolean isValid = true;
+            if (schedule.getScheduleTime().contains(":")) {
+                String splitTime[] = schedule.getScheduleTime().split(":");
+                hour = Integer.parseInt(splitTime[0]);
+                minute = Integer.parseInt(splitTime[1]);
+                if (splitTime[0].startsWith("-") || splitTime[1].startsWith("-")) {
+                    isValid = false;
+                }
+            } else {
+                hour = Integer.parseInt(schedule.getScheduleTime());
+                minute = 0;
+            }
+            if (isValid && (hour >= 0 && hour < 24) && (minute >= 0 && minute < 60)) {
+                if (hour < 12) {
+                    period = " AM";
+                }
+            } else {
+                errorMsg.append("Schedule time: " + schedule.getScheduleTime() + " is invalid");
+                return false;
+            }
+
+            switch (schedule.getScheduleFrequency().toLowerCase()) {
+
+                case "days":
+                    schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
+                    schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
+                    break;
+                case "weeks":
+                    schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
+                    if (schedule.getScheduleDayOfWeek() != null && !schedule.getScheduleDayOfWeek().isEmpty()) {
+                        List<String> weeks = Arrays.asList("monday", "tuesday", "wednesday", "thursday", "friday",
+                                "saturday", "sunday");
+                        if (weeks.contains(schedule.getScheduleDayOfWeek().toLowerCase())) {
+                            schedulePolicy.setScheduleDayOfWeek(schedule.getScheduleDayOfWeek());
+                        } else {
+                            errorMsg.append("Schedule day of week: " + schedule.getScheduleDayOfWeek() + " is invalid");
+                            return false;
+                        }
+                    } else {
+                        errorMsg.append("required parameter schedule_day_of_week was missing or empty");
+                        return false;
+                    }
+                    schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
+                    break;
+                case "months":
+                    if (schedule.getScheduleDayOfMonth() > 0 && schedule.getScheduleDayOfMonth() <= 31) {
+                        schedulePolicy.setScheduleDayOfMonth((long) schedule.getScheduleDayOfMonth());
+                        schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
+                        schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
+                    } else {
+                        errorMsg.append("required parameter schedule_day_of_month is missing or value: " + schedule.getScheduleDayOfMonth()
+                                + " is invalid");
+                        return false;
+                    }
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * validates whether the snapshot expire parameters are valid or not
+     * 
+     * @param expireParam - snapshot expire parameters
+     * @return true/false
+     */
+    public static boolean validateSnapshotExpireParam(ScheduleSnapshotExpireParam expireParam) {
+
+        String expireType = expireParam.getExpireType();
+        long seconds = 0;
+        long minPeriod = 7200;
+        long maxPeriod = 10 * 365 * 24 * 3600;
+        int expireValue = expireParam.getExpireValue();
+        switch (expireType.toLowerCase()) {
+            case "hours":
+                seconds = expireValue * 3600;
+                break;
+            case "days":
+                seconds = expireValue * 24 * 3600;
+                break;
+            case "weeks":
+                seconds = expireValue * 7 * 24 * 3600;
+                break;
+            case "months":
+                seconds = expireValue * 30 * 24 * 3600;
+                break;
+            default:
+                return false;
+        }
+        if (seconds >= minPeriod && seconds <= maxPeriod) {
+            return true;
+        }
+        return false;
+    }
+
 }

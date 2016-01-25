@@ -454,20 +454,25 @@ public class BlockStorageUtils {
         return ResourceUtils.ids(execute(new GetActiveSnapshotsForVolume(volumeId)));
     }
 
-    public static void removeSnapshotsForVolume(URI volumeId) {
+    public static void removeSnapshotsForVolume(URI volumeId, VolumeDeleteTypeEnum type) {
         List<URI> snapshotIds = getActiveSnapshots(volumeId);
-        removeBlockResourcesFromExports(snapshotIds);
-        removeSnapshots(snapshotIds);
+        // For ViPR-only delete of exported snapshots, we don't want to
+        // try to unexport the snapshots. The controller will clean up any
+        // export groups/masks if the snapshot is exported.
+        if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
+            removeBlockResourcesFromExports(snapshotIds);
+        }
+        removeSnapshots(snapshotIds, type);
     }
 
-    public static void removeSnapshots(Collection<URI> snapshotIds) {
+    public static void removeSnapshots(Collection<URI> snapshotIds, VolumeDeleteTypeEnum type) {
         for (URI snapshotId : snapshotIds) {
-            removeSnapshot(snapshotId);
+            removeSnapshot(snapshotId, type);
         }
     }
 
-    public static void removeSnapshot(URI snapshotId) {
-        Tasks<BlockSnapshotRestRep> task = execute(new DeactivateBlockSnapshot(snapshotId));
+    public static void removeSnapshot(URI snapshotId, VolumeDeleteTypeEnum type) {
+        Tasks<BlockSnapshotRestRep> task = execute(new DeactivateBlockSnapshot(snapshotId, type));
         addAffectedResources(task);
     }
 
@@ -582,8 +587,8 @@ public class BlockStorageUtils {
             // delete snapshots, full copies, or continuous copies of the volume.
             // If a volume has snapshots, full copies, or continuous copies then
             // the controller should return an error.
-            if ((canRemoveReplicas(volumeId)) && (VolumeDeleteTypeEnum.VIPR_ONLY != type)) {
-                removeSnapshotsForVolume(volumeId);
+            if (canRemoveReplicas(volumeId)) {
+                removeSnapshotsForVolume(volumeId, type);
                 removeContinuousCopiesForVolume(volumeId);
                 removeFullCopiesForVolume(volumeId, blockResourceIds);
             }
@@ -615,7 +620,7 @@ public class BlockStorageUtils {
                 volumes.add(blockResourceId);
             }
             else if (ResourceType.isType(BLOCK_SNAPSHOT, blockResourceId)) {
-                deactivateSnapshot(blockResourceId);
+                deactivateSnapshot(blockResourceId, type);
             }
         }
         detachFullCopies(fullCopies);
@@ -646,8 +651,8 @@ public class BlockStorageUtils {
         }
     }
 
-    private static void deactivateSnapshot(URI snapshotId) {
-        Tasks<BlockSnapshotRestRep> tasks = execute(new DeactivateBlockSnapshot(snapshotId));
+    private static void deactivateSnapshot(URI snapshotId, VolumeDeleteTypeEnum type) {
+        Tasks<BlockSnapshotRestRep> tasks = execute(new DeactivateBlockSnapshot(snapshotId, type));
         addAffectedResources(tasks);
     }
 

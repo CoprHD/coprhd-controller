@@ -497,18 +497,18 @@ public class VolumeIngestionUtil {
      * @return boolean indicating if the resource is part of a consistency group
      */
     public static boolean checkUnManagedResourceAddedToConsistencyGroup(UnManagedVolume unManagedVolume) {
-    	_logger.info("Determining if the unmanaged volume {} is belongs to an unmanaged consistency group", unManagedVolume.getLabel());
-    	StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
+        _logger.info("Determining if the unmanaged volume {} is belongs to an unmanaged consistency group", unManagedVolume.getLabel());
+        StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         String isVolumeAddedToConsistencyGroup = unManagedVolumeCharacteristics
                 .get(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString());
         if (null != isVolumeAddedToConsistencyGroup && Boolean.parseBoolean(isVolumeAddedToConsistencyGroup)) {
-        	_logger.info("The unmanaged volume {} belongs to an unmanaged consistency group", unManagedVolume.getLabel());
-        	return true;
+            _logger.info("The unmanaged volume {} belongs to an unmanaged consistency group", unManagedVolume.getLabel());
+            return true;
         }
         _logger.info("The unmanaged volume {} does not belong to an unmanaged consistency group", unManagedVolume.getLabel());
         return false;
     }
-    
+
     /**
      * Once a volume has been ingested it is moved from the list of unmanaged volumes
      * to the list of managed volumes within the unmanaged consistency group object
@@ -516,26 +516,30 @@ public class VolumeIngestionUtil {
      * @param unManagedCG - the unmanaged consistency group object
      * @param unManagedVolume - the unmanaged volume
      * @param blockObject - the ingested volume
-     * @return integer indicating the number of unmanaged volumes still remaining in the 
-     *         unmanaged consistency group 
+     * @return integer indicating the number of unmanaged volumes still remaining in the
+     *         unmanaged consistency group
      */
-    public static int updateVolumeInUnManagedConsistencyGroup(UnManagedConsistencyGroup unManagedCG, UnManagedVolume unManagedVolume, BlockObject blockObject) {
-    	// ensure that unmanaged cg contains the unmanaged volume
-    	if (unManagedCG.getUnManagedVolumesMap().containsKey(unManagedVolume.getNativeGuid())) {
-    		// add the volume to the list of managed volumes
-    		unManagedCG.getManagedVolumesMap().put(blockObject.getNativeGuid(), blockObject.getId().toString());    		    		    		
-			_logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", blockObject.getLabel(), unManagedCG.getLabel());
-			// remove the unmanaged volume from the list of unmanaged volumes
-			unManagedCG.getUnManagedVolumesMap().remove(unManagedVolume.getNativeGuid());
-			_logger.info("Removed volume {} from the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
-			// decrement the number of volumes to be ingested
-    	} else {
-    		_logger.info("Volume {} was not in the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
-    	}
-    	// return the number of unmanaged volumes remaining in the unmanaged cg
-    	return unManagedCG.getUnManagedVolumesMap().size();
+    public static int updateVolumeInUnManagedConsistencyGroup(UnManagedConsistencyGroup unManagedCG, UnManagedVolume unManagedVolume,
+            BlockObject blockObject) {
+        // ensure that unmanaged cg contains the unmanaged volume
+        if (unManagedCG.getUnManagedVolumesMap().containsKey(unManagedVolume.getNativeGuid())) {
+            // add the volume to the list of managed volumes
+            unManagedCG.getManagedVolumesMap().put(blockObject.getNativeGuid(), blockObject.getId().toString());
+            _logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", blockObject.getLabel(),
+                    unManagedCG.getLabel());
+            // remove the unmanaged volume from the list of unmanaged volumes
+            unManagedCG.getUnManagedVolumesMap().remove(unManagedVolume.getNativeGuid());
+            _logger.info("Removed volume {} from the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(),
+                    unManagedCG.getLabel());
+            // decrement the number of volumes to be ingested
+        } else {
+            _logger.info("Volume {} was not in the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(),
+                    unManagedCG.getLabel());
+        }
+        // return the number of unmanaged volumes remaining in the unmanaged cg
+        return unManagedCG.getUnManagedVolumesMap().size();
     }
-    
+
     /**
      * Determines if all the unmanaged volumes within an unmanaged consistency group
      * have been ingested
@@ -544,9 +548,9 @@ public class VolumeIngestionUtil {
      * @return boolean indicating if the map of unmanaged volumes is empty
      */
     public static boolean allVolumesInUnamangedCGIngested(UnManagedConsistencyGroup unManagedCG) {
-    	return unManagedCG.getUnManagedVolumesMap().isEmpty();
+        return unManagedCG.getUnManagedVolumesMap().isEmpty();
     }
-    
+
     /**
      * get the unmanaged consistency group object for the unmanaged volume
      * 
@@ -554,21 +558,21 @@ public class VolumeIngestionUtil {
      * @param consistencyGroupObjectsToUpdate - contains objects which have been modified as part of this ingestion
      * @param dbClient
      * @return the unmananged consistency group for this volume
-     */     
-    public static UnManagedConsistencyGroup getUnManagedConsistencyGroup(UnManagedVolume unManagedVolume, 
-    		Map <String, DataObject> consistencyGroupObjectsToUpdate, DbClient dbClient) {    	
-    	UnManagedConsistencyGroup unManagedCG = null;
-    	String unManagedCGURI = PropertySetterUtil.extractValueFromStringSet
-    			(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(), unManagedVolume.getVolumeInformation());
-    	if (unManagedCGURI != null) {    		
-    		// check if the unManagedCG is already in consistencyGroupObjectsToUpdate    		
-    		unManagedCG = (UnManagedConsistencyGroup) consistencyGroupObjectsToUpdate.get(unManagedCGURI);
-    		if (unManagedCG == null) {
-    			unManagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, URI.create(unManagedCGURI));    			
-    		}
-    	}    	    	
+     */
+    public static UnManagedConsistencyGroup getUnManagedConsistencyGroup(UnManagedVolume unManagedVolume,
+            Map<String, DataObject> consistencyGroupObjectsToUpdate, DbClient dbClient) {
+        UnManagedConsistencyGroup unManagedCG = null;
+        String unManagedCGURI = PropertySetterUtil.extractValueFromStringSet
+                (SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(), unManagedVolume.getVolumeInformation());
+        if (unManagedCGURI != null) {
+            // check if the unManagedCG is already in consistencyGroupObjectsToUpdate
+            unManagedCG = (UnManagedConsistencyGroup) consistencyGroupObjectsToUpdate.get(unManagedCGURI);
+            if (unManagedCG == null) {
+                unManagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, URI.create(unManagedCGURI));
+            }
+        }
         return unManagedCG;
-    }        
+    }
 
     public static boolean checkUnManagedVolumeHasReplicas(UnManagedVolume unManagedVolume) {
         StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
@@ -1843,7 +1847,7 @@ public class VolumeIngestionUtil {
                 unassignedInitiators++;
                 _logger.info("Initiator {} of host {} is not assigned to any ports.",
                         new Object[] { initiator.getInitiatorPort(), hostName });
-            } else if (ports.size() != pathParams.getPathsPerInitiator()) {
+            } else if (ports.size() < pathParams.getPathsPerInitiator()) {
                 _logger.error("Initiator {} of host {} has a different number of ports ({}) than " +
                         "what is required according to the virtual pool ({})", new Object[] { initiator.getInitiatorPort(),
                         hostName, ports.size(), pathParams.getPathsPerInitiator() });
@@ -2826,7 +2830,7 @@ public class VolumeIngestionUtil {
 
         return hlu;
     }
-    
+
     /**
      * Create a BlockConsistencyGroup Object based on the passed in UnManagedConsistencyGroup object
      * 
@@ -2836,7 +2840,8 @@ public class VolumeIngestionUtil {
      * @param dbClient
      * @return - the newly created BlockConsistencyGroup
      */
-    public static BlockConsistencyGroup createCGFromUnManagedCG(UnManagedConsistencyGroup unManagedCG, Project project, TenantOrg tenant, DbClient dbClient) {
+    public static BlockConsistencyGroup createCGFromUnManagedCG(UnManagedConsistencyGroup unManagedCG, Project project, TenantOrg tenant,
+            DbClient dbClient) {
         // Create Consistency Group in db
         BlockConsistencyGroup consistencyGroup = new BlockConsistencyGroup();
         consistencyGroup.setId(URIUtil.createId(BlockConsistencyGroup.class));

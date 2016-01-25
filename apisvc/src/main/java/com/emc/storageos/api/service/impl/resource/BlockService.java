@@ -1942,13 +1942,16 @@ public class BlockService extends TaskResourceService {
              * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
              * Hence we don't require reference check for vmax.
              */
-            if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
-                List<Class<? extends DataObject>> excludeTypes = new ArrayList<>();
-                excludeTypes.add(ExportGroup.class);
-                excludeTypes.add(ExportMask.class);
+            if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+                List<Class<? extends DataObject>> excludeTypes = null;
+                if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+                    // For ViPR-only delete of exported volumes, We will clean up any
+                    // export groups/masks if the snapshot is exported.
+                    excludeTypes = new ArrayList<>();
+                    excludeTypes.add(ExportGroup.class);
+                    excludeTypes.add(ExportMask.class);
+                }
                 ArgValidator.checkReference(Volume.class, volumeURI, blockServiceApi.checkForDelete(volume, excludeTypes));
-            } else if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
-                ArgValidator.checkReference(Volume.class, volumeURI, blockServiceApi.checkForDelete(volume, null));
             }
 
             // For a volume that is a full copy or is the source volume for

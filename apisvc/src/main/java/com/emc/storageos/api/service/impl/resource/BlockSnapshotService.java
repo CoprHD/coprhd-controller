@@ -12,17 +12,20 @@ import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.API_BAD
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
@@ -72,6 +75,7 @@ import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
@@ -82,6 +86,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
@@ -208,6 +213,7 @@ public class BlockSnapshotService extends TaskResourceService {
      * 
      * @prereq none
      * @param id the URN of a ViPR snapshot
+     * @param type the type of deletion
      * @brief Delete snapshot
      * @return Snapshot information
      */
@@ -215,9 +221,15 @@ public class BlockSnapshotService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList deactivateSnapshot(@PathParam("id") URI id) {
-
+    public TaskList deactivateSnapshot(@PathParam("id") URI id, @DefaultValue("FULL") @QueryParam("type") String type) {
+        // Get the snapshot.
         BlockSnapshot snap = (BlockSnapshot) queryResource(id);
+
+        // Check if the type is ViPR-Only delete.
+        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+            return viprOnlyDeleteSnapshot(snap);
+        }
+
         String task = UUID.randomUUID().toString();
         TaskList response = new TaskList();
 
@@ -299,6 +311,80 @@ public class BlockSnapshotService extends TaskResourceService {
 
         auditOp(OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                 id.toString(), snap.getLabel(), snap.getParent().getName(), device.getId().toString());
+
+        return response;
+    }
+
+    /**
+     * 
+     * @param snapshot
+     * @return
+     */
+    public TaskList viprOnlyDeleteSnapshot(BlockSnapshot requestedSnapshot) {
+        String taskId = UUID.randomUUID().toString();
+        TaskList response = new TaskList();
+        boolean successStatus = true;
+        try {
+            _log.info("Executing ViPR only snapshot delete for snapshot {}", requestedSnapshot.getId());
+
+            // Get the parent volume.
+            Volume parentVolume = _permissionsHelper.getObjectById(requestedSnapshot.getParent(), Volume.class);
+
+            // Get all snapshots in the snapset.
+            List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+            URI cgURI = requestedSnapshot.getConsistencyGroup();
+            if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                // Collect all the BlockSnapshots if part of a CG.
+                snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(requestedSnapshot, _dbClient);
+            } else {
+                // Snap is not part of a CG so only delete the snap
+                snapshots.add(requestedSnapshot);
+            }
+
+            // Check that there are no pending tasks for these snapshots.
+            checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), snapshots);
+
+            // Create a task for each snapshot
+            Map<URI, BlockSnapshot> snapshotMap = new HashMap<URI, BlockSnapshot>();
+            for (BlockSnapshot snapshot : snapshots) {
+                Operation op = _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), taskId,
+                        ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT);
+                response.getTaskList().add(toTask(snapshot, taskId, op));
+                snapshotMap.put(snapshot.getId(), snapshot);
+            }
+
+            // Note that for snapshots of VPLEX volumes, the parent volume for the
+            // snapshot is the source side backend volume, which will have the same
+            // vpool as the VPLEX volume and therefore, the correct implementation
+            // should be returned.
+            BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
+            blockServiceApiImpl.viprOnlyDeleteSnapshot(snapshotMap, taskId);
+        } catch (APIException | InternalException e) {
+            successStatus = false;
+            String errorMsg = String.format("Exception attempting to ViPR-Only delete snapshot %s: %s",
+                    requestedSnapshot.getId(), e.getMessage());
+            _log.error(errorMsg);
+            for (TaskResourceRep taskResourceRep : response.getTaskList()) {
+                taskResourceRep.setState(Operation.Status.error.name());
+                taskResourceRep.setMessage(errorMsg);
+                _dbClient.error(BlockSnapshot.class, taskResourceRep.getResource().getId(), taskId, e);
+            }
+        } catch (Exception e) {
+            successStatus = false;
+            String errorMsg = String.format("Exception attempting to ViPR-Only delete snapshot %s: %s",
+                    requestedSnapshot.getId(), e.getMessage());
+            _log.error(errorMsg);
+            ServiceCoded sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
+            for (TaskResourceRep taskResourceRep : response.getTaskList()) {
+                taskResourceRep.setState(Operation.Status.error.name());
+                taskResourceRep.setMessage(sc.getMessage());
+                _dbClient.error(BlockSnapshot.class, taskResourceRep.getResource().getId(), taskId, sc);
+            }
+        }
+
+        // Log the operation which is really synchronous even though it returns tasks.
+        auditOp(OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, successStatus, null, requestedSnapshot.getId().toString(),
+                requestedSnapshot.getLabel(), requestedSnapshot.getParent().getName());
 
         return response;
     }

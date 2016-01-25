@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -401,6 +402,14 @@ public interface BlockServiceApi {
      * @param taskId The unique task identifier
      */
     public void deleteSnapshot(BlockSnapshot snapshot, String taskId);
+
+    /**
+     * Uses the appropriate controller to remove the snapshots from the ViPR database.
+     * 
+     * @param snapshots The list of snapshots to delete
+     * @param taskId The unique task identifier
+     */
+    public void viprOnlyDeleteSnapshot(Map<URI, BlockSnapshot> snapshotMap, String taskId);
 
     /**
      * Get the snapshots for the passed volume.

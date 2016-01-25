@@ -46,8 +46,8 @@ public class Site {
     private String siteShortId;
     private long creationTime;
     private long lastStateUpdateTime;
-    private SiteState lastOperation;
     private SiteState state = SiteState.ACTIVE;
+    private SiteState lastOperation;
     private int nodeCount;
 
     public Site() {

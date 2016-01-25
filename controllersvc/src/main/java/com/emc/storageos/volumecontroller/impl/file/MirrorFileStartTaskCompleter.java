@@ -7,10 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Operation.Status;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -20,18 +17,15 @@ public class MirrorFileStartTaskCompleter extends MirrorFileTaskCompleter {
     
     public MirrorFileStartTaskCompleter(Class clazz, List<URI> ids, String opId) {
         super(clazz, ids, opId);
-        // TODO Auto-generated constructor stub
     }
     
 
     public MirrorFileStartTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
-        // TODO Auto-generated constructor stub
     }
 
     public MirrorFileStartTaskCompleter(URI sourceURI, URI targetURI, String opId) {
         super(sourceURI, targetURI, opId);
-        // TODO Auto-generated constructor stub
     }
     
    
@@ -41,7 +35,8 @@ public class MirrorFileStartTaskCompleter extends MirrorFileTaskCompleter {
             throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            //tbd
+            recordMirrorOperation(dbClient, OperationTypeEnum.START_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
+                    getTargetFileShare().getId().toString());
 
         } catch (Exception e) {
             _log.error("Failed updating status. SRDFMirrorStop {}, for task " + getOpId(), getId(), e);

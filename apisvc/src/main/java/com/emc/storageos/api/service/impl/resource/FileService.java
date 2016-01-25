@@ -2366,6 +2366,155 @@ public class FileService extends TaskResourceService {
 
        return performFileProtectionAction(param, id, ProtectionOp.START.getRestOp());
    }
+   
+   
+   /**
+    * Stop continuous copies.
+    *
+    *
+    * @prereq none
+    *
+    * @param id the URN of a ViPR Source fileshare
+    * @param param List of copies to stop
+    *
+    * @brief Stop continuous copies.
+    * @return TaskList
+    *
+    * @throws ControllerException
+    */
+   @POST
+   @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+   @Path("/{id}/protection/continuous-copies/stop")
+   @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+   public TaskList stopContinuousCopies(@PathParam("id") URI id, CopiesParam param)
+           throws ControllerException {
+
+       ValidateCopiesParam(id, param);
+
+       // Verify that the copy IDs are either all specified or none are specified
+       // for a particular protection type. Combinations are not allowed
+       verifyCopyIDs(param);
+
+       // Validate for remotemirror Stop operation
+       validateRemoteMirrorStopOperation(id, param);
+
+       return performFileProtectionAction(param, id, ProtectionOp.STOP.getRestOp());
+   }
+
+
+   /**
+    * Pause continuous copies for given source fileshare
+    *
+    * NOTE: This is an asynchronous operation.
+    *
+    *
+    * @prereq none
+    *
+    * @param id the URN of a ViPR Source fileshare
+    * @param param List of copies to pause
+    *
+    * @brief Pause continuous copies
+    * @return TaskList
+    *
+    * @throws ControllerException
+    */
+   @POST
+   @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+   @Path("/{id}/protection/continuous-copies/pause")
+   @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+   public TaskList pauseContinuousCopies(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
+       ValidateCopiesParam(id, param);
+
+       // Verify that the copy IDs are either all specified or none are specified
+       // for a particular protection type. Combinations are not allowed
+       verifyCopyIDs(param);
+
+       // Validate for remotemirror Stop operation
+       validateRemoteMirrorStopOperation(id, param);
+
+       return performFileProtectionAction(param, id, ProtectionOp.PAUSE.getRestOp());
+   }
+
+   /**
+    * Resume continuous copies for given source fileshare
+    *
+    * NOTE: This is an asynchronous operation.
+    *
+    *
+    * @prereq none
+    *
+    * @param id the URN of a ViPR Source fileshare
+    * @param param List of copies to resume
+    *
+    * @brief Resume continuous copies
+    * @return TaskList
+    *
+    * @throws ControllerException
+    */
+   @POST
+   @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+   @Path("/{id}/protection/continuous-copies/resume")
+   @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+   public TaskList resumeContinuousCopies(@PathParam("id") URI id, CopiesParam param)
+           throws ControllerException {
+
+       ValidateCopiesParam(id, param);
+
+       // Verify that the copy IDs are either all specified or none are specified
+       // for a particular protection type. Combinations are not allowed
+       verifyCopyIDs(param);
+
+       return performFileProtectionAction(param, id, ProtectionOp.RESUME.getRestOp());
+   }
+
+   /**
+    *
+    * Request to failover the protection link associated with the param.copyID.
+    *
+    * NOTE: This is an asynchronous operation.
+    *
+    * If volume is srdf protected, then invoking failover internally triggers
+    * SRDF SWAP on volume pairs.
+    *
+    * @prereq none
+    *
+    * @param id the URN of a ViPR Source volume
+    * @param param Copy to failover to
+    *
+    * @brief Failover the volume protection link
+    * @return TaskList
+    *
+    * @throws ControllerException
+    */
+   @POST
+   @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+   @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+   @Path("/{id}/protection/continuous-copies/failover")
+   @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+   public TaskList failoverProtection(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
+
+       TaskResourceRep taskResp = null;
+       TaskList taskList = new TaskList();
+
+       ValidateCopiesParam(id, param);
+
+       List<Copy> copies = param.getCopies();
+
+       if (copies.size() != 1) {
+           throw APIException.badRequests.failoverCopiesParamCanOnlyBeOne();
+       }
+
+       Copy copy = copies.get(0);
+       if (copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
+           throw APIException.badRequests.actionNotApplicableForVplexVolumeMirrors(ProtectionOp.FAILOVER.getRestOp());
+       } else if(copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString())) {
+           taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER.getRestOp());
+           taskList.getTaskList().add(taskResp);
+       } else {
+           throw APIException.badRequests.invalidCopyType(copy.getType());
+       }
+       return taskList;
+   }
     
     
     void ValidateCopiesParam(URI uriFS, CopiesParam param) {

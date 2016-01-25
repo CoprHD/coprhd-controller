@@ -2678,7 +2678,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         BiosCommandResult cmdResult = null;
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target.getId());
         if (target.getParentFileShare() != null) {
-            FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
             String policyName = targetFileShare.getLabel();
             cmdResult = this.doPauseReplicationPolicy(system, policyName);
             if (cmdResult.getCommandSuccess()) {
@@ -2694,7 +2693,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target.getId());
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
-            FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
             String policyName = targetFileShare.getLabel();
             cmdResult = this.doResumeReplicationPolicy(system, policyName);
             if (cmdResult.getCommandSuccess()) {
@@ -2707,6 +2705,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target.getId());
+        BiosCommandResult cmdResult = null;
+        if (target.getParentFileShare() != null) {
+            String policyName = targetFileShare.getLabel();
+            cmdResult = this.doFailover(system, policyName);
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
+        }
 
     }
 

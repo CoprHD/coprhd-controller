@@ -22,6 +22,9 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorCancelTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorDetachTaskCompleter;
@@ -428,13 +431,30 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         TaskCompleter completer = null;
         try {
             if (opType.equalsIgnoreCase("failover")) {
-               
+                
+                for (String target : targetfileUris) {
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    completer = new MirrorFileFailoverTaskCompleter(fileShare.getId(), targetFileShare.getId(), opId);
+                    getRemoteMirrorDevice(system).doFailoverLink(system, targetFileShare, completer);
+                }
 
             } else if (opType.equalsIgnoreCase("pause")) {
+                completer = new MirrorFilePauseTaskCompleter(FileShare.class, combined, opId);
+                for (String target : targetfileUris) {
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    getRemoteMirrorDevice(system).doSuspendLink(system, targetFileShare, completer);
+                }
+
                 
             } else if (opType.equalsIgnoreCase("suspend")) {
                
             } else if (opType.equalsIgnoreCase("resume")) {
+                completer = new MirrorFileResumeTaskCompleter(FileShare.class, combined, opId);
+                for (String target : targetfileUris) {
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    getRemoteMirrorDevice(system).doResumeLink(system, targetFileShare, completer);
+                }
+
                 
             } else if (opType.equalsIgnoreCase("start")) {
                 for (String target : targetfileUris) {
@@ -442,7 +462,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
                     completer = new MirrorFileStartTaskCompleter(fileShare.getId(), targetFileShare.getId(), opId);                    
                     
-                    getRemoteMirrorDevice(system).doStartMirrorLink(system, fileShare, completer);
+                    getRemoteMirrorDevice(system).doStartMirrorLink(system, targetFileShare, completer);
                 }
             } else if (opType.equalsIgnoreCase("sync")) {
                

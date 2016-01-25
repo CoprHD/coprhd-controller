@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.volumecontroller.impl.file;
 
 import java.net.URI;
@@ -12,17 +17,19 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
-public class MirrorFileStopTaskCompleter extends MirrorFileTaskCompleter {
-    private static final Logger _log = LoggerFactory.getLogger(MirrorFileStopTaskCompleter.class);
-    public MirrorFileStopTaskCompleter(Class clazz, List<URI> ids, String opId) {
+
+public class MirrorFilePauseTaskCompleter extends MirrorFileTaskCompleter {
+
+    private static final Logger _log = LoggerFactory.getLogger(MirrorFilePauseTaskCompleter.class);
+    public MirrorFilePauseTaskCompleter(Class clazz, List<URI> ids, String opId) {
         super(clazz, ids, opId);
     }
 
-    public MirrorFileStopTaskCompleter(Class clazz, URI id, String opId) {
+    public MirrorFilePauseTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
     }
 
-    public MirrorFileStopTaskCompleter(URI sourceURI, URI targetURI, String opId) {
+    public MirrorFilePauseTaskCompleter(URI sourceURI, URI targetURI, String opId) {
         super(sourceURI, targetURI, opId);
     }
     
@@ -30,14 +37,16 @@ public class MirrorFileStopTaskCompleter extends MirrorFileTaskCompleter {
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            recordMirrorOperation(dbClient, OperationTypeEnum.STOP_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
+            recordMirrorOperation(dbClient, OperationTypeEnum.PAUSE_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
                     getTargetFileShare().getId().toString());
             
         } catch (Exception e) {
-            _log.error("Failed updating status. MirrorSessionStop {}, for task " + getOpId(), getId(), e);
+            _log.error("Failed updating status. MirrorSessionPause {}, for task " + getOpId(), getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
         }
     }
+    
+  
 
 }

@@ -111,32 +111,33 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
             recordBourneMirrorEvent(dbClient, getId(), evType, status, evDesc);
 
-            String id = (String) extParam[0];
             switch (opType) {
-//                case :
-//                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-//                    break;
-//                case "suspend":
-//                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-//                    break;
-//                case "detach":
-//                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-//                    break;
-//                case "pause":
-//                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-//                    break;
-//                case RESUME_FILE_MIRROR:
-//                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-//                    break;
-//                case FAILOVER_FILE_MIRROR:
-//                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-//                    break;
-//                case STOP_FILE_MIRROR:
-//                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-//                    break;
+                case CREATE_FILE_MIRROR:
+                    auditFile(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case SUSPEND_FILE_MIRROR:
+                    auditFile(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case DETACH_FILE_MIRROR:
+                    auditFile(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case PAUSE_FILE_MIRROR:
+                    auditFile(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case RESUME_FILE_MIRROR:
+                    auditFile(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case FAILOVER_FILE_MIRROR:
+                    auditFile(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case STOP_FILE_MIRROR:
+                    auditFile(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+
                 default:
                     _logger.error("unrecognized Mirror operation type");
             }
+
         } catch (Exception e) {
             _logger.error("Failed to record Mirror operation {}, err: {}", opType.toString(), e);
         }

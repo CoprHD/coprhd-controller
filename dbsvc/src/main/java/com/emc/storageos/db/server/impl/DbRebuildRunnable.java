@@ -88,7 +88,7 @@ public class DbRebuildRunnable implements Runnable {
 
     private boolean dbRebuildComplete(String svcName) {
         List<Configuration> configs = coordinator.queryAllConfiguration(coordinator.getSiteId(),
-                coordinator.getVersionedDbConfigPath(svcName, coordinator.getCurrentDbSchemaVersion()));
+                coordinator.getVersionedDbConfigPath(svcName, service.getVersion()));
         int count = 0;
         for (Configuration config : configs) {
             if (isLastDataSyncCurrent(config)) {

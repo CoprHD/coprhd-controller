@@ -1,0 +1,176 @@
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+    <script>
+        function startUpdating(url, contentId) {
+            var content = DynamicContent();
+            content.watchValue(contentId);
+
+            var update = function() {
+                $.get(url, function(data) {
+                    var newData = $('<div></div>').html(data);
+                    content.update(newData);
+                    $('[data-format-relative-time]').each(function () {
+                      var $this = $(this)
+                      $this.data("format-relative-time", new Date().getTime());
+                    });
+                    refreshLastUpdated();
+                    window.setInterval(refreshLastUpdated, 5000);
+                });
+            };
+            update();
+        }
+
+        function refreshLastUpdated() {
+          $('[data-format-relative-time]').each(function () {
+            var $this = $(this)
+            var time = new moment($this.data("format-relative-time"));
+            var diff = (new Date().getTime() - time)/1000;
+                $this.text(Math.floor(diff) + " seconds ago");
+          });
+        }
+
+        $(document).ready(function() {
+            startUpdating('@{auth.IPsec.ipsecStatus()}', '#ipsecStatusPanel');
+            setTimeout(function () { location.reload(1); }, 60000);
+        });
+
+    </script>
+#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+    <style type="text/css">
+        .panel-margin-top {
+        margin-top: 12px;
+        }
+        .text-margin-top {
+        margin-top: 5px;
+        }
+        .text-margin-left {
+        margin-left: 5px;
+        }
+        .gi-2x {
+        font-size: 2em;
+        }
+        .panel-ipsec-status-stable {
+        background-color: #5cb85c;
+        }
+        .panel-ipsec-status-degraded {
+        background-color: #f0ad4e;
+        }
+        .panel-ipsec-status-disabled {
+        background-color: #ff0000;
+        }
+        .panel-ipsec-status-text-color {
+        color: #ffffff;
+        }
+    </style>
+#{/set}
+
+<div id="ipsecStatusPanel">
+    <div class="row" id="ipsec">
+        <div class="col-sm-3">
+            <div id="ipsecStatus" class="panel panel-default">
+                <div class="panel-heading"><h3 class="panel-title">&{'ipsec.status'}</h3></div>
+                #{if ipSecStatusInfo}
+                    #{if ipSecStatusInfo.status == "good"}
+                    <div class="panel-body panel-ipsec-status-stable" title="&{'ipsec.status.refresh'}">
+                        <div class="row panel-margin-top" style="text-align:center">
+                            <span class="glyphicon glyphicon-ok panel-ipsec-status-text-color gi-2x"> </span>
+                        </div>
+                        <div class="row panel-margin-top" style="text-align:center">
+                            <span class="text gi-2x panel-ipsec-status-text-color"> &{'ipsec.status.stable'}</span>
+                        </div>
+                    </div>
+                    #{/if}
+                    #{if ipSecStatusInfo.status == "degraded"}
+                    <div class="panel-body panel-ipsec-status-degraded" title="&{'ipsec.status.refresh'}">
+                        <div class="row panel-margin-top" style="text-align:center">
+                            <span class="gi-2x panel-ipsec-status-text-color">#{icon 'warning-sign'/}</span>
+                        </div>
+                        <div class="row panel-margin-top" style="text-align:center">
+                            <span class="text gi-2x panel-ipsec-status-text-color"> &{'ipsec.status.degraded'}</span>
+                        </div>
+                    </div>
+                    #{/if}
+                    #{if ipSecStatusInfo.status == "disabled"}
+                    <div class="panel-body panel-ipsec-status-disabled" title="&{'ipsec.status.refresh'}">
+                        <div class="row panel-margin-top" style="text-align:center">
+                            <span class="gi-2x panel-ipsec-status-text-color">#{icon 'remove-sign'/}</span>
+                        </div>
+                        <div class="row panel-margin-top" style="text-align:center">
+                            <span class="text gi-2x panel-ipsec-status-text-color"> &{'ipsec.status.disabled'}</span>
+                        </div>
+                    </div>
+                    #{/if}
+                #{/if}
+                #{if !ipSecStatusInfo}
+                    <div id="ipsecStatusLoading" class="panel-body">
+                        <div class="loadingBox panel-margin-top" style="text-align:center">
+                            <img src="/public/img/loading-huge.gif" height="64" width="64" alt="Loading...">
+                        </div>
+                    </div>
+                #{/if}
+                <div class="panel-footer">
+                    <div class="text text-margin-left">
+                        <small>&{'ipsec.lastUpdated'} <span data-format-relative-time=""></span></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-9">
+            <div id="ipsecConfig" class="panel panel-default">
+                <div class="panel-heading"><h3 class="panel-title">&{'ipsec.configuration'}</h3></div>
+                <div class="panel-body">
+                    <div class="row text-margin-left">
+                        <span class="text">&{'ipsec.configuration.keysGeneratedOn'}</span>
+                        #{if !ipSecStatusInfo}
+                            <span class="loadingBox">
+                                &nbsp;&nbsp; <img src="/public/img/loading-huge.gif" height="32" width="32" alt="Loading...">
+                            </span>
+                        #{/if}
+                        #{if ipSecStatusInfo}
+                            <span class="text" style="font-weight:bold">&nbsp;&nbsp; ${ipSecStatusInfo.configGeneratedDate }</span>
+                        #{/if}
+                    </div>
+                </div>
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <div class="row text-margin-top text-margin-left">
+                            #{Form.button name:'button.ipsec.rotate.keys', class:'primary', icon:'repeat', disabled:ipSecStatusInfo?ipSecStatusInfo.status!="good":true, href:@rotateIPsecKeys()/}
+                        </div>
+                        <div class="row text-margin-top text-margin-left">
+                            <span id="keyRotationDescription" class="text">&{'ipsec.key.rotation.description'}</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    #{if ipSecStatusInfo?.failureNodes}
+    <div class="row  panel-margin-top" id="ipsecFailureNodes">
+        <div class="col-sm-12">
+            <legend>&{'ipsecFailure.title'}<small>&{'ipsecFailure.description'}</small></legend>
+            <table class="table table-condensed table-striped">
+                <thead>
+                <tr>
+                    <th>&{'ipsecFailure.node'}</th>
+                    <th>&{'ipsecFailure.status'}</th>
+                </tr>
+                </thead>
+                <tbody>
+                #{list items:ipSecStatusInfo.failureNodes, as:'failureNode'}
+                <tr>
+                    <td>${failureNode.node}</td>
+                    <td>
+                        <span class="label label-warning" title="&{'ipsec.status.refresh'}">#{icon 'warning-sign'/} ${failureNode.status}</span>
+                    </td>
+                </tr>
+                #{/list}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    #{/if}
+</div>

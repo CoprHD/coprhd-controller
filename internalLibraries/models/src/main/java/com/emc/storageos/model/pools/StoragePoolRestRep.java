@@ -47,6 +47,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     private Boolean autoTieringSupported;
     private String compatibilityStatus;
     private String discoveryStatus;
+    private Integer dataCenters;
 
     public StoragePoolRestRep() {
     }
@@ -565,5 +566,19 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     public void setDiscoveryStatus(String discoveryStatus) {
         this.discoveryStatus = discoveryStatus;
     }
+    
+    /**
+     * Number of data centers for storage pool
+     * 
+     * @valid Intergers
+     */
+    @XmlElement(name = "dataCenters")
+    public Integer getDataCenters() {
+        return dataCenters;
+    }
 
+    public void setDataCenters(Integer dataCenters) {
+        this.dataCenters = dataCenters;
+    }
+    
 }

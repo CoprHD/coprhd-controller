@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Event;
@@ -52,7 +53,9 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.common.Constants;
@@ -616,6 +619,12 @@ public class ControllerUtils {
                     policyName = policy.getPolicyName();
                 }
             }
+        } else if (URIUtil.isType(uri, BlockMirror.class)) {
+            BlockMirror mirror = dbClient.queryObject(BlockMirror.class, uri);
+            if (!NullColumnValueGetter.isNullURI(mirror.getAutoTieringPolicyUri())) {
+                AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class, mirror.getAutoTieringPolicyUri());
+                policyName = policy.getPolicyName();
+            }
         }
 
         return policyName;
@@ -874,6 +883,26 @@ public class ControllerUtils {
             }
         }
 
+        return volumes;
+    }
+
+    /**
+     * Gets the volumes part of a given replication group.
+     * TODO remove this method when the above method (getVolumesPartOfRG) takes in RepGroup name instead of CG.
+     */
+    public static List<Volume> getVolumesPartOfRG(String replicationGroupInstance, DbClient dbClient) {
+        List<Volume> volumes = new ArrayList<Volume>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getVolumeReplicationGroupInstanceConstraint(replicationGroupInstance), uriQueryResultList);
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                uriQueryResultList, true);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume != null && !volume.getInactive()) {
+                volumes.add(volume);
+            }
+        }
         return volumes;
     }
 
@@ -1255,6 +1284,18 @@ public class ControllerUtils {
     }
 
     /**
+     * Check whether the given volume is XtremIO volume
+     *
+     * @param volume
+     * @param dbClient
+     * @return
+     */
+    public static boolean isXtremIOVolume(Volume volume, DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+        return storage != null && storage.deviceIsType(Type.xtremio);
+    }
+
+    /**
      * Check whether the given volume is in VNX virtual replication group
      *
      * @param volume
@@ -1264,6 +1305,42 @@ public class ControllerUtils {
     public static boolean isInVNXVirtualRG(Volume volume, DbClient dbClient) {
         return volume != null && ControllerUtils.isVnxVolume(volume, dbClient) &&
                 StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG);
+    }
+
+    public static String generateReplicationGroupName(StorageSystem storage, URI cgUri, String replicationGroupName, DbClient dbClient) {
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+        if (cg == null || cg.getInactive()) {
+            s_logger.warn(String.format("BlockConsistencyGroup with uri %s does not exist or is inactive", cgUri.toString()));
+        }
+        return generateReplicationGroupName(storage, cg, replicationGroupName);
+    }
+    
+    public static String generateReplicationGroupName(StorageSystem storage, BlockConsistencyGroup cg, String replicationGroupName) {
+        String groupName = replicationGroupName;
+        
+        if (storage.deviceIsType(Type.vnxblock) && cg.getArrayConsistency()) {
+            return cg.getCgNameOnStorageSystem(storage.getId());
+        }
+        
+        if (groupName == null && cg != null) {
+            // if there is only one system cg name for this storage system, use this; it may be different than the label
+            if (cg.getSystemConsistencyGroups() != null && storage != null) {
+                StringSet cgsforStorage = cg.getSystemConsistencyGroups().get(storage.getId().toString());
+                if (cgsforStorage != null && cgsforStorage.size() == 1) {
+                    groupName = cgsforStorage.iterator().next();
+                } else {
+                    groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+                }
+            } else {
+                groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+            }
+        }
+
+        return groupName;
+    }
+
+    public static String generateVirtualReplicationGroupName(String groupName) {
+        return SmisConstants.VNX_VIRTUAL_RG + groupName;
     }
 
     /**
@@ -1356,5 +1433,45 @@ public class ControllerUtils {
     public static boolean checkCGCreatedOnBackEndArray(Volume volume) {
 
         return (volume != null && StringUtils.isNotBlank(volume.getReplicationGroupInstance()));
+    }
+
+    /**
+     * Get volume group's volumes.
+     * skip internal volumes
+     *
+     * @param volumeGroup
+     * @return The list of volumes in volume group
+     */
+    public static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
+        List<Volume> result = new ArrayList<Volume>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+        for (Volume vol : volumes) {
+            // return only visible volumes. i.e skip backend or internal volumes
+            // TODO check with others
+            if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                result.add(vol);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Group volumes by array group.
+     *
+     * @param volumes the volumes
+     * @return the map of array group to volumes
+     */
+    public static Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes) {
+        Map<String, List<Volume>> arrayGroupToVolumes = new HashMap<String, List<Volume>>();
+        for (Volume volume : volumes) {
+            String repGroupName = volume.getReplicationGroupInstance();
+            if (arrayGroupToVolumes.get(repGroupName) == null) {
+                arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());
+            }
+            arrayGroupToVolumes.get(repGroupName).add(volume);
+        }
+        return arrayGroupToVolumes;
     }
 }

@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
+import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ObjectController;
@@ -132,5 +133,21 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
             throws InternalException {
         _log.debug("ObjectControllerImpl:updateBucket");
         execOb("updateBucket", storage, bucket, softQuota, hardQuota, retention, task);
+    }
+
+    @Override
+    public void updateBucketACL(URI storage, URI bucket, BucketACLUpdateParams param, String opId) throws InternalException {
+        _log.info("ObjectControllerImpl:updateBucketACL start");
+        execOb("updateBucketACL", storage, bucket, param, opId);
+        _log.debug("ObjectControllerImpl:updateBucketACL end");
+
+    }
+
+    @Override
+    public void deleteBucketACL(URI storage, URI bucket, String opId) throws InternalException {
+        _log.info("ObjectControllerImpl:deleteBucketACL start");
+        execOb("deleteBucketACL", storage, bucket, opId);
+        _log.debug("ObjectControllerImpl:deleteBucketACL end");
+        
     }
 }

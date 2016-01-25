@@ -103,6 +103,7 @@ def cos_update(args):
     pooladd = []
     poolrem = []
     cos_uri = bourne.cos_query(args.type, args.name)
+    bourne.cos_refresh(args.type, cos_uri)
     cosobj = bourne.cos_show(args.type, cos_uri)
     if (args.storage):
         uri  = bourne.storagedevice_querybynativeguid(args.storage)
@@ -166,6 +167,7 @@ def cos_update_pools(args):
     pooladd = []
     poolrem = []
     cos_uri = bourne.cos_query(args.type, args.name)
+    bourne.cos_refresh(args.type, cos_uri)
     cosobj = bourne.cos_show(args.type, cos_uri)
     matched_pools = cosobj['matched_storage_pools']
 

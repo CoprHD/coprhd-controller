@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -18,8 +19,9 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
@@ -121,6 +123,15 @@ public class Volume extends BlockObject implements ProjectResource {
                 }
             }
             return VolumeAccessState.UNKNOWN.name();
+        }
+
+        public static VolumeAccessState getVolumeAccessState(String state) {
+            for (VolumeAccessState stateValue : copyOfValues) {
+                if (stateValue.name().equalsIgnoreCase(state)) {
+                    return stateValue;
+                }
+            }
+            return VolumeAccessState.UNKNOWN;
         }
     }
 
@@ -340,7 +351,7 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Getter for the ids of the backend volumes that provide the actual storage for a virtual
      * volume.
-     *
+     * 
      * @return The set of ids of the backend volumes that provide the actual storage for a virtual
      *         volume.
      */
@@ -353,7 +364,7 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Setter for the ids of the backend volumes that provide the actual storage for a virtual
      * volume.
-     *
+     * 
      * @param volumes
      *            The ids of the backend volumes that provide the actual storage for a virtual
      *            volume.
@@ -365,7 +376,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Getter for the device ids of the meta volume members volumes.
-     *
+     * 
      * @return The set of device ids of the meta volume member volumes.
      */
     @Name("metaVolumeMembers")
@@ -375,7 +386,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Setter for the ids of the meta volume members volumes.
-     *
+     * 
      * @param volumes
      */
     public void setMetaVolumeMembers(StringSet volumes) {
@@ -385,7 +396,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Getter for the ids of the BlockMirror volumes that act as a mirror for this volume.
-     *
+     * 
      * @return The set of ids for the BlockMirror objects
      */
     @Name("mirrors")
@@ -395,7 +406,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Setter for the ids of the BlockMirror volumes that act as a mirror for this volume.
-     *
+     * 
      * @param mirrors
      *            The set of ids for the BlockMirror objects
      */
@@ -560,7 +571,7 @@ public class Volume extends BlockObject implements ProjectResource {
      * Uses a field in the volume to determine if the volume is an SRDF volume. Best to use a field
      * that is set during placement/scheduling of the volume, during ViPR (cassandra) volume
      * creation.
-     *
+     * 
      * @return true if the volume is used by SRDF
      */
     public static boolean checkForSRDF(DbClient dbClient, URI blockURI) {
@@ -577,7 +588,7 @@ public class Volume extends BlockObject implements ProjectResource {
      * Uses a field in the volume to determine if the volume is an SRDF volume. Best to use a field
      * that is set during placement/scheduling of the volume, during ViPR (cassandra) volume
      * creation.
-     *
+     * 
      * @return true if the volume is used by SRDF
      */
     public boolean checkForSRDF() {
@@ -590,7 +601,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Checks whether the volume is a SRDF source volume or not
-     *
+     * 
      * @return true if the volume is a SRDF source volume
      */
     public boolean isSRDFSource() {
@@ -600,7 +611,7 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Get all of the volumes in this SRDF set; the source and all of its targets. For a
      * multi-volume SRDF, it only returns the targets (and source) associated with this one volume.
-     *
+     * 
      * @param dbClient db object to read from database
      * @param volumeURI volume object
      * @return list of volume URIs
@@ -628,7 +639,7 @@ public class Volume extends BlockObject implements ProjectResource {
      * Uses a field in the volume to determine if the volume is an RP volume. Best to use a field
      * that is set during placement/scheduling of the volume, during ViPR (cassandra) volume
      * creation.
-     *
+     * 
      * @return true if the volume is used by RP
      */
     public boolean checkForRp() {
@@ -640,12 +651,12 @@ public class Volume extends BlockObject implements ProjectResource {
      * If the block object URI is volume, then that is returned. If the block object URI is an RP snapshot
      * then the parent volume object of the snapshot is returned. If the block object URI is a regular snapshot,
      * then the snapshot object is returned.
-     *
+     * 
      * This utility function is called from various places in the controller code when it is necessary to determine
      * if the operation needs to be performed on the actual block object or its parent. In the case of RP snapshots,
      * operations such as export/unexport of RP type snapshots needs to be performed on the parent of the snapshot rather
      * than the snapshot object itself.
-     *
+     * 
      * @param dbClient
      *            [in] - DbClient object to read from database
      * @param blockURI
@@ -701,7 +712,7 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Getter for the secondary RecoverPoint journal volume. This
      * will only ever be used in the case of MetroPoint.
-     *
+     * 
      * @return The secondary RP journal volume URI.
      */
     @Name("secondaryRpJournalVolume")
@@ -712,7 +723,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Setter for the secondary RecoverPoint journal volume.
-     *
+     * 
      * @param secondaryRpJournalVolumes
      *            The secondary journal volume.
      */
@@ -753,9 +764,9 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Returns true if the passed volume is in an export group, false otherwise.
-     *
+     * 
      * @param dbClient A reference to a DbClient.
-     *
+     * 
      * @return true if the passed volume is in an export group, false otherwise.
      */
     public boolean isVolumeExported(DbClient dbClient) {
@@ -763,10 +774,10 @@ public class Volume extends BlockObject implements ProjectResource {
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
         return exportGroupURIs.iterator().hasNext();
     }
-    
+
     /**
      * Returns true if the passed volume is in an export group, false otherwise.
-     * 
+     *
      * @param dbClient A reference to a DbClient.
      * @param ignoreRPExports If true, ignore if this volume has been exported to RP
      * @return true if the passed volume is in an export group, false otherwise.
@@ -776,7 +787,7 @@ public class Volume extends BlockObject implements ProjectResource {
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
         if (ignoreRPExports) {
-            
+
             while (exportGroupURIs.iterator().hasNext()) {
                 URI exportGroupURI = exportGroupURIs.iterator().next();
                 if (exportGroupURI != null) {
@@ -786,7 +797,7 @@ public class Volume extends BlockObject implements ProjectResource {
                         break;
                     }
                 }
-            }            
+            }
         } else {
             isExported = exportGroupURIs.iterator().hasNext();
         }
@@ -794,11 +805,32 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     /**
+     * Returns true if the passed volume is in an export group that isn't associated with RP.
+     * 
+     * @param dbClient A reference to a DbClient
+     * 
+     * @return true if the passed volume is in an export group that isn't associated with RP, false otherwise
+     */
+    public boolean isExportedNonRP(DbClient dbClient) {
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
+        Iterator<URI> exportGroupURIIter = exportGroupURIs.iterator();
+        while (exportGroupURIIter.hasNext()) {
+            URI exportGroupURI = exportGroupURIIter.next();
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            if (!exportGroup.checkInternalFlags(Flag.RECOVERPOINT)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Return whether or not a volume in ViPR was created outside
      * of ViPR and ingested.
-     *
+     * 
      * @param volume A reference to a volume.
-     *
+     * 
      * @return true if the volume was ingested, else false.
      */
     public boolean isIngestedVolume(DbClient dbClient) {
@@ -820,7 +852,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Utility function that tells if the passed in volume is a back-end volume of a VPLEX virtual volume.
-     *
+     * 
      * @param dbClient
      * @param volume
      * @return
@@ -840,7 +872,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Given a volume, this is an utility method that returns the VPLEX virtual volume that this volume is associated with.
-     *
+     * 
      * @param dbClient
      * @param volume
      * @return
@@ -873,7 +905,7 @@ public class Volume extends BlockObject implements ProjectResource {
      * Utility function that tells if the passed in volume is a back-end volume of a protected VPLEX virtual volume.
      * For now the only supported protection type for VPLEX virtual volumes is RecoverPoint, if additional protection
      * types are added in the future we can add checks for them as they are introduced.
-     *
+     * 
      * @param dbClient
      * @param volume
      * @return
@@ -916,17 +948,36 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Uses a field in the volume to determine if the volume is part of a CG.
-     *
+     * 
      * @return true if the volume is part of a CG
      */
     public boolean isInCG() {
         return !NullColumnValueGetter.isNullURI(getConsistencyGroup());
     }
-    
+
+    /**
+     * returns the VolumeGroup object that represents the application for this Volume
+     *
+     * @param dbClient
+     *            dbclient for querying
+     * @return a VolumeGroup object or null if this volume isn't associated with an application
+     */
+    public VolumeGroup getApplication(DbClient dbClient) {
+        if (this.getVolumeGroupIds() != null) {
+            for (String volumeGroupId : this.getVolumeGroupIds()) {
+                VolumeGroup volumeGroup = dbClient.queryObject(VolumeGroup.class, URI.create(volumeGroupId));
+                if (volumeGroup.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())) {
+                    return volumeGroup;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Getter for the ids of the volume groups
      *
-     * @return The set of application ids 
+     * @return The set of application ids
      */
     @Name("volumeGroupIds")
     @AlternateId("VolumeGroups")
@@ -938,11 +989,37 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     /**
-     * Setter for the volume group ids 
+     * Setter for the volume group ids
      */
     public void setVolumeGroupIds(StringSet applicationIds) {
         this.volumeGroupIds = applicationIds;
         setChanged("applicationIds");
     }
 
+    /**
+     * Checks if the volume is in volume group.
+     *
+     * @return true, if this volume is in volume group
+     */
+    public boolean isInVolumeGroup() {
+        return !getVolumeGroupIds().isEmpty();
+    }
+
+    /**
+     * gets the COPY type VolumeGroup.
+     *
+     * @param dbClient the db client
+     * @return COPY type VolumeGroup if Volume is part of any COPY type VolumeGroup; otherwise null.
+     */
+    public VolumeGroup getCopyTypeVolumeGroup(DbClient dbClient) {
+        VolumeGroup copyVolumeGroup = null;
+        for (String volumeGroupURI : getVolumeGroupIds()) {
+            VolumeGroup volumeGroup = dbClient.queryObject(VolumeGroup.class, URI.create(volumeGroupURI));
+            if (volumeGroup.getRoles().contains(VolumeGroupRole.COPY.name())) {
+                copyVolumeGroup = volumeGroup;
+                break; // A Volume can be part of only one 'Copy' type VolumeGroup
+            }
+        }
+        return copyVolumeGroup;
+    }
 }

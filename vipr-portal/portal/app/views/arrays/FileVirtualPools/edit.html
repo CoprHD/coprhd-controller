@@ -120,6 +120,36 @@ $(document).ready(function() {
       #{field 'vpool.maxSnapshots'}
         #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
       #{/field}
+      #{field 'vpool.replicationType'}
+        #{Form.selectOneControlGroup field:field, options:replicationTypeOptions, cssClass:'span4' /}
+      #{/field}
+      
+   <div data-source="vpool_replicationType" data-hide="${models.FileProtectionSystemTypes.NONE}">
+      #{field 'vpool.replicationMode'}
+        #{Form.selectOneControlGroup field:field, options:replicationModeOptions, cssClass:'span4' /}
+      #{/field}
+      
+    #{field 'vpool.replicationRpo'}
+     #{Form.controlGroup field:field, width:width}
+     <div class="row col-gap-sm">
+        <div class="col-xs-6">
+          #{Form.inputText field: field/}
+        </div>
+        <div class="col-xs-6">
+          #{field 'vpool.rpRpoType'}
+            %{
+              field.options = replicationRpoTypeOptions   
+            }%
+            #{Form.selectOne field: field/}
+          #{/field}
+        </div>
+     </div>
+      #{/Form.controlGroup}      
+    #{/field}
+      <div data-source="vpool_replicationType" data-show="${models.FileProtectionSystemTypes.REMOTE}">
+		       #{include 'arrays/FileVirtualPools/replicationCopies.html' /}
+      </div>
+   </div>
   #{/collapse}
   
   #{collapse 'vpool.group.archive', icon:'floppy-disk'}
@@ -127,6 +157,7 @@ $(document).ready(function() {
       #{Form.booleanCheckBoxControlGroup field:field /}
     #{/field}
   #{/collapse}
+  
   </div>
   
   *{ tenantOptions is only set if user has access to read tenants and write ACLs }*
@@ -148,3 +179,26 @@ $(document).ready(function() {
   #{Form.saveCancel cancelHref:flash['referrer']/}
 #{/form}
 </div>
+
+
+#{Modal.dialog id:'replicationCopyDialog', titleKey:'replicationCopy.title'}
+  <form id="replicationCopyForm" class="form form-horizontal" onSubmit="return false;">
+    #{authenticityToken/}
+    #{Modal.body}
+      #{field 'replicationCopy.virtualArray'}
+        #{Form.selectOneControlGroup field:field,required:true, cssClass:'span4' /}
+      #{/field}
+      #{field 'replicationCopy.virtualPool'}
+        #{Form.selectOneControlGroup field:field, cssClass:'span4' /}
+      #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      <button class="btn btn-primary" onclick="replication.saveCopy(event); return false;">
+        #{icon 'ok-sign'/} &{'button.done'}
+      </button>
+      <button class="btn btn-default" data-dismiss="modal">
+        #{icon 'trash'/} &{'button.cancel'}
+      </button>
+    #{/Modal.footer}
+  </form>
+#{/Modal.dialog}

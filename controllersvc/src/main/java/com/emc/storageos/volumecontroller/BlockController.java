@@ -165,10 +165,11 @@ public interface BlockController extends BlockStorageManagementController {
      * @param pool URI of pool where the volume belongs.
      * @param volume URI of volume to be restored.
      * @param snapshot URI of snapshot used for restoration.
+     * @param synDirection specifies the direction to sync for R1 and R2
      * @param opId Operation ID
      * @throws InternalException When an exception occurs restoring the volume
      */
-    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String syncDirection, String opId)
             throws InternalException;
 
     /**
@@ -314,7 +315,8 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId Operation ID
      * @throws InternalException When an exception occurs deactivating the mirror
      */
-    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId) throws InternalException;
+    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId)
+            throws InternalException;
 
     /**
      * Orchestrates the creation of full copy volumes
@@ -460,7 +462,7 @@ public interface BlockController extends BlockStorageManagementController {
             String opId) throws ControllerException;
     
     /**
-     * Remove volumes from application
+     * Add/remove volumes to/from application
      * @param storage
      * @param addVolList
      * @param removeVolumeList

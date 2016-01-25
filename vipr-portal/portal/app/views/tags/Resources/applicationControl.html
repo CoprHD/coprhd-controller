@@ -1,0 +1,36 @@
+%{
+  projects = _projects
+  application = _caller.application
+  tenants = _caller.tenants
+  currentTenantId = _caller.currentTenantId
+}%
+
+#{if tenants?.size() > 1}
+  #{tenantSelector}  
+    #{ifnot projects}
+      <span class="text-warning">&{'resources.noprojects'}</span>
+    #{/ifnot}
+    #{elseif projects}    
+      		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
+      		#{if application?.size()>0}
+      		#{Form.selectApplication application:application,selectedApplication:session?.activeApplicationId/}
+    		#{/if}
+  
+    #{/elseif}
+  #{/tenantSelector}
+#{/if}
+#{else}
+  #{ifnot projects}
+    <div class="alert alert-warning">&{'resources.noprojects'}</div> 
+    
+  #{/ifnot}
+  #{elseif projects}
+    <div class="well well-sm form-inline">
+      		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
+      		#{if application?.size()>0}
+      		#{Form.selectApplication application:application,selectedApplication:session?.activeApplicationId/}
+    		#{/if}
+    </div>
+  #{/elseif}
+#{/else}
+

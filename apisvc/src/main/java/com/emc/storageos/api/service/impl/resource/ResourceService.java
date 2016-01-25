@@ -392,14 +392,13 @@ public abstract class ResourceService {
      * 
      * @param type The class of object being validated
      * @param value the value of label being checked
-     * @param entityName the name of the entity to be used in the error message
      */
     protected <T extends DataObject> void checkDuplicateLabel(Class<T> type,
-            String value, String entityName) {
+            String value) {
         List<T> objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, type,
                 PrefixConstraint.Factory.getFullMatchConstraint(type, DATAOBJECT_NAME_FIELD, value));
         if (!objectList.isEmpty()) {
-            throw APIException.badRequests.duplicateLabel(entityName);
+            throw APIException.badRequests.duplicateLabel(value);
         }
     }
 

@@ -133,6 +133,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         if (null != vpool.getMaxRetention()) {
             restRep.setMaxRetention(vpool.getMaxRetention());
         }
+        if (null != vpool.getMinDataCenters()) {
+            restRep.setMinDataCenters(vpool.getMinDataCenters());
+        }
         return restRep;
     }
 
@@ -174,6 +177,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
 
         List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool,
                 allPools,
+                null,
                 null,
                 null,
                 _dbClient,
@@ -286,6 +290,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         populateCommonVirtualPoolUpdateParams(cos, param);
         if (null != param.getMaxRetention()) {
             cos.setMaxRetention(param.getMaxRetention());
+        }
+        if (null != param.getMinDataCenters()) {
+            cos.setMinDataCenters(param.getMinDataCenters());
         }
         
         if (null != param.getSystemType()) {
@@ -505,6 +512,10 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         }
         if (null != param.getMaxRetention()) {
             vPool.setMaxRetention(param.getMaxRetention());
+        }
+        
+        if (null != param.getMinDataCenters()) {
+            vPool.setMinDataCenters(param.getMinDataCenters());
         }
 
         return vPool;

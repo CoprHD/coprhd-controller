@@ -6,6 +6,7 @@
 package com.emc.storageos.api.service.impl.placement;
 
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -19,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +30,29 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolClassNames;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.SynchronizationState;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -94,7 +116,7 @@ public class StorageScheduler implements Scheduler {
 
     /**
      * Returns list of recommendations for block volumes.
-     * 
+     *
      * Select and return one or more storage pools where the volume(s)/fileshare(s)
      * should be created. The placement logic is based on:
      * - VirtualArray, only storage devices in the given varray are candidates
@@ -107,7 +129,7 @@ public class StorageScheduler implements Scheduler {
      * - numPaths: select storage pools with required number of paths to the volume
      * - size: Place the resources in the minimum number of storage pools that can
      * accommodate the size and number of resource requested.
-     * 
+     *
      * @param neighborhood
      * @param cos
      * @param capabilities
@@ -296,7 +318,7 @@ public class StorageScheduler implements Scheduler {
     /**
      * Sort list of storage pools based on its storage system's average usage port metrics usage. Its
      * secondary sorting components are free and subscribed capacity
-     * 
+     *
      * @param storagePools
      */
     public void sortPools(List<StoragePool> storagePools) {
@@ -316,11 +338,11 @@ public class StorageScheduler implements Scheduler {
      * Select candidate storage pools for placement. Wrapper for the
      * 4 parameter version (below), which uses an optional parameter
      * for passing in attributes.
-     * 
+     *
      * @param varray The VirtualArray for matching storage pools.
      * @param vpool The virtualPool that must be satisfied by the storage pool.
      * @param capabilities The VirtualPool params that must be satisfied.
-     * 
+     *
      * @return A list of matching storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray varray, VirtualPool vpool,
@@ -330,12 +352,12 @@ public class StorageScheduler implements Scheduler {
 
     /**
      * Select candidate storage pools for placement.
-     * 
+     *
      * @param varray The VirtualArray for matching storage pools.
      * @param vpool The virtualPool that must be satisfied by the storage pool.
      * @param capabilities The VirtualPool params that must be satisfied.
      * @param optionalAttributes Optional addition attributes to consider for placement
-     * 
+     *
      * @return A list of matching storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray varray, VirtualPool vpool,
@@ -455,6 +477,36 @@ public class StorageScheduler implements Scheduler {
             Set<String> systemTypes = arrayInfo.get(AttributeMatcher.Attributes.system_type.name());
             if (null != systemTypes && !systemTypes.isEmpty()) {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.system_type.name(), systemTypes);
+
+                // put quota value for ecs storage
+                if (systemTypes.contains("ecs") && capabilities.getQuota() != null) {
+                    provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.quota.name(), capabilities.getQuota());
+                }
+            }
+        }
+
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings = vpool.getRemoteProtectionSettings(vpool, _dbClient);
+        if (null != remoteProtectionSettings && !remoteProtectionSettings.isEmpty()) {
+            provMapBuilder.putAttributeInMap(Attributes.remote_copy.toString(),
+                    VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteProtectionSettings));
+        }
+
+        if (VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_SOURCE.equalsIgnoreCase(capabilities.getPersonality())) {
+            // Run the placement algorithm for file replication!!!
+            if (vpool.getFileReplicationType() != null &&
+                    !FileReplicationType.NONE.name().equalsIgnoreCase(vpool.getFileReplicationType())) {
+
+                provMapBuilder.putAttributeInMap(Attributes.file_replication_type.toString(), vpool.getFileReplicationType());
+                if (vpool.getFileReplicationCopyMode() != null) {
+                    provMapBuilder.putAttributeInMap(Attributes.file_replication_copy_mode.toString(), vpool.getFileReplicationCopyMode());
+                }
+                Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings = VirtualPool.getFileRemoteProtectionSettings(vpool,
+                        _dbClient);
+                if (null != remoteCopySettings && !remoteCopySettings.isEmpty()) {
+                    provMapBuilder.putAttributeInMap(Attributes.file_replication.toString(),
+                            VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteCopySettings));
+                }
+
             }
         }
 
@@ -494,13 +546,13 @@ public class StorageScheduler implements Scheduler {
      * Returns first storage pool from the passed list of candidate storage
      * pools that has at least the passed free capacity.
      * Note: do not change order of candidate pools.
-     * 
+     *
      * @param capacity The desired free capacity.
      * @param resourceSize The desired resource size
      * @param newResourceCount The desired number of resources
      * @param candidatePools The list of candidate storage pools.
      * @param isThinlyProvisioned Indication if this is thin provisioning (thin volume).
-     * 
+     *
      * @return A storage pool that have the passed free capacity.
      */
     protected StoragePool getPoolMatchingCapacity(long capacity, long resourceSize,
@@ -536,13 +588,13 @@ public class StorageScheduler implements Scheduler {
      * Returns all storage pools from the passed list of candidate storage
      * pools that have at least the passed free capacity.
      * Note: do not change order of candidate pools.
-     * 
+     *
      * @param capacity The desired free capacity.
      * @param resourceSize The desired resource size
      * @param newResourceCount The desired number of resources
      * @param candidatePools The list of candidate storage pools.
      * @param isThinlyProvisioned Indication if this is thin provisioning (thin volume).
-     * 
+     *
      * @return All storage pools that have the passed free capacity.
      */
     protected List<StoragePool> getPoolsMatchingCapacity(long capacity, long resourceSize,
@@ -575,7 +627,7 @@ public class StorageScheduler implements Scheduler {
     /**
      * Select one storage pool out a list of candidates. Use static and dynamic loads, capacity etc
      * criteria to narrow the selection.
-     * 
+     *
      * @param poolList - List of StoragePools that meet the placement criteria for the
      *            volume.
      * @return - A StoragePool that can be used to allocate the volume,
@@ -599,10 +651,10 @@ public class StorageScheduler implements Scheduler {
      * Try to determine a list of storage pools from the passed list of storage
      * pools that can accommodate the passed number of resources of the passed
      * size.
-     * 
+     *
      * @param varrayId The VirtualArray for the recommendations.
      * @param candidatePools The list of candidate storage pools.
-     * 
+     *
      * @return The list of Recommendation instances reflecting the recommended
      *         pools.
      */
@@ -675,13 +727,13 @@ public class StorageScheduler implements Scheduler {
      * Try to determine a list of storage pools from the passed list of storage
      * pools that can accommodate the passed number of resources of the passed
      * size.
-     * 
+     *
      * @param varrayId The VirtualArray for the recommendations.
      * @param candidatePools The list of candidate storage pools.
      * @param capabilities The characteristics of the recommendation request.
      * @param orderPools true if candidate pools should be ordered before
      *            determining the recommendation, false otherwise
-     * 
+     *
      * @return The list of Recommendation instances reflecting the recommended
      *         pools.
      */
@@ -839,7 +891,7 @@ public class StorageScheduler implements Scheduler {
 
     /**
      * Create volumes from recommendation object.
-     * 
+     *
      * @param param volume creation parameters
      * @param task task
      * @param taskList task list
@@ -934,7 +986,7 @@ public class StorageScheduler implements Scheduler {
 
     /**
      * Convenience method to return a volume from a task list with a pre-labeled volume number.
-     * 
+     *
      * @param dbClient dbclient
      * @param taskList task list
      * @param label base label
@@ -1066,7 +1118,7 @@ public class StorageScheduler implements Scheduler {
     /**
      * Prepare a new volume object in the database that can be tracked and overridden as the volume goes through the
      * placement process.
-     * 
+     *
      * @param dbClient dbclient
      * @param size size of volume
      * @param project project
@@ -1105,7 +1157,7 @@ public class StorageScheduler implements Scheduler {
 
     /**
      * Prepare Volume for an unprotected traditional block volume.
-     * 
+     *
      * @param volume pre-created volume (optional)
      * @param size volume size
      * @param project project requested
@@ -1115,8 +1167,8 @@ public class StorageScheduler implements Scheduler {
      * @param label volume label
      * @param consistencyGroup cg ID
      * @param createInactive
-     * 
-     * 
+     *
+     *
      * @return a persisted volume
      */
     public static Volume prepareVolume(DbClient dbClient, Volume volume, long size, long thinVolumePreAllocationSize,
@@ -1172,6 +1224,12 @@ public class StorageScheduler implements Scheduler {
             volume.setConsistencyGroup(consistencyGroup.getId());
             if (!consistencyGroup.isProtectedCG()) {
                 volume.setReplicationGroupInstance(consistencyGroup.getLabel());
+
+                // if other volumes in the same CG are in an application, add this volume to the same application
+                VolumeGroup volumeGroup = getApplicationForCG(dbClient, consistencyGroup, volume.getReplicationGroupInstance());
+                if (volumeGroup != null) {
+                    volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
+                }
             }
         }
 
@@ -1193,10 +1251,40 @@ public class StorageScheduler implements Scheduler {
     }
 
     /**
+     * gets the application volume group for this CG and group name if it exists
+     *
+     * @param dbClient
+     *            dbClient to query objects from db
+     * @param consistencyGroup
+     *            consistency group object
+     * @param cgNameOnArray
+     *            cg name to check
+     * @return a VolumeGroup object or null if this CG and group name are not associated with an application
+     */
+    private static VolumeGroup getApplicationForCG(DbClient dbClient, BlockConsistencyGroup consistencyGroup, String cgNameOnArray) {
+        VolumeGroup volumeGroup = null;
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), uriQueryResultList);
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume.getReplicationGroupInstance() != null && volume.getReplicationGroupInstance().equals(cgNameOnArray)) {
+                volumeGroup = volume.getApplication(dbClient);
+                if (volumeGroup != null) {
+                    break;
+                }
+            }
+        }
+        return volumeGroup;
+    }
+
+    /**
      * Get the AutoTierPolicy URI for a given StoragePool and auto tier policy name.
-     * 
-     * @param pool -- Storage Pool URI
-     * @param policyName -- Policy name
+     *
+     * @param pool
+     *            -- Storage Pool URI
+     * @param policyName
+     *            -- Policy name
      * @param dbClient
      * @return URI of AutoTierPolicy, null if not found
      */
@@ -1228,7 +1316,7 @@ public class StorageScheduler implements Scheduler {
     /**
      * Adds a BlockMirror structure for a Volume. It also calls addMirrorToVolume to
      * link the mirror into the volume's mirror set.
-     * 
+     *
      * @param volume Volume
      * @param vPool
      * @param recommendedPoolURI Pool that should be used to create the mirror
@@ -1248,6 +1336,12 @@ public class StorageScheduler implements Scheduler {
         createdMirror.setLabel(volumeLabel);
         createdMirror.setStorageController(volume.getStorageController());
         createdMirror.setVirtualArray(volume.getVirtualArray());
+        // Setting the source Volume autoTieringPolicy in Mirror.
+        // @TODO we must accept the policy as an input for mirrors and requires API changes.
+        // Hence for timebeing, we are setting the source policy in mirror.
+        if (!NullColumnValueGetter.isNullURI(volume.getAutoTieringPolicyUri())) {
+            createdMirror.setAutoTieringPolicyUri(volume.getAutoTieringPolicyUri());
+        }
         createdMirror.setProtocol(new StringSet());
         createdMirror.getProtocol().addAll(volume.getProtocol());
         createdMirror.setCapacity(volume.getCapacity());
@@ -1270,7 +1364,7 @@ public class StorageScheduler implements Scheduler {
 
     /**
      * Adds a Mirror structure to a Volume's mirror set.
-     * 
+     *
      * @param volume
      * @param mirror
      */

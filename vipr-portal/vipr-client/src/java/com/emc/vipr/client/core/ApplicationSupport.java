@@ -10,6 +10,7 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_CLUSTE
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_HOSTS_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_VOLUMES_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
+import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
 import java.util.List;
@@ -30,6 +31,7 @@ import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
 public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
+
     protected final RestClient client;
 
     public ApplicationSupport(RestClient client) {
@@ -61,7 +63,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
 
     public List<VolumeGroupRestRep> getApplications(ResourceFilter<VolumeGroupRestRep> filter) {
         VolumeGroupList groups = getApplications();
-        return this.getByRefs(groups.getVolumeGroupss(), filter);
+        return this.getByRefs(groups.getVolumeGroups(), filter);
     }
 
     /**
@@ -72,7 +74,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
     public void deleteApplication(URI id) {
         client.post(String.class, APP_SUPPORT_DELETE_APP_URL, id);
     }
-    
+
     /**
      * Update an application
      * API call: PUT /volume-groups/block/{id}
@@ -82,7 +84,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_UPDATE_APP_URL);
         return client.putURI(TaskList.class, input, uriBuilder.build(id));
     }
-    
+
     /**
      * Get application based on ID
      * 
@@ -104,5 +106,24 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
     public List<NamedRelatedResourceRep> getClusters(URI id) {
         ClusterList response = client.get(ClusterList.class, APP_SUPPORT_GET_CLUSTERS_APP_URL, id);
         return response.getClusters();
+    }
+
+    /**
+     * Get volumes associated with an application
+     * 
+     * @param id application id
+     * @return list of volumes
+     */
+    public List<NamedRelatedResourceRep> listVolumes(URI id) {
+        NamedVolumesList response = getVolumeByApplication(id);
+        return defaultList(response.getVolumes());
+    }
+
+    /*
+     * Get volumes for application
+     * GET /volume-groups/block/{id}/volumes
+     */
+    public NamedVolumesList getVolumeByApplication(URI id) {
+        return client.get(NamedVolumesList.class, APP_SUPPORT_GET_VOLUMES_APP_URL, id);
     }
 }

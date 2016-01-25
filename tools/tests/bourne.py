@@ -56,6 +56,7 @@ URI_VPOOL_ACLS                    = URI_VPOOL_INSTANCE + '/acl'
 
 URI_VPOOL_UPDATE                  = URI_VPOOL_INSTANCE + '/assign-matched-pools'
 URI_VPOOL_DEACTIVATE              = URI_VPOOL_INSTANCE + '/deactivate'
+URI_VPOOL_REFRESH                 = URI_VPOOL_INSTANCE + '/refresh-matched-pools'
 URI_BLOCKVPOOLS_BULKGET            = URI_SERVICES_BASE + '/block/vpools/bulk'
 URI_FILEVPOOLS_BULKGET             = URI_SERVICES_BASE + '/file/vpools/bulk'
 URI_SMISPROVIDER_BULKGET        = URI_SERVICES_BASE + '/vdc/smis-providers/bulk'
@@ -122,6 +123,7 @@ URI_FILE_QUOTA_DIR_DELETE       = URI_FILE_QUOTA_DIR + '/deactivate'
 
 URI_DR                     = URI_SERVICES_BASE  + '/site'
 URI_DR_GET                 = URI_DR   + '/{0}'
+URI_DR_GET_DETAILS         = URI_DR   + '/{0}' + '/details'
 URI_DR_DELETE              = URI_DR   + '/{0}'
 URI_DR_PAUSE               = URI_DR   + '/{0}' + '/pause'
 URI_DR_RESUME              = URI_DR   + '/{0}' + '/resume'
@@ -135,7 +137,9 @@ URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
 
-URI_IPSEC               = '/ipsec'
+URI_IPSEC                   = '/ipsec'
+URI_IPSEC_STATUS            = '/ipsec?status={0}'
+URI_IPSEC_KEY               = '/ipsec/key'
 
 URI_VDCINFO                 =  '/object/vdcs' 
 URI_VDCINFO_GET             = URI_VDCINFO    + '/vdc' + '/{0}'
@@ -203,6 +207,7 @@ URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
 URI_UNMANAGED_VOLUMES_SEARCH     = URI_UNMANAGED + "/search"
 URI_UNMANAGED_VOLUMES_SEARCH_NAME= URI_UNMANAGED_VOLUMES_SEARCH + "?name={0}"
 URI_UNMANAGED_EXPORTED_VOLUMES   = URI_UNMANAGED + '/volumes/ingest-exported' 
+URI_UNMANAGED_TASK               = URI_VDC + '/tasks/{0}'
 
 URI_BLOCK_MIRRORS_BASE          = URI_VOLUME               + '/protection/continuous-copies'
 URI_BLOCK_MIRRORS_LIST          = URI_BLOCK_MIRRORS_BASE
@@ -374,10 +379,14 @@ URI_OBJECTTZ                    = URI_SERVICES_BASE + '/object/networks'
 URI_OBJECTTZ_INSTANCE           = URI_OBJECTTZ + '/{0}'
 URI_OBJECTTZ_DELETE             = URI_OBJECTTZ + '/{0}/deactivate'
 
+URI_DISCOVERED_PROTECTION_SYSTEMS   = URI_SERVICES_BASE   + '/vdc/protection-systems'
+URI_DISCOVERED_PROTECTION_SYSTEM    = URI_DISCOVERED_PROTECTION_SYSTEMS + '/{0}'
 URI_PROTECTION_SYSTEM = URI_SERVICES_BASE + '/vdc/protection-systems/{0}'
 URI_PROTECTION_SYSTEMS = URI_SERVICES_BASE + '/vdc/protection-systems'
 URI_PROTECTION_SYSTEM_DISCOVER = URI_PROTECTION_SYSTEM + '/discover'
 URI_PROTECTION_SYSTEM_UPDATE          = URI_PROTECTION_SYSTEM
+URI_DISCOVERED_PROTECTION_SYSTEM_DISCOVER    = URI_PROTECTION_SYSTEM + '/discover'
+URI_DISCOVERED_PROTECTION_SYSTEM_NS = URI_DISCOVERED_PROTECTION_SYSTEM_DISCOVER + '?namespace={1}'
 
 URI_PROTECTIONSET = URI_SERVICES_BASE + '/block/protection-sets/{0}'
 URI_PROTECTIONSETS = URI_SERVICES_BASE + '/block/protection-sets'
@@ -535,7 +544,7 @@ COOKIE_FILE                     = os.getenv('BOURNE_COOKIE_FILE', 'cookiejar')
 # It only effects the connection process itself, not the downloading of the response body
 REQUEST_TIMEOUT_SECONDS = 120
 # Total time for server reconnection
-MAX_WAIT_TIME_IN_SECONDS=240
+MAX_WAIT_TIME_IN_SECONDS=480
 
 CONTENT_TYPE_JSON='application/json'
 CONTENT_TYPE_XML='application/xml'
@@ -897,15 +906,14 @@ class Bourne:
                         print 'Headers', newHeaders
                     response = requests.get(url,headers=newHeaders,verify=False, cookies=cookiejar, timeout=req_timeout, stream=True)
                 else:
-                    raise Excpeption("Unsupported method:", method)
+                    raise Exception("Unsupported method:", method)
 
                 if BOURNE_DEBUG == '1':
                     try:
             		print 'Headers: ', newHeaders
                         print 'Response code ' + str(response.status_code)
-                        if not method != 'GET-stream':
-                            print 'Response '
-                            self.pretty_print_json(cjson.decode(response.text))
+                        print 'Response '
+                        self.pretty_print_json(cjson.decode(response.text))
                     except:
                         print 'Exception printing debug output'
             except requests.exceptions.Timeout:
@@ -1756,6 +1764,9 @@ class Bourne:
 
     def cos_show(self, type, uri):
         return self.api('GET', URI_VPOOL_INSTANCE.format(type, uri))
+
+    def cos_refresh(self, type, uri):
+	return self.api('GET', URI_VPOOL_REFRESH.format(type, uri))
 
     def cos_query(self, type, name):
         if (self.__is_uri(name)):
@@ -3299,6 +3310,12 @@ class Bourne:
         self.assert_is_dict(resp)
         return resp
 
+    def dr_get_standby_details(self,uuid):
+        resp = self.api('GET', URI_DR_GET_DETAILS.format(uuid))
+        print "DR GET STANDBY DETAILS RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
     def dr_delete_standby(self,uuid):
         resp = self.api('DELETE', URI_DR_DELETE.format(uuid))
         print "DR DELETE STANDBY RESP = ",resp
@@ -3328,12 +3345,16 @@ class Bourne:
     # IPsec APIs
     #
 
-    def ipsc_rotate_key(self):
-        resp = self.api('POST', URI_IPSEC)
+    def ipsec_rotate_key(self):
+        resp = self.api('POST', URI_IPSEC_KEY)
         return resp
 
-    def ipsc_check(self):
+    def ipsec_check(self):
         resp = self.api('GET', URI_IPSEC)
+        return resp
+
+    def ipsec_change_status(self,status):
+        resp = self.api('POST', URI_IPSEC_STATUS.format(status))
         return resp
 
     #
@@ -3730,12 +3751,17 @@ class Bourne:
         print 'ERROR: Volume field FAILED Verfication: ' + field + ' IS: ' + foundValue + ', SHOULD BE: ' + value;
         return -1;
 
-    def volume_delete(self, uri, wait, vipronly):
+    def volume_delete(self, uri, wait, vipronly, force):
         s = ""
         m = ""
         posturi = URI_RESOURCE_DEACTIVATE.format(URI_VOLUME.format(uri))
         if (vipronly):
             posturi = posturi + '?type=VIPR_ONLY'
+            if (force):
+               posturi = posturi + '&force=TRUE'
+        elif (force):
+            posturi = posturi + '?force=TRUE'
+
         o = self.api('POST', posturi)
         if (wait):
            self.assert_is_dict(o)
@@ -3744,7 +3770,7 @@ class Bourne:
            m = sync['message']
         return (o, s, m)
 
-    def volume_multi_delete(self, uris, wait, vipronly):
+    def volume_multi_delete(self, uris, wait, vipronly, force):
         params = {}
         ids = []
         if (type(uris) is list):
@@ -3758,6 +3784,10 @@ class Bourne:
         posturi = URI_VOLUMES_DEACTIVATE
         if (vipronly):
             posturi = posturi + '?type=VIPR_ONLY'
+            if (force):
+               posturi = posturi + '&force=TRUE'
+        elif (force):
+            posturi = posturi + '?force=TRUE'
         o = self.api('POST', posturi, params)
         if (wait):
             self.assert_is_dict(o)
@@ -5107,12 +5137,29 @@ class Bourne:
 	s=self.api_sync_2(task['resource']['id'],task['op_id'],self.protectionsystem_show_task, ignore_error)
         return "discovery is completed"
 
+    def protectionsystem_discover_namespace(self, native_guid, namespace, ignore_error):
+        if (self.__is_uri(native_guid)):
+            return name
+        systems = self.protectionsystem_list()
+        for system in systems:
+            try:
+                protection_system = self.show_element(system['id'], URI_PROTECTION_SYSTEM)
+                if (protection_system['native_guid'] == native_guid or protection_system['name'] == native_guid):
+                    o = self.api('POST', URI_DISCOVERED_PROTECTION_SYSTEM_NS.format(system['id'], namespace));
+                    s=self.api_sync_2(o['resource']['id'],o['op_id'],self.protectionsystem_show_task, ignore_error)
+                    return "discovery of namespace is completed"
+            except KeyError:
+                print 'no name key'
+        raise Exception('bad protection system native_guid: ' + native_guid)
+
     def protectionsystem_list(self):
         o = self.api('GET', URI_PROTECTION_SYSTEMS)
         if (not o):
             return {};
-        else:
-            return o
+	systems = o['protection_system'];
+	if(type(systems) != list):
+	    return [systems];
+        return systems;
 
     def protectionsystem_show(self, uri):
         return self.api('GET', URI_PROTECTION_SYSTEM.format(uri))
@@ -5122,7 +5169,7 @@ class Bourne:
             return name
 
         protectionsystems = self.protectionsystem_list()
-        for protection_system in protectionsystems['protection_system']:
+        for protection_system in protectionsystems:
             protectionsystem = self.protectionsystem_show(protection_system['id'])
             if (protectionsystem['name'] == name):
                 return protectionsystem['id']
@@ -8373,6 +8420,10 @@ class Bourne:
             return  self.api('GET', URI_UNMANAGED_VOLUMES_SEARCH_NAME.format(name))
         
 
+    def ingest_show_task(self, vol, task):
+        uri_ingest_task = URI_VDC + '/tasks/{1}'
+        return self.api('GET', uri_ingest_task.format(vol, task))
+
     def ingest_exported_volumes(self, host, cluster, varray, vpool, project, volspec):
         projectURI = self.project_query(project).strip()
         varrayURI = self.neighborhood_query(varray).strip()
@@ -8409,10 +8460,11 @@ class Bourne:
         if('details' in resp):
            print "Failed operation: "+ resp['details']
            return resp;
-        tr_list = resp['volume']
+        tr_list = resp['task']
         result = list()
         for tr in tr_list:
-           result.append(tr['id'])
+            s = self.api_sync_2(tr['resource']['id'], tr['id'], self.ingest_show_task)
+            result.append(s)
         return result
     
     def ingest_unexported_volumes(self, varray, vpool, project, volspec):
@@ -8440,10 +8492,11 @@ class Bourne:
         if('details' in resp):
            print "Failed operation: "+ resp['details']
            return resp;
-        tr_list = resp['volume']
+        tr_list = resp['task']
         result = list()
         for tr in tr_list:
-           result.append(tr['id'])
+            s = self.api_sync_2(tr['resource']['id'], tr['id'], self.ingest_show_task)
+            result.append(s)
         return result
 
     #
@@ -8506,7 +8559,7 @@ class Bourne:
         source_uri = source_uri.strip()
         sessions_list = self.api('GET', URI_BLOCK_SNAPSHOT_SESSIONS_LIST.format(source_uri))
         self.assert_is_dict(sessions_list)
-        source_sessions = sessions_list['snapshot-session']
+        source_sessions = sessions_list['snapshot_session']
         source_session_uris = []
         if (type(source_sessions) != list):
             source_sessions = [source_sessions]
@@ -8545,9 +8598,22 @@ class Bourne:
         return (tasklist, task['state'], task['message'])
 
     def block_snapshot_session_delete(self, session_uri):
-        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri))
-        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
-        return task
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri))
+        
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        
+        # Deleting multiple would be a group operation and if one is
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
 
     def block_snapshot_session_restore(self, session_uri):
         task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_RESTORE.format(session_uri))

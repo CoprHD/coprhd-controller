@@ -12,6 +12,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -54,6 +55,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -64,6 +66,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -84,6 +87,7 @@ import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopyType;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -1115,8 +1119,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // the default because xtremio uses snap technology for replication
             // Eventually this value should be configurable and passed as part of the VPool RecoverPoint settings
             // If capabilities is null this is an expand operation no need to set the max number of snaps
-            if (RPHelper.protectXtremioVolume(volume, _dbClient) && capabilities != null) {                
-            	capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_MAX_SNAPS, 128);        	
+            if (RPHelper.protectXtremioVolume(volume, _dbClient) && capabilities != null) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_MAX_SNAPS, 128);
             }
 
             VolumeDescriptor desc = null;
@@ -1513,6 +1517,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volume = _dbClient.queryObject(Volume.class, volume.getId());
             }
 
+            volume.setSyncActive(true);
             volume.setLabel(label);
             volume.setCapacity(SizeUtil.translateSize(size));
             volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin
@@ -1754,6 +1759,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         try {
             super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
         } catch (Exception e) {
+            // Set the task to failed
+            for (URI volumeID : volumeURIs) {
+                if (e instanceof ServiceCoded) {
+                    _dbClient.error(Volume.class, volumeID, task, (ServiceCoded) e);
+                } else {
+                    _dbClient.error(Volume.class, volumeID, task, RecoverPointException.exceptions.deletingRPVolume(e));
+                }
+            }
             throw RecoverPointException.exceptions.deletingRPVolume(e);
         }
     }
@@ -1764,7 +1777,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @throws InternalException
      */
     @Override
-    public <T extends DataObject> String checkForDelete(T object) throws InternalException {
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException {
         // The standard dependency checker really doesn't fly with RP because we need to determine if we can do
         // a tear-down of the volume, and that tear-down involved cleaning up dependent relationships.
         // So this will be a bit more manual and calculated. In order to determine if we can delete this object,
@@ -1798,7 +1811,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // down.
         if (volumeIDs.size() == 1) {
             String depMsg = _dependencyChecker.checkDependencies(object.getId(),
-                    object.getClass(), true);
+                    object.getClass(), true, excludeTypes);
             if (depMsg != null) {
                 return depMsg;
             }
@@ -1877,6 +1890,49 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             VirtualArray newVarray) throws APIException {
         throw APIException.badRequests.changesNotSupportedFor("VirtualArray",
                 "RP protected volumes");
+    }
+
+    /**
+     * Update the replication mode for the CG in RecoverPoint.
+     * 
+     * @param volumes the selected volumes who's common CG is being updated.
+     * @param newVpool the new virtual pool with the replication mode change specified.
+     * @param taskId the task id
+     * @throws InternalException
+     */
+    private void updateReplicationMode(List<Volume> volumes, VirtualPool newVpool, String taskId) throws InternalException {
+        if (volumes == null || volumes.isEmpty()) {
+            throw APIException.badRequests.vpoolChangeNotAllowedInvalidVolumeList();
+        }
+
+        // Validate all volumes to ensure they have a valid protection system and
+        // consistency group associated to them.
+        List<URI> volumeURIs = new ArrayList<URI>();
+
+        Volume firstVol = volumes.get(0);
+
+        // Verify that all volumes belong to the same consistency group.
+        URI cgURI = firstVol.getConsistencyGroup();
+
+        for (Volume volume : volumes) {
+            // Collect a list of volume URIs to be used for the controller call.
+            volumeURIs.add(volume.getId());
+
+            if (NullColumnValueGetter.isNullURI(volume.getProtectionController()) ||
+                    NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                // Either the protection system or CG is invalid so we must fail.
+                throw APIException.badRequests.vpoolChangeInvalidProtectionSystemOrCg(volume.getId().toString());
+            }
+
+            if (!cgURI.equals(volume.getConsistencyGroup())) {
+                // Not all volumes belong to the same consistency group.
+                throw APIException.badRequests.vpoolChangeNotAllowedCGsMustBeTheSame();
+            }
+        }
+
+        RPController controller = getController(RPController.class, "rp");
+        controller.updateConsistencyGroupPolicy(firstVol.getProtectionController(), firstVol.getConsistencyGroup(), volumeURIs,
+                newVpool.getId(), taskId);
     }
 
     /**
@@ -1987,11 +2043,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Get the current vpool
             VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
 
+            String currentVpoolCopyMode = currentVpool.getRpCopyMode() == null ? "" : currentVpool.getRpCopyMode();
+            String newVpoolCopyMode = newVpool.getRpCopyMode() == null ? "" : newVpool.getRpCopyMode();
+
             if (volume.checkForRp()
                     && !VirtualPool.vPoolSpecifiesMetroPoint(currentVpool)
                     && VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
                     && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
                 upgradeToMetroPointVolume(volume, newVpool, vpoolChangeParam, taskId);
+            } else if (volume.checkForRp()
+                    && !currentVpoolCopyMode.equals(newVpoolCopyMode)) {
+                updateReplicationMode(volumes, newVpool, taskId);
             } else {
                 _log.info("Protection VirtualPool change for VPLEX to RP+VPLEX volume.");
                 upgradeToProtectedVolume(volume, newVpool, vpoolChangeParam, taskId);
@@ -2371,6 +2433,24 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 BlockSnapshot snapshot = prepareSnapshotFromVolume(volumeToSnap, snapshotName, (isRPTarget ? volume : null));
                 snapshot.setTechnologyType(snapshotType);
 
+                // Check to see if the RP Copy Name of this volume contains any of the RP Source
+                // suffix's appended by ViPR
+                boolean rpCopyNameContainsSrcSuffix = NullColumnValueGetter.isNotNullValue(volume.getRpCopyName())
+                        && (volume.getRpCopyName().contains(SRC_COPY_SUFFIX)
+                                || volume.getRpCopyName().contains(MP_ACTIVE_COPY_SUFFIX)
+                                || volume.getRpCopyName().contains(MP_STANDBY_COPY_SUFFIX));
+                // Hotfix for COP-18957
+                // Check to see if the requested volume is a former Source.
+                // We do this by checking to see if this is a Target volume and that the RP Copy Name
+                // contains any of the RP Source suffix's appended by ViPR.
+                //
+                // TODO: This is a short term solution since there will be a better way of determining
+                // this in future releases.
+                //
+                // FIXME: One concern here is RP ingestion where ViPR isn't the one who sets the copy names.
+                // Valid concern and this needs to be changed when RP ingest supports RP+VPLEX: Yoda/Yoda+.
+                boolean isFormerSource = isRPTarget && rpCopyNameContainsSrcSuffix;
+
                 // Check to see if the requested volume is a former target that is now the
                 // source as a result of a swap. This is done by checking the source volume's
                 // virtual pool for RP protection. If RP protection does not exist, we know this
@@ -2379,16 +2459,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // add/remove protection. This check should be removed at that point and another
                 // method to check for a swapped state should be used.
                 boolean isFormerTarget = false;
-                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
                 if (NullColumnValueGetter.isNotNullValue(volume.getPersonality()) &&
                         volume.getPersonality().equals(PersonalityTypes.SOURCE.name()) &&
-                        !VirtualPool.vPoolSpecifiesProtection(vpool)) {
+                        !rpCopyNameContainsSrcSuffix) {
                     isFormerTarget = true;
                 }
 
-                if (((isRPTarget || isFormerTarget) && vplex) || !vplex) {
-                    // For RP+Vplex target and former target volumes, we do not want to create a
-                    // backing array CG snap. To avoid doing this, we do not set the consistency group.
+                if (((isRPTarget || isFormerTarget) && vplex && !isFormerSource) || !vplex) {
+                    // For RP+Vplex targets (who are not former source volumes) and former target volumes,
+                    // we do not want to create a backing array CG snap. To avoid doing this, we do not
+                    // set the consistency group.
                     // OR
                     // This is a native snapshot so do not set the consistency group, otherwise
                     // the SMIS code/array will get confused trying to look for a consistency
@@ -2607,11 +2687,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param taskId The unique task identifier.
      */
     @Override
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String syncDirection, String taskId) {
         _log.info(String.format("Request to restore RP volume %s from snapshot %s.",
                 parentVolume.getId().toString(), snapshot.getId().toString()));
 
-        super.restoreSnapshot(snapshot, parentVolume, taskId);
+        super.restoreSnapshot(snapshot, parentVolume, syncDirection, taskId);
     }
 
     /**
@@ -2672,20 +2752,24 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
             List<URI> volumeURIs, String deletionType) {
-
+        // Get descriptors for all volumes impacted by the deletion of the requested volumes.
         List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs, deletionType, null);
 
+        // Filter these descriptors for a block volumes and VPLEX volumes.
         List<VolumeDescriptor> filteredDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA,
-                        VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
                 new VolumeDescriptor.Type[] {});
 
+        // Now get descriptors for the mirrors of these block and VPLEX volumes.
         for (VolumeDescriptor descriptor : filteredDescriptors) {
             URI volumeURI = descriptor.getDeviceURI();
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-            // Exclude inactive volumes
             if (volume != null && !volume.getInactive()) {
-                addDescriptorsForMirrors(volumeDescriptors, volume);
+                if (VolumeDescriptor.Type.BLOCK_DATA == descriptor.getType()) {
+                    addDescriptorsForMirrors(volumeDescriptors, volume);
+                } else if (VolumeDescriptor.Type.VPLEX_VIRT_VOLUME == descriptor.getType()) {
+                    vplexBlockServiceApiImpl.addDescriptorsForVplexMirrors(volumeDescriptors, volume);
+                }
             }
         }
 
@@ -2697,9 +2781,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
-        // For a VIPR only deletion make sure to clean up the export
-        // groups and mask so that they no longer reference associated
-        // volumes.
+        // Call super first.
+        super.cleanupForViPROnlyDelete(volumeDescriptors);
+
+        // Get the RP source volumes.
         List<VolumeDescriptor> sourceVolumeDescriptors = VolumeDescriptor
                 .getDescriptors(volumeDescriptors, VolumeDescriptor.Type.RP_SOURCE);
         List<URI> sourceVolumeURIs = new ArrayList<URI>();
@@ -2710,20 +2795,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 sourceVolumeURIs.add(sourceVolumeURI);
             }
         }
-        for (URI assocVolumeURI : _rpHelper.getVolumesToDelete(sourceVolumeURIs)) {
-            cleanVolumeFromExports(assocVolumeURI, true);
-        }
 
-        // For a VIPR only deletion make sure to clean up the export
-        // groups and mask so that they no longer reference associated
-        // volumes if there are any.
-        List<VolumeDescriptor> assocVolumeDescriptors = VolumeDescriptor
-                .getDescriptors(volumeDescriptors, VolumeDescriptor.Type.BLOCK_DATA);
-
-        if (assocVolumeDescriptors != null && !assocVolumeDescriptors.isEmpty()) {
-            List<URI> assocVolumeURIs = VolumeDescriptor.getVolumeURIs(assocVolumeDescriptors);
-            for (URI assocVolumeURI : assocVolumeURIs) {
-                cleanVolumeFromExports(assocVolumeURI, true);
+        // If we're deleting the last volume, we can delete the ProtectionSet object.
+        Set<URI> psetsDeleted = new HashSet<URI>();
+        for (URI sourceVolumeURI : sourceVolumeURIs) {
+            Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
+            if (sourceVolume.getProtectionSet() != null) {
+                ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet().getURI());
+                if (!psetsDeleted.contains(sourceVolume.getProtectionSet().getURI()) &&
+                        _rpHelper.getVolumesToDelete(sourceVolumeURIs).size() == pset.getVolumes().size()) {
+                    _dbClient.markForDeletion(pset);
+                    psetsDeleted.add(sourceVolume.getProtectionSet().getURI());
+                }
             }
         }
     }
@@ -3450,5 +3533,23 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.deleteVolumes(volumeDescriptors, taskId);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
+     */
+    @Override
+    public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {
+        List<String> groupNames = new ArrayList<String>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));
+        for (Volume volume : volumes) {
+            if (volume.getReplicationGroupInstance() != null) {
+                groupNames.add(volume.getReplicationGroupInstance());
+            }
+        }
+        // TODO : add target volumes if necessary
+        return groupNames;
     }
 }

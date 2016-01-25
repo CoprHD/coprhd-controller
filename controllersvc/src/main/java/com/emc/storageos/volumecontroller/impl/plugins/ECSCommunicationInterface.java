@@ -164,6 +164,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     storagePool.setFreeCapacity(ecsPool.getFreeCapacity() * BYTESCONVERTER * BYTESCONVERTER);
                     storagePool.setTotalCapacity(ecsPool.getTotalCapacity() * BYTESCONVERTER * BYTESCONVERTER);
                     storagePool.setInactive(false);
+                    storagePool.setDataCenters(ecsPool.getTotalDataCenters());
                     _logger.info("Creating new ECS storage pool using NativeId : {}", storagePoolNativeGuid);
                     storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                     storagePool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());

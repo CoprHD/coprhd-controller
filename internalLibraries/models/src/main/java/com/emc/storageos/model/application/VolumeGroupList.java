@@ -34,14 +34,14 @@ public class VolumeGroupList {
      * 
      */
     @XmlElement(name = "volume_group")
-    public List<NamedRelatedResourceRep> getVolumeGroupss() {
+    public List<NamedRelatedResourceRep> getVolumeGroups() {
         if (volumeGroups == null) {
             volumeGroups = new ArrayList<NamedRelatedResourceRep>();
         }
         return volumeGroups;
     }
 
-    public void setVolmeGroups(List<NamedRelatedResourceRep> volumeGroups) {
+    public void setVolumeGroups(List<NamedRelatedResourceRep> volumeGroups) {
         this.volumeGroups = volumeGroups;
     }
 

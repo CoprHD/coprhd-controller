@@ -69,7 +69,7 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
             mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
             BlockMirror firstMirror = mirrors.get(0);
             Volume sourceVolume = _dbClient.queryObject(Volume.class, firstMirror.getSource());
-            String sourceGroupName = _helper.getConsistencyGroupName(sourceVolume, storage);
+            String sourceGroupName = _helper.getSourceConsistencyGroupName(sourceVolume);
 
             if (!StringUtils.startsWith(sourceGroupName, SmisConstants.VNX_VIRTUAL_RG)) {
                 // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.

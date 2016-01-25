@@ -43,5 +43,11 @@ public class ObjectVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         }
         return this;
     }
-
+    
+    public ObjectVirtualPoolUpdateBuilder setMinDataCenters(Integer minDataCenters) {
+        if (!ObjectUtils.equals(minDataCenters, oldVirtualPool.getMinDataCenters())) {
+            getVirtualPoolUpdate().setMinDataCenters(minDataCenters);
+        }
+        return this;
+    }
 }

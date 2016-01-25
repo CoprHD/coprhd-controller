@@ -35,13 +35,14 @@ def snapshot_session_delete(args):
     bourne.connect(args.ip)
     session_uri = bourne.block_snapshot_session_query(args.name)
     start = time.time()
-    task = bourne.block_snapshot_session_delete(session_uri)
+    (tasklist, state, message) = bourne.block_snapshot_session_delete(session_uri)
     total = time.time() - start
     print "Delete snapshot session completed in", "{0:.2f}".format(total), "seconds."
-    if (task['state'] == 'ready'):
-        print "Snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " successfully deleted"
+    if (state == 'ready'):
+        for task in tasklist['task']:
+            print "Snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " successfully deleted"
     else:
-        print "Delete snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
+        print "Delete snapshot session failed with error " + message
 
 # List all snapshot sessions for a given source.
 # Note that currently the source must be a volume.

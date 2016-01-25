@@ -56,6 +56,7 @@ public enum ResourceTypeEnum {
     AUTO_TIERING_POLICY("auto_tiering_policy", "/vdc/auto-tier-policies"),
     MIGRATION("migration", "/block/migrations"),
     UNMANAGED_VOLUMES("unmanaged_volumes", "/vdc/unmanaged/volumes"),
+    UNMANAGED_CGS("unmanaged_cgs", "/vdc/unmanaged/cgs"),
     UNMANAGED_FILESYSTEMS("unmanaged_filesystems", "/vdc/unmanaged/filesystems"),
     UNMANAGED_EXPORT_MASKS("unmanaged_export_masks", "/vdc/unmanaged/export-masks"),
     DATA_STORE("data_store", "/vdc/object-pools"),

@@ -29,6 +29,7 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
     private URI sourceVirtualPool;
     private String migrationType;
     private String migrationGroupBy;
+    private Set<String> replicationGroupNames;
 
     @XmlElement
     public String getDescription() {
@@ -106,5 +107,24 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
 
     public void setMigrationGroupBy(String migrationGroupBy) {
         this.migrationGroupBy = migrationGroupBy;
+    }
+
+    /**
+     * @return the replicationGroupNames
+     */
+    @XmlElementWrapper(name = "replication_group_names")
+    @XmlElement(name = "replication_group_name")
+    public Set<String> getReplicationGroupNames() {
+        if (replicationGroupNames == null) {
+            replicationGroupNames = new HashSet<String>();
+        }
+        return replicationGroupNames;
+    }
+
+    /**
+     * @param replicationGroupNames the replicationGroupNames to set
+     */
+    public void setReplicationGroupNames(Set<String> replicationGroupNames) {
+        this.replicationGroupNames = replicationGroupNames;
     }
 }

@@ -71,6 +71,7 @@ import com.emc.storageos.model.block.tier.StorageTierRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 
 public class BlockMapper {
@@ -117,13 +118,28 @@ public class BlockMapper {
         to.setThinlyProvisioned(from.getThinlyProvisioned());
         to.setAccessState(from.getAccessState());
         to.setLinkStatus(from.getLinkStatus());
-        // Set xio3xvolume in virtualvolume only if it's backend volume belongs to xtremio & version is 3.x
+        // Default snapshot session support to false
+        to.setSupportsSnapshotSessions(Boolean.FALSE);
+        if (dbClient != null) {
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
+            if (system != null && system.checkIfVmax3()) {                
+                to.setSupportsSnapshotSessions(Boolean.TRUE);                 
+            }
+        }
+        // Extra checks for VPLEX volumes
         if (null != dbClient && null != from.getAssociatedVolumes() && !from.getAssociatedVolumes().isEmpty()) {
+            // For snapshot session support of a VPLEX volume, we only need to check the SOURCE side of the
+            // volume.
+            Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, sourceSideBackingVolume.getStorageController());
+            if (null != system && system.checkIfVmax3()) {
+                to.setSupportsSnapshotSessions(Boolean.TRUE); 
+            }
+            // Set xio3xvolume in virtual volume only if it's backend volume belongs to xtremio & version is 3.x
             for (String backendVolumeuri : from.getAssociatedVolumes()) {
                 Volume backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
                 if (null != backendVol) {
-                    StorageSystem system = dbClient.queryObject(StorageSystem.class, backendVol.getStorageController());
-
+                    system = dbClient.queryObject(StorageSystem.class, backendVol.getStorageController());                    
                     if (null != system && StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
                             && !XtremIOProvUtils.is4xXtremIOModel(system.getModel())) {
                         to.setHasXIO3XVolumes(Boolean.TRUE);
@@ -239,6 +255,7 @@ public class BlockMapper {
             }
             to.setVolumeGroups(volumeGroups);
         }
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
 
         return to;
     }

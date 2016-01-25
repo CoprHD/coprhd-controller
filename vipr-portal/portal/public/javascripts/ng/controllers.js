@@ -1112,9 +1112,9 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
 });
 
 angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $sce, $cookies) {
-    var LOGS_JSON = routes.SystemHealth_logsJson();
-    var APPLY_FILTER = routes.SystemHealth_logs();
-    var DOWNLOAD_LOGS = routes.SystemHealth_download();
+    var LOGS_JSON = routes.AuditLog_filterLogsJson();
+    var APPLY_FILTER = routes.AuditLog_list();
+    var DOWNLOAD_LOGS = routes.AuditLog_download();
     var RESULT_STATUS = {
         'S': 'SUCCESS',
         'F': 'FAILURE'
@@ -1132,9 +1132,10 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
     };
 
     $scope.filter = {
-        maxCount: 1000,
         startTime: $scope.startTime,
         resultStatus: $scope.resultStatus,
+        serviceType: $scope.serviceType,
+        user: $scope.user,
         keyword: $scope.keyword
     };
     $scope.$watchCollection('filter', function() {
@@ -1143,17 +1144,6 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
 
     $scope.loading = false;
     $scope.error = null;
-
-    $scope.moreLogs = function() {
-        if ($scope.loading) {
-            return;
-        }
-        var nextStartTime = getNextStartTime();
-        if (nextStartTime) {
-            var args = angular.extend(getFetchArgs(), { start: nextStartTime });
-            fetchLogs(args);
-        }
-    };
 
     // Hooks for the filter/download dialog
     angular.element("#filter-dialog").on("show.bs.modal", function (event) {
@@ -1178,13 +1168,16 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
         var args = {
             startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
             resultStatus: $scope.filterDialog.resultStatus,
-            nodeId: $scope.filterDialog.nodeId,
-            service: $scope.filterDialog.service,
+            serviceType: $scope.filterDialog.serviceType,
+            user: $scope.filterDialog.user,
             keyword: $scope.filterDialog.keyword
         };
         var url = APPLY_FILTER + "?" + encodeArgs(args);
         window.location.href = url;
     };
+
+    // Fill the table with data
+    fetchLogs(getFetchArgs());
 
     // Downloads the logs from the server
     $scope.downloadLogs = function() {
@@ -1193,6 +1186,8 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
             startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
             endTime: getDateTime($scope.filterDialog.endTime_date, $scope.filterDialog.endTime_time),
             resultStatus: $scope.filterDialog.resultStatus,
+            serviceType: $scope.filterDialog.serviceType,
+            user: $scope.filterDialog.user,
             keyword: $scope.filterDialog.keyword,
             orderTypes: $scope.filterDialog.orderTypes
         };
@@ -1205,10 +1200,7 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
 
     $scope.getLocalDateTime = function(o,datestring){
         return render.localDate(o,datestring);
-    }
-
-    // Fill the table with data
-    fetchLogs(getFetchArgs());
+    };
 
     function getDate(millis) {
         return millis ? formatDate(millis, "YYYY-MM-DD") : "";
@@ -1223,14 +1215,6 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
             return moment(dateStr + " " + timeStr, "YYYY-MM-DD HH:mm").toDate().getTime();
         }
         return null;
-    }
-
-    // Gets the next start time for fetching more logs
-    function getNextStartTime() {
-        if ($scope.logs && $scope.logs.length > 0) {
-            return $scope.logs[$scope.logs.length - 1].time_ms + 1;
-        }
-        return undefined;
     }
 
     function encodeArgs(args) {
@@ -1250,11 +1234,11 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
 
     function getFetchArgs() {
         return {
-            maxcount: $scope.filter.maxCount,
             start: $scope.filter.startTime,
             resultStatus: $scope.filter.resultStatus,
-            log_name: $scope.filter.service,
-            msg_regex: getSearchRegex($scope.filter.keyword)
+            svc_regex: getSearchRegex($scope.filter.serviceType),
+            usr_regex: getSearchRegex($scope.filter.user),
+            key_regex: getSearchRegex($scope.filter.keyword)
         };
     }
 

@@ -14,6 +14,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
 import models.datatable.AuditLogDataTable;
+import org.joda.time.DateTime;
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.With;
@@ -42,6 +43,20 @@ public class AuditLog extends Controller {
 
     public static void list() {
         AuditLogDataTable dataTable = new AuditLogDataTable();
+
+        Long startTime = params.get("startTime", Long.class);
+        String resultStatus = params.get("resultStatus");
+        String serviceType = params.get("serviceType");
+        String user = params.get("user");
+        String keyword = params.get("keyword");
+        DateTime defaultStartTime = new DateTime().minusMinutes(15);
+        renderArgs.put("startTime", (startTime == null) ? defaultStartTime : startTime);
+        renderArgs.put("resultStatus", resultStatus);
+        renderArgs.put("serviceType", serviceType);
+        renderArgs.put("user", user);
+        renderArgs.put("keyword", keyword);
+        Common.copyRenderArgsToAngular();
+
         render(dataTable);
     }
 
@@ -71,5 +86,12 @@ public class AuditLog extends Controller {
         } catch (JAXBException e) {
             error(e);
         }
+    }
+
+    public static void filterLogsJson(String uri) {
+    }
+
+    public static void download() {
+
     }
 }

@@ -122,4 +122,7 @@ public interface FatalDatabaseExceptions {
     
     @DeclareServiceCode(ServiceCode.DBSVC_ERROR)
     public FatalDatabaseException failedToChangeStrategyOption(String errMsg);
+
+    @DeclareServiceCode(ServiceCode.DBSVC_FIELD_LENGTH_ERROR)
+    public FatalDatabaseException fieldLengthTooShort(String clazzName, URI id, String methodName, int length, int minLength);
 }

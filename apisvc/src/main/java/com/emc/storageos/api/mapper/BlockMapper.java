@@ -29,8 +29,10 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
@@ -52,6 +54,7 @@ import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.block.UnManagedExportMaskRestRep;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
@@ -68,6 +71,7 @@ import com.emc.storageos.model.block.tier.StorageTierRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 
 public class BlockMapper {
@@ -114,13 +118,28 @@ public class BlockMapper {
         to.setThinlyProvisioned(from.getThinlyProvisioned());
         to.setAccessState(from.getAccessState());
         to.setLinkStatus(from.getLinkStatus());
-        // Set xio3xvolume in virtualvolume only if it's backend volume belongs to xtremio & version is 3.x
+        // Default snapshot session support to false
+        to.setSupportsSnapshotSessions(Boolean.FALSE);
+        if (dbClient != null) {
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
+            if (system != null && system.checkIfVmax3()) {                
+                to.setSupportsSnapshotSessions(Boolean.TRUE);                 
+            }
+        }
+        // Extra checks for VPLEX volumes
         if (null != dbClient && null != from.getAssociatedVolumes() && !from.getAssociatedVolumes().isEmpty()) {
+            // For snapshot session support of a VPLEX volume, we only need to check the SOURCE side of the
+            // volume.
+            Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, sourceSideBackingVolume.getStorageController());
+            if (null != system && system.checkIfVmax3()) {
+                to.setSupportsSnapshotSessions(Boolean.TRUE); 
+            }
+            // Set xio3xvolume in virtual volume only if it's backend volume belongs to xtremio & version is 3.x
             for (String backendVolumeuri : from.getAssociatedVolumes()) {
                 Volume backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
                 if (null != backendVol) {
-                    StorageSystem system = dbClient.queryObject(StorageSystem.class, backendVol.getStorageController());
-
+                    system = dbClient.queryObject(StorageSystem.class, backendVol.getStorageController());                    
                     if (null != system && StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
                             && !XtremIOProvUtils.is4xXtremIOModel(system.getModel())) {
                         to.setHasXIO3XVolumes(Boolean.TRUE);
@@ -229,6 +248,14 @@ public class BlockMapper {
             }
             to.setHaVolumes(backingVolumes);
         }
+        if ((from.getVolumeGroupIds() != null) && (!from.getVolumeGroupIds().isEmpty())) {
+            List<RelatedResourceRep> volumeGroups = new ArrayList<RelatedResourceRep>();
+            for (String volumeGroup : from.getVolumeGroupIds()) {
+                volumeGroups.add(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, URI.create(volumeGroup)));
+            }
+            to.setVolumeGroups(volumeGroups);
+        }
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
 
         return to;
     }
@@ -306,6 +333,76 @@ public class BlockMapper {
         } else {
             return SynchronizationState.PREPARED.name();
         }
+    }
+
+    /**
+     * Maps a BlockSnapshotSession instance to its Rest representation.
+     * 
+     * @param dbClient A reference to a database client.
+     * @param from An instance of BlockSnapshotSession.
+     * 
+     * @return An instance of BlockSnapshotSessionRestRep
+     */
+    public static BlockSnapshotSessionRestRep map(DbClient dbClient, BlockSnapshotSession from) {
+        if (from == null) {
+            return null;
+        }
+        BlockSnapshotSessionRestRep to = new BlockSnapshotSessionRestRep();
+
+        // Map base class fields.
+        mapDataObjectFields(from, to);
+
+        // Map snapshot session parent i.e., the snapshot session source.
+        NamedURI parentNamedURI = from.getParent();
+        if (parentNamedURI != null) {
+            URI parentURI = parentNamedURI.getURI();
+
+            // It may be possible that the source for the snapshot
+            // session is a backend source volume for a VPLEX volume
+            // if we support creating snapshot sessions for VPLEX
+            // volumes backed by storage that supports snapshot sessions.
+            // In this case, the parent we want to reflect in the response
+            // is the VPLEX volume.
+            URIQueryResultList results = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(parentURI.toString()), results);
+            Iterator<URI> resultsIter = results.iterator();
+            if (resultsIter.hasNext()) {
+                parentURI = resultsIter.next();
+            }
+
+            // This theoretically could be a Volume or BlockSnspshot instance
+            // when we support creating a snapshot session of a linked target
+            // volume for an array snapshot, which is a BlockSnapshot.
+            if (URIUtil.isType(parentURI, Volume.class)) {
+                to.setParent(toRelatedResource(ResourceTypeEnum.VOLUME, parentURI));
+            }
+            else {
+                to.setParent(toRelatedResource(ResourceTypeEnum.BLOCK_SNAPSHOT, parentURI));
+            }
+        }
+
+        // Map project
+        NamedURI projectURI = from.getProject();
+        if (projectURI != null) {
+            to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, projectURI.getURI()));
+        }
+
+        // Map linked targets.
+        StringSet linkedTargetIds = from.getLinkedTargets();
+        if ((linkedTargetIds != null) && (!linkedTargetIds.isEmpty())) {
+            List<RelatedResourceRep> linkedTargetReps = new ArrayList<RelatedResourceRep>();
+            for (String linkedTargetId : linkedTargetIds) {
+                URI linkedTargetURI = URI.create(linkedTargetId);
+                // Linked targets are instances of BlockSnapshot.
+                linkedTargetReps.add(toRelatedResource(ResourceTypeEnum.BLOCK_SNAPSHOT, linkedTargetURI));
+            }
+            to.setLinkedTargets(linkedTargetReps);
+        }
+
+        // Map session label.
+        to.setSessionLabel(from.getSessionLabel());
+
+        return to;
     }
 
     public static BlockMirrorRestRep map(DbClient dbClient, BlockMirror from) {

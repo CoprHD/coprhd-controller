@@ -63,12 +63,12 @@ public abstract class DbSimpleMigrationTestBase extends DbsvcTestBase {
     protected void setupDB() throws Exception {
         if (!isDbStarted) {
             _log.info("startDB again");
-            startDb(getSourceVersion(), null);
+            startDb(getSourceVersion(), getSourceVersion(), null);
         }
     }
 
     protected void runMigration() throws Exception {
-        startDb(getTargetVersion(), null);
+        startDb(getSourceVersion(), getTargetVersion(), null);
     }
 
     protected static void alterSchema() {
@@ -87,13 +87,13 @@ public abstract class DbSimpleMigrationTestBase extends DbsvcTestBase {
 
         alterSchema.process();
 
-        _dbVersionInfo = new DbVersionInfo();
-        _dbVersionInfo.setSchemaVersion("2.2");
+        sourceVersion = new DbVersionInfo();
+        sourceVersion.setSchemaVersion("2.2");
         _dataDir = new File("./dbtest");
         if (_dataDir.exists() && _dataDir.isDirectory()) {
             cleanDirectory(_dataDir);
         }
-        startDb(_dbVersionInfo.getSchemaVersion(), null, scanner);
+        startDb(sourceVersion.getSchemaVersion(), sourceVersion.getSchemaVersion(), null, scanner);
 
         scanner = null;
 

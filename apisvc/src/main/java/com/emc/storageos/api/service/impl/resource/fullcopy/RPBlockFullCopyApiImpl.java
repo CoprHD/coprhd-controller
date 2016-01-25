@@ -28,10 +28,10 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator client.
      * @param scheduler A reference to a scheduler.
+     * @param fullCopyMgr A reference to the full copy manager.
      */
-    public RPBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-            Scheduler scheduler) {
-        super(dbClient, coordinator, scheduler);
+    public RPBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator, Scheduler scheduler, BlockFullCopyManager fullCopyMgr) {
+        super(dbClient, coordinator, scheduler, fullCopyMgr);
     }
 
     /**

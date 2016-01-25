@@ -159,6 +159,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         setChanged("sourceNativeId");
     }
 
+    @AlternateId("SettingsInstanceAltIdIndex")
     @Name("settingsInstance")
     public String getSettingsInstance() {
         return _settingsInstance;

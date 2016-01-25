@@ -163,12 +163,12 @@ public abstract class DbStepSkipUpgradeTestBase extends DbsvcTestBase {
         log.info("verifyResults1: Done.");
     }
 
-    protected void setupDB(String targetVersion, String targetModels) throws Exception {
-        startDb(targetVersion, targetModels);
+    protected void setupDB(String sourceVersion, String targetVersion, String targetModels) throws Exception {
+        startDb(sourceVersion, targetVersion, targetModels);
     }
 
     protected void setupDB(String targetVersion, String targetModels, List<BaseCustomMigrationCallback> callbacks) throws Exception {
         customMigrationCallbacks.put(_coordinator.getCurrentDbSchemaVersion(), callbacks);
-        startDb(targetVersion, targetModels);
+        startDb(targetVersion, targetVersion, targetModels);
     }
 }

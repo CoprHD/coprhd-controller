@@ -4,6 +4,18 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
+import java.net.URI;
+import java.util.Calendar;
+import java.util.List;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.client.WBEMClient;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -16,18 +28,6 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.client.WBEMClient;
-
-import java.net.URI;
-import java.util.Calendar;
-import java.util.List;
-
 public class SmisBlockCreateSnapshotJob extends SmisSnapShotJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisBlockCreateSnapshotJob.class);
     Boolean _wantSyncActive;
@@ -39,6 +39,7 @@ public class SmisBlockCreateSnapshotJob extends SmisSnapShotJob {
         _wantSyncActive = wantSyncActive;
     }
 
+    @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         CloseableIterator<CIMObjectPath> syncVolumeIter = null;
         DbClient dbClient = jobContext.getDbClient();
@@ -79,7 +80,7 @@ public class SmisBlockCreateSnapshotJob extends SmisSnapShotJob {
                     snapshot.setCreationTime(Calendar.getInstance());
                     snapshot.setWWN(wwn.toUpperCase());
                     snapshot.setAlternateName(alternateName);
-                    commonSnapshotUpdate(snapshot, syncVolume, client, storage, volume.getNativeId(), syncDeviceID);
+                    commonSnapshotUpdate(snapshot, syncVolume, client, storage, volume.getNativeId(), syncDeviceID, true, dbClient);
                     _log.info(String
                             .format("For sync volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). Associated volume is %5$s (%6$s)",
                                     syncVolumePath.toString(), snapshot.getId().toString(),

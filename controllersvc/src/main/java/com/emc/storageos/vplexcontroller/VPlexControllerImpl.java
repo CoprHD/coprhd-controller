@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
@@ -175,6 +176,19 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
     @Override
     public void deleteMigration(URI vplexURI, URI migrationURI, String opId) {
         queueRequest("deleteMigration", vplexURI, migrationURI, opId);
+        
+    }
+
+    @Override
+    public void restoreSnapshotSession(URI vplexURI, URI snapSessionURI, String opId)
+            throws InternalException {
+        queueRequest("restoreSnapshotSession", vplexURI, snapSessionURI, opId);
+    }
+
+    @Override
+    public void updateVolumeGroup(URI vplexURI, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList, URI volumeGroup,
+            String opId) throws InternalException {
+        queueRequest("updateVolumeGroup", vplexURI, addVolList, removeVolumeList, volumeGroup, opId);
         
     }
 }

@@ -39,6 +39,9 @@ public class VolumeRestRep extends BlockObjectRestRep {
     private String linkStatus;
     private Boolean hasXIO3XVolumes;
     private RelatedResourceRep pool;
+    private List<RelatedResourceRep> volumeGroups;
+    private Boolean supportsSnapshotSessions;
+    private String replicationGroupInstance;
 
     // Fields in a Volume that are specific to RecoverPoint
     public static class RecoverPointRestRep {
@@ -608,5 +611,52 @@ public class VolumeRestRep extends BlockObjectRestRep {
     public void setPool(RelatedResourceRep pool) {
         this.pool = pool;
     }
+    
+    @XmlElementWrapper(name = "volume_groups")
+    /**
+     * List of applications that the volume assigned to.
+     * @valid none
+     */
+    @XmlElement(name = "volume_group")
+    public List<RelatedResourceRep> getVolumeGroups() {
+        if (volumeGroups == null) {
+            volumeGroups = new ArrayList<RelatedResourceRep>();
+        }
+        return volumeGroups;
+    }
 
+    public void setVolumeGroups(List<RelatedResourceRep> volumeGroups) {
+        this.volumeGroups = volumeGroups;
+    }
+
+    /**
+     * Specifies whether this is volume supports Snapshot Sessions.
+     * 
+     * @return true if volume supports Snapshot Sessions, false otherwise
+     */
+    @XmlElement(name = "supports_snapshot_sessions")
+    public Boolean getSupportsSnapshotSessions() {
+        return supportsSnapshotSessions;
+
+    }
+
+    public void setSupportsSnapshotSessions(Boolean supportsSnapshotSessions) {
+        this.supportsSnapshotSessions = supportsSnapshotSessions;
+    }
+
+    /**
+     * the replication group name on the array
+     * @return the replicationGroupInstance
+     */
+    @XmlElement(name = "replication_group_instance")
+    public String getReplicationGroupInstance() {
+        return replicationGroupInstance;
+    }
+
+    /**
+     * @param replicationGroupInstance the replicationGroupInstance to set
+     */
+    public void setReplicationGroupInstance(String replicationGroupInstance) {
+        this.replicationGroupInstance = replicationGroupInstance;
+    }
 }

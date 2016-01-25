@@ -6,7 +6,7 @@ package com.emc.storageos.db.server.impl;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
-import com.emc.storageos.services.util.Strings;
+import com.emc.storageos.services.util.JmxServerWrapper;
 
 import org.apache.cassandra.service.StorageService;
 import org.apache.commons.lang.StringUtils;
@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.management.ListenerNotFoundException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,13 +48,16 @@ public class DbRepairRunnable implements Runnable {
     private DbRepairJobState state;
     private int maxRetryTimes;
     private boolean noNewRepair;
+    private JmxServerWrapper jmxServer;
+
 
     // Status reporting to caller that scheduled this thread to run.
     private Exception threadException;
     private StartStatus status;
 
-    public DbRepairRunnable(ScheduledExecutorService executor, CoordinatorClient coordinator, String keySpaceName, boolean isGeoDbsvc,
+    public DbRepairRunnable(JmxServerWrapper jmxServer, ScheduledExecutorService executor, CoordinatorClient coordinator, String keySpaceName, boolean isGeoDbsvc,
             int maxRetryTimes, boolean noNewRepair) {
+        this.jmxServer  = jmxServer;
         this.executor = executor;
         this.coordinator = coordinator;
         this.keySpaceName = keySpaceName;
@@ -78,7 +82,9 @@ public class DbRepairRunnable implements Runnable {
 
         Collections.sort(nodeIds);
 
-        return StringUtils.join(nodeIds, ',');
+        String stateDigest = StringUtils.join(nodeIds, ',');
+        log.info("cluster digest: {}", stateDigest);
+        return stateDigest;
     }
 
     public static String getStateKey(String keySpaceName, boolean isGeoDbsvc) {
@@ -93,6 +99,12 @@ public class DbRepairRunnable implements Runnable {
         return state != null ? state : new DbRepairJobState();
     }
 
+    public static void resetRepairState(CoordinatorClient coordinator, String keySpaceName, boolean isGeoDbsvc) {
+        log.info("Reset db repair state for {}", keySpaceName);
+        String stateKey = getStateKey(keySpaceName, isGeoDbsvc);
+        coordinator.removeRuntimeState(stateKey);
+    }
+    
     public static String getSelfLockNodeId(InterProcessLock lock) throws Exception {
         if (lock instanceof InterProcessMutex) {
             Collection<String> nodes = ((InterProcessMutex) lock).getParticipantNodes();
@@ -119,11 +131,11 @@ public class DbRepairRunnable implements Runnable {
     private StartStatus getRepairStatus(InterProcessLock lock) throws Exception {
         this.state = queryRepairState(this.coordinator, this.keySpaceName, this.isGeoDbsvc);
 
-        log.info("Previous repair state: {}", this.state.toString());
+        log.info("Previous repair state: {}", this.state);
 
         StartStatus status = getRepairStatus(getClusterStateDigest(), this.maxRetryTimes);
         if (status == StartStatus.STARTED) {
-            log.info("Starting repair with state: {}", this.state.toString());
+            log.info("Starting repair with state: {}", this.state);
             String workerId = getSelfLockNodeId(lock);
             if (workerId != null) {
                 this.state.setCurrentWorker(workerId);
@@ -133,7 +145,7 @@ public class DbRepairRunnable implements Runnable {
         return status;
     }
 
-    private RepairJobRunner createJobRunner() {
+    private RepairJobRunner createJobRunner(JmxServerWrapper jmxServer) throws IOException {
         RepairJobRunner.ProgressNotificationListener listener = new RepairJobRunner.ProgressNotificationListener() {
             @Override
             public void onStartToken(String token, int progress) {
@@ -146,8 +158,13 @@ public class DbRepairRunnable implements Runnable {
             }
         };
 
-        return new RepairJobRunner(StorageService.instance, this.keySpaceName, this.executor,
+        RepairJobRunner runner = new RepairJobRunner(jmxServer, StorageService.instance, this.keySpaceName, this.executor,
                 listener, this.state.getCurrentToken(), this.state.getCurrentDigest());
+
+        jmxServer.addConnectionNotificiationListener(runner, null, null);
+        StorageService.instance.addNotificationListener(runner, null, null);
+
+        return runner;
     }
 
     private static class ScopeNotifier implements AutoCloseable {
@@ -196,7 +213,7 @@ public class DbRepairRunnable implements Runnable {
                     return;
                 }
 
-                try (RepairJobRunner runner = createJobRunner()) {
+                try (RepairJobRunner runner = createJobRunner(jmxServer)) {
                     saveStates(); // Save state to ZK before notify caller to return so it will see the result of call.
                     log.info("Repair started, notifying the triggering thread to return.");
                     notifier.close(); // Notify the thread triggering the repair before we finish
@@ -262,13 +279,13 @@ public class DbRepairRunnable implements Runnable {
         }
 
         if (this.noNewRepair) {
-            log.info("No matching reapir to resume, and we're not allowed to start a new repair.");
+            log.info("No matching repair to resume, and we're not allowed to start a new repair.");
             this.state.cleanCurrentFields();
             return StartStatus.NOTHING_TO_RESUME;
-        } else {
-            log.info("Starting new repair");
-            this.state = new DbRepairJobState(clusterDigest);
         }
+
+        log.info("Starting new repair");
+        this.state = new DbRepairJobState(clusterDigest);
 
         return StartStatus.STARTED;
     }

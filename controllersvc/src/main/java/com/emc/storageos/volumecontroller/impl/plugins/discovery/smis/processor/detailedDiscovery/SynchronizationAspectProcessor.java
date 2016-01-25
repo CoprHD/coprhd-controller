@@ -31,14 +31,14 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
     private static String SYNC_TYPE = "SyncType";
 
     private AccessProfile _profile;
-    private Map<String, String> _syncAspectMap;
+    private Map<String, Map<String, String>> _syncAspectMap;
 
     @Override
     public void processResult(Operation operation, Object resultObj,
             Map<String, Object> keyMap) throws BaseCollectionException {
         _logger.debug("Calling SynchronizationAspectProcessor");
         _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
-        _syncAspectMap = new HashMap<String, String>();
+        _syncAspectMap = new HashMap<String, Map<String, String>>();
 
         processResultbyChunk(resultObj, keyMap);
         keyMap.put(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP,
@@ -78,10 +78,16 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
                 }
 
                 String srcNativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(srcPath);
-                String elementName = getCIMPropertyValue(instance,
-                        Constants.ELEMENTNAME);
-                _syncAspectMap.put(
-                        getSyncAspectMapKey(srcNativeGuid, elementName),
+                String elementName = getCIMPropertyValue(instance, Constants.ELEMENTNAME);
+
+                Map<String, String> aspectsForSource = null;
+                if (_syncAspectMap.containsKey(srcNativeGuid)) {
+                    aspectsForSource = _syncAspectMap.get(srcNativeGuid);
+                } else {
+                    aspectsForSource = new HashMap<String, String>();
+                    _syncAspectMap.put(srcNativeGuid, aspectsForSource);
+                }
+                aspectsForSource.put(getSyncAspectMapKey(srcNativeGuid, elementName),
                         instance.getObjectPath().getKeyValue(Constants.INSTANCEID).toString());
             } catch (Exception e) {
                 _logger.error("Exception on processing instances", e);

@@ -46,6 +46,7 @@ public interface ServiceParams {
     public String VOLUMES = "volumes";
     public String DELETION_TYPE = "deletionType";
     public String STORAGE_SYSTEMS = "storageSystems";
+    public String PROTECTION_SYSTEMS = "protectionSystems";
     public String REMOVED_VOLUMES = "removedVolumes";
     public String SNAPSHOTS = "snapshots";
     public String FILESYSTEMS = "fileSystems";
@@ -57,6 +58,7 @@ public interface ServiceParams {
     public String COUNT = "count";
     public String VOLUME = "volume";
     public String SNAPSHOT = "snapshot";
+    public String SNAPSHOT_SESSION = "snapshotSession";
     public String EXPORT = "export";
     public String CONSISTENCY_GROUP = "consistencyGroup";
     public String HLU = "hlu";
@@ -66,6 +68,10 @@ public interface ServiceParams {
     public String COPIES = "copies";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
+    public String APPLICATION = "application";
+    public String REPLICATION_GROUP = "replicationGroup";
+    public String NEW_REPLICATION_GROUP = "newReplicationGroup";
+    public String NEW_CONSISTENCY_GROUP = "newConsistencyGroup";
 
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
     public String TARGET_VIRTUAL_ARRAY = "targetVirtualArray";
@@ -115,4 +121,9 @@ public interface ServiceParams {
     public String TENANT = "tenant";
     public String OWNER = "owner";
     public String BUCKET = "bucket";
+    
+    public String LINKED_SNAPSHOT = "linkedSnapshot";
+    public String LINKED_SNAPSHOT_NAME = "linkedSnapshotName";
+    public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
+    public String LINKED_SNAPSHOT_COPYMODE = "linkedSnapshotCopyMode";
 }

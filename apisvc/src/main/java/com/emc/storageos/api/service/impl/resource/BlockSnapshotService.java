@@ -32,6 +32,7 @@ import com.emc.storageos.api.mapper.functions.MapBlockSnapshot;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.PermissionsEnforcingResourceFilter;
@@ -43,8 +44,10 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -66,6 +69,9 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.SnapshotSessionCreateParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
@@ -122,6 +128,39 @@ public class BlockSnapshotService extends TaskResourceService {
      */
     public void setPlacementManager(PlacementManager placementManager) {
         _placementManager = placementManager;
+    }
+
+    /**
+     * 
+     * 
+     * @brief
+     * 
+     * @prereq
+     * 
+     * @param id
+     * @param param
+     * 
+     * @return
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList createSnapshotSession(@PathParam("id") URI id, SnapshotSessionCreateParam param) {
+        return getSnapshotSessionManager().createSnapshotSession(id, param, getFullCopyManager());
+    }
+
+    /**
+     * Creates and returns an instance of the block snapshot session manager to handle
+     * a snapshot session creation request.
+     * 
+     * @return BlockSnapshotSessionManager
+     */
+    private BlockSnapshotSessionManager getSnapshotSessionManager() {
+        BlockSnapshotSessionManager snapshotSessionManager = new BlockSnapshotSessionManager(_dbClient,
+                _permissionsHelper, _auditMgr, _coordinator, sc, uriInfo, _request);
+        return snapshotSessionManager;
     }
 
     /**
@@ -182,7 +221,29 @@ public class BlockSnapshotService extends TaskResourceService {
         String task = UUID.randomUUID().toString();
         TaskList response = new TaskList();
 
-        ArgValidator.checkReference(BlockSnapshot.class, id, checkForDelete(snap));
+        // We can ignore dependencies on BlockSnapshotSession. In this case
+        // the BlockSnapshot instance is a linked target for a BlockSnapshotSession
+        // and we will unlink the snapshot from the session and delete it.
+        List<Class<? extends DataObject>> excludeTypes = new ArrayList<Class<? extends DataObject>>();
+        excludeTypes.add(BlockSnapshotSession.class);
+        ArgValidator.checkReference(BlockSnapshot.class, id, checkForDelete(snap, excludeTypes));
+
+        // If the BlockSnapshot instance represents a linked target, then
+        // we need to unlink the target form the snapshot session and then
+        // delete the target.
+        URIQueryResultList snapSessionURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(id), snapSessionURIs);
+        Iterator<URI> snapSessionURIsIter = snapSessionURIs.iterator();
+        if (snapSessionURIsIter.hasNext()) {
+            SnapshotSessionUnlinkTargetsParam param = new SnapshotSessionUnlinkTargetsParam();
+            List<SnapshotSessionUnlinkTargetParam> targetInfoList = new ArrayList<SnapshotSessionUnlinkTargetParam>();
+            SnapshotSessionUnlinkTargetParam targetInfo = new SnapshotSessionUnlinkTargetParam(id, Boolean.TRUE);
+            targetInfoList.add(targetInfo);
+            param.setLinkedTargets(targetInfoList);
+            response.getTaskList().add(getSnapshotSessionManager().unlinkTargetVolumesFromSnapshotSession(
+                    snapSessionURIsIter.next(), param));
+            return response;
+        }
 
         // Not an error if the snapshot we try to delete is already deleted
         if (snap.getInactive()) {

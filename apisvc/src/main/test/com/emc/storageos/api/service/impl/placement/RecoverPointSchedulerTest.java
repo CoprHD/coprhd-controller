@@ -225,18 +225,20 @@ public class RecoverPointSchedulerTest extends Assert {
 		RPRecommendation sourceRec = new RPRecommendation();
 		sourceRec.setInternalSiteName(sourceInternalSiteName);
 		sourceRec.setSourceStoragePool(sourceStoragePool.getId());
+        sourceRec.setResourceCount(resourceCount);
 		rec.setResourceCount(resourceCount);
 		
 		//fill source journal
 		RPRecommendation sourceJournalRec = new RPRecommendation();
 		sourceJournalRec.setSourceStoragePool(sourceStoragePool.getId());
 		sourceJournalRec.setInternalSiteName(sourceInternalSiteName);
-		sourceJournalRec.setResourceCount(resourceCount);
+		sourceJournalRec.setResourceCount(1);
 		
 		//fill target
 		RPRecommendation targetRec = new RPRecommendation();
 		targetRec.setInternalSiteName(destInternalSiteName);		
 		targetRec.setSourceStoragePool(sourceStoragePool.getId());
+		targetRec.setResourceCount(resourceCount);
 		sourceRec.setTargetRecommendations(new ArrayList<RPRecommendation>());
 		sourceRec.getTargetRecommendations().add(targetRec);
 		
@@ -244,6 +246,7 @@ public class RecoverPointSchedulerTest extends Assert {
 		RPRecommendation targetJournalRec = new RPRecommendation();
 		targetJournalRec.setSourceStoragePool(destStoragePool.getId());
 		targetJournalRec.setInternalSiteName(destInternalSiteName);
+		targetJournalRec.setResourceCount(1);
 				
 		//populate the protection recommendation object with all the recommendation
 		rec.setSourceRecommendations(new ArrayList<RPRecommendation>());
@@ -469,7 +472,7 @@ public class RecoverPointSchedulerTest extends Assert {
 
         assertTrue(invokeFireProtectionPlacementRules(ps, ppm1, 1));
         assertTrue(invokeFireProtectionPlacementRules(ps, ppm2, 1));
-        assertTrue(invokeFireProtectionPlacementRules(ps, ppm3, 2));
+        assertTrue(!invokeFireProtectionPlacementRules(ps, ppm3, 2));
         assertTrue(!invokeFireProtectionPlacementRules(ps, ppm4, 4));
     }
 
@@ -496,7 +499,7 @@ public class RecoverPointSchedulerTest extends Assert {
 
         assertTrue(invokeFireProtectionPlacementRules(ps, ppm1, 1));
         assertTrue(invokeFireProtectionPlacementRules(ps, ppm2, 1));
-        assertTrue(invokeFireProtectionPlacementRules(ps, ppm3, 2));
+        assertTrue(!invokeFireProtectionPlacementRules(ps, ppm3, 2));
         assertTrue(!invokeFireProtectionPlacementRules(ps, ppm4, 4));
     }
 

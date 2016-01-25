@@ -155,7 +155,7 @@ public class ECSApi {
                 objRG = arrayRepGroup.getJSONObject(i);
 
                 JSONObject objVarray = null;
-                String vArrayId = null;
+                String vArrayId = null, storagePoolVDC=null;
                 URI uriEcsVarray = null;
                 JSONObject objVarrayCap = null;
                 String ecsVarray = null;
@@ -163,6 +163,8 @@ public class ECSApi {
                 // Get ECS vArray ID(=ECS StoragePool/cluster) and its capacity
                 aryVarray = objRG.getJSONArray("varrayMappings");
                 for (int j = 0; j < aryVarray.length(); j++) {
+                	//Reset capacity variables to 0
+                	storagepoolTotalCapacity = 0L; storagepoolFreeCapacity = 0L;
                     objVarray = aryVarray.getJSONObject(j);
                     vArrayId = objVarray.getString("value");
 
@@ -186,12 +188,17 @@ public class ECSApi {
                     objVarrayCap = clientRespVarray.getEntity(JSONObject.class);
                     storagepoolTotalCapacity += Integer.parseInt(objVarrayCap.getString("totalProvisioned_gb"));
                     storagepoolFreeCapacity += Integer.parseInt(objVarrayCap.getString("totalFree_gb"));
+                    
+                    //get storage pool VDC
+                    storagePoolVDC = objVarray.getString("name");
+                    pool.setStoragePoolVDC(storagePoolVDC);
                 }// for each ECS varray
 
                 pool.setName(objRG.getString("name"));
                 pool.setId(objRG.getString("id"));
                 pool.setTotalCapacity(storagepoolTotalCapacity);
                 pool.setFreeCapacity(storagepoolFreeCapacity);
+                pool.setTotalDataCenters();
                 ecsPools.add(pool);
 
                 if (clientRespVarray != null) {

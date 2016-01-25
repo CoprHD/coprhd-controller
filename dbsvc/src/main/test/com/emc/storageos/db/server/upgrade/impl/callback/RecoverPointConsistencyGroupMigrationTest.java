@@ -7,6 +7,17 @@ package com.emc.storageos.db.server.upgrade.impl.callback;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByConsistencyGroup;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -24,18 +35,6 @@ import com.emc.storageos.db.client.upgrade.callbacks.RpBlockSnapshotConsistencyG
 import com.emc.storageos.db.client.upgrade.callbacks.VolumeRpJournalMigration;
 import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
-
-import org.junit.BeforeClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-import org.junit.Assert;
 
 /**
  * Test proper population of the new DataObject.internalFlags field
@@ -189,7 +188,7 @@ public class RecoverPointConsistencyGroupMigrationTest extends DbSimpleMigration
         sourceVolume.setLabel(volumeName);
         sourceVolume.setPersonality(Volume.PersonalityTypes.SOURCE.toString());
         sourceVolume.setRSetName(rsetName);
-        sourceVolume.setProtectionSet(new NamedURI(protectionSet.getId(), sourceVolume.getLabel()));
+        sourceVolume.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
         _dbClient.createObject(sourceVolume);
 
         Volume sourceVolumeJournal = new Volume();

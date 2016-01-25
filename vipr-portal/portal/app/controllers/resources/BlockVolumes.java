@@ -11,6 +11,8 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +28,7 @@ import play.data.binding.As;
 import play.i18n.Messages;
 import play.mvc.Util;
 import play.mvc.With;
+import util.AppSupportUtil;
 import util.BlockConsistencyGroupUtils;
 import util.BourneUtil;
 import util.MessagesUtils;
@@ -67,19 +70,34 @@ public class BlockVolumes extends ResourceController {
     public static void volumes(String projectId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockVolumesDataTable);
+        renderArgs.put("application", getApplications());
         addReferenceData();
         render();
     }
 
-    public static void volumesJson(String projectId) {
+    public static void volumesJson(String projectId, String applicationId) {
         if (StringUtils.isNotBlank(projectId)) {
             setActiveProjectId(projectId);
         } else {
             projectId = getActiveProjectId();
         }
-        List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId));
+        List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId), uri(applicationId));
         renderJSON(DataTablesSupport.createJSON(volumes, params));
     }
+    
+    public static void volumeDetails(String volumeId) {
+    	ViPRCoreClient client = BourneUtil.getViprClient();
+    	String consistencygroup = "";
+    	VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
+        if (volume == null) {
+            error(MessagesUtils.get(UNKNOWN, volumeId));
+        }
+        if(volume.getConsistencyGroup() != null){
+        	consistencygroup = client.blockConsistencyGroups().get(volume.getConsistencyGroup().getId()).getName();
+        }
+        render(consistencygroup);
+    }
+
 
     public static void volume(String volumeId, String continuousCopyId) {
 
@@ -320,4 +338,19 @@ public class BlockVolumes extends ResourceController {
         return ResourceType.isType(BLOCK_CONTINUOUS_COPY, id);
     }
 
+    @Util
+    private static List<NamedRelatedResourceRep> getApplications() {
+        List<NamedRelatedResourceRep> application = AppSupportUtil.getApplications();
+        if(!application.isEmpty()) {
+        Collections.sort(application, new Comparator<NamedRelatedResourceRep>() {
+            @Override
+            public int compare(NamedRelatedResourceRep app1, NamedRelatedResourceRep app2)
+            {
+                return app1.getName().compareTo(app2.getName());
+            }
+        });
+        
+    }
+        return application;
+    }
 }

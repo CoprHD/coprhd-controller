@@ -33,7 +33,7 @@
       setControlEnabled('.osType.'+selectedType+' input', true); 
       setControlEnabled('.osType.'+selectedType+' textarea', true); 
       
-      if (selectedType && (selectedType == "Other" || selectedType == "HPUX" || selectedType == "SUNVCS")) {
+      if (selectedType && (selectedType == "Other" || selectedType == "SUNVCS")) {
         $("#validateConnectionLabel").hide();
       }
       else {
@@ -170,7 +170,7 @@
       field.required = true
       field.cssClass = 'span2'
     }%
-    <div class="osType Linux AIX AIXVIO">
+    <div class="osType Linux AIX AIXVIO HPUX">
       %{ 
         field.id = 'host_port_linux'
         if (!host?.id) {
@@ -201,7 +201,7 @@
       #{Form.inputTextControlGroup field:field/}
     </div>
   #{/field}
-  <div class="osType Windows Linux AIX AIXVIO Esx">
+  <div class="osType Windows Linux AIX AIXVIO HPUX Esx">
   #{field 'host.discoverable'}
     %{
       field.required = true

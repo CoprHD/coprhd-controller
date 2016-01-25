@@ -138,12 +138,8 @@ nav.computeImageServers=Compute Image Servers
 nav.sites=Sites
 nav.userGroups=User Groups
 nav.object.buckets=Buckets
-<<<<<<< HEAD
 nav.app=Applications
-nav.disasterRecovery=Disaster Recovery
-=======
 nav.disasterRecovery=System Disaster Recovery
->>>>>>> master
 nav.ipsec=IPsec
 
 # Override messages in the Secure plugin

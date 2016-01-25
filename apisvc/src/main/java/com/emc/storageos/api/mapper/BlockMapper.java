@@ -211,6 +211,9 @@ public class BlockMapper {
             if (from.getReplicaState() != null) {
                 toFullCopy.setReplicaState(from.getReplicaState());
             }
+            if (from.getFullCopySetName() != null) {
+                toFullCopy.setFullCopySetName(from.getFullCopySetName());
+            }
         }
 
         // SRDF specific section

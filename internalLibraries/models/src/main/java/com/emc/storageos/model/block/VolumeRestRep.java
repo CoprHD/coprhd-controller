@@ -196,6 +196,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
         private Boolean isSyncActive;
         private Integer percentSynced;
         private String replicaState;
+        private String fullCopySetName;
 
         @XmlElement(name = "associated_source_volume")
         public RelatedResourceRep getAssociatedSourceVolume() {
@@ -244,6 +245,20 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         public void setReplicaState(String state) {
             replicaState = state;
+        }
+
+        /**
+         * the name to identify full copies created as a Set
+         * 
+         * @return the full copy set name
+         */
+        @XmlElement(name = "full_copy_set_name")
+        public String getFullCopySetName() {
+            return fullCopySetName;
+        }
+
+        public void setFullCopySetName(String setName) {
+            fullCopySetName = setName;
         }
     }
 

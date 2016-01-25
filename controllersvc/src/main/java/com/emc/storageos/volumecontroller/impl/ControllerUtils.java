@@ -1274,7 +1274,7 @@ public class ControllerUtils {
         URI sourceVolume = clone.getAssociatedSourceVolume();
         Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
                 dbClient.queryObject(Volume.class, sourceVolume) : null;
-        VolumeGroup volumeGroup = (source != null && source.isInVolumeGroup())
+        VolumeGroup volumeGroup = (source != null)
                 ? source.getApplication(dbClient) : null;
 
         if (volumeGroup != null) {
@@ -1466,6 +1466,9 @@ public class ControllerUtils {
      * Returns true if the request is made for subset of array groups within the Volume Group.
      * For Partial request, PARTIAL Flag was set on the requested Volume.
      *
+     * @param dbClient the db client
+     * @param volume the volume
+     * @return true, if the request is Partial
      */
     public static boolean checkVolumeForVolumeGroupPartialRequest(DbClient dbClient, Volume volume) {
         boolean partial = false;
@@ -1549,4 +1552,31 @@ public class ControllerUtils {
         }
         return setClones;
     }
+
+    /*
+     * Check replicationGroup contains all and only volumes provided
+     *
+     * Assumption - all volumes provided are in the same replicationGroup
+     *
+     * @param dbClient
+     * @param rpName replication group name
+     * @param volumes volumes in the same replication group
+     * @return boolean
+     */
+    public static boolean replicationGroupHasNoOtherVolume(DbClient dbClient, String rpName, List<URI> volumes, URI storage) {
+        List<Volume> rpVolumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(rpName));
+        int rpVolumeCount = 0;
+        for (Volume rpVol : rpVolumes) {
+            URI storageUri = rpVol.getStorageController();
+            if (storageUri.toString().equals(storage.toString())) {
+                rpVolumeCount++;
+            }
+        }
+
+        s_logger.info("rpVolumeCount {} volume size {}", rpVolumeCount, volumes.size());
+        return rpVolumeCount == volumes.size();
+    }
+
 }

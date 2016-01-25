@@ -325,6 +325,45 @@ public class BlockServiceUtils {
     }
 
     /**
+     * Get volume group's volumes.
+     * skip internal volumes
+     *
+     * @param volumeGroup
+     * @return The list of volumes in volume group
+     */
+    public static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
+        List<Volume> result = new ArrayList<Volume>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+        for (Volume vol : volumes) {
+            // return only visible volumes. i.e skip backend or internal volumes
+            if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                result.add(vol);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Group volumes by array group.
+     *
+     * @param volumes the volumes
+     * @return the map of array group to volumes
+     */
+    public static Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes) {
+        Map<String, List<Volume>> arrayGroupToVolumes = new HashMap<String, List<Volume>>();
+        for (Volume volume : volumes) {
+            String repGroupName = volume.getReplicationGroupInstance();
+            if (arrayGroupToVolumes.get(repGroupName) == null) {
+                arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());
+            }
+            arrayGroupToVolumes.get(repGroupName).add(volume);
+        }
+        return arrayGroupToVolumes;
+    }
+
+    /**
      * Checks if there are any native array snapshots with the requested name.
      * 
      * @param requestedName A name requested for a new native array snapshot.

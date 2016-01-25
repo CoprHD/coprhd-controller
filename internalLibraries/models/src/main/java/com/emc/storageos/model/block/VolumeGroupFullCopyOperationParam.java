@@ -14,7 +14,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 public class VolumeGroupFullCopyOperationParam {
 
     // fields for Application API
-    /** By default, consider clones to be detached for all array replication groups in Application */
+    /** By default, consider clone operation for all array replication groups in Application */
     private Boolean partial = Boolean.FALSE;
     private List<URI> fullCopies;
 
@@ -26,11 +26,9 @@ public class VolumeGroupFullCopyOperationParam {
         this.fullCopies = fullCopies;
     }
 
-    // TODO update comments for clone operation
-
     /**
-     * Boolean which indicates whether we need to detach clone for the entire Application or for subset of array replication groups.
-     * By default it is set to false, and consider that clones to be detached for all array replication groups in an Application.
+     * Boolean which indicates whether we need to operate on clone for the entire Application or for set of array replication groups.
+     * By default it is set to false, and consider that clones to be operated for all array replication groups in an Application.
      * If set to true, volumes list should be provided with full copy URIs one from each Array replication group.
      * In any case, minimum of one full copy URI needs to be specified in order to identify the clone set.
      * 
@@ -46,15 +44,13 @@ public class VolumeGroupFullCopyOperationParam {
         this.partial = partial;
     }
 
-    // TODO check it should be volumes or full copies
-
     @XmlElementWrapper(required = true, name = "volumes")
     /**
      * List of Full copy IDs.
      * 
-     * If full, Clones will be detached for the entire Application. A Full copy URI needs to be specified in order to identify the clone set.
+     * If full, Clones will be operated for the entire Application. A Full copy URI needs to be specified in order to identify the clone set.
      * 
-     * If partial, Clones need not be detached for the entire Application, instead detach clones for the specified array replication groups.
+     * If partial, Clones need not be operated for the entire Application, instead operate on clones for the specified array replication groups.
      * List can have full copy URIs one from each Array replication group.
      * 
      * @valid example:  list of valid URIs

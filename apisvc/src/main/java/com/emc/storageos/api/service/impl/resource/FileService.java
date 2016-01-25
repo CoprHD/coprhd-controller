@@ -96,6 +96,7 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.CopiesParam;
+import com.emc.storageos.model.block.MirrorList;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
@@ -2510,6 +2511,46 @@ public class FileService extends TaskResourceService {
            throw APIException.badRequests.invalidCopyType(copy.getType());
        }
        return taskList;
+   }
+   
+   /**
+    * List FileShare mirrors
+    *
+    *
+    * @prereq none
+    *
+    * @param id the URN of a ViPR FileShare to list mirrors
+    *
+    * @brief List fileShare mirrors
+    * @return FileShare mirror response containing a list of mirror identifiers
+    */
+   @GET
+   @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+   @Path("/{id}/protection/continuous-copies")
+   @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+   public MirrorList getNativeContinuousCopies(@PathParam("id") URI id) {
+       MirrorList list = new MirrorList();
+       ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+       FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
+
+       StringSet sourceFileShareMirrors = sourceFileShare.getMirrorfsTargets();
+
+       if (sourceFileShareMirrors == null || sourceFileShareMirrors.isEmpty()) {
+           return list;
+       }
+
+       for (String uriStr : sourceFileShareMirrors) {
+           
+               FileShare fileMirror = _dbClient.queryObject(FileShare.class, URI.create(uriStr));
+
+               if (fileMirror == null || fileMirror.getInactive()) {
+                   _log.warn("Stale mirror {} found for fileShare {}", uriStr, sourceFileShare.getId());
+                   continue;
+               }
+               list.getMirrorList().add(toNamedRelatedResource(fileMirror));
+       }
+
+       return list;
    }
     
     

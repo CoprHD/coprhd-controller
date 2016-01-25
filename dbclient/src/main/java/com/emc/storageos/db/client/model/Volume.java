@@ -21,7 +21,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
@@ -92,6 +92,8 @@ public class Volume extends BlockObject implements ProjectResource {
     private String _linkStatus;
     // volume access state from array; can be overridden by protection (RP)
     private String _accessState;
+    // volume group that the volume belongs to
+    private StringSet volumeGroupIds;
 
     // The value alignments 0-4 correspond to SMIS values. Other storage types must map to these values.
     public static enum VolumeAccessState {
@@ -775,7 +777,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Returns true if the passed volume is in an export group, false otherwise.
-     * 
+     *
      * @param dbClient A reference to a DbClient.
      * @param ignoreRPExports If true, ignore if this volume has been exported to RP
      * @return true if the passed volume is in an export group, false otherwise.
@@ -953,4 +955,71 @@ public class Volume extends BlockObject implements ProjectResource {
         return !NullColumnValueGetter.isNullURI(getConsistencyGroup());
     }
 
+    /**
+     * returns the VolumeGroup object that represents the application for this Volume
+     *
+     * @param dbClient
+     *            dbclient for querying
+     * @return a VolumeGroup object or null if this volume isn't associated with an application
+     */
+    public VolumeGroup getApplication(DbClient dbClient) {
+        if (this.getVolumeGroupIds() != null) {
+            for (String volumeGroupId : this.getVolumeGroupIds()) {
+                VolumeGroup volumeGroup = dbClient.queryObject(VolumeGroup.class, URI.create(volumeGroupId));
+                if (volumeGroup.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())) {
+                    return volumeGroup;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Getter for the ids of the volume groups
+     *
+     * @return The set of application ids
+     */
+    @Name("volumeGroupIds")
+    @AlternateId("VolumeGroups")
+    public StringSet getVolumeGroupIds() {
+        if (volumeGroupIds == null) {
+            volumeGroupIds = new StringSet();
+        }
+        return volumeGroupIds;
+    }
+
+    /**
+     * Setter for the volume group ids
+     */
+    public void setVolumeGroupIds(StringSet applicationIds) {
+        this.volumeGroupIds = applicationIds;
+        setChanged("applicationIds");
+    }
+
+    /**
+     * Checks if the volume is in volume group.
+     *
+     * @return true, if this volume is in volume group
+     */
+    public boolean isInVolumeGroup() {
+        return !getVolumeGroupIds().isEmpty();
+    }
+
+    /**
+     * gets the COPY type VolumeGroup.
+     *
+     * @param dbClient the db client
+     * @return COPY type VolumeGroup if Volume is part of any COPY type VolumeGroup; otherwise null.
+     */
+    public VolumeGroup getCopyTypeVolumeGroup(DbClient dbClient) {
+        VolumeGroup copyVolumeGroup = null;
+        for (String volumeGroupURI : getVolumeGroupIds()) {
+            VolumeGroup volumeGroup = dbClient.queryObject(VolumeGroup.class, URI.create(volumeGroupURI));
+            if (volumeGroup.getRoles().contains(VolumeGroupRole.COPY.name())) {
+                copyVolumeGroup = volumeGroup;
+                break; // A Volume can be part of only one 'Copy' type VolumeGroup
+            }
+        }
+        return copyVolumeGroup;
+    }
 }

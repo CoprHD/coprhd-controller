@@ -9,6 +9,7 @@ import static util.BourneUtil.getViprClient;
 
 import java.util.List;
 
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
@@ -32,7 +33,7 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().listAllSites();
     }
 
-    public static SiteActive checkPrimary() {
+    public static SiteActive checkActiveSite() {
         return getViprClient().site().checkIsActive();
     }
 
@@ -53,15 +54,23 @@ public class DisasterRecoveryUtils {
     }
 
     public static SiteRestRep getSite(String uuid) {
-        return getViprClient().site().getSite(uuid);
+        try {
+            return getViprClient().site().getSite(uuid);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public static boolean hasStandbySite(String id) {
-        SiteRestRep standbySite = getViprClient().site().getSite(id);
-        if (standbySite == null) {
+        try {
+            SiteRestRep standbySite = getViprClient().site().getSite(id);
+            if (standbySite == null) {
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
             return false;
         }
-        return true;
     }
 
     public static boolean hasStandbySites(List<String> ids) {
@@ -91,9 +100,14 @@ public class DisasterRecoveryUtils {
         return null;
     }
 
-    public static boolean isPrimarySite() {
-        SiteActive siteCheck = checkPrimary();
+    public static boolean isActiveSite() {
+        SiteActive siteCheck = checkActiveSite();
         return siteCheck.getIsActive();
+    }
+
+    public static String getLocalSiteName() {
+        SiteActive siteCheck = checkActiveSite();
+        return siteCheck.getLocalSiteName();
     }
 
     public static SiteErrorResponse getSiteError(String uuid) {
@@ -102,6 +116,10 @@ public class DisasterRecoveryUtils {
 
     public static ClientResponse updateSite(String uuid, SiteUpdateParam updatesite) {
         return getViprClient().site().updateSite(uuid, updatesite);
+    }
+
+    public static SiteDetailRestRep getSiteDetails(String uuid) {
+        return getViprClient().site().getSiteDetails(uuid);
     }
 
 }

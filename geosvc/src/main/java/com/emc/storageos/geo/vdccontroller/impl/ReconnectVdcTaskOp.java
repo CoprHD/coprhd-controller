@@ -16,6 +16,7 @@ import com.emc.storageos.geomodel.VdcCertListParam;
 import com.emc.storageos.geomodel.VdcPreCheckParam2;
 import com.emc.storageos.geomodel.VdcPreCheckResponse2;
 import com.emc.storageos.geomodel.VdcConfig;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,8 +37,8 @@ public class ReconnectVdcTaskOp extends AbstractVdcTaskOp {
     private final static int NODE_CHECK_TIMEOUT = 60 * 1000; // one minute
 
     public ReconnectVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache,
-            VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc, String taskId, KeyStore keystore) {
-        super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, null, keystore);
+            VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc, String taskId, KeyStore keystore, IPsecConfig ipsecConfig) {
+        super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, null, keystore, ipsecConfig);
     }
 
     @Override
@@ -143,7 +144,7 @@ public class ReconnectVdcTaskOp extends AbstractVdcTaskOp {
         for (URI id : ids) {
             VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, id);
             if (vdc.getConnectionStatus() == ConnectionStatus.CONNECTED) {
-                Collection<String> addresses = vdc.queryHostIPAddressesMap().values();
+                Collection<String> addresses = dbClient.queryHostIPAddressesMap(vdc).values();
                 whiteList.addAll(addresses);
             }
         }

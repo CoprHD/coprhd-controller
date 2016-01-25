@@ -625,10 +625,24 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
         }
 
+        Mode SRDFMode = getSRDFMode(sourceDescriptors, uriVolumeMap);
+        if (Mode.ACTIVE.equals(SRDFMode)) {
+            /*
+             * Invoke Suspend on the SRDF group as more ACTIVE pairs cannot added until all other
+             * existing pairs are in NOT-READY state
+             */
+            Method suspendGroupMethod = suspendSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
+            Method resumeRollbackMethod = resumeSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
+
+            stepId = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
+                    SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                    system.getSystemType(), getClass(), suspendGroupMethod, resumeRollbackMethod, null);
+        }
+
         /*
          * 1. Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 
@@ -655,10 +669,23 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri, forceAdd);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIs, false);
-        return workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
+        String addVolumestoCgStep = workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
                 CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
                 system.getSystemType(), getClass(), addMethod, rollbackAddMethod,
                 null);
+
+        if (Mode.ACTIVE.equals(SRDFMode)) {
+            /*
+             * Invoke Resume on the SRDF group to get all pairs back in the READY state.
+             */
+            Method resumeGroupMethod = resumeSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
+            return workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
+                    RESUME_SRDF_MIRRORS_STEP_DESC, addVolumestoCgStep, system.getId(),
+                    system.getSystemType(), getClass(), resumeGroupMethod, rollbackMethodNullMethod(), null);
+
+        } else {
+            return addVolumestoCgStep;
+        }
     }
 
     private void createSrdfCGPairStepsOnPopulatedGroup(Volume source,
@@ -1293,11 +1320,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
-    private Workflow.Method createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs) {
-        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs);
+    private Workflow.Method
+            createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, boolean addWaitForCopyState) {
+        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, addWaitForCopyState);
     }
 
-    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, String opId) {
+    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, boolean addWaitForCopyState, String opId) {
         log.info("START Creating list of replicas");
         TaskCompleter completer = null;
         try {
@@ -1309,7 +1337,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             combined.addAll(targetURIs);
 
             completer = new SRDFMirrorCreateCompleter(combined, null, opId);
-            getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, completer);
+            getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, addWaitForCopyState, completer);
             log.info("Sources: {}", Joiner.on(',').join(sourceURIs));
             log.info("Targets: {}", Joiner.on(',').join(targetURIs));
             log.info("OpId: {}", opId);
@@ -1423,7 +1451,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, true);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 
@@ -1479,7 +1507,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 

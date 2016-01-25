@@ -839,19 +839,20 @@ public class DisasterRecoveryService {
 
         InterProcessLock lock = drUtil.getDROperationLock();
 
+
+        if (!standby.getState().equals(SiteState.STANDBY_ERROR)) {
+            log.error("site {} is in state {}, should be STANDBY_ERROR", uuid, standby.getState());
+            throw APIException.badRequests.operationOnlyAllowedOnErrorSite(standby.getName(), standby.getState().toString());
+        }
+
+        if (!standby.getLastOperation().equals(SiteState.STANDBY_PAUSING)
+                && !standby.getLastOperation().equals(SiteState.STANDBY_RESUMING)
+                && !standby.getLastOperation().equals(SiteState.STANDBY_FAILING_OVER)) {
+            log.error("site {} lastOperation was {}, retry is only supported for Pause, Resume and Failover", uuid, standby.getLastOperation());
+            throw APIException.badRequests.operationRetryOnlyAllowedOnLastOperation(standby.getName(), standby.getLastOperation().toString());
+        }
+
         try {
-
-            if (!standby.getState().equals(SiteState.STANDBY_ERROR)) {
-                log.error("site {} is in state {}, should be STANDBY_ERROR", uuid, standby.getState());
-                throw APIException.badRequests.operationOnlyAllowedOnErrorSite(standby.getName(), standby.getState().toString());
-            }
-
-            if (!standby.getLastOperation().equals(SiteState.STANDBY_PAUSING)
-                    && !standby.getLastOperation().equals(SiteState.STANDBY_RESUMING)
-                    && !standby.getLastOperation().equals(SiteState.STANDBY_FAILING_OVER)) {
-                log.error("site {} lastOperation was {}, retry is only supported for Pause, Resume and Failover", uuid, standby.getLastOperation());
-                throw APIException.badRequests.operationRetryOnlyAllowedOnLastOperation(standby.getName(), standby.getLastOperation().toString());
-            }
 
             coordinator.startTransaction();
 
@@ -878,7 +879,7 @@ public class DisasterRecoveryService {
             coordinator.discardTransaction();
             auditDisasterRecoveryOps(OperationTypeEnum.RETRY_STANDBY_OP, AuditLogManager.AUDITLOG_FAILURE, null, standby);
             InternalServerErrorException retryStandbyOpFailedException =
-                    APIException.internalServerErrors.resumeStandbyFailed(standby.getName(), e.getMessage());
+                    APIException.internalServerErrors.retryStandbyOpFailed(standby.getName(), e.getMessage());
             throw retryStandbyOpFailedException;
         } finally {
             try {

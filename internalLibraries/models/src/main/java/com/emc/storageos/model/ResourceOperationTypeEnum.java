@@ -110,6 +110,8 @@ public enum ResourceOperationTypeEnum {
     UPDATE_BUCKET("UPDATE BUCKET", "update bucket operation"),
     DELETE_BUCKET("DELETE BUCKET", "delete bucket operation"),
     CREATE_BUCKET("CREATE BUCKET", "create bucket operation"),
+    UPDATE_BUCKET_ACL("UPDATE BUCKET ACL", "update bucket ACL operation"),
+    DELETE_BUCKET_ACL("DELETE BUCKET ACL", "delete bucket ACL operation"),
 
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "tag a filesystem"),
     DELETE_FILE_SNAPSHOT("DELETE FILESYSTEM SNAPSHOT", "delete filesystem snapshot"),

@@ -1001,11 +1001,6 @@ public class BackupOps {
         }
         try {
             lock.release();
-
-            CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
-        String lockPath = ZKPaths.makePath(ZkPath.MUTEX.toString(), BackupConstants.RESTORE_LOCK);
-        log.info("lockPath={} node exist={}", lockPath, client.nodeExists(lockPath));
-
             log.info("Release lock successful");
         } catch (Exception ignore) {
             log.error("Release lock failed", ignore);

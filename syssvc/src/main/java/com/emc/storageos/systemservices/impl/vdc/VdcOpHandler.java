@@ -81,7 +81,8 @@ public abstract class VdcOpHandler {
     protected PropertyInfoExt localVdcPropInfo;
     protected SiteInfo targetSiteInfo;
     protected boolean isRebootNeeded = false;
-    
+    protected String action;
+
     public VdcOpHandler() {
     }
     
@@ -93,6 +94,10 @@ public abstract class VdcOpHandler {
     
     public void setRebootNeeded(boolean rebootRequired) {
         this.isRebootNeeded = rebootRequired;
+    }
+
+    public void setAction(String action) {
+        this.action = action;
     }
 
     /**
@@ -128,7 +133,7 @@ public abstract class VdcOpHandler {
     /**
      * Transit Cassandra native encryption to IPsec
      */
-    public static class IPSecEnableHandler extends VdcOpHandler {
+    public static class IPSecConfigHandler extends VdcOpHandler {
         private static String IPSEC_LOCK = "ipsec_enable_lock";
 
         @Autowired
@@ -136,22 +141,43 @@ public abstract class VdcOpHandler {
         @Autowired
         IPsecConfig ipsecConfig;
 
-        public IPSecEnableHandler() {
+        public IPSecConfigHandler() {
         }
         
         @Override
         public void execute() throws Exception {
             InterProcessLock lock = acquireIPsecLock();
+
             try {
+                switch (this.action) {
+                    case SiteInfo.IPSEC_OP_ENABLE_INIT:
+                        initEnableAndRotateIpsec();
+                        break;
+                    case SiteInfo.IPSEC_OP_DISABLE_INIT:
+                        initDisableIpsec();
+                        break;
+                    default:
+                        throw new IllegalStateException("Unknown Action: " + action);
+                }
+            } finally {
+                releaseIPsecLock(lock);
+            }
+        }
+
+        private void initDisableIpsec() {
+            if (ipsecMgr.isEnabled()) {
+                ipsecMgr.changeIpsecStatus(IPsecManager.STATUS_DISABLED);
+                log.info("Initiated ipsec disabling.");
+            }
+        }
+
+        private void initEnableAndRotateIpsec() throws Exception {
                 if (ipsecKeyExisted()) {
                     log.info("Real IPsec key already existed, No need to rotate.");
                     return;
                 }
                 String version = ipsecMgr.rotateKey();
                 log.info("Kicked off IPsec key rotation. The version is {}", version);
-            } finally {
-                releaseIPsecLock(lock);
-            }
         }
 
         private InterProcessLock acquireIPsecLock() throws Exception {

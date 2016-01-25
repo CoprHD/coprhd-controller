@@ -234,6 +234,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public synchronized void start() {
+        _log.info("enter db client start");
         if (initDone) {
             return;
         }
@@ -257,6 +258,7 @@ public class DbClientImpl implements DbClient {
 
         _indexCleaner = new IndexCleaner();
         initDone = true;
+        _log.info("finish db client start");
     }
 
     public boolean isInitDone() {

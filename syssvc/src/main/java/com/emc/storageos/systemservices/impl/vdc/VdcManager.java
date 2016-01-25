@@ -11,9 +11,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.coordinator.client.model.*;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.security.geo.GeoClientCacheManager;
-import com.emc.storageos.security.geo.GeoServiceClient;
-import com.emc.storageos.systemservices.impl.ApplicationContextManager;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 
 import org.apache.commons.lang3.StringUtils;
@@ -62,6 +61,9 @@ public class VdcManager extends AbstractManager {
 
     @Autowired
     GeoClientCacheManager geoClientManager;
+
+    @Autowired
+    DbClient dbClient;
 
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
@@ -243,7 +245,7 @@ public class VdcManager extends AbstractManager {
             
             // Step 6 : check backward compatible upgrade flag
             try {
-                if (backCompatPreYoda && !isGeoConfig()) {
+                if (backCompatPreYoda) {
                     log.info("Check if pre-yoda upgrade is done");
                     checkPreYodaUpgrade();
                     continue;
@@ -253,8 +255,6 @@ public class VdcManager extends AbstractManager {
                 continue;
             }
 
-            initGeoClientManager();
-
             // Step7: sleep
             log.info("Step7: sleep");
             try {
@@ -263,21 +263,6 @@ public class VdcManager extends AbstractManager {
                 log.error("", e);
             }
         }
-    }
-
-    private void initGeoClientManager() {
-        ApplicationContext appCtx = ApplicationContextManager.getApplicationContext();
-
-        if (geoClientManager != null) {
-            return;
-        }
-
-        geoClientManager = (GeoClientCacheManager) appCtx.getBean("geoClientCache");
-        log.info("after getbean, geo client is {}", geoClientManager);
-        
-        String vdcId = drUtil.getLocalVdcShortId();
-        GeoServiceClient geoClient = geoClientManager.getGeoClient(vdcId);
-        log.info("Get geo client " + geoClient);
     }
 
     /**
@@ -453,6 +438,7 @@ public class VdcManager extends AbstractManager {
         if (opHandler == null) {
             throw new IllegalStateException(String.format("No VdcOpHandler defined for action %s" , action));
         }
+        opHandler.setAction(action);
         return opHandler;
     }
 
@@ -676,52 +662,131 @@ public class VdcManager extends AbstractManager {
     }
     
     private void checkPreYodaUpgrade() throws Exception {
-        String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
-        String targetDbSchemaVersion = coordinator.getCoordinatorClient().getTargetDbSchemaVersion();
-        log.info("Current schema version {}", currentDbSchemaVersion);
-        if (!targetDbSchemaVersion.equals(currentDbSchemaVersion) || !coordinator.isDBMigrationDone()) {
+        if (!dbMigrationDone()) {
             log.info("Migration to yoda is not completed. Sleep and retry later. isMigrationDone flag = {}", coordinator.isDBMigrationDone());
             sleep(BACK_UPGRADE_RETRY_MILLIS);
             return;
         }
+
         log.info("Db migration is done. Switch to IPSec mode");
-        targetVdcPropInfo = loadVdcConfig(); // refresh local vdc config
+
+        if (isGeoConfig()) {
+            if (allVdcGetUpgradedToYoda()) {
+                postUpgradeForGeo();
+            } else {
+                partialUpgradeForGeo();
+            }
+        } else {
+            postUpgradeForSingleVdc();
+        }
+    }
+
+    private void partialUpgradeForGeo() throws Exception {
 
         // To trigger ipsec key rotation
-        VdcOpHandler opHandler = getOpHandler(SiteInfo.IPSEC_OP_ENABLE);
+        VdcOpHandler opHandler = getOpHandler(SiteInfo.IPSEC_OP_DISABLE_INIT);
         opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
         opHandler.setTargetSiteInfo(targetSiteInfo);
         opHandler.execute();
-        targetSiteInfo = coordinator.getTargetInfo(SiteInfo.class);
+    }
+
+    private void postUpgradeForSingleVdc() throws Exception {
+        targetVdcPropInfo = loadVdcConfig(); // refresh local vdc config
+
+        // To trigger ipsec key rotation
+        VdcOpHandler opHandler = getOpHandler(SiteInfo.IPSEC_OP_ENABLE_INIT);
+        opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
+        opHandler.setTargetSiteInfo(targetSiteInfo);
+        opHandler.execute();
 
         // Then do rolling reboot if ready
         if (ipsecMgr.isKeyRotationDone()) {
             log.info("IPsec key rotation for upgrade is done. Starting rolling reboot.");
+
+            // update backCompatPreYoda to false everywhere
+            vdcConfigUtil.setBackCompatPreYoda(false);
+            upgradeManager.setBackCompatPreYoda(false);
+            backCompatPreYoda = false;
+            targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
+            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+
+            rollingRestartDbSvc();
+        }
+    }
+
+    private void postUpgradeForGeo() throws Exception {
+        targetVdcPropInfo = loadVdcConfig(); // refresh local vdc config
+
+        if (isVdcHasMinID()) {
+            log.info("The VDC {} has min ID so initiate ipsec enabling..");
+            VdcOpHandler opHandler = getOpHandler(SiteInfo.IPSEC_OP_ENABLE_INIT);
+            opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
+            opHandler.setTargetSiteInfo(targetSiteInfo);
+            opHandler.execute();
+        }
+
+        // Then do rolling reboot if ready
+        if (ipsecMgr.isKeyRotationDone()) {
+            log.info("IPsec key rotation for upgrade is done. Starting rolling reboot.");
+
+            // update backCompatPreYoda to false everywhere
+            vdcConfigUtil.setBackCompatPreYoda(false);
+            upgradeManager.setBackCompatPreYoda(false);
+            backCompatPreYoda = false;
+            targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
+            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+
+            rollingRestartDbSvc();
+        }
+    }
+
+    private void rollingRestartDbSvc() {
+        while (doRun) {
+            log.info("Acquiring reboot lock for changes post upgrade.");
             final String svcId = coordinator.getMySvcId();
             if (!getRebootLock(svcId)) {
                 retrySleep();
-                return;
             }
             if (!isQuorumMaintained()) {
                 releaseRebootLock(svcId);
                 retrySleep();
-                return;
             }
-
             try {
-                // update backCompatPreYoda to false everywhere
-                vdcConfigUtil.setBackCompatPreYoda(false);
-                upgradeManager.setBackCompatPreYoda(false);
-                backCompatPreYoda = false;
-                targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
-                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-
                 log.info("Rolling restart the db and geodb");
                 restartdb();
             } finally {
                 releaseRebootLock(svcId);
             }
         }
+    }
+
+    private boolean isVdcHasMinID() {
+        String localId = drUtil.getLocalVdcShortId();
+        String strVdcIds = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+        String[] vdcIds = strVdcIds.split(",");
+
+        for (String id : vdcIds) {
+            if (localId.compareToIgnoreCase(id) > 0 ) {
+                log.info("The VDC ID {} is greater than {}.", localId, id);
+                return false;
+            }
+        }
+
+        log.info("The VDC ID {} is the min one of all {}", localId, strVdcIds);
+        return true;
+    }
+
+    private boolean dbMigrationDone() {
+        String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
+        String targetDbSchemaVersion = coordinator.getCoordinatorClient().getTargetDbSchemaVersion();
+        log.info("Current schema version {}", currentDbSchemaVersion);
+        return targetDbSchemaVersion.equals(currentDbSchemaVersion) || !coordinator.isDBMigrationDone();
+    }
+
+    private boolean allVdcGetUpgradedToYoda() {
+        boolean toYOda = dbClient.checkGeoCompatible("2.5");
+        log.info("If Geo DB is upgraded to Yoda {}", toYOda);
+        return toYOda;
     }
 
     private void restartdb() {

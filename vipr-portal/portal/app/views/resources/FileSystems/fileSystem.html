@@ -194,6 +194,15 @@
       <control-group v-field="quota.size">
         <input-text></input-text>
       </control-group>
+	  <control-group v-field="quota.softLimit">
+        <input-text></input-text>
+      </control-group>
+      <control-group v-field="quota.notificationLimit">
+        <input-text></input-text>
+      </control-group>
+	  <control-group v-field="quota.softGrace">
+        <input-text></input-text>
+      </control-group>
       #{Modal.buttonBar}
         <button type="submit" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>
       #{/Modal.buttonBar}

@@ -1143,6 +1143,34 @@ public class FileSystems extends ResourceController {
         private String securityStyle;
         private Boolean oplock;
         private String size;
+        
+        private String softLimit;
+        private String notificationLimit;
+        private String softGrace;
+
+        public String getSoftLimit() {
+            return softLimit;
+        }
+
+        public void setSoftLimit(String softLimit) {
+            this.softLimit = softLimit;
+        }
+
+        public String getNotificationLimit() {
+            return notificationLimit;
+        }
+
+        public void setNotificationLimit(String notificationLimit) {
+            this.notificationLimit = notificationLimit;
+        }
+
+        public String getSoftGrace() {
+            return softGrace;
+        }
+
+        public void setSoftGrace(String softGrace) {
+            this.softGrace = softGrace;
+        }
 
         public String getName() {
             return name;

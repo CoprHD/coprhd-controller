@@ -18,19 +18,31 @@ public class CreateFileSystemQuotaDirectory extends WaitForTask<QuotaDirectoryRe
     private Boolean oplock;
     private String securityStyle;
     private String size;
+    
+    private int advisoryLimit;
+    private int softLimit;
+    private int gracePeriod;
+
 
     public CreateFileSystemQuotaDirectory(String fileSystemId, String name, Boolean oplock, String securityStyle, String size) {
         this(uri(fileSystemId), name, oplock, securityStyle, size);
     }
 
     public CreateFileSystemQuotaDirectory(URI fileSystemId, String name, Boolean oplock, String securityStyle, String size) {
+        this(fileSystemId, name, oplock, securityStyle, size,0,0,0);
+    }
+    
+    public CreateFileSystemQuotaDirectory(URI fileSystemId, String name, Boolean oplock, String securityStyle, String size, int advisoryLimit, int softLimit, int gracePeriod) {
         this.fileSystemId = fileSystemId;
         this.name = name;
         this.oplock = oplock;
         this.securityStyle = securityStyle;
         this.size = size;
+        this.advisoryLimit=advisoryLimit;
+        this.softLimit=softLimit;
+        this.gracePeriod=gracePeriod;
 
-        provideDetailArgs(fileSystemId, name, oplock, securityStyle, size);
+        provideDetailArgs(fileSystemId, name, oplock, securityStyle, size,advisoryLimit,softLimit,gracePeriod);
     }
 
     @Override
@@ -43,6 +55,10 @@ public class CreateFileSystemQuotaDirectory extends WaitForTask<QuotaDirectoryRe
             size = "0";
         }
         quotaDir.setSize(String.valueOf(DiskSizeConversionUtils.gbToBytes(new Long(size))));
+        
+        quotaDir.setSoftGrace(gracePeriod);
+        quotaDir.setSoftLimit(softLimit);
+        quotaDir.setNotificationLimit(advisoryLimit);
 
         return getClient().quotaDirectories().createQuotaDirectory(fileSystemId, quotaDir);
     }

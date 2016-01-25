@@ -843,6 +843,13 @@ public class DisasterRecoveryService {
                 throw APIException.badRequests.operationOnlyAllowedOnErrorSite(standby.getName(), standby.getState().toString());
             }
 
+            if (!standby.getLastOperation().equals(SiteState.STANDBY_PAUSING)
+                    && !standby.getLastOperation().equals(SiteState.STANDBY_RESUMING)
+                    && !standby.getLastOperation().equals(SiteState.STANDBY_FAILING_OVER)) {
+                log.error("site {} lastOperation was {}, retry is only supported for Pause, Resume and Failover", uuid, standby.getLastOperation());
+                throw APIException.badRequests.operationRetryOnlyAllowedOnLastOperation(standby.getName(), standby.getLastOperation().toString());
+            }
+
             coordinator.startTransaction();
 
             standby.setState(standby.getLastOperation());

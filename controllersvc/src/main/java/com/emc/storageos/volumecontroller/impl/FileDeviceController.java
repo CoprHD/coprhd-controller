@@ -306,6 +306,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fsObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, fsObj));
                 //set inactive = false
                 fsObj.setInactive(false);
+                fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
             } else if (!result.getCommandPending()) {
                 fsObj.setInactive(true);
             }

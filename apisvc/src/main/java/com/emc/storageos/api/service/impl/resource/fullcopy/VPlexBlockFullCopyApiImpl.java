@@ -108,8 +108,31 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
             // if volume is part of COPY type Volume Group, get only the Array Group volumes
             if (fcSourceVolume.getApplication(_dbClient) != null) {
-                fcSourceObjList.addAll(
-                        ControllerUtils.getVolumesPartOfRG(fcSourceVolume.getReplicationGroupInstance(), _dbClient));
+                // TODO Needs to get vplex volumes based on the backed volume replication group
+                String replicationGroupName = null;
+                s_logger.info("fcSourceVolume :{}", fcSourceVolume.getId());
+                StringSet backedVolumeList = fcSourceVolume.getAssociatedVolumes();
+                if (backedVolumeList.iterator().hasNext()) {
+                    Volume backedVolume = _dbClient.queryObject(Volume.class, URI.create(backedVolumeList.iterator().next()));
+                    s_logger.info("backedVolume :{}", backedVolume.getId());
+                    replicationGroupName = backedVolume.getReplicationGroupInstance();
+                }
+                s_logger.info("replicationGroupName :{}", replicationGroupName);
+
+                if (replicationGroupName != null) {
+                    List<Volume> backedVolumes = ControllerUtils.getVolumesPartOfRG(replicationGroupName, _dbClient);
+
+                    for (Volume backedVolume : backedVolumes) {
+
+                        Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, backedVolume);
+                        s_logger.info("vplexVolume id: {}", vplexVolume.getId());
+                        fcSourceObjList.add(vplexVolume);
+                    }
+
+                } else {
+                    fcSourceObjList.add(fcSourceObj);
+                }
+
             } else {
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                 // If there is no corresponding native CG for the VPLEX

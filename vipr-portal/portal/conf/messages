@@ -676,7 +676,7 @@ application.save.success=Saved '%s'
 applications.deleted=Application(s) deleted successfully
 Application.unknown=Unknown Application with ID '%s'
 application.resources.title=Application
-application.copy.volumes=Volumes For Copy
+application.copy.volumes=Copy Volumes
 
 # Custom Config
 CustomConfigs.list.title=Controller Configurations
@@ -3262,7 +3262,7 @@ volumeApplication.wwn=WWN
 volumeApplication.consistencyGroup=Consistency Group
 volumeApplication.replicationGroup=Replication Group
 
-cloneApplication.name=Name
+cloneApplication.name=Copy Name
 cloneApplication.size=Size
 cloneApplication.status=Status
 cloneApplication.protocol=Protocol

@@ -74,9 +74,7 @@ public class BlockApplications extends ResourceController {
     }
     
     public static void getAssociatedVolume(String id, String applicationId) {
-    	VolumeRestRep clone = BourneUtil.getViprClient().blockVolumes().get(uri(id));
-    	VolumeGroupRestRep application =  AppSupportUtil.getApplication(applicationId);
-    	render(clone,application);
+    	render(id,applicationId);
     }
     
     public static void getAssociatedVolumes(String id, String applicationId) {

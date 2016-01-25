@@ -4,7 +4,9 @@
  */
 package controllers.infra;
 
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.db.DbConsistencyStatusRestRep;
+import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.DownloadProgress;
 import com.emc.vipr.model.sys.NodeProgress;
@@ -19,10 +21,12 @@ import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
 import util.BourneUtil;
+import util.DisasterRecoveryUtils;
 import util.MessagesUtils;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static util.BourneUtil.*;
@@ -105,9 +109,23 @@ public class Upgrade extends Controller {
         renderJSON(dbState);
     }
 
-    public static void installVersion(String version) {
+    public static boolean hasPausedSite() {
+        List<SiteRestRep> sites = DisasterRecoveryUtils.getSiteDetails();
+        if (sites.size() == 1) {
+            // if not DR configuration, no need to check paused sites
+            return true;
+        }
+        for (SiteRestRep site : sites) {
+            if (SiteState.STANDBY_PAUSED.toString().equals(site.getState())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void installVersion(String version, boolean doPrecheck) {
         try {
-            getSysClient().upgrade().setTargetVersion(version);
+            getSysClient().upgrade().setTargetVersion(version, doPrecheck);
         } catch (Exception e) {
             Logger.error(e, "Setting target version to  %s", version);
             flash.error(e.getMessage());

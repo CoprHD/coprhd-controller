@@ -886,7 +886,7 @@ public abstract class VdcOpHandler {
             log.info("Reboot this node after failover");
         }
     }
-    
+
     /**
      * This handler will be triggered in active site when it detect there are other active sites exist.
      * Degraded itself to ACTIVE_DEGRADE and not provide any provisioning functions.
@@ -902,9 +902,21 @@ public abstract class VdcOpHandler {
             //no need to wait any barrier and some nodes may not be up
             reconfigVdc(false);
         }
-        
     }
-    
+
+    /**
+     * IP Change handler to update IPs info from ZK to vdcproperty
+     */
+    public static class IPChangeHandler extends VdcOpHandler {
+        public IPChangeHandler() {
+        }
+
+        @Override
+        public void execute() throws Exception {
+            syncFlushVdcConfigToLocal();
+        }
+    }
+
     public CoordinatorClientExt getCoordinator() {
         return coordinator;
     }

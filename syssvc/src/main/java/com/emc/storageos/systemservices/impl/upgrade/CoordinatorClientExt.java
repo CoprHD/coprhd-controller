@@ -1755,7 +1755,7 @@ public class CoordinatorClientExt {
      */
     public boolean isActiveSiteHealthy() {
         DrUtil drUtil = new DrUtil(_coordinator);
-        String activeSiteId = drUtil.getActiveSiteId();
+        String activeSiteId = drUtil.getActiveSite().getUuid();
         
         boolean isActiveSiteLeaderAlive = false;
         boolean isActiveSiteStable = false;

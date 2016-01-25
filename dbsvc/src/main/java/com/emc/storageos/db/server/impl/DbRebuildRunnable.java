@@ -66,7 +66,7 @@ public class DbRebuildRunnable implements Runnable {
             return;
         }
         
-        Site primarySite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+        Site primarySite = drUtil.getActiveSite();
         String sourceDc = drUtil.getCassandraDcId(primarySite);
 
         log.info("starting db rebuild from source dc {}", sourceDc);

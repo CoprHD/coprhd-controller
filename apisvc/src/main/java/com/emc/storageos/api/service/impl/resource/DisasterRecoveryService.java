@@ -259,7 +259,7 @@ public class DisasterRecoveryService {
      */
     private SiteConfigParam prepareSiteConfigParam(String ipsecKey, String targetStandbyUUID, long targetStandbyDataRevision, long vdcConfigVersion) {
         log.info("Preparing to sync sites info among to be added/resumed standby site...");
-        Site active = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+        Site active = drUtil.getActiveSite();
         SiteConfigParam configParam = new SiteConfigParam();
         SiteParam activeSite = new SiteParam();
         siteMapper.map(active, activeSite);
@@ -619,7 +619,8 @@ public class DisasterRecoveryService {
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN, Role.SYSTEM_ADMIN,
+            Role.RESTRICTED_SYSTEM_ADMIN}, blockProxies = true)
     @Path("/{uuid}/pause")
     public Response pauseStandby(@PathParam("uuid") String uuid) {
         SiteIdListParam param = new SiteIdListParam();
@@ -636,7 +637,8 @@ public class DisasterRecoveryService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN, Role.SYSTEM_ADMIN,
+            Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     @Path("/pause")
     public Response pause(SiteIdListParam idList) {
         List<String> siteIdList = idList.getIds();
@@ -723,7 +725,8 @@ public class DisasterRecoveryService {
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN, Role.SYSTEM_ADMIN,
+            Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     @Path("/{uuid}/resume")
     public SiteRestRep resumeStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to resume data sync to standby site identified by uuid: {}", uuid);
@@ -846,7 +849,7 @@ public class DisasterRecoveryService {
 
         precheckForSwitchover(uuid);
 
-        String oldActiveUUID = drUtil.getActiveSiteId();
+        String oldActiveUUID = drUtil.getActiveSite().getUuid();
 
         InterProcessLock lock = drUtil.getDROperationLock();
 
@@ -941,7 +944,7 @@ public class DisasterRecoveryService {
 
         try {
             // set state
-            String activeSiteId = drUtil.getActiveSiteId();
+            String activeSiteId = drUtil.getActiveSite().getUuid();
             Site oldActiveSite = new Site();
             if (StringUtils.isEmpty(activeSiteId)) {
                 log.info("Cant't find active site id, go on to do failover");
@@ -1025,7 +1028,7 @@ public class DisasterRecoveryService {
 
         try {
             // set state
-            String activeSiteId = drUtil.getActiveSiteId();
+            String activeSiteId = drUtil.getActiveSite().getUuid();
             Site oldActiveSite = new Site();
             if (StringUtils.isEmpty(activeSiteId)) {
                 log.info("Cant't find active site id, go on to do failover");
@@ -1280,7 +1283,7 @@ public class DisasterRecoveryService {
         }
 
         // this site should not be standby site
-        String activeId = drUtil.getActiveSiteId();
+        String activeId = drUtil.getActiveSite().getUuid();
         if (activeId != null && !activeId.equals(coordinator.getSiteId())) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed("This site is also a standby site");
         }
@@ -1352,7 +1355,7 @@ public class DisasterRecoveryService {
                     "Standby uuid is not valid, can't find it");
         }
 
-        if (standbyUuid.equals(drUtil.getActiveSiteId())) {
+        if (standbyUuid.equals(drUtil.getActiveSite().getUuid())) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Can't switchover to an active site");
         }
 

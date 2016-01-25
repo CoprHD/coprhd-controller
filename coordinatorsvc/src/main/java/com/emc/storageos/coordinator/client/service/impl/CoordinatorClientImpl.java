@@ -95,6 +95,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
@@ -250,9 +251,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             DualInetAddress addr = cnode.getValue();
             if (addr.hasInet4()) {
                 ipv4Addresses.put(nodeId, addr.getInet4());
+            } else {
+                ipv4Addresses.put(nodeId, PropertyConstants.IPV4_ADDR_DEFAULT);
             }
+
             if (addr.hasInet6()) {
                 ipv6Addresses.put(nodeId, addr.getInet6());
+            } else {
+                ipv6Addresses.put(nodeId, PropertyConstants.IPV6_ADDR_DEFAULT);
             }
         }
 

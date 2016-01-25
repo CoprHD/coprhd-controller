@@ -91,8 +91,7 @@ public class DrSiteNetworkMonitor implements Runnable{
 
     private void checkPing() {
 
-        //Check that active site is set to good Network Health
-        Site active = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+        Site active = drUtil.getActiveSite();
         if (!Site.NetworkHealth.GOOD.equals(active.getNetworkHealth()) || active.getNetworkLatencyInMs() != 0) {
             active.setNetworkHealth(Site.NetworkHealth.GOOD);
             active.setNetworkLatencyInMs(0);

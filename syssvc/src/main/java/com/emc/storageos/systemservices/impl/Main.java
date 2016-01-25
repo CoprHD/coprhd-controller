@@ -26,9 +26,9 @@ public class Main {
 
             // start ipsec monitor
             IPSecMonitor ipsecMonitor = (IPSecMonitor) ctx.getBean(IPSEC_MONITOR_BEAN);
+            ipsecMonitor.setApplicationContext(ctx);
             ipsecMonitor.start();
 
-            ApplicationContextManager.setApplicationContext(ctx);
             ctx.refresh();
 
             // start syssvc

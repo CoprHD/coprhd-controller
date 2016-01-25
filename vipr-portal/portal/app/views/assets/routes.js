@@ -69,7 +69,6 @@ var routes = {
   SystemHealth_download: #{jsAction @SystemHealth.download() /},
 
   AuditLog_list: #{jsAction @infra.AuditLog.list() /},
-  AuditLog_filterLogsJson: #{jsAction @infra.AuditLog.filterLogsJson() /},
   AuditLog_download: #{jsAction @infra.AuditLog.download() /},
 
   FileSystems_fileSystemExportsJson: #{jsAction @resources.FileSystems.fileSystemExportsJson() /},

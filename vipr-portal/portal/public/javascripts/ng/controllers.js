@@ -1112,7 +1112,6 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
 });
 
 angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $sce, $cookies) {
-    var LOGS_JSON = routes.AuditLog_filterLogsJson();
     var APPLY_FILTER = routes.AuditLog_list();
     var DOWNLOAD_LOGS = routes.AuditLog_download();
     var RESULT_STATUS = {
@@ -1176,9 +1175,6 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
         window.location.href = url;
     };
 
-    // Fill the table with data
-    fetchLogs(getFetchArgs());
-
     // Downloads the logs from the server
     $scope.downloadLogs = function() {
         angular.element('#filter-dialog').modal('hide');
@@ -1232,47 +1228,6 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
         return encoded.join("&");
     }
 
-    function getFetchArgs() {
-        return {
-            start: $scope.filter.startTime,
-            resultStatus: $scope.filter.resultStatus,
-            svc_regex: getSearchRegex($scope.filter.serviceType),
-            usr_regex: getSearchRegex($scope.filter.user),
-            key_regex: getSearchRegex($scope.filter.keyword)
-        };
-    }
-
-    function getSearchRegex(message) {
-        return message ? ("(?i).*" + message + ".*") : undefined;
-    }
-
-    function fetchLogs(args) {
-        console.log("fetch args: "+JSON.stringify(args));
-        $scope.loading = true;
-        var params = { uri: "logs.json?" + encodeArgs(args) };
-        return $http.get(LOGS_JSON, { params: params }).
-            success(fetchSuccess).
-            error(fetchError);
-    }
-
-    function fetchSuccess(data, status, headers, config) {
-        console.log("success data: " + JSON.stringify(data));
-        $scope.loading = false;
-        $scope.error = null;
-        $scope.logs = ($scope.logs || []);
-
-        angular.forEach(data, function(value) {
-            // Ignore log messages with no time
-            if (value.time_ms) {
-                $scope.logs.push(value);
-            }
-        });
-    }
-
-    function fetchError(data, status, headers, config) {
-        $scope.loading = false;
-        $scope.error = data;
-    }
 });
 
 angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {

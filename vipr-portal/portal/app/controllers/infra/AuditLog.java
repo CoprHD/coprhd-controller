@@ -32,7 +32,7 @@ public class AuditLog extends Controller {
 
     private static final String PARAM_DATE = "date";
     private static final String PARAM_START = "startTime";
-    private static final String PARAM_END = "ENDTime";
+    private static final String PARAM_END = "endTime";
     private static final String PARAM_RESULT = "resultStatus";
     private static final String PARAM_SERVICE = "serviceType";
     private static final String PARAM_USER = "user";
@@ -96,19 +96,18 @@ public class AuditLog extends Controller {
     private static InputStream getLogsStream() {
         Long dateTime = params.get(PARAM_DATE, Long.class);
         Long startTime = params.get(PARAM_START, Long.class);
-        Long endTime = params.get(PARAM_END, Long.class);
         String result = params.get(PARAM_RESULT);
         String serviceType = params.get(PARAM_SERVICE);
         String user = params.get(PARAM_USER);
         String keyword = params.get(PARAM_KEYWORD);
-        if (isAllNull(dateTime, startTime, endTime, result, serviceType, user, keyword)) {
-            dateTime = new Date().getTime();
+        if (!isAllNull(startTime, result, serviceType, user, keyword)) {
+            Logger.info("Fetch audit logs from multiply params.");
+            return BourneUtil.getViprClient().audit().getAsStream(new Date(startTime), new Date(), serviceType, user, result, keyword, LOG_LANG);
         }
-        if (dateTime != null) {
-            return BourneUtil.getViprClient().audit().getLogsForHourAsStream(new Date(dateTime), LOG_LANG);
-        }
-        return BourneUtil.getViprClient().audit().getAsStream(new Date(startTime), new Date(endTime), serviceType, user, result, keyword,
-                LOG_LANG);
+
+        dateTime = dateTime != null ? dateTime : new Date().getTime();
+        Logger.info("Fetch audit logs from time bucket.");
+        return BourneUtil.getViprClient().audit().getLogsForHourAsStream(new Date(dateTime), LOG_LANG);
     }
 
     private static boolean isAllNull(Object... objects) {
@@ -116,7 +115,6 @@ public class AuditLog extends Controller {
             if (object != null) {
                 return false;
             }
-
         }
         return true;
     }

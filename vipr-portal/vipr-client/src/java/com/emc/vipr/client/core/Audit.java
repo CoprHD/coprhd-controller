@@ -141,13 +141,11 @@ public class Audit {
     }
 
     public InputStream getAsStream(Date start, Date end, String serviceType, String user, String result,
-            String keyword,
-            String language) {
+            String keyword, String language) {
         return getAsStream(formatDate(start), formatDate(end), serviceType, user, result, keyword, language);
     }
 
-    public InputStream getAsStream(String startTime, String endTime, String serviceType, String user, String result,
-            String keyword,
+    public InputStream getAsStream(String startTime, String endTime, String serviceType, String user, String result, String keyword,
             String language) {
         URI uri = getURI(startTime, endTime, serviceType, user, result, keyword, language);
         ClientResponse response = client.resource(uri).accept(MediaType.APPLICATION_XML).get(ClientResponse.class);
@@ -155,13 +153,11 @@ public class Audit {
     }
 
     public InputStream getAsText(Date start, Date end, String serviceType, String user, String result,
-            String keyword,
-            String language) {
+            String keyword, String language) {
         return getAsText(formatDate(start), formatDate(end), serviceType, user, result, keyword, language);
     }
 
-    public InputStream getAsText(String startTime, String endTime, String serviceType, String user, String result,
-            String keyword,
+    public InputStream getAsText(String startTime, String endTime, String serviceType, String user, String result, String keyword,
             String language) {
         URI uri = getURI(startTime, endTime, serviceType, user, result, keyword, language);
         ClientResponse response = client.resource(uri).accept(MediaType.TEXT_PLAIN).get(ClientResponse.class);

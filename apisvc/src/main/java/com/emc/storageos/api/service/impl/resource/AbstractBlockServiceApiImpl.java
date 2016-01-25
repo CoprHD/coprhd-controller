@@ -1017,9 +1017,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             throw APIException.badRequests.noVolumesToSnap();
         }
 
-        // Validate VNX. Cannot create snapshot if volume is in virtual replication group
-        if (ControllerUtils.isInVNXVirtualRG(reqVolume, _dbClient)) {
-            throw APIException.badRequests.snapshotsNotSupportedForVNXVRG();
+        // Validate VNX. Cannot create snapshot if volume is not in a real replication group
+        if (ControllerUtils.isNotInRealVNXRG(reqVolume, _dbClient)) {
+            throw APIException.badRequests.snapshotsNotSupportedForNonRealVNXRG();
         }
 
         // Verify the vpools of the volumes to be snapped support

@@ -53,7 +53,7 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException snapshotsNotSupportedForVNXVRG();
+    public BadRequestException snapshotsNotSupportedForNonRealVNXRG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllowedWhenVNXCGHasSnapshot();

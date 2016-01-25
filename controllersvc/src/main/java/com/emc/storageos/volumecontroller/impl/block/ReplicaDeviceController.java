@@ -88,7 +88,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         if (firstVolumeDescriptor != null) {
             Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
             if (!(volume != null && volume.isInCG() &&
-                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isInVNXVirtualRG(volume, _dbClient)))) {
+                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isNotInRealVNXRG(volume, _dbClient)))) {
                 return waitFor;
             }
             log.info("CG URI:{}", volume.getConsistencyGroup());
@@ -592,7 +592,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         if (firstVolumeDescriptor != null) {
             Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
             if (!(volume != null && volume.isInCG() &&
-                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isInVNXVirtualRG(volume, _dbClient)))) {
+                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isNotInRealVNXRG(volume, _dbClient)))) {
                 return waitFor;
             }
         }
@@ -1009,7 +1009,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         if (!volumes.isEmpty()) {
             Volume firstVolume = volumes.get(0);
             if (!(firstVolume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient)) &&
-                  !ControllerUtils.isInVNXVirtualRG(firstVolume, _dbClient)) {
+                  !ControllerUtils.isNotInRealVNXRG(firstVolume, _dbClient)) {
                 return waitFor;
             }
 

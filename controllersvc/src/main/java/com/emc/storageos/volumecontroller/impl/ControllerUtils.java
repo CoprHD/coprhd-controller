@@ -62,7 +62,6 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEvent;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
@@ -1323,15 +1322,21 @@ public class ControllerUtils {
     }
 
     /**
-     * Check whether the given volume is in VNX virtual replication group
+     * Check whether the given volume is not in a real replication group
      *
      * @param volume
      * @param dbClient
      * @return
      */
-    public static boolean isInVNXVirtualRG(Volume volume, DbClient dbClient) {
-        return volume != null && ControllerUtils.isVnxVolume(volume, dbClient) &&
-                StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG);
+    public static boolean isNotInRealVNXRG(Volume volume, DbClient dbClient) {
+        if (volume != null && ControllerUtils.isVnxVolume(volume, dbClient)) {
+            BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+            if (consistencyGroup != null && !consistencyGroup.getInactive()) {
+                return !consistencyGroup.getArrayConsistency();
+            }
+        }
+
+        return false;
     }
 
     public static String generateReplicationGroupName(StorageSystem storage, URI cgUri, String replicationGroupName, DbClient dbClient) {
@@ -1364,10 +1369,6 @@ public class ControllerUtils {
         }
 
         return groupName;
-    }
-
-    public static String generateVirtualReplicationGroupName(String groupName) {
-        return SmisConstants.VNX_VIRTUAL_RG + groupName;
     }
 
     /**

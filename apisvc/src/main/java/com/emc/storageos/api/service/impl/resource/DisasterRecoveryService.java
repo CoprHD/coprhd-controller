@@ -1654,7 +1654,7 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not fully synced");
         }
         
-        if (isClusterStable()) {
+        if (!isClusterStable()) {
             throw new IllegalStateException("Cluster is not stable");
         }
         

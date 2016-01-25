@@ -419,12 +419,37 @@ angular.module("portalApp").controller({
             	 var projects = value.split(",");
             	 var myNewOptions = [];
             	 for (var j = 0; j < projects.length; j++) {
-                     var project = projects[j].split("~~~");
+                    var project = projects[j].split("~~~");
                     myNewOptions.push({ id: project[0], name: project[1] });
                  }
             	 $scope.projectOptions = myNewOptions;
             };
             
+    	    $scope.$apply();
+       }
+    },
+    DissociateProjectCtrl: function($scope, $http, $window, translate) {
+    	
+    	var resetModal = function() {
+    		$scope.dissociateForm = {};
+    		$scope.projectsToDissociate = {};
+    	}
+    	
+    	$scope.populateModal = function(ids, nasIdString) {
+    		
+    		resetModal();
+    		$scope.projectsToDissociateOptions = [];
+    		
+    		var myNewOptions = [];
+    		var projects = ids.split(",");
+    		
+    		for(var i = 0; i < projects.length; i++) {
+    			var projectInfo = projects[i].split("+");
+    			myNewOptions.push({ id: projectInfo[1], name: projectInfo[0] });
+    		}
+            	
+            $scope.projectsToDissociateOptions = myNewOptions;
+            $scope.nasIds = nasIdString;
     	    $scope.$apply();
        }
     },

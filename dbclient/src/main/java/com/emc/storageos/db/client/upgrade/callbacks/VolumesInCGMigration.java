@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -26,21 +27,22 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
  * if they are in the array CGs.
  *
  */
-public class VplexVolumesInCGMigration extends BaseCustomMigrationCallback {
-    private static final Logger log = LoggerFactory.getLogger(VplexVolumesInCGMigration.class);
+public class VolumesInCGMigration extends BaseCustomMigrationCallback {
+    private static final Logger log = LoggerFactory.getLogger(VolumesInCGMigration.class);
 
     @Override
     public void process() {
-        updateVplexVolumesInConsistencyGroup();
+        updateConsistencyGroup();
+        updateVolumesInConsistencyGroup();
     }
     
     /**
-     * Migrate the backend volumes of the Vplex Volumes in CG
+     * Migrate the volumes in CG
      */
-    private void updateVplexVolumesInConsistencyGroup() {
-        log.info("Migrating vplex volumes in CG" );
+    private void updateVolumesInConsistencyGroup() {
+        log.info("Migrating volumes in CG" );
         DbClient dbClient = getDbClient();
-        List<URI> volumeURIs = dbClient.queryByType(Volume.class, false);
+        List<URI> volumeURIs = dbClient.queryByType(Volume.class, true);
         Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeURIs);
         while (volumes.hasNext()) {
             Volume volume = volumes.next();
@@ -52,14 +54,30 @@ public class VplexVolumesInCGMigration extends BaseCustomMigrationCallback {
                 if (cg == null || system == null) {
                     continue;
                 }
+                if (volume.getSrdfParent() != null || volume.getSrdfTargets() != null) {
+                    continue;
+                }
                 if (system.getSystemType().equals(DiscoveredDataObject.Type.vplex.name()) &&
                         cg.checkForType(Types.LOCAL)) {
-                    StringSet associatedVolumeIds = volume.getAssociatedVolumes();
-                    // Update the backend volumes
-                    for (String associatedVolumeId : associatedVolumeIds) {
-                        Volume backendVol = dbClient.queryObject(Volume.class,
-                                URI.create(associatedVolumeId));
-                        updateBackendVolume(cg, backendVol, dbClient);
+                    // For VPLEX or VPLEX+RP source volume, update the backend volumes
+                    String personality = volume.getPersonality();
+                    if (NullColumnValueGetter.isNullValue(personality) || 
+                            personality.equals(PersonalityTypes.SOURCE.name())) {
+                        StringSet associatedVolumeIds = volume.getAssociatedVolumes();
+                        if(associatedVolumeIds != null) {
+                            for (String associatedVolumeId : associatedVolumeIds) {
+                                Volume backendVol = dbClient.queryObject(Volume.class,
+                                        URI.create(associatedVolumeId));
+                                updateBackendVolume(cg, backendVol, dbClient);
+                            }
+                        }
+                    }
+                 
+                } else if (!cg.isProtectedCG()){
+                    String rpName = cg.getCgNameOnStorageSystem(storageUri);
+                    if (rpName != null && !rpName.isEmpty()) {
+                        volume.setReplicationGroupInstance(rpName);
+                        dbClient.updateObject(volume);
                     }
                 }
             }
@@ -80,6 +98,21 @@ public class VplexVolumesInCGMigration extends BaseCustomMigrationCallback {
                 backendVolume.setReplicationGroupInstance(backendCG);
                 dbClient.updateObject(backendVolume);
             }
+        }
+    }
+    
+    /**
+     * Migrate consistency group instances to set arrayConsistency to true
+     */
+    private void updateConsistencyGroup() {
+        log.info("Migrating consistency group" );
+        DbClient dbClient = getDbClient();
+        List<URI> cgURIs = dbClient.queryByType(BlockConsistencyGroup.class, true);
+        Iterator<BlockConsistencyGroup> cgs = dbClient.queryIterativeObjects(BlockConsistencyGroup.class, cgURIs);
+        while (cgs.hasNext()) {
+            BlockConsistencyGroup cg = cgs.next();
+            cg.setArrayConsistency(true);
+            dbClient.updateObject(cg);
         }
     }
 

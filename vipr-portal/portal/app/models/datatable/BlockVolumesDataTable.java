@@ -76,6 +76,7 @@ public class BlockVolumesDataTable extends DataTable {
         public Set<String> protocols;
         public boolean srdfTarget;
         public String wwn = "";
+        public String replicationGroup;
 
         public Volume(VolumeRestRep volume, Map<URI, String> varrayMap, Map<URI, String> vpoolMap) {
             id = volume.getId();
@@ -91,6 +92,7 @@ public class BlockVolumesDataTable extends DataTable {
                 vpool = vpoolMap.get(volume.getVirtualPool().getId());
             }
             protocols = volume.getProtocols();
+            replicationGroup = volume.getReplicationGroupInstance();
         }
     }
 }

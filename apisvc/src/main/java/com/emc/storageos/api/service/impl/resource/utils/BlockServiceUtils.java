@@ -22,6 +22,7 @@ import java.util.Set;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -224,12 +225,30 @@ public class BlockServiceUtils {
      * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or
      * higher
      * 
+     * Fox XtremIO creating/deleting volume in/from CG with existing CG is supported.
+     * 
+     * For VNX, creating/deleting volume in/from CG with existing group relationship is supported for virtual replication group
+     *
      * @param volume Volume part of the CG
      * @return true if the operation is supported.
      */
     public static boolean checkCGVolumeCanBeAddedOrRemoved(Volume volume, DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-        return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
+        if (storage != null) {
+            if (storage.deviceIsType(Type.vmax)) {
+                if (storage.getUsingSmis80()) {
+                    return true;
+                }
+            } else if (storage.deviceIsType(Type.vnxblock)) {
+                if (StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG)) {
+                    return true;
+                }
+            } else if (storage.deviceIsType(Type.xtremio)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -319,7 +338,6 @@ public class BlockServiceUtils {
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
         for (Volume vol : volumes) {
             // return only visible volumes. i.e skip backend or internal volumes
-            // TODO check with others
             if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                 result.add(vol);
             }

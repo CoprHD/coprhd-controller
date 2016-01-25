@@ -4,8 +4,10 @@
  */
 package com.emc.storageos.coordinator.client.model;
 
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import java.util.HashMap;
+import java.util.Map;
 
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.DecodingException;
 import com.emc.storageos.services.util.Strings;
 
@@ -23,8 +25,11 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String DR_OP_REMOVE_STANDBY = "dr_remove_standby";
     public static final String DR_OP_PAUSE_STANDBY = "dr_pause_standby";
     public static final String DR_OP_RESUME_STANDBY = "dr_resume_standby";
+    public static final String DR_OP_DEGRADE_STANDBY = "dr_degrade_standby";
+    public static final String DR_OP_REJOIN_STANDBY = "dr_rejoin_standby";
     public static final String DR_OP_SWITCHOVER = "dr_switchover";
     public static final String DR_OP_FAILOVER = "dr_failover";
+    public static final String DR_OP_FAILBACK_DEGRADE = "dr_failbackDegrade";
     public static final String DR_OP_CHANGE_DATA_REVISION = "dr_change_data_revision";
     public static final String IPSEC_OP_ENABLE = "ipsec_enable";
     public static final String NONE = "noop";
@@ -45,12 +50,16 @@ public class SiteInfo implements CoordinatorSerializable {
     private final String actionRequired;
     private final String targetDataRevision;
     private final ActionScope actionScope;
-
+    private final String sourceSiteUUID;
+    private final String targetSiteUUID;
+    
     public SiteInfo() {
         vdcConfigVersion = 0;
         actionRequired = NONE;
         targetDataRevision = DEFAULT_TARGET_VERSION;
         actionScope = ActionScope.SITE;
+        sourceSiteUUID = "";
+        targetSiteUUID = "";
     }
 
     public SiteInfo(final long version, final String actionRequired) {
@@ -66,10 +75,17 @@ public class SiteInfo implements CoordinatorSerializable {
     }
 
     public SiteInfo(final long version, final String actionRequired, final String targetDataRevision, final ActionScope scope) {
+        this(version, actionRequired, targetDataRevision, scope, "", "");
+    }
+    
+    public SiteInfo(final long version, final String actionRequired, final String targetDataRevision, final ActionScope scope, 
+            final String sourceSiteUUID, final String targetSiteUUID) {
         this.vdcConfigVersion = version;
         this.actionRequired = actionRequired;
         this.targetDataRevision = targetDataRevision;
         this.actionScope = scope;
+        this.sourceSiteUUID = sourceSiteUUID == null ? "" : sourceSiteUUID;
+        this.targetSiteUUID = targetSiteUUID == null ? "" : targetSiteUUID;
     }
 
     public long getVdcConfigVersion() {
@@ -91,9 +107,31 @@ public class SiteInfo implements CoordinatorSerializable {
         return SiteInfo.DEFAULT_TARGET_VERSION.equals(targetDataRevision);
     }
 
+    public String getSourceSiteUUID() {
+        return sourceSiteUUID;
+    }
+
+    public String getTargetSiteUUID() {
+        return targetSiteUUID;
+    }
+
     @Override
     public String toString() {
-        return "vdc config version=" + Strings.repr(vdcConfigVersion) + ", action=" + actionRequired + ", target data revision=" + targetDataRevision;
+        StringBuilder builder = new StringBuilder();
+        builder.append("SiteInfo [vdcConfigVersion=");
+        builder.append(vdcConfigVersion);
+        builder.append(", actionRequired=");
+        builder.append(actionRequired);
+        builder.append(", targetDataRevision=");
+        builder.append(targetDataRevision);
+        builder.append(", actionScope=");
+        builder.append(actionScope);
+        builder.append(", sourceSiteUUID=");
+        builder.append(sourceSiteUUID);
+        builder.append(", targetSiteUUID=");
+        builder.append(targetSiteUUID);
+        builder.append("]");
+        return builder.toString();
     }
 
     @Override
@@ -106,6 +144,10 @@ public class SiteInfo implements CoordinatorSerializable {
         sb.append(targetDataRevision);
         sb.append(ENCODING_SEPARATOR);
         sb.append(actionScope);
+        sb.append(ENCODING_SEPARATOR);
+        sb.append(sourceSiteUUID);
+        sb.append(ENCODING_SEPARATOR);
+        sb.append(targetSiteUUID);
         return sb.toString();
     }
 
@@ -116,12 +158,16 @@ public class SiteInfo implements CoordinatorSerializable {
         }
 
         final String[] strings = infoStr.split(ENCODING_SEPARATOR);
-        if (strings.length != 4) {
+        if (strings.length < 4) {
             throw CoordinatorException.fatals.decodingError("invalid site info");
         }
 
         Long hash = Long.valueOf(strings[0]);
-        return new SiteInfo(hash, strings[1], strings[2], ActionScope.valueOf(strings[3]));
+        if (strings.length == 4) {
+            return new SiteInfo(hash, strings[1], strings[2], ActionScope.valueOf(strings[3]));
+        } else {
+            return new SiteInfo(hash, strings[1], strings[2], ActionScope.valueOf(strings[3]), strings[4], strings[5]);
+        }
     }
 
     @Override

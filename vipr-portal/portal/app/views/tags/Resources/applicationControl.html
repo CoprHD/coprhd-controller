@@ -12,7 +12,7 @@
     #{/ifnot}
     #{elseif projects}    
       		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
-      		#{if application?.size()>1}
+      		#{if application?.size()>0}
       		#{Form.selectApplication application:application,selectedApplication:session?.activeApplicationId/}
     		#{/if}
   
@@ -27,7 +27,7 @@
   #{elseif projects}
     <div class="well well-sm form-inline">
       		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
-      		#{if application?.size()>1}
+      		#{if application?.size()>0}
       		#{Form.selectApplication application:application,selectedApplication:session?.activeApplicationId/}
     		#{/if}
     </div>

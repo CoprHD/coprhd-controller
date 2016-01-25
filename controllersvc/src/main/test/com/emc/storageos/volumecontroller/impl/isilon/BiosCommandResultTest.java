@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.emc.storageos.db.client.URIUtil;
@@ -63,6 +64,8 @@ public class BiosCommandResultTest {
         _pool = new StoragePool();
     }
 
+    // In the default/public build, we do not have access to an isilon, so this test is off by default.
+    @Ignore
     @Test
     public void doCreateFS() throws Exception {
         FileShare fs = new FileShare();

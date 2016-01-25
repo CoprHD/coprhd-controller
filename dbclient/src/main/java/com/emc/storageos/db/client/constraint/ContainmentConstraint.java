@@ -66,6 +66,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
@@ -207,7 +208,7 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedProtectionSet.class);
             ColumnField field = doType.getColumnField(PROTECTION_DEVICE);
             return new ContainmentConstraintImpl(ps, UnManagedProtectionSet.class, field);
-        }
+        }        
         
         public static ContainmentConstraint getStorageDeviceRemoteGroupsConstraint(URI device) {
             DataObjectType doType = TypeMap.getDoType(RemoteDirectorGroup.class);
@@ -447,6 +448,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedExportMask.class);
             ColumnField field = doType.getColumnField("storageSystem");
             return new ContainmentConstraintImpl(storageSystem, UnManagedExportMask.class, field);
+        }
+        
+        public static ContainmentConstraint getStorageSystemUnManagedCGConstraint(URI storageSystem) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedConsistencyGroup.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(storageSystem, UnManagedConsistencyGroup.class, field);
         }
 
         public static ContainmentConstraint getContainedObjectsConstraint(URI parent,

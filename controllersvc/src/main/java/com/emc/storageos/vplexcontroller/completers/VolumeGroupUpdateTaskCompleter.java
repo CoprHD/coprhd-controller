@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
@@ -111,7 +112,18 @@ public class VolumeGroupUpdateTaskCompleter extends TaskCompleter {
         volumeGroups.add(getId().toString());
         volume.setVolumeGroupIds(volumeGroups);
         dbClient.updateObject(volume);
-        
+        // Once one of volume in a VPLEX CG is added to an application, the CG's arrayConsistency
+        // should turn to false
+        URI cguri = volume.getConsistencyGroup();
+        if (NullColumnValueGetter.isNullURI(cguri)) {
+        	return;
+        }
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+        if (cg.getArrayConsistency()) {
+        	log.info("Updated consistency group arrayConsistency");
+        	cg.setArrayConsistency(false);
+        	dbClient.updateObject(cg);
+        }
     }
 
 }

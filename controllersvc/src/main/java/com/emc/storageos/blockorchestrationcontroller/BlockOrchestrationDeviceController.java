@@ -320,6 +320,11 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _rpDeviceController.addStepsForChangeVirtualPool(
                     workflow, waitFor, volumes, taskId);
 
+            // This step is currently used to ensure that any existing resources get added to native
+            // CGs. Mainly used for VPLEX->RP+VPLEX change vpool. The existing VPLEX volume would not be
+            // in any CG and we now need it's backing volume(s) to be added to their local array CG.
+            waitFor = postRPChangeVpoolSteps(workflow, waitFor, volumes, taskId);
+            
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
             String successMessage = "Change Virtual Pool suceeded for volumes: " + volURIs.toString();

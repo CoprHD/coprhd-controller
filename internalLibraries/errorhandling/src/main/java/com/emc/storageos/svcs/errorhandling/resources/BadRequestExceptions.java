@@ -53,6 +53,12 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotsNotSupportedForVNXVRG();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException notAllowedWhenVNXCGHasSnapshot();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotCreateVolumeAsConsistencyGroupHasSnapshots(String label, URI id);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -1686,9 +1692,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.OBJ_VPOOL_INVALID)
     public BadRequestException invalidObjVpool(URI vpoolId);
 
-    @DeclareServiceCode(ServiceCode.DATASERVICE_INVALID_VARRAY)
-    public BadRequestException invalidDataServiceVarray(URI vArrayId);
-
     @DeclareServiceCode(ServiceCode.OBJ_VPOOL_NOT_COMPATIBLE)
     public BadRequestException objVpoolNotCompatible(URI vpoolId);
 
@@ -1891,9 +1894,6 @@ public interface BadRequestExceptions {
     public BadRequestException unableToFindNamespaceForTenant(final String userName, final String tenantId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException objNamespaceZonesMisconfiguration();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeNotExpandable(final String volumeName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2006,9 +2006,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidVarrayForVplex(final String vplex, final String varray);
 
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantChangeClusterForLocalVolumeInCG();
-
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException passwordInvalidInterval(int number);
 
@@ -2086,11 +2083,8 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_CANNOT_DEREGISTER)
     public BadRequestException unableToDeregisterProvisionedComputeElement(final String resource, final String host);
 
-    @DeclareServiceCode(ServiceCode.API_INTERNAL_SERVER_ERROR)
+    @DeclareServiceCode(ServiceCode.API_INTERNAL_LOCK_ERROR)
     public BadRequestException unableToLockBladeReservation();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException vcenterOperationFailed();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllowedWhenCGHasSnapshots();
@@ -2123,12 +2117,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeWithDifferentNumberOfReplicasCannotBeAdded(
             final String volumeName, final String replicaType);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantChangeVarrayForVplexVolumeInAppConsistenctCG();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantChangeVpoolForVplexVolumeInAppConsistenctCG();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_MISSING)
     public BadRequestException missingParameterSystemTypeforHostIOLimits();
@@ -2418,6 +2406,9 @@ public interface BadRequestExceptions {
     public BadRequestException replicaOperationNotAllowedSourceNotInVolumeGroup(final String replicaType, final String replicaId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException replicaOperationNotAllowedVolumeNotInVolumeGroup(final String replicaType, final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notSupportedSnapshotWithMixedArrays(URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2558,9 +2549,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToFindSuitableJournalRecommendation();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException unableToFindJournalRecommendation(final String rpSiteName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToFindTheSpecifiedCopy(final String copy);
@@ -2716,11 +2704,20 @@ public interface BadRequestExceptions {
     public BadRequestException fullcopyNotAllowedWhenBackendVolumeDoestHavingCG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException replicaOperationNotAllowedOnEmptyVolumeGroup(final String volumeGroupName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException replicaOperationNotAllowedForNonCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException
             replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidIpsecStatus();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException notAllowedToAddVdcInDRConfig();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vpoolChangeInvalidProtectionSystemOrCg(final String invalidVolumeId);
@@ -2731,6 +2728,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vpoolChangeNotAllowedCGsMustBeTheSame();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidSnapshotSessionSource(final String sourceId);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

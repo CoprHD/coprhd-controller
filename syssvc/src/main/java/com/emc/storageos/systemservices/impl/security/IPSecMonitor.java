@@ -8,11 +8,15 @@ package com.emc.storageos.systemservices.impl.security;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.security.ipsec.IpUtils;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Map;
@@ -28,6 +32,9 @@ public class IPSecMonitor implements Runnable {
     public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
 
     public ScheduledExecutorService scheduledExecutorService;
+    private static ApplicationContext appCtx;
+    
+    private DbClient dbClient;
 
     public void start() {
         log.info("start IPSecMonitor.");
@@ -44,9 +51,20 @@ public class IPSecMonitor implements Runnable {
         scheduledExecutorService.shutdown();
     }
 
+    public static void setApplicationContext(ApplicationContext ctx) {
+        appCtx = ctx;
+    }
+
+    public static ApplicationContext getApplicationContext() {
+        return appCtx;
+    }
+    
     @Override
     public void run() {
         try {
+            // geo checking
+            log.info("the dbclient instance is {}", appCtx.getBean("dbclient"));
+
             log.info("step 1: start checking ipsec connections");
             String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
 
@@ -68,9 +86,11 @@ public class IPSecMonitor implements Runnable {
             log.info("step 3: compare the latest ipsec properties with local, to determine if sync needed");
             if (isSyncNeeded(latest)) {
                 String latestKey = latest.get(Constants.IPSEC_KEY);
+                String latestStatus = latest.get(Constants.IPSEC_STATUS);
                 LocalRepository localRepository = LocalRepository.getInstance();
-                log.info("syncing latest ipsec key to local: " + latestKey);
+                log.info("syncing latest properties to local: key=" + latestKey + ", status=" + latestStatus);
                 localRepository.syncIpsecKeyToLocal(latestKey);
+                localRepository.syncIpsecStatusToLocal(latestStatus);
                 log.info("reloading ipsec");
                 localRepository.reconfigProperties("ipsec");
                 localRepository.reload("ipsec");
@@ -121,7 +141,9 @@ public class IPSecMonitor implements Runnable {
 
                 log.info("checking " + node + ": " + " configVersion=" + configVersion
                     + ", ipsecKey=" + props.get(Constants.IPSEC_KEY)
-                    + ", lastestKey=" + latest.get(Constants.IPSEC_KEY));
+                    + ", ipsecStatus=" + props.get(Constants.IPSEC_STATUS)
+                    + ", latestKey=" + latest.get(Constants.IPSEC_KEY)
+                    + ", latestStatus=" + latest.get(Constants.IPSEC_STATUS));
             }
         }
 
@@ -140,16 +162,23 @@ public class IPSecMonitor implements Runnable {
         String myVdcId = vdcProps.getProperty("vdc_myid");
         String nodeKey = null;
         for (String key : vdcProps.getAllProperties().keySet()) {
-            if (vdcProps.getProperty(key).equals(node)) {
+            String value = vdcProps.getProperty(key);
+            if (key.contains("ipaddr6")) {
+                value = IpUtils.decompressIpv6Address(value);
+            }
+
+            if (value !=null && value.toLowerCase().equals(node.toLowerCase())) {
                 nodeKey = key;
                 break;
             }
         }
 
         if (nodeKey != null && nodeKey.contains(myVdcId)) {
+            log.info(node + " is in the same vdc as localhost");
             return true;
         }
 
+        log.info(node + " is NOT in the same vdc as localhost");
         return false;
     }
 
@@ -172,20 +201,42 @@ public class IPSecMonitor implements Runnable {
 
         String localIP = getLocalIPAddress();
         Map<String, String> localIpsecProp = LocalRepository.getInstance().getIpsecProperties(localIP);
-        log.info("local ipsec properties: ipsecKey=" + localIpsecProp.get(IPSEC_KEY)
+        String localKey = localIpsecProp.get(IPSEC_KEY);
+        String localStatus = localIpsecProp.get(IPSEC_STATUS);
+        log.info("local ipsec properties: ipsecKey=" + localKey
+                + ", ipsecStatus=" + localStatus
                 + ", vdcConfigVersion=" + localIpsecProp.get(VDC_CONFIG_VERSION));
-        if (localIpsecProp.get(IPSEC_KEY).equals(props.get(IPSEC_KEY))) {
+
+        boolean bKeyEqual = false;
+        boolean bStatusEqual = false;
+
+        if (localKey == null && props.get(IPSEC_KEY) == null) {
+            bKeyEqual = true;
+        } else if (localKey != null && localKey.equals(props.get(IPSEC_KEY))) {
+            bKeyEqual = true;
+        }
+        log.info("IPsec key equals or not: " + bKeyEqual);
+
+        if (localStatus == null && props.get(IPSEC_STATUS) == null) {
+            bStatusEqual = true;
+        } else if (localStatus != null && localStatus.equals(props.get(IPSEC_STATUS))) {
+            bStatusEqual = true;
+        }
+        log.info("IPsec status equals or not: " + bStatusEqual);
+
+        if (bKeyEqual && bStatusEqual) {
+            return false;
+        }
+
+        int result = compareVdcConfigVersion(
+                localIpsecProp.get(VDC_CONFIG_VERSION),
+                props.get(VDC_CONFIG_VERSION));
+        if (result > 0) {
             return false;
         } else {
-            int result = compareVdcConfigVersion(
-                    localIpsecProp.get(VDC_CONFIG_VERSION),
-                    props.get(VDC_CONFIG_VERSION));
-            if (result > 0) {
-                return false;
-            } else {
-                return true;
-            }
+            return true;
         }
+
     }
 
     /**
@@ -197,6 +248,9 @@ public class IPSecMonitor implements Runnable {
         try {
             InetAddress IP = InetAddress.getLocalHost();
             String localIP = IP.getHostAddress();
+            if(IP instanceof Inet6Address) {
+                localIP = IpUtils.decompressIpv6Address(localIP);
+            }
             log.info("IP of my system is : " + localIP);
             return localIP;
         } catch (Exception ex) {

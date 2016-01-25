@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Task completer for update application volumes
@@ -51,26 +52,30 @@ public class ApplicationTaskCompleter extends TaskCompleter{
         log.info("START ApplicationCompleter complete");
         super.setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
-        for (URI voluri : addVolumes) {
-            Volume volume = getVolume(voluri, dbClient);
-            switch (status) {
-                case error:
-                    setErrorOnDataObject(dbClient, Volume.class, volume.getId(), coded);
-                    break;
-                default:
-                    setReadyOnDataObject(dbClient, Volume.class, volume.getId());
-                    addApplicationToVolume(volume, dbClient);
+        if (addVolumes != null) {
+            for (URI voluri : addVolumes) {
+                Volume volume = getVolume(voluri, dbClient);
+                switch (status) {
+                    case error:
+                        setErrorOnDataObject(dbClient, Volume.class, volume.getId(), coded);
+                        break;
+                    default:
+                        setReadyOnDataObject(dbClient, Volume.class, volume.getId());
+                        addApplicationToVolume(volume, dbClient);
+                }
             }
         }
-        for (URI voluri : removeVolumes) {
-            Volume volume = getVolume(voluri, dbClient);
-           switch (status) {
-                case error:
-                    setErrorOnDataObject(dbClient, Volume.class, volume.getId(), coded);
-                    break;
-                default:
-                    setReadyOnDataObject(dbClient, Volume.class, volume.getId());
-                    removeApplicationFromVolume(volume.getId(), dbClient);
+        if (removeVolumes != null) {
+            for (URI voluri : removeVolumes) {
+                Volume volume = getVolume(voluri, dbClient);
+               switch (status) {
+                    case error:
+                        setErrorOnDataObject(dbClient, Volume.class, volume.getId(), coded);
+                        break;
+                    default:
+                        setReadyOnDataObject(dbClient, Volume.class, volume.getId());
+                        removeApplicationFromVolume(volume.getId(), dbClient);
+                }
             }
         }
         if (consistencyGroups != null && !consistencyGroups.isEmpty()) {
@@ -144,6 +149,17 @@ public class ApplicationTaskCompleter extends TaskCompleter{
         applications.add(getId().toString());
         volume.setVolumeGroupIds(applications);
         dbClient.updateObject(volume);
-        
+
+        // Once volumes in VNX CG are added to an application, the CG's arrayConsistency
+        // should turn to false
+        if (volume.isInCG() && ControllerUtils.isVnxVolume(volume, dbClient)) {
+            URI cguri = volume.getConsistencyGroup();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+            if (cg.getArrayConsistency()) {
+                log.info("Updated consistency group arrayConsistency");
+                cg.setArrayConsistency(false);
+                dbClient.updateObject(cg);
+            }
+        }
     }
 }

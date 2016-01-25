@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VPLEX_MIRROR_TO_URI;
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -388,7 +389,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             size, thinVolumePreAllocationSize, vplexProject,
                             varray, vpool, storageDeviceURI,
                             storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
-
+                    
+                    // Set replicationGroupInstance if CG's arrayConsistency is true
+                    if (backendCG != null && backendCG.getArrayConsistency()) {
+	    	            volume.setReplicationGroupInstance(consistencyGroup.getLabel());
+                    }
                     volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                     _dbClient.persistObject(volume);
 
@@ -1664,7 +1669,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             }
         }
 
-        if ((sourceVolume != null) && (!NullColumnValueGetter.isNotNullValue(sourceVolume.getReplicationGroupInstance()))) {
+        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getReplicationGroupInstance())) {
             targetVolume.setReplicationGroupInstance(sourceVolume.getReplicationGroupInstance());
         }
         
@@ -3294,7 +3299,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
             String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
-        super.validateCreateSnapshot(reqVolume, volumesToSnap, snapshotType, snapshotName, fcManager);
+        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume), volumesToSnap, snapshotType, snapshotName, fcManager);
 
         // If the volume is a VPLEX volume created on a block snapshot,
         // we don't support creation of a snapshot. In this case the
@@ -3569,10 +3574,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             boolean backingVolsAreInCG = false;
             URI cgUri = null;
+            String rpName = null;
+            URI storageSystemUri = null;
             for (Volume backingVol : backingVols) {
                 cgUri = backingVol.getConsistencyGroup();
-                if (!NullColumnValueGetter.isNullURI(cgUri) && !NullColumnValueGetter.isNullValue(backingVol.getReplicationGroupInstance())) {
+                rpName = backingVol.getReplicationGroupInstance();
+                if (!NullColumnValueGetter.isNullURI(cgUri) && NullColumnValueGetter.isNotNullValue(rpName)) {
                     backingVolsAreInCG = true;
+                    storageSystemUri = backingVol.getStorageController();
                     break;
                 }
             }
@@ -3580,14 +3589,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 volumesInCG.add(vvUri);
 
                 // if the backing volumes are in a array cg, we need to verify that all virtual volumes from the
-                // cg are on the list to be added
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
-                List<Volume> cgvolumes = getActiveCGVolumes(cg);
-                for (Volume cgvol : cgvolumes) {
-                    if (!virtVolBackVolMap.keySet().contains(cgvol.getId())) {
+                // same replication group are on the list to be added
+                List<URI> rpVolumes = getVolumesInSameReplicationGroup(rpName, storageSystemUri);
+                for (URI rpvol : rpVolumes) {
+                    if (!virtVolBackVolMap.keySet().contains(rpvol)) {
                         Volume virtVol = _dbClient.queryObject(Volume.class, vvUri);
                         throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(virtVol.getLabel(),
-                                "not all volumes in consistency group are in the add volume list");
+                                "not all volumes in same replication group are in the add volume list");
                     }
                 }
             } else {
@@ -3609,6 +3617,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     private void updateVolumesInCgInApplication(List<URI> volumesInCG, VolumeGroup application, String taskId) {
         // for volumes with backing volumes aready in a CG, we just need to update the db
+    	URI cguri = null;
         for (URI volumeUri : volumesInCG) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
             StringSet applications = volume.getVolumeGroupIds();
@@ -3621,6 +3630,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             op.ready();
             volume.getOpStatus().updateTaskStatus(taskId, op);
             _dbClient.updateObject(volume);
+            if (cguri == null) {
+            	// Once a volume in the CG is added into an application, the CG's arrayConsistency is set to false
+            	cguri = volume.getConsistencyGroup();
+            	BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+            	if (cg.getArrayConsistency()) {
+            		cg.setArrayConsistency(false);
+            		_dbClient.updateObject(cg);
+            	}
+            }
         }
     }
 
@@ -3650,7 +3668,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {
-        List<String> groupNames = new ArrayList<String>();
+        Set<String> groupNames = new HashSet<String>();
         final List<Volume> volumes = CustomQueryUtility
                 .queryActiveResourcesByConstraint(_dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));
@@ -3705,5 +3723,33 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             count++;
         }
         return result;
+    }
+    
+    /**
+     * Get all VPlex virtual volumes, whose backend volumes are in the same replication group and the same storage system
+     * @param groupName The replication group name
+     * @param storageSystemUri The backend storage system URI
+     * @return The list of Vplex virtual volume URI
+     */
+    private List<URI> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri) {
+        List<URI> volumeURIs = new ArrayList<URI>();
+        // Get all backend volumes with the same replication group name
+        List<Volume> volumes = CustomQueryUtility
+          .queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                  AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(groupName));
+        for (Volume volume : volumes) {
+        	URI system = volume.getStorageController();
+            if (system.toString().equals(storageSystemUri.toString())) {
+            	// Get the vplex virtual volume
+                List<Volume> vplexVolumes = CustomQueryUtility
+               		.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+               				getVolumesByAssociatedId(volume.getId().toString()));
+                if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
+                	volumeURIs.add(vplexVolumes.get(0).getId());
+                }
+                
+            }
+        }
+        return volumeURIs;
     }
 }

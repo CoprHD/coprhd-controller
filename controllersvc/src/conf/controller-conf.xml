@@ -1190,7 +1190,7 @@
     <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
         <property name="serviceName" value="FileReplicationController"/>
         <property name="service" ref="fileReplicationController"/>
-        <property name="serviceInterface" value="com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController"/>
+        <property name="serviceInterface" value="com.emc.storageos.filereplicationcontroller.FileReplicationController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>

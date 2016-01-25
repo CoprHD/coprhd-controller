@@ -570,14 +570,19 @@ public class BlockStorageUtils {
             allBlockResources.addAll(getSrdfTargetVolumes(volume));
         }
 
-        // For ViPR only delete of exported volumes, we don't want to
-        // unexport the volumes.
+        // For ViPR-only delete of exported volumes, we don't want to
+        // try to unexport the volumes. The controller will clean up any
+        // export groups/masks if the volume is exported.
         if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
             removeBlockResourcesFromExports(allBlockResources);
         }
 
         for (URI volumeId : allBlockResources) {
-            if (canRemoveReplicas(volumeId)) {
+            // For ViPR-only delete we don't automatically try and ViPR-only
+            // delete snapshots, full copies, or continuous copies of the volume.
+            // If a volume has snapshots, full copies, or continuous copies then
+            // the controller should return an error.
+            if ((canRemoveReplicas(volumeId)) && (VolumeDeleteTypeEnum.VIPR_ONLY != type)) {
                 removeSnapshotsForVolume(volumeId);
                 removeContinuousCopiesForVolume(volumeId);
                 removeFullCopiesForVolume(volumeId, blockResourceIds);

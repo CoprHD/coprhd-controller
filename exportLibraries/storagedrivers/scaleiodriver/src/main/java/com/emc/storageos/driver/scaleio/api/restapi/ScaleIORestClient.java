@@ -168,7 +168,6 @@ public class ScaleIORestClient extends StandardRestClient {
         String uri = ScaleIOConstants.getRemoveVolumeURI(volumeId);
         ScaleIORemoveVolume removeParm = new ScaleIORemoveVolume();
         post(URI.create(uri), getJsonForEntity(removeParm));
-
     }
 
     /**
@@ -515,8 +514,9 @@ public class ScaleIORestClient extends StandardRestClient {
         ClientResponse response = post(URI.create(ScaleIOConstants.GET_VOLUMES_BYIDS_URI), getJsonForEntity(parm));
         List<ScaleIOVolume> volumes = getResponseObjects(ScaleIOVolume.class, response);
         for (ScaleIOVolume volume : volumes) {
-            result.put(volume.getName(), volume);
+            result.put(volume.getId(), volume);
         }
         return result;
     }
+
 }

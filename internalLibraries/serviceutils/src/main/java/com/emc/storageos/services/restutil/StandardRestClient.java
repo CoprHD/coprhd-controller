@@ -5,28 +5,26 @@
 
 package com.emc.storageos.services.restutil;
 
-import java.net.URI;
-
-import javax.ws.rs.core.MediaType;
-
-import org.codehaus.jettison.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
+import org.codehaus.jettison.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.core.MediaType;
+import java.net.URI;
 
 public abstract class StandardRestClient implements RestClientItf {
+    private static Logger log = LoggerFactory.getLogger(StandardRestClient.class);
     protected Client _client;
     protected String _username;
     protected String _password;
     protected String _authToken;
     protected URI _base;
-    private static Logger log = LoggerFactory.getLogger(StandardRestClient.class);
 
     @Override
     public ClientResponse get(URI uri) throws InternalException {

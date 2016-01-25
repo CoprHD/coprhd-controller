@@ -26,7 +26,7 @@ public class TenantOrgRestRep extends DataObjectRestRep {
     private String description;
     private List<UserMappingParam> userMappings;
     private String namespace;
-    private URI namespaceStorage;
+    private String namespaceStorage;
 
     public TenantOrgRestRep() {
     }
@@ -116,11 +116,11 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * @valid none
      */
     @XmlElement(name = "namespace_storage_system")
-    public URI getNamespaceStorage() {
+    public String getNamespaceStorage() {
         return namespaceStorage;
     }
 
-    public void setNamespaceStorage(URI namespaceStorage) {
+    public void setNamespaceStorage(String namespaceStorage) {
         this.namespaceStorage = namespaceStorage;
     }
 

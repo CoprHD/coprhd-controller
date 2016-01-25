@@ -7,12 +7,12 @@ package com.emc.storageos.ecs.api;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.ECSNamespace;
 
 public class ECSNamespaceRepGroup {
     private String namespaceName;
     private List<String> replicationGroups = new ArrayList<String>();
-    private ObjectNamespace.Object_StoragePool_Type rgType;
+    private ECSNamespace.ECS_RepGroup_Type rgType;
     
     public String getNamespaceName() {
         return namespaceName;
@@ -22,11 +22,11 @@ public class ECSNamespaceRepGroup {
         this.namespaceName = namespaceName;
     }
     
-    public ObjectNamespace.Object_StoragePool_Type getRgType() {
+    public ECSNamespace.ECS_RepGroup_Type getRgType() {
         return rgType;
     }
     
-    public void setRgType(ObjectNamespace.Object_StoragePool_Type rgType) {
+    public void setRgType(ECSNamespace.ECS_RepGroup_Type rgType) {
         this.rgType = rgType;
     }
 

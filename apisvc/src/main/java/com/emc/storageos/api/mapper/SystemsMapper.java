@@ -24,8 +24,8 @@ import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.ECSNamespace;
 import com.emc.storageos.db.client.model.NasCifsServer;
-import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -337,7 +337,7 @@ public class SystemsMapper {
         return to;
     }
 
-    public static ObjectNamespaceRestRep map(ObjectNamespace from) {
+    public static ObjectNamespaceRestRep map(ECSNamespace from) {
         if (from == null) {
             return null;
         }

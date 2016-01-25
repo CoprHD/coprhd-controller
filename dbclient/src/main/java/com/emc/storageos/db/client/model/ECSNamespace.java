@@ -10,15 +10,15 @@ import java.util.List;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
- * Object storage namespace configuration
+ * ECS object storage namespace configuration
  * 
  * This class extends DiscoveredDataObject and not TenantResource. 
- * There are different Object Replication Groups that can be allowed or disallowed with namespace. 
+ * There are different ECS Replication Groups that can be allowed or disallowed with namespace. 
  * RG can be dynamically changed. Fields are discovered/rediscovered to keep up to date.
  * Hence its better to derive from DiscoveredDataObject  
  */
-@Cf("ObjectNamespace")
-public class ObjectNamespace extends DiscoveredDataObject {
+@Cf("ECSNamespace")
+public class ECSNamespace extends DiscoveredDataObject {
     // name of namespace; Its possible to have namespace name and id different
     private String _nsName;
     
@@ -35,15 +35,15 @@ public class ObjectNamespace extends DiscoveredDataObject {
     private URI _storageDevice;
     
     // Type indicating allowed or not-allowed
-    private Object_StoragePool_Type _poolType;
+    private ECS_RepGroup_Type _rgType;
     
-    // Allowed or not-allowed storage pools(ECS replication groups). Its mutually exclusive
-    private StringSet _storagePools;      
+    // Allowed or not-allowed ECS replication groups. Its mutually exclusive
+    private StringSet _replicationGroups;      
 
-    // Namespace visible or deleted in Object
+    // Namespace visible or deleted in ECS
     private String _discoveryStatus;
     
-    public enum Object_StoragePool_Type {
+    public enum ECS_RepGroup_Type {
         ALLOWED,
         DISALLOWED,
         NONE
@@ -102,24 +102,24 @@ public class ObjectNamespace extends DiscoveredDataObject {
         setChanged("storageDevice");
     }
 
-    @Name("poolType")
-    public Object_StoragePool_Type setStoragePoolType() {
-        return _poolType;
+    @Name("rgType")
+    public ECS_RepGroup_Type getRgType() {
+        return _rgType;
     }
     
-    public void setStoragePoolType(Object_StoragePool_Type poolType) {
-        this._poolType = poolType;
-        setChanged("poolType");
+    public void setRgType(ECS_RepGroup_Type rgType) {
+        this._rgType = rgType;
+        setChanged("rgType");
     }
 
-    @Name("storagePools")
-    public StringSet getStoragePools() {
-        return _storagePools;
+    @Name("replicationGroups")
+    public StringSet getReplicationGroups() {
+        return _replicationGroups;
     }
     
-    public void setStoragePools(StringSet storagePools) {
-        this._storagePools = storagePools;
-        setChanged("storagePools");
+    public void setReplicationGroups(StringSet replicationGroups) {
+        this._replicationGroups = replicationGroups;
+        setChanged("replicationGroups");
     }
     
     @EnumType(DiscoveryStatus.class)

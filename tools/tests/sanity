@@ -7753,7 +7753,6 @@ backuprestore_setup()
     echo "Enable root ssh permit and configure backup server"
     syssvc $CONFIG_FILE "$vip" set_prop system_permit_root_ssh yes
 
-    #BACKUP_EXTERNAL_LOCATION_URL="ftp://10.32.72.28/pub/Boying"
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_username "${BACKUP_SERVER_USERNAME}"
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_password "${BACKUP_SERVER_PASSWORD}"
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_url "${BACKUP_SERVER_URL}"

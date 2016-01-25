@@ -1121,6 +1121,7 @@ public abstract class VdcOpHandler {
         log.info("Set error state for site: {}", site.getUuid());
         coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
 
+        site.setLastOperation(site.getState());
         site.setState(SiteState.STANDBY_ERROR);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
     }

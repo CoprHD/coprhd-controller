@@ -160,9 +160,6 @@ public class Site {
     }
 
     public void setState(SiteState state) {
-        if (getState().isDROperationOngoing()) {
-            setLastOperation(this.state);
-        }
         this.state = state;
         setLastStateUpdateTime(System.currentTimeMillis());
     }

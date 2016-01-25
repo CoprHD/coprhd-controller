@@ -2542,7 +2542,7 @@ public class FileService extends TaskResourceService {
 
       Copy copy = copies.get(0);
       if (copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
-          throw APIException.badRequests.actionNotApplicableForLocalMirrors(ProtectionOp.FAILOVER.getRestOp());
+          throw APIException.badRequests.actionNotApplicableForLocalMirrors(ProtectionOp.FAILBACK.getRestOp());
       } else if(copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString())) {
           taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILBACK.getRestOp());
           taskList.getTaskList().add(taskResp);

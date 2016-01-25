@@ -19,7 +19,7 @@ public class MirrorFileFailbackTaskCompleter extends MirrorFileTaskCompleter {
     public MirrorFileFailbackTaskCompleter(Class clazz, List<URI> ids, String opId) {
         super(clazz, ids, opId);
     }
-    
+
     public MirrorFileFailbackTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
     }
@@ -27,19 +27,19 @@ public class MirrorFileFailbackTaskCompleter extends MirrorFileTaskCompleter {
     public MirrorFileFailbackTaskCompleter(URI sourceURI, URI targetURI, String opId) {
         super(sourceURI, targetURI, opId);
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            recordMirrorOperation(dbClient, OperationTypeEnum.FAILOVER_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
+            recordMirrorOperation(dbClient, OperationTypeEnum.FAILBACK_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
                     getTargetFileShare().getId().toString());
-            
+
         } catch (Exception e) {
             _log.error("Failed updating status. MirrorSessionFailover {}, for task " + getOpId(), getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
         }
     }
-    
+
 }

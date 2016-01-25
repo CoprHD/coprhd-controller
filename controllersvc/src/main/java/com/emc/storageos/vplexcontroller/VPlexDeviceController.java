@@ -8017,7 +8017,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     @Override
     public String addStepsForRestoreVolume(Workflow workflow,
             String waitFor, URI storage, URI pool, URI volume, URI snapshotURI,
-            Boolean updateOpStatus, String opId,
+            Boolean updateOpStatus, String syncDirection, String opId,
             BlockSnapshotRestoreCompleter completer) throws InternalException {
         BlockSnapshot snapshot = getDataObject(BlockSnapshot.class, snapshotURI, _dbClient);
 

@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.VolumeAccessState;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -410,6 +411,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             volume.setPool(((SRDFRecommendation) placement).getVirtualArrayTargetMap()
                     .get(varray.getId()).getTargetStoragePool());
         }
+        
         volume.setOpStatus(new OpStatusMap());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
@@ -516,6 +518,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     /**
      * SRDF between VMAX3 to VMAX2 is failing due to configuration mismatch (OPT#475186).
      * As a workaround, calculate the VMAX2 volume size based on the VMAX3 cylinder size.
+     * 
      * @param targetVolume
      * @param vpool
      */
@@ -596,6 +599,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
         return false;
     }
+
     @Override
     public TaskList createVolumes(final VolumeCreate param, final Project project,
             final VirtualArray varray, final VirtualPool cos,
@@ -693,7 +697,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      * @throws InternalException
      */
     @Override
-    public <T extends DataObject> String checkForDelete(final T object) throws InternalException {
+    public <T extends DataObject> String checkForDelete(final T object, List<Class<? extends DataObject>> excludeTypes)
+            throws InternalException {
         // The standard dependency checker really doesn't fly with SRDF because we need to determine
         // if we can do
         // a tear-down of the volume, and that tear-down involved cleaning up dependent
@@ -745,7 +750,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             // Because that can only have happened if the RDF relationship was already torn down.
             if (volumeIDs.size() == 1) {
                 String depMsg = _dependencyChecker.checkDependencies(object.getId(),
-                        object.getClass(), true);
+                        object.getClass(), true, excludeTypes);
                 if (depMsg != null) {
                     return depMsg;
                 }
@@ -1124,6 +1129,24 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
 
         return allowedOperations;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
+     */
+    @Override
+    public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {
+        List<String> groupNames = new ArrayList<String>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));
+        for (Volume volume : volumes) {
+            if (volume.getReplicationGroupInstance() != null) {
+                groupNames.add(volume.getReplicationGroupInstance());
+            }
+        }
+        // TODO : add target volume volume groups if necessary
+        return groupNames;
     }
 
 }

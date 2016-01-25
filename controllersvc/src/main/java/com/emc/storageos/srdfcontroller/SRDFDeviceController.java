@@ -1244,10 +1244,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
-            List<URI> combined = new ArrayList<>();
-            combined.add(sourceURI);
-            combined.add(targetURI);
-            completer = new SRDFLinkSyncCompleter(combined, opId);
+            completer = new SRDFLinkSyncCompleter(Arrays.asList(sourceURI, targetURI), opId);
             getRemoteMirrorDevice().doSyncLink(system, targetVolume, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);

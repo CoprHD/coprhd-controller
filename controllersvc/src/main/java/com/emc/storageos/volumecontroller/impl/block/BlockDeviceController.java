@@ -2269,26 +2269,28 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                  * If syncdirection is NONE then do nothing, RDF group will stay in suspend state.
                  */
                 if (active) {
-                    if ((null == syncDirection && null != srdfSourceVolume && volumeURI.equals(srdfSourceVolume.getId()))
-                            || (null != syncDirection
-                            && SRDFUtils.SyncDirection.SOURCE_TO_TARGET.toString().equals(syncDirection))) {
-                        resumeSRDFLinkWorkflowStep(waitFor, srdfSourceStorageSystemURI, srdfSourceVolume.getId(),
-                                srdfTargetVolume.getId(),
-                                workflow);
-                    } else if ((null == syncDirection && null != srdfTargetVolume && volumeURI.equals(srdfTargetVolume.getId()))
-                            || (null != syncDirection
-                            && SRDFUtils.SyncDirection.TARGET_TO_SOURCE.toString().equals(syncDirection))) {
-                        restoreWorkflowStep(waitFor, srdfTargetVolume.getStorageController(), srdfSourceVolume.getId(),
-                                srdfTargetVolume.getId(), workflow);
-                    } else if (null != syncDirection
-                            && SRDFUtils.SyncDirection.NONE.toString().equals(syncDirection)) {
-                        _log.info(
-                                "Sync direction is specified as {} hence no action will be done after retsore snapshot which"
-                                        + " means the RDF group for volume {} will be in a suspended state.",
-                                syncDirection, volume.getLabel());
+                    if (null == syncDirection) {
+                        if (null != srdfSourceVolume && volumeURI.equals(srdfSourceVolume.getId())) {
+                            resumeSRDFLinkWorkflowStep(waitFor, srdfSourceStorageSystemURI, srdfSourceVolume.getId(),
+                                    srdfTargetVolume.getId(), workflow);
+                        } else if (null != srdfTargetVolume && volumeURI.equals(srdfTargetVolume.getId())) {
+                            restoreWorkflowStep(waitFor, srdfTargetVolume.getStorageController(), srdfSourceVolume.getId(),
+                                    srdfTargetVolume.getId(), workflow);
+                        }
+                    } else if (null != syncDirection) {
+                        if (SRDFUtils.SyncDirection.SOURCE_TO_TARGET.toString().equals(syncDirection)) {
+                            resumeSRDFLinkWorkflowStep(waitFor, srdfSourceStorageSystemURI, srdfSourceVolume.getId(),
+                                    srdfTargetVolume.getId(), workflow);
+                        } else if (SRDFUtils.SyncDirection.TARGET_TO_SOURCE.toString().equals(syncDirection)) {
+                            restoreWorkflowStep(waitFor, srdfTargetVolume.getStorageController(), srdfSourceVolume.getId(),
+                                    srdfTargetVolume.getId(), workflow);
+                        } else if (SRDFUtils.SyncDirection.NONE.toString().equals(syncDirection)) {
+                            _log.info("Sync direction is specified as {} hence no action will be done after retsore snapshot which"
+                                    + " means the RDF group for volume {} will be in a suspended state.",
+                                    syncDirection, volume.getLabel());
+                        }
                     }
                 }
-
             } else {
                 waitFor = workflow.createStep(BLOCK_VOLUME_RESTORE_GROUP, description, waitFor,
                         storage, getDeviceType(storage), BlockDeviceController.class,

@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -56,6 +57,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
 
     private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
     private Map<String, BlockObject> _objectsToBeCreatedMap;
+    private List<UnManagedConsistencyGroup> unManagedCGsToUpdate;
     private Map<String, List<DataObject>> _objectsToBeUpdatedMap;
     private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
 
@@ -149,6 +151,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext#getErrorMessages()
      */
+    @Override
     public List<String> getErrorMessages() {
         if (null == _errorMessages) {
             _errorMessages = new ArrayList<String>();
@@ -881,6 +884,14 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         }
 
         return super.toString();
+    }
+
+    @Override
+    public List<UnManagedConsistencyGroup> getUnManagedCGsToUpdate() {
+        if (null == unManagedCGsToUpdate) {
+            unManagedCGsToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+        }
+        return unManagedCGsToUpdate;
     }
 
 }

@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -189,6 +190,13 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      *         VolumeIngestionContext objects
      */
     public Map<String, VolumeIngestionContext> getProcessedUnManagedVolumeMap();
+
+    /**
+     * Returns a List of UnManagedConsistecyGroups to update.
+     * 
+     * @return a List of UnManagedConsistencyGroup objects to update.
+     */
+    public List<UnManagedConsistencyGroup> getUnManagedCGsToUpdate();
 
     /**
      * Returns the UnManagedVolume that has been processed for the given nativeGuid,

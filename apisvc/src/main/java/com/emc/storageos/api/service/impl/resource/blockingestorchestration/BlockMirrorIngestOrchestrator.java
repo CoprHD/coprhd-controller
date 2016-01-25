@@ -5,6 +5,8 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +25,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 
@@ -51,7 +54,8 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         }
         if (null == mirrorObj) {
             mirrorObj = createBlockMirror(mirrorNativeGuid, requestContext.getStorageSystem(), unManagedVolume,
-                    requestContext.getVpool(), requestContext.getVarray(), requestContext.getProject());
+                    requestContext.getVpool(), requestContext.getVarray(), requestContext.getProject(), requestContext.getTenant().getId(),
+                    requestContext.getObjectsToBeCreatedMap(), requestContext.getUnManagedCGsToUpdate());
         }
         // Run this always when the volume is NO_PUBLIC_ACCESS
         if (markUnManagedVolumeInactive(requestContext, mirrorObj)) {
@@ -67,7 +71,8 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
                     unManagedVolume.getNativeGuid());
             mirrorObj.addInternalFlags(INTERNAL_VOLUME_FLAGS);
         }
-
+        // update UnManaged CG to update ingested volumes
+        updateUnManagedCGWithVolumesIngested(unManagedVolume, _dbClient);
         return clazz.cast(mirrorObj);
     }
 
@@ -118,7 +123,8 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
      * @return
      */
     private BlockMirror createBlockMirror(String nativeGuid, StorageSystem system, UnManagedVolume unManagedVolume,
-            VirtualPool vPool, VirtualArray vArray, Project project) {
+            VirtualPool vPool, VirtualArray vArray, Project project, URI tenantURI, Map<String, BlockObject> objectsToBeCreatedMap,
+            List<UnManagedConsistencyGroup> umcgsToUpdate) {
         BlockMirror mirror = new BlockMirror();
         mirror.setId(URIUtil.createId(BlockMirror.class));
         mirror.setInactive(false);
@@ -135,6 +141,11 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         String syncType = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.SYNC_TYPE.toString(), unManagedVolume.getVolumeInformation());
         mirror.setSyncType(syncType);
+        URI cgUri = getConsistencyGroupUri(unManagedVolume, vPool, project.getId(), tenantURI, vArray.getId(), _dbClient);
+        if (null != cgUri) {
+            updateCGPropertiesInVolume(cgUri, mirror, system, unManagedVolume);
+            updateConsistencyGroupForRemainingVolumes(cgUri, unManagedVolume, objectsToBeCreatedMap, umcgsToUpdate, _dbClient);
+        }
         String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, system, vPool);
         validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
         if (null != autoTierPolicyId) {

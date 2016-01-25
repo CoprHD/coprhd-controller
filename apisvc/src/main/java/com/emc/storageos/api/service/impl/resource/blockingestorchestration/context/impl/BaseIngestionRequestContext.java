@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -41,6 +42,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     private Iterator<URI> _unManagedVolumeUrisToProcessIterator;
     private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
+    private List<UnManagedConsistencyGroup> unManagedCGsToUpdate;
 
     private VirtualPool _vpool;
     private VirtualArray _virtualArray;
@@ -390,6 +392,19 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         }
 
         return _processedUnManagedVolumeMap;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getUnManagedCGsToUpdate()
+     */
+    @Override
+    public List<UnManagedConsistencyGroup> getUnManagedCGsToUpdate() {
+        if (null == unManagedCGsToUpdate) {
+            unManagedCGsToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+        }
+        return unManagedCGsToUpdate;
     }
 
     /*

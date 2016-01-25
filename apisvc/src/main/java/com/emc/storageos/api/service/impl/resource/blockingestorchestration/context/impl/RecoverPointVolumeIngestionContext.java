@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
@@ -47,6 +48,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     // these members are part of the IngestionRequestContext
     // for the RecoverPoint volume's backend ingestion processing
     private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
+    private List<UnManagedConsistencyGroup> unManagedCGsToUpdate;
     private final IngestionRequestContext _parentRequestContext;
     private Map<String, BlockObject> _objectsToBeCreatedMap;
     private Map<String, List<DataObject>> _objectsToBeUpdatedMap;
@@ -222,15 +224,15 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         // commit the basic IngestionRequestContext collections
         _dbClient.createObject(getObjectsIngestedByExportProcessing());
         _dbClient.createObject(getObjectsToBeCreatedMap().values());
-        
-        // remove from the parent context creation map because it was just saved here 
+
+        // remove from the parent context creation map because it was just saved here
         String volumeNativeGuid =
                 getUnmanagedVolume().getNativeGuid().replace(
                         VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
         if (_parentRequestContext.getObjectsToBeCreatedMap().containsKey(volumeNativeGuid)) {
             _parentRequestContext.getObjectsToBeCreatedMap().remove(volumeNativeGuid);
         }
-        
+
         for (List<DataObject> dos : getObjectsToBeUpdatedMap().values()) {
             _dbClient.updateObject(dos);
         }
@@ -769,6 +771,14 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
 
         return blockObject;
+    }
+
+    @Override
+    public List<UnManagedConsistencyGroup> getUnManagedCGsToUpdate() {
+        if (null == unManagedCGsToUpdate) {
+            unManagedCGsToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+        }
+        return unManagedCGsToUpdate;
     }
 
 }

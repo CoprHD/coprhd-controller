@@ -15,13 +15,13 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -63,9 +64,10 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             checkVolumeExportState(unManagedVolume, unManagedVolumeExported);
             VolumeIngestionUtil.checkUnManagedResourceIngestable(unManagedVolume);
 
-            snapShot = createSnapshot(requestContext.getStorageSystem(), snapNativeGuid, 
-                    requestContext.getVarray(), requestContext.getVpool(), 
-                    unManagedVolume, requestContext.getProject());
+            snapShot = createSnapshot(requestContext.getStorageSystem(), snapNativeGuid,
+                    requestContext.getVarray(), requestContext.getVpool(),
+                    unManagedVolume, requestContext.getProject(), requestContext.getTenant().getId(),
+                    requestContext.getObjectsToBeCreatedMap(), requestContext.getUnManagedCGsToUpdate());
 
             // See if this is a linked target for existing block snapshot sessions.
             if (!NullColumnValueGetter.isNullValue(snapShot.getSettingsInstance())) {
@@ -83,7 +85,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                         linkedTargets = new StringSet();
                         linkedTargets.add(snapShot.getId().toString());
                         snapSession.setLinkedTargets(linkedTargets);
-        }
+                    }
                     _dbClient.updateObject(snapSession);
                 }
             }
@@ -102,6 +104,8 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                     unManagedVolume.getNativeGuid());
             snapShot.addInternalFlags(INTERNAL_VOLUME_FLAGS);
         }
+        // update UnManaged CG to update ingested volumes
+        updateUnManagedCGWithVolumesIngested(unManagedVolume, _dbClient);
 
         return clazz.cast(snapShot);
     }
@@ -115,7 +119,8 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
     }
 
     private BlockSnapshot createSnapshot(StorageSystem system, String nativeGuid, VirtualArray virtualArray,
-            VirtualPool vPool, UnManagedVolume unManagedVolume, Project project) throws IngestionException {
+            VirtualPool vPool, UnManagedVolume unManagedVolume, Project project, URI tenantURI,
+            Map<String, BlockObject> objectsToBeCreatedMap, List<UnManagedConsistencyGroup> umcgsToUpdate) throws IngestionException {
 
         BlockSnapshot snapShot = new BlockSnapshot();
         snapShot.setId(URIUtil.createId(BlockSnapshot.class));
@@ -165,8 +170,22 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                 unManagedVolumeInformation);
         snapShot.setTechnologyType(techType);
 
-        return snapShot;
+        URI cgUri = getConsistencyGroupUri(unManagedVolume, vPool, project.getId(), tenantURI, virtualArray.getId(), _dbClient);
+        if (null != cgUri) {
+            updateCGPropertiesInVolume(cgUri, snapShot, system, unManagedVolume);
+            updateConsistencyGroupForRemainingVolumes(cgUri, unManagedVolume, objectsToBeCreatedMap, umcgsToUpdate, _dbClient);
+        }
 
+        return snapShot;
+    }
+
+    @Override
+    protected URI getConsistencyGroupUri(UnManagedVolume unManagedVolume, VirtualPool vPool, URI project, URI tenant,
+            URI virtualArray, DbClient dbClient) {
+        if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
+            return VolumeIngestionUtil.getBlockObjectConsistencyGroup(unManagedVolume, vPool, project, tenant, virtualArray, dbClient);
+        }
+        return null;
     }
 
 }

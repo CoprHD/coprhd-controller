@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
@@ -292,7 +293,8 @@ public abstract class BlockIngestOrchestrator {
      * @throws Exception
      */
     protected Volume createVolume(StorageSystem system, String volumeNativeGuid, StoragePool pool, VirtualArray virtualArray,
-            VirtualPool vPool, UnManagedVolume unManagedVolume, Project project, TenantOrg tenant, String autoTierPolicyId)
+            VirtualPool vPool, UnManagedVolume unManagedVolume, Project project, TenantOrg tenant, String autoTierPolicyId,
+            Map<String, BlockObject> objectsToBeCreatedMap, List<UnManagedConsistencyGroup> umcgsToUpdate)
             throws IngestionException {
         _logger.info("creating new Volume for native volume id " + volumeNativeGuid);
 
@@ -309,12 +311,49 @@ public abstract class BlockIngestOrchestrator {
         URI cgUri = getConsistencyGroupUri(unManagedVolume, vPool, project.getId(), tenant.getId(), virtualArray.getId(), _dbClient);
         if (null != cgUri) {
             updateCGPropertiesInVolume(cgUri, volume, system, unManagedVolume);
+            // update CG for other remaining volumes in UnManagedConsistencyGroup.
+            updateConsistencyGroupForRemainingVolumes(cgUri, unManagedVolume, objectsToBeCreatedMap, umcgsToUpdate, _dbClient);
         }
         if (null != autoTierPolicyId) {
             updateTierPolicyProperties(autoTierPolicyId, volume);
         }
 
         return volume;
+    }
+
+    /**
+     * Updates consistencyGroup for all the remaining volumes in the UnManagedBlockConsistency object.
+     * 
+     * @param cgUri
+     * @param unManagedVolume
+     * @param objectsToBeCreatedMap
+     * @param dbClient
+     */
+    protected static void updateConsistencyGroupForRemainingVolumes(URI cgUri, UnManagedVolume unManagedVolume,
+            Map<String, BlockObject> objectsToBeCreatedMap, List<UnManagedConsistencyGroup> umcgsToUpdate, DbClient dbClient) {
+        List<BlockObject> blockObjectsToUpdate = new ArrayList<BlockObject>();
+        UnManagedConsistencyGroup umcg = VolumeIngestionUtil.getUnManagedConsistencyGroup(unManagedVolume, dbClient);
+        for (String volumeNativeGuid : umcg.getManagedVolumesMap().keySet()) {
+            BlockObject blockObject = objectsToBeCreatedMap.get(volumeNativeGuid);
+            if (blockObject == null) {
+                // check if the volume has already been ingested
+                String ingestedVolumeURI = umcg.getManagedVolumesMap().get(volumeNativeGuid);
+                blockObject = BlockObject.fetch(dbClient, URI.create(ingestedVolumeURI));
+                if (blockObject == null) {
+                    throw IngestionException.exceptions.generalVolumeException(
+                            unManagedVolume.getLabel(), "Unable to locate volume which is part of a consistency group ingestion operation");
+                }
+                _logger.info("Volume {} was ingested as part of previous ingestion operation.", blockObject.getLabel());
+                blockObject.setConsistencyGroup(cgUri);
+            } else {
+                _logger.info("Adding ingested volume {} to consistency group {}", blockObject.getLabel(), cgUri);
+                blockObject.setConsistencyGroup(cgUri);
+            }
+            blockObjectsToUpdate.add(blockObject);
+        }
+        dbClient.updateObject(blockObjectsToUpdate);
+        umcgsToUpdate.add(umcg);
+        _logger.info("updated consistencyGroup for {} blockObjects: {}", blockObjectsToUpdate.size(), umcg.getManagedVolumesMap().keySet());
     }
 
     /*
@@ -391,9 +430,12 @@ public abstract class BlockIngestOrchestrator {
      * @param system
      * @param unManagedVolume
      */
-    protected void updateCGPropertiesInVolume(URI consistencyGroupUri, Volume volume, StorageSystem system,
+    protected void updateCGPropertiesInVolume(URI consistencyGroupUri, BlockObject blockObj, StorageSystem system,
             UnManagedVolume unManagedVolume) {
         // Update with default code, when CG ingestion is supported
+        blockObj.setConsistencyGroup(consistencyGroupUri);
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupUri);
+        blockObj.setReplicationGroupInstance(cg.getLabel());
     }
 
     /**
@@ -1091,6 +1133,21 @@ public abstract class BlockIngestOrchestrator {
                         parentReplicaMap, requestContext);
                 // TODO- break out if the parent-replica map is empty
             }
+        }
+    }
+
+    /**
+     * 
+     * @param unManagedVolume
+     * @param dbClient
+     */
+    protected void updateUnManagedCGWithVolumesIngested(UnManagedVolume unManagedVolume, DbClient dbClient) {
+        if (!VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
+            return;
+        }
+        UnManagedConsistencyGroup umcg = VolumeIngestionUtil.getUnManagedConsistencyGroup(unManagedVolume, dbClient);
+        if (null != umcg && !umcg.getUnManagedVolumesMap().isEmpty()) {
+            umcg.getUnManagedVolumesMap().remove(unManagedVolume.getNativeGuid());
         }
     }
 

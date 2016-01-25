@@ -32,7 +32,6 @@ import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -91,9 +90,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
         UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();
 
-        VolumeIngestionUtil.checkValidVarrayForUnmanagedVolume(unManagedVolume, 
+        VolumeIngestionUtil.checkValidVarrayForUnmanagedVolume(unManagedVolume,
                 requestContext.getVarray().getId(),
-                getClusterIdToNameMap(requestContext.getStorageSystem()), 
+                getClusterIdToNameMap(requestContext.getStorageSystem()),
                 getVarrayToClusterIdMap(requestContext.getStorageSystem()), _dbClient);
 
         String vplexIngestionMethod = requestContext.getVplexIngestionMethod();
@@ -202,13 +201,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         // as we can only support ingesting snaps or clones on one leg
         if (context.isDistributed()) {
             _logger.info("checking for presence of replicas on both legs of this distributed volume");
-            
+
             // each entry in these collections is a concatenated list of replica names
             // on each backend volume, so if their size is more than one, that means there
             // are replicas present on both legs.
-            // for example: all the backend volume name strings on leg 1 are concatenated, 
-            // added to snapshotsList at position 0.  All the backend volumes on leg2 (if 
-            // present) are concatenated and added to snapshotsList at position 1.  So, 
+            // for example: all the backend volume name strings on leg 1 are concatenated,
+            // added to snapshotsList at position 0. All the backend volumes on leg2 (if
+            // present) are concatenated and added to snapshotsList at position 1. So,
             // if the size snapshotsList is greater than 1, we've got snaps on both legs.
             List<String> snapshotsList = new ArrayList<String>();
             List<String> clonesList = new ArrayList<String>();
@@ -224,7 +223,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     clonesList.add(Joiner.on(", ").join(clones));
                 }
             }
-            
+
             // build up an error message
             int counter = 0;
             StringBuilder message = new StringBuilder("");
@@ -416,7 +415,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private void ingestBackendVolumes(IngestionRequestContext requestContext, 
+    private void ingestBackendVolumes(IngestionRequestContext requestContext,
             VplexVolumeIngestionContext backendRequestContext) throws IngestionException {
 
         while (backendRequestContext.hasNext()) {
@@ -438,7 +437,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume, false);
 
                 @SuppressWarnings("unchecked")
-                BlockObject blockObject = ingestStrategy.ingestBlockObjects(backendRequestContext, 
+                BlockObject blockObject = ingestStrategy.ingestBlockObjects(backendRequestContext,
                         VolumeIngestionUtil.getBlockObjectClass(associatedVolume));
 
                 if (null == blockObject) {
@@ -488,7 +487,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     createdObjectMap.put(blockObjectNativeGuid, blockObject);
                 }
 
-                backendRequestContext.getProcessedUnManagedVolumeMap().put(associatedVolume.getNativeGuid(), 
+                backendRequestContext.getProcessedUnManagedVolumeMap().put(associatedVolume.getNativeGuid(),
                         backendRequestContext.getVolumeContext());
                 _logger.info("Ingestion ended for backend volume {}", associatedVolume.getNativeGuid());
             } catch (Exception ex) {
@@ -515,16 +514,15 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private void ingestBackendExportMasks(IngestionRequestContext requestContext, 
+    private void ingestBackendExportMasks(IngestionRequestContext requestContext,
             VplexVolumeIngestionContext backendRequestContext)
             throws IngestionException {
 
         VirtualArray virtualArray = backendRequestContext.getVarray();
         VirtualPool vPool = backendRequestContext.getVpool();
-        
+
         // process masking for any successfully processed UnManagedVolumes
-        for (Entry<String, VolumeIngestionContext> entry : 
-            backendRequestContext.getProcessedUnManagedVolumeMap().entrySet()) {
+        for (Entry<String, VolumeIngestionContext> entry : backendRequestContext.getProcessedUnManagedVolumeMap().entrySet()) {
 
             String unManagedVolumeGUID = entry.getKey();
             VolumeIngestionContext volumeContext = entry.getValue();
@@ -609,7 +607,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     backendRequestContext.setExportGroup(exportGroup);
 
                     // find the ingest export strategy and call into for this unmanaged export mask
-                    IngestExportStrategy ingestStrategy = 
+                    IngestExportStrategy ingestStrategy =
                             ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
                     BlockObject blockObject = ingestStrategy.ingestExportMasks(
                             processedUnManagedVolume, processedBlockObject, backendRequestContext);
@@ -623,13 +621,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         backendRequestContext.getObjectsIngestedByExportProcessing().add(blockObject);
                     }
 
-                    /** TODO verify persistence - this should be handled by context.commitBackend
-                    // update the related objects if any after successful export mask ingestion
-                    List<DataObject> updatedO bjects = backendRequestContext.getUpdatedObjectMap().get(unManagedVolumeGUID);
-                    if (updatedObjects != null && !updatedObjects.isEmpty()) {
-                        _dbClient.updateObject(updatedObjects);
-                    }
-                    */
+                    /**
+                     * TODO verify persistence - this should be handled by context.commitBackend
+                     * // update the related objects if any after successful export mask ingestion
+                     * List<DataObject> updatedO bjects = backendRequestContext.getUpdatedObjectMap().get(unManagedVolumeGUID);
+                     * if (updatedObjects != null && !updatedObjects.isEmpty()) {
+                     * _dbClient.updateObject(updatedObjects);
+                     * }
+                     */
                 }
             } catch (Exception ex) {
                 _logger.error(ex.getLocalizedMessage());
@@ -714,7 +713,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     @Override
-    protected void updateCGPropertiesInVolume(URI consistencyGroupUri, Volume volume, StorageSystem system,
+    protected void updateCGPropertiesInVolume(URI consistencyGroupUri, BlockObject volume, StorageSystem system,
             UnManagedVolume unManagedVolume) {
         if (consistencyGroupUri != null) {
 

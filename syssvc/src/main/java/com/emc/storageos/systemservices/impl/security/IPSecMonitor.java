@@ -23,6 +23,7 @@ import org.springframework.context.ApplicationContext;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 
@@ -217,7 +218,7 @@ public class IPSecMonitor implements Runnable {
     }
 
     private Map<String, String>  getIpsecPropsThroughHTTPS(String node) {
-        Map<String, String> props = null;
+        Map<String, String> props = new HashMap<String, String>();
 
         GeoClientCacheManager geoClientMgr =  getGeoClientManager();
         if (geoClientMgr != null) {

@@ -15,6 +15,7 @@ import java.net.InetAddress;
 public class IpUtils {
 
     private static final Logger log = LoggerFactory.getLogger(IpUtils.class);
+    private static String LOCAL_IP = null;
 
     /**
      * decompress input address into a canonical ipv6 address
@@ -50,6 +51,10 @@ public class IpUtils {
      * @return local ip string
      */
     public static String getLocalIPAddress() {
+        if (LOCAL_IP != null) {
+            return LOCAL_IP;
+        }
+
         try {
             InetAddress IP = InetAddress.getLocalHost();
             String localIP = IP.getHostAddress();
@@ -57,7 +62,8 @@ public class IpUtils {
                 localIP = IpUtils.decompressIpv6Address(localIP);
             }
             log.info("IP of my system is : " + localIP);
-            return localIP;
+            LOCAL_IP = localIP;
+            return LOCAL_IP;
         } catch (Exception ex) {
             log.warn("error in getting local ip: " + ex.getMessage());
             return null;

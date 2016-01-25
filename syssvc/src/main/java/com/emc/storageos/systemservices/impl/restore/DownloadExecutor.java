@@ -168,9 +168,9 @@ public final class DownloadExecutor implements  Runnable {
             log.error("Failed to download e=", e);
         }finally {
             try {
+                backupOps.deleteDownloadOwner();
                 log.info("release lock={}", lock);
                 backupOps.releaseLock(lock);
-                backupOps.deleteDownloadOwner();
             }catch (Exception e) {
                 log.error("Failed to remove listener e=",e);
             }

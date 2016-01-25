@@ -1256,6 +1256,7 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
     }
 
     function fetchSuccess(data, status, headers, config) {
+        console.log("success data: " + JSON.stringify(data));
         $scope.loading = false;
         $scope.error = null;
         $scope.logs = ($scope.logs || []);

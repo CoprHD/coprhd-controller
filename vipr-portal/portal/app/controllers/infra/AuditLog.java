@@ -30,6 +30,14 @@ public class AuditLog extends Controller {
     private static String LOG_LANG = "en_US";
     private static JAXBContext CONTEXT;
 
+    private static final String PARAM_DATE = "date";
+    private static final String PARAM_START = "startTime";
+    private static final String PARAM_END = "ENDTime";
+    private static final String PARAM_RESULT = "resultStatus";
+    private static final String PARAM_SERVICE = "serviceType";
+    private static final String PARAM_USER = "user";
+    private static final String PARAM_KEYWORD = "keyword";
+
     private static synchronized JAXBContext getContext() throws JAXBException {
         if (CONTEXT == null) {
             CONTEXT = JAXBContext.newInstance(AuditLogs.class);
@@ -44,27 +52,24 @@ public class AuditLog extends Controller {
     public static void list() {
         AuditLogDataTable dataTable = new AuditLogDataTable();
 
-        Long startTime = params.get("startTime", Long.class);
-        String resultStatus = params.get("resultStatus");
-        String serviceType = params.get("serviceType");
-        String user = params.get("user");
-        String keyword = params.get("keyword");
+        Long startTime = params.get(PARAM_START, Long.class);
+        String resultStatus = params.get(PARAM_RESULT);
+        String serviceType = params.get(PARAM_SERVICE);
+        String user = params.get(PARAM_USER);
+        String keyword = params.get(PARAM_KEYWORD);
         DateTime defaultStartTime = new DateTime().minusMinutes(15);
-        renderArgs.put("startTime", (startTime == null) ? defaultStartTime : startTime);
-        renderArgs.put("resultStatus", resultStatus);
-        renderArgs.put("serviceType", serviceType);
-        renderArgs.put("user", user);
-        renderArgs.put("keyword", keyword);
+        renderArgs.put(PARAM_START, (startTime == null) ? defaultStartTime.getMillis() : startTime);
+        renderArgs.put(PARAM_RESULT, resultStatus);
+        renderArgs.put(PARAM_SERVICE, serviceType);
+        renderArgs.put(PARAM_USER, user);
+        renderArgs.put(PARAM_KEYWORD, keyword);
         Common.copyRenderArgsToAngular();
 
         render(dataTable);
     }
 
-    public static void logsJson(Long date) {
-        if (date == null) {
-            date = new Date().getTime();
-        }
-        InputStream in = BourneUtil.getViprClient().audit().getLogsForHourAsStream(new Date(date), LOG_LANG);
+    public static void logsJson() {
+        InputStream in = getLogsStream();
         try {
             AuditLogs logs = unmarshall(in);
             if (logs.getAuditLogs() != null) {
@@ -88,7 +93,32 @@ public class AuditLog extends Controller {
         }
     }
 
-    public static void filterLogsJson(String uri) {
+    private static InputStream getLogsStream() {
+        Long dateTime = params.get(PARAM_DATE, Long.class);
+        Long startTime = params.get(PARAM_START, Long.class);
+        Long endTime = params.get(PARAM_END, Long.class);
+        String result = params.get(PARAM_RESULT);
+        String serviceType = params.get(PARAM_SERVICE);
+        String user = params.get(PARAM_USER);
+        String keyword = params.get(PARAM_KEYWORD);
+        if (isAllNull(dateTime, startTime, endTime, result, serviceType, user, keyword)) {
+            dateTime = new Date().getTime();
+        }
+        if (dateTime != null) {
+            return BourneUtil.getViprClient().audit().getLogsForHourAsStream(new Date(dateTime), LOG_LANG);
+        }
+        return BourneUtil.getViprClient().audit().getAsStream(new Date(startTime), new Date(endTime), serviceType, user, result, keyword,
+                LOG_LANG);
+    }
+
+    private static boolean isAllNull(Object... objects) {
+        for (Object object : objects) {
+            if (object != null) {
+                return false;
+            }
+
+        }
+        return true;
     }
 
     public static void download() {

@@ -5,6 +5,7 @@
 package com.emc.vipr.client.core;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.util.Date;
 
 import javax.ws.rs.core.MediaType;
@@ -12,11 +13,21 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.core.util.TimeBucketUtils;
+import com.emc.vipr.client.impl.DateUtils;
 import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
 
 public class Audit {
     protected final RestClient client;
+
+    private static final String TIME_BUCKET = "time_bucket";
+    private static final String START = "start";
+    private static final String END = "end";
+    private static final String SERVICE_TYPE = "service_type";
+    private static final String USER = "user";
+    private static final String RESULT = "result";
+    private static final String KEYWORD = "keyword";
+    private static final String LANGUAGE = "language";
 
     public Audit(RestClient client) {
         this.client = client;
@@ -122,10 +133,71 @@ public class Audit {
     }
 
     protected <T> T getLogs(Class<T> responseType, String timeBucket, String language) {
-        UriBuilder builder = client.uriBuilder(PathConstants.AUDIT_LOGS_URL).queryParam("time_bucket", timeBucket);
+        UriBuilder builder = client.uriBuilder(PathConstants.AUDIT_LOGS_URL).queryParam(TIME_BUCKET, timeBucket);
         if ((language != null) && (language.length() > 0)) {
-            builder.queryParam("language", language);
+            builder.queryParam(LANGUAGE, language);
         }
         return client.resource(builder.build()).type(MediaType.APPLICATION_XML).get(responseType);
+    }
+
+    public InputStream getAsStream(Date start, Date end, String serviceType, String user, String result,
+            String keyword,
+            String language) {
+        return getAsStream(formatDate(start), formatDate(end), serviceType, user, result, keyword, language);
+    }
+
+    public InputStream getAsStream(String startTime, String endTime, String serviceType, String user, String result,
+            String keyword,
+            String language) {
+        URI uri = getURI(startTime, endTime, serviceType, user, result, keyword, language);
+        ClientResponse response = client.resource(uri).accept(MediaType.APPLICATION_XML).get(ClientResponse.class);
+        return response.getEntityInputStream();
+    }
+
+    public InputStream getAsText(Date start, Date end, String serviceType, String user, String result,
+            String keyword,
+            String language) {
+        return getAsText(formatDate(start), formatDate(end), serviceType, user, result, keyword, language);
+    }
+
+    public InputStream getAsText(String startTime, String endTime, String serviceType, String user, String result,
+            String keyword,
+            String language) {
+        URI uri = getURI(startTime, endTime, serviceType, user, result, keyword, language);
+        ClientResponse response = client.resource(uri).accept(MediaType.TEXT_PLAIN).get(ClientResponse.class);
+        return response.getEntityInputStream();
+    }
+
+    private URI getURI(String startTime, String endTime, String serviceType, String user, String result, String keyword,
+            String language) {
+        UriBuilder builder = client.uriBuilder(PathConstants.AUDIT_LOGS_URL);
+
+        if ((startTime != null) && (startTime.length() > 0)) {
+            builder.queryParam(START, startTime);
+        }
+        if ((endTime != null) && (endTime.length() > 0)) {
+            builder.queryParam(END, endTime);
+        }
+        if ((serviceType != null) && (serviceType.length() > 0)) {
+            builder.queryParam(SERVICE_TYPE, serviceType);
+        }
+        if ((user != null) && (user.length() > 0)) {
+            builder.queryParam(USER, user);
+        }
+        if ((result != null) && (result.length() > 0)) {
+            builder.queryParam(RESULT, result);
+        }
+        if ((keyword != null) && (keyword.length() > 0)) {
+            builder.queryParam(KEYWORD, keyword);
+        }
+        if ((language != null) && (language.length() > 0)) {
+            builder.queryParam(LANGUAGE, language);
+        }
+
+        return builder.build();
+    }
+
+    private String formatDate(Date date) {
+        return date != null ? DateUtils.formatUTC(date, "yyyy-MM-dd'T'HH") : null;
     }
 }

@@ -7742,8 +7742,8 @@ start_vdc_services()
     done
 }
 
-#Usage: sanity <conf path> <vip> backuprestore
-# E.g.: sanity conf/sanity.conf 137.69.169.21 backuprestore
+#Usage: sanity <conf path> <vip> backuprestore backup-server-uri username password
+# E.g.: sanity conf/sanity.conf 137.69.169.21 backuprestore ftp://X.X.X.X/foo root root-password 
 backuprestore_setup()
 {
     echo "Setup backup restore environment begin"

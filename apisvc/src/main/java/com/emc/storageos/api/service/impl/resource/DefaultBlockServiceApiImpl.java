@@ -161,6 +161,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     @Override
     protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
+        // Call super first.
+        super.cleanupForViPROnlyDelete(volumeDescriptors);
+
         // Clean up the relationship between volumes that are full
         // copies and and their source volumes.
         BlockFullCopyManager.cleanUpFullCopyAssociations(volumeDescriptors, _dbClient);

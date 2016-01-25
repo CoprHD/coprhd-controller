@@ -14,7 +14,6 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    caller
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec} [local|ldap] [<timeslot>] | sanzoning'
@@ -116,7 +115,8 @@ elif [ ${SS} = "dr" ]; then
         echo AUTH=$AUTH
 elif [ ${SS} = "backuprestore" ]; then
         if [[ $# -ne 6 ]]; then
-            echo "Invalid backuprestore parameters"
+            echo "Invalid backuprestore parameters."
+            echo "usage: backuprestore backup-server-uri username password"
             exit 1
         fi
         

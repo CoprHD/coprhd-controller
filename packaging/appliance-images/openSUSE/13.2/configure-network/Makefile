@@ -8,8 +8,8 @@
 ##################################################
 WORKSPACE := $(shell pwd)/../configure-network
 PRODUCT_VERSION := 3
-PRODUCT_RELEASE := 4
-RPM_REVISION := 3
+PRODUCT_RELEASE := 5
+RPM_REVISION := 1
 
 RPMBUILD_SOURCEDIR := $(WORKSPACE)
 RPMBUILD_BUILDROOT := $(WORKSPACE)/BUILDROOT

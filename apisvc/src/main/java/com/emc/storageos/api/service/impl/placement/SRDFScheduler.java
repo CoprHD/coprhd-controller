@@ -22,12 +22,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -43,7 +45,9 @@ import com.emc.storageos.volumecontroller.SRDFRecommendation.Target;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SRDFMetroMatcher;
 
 /**
  * Advanced SRDF based scheduling function for block storage. StorageScheduler is done based on
@@ -104,6 +108,7 @@ public class SRDFScheduler implements Scheduler {
 
     private DbClient _dbClient;
     private StorageScheduler _blockScheduler;
+    private CoordinatorClient _coordinator;
 
     public void setBlockScheduler(final StorageScheduler blockScheduler) {
         _blockScheduler = blockScheduler;
@@ -111,6 +116,14 @@ public class SRDFScheduler implements Scheduler {
 
     public void setDbClient(final DbClient dbClient) {
         _dbClient = dbClient;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        _coordinator = coordinator;
+    }
+
+    public CoordinatorClient getCoordinator() {
+        return _coordinator;
     }
 
     /**
@@ -201,7 +214,7 @@ public class SRDFScheduler implements Scheduler {
                         && system.getTargetCgs().contains(
                                 capabilities.getBlockConsistencyGroup().toString())) {
                     _log.info(
-                            "Storage System {} is used as target R2 for given CG earlier, hence cannot be used as source R1 agaan for the same CG.",
+                            "Storage System {} is used as target R2 for given CG earlier, hence cannot be used as source R1 again for the same CG.",
                             system.getNativeGuid());
                 } else {
                     candidatePools.add(pool);
@@ -213,6 +226,23 @@ public class SRDFScheduler implements Scheduler {
         // Schedule storage based on the source pool constraint.
         return scheduleStorageSourcePoolConstraint(varray, project, vpool, capabilities,
                 candidatePools, null, capabilities.getBlockConsistencyGroup());
+    }
+
+    private List<StoragePool> filterPoolsForSupportedActiveModeProvider(List<StoragePool> candidatePools, VirtualPool vpool) {
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings = vpool.getRemoteProtectionSettings(vpool, _dbClient);
+        if (remoteProtectionSettings != null) {
+            for (URI varrayURI : remoteProtectionSettings.keySet()) {
+                VpoolRemoteCopyProtectionSettings remoteCopyProtectionSettings = remoteProtectionSettings.get(varrayURI);
+                String copyMode = remoteCopyProtectionSettings.getCopyMode();
+                if (copyMode.equals(SupportedCopyModes.ACTIVE.toString())) {
+                    SRDFMetroMatcher srdfMetroMatcher = new SRDFMetroMatcher();
+                    srdfMetroMatcher.setCoordinatorClient(_coordinator);
+                    srdfMetroMatcher.setObjectCache(new ObjectLocalCache(_dbClient, false));
+                    return srdfMetroMatcher.filterPoolsForSRDFActiveMode(candidatePools);
+                }
+            }
+        }
+        return candidatePools;
     }
 
     /**
@@ -386,7 +416,7 @@ public class SRDFScheduler implements Scheduler {
                 // Now we know what pool was selected, we can grab the target pools that jive with that
                 // source
                 Map<VirtualArray, List<StoragePool>> targetVarrayPoolMap = findDestPoolsForSourcePool(
-                        targetVarrays, srcDestPoolsList, recommendedPool);
+                        targetVarrays, srcDestPoolsList, recommendedPool, vpool);
 
                 if (targetVarrayPoolMap == null || targetVarrayPoolMap.isEmpty()) {
                     // A valid source pool was found but there are no pools from any of the
@@ -694,7 +724,7 @@ public class SRDFScheduler implements Scheduler {
                 continue;
             }
             // Check that target pool can support required volume configuration.
-            if (!validateRequiredVolumeConfiguration(targetPool, vpoolChangeVolume,
+            if (!validateRequiredVolumeConfiguration(sourcePool, targetPool, vpoolChangeVolume,
                     destPoolStorageMap, sourceVolumeRecommendation, size, isThinlyProvisioned, vpool.getFastExpansion(),
                     sourceMaxVolumeSizeLimitKb)) {
                 continue;
@@ -712,6 +742,7 @@ public class SRDFScheduler implements Scheduler {
     /**
      * Check if target pool can support required volume configuration for srdf target volume.
      * 
+     * @param sourcePool
      * @param targetPool
      * @param vpoolChangeVolume source volume (null if not exists)
      * @param destPoolStorageMap map target pool to storage system
@@ -722,7 +753,7 @@ public class SRDFScheduler implements Scheduler {
      * @param sourceMaxVolumeSizeLimitKb
      * @return true/false
      */
-    private boolean validateRequiredVolumeConfiguration(StoragePool targetPool, Volume vpoolChangeVolume,
+    private boolean validateRequiredVolumeConfiguration(StoragePool sourcePool, StoragePool targetPool, Volume vpoolChangeVolume,
             Map<StoragePool, StorageSystem> destPoolStorageMap,
             MetaVolumeRecommendation sourceVolumeRecommendation, long size,
             boolean isThinlyProvisioned, boolean fastExpansion,
@@ -777,18 +808,50 @@ public class SRDFScheduler implements Scheduler {
             MetaVolumeRecommendation targetVolumeRecommendation =
                     MetaVolumeUtils.getCreateRecommendation(targetStorageSystem, targetPool, size, isThinlyProvisioned,
                             fastExpansion, null);
-            // compare source and target recommendations to make sure that source and target volumes have the same spec.
-            if (!sourceVolumeRecommendation.equals(targetVolumeRecommendation)) {
-                // this target pool does not match.
-                _log.debug(String
-                        .format("Target storage pool %s does not match. Target volume can not be created with the same configuration as the source volume.",
-                                targetPool.getNativeId()));
-                return false;
-            }
+            return validateMetaRecommednationsForSRDF(sourcePool, targetPool, sourceVolumeRecommendation, targetVolumeRecommendation);
         }
         return true;
     }
 
+    /**
+     * Validate the meta recommendations.
+     * 
+     * @param sourcePool
+     * @param targetPool
+     * @param sourceVolumeRecommendation
+     * @param targetVolumeRecommendation
+     * @return true/false
+     */
+    private boolean validateMetaRecommednationsForSRDF(final StoragePool sourcePool, final StoragePool targetPool,
+            final MetaVolumeRecommendation sourceVolumeRecommendation, final MetaVolumeRecommendation targetVolumeRecommendation) {
+        // compare source and target recommendations to make sure that source and target volumes have the same spec.
+        if (!sourceVolumeRecommendation.equals(targetVolumeRecommendation)) {
+            // this target pool does not match.
+            // If the sourceVolume is a V2 Meta and the Target Volume is from V3, do not return false..
+            if (sourceVolumeRecommendation.isCreateMetaVolumes()) {
+                if (targetPool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
+                    _log.debug(String
+                            .format("Source storage pool %s supports Meta Volume Creation. Target volume is a non Meta.",
+                                    sourcePool.getNativeId()));
+                    return true;
+                }
+            }
+            // HY: If V3 is the Source, we can Have a V2 Device that is a Meta
+            if (targetVolumeRecommendation.isCreateMetaVolumes()) {
+                if (sourcePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
+                    _log.debug(String
+                            .format("Target storage pool %s supports Meta Volume Creation. Source volume is a non Meta.",
+                                    targetPool.getNativeId()));
+                    return true;
+                }
+            }
+            _log.debug(String
+                    .format("Target storage pool %s does not match. Target volume can not be created with the same configuration as the source volume.",
+                            targetPool.getNativeId()));
+            return false;
+        }
+        return true;
+    }
     /**
      * Generate a list of storage pools for each varray that can provide a valid target path. The
      * seed data is the recommendedPool; the storage pool must have SRDF capability to the
@@ -804,7 +867,7 @@ public class SRDFScheduler implements Scheduler {
      */
     private Map<VirtualArray, List<StoragePool>> findDestPoolsForSourcePool(
             final List<VirtualArray> targetVarrays, final Set<SRDFPoolMapping> srcDestPoolsList,
-            final StoragePool recommendedPool) {
+            final StoragePool recommendedPool, VirtualPool vpool) {
         // Create a return map
         Map<VirtualArray, List<StoragePool>> targetVarrayPoolMap = new HashMap<VirtualArray, List<StoragePool>>();
 
@@ -822,6 +885,7 @@ public class SRDFScheduler implements Scheduler {
             }
             List<StoragePool> uniquePoolList = new ArrayList<StoragePool>();
             uniquePoolList.addAll(uniquePools);
+            uniquePoolList = filterPoolsForSupportedActiveModeProvider(uniquePoolList, vpool);
             targetVarrayPoolMap.put(targetVarray, uniquePoolList);
         }
         return targetVarrayPoolMap;

@@ -1,0 +1,11 @@
+[Unit]
+Description=The Windows simulator
+After=CISCO.service
+
+[Service]
+Type=forking
+ExecStart=/etc/init.d/WIN start
+ExecStop=/etc/init.d/WIN stop
+
+[Install]
+WantedBy=multi-user.target

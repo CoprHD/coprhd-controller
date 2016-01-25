@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
@@ -18,8 +19,10 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -97,13 +100,17 @@ public interface BlockServiceApi {
             String task) throws InternalException;
 
     /**
-     * Check if a resource can be deactivated safely.
+     * Check if a resource can be deactivated safely by checking for dependencies on other
+     * objects in the database.
      * 
-     * @return detail type of the dependency if exist, null otherwise
+     * @param object The object to check.
+     * @param excludeTypes The list of types to exclude from the dependency check.
+     * 
+     * @return The type of the dependency if one exist, null otherwise.
      * 
      * @throws InternalException
      */
-    public <T extends DataObject> String checkForDelete(T object) throws InternalException;
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException;
 
     /**
      * Attaches and starts new continuous copies for the given volume.
@@ -175,7 +182,7 @@ public interface BlockServiceApi {
 
     /**
      * Establish group relation between volume group and native continuous copy group.
-     *
+     * 
      * @param storageSystem the storage system
      * @param sourceVolume the source volume
      * @param blockMirror the block mirror
@@ -189,7 +196,7 @@ public interface BlockServiceApi {
 
     /**
      * Establish group relation between volume group and snapshot group.
-     *
+     * 
      * @param storageSystem the storage system
      * @param sourceVolume the source volume
      * @param snapshot the block snapshot
@@ -497,10 +504,28 @@ public interface BlockServiceApi {
 
     /**
      * Verifies replica count of the volumes to be added to CG.
-     *
+     * 
      * @param volumes List of volumes
      * @param cgVolumes List of active volumes in the CG
      * @param volsAlreadyInCG Volumes to be added are the same with those already in CG
      */
     public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG);
+    
+    /**
+     * Validate and add/remove volumes to the application
+     * @param addVolumes The volumes to be added to the application
+     * @param removeVolumes The map of volumes to be removed from the application by CG URI
+     * @param application The application that the volumes to be updated
+     * @param taskList The task list
+     */
+    public void updateVolumesInVolumeGroup(VolumeGroupVolumeList addVolumes, List<Volume> removeVolumes, 
+            URI volumeGroupId, String taskId);
+
+    /**
+     * return the replication group names related to this VolumeGroup
+     * @param group
+     * @return
+     */
+    public Collection<? extends String> getReplicationGroupNames(VolumeGroup group);
+    
 }

@@ -233,6 +233,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
                             foundCopyModeAll = true;
                             copyModes.add(SupportedCopyModes.SYNCHRONOUS.toString());
                             copyModes.add(SupportedCopyModes.ASYNCHRONOUS.toString());
+                            copyModes.add(SupportedCopyModes.ACTIVE.toString());
                             break;
                         } else {
                             copyModes.add(rg.getSupportedCopyMode());

@@ -419,12 +419,37 @@ angular.module("portalApp").controller({
             	 var projects = value.split(",");
             	 var myNewOptions = [];
             	 for (var j = 0; j < projects.length; j++) {
-                     var project = projects[j].split("~~~");
+                    var project = projects[j].split("~~~");
                     myNewOptions.push({ id: project[0], name: project[1] });
                  }
             	 $scope.projectOptions = myNewOptions;
             };
             
+    	    $scope.$apply();
+       }
+    },
+    DissociateProjectCtrl: function($scope, $http, $window, translate) {
+    	
+    	var resetModal = function() {
+    		$scope.dissociateForm = {};
+    		$scope.projectsToDissociate = {};
+    	}
+    	
+    	$scope.populateModal = function(ids, nasIdString) {
+    		
+    		resetModal();
+    		$scope.projectsToDissociateOptions = [];
+    		
+    		var myNewOptions = [];
+    		var projects = ids.split(",");
+    		
+    		for(var i = 0; i < projects.length; i++) {
+    			var projectInfo = projects[i].split("+");
+    			myNewOptions.push({ id: projectInfo[1], name: projectInfo[0] });
+    		}
+            	
+            $scope.projectsToDissociateOptions = myNewOptions;
+            $scope.nasIds = nasIdString;
     	    $scope.$apply();
        }
     },
@@ -468,6 +493,57 @@ angular.module("portalApp").controller({
     			if (obj.name != '') {
     				var val = obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission+"~~~"+obj.permissionType;
     				val =val.split(",").join("/")
+    				accessList.push(val);
+    			}
+    		});
+    		
+    		$scope.formAccessControlList = accessList.toString();
+    	}, true);
+    },
+    BucketAclCtrl: function($scope, $http, $window, translate) {
+    	
+    	$scope.add = {type:'user', name:'', domain:'', permission:'read'};
+    	
+    	$scope.typeOpt = [{id:'user', name:translate('bucket.acl.user')},
+    	                 {id:'group', name:translate('bucket.acl.group')},
+    	                 {id:'customgroup', name:translate('bucket.acl.customgroup')}];
+    	
+    	
+    	$scope.permOpt = [{id:'read', name:translate('resources.bucket.acl.read')}, 
+    	                  {id:'write', name:translate('resources.bucket.acl.write')}, 
+    	                  {id:'execute', name:translate('resources.bucket.acl.execute')},
+    	                  {id:'full_control', name:translate('resources.bucket.acl.full_control')},
+						  {id:'delete', name:translate('resources.bucket.acl.delete')},
+						  {id:'none', name:translate('resources.bucket.acl.none')},
+						  {id:'privileged_write', name:translate('resources.bucket.acl.privileged_write')},
+						  {id:'read_acl', name:translate('resources.bucket.acl.read_acl')},
+						  {id:'write_acl', name:translate('resources.bucket.acl.write_acl')}];
+    	
+    	var setData = function(data) {
+    		$scope.acl = data;
+    	}
+    	
+    	var resetModal = function() {
+    		$scope.acl = {};
+    	}
+    	
+    	$scope.populateModal = function() {
+    		    resetModal();
+    			$scope.acl.accesscontrols = [];
+        		$scope.acl.accesscontrols.push(angular.copy($scope.add));
+        		$scope.$apply();
+
+    	}
+
+    	$scope.deleteACE = function(idx) { $scope.acl.accesscontrols.splice(idx, 1); }
+    	$scope.addACE = function() { $scope.acl.accesscontrols.push(angular.copy($scope.add)); }
+    	
+    	$scope.$watch('acl', function(newVal) {
+    		var accessList = [];
+    		angular.forEach($scope.acl.accesscontrols, function(obj) {
+    			if (obj.name != '') {
+    				var val = obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission;
+    				val =val.split(",").join("|")
     				accessList.push(val);
     			}
     		});
@@ -1083,5 +1159,33 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     function fetchError(data, status, headers, config) {
         $scope.loading = false;
         $scope.error = data;
+    }
+});
+
+angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
+    angular.element("#backup-time").ready(function () {
+        $scope.$apply(function() {
+            $scope.backup_startTime = getLocalTimeFromOffset($schedulerTimeOffset);
+        });
+
+    });
+    $scope.$watch('backup_startTime', function() {
+        setOffsetFromLocalTime($scope.backup_startTime);
+    });
+
+    function getLocalTimeFromOffset(offset) {
+        var chosenHour = parseInt(offset/100);
+        var chosenMin = offset%100;
+        var utcMoment = moment.utc({hour:chosenHour, minute: chosenMin});
+        var localTime = utcMoment.local().format("HH:mm");
+        return localTime;
+    }
+
+    function setOffsetFromLocalTime(localTime) {
+        var localMoment = moment(localTime, "HH:mm");
+        var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
+        var $backup_time = $("#backup_scheduler_time");
+        $backup_time.val(utcOffset);
+        checkForm();
     }
 });

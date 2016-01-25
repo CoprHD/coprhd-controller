@@ -853,7 +853,7 @@ public class DisasterRecoveryService {
         List<Site> allStandbySites = drUtil.listStandbySites();
 
         for (Site site : allStandbySites) {
-            if (!site.getUuid().equals(uuid) && site.getState() != SiteState.STANDBY_PAUSED) {
+            if (!site.getUuid().equals(uuid) && site.getState() == SiteState.STANDBY_PAUSED) {
                 InternalSiteServiceClient client = new InternalSiteServiceClient(site);
                 client.setCoordinatorClient(coordinator);
                 client.setKeyGenerator(apiSignatureGenerator);
@@ -950,6 +950,9 @@ public class DisasterRecoveryService {
             if (StringUtils.isEmpty(oldActiveSite.getSiteShortId())) {
                 oldActiveSite.setSiteShortId(newActiveSite.getVdcShortId());
             }
+            
+            oldActiveSite.setState(SiteState.ACTIVE_SWITCHING_OVER);
+            coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
             
             drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_SWITCHOVER, Long.parseLong(vdcTargetVersion), oldActiveSite.getUuid(),
                         newActiveSite.getUuid());

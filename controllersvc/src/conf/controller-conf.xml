@@ -160,6 +160,7 @@
         <property name="blockScheduler" ref="blockscheduler"/>
         <property name="workflowService" ref="workflowService"/>
         <property name="srdfDeviceController" ref="srdfDeviceController"/>
+        <property name="replicaDeviceController" ref="replicaDeviceController" />
     </bean>
 
     <bean id="blockDeviceExportController"
@@ -674,6 +675,7 @@
         <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
         <property name="vplexApiLockManager" ref="vplexlockmgr" />
 	    <property name="blockStorageScheduler" ref="blockscheduler"/>
+	    <property name="replicaDeviceController" ref="replicaDeviceController" />
 	    <property name="coordinator" ref="coordinator"/>
 	    <property name="consistencyGroupManagers">
             <map>

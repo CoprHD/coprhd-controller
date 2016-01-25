@@ -65,6 +65,9 @@ SchedulePolicyService
 =Config Services
 CustomConfigService
 
+=Volume Group Services
+VolumeGroupService
+
 =UI Services
 com.emc.sa.api.ApprovalService
 com.emc.sa.api.AssetOptionService
@@ -129,4 +132,5 @@ Compute Services
 Tenant Services
 Virtual Data Center Services
 Object Data Control Services
+Volume Group Services
 Other Services

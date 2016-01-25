@@ -64,6 +64,7 @@ import com.emc.storageos.db.client.model.UCSVnicTemplate;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
@@ -753,9 +754,14 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(storagePort, FileShare.class, field);
         }
 
+        public static ContainmentConstraint getVolumesGroupsByVolumeGroupId(URI volumeGroupId) {
+            DataObjectType doType = TypeMap.getDoType(VolumeGroup.class);
+            return new ContainmentConstraintImpl(volumeGroupId, VolumeGroup.class, doType.getColumnField("parent"));
+        }
+
         /**
          * method to return ContainmentConstraint between {@link ComputeImageJob} and {@link ComputeImageServer}
-         * 
+         *
          * @param imageServerURI {@link URI} imagerServer URI
          * @return {@link ContainmentConstraint}
          */

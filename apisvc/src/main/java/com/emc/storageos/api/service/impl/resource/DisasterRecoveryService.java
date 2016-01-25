@@ -951,8 +951,11 @@ public class DisasterRecoveryService {
                 oldActiveSite.setSiteShortId(newActiveSite.getVdcShortId());
             }
             
-            oldActiveSite.setState(SiteState.ACTIVE_SWITCHING_OVER);
+            oldActiveSite.setState(SiteState.STANDBY_SYNCED);
             coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
+            
+            newActiveSite.setState(SiteState.ACTIVE);
+            coordinator.persistServiceConfiguration(newActiveSite.toConfiguration());
             
             drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_SWITCHOVER, Long.parseLong(vdcTargetVersion), oldActiveSite.getUuid(),
                         newActiveSite.getUuid());

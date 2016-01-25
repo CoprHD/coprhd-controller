@@ -220,7 +220,7 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Set node info to global scope.
+     * Set node info to global scope for the local site.
      * 
      * @param info
      * @param kind
@@ -228,6 +228,11 @@ public class CoordinatorClientExt {
      */
     public void setNodeGlobalScopeInfo(final CoordinatorSerializable info, final String kind, final String id)
             throws CoordinatorClientException {
+        setNodeGlobalScopeInfo(info, null, kind, id);
+    }
+
+    public void setNodeGlobalScopeInfo(final CoordinatorSerializable info, final String siteId, final String kind,
+                                       final String id) throws CoordinatorClientException {
         if (info == null || kind == null) {
             return;
         }
@@ -238,7 +243,7 @@ public class CoordinatorClientExt {
             cfg.setKind(kind); // We can use service id as the "id" and the type of info as "kind", then we can persist certain type of info
                                // about a particular node in coordinator
             cfg.setConfig(NODE_INFO, info.encodeAsString());
-            _coordinator.persistServiceConfiguration(cfg);
+            _coordinator.persistServiceConfiguration(siteId, cfg);
         } catch (Exception e) {
             _log.error("Failed to set node global scope info", e);
             throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set node global scope info. " + e.getMessage());

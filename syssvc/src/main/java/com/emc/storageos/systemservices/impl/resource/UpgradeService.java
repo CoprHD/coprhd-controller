@@ -686,8 +686,11 @@ public class UpgradeService {
      */
     private void initializeDownloadProgress(String version, long versionSize) {
         _coordinator.setTargetInfo(new DownloadingInfo(version, versionSize));
-        for (String nodeId : _coordinator.getAllNodes()) {
-            _coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(version, versionSize), DOWNLOADINFO_KIND, nodeId);
+        for (Site site : drUtil.listSites()) {
+            for (String nodeId : _coordinator.getAllNodes(site.getUuid())) {
+                _coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(version, versionSize), site.getUuid(),
+                        DOWNLOADINFO_KIND, nodeId);
+            }
         }
     }
 
@@ -697,7 +700,7 @@ public class UpgradeService {
      * @param auditType Type of AuditLog
      * @param operationalStatus Status of operation
      * @param description Description for the AuditLog
-     * @param descparams Description paramters
+     * @param descparams Description parameters
      */
     public void auditUpgrade(OperationTypeEnum auditType,
             String operationalStatus,

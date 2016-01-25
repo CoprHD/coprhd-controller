@@ -10900,26 +10900,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String replicationGroupName = addVolList.getReplicationGroupName();
                 
                 // Sort the backend volumes by their storage systems. all volumes in the list should belong to the same VPLEX CG
-                Map<URI, List<URI>> addSrcVolsMap = new HashMap<URI, List<URI>>();
-                Map<URI, List<URI>> addHAVolsMap = new HashMap<URI, List<URI>>();
+                Map<URI, List<URI>> addVolsMap = new HashMap<URI, List<URI>>();
                 for (URI addVol : addVols) {
                     Volume addVplexVol = getDataObject(Volume.class, addVol, _dbClient);
                     Volume backendSrcVol = VPlexUtil.getVPLEXBackendVolume(addVplexVol, true, _dbClient, false);
-                    addVolumeToMap(backendSrcVol, addSrcVolsMap);
+                    addVolumeToMap(backendSrcVol, addVolsMap);
                     
                     Volume backendHAVol = VPlexUtil.getVPLEXBackendVolume(addVplexVol, false, _dbClient, false);
                     if (backendHAVol != null) {
-                        addVolumeToMap(backendHAVol, addHAVolsMap);
+                        addVolumeToMap(backendHAVol, addVolsMap);
                     }
                 }
-                
-                waitFor = addStepsToAddVolumesToReplicationGroup(workflow, waitFor, addSrcVolsMap, replicationGroupName, cguri, opId);
-                if (!addHAVolsMap.isEmpty()) {
-                    // Append ha to the replicationGroupName for HA part replication group name
-                    String rpName = replicationGroupName + "_ha";
-                    waitFor = addStepsToAddVolumesToReplicationGroup(workflow, waitFor, addHAVolsMap, rpName, cguri, opId); 
-                }
-                
+                waitFor = addStepsToAddVolumesToReplicationGroup(workflow, waitFor, addVolsMap, replicationGroupName, cguri, opId);
             }
             completer = new VolumeGroupUpdateTaskCompleter(volumeGroup, addVols, removeVolumeList, opId);
             // Finish up and execute the plan.
@@ -10952,12 +10944,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     
     /**
      * Add steps to add backend volumes to replication group.
-     * @param workflow
-     * @param waitFor
-     * @param addVolumes
-     * @param replicationGroupName
-     * @param cguri
-     * @param opId
+     * @param workflow workflow to add steps to
+     * @param waitFor tag new steps should wait for (also returned)
+     * @param addVolumes volumes to add to replication group
+     * @param replicationGroupName name of replication group to add to
+     * @param cguri uri of BlockConsistencyGroup volumes are associated with
+     * @param opId task id for workflow steps
      * @return the last step Id
      */
     private String addStepsToAddVolumesToReplicationGroup(Workflow workflow, String waitFor, Map<URI, List<URI>>addVolumes, 

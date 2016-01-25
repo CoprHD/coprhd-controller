@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.application;
 
 import java.net.URI;

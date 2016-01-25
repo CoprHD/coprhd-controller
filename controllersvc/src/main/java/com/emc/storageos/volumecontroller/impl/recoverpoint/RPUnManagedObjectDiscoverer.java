@@ -103,6 +103,7 @@ public class RPUnManagedObjectDiscoverer {
         // This section of code allows us to cache XIO native GUID to workaround an issue
         // with RP's understanding of XIO volume WWNs (128-bit) and the rest of the world's
         // understanding of the XIO volume WWN once it's exported (64-bit)
+        Map<String, String> rpWwnToNativeWwn = new HashMap<String, String>();
         List<URI> storageSystemIds = dbClient.queryByType(StorageSystem.class, true);
         List<String> storageNativeIdPrefixes = new ArrayList<String>();
         if (storageSystemIds != null) {
@@ -258,6 +259,9 @@ public class RPUnManagedObjectDiscoverer {
                     // Filter out inappropriate vpools since this is a journal volume
                     filterProtectedVpools(dbClient, unManagedVolume, personality.iterator().next());
 
+                    // Required for XIO, but harmless otherwise.  See comment near beginning of method for more info.
+                    rpWwnToNativeWwn.put(volume.getWwn(), unManagedVolume.getWwn());
+                    
                     unManagedVolumesToUpdateByWwn.put(unManagedVolume.getWwn(), unManagedVolume);
                 }
             }
@@ -353,6 +357,9 @@ public class RPUnManagedObjectDiscoverer {
                     // Filter out certain vpools if target
                     filterProtectedVpools(dbClient, unManagedVolume, personality.iterator().next());
 
+                    // Required for XIO, but harmless otherwise.  See comment near beginning of method for more info.
+                    rpWwnToNativeWwn.put(volume.getWwn(), unManagedVolume.getWwn());
+
                     unManagedVolumesToUpdateByWwn.put(unManagedVolume.getWwn(), unManagedVolume);
                 }
 
@@ -368,7 +375,7 @@ public class RPUnManagedObjectDiscoverer {
                     
                     // See if the unmanaged volume is in the list of volumes to update 
                     // (it should be, unless the backing array has not been discovered)
-                    UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient, storageNativeIdPrefixes);
+                    UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(rpWwnToNativeWwn.get(volume.getWwn()), dbClient, storageNativeIdPrefixes);
 
                     if (null == unManagedVolume) {
                         log.info("Protection Set {} contains unknown volume: {}. Skipping.",
@@ -381,7 +388,7 @@ public class RPUnManagedObjectDiscoverer {
                     // Find the target volumes associated with this source volume.
                     for (GetVolumeResponse targetVolume : rset.getVolumes()) {
                         // Find this volume in UnManagedVolumes based on wwn
-                        UnManagedVolume targetUnManagedVolume = findUnManagedVolumeForWwn(targetVolume.getWwn(), dbClient, storageNativeIdPrefixes);
+                        UnManagedVolume targetUnManagedVolume = findUnManagedVolumeForWwn(rpWwnToNativeWwn.get(targetVolume.getWwn()), dbClient, storageNativeIdPrefixes);
 
                         if (null == targetUnManagedVolume) {
                             log.info("Protection Set {} contains unknown target volume: {}. Skipping.",

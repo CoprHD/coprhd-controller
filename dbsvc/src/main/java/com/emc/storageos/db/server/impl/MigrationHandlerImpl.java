@@ -311,7 +311,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
         failure.setVersion(targetVersion);
         failure.setStartTime(startTime);
         if (e instanceof MigrationCallbackException) {
-        	failure.setSuggestion(((MigrationCallbackException)e).getMsg());
+        	failure.setSuggestion(e.getMessage());
         }
         failure.setMessage(String.format("Upgrade to %s failed:%s", targetVersion, e.getClass().getName()));
         List<String> callStack = new ArrayList<String>();
@@ -469,7 +469,8 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 } catch (MigrationCallbackException ex) {
                 	throw ex;
                 } catch (Exception e) {
-                    throw new MigrationCallbackException(callback.getName(),null,null,"Please contract the EMC support team",e);
+                	String msg = String.format("%s fail,Please contract the EMC support team", callback.getName());
+                    throw new MigrationCallbackException(msg,e);
                 }
                 // Update checkpoint
                 schemaUtil.setMigrationCheckpoint(callback.getName());

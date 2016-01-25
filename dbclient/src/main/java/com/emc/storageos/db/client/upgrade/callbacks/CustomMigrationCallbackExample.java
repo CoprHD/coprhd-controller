@@ -15,7 +15,6 @@ import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException
 
 public class CustomMigrationCallbackExample extends BaseCustomMigrationCallback {
 	private static final int MIN_LABEL_LENGTH = 2;
-	private static final String SHOW_DESCRIPTION = "invalidate label length";
 
 	@Override
 	public void process() throws MigrationCallbackException {
@@ -29,7 +28,8 @@ public class CustomMigrationCallbackExample extends BaseCustomMigrationCallback 
 		while (hosts.hasNext()) {
 			Host host = hosts.next();
 			if (host.getLabel()!=null && host.getLabel().length()<MIN_LABEL_LENGTH) {
-				throw new MigrationCallbackException(this.getName(), Host.class.getSimpleName(), host.getId(), SHOW_DESCRIPTION, new IllegalStateException());
+				String errorMsg = String.format("%s failed: invalid label length %s(%s)", this.getName(), Host.class.getSimpleName(), host.getId().toString());
+				throw new MigrationCallbackException(errorMsg, new IllegalStateException());
 			}
 		}
 	}

@@ -1120,7 +1120,7 @@ public class DisasterRecoveryService {
     private boolean isDataSynced(Site site) {
         if (site.getState().equals(SiteState.ACTIVE)) {
             return true;
-        } else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !site.getNetworkHealth().equals(Site.NetworkHealth.BROKEN)) {
+        } else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !Site.NetworkHealth.BROKEN.equals(site.getNetworkHealth())) {
             return true;
         }
         return false;

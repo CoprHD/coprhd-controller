@@ -14,9 +14,11 @@
  */
 package com.emc.storageos.volumecontroller;
 
-import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.model.object.BucketACE;
+import com.emc.storageos.model.object.BucketACLUpdateParams;
 
 /**
  * Class defining input/output from Object storage device interface
@@ -30,6 +32,13 @@ public class ObjectDeviceInputOutput {
     private Long blkSizeHQ;
     private Long notSizeSQ;
     private String owner;
+        
+    // New additions for Bucket ACL work
+    private BucketACLUpdateParams bucketACLUpdateParams;
+    private List<BucketACE> bucketAclToAdd = new ArrayList<>();
+    private List<BucketACE> bucketAclToModify = new ArrayList<>();
+    private List<BucketACE> bucketAclToDelete = new ArrayList<>();
+    private List<BucketACE> existingBucketAcl = new ArrayList<>();
 
     /*
      * get and set of each members
@@ -89,4 +98,62 @@ public class ObjectDeviceInputOutput {
     public String getOwner() {
         return owner;
     }
+
+    public BucketACLUpdateParams getBucketACLUpdateParams() {
+        return bucketACLUpdateParams;
+    }
+
+    public void setBucketACLUpdateParams(BucketACLUpdateParams bucketACLUpdateParams) {
+        this.bucketACLUpdateParams = bucketACLUpdateParams;
+    }
+
+    public List<BucketACE> getBucketAclToAdd() {
+        return bucketAclToAdd;
+    }
+
+    public void setBucketAclToAdd(List<BucketACE> bucketAclToAdd) {
+        this.bucketAclToAdd = bucketAclToAdd;
+    }
+
+    public List<BucketACE> getBucketAclToModify() {
+        return bucketAclToModify;
+    }
+
+    public void setBucketAclToModify(List<BucketACE> bucketAclToModify) {
+        this.bucketAclToModify = bucketAclToModify;
+    }
+
+    public List<BucketACE> getBucketAclToDelete() {
+        return bucketAclToDelete;
+    }
+
+    public void setBucketAclToDelete(List<BucketACE> bucketAclToDelete) {
+        this.bucketAclToDelete = bucketAclToDelete;
+    }
+    
+    
+    public List<BucketACE> getExistingBucketAcl() {
+        return existingBucketAcl;
+    }
+
+    public void setExistingBucketAcl(List<BucketACE> existingBucketAcl) {
+        this.existingBucketAcl = existingBucketAcl;
+    }
+
+    public void setAllBuckectAcl(BucketACLUpdateParams param) {
+
+        bucketACLUpdateParams = param;
+
+        if (param.getAclToAdd() != null && !param.getAclToAdd().getBucketACL().isEmpty()) {
+            this.bucketAclToAdd = param.getAclToAdd().getBucketACL();
+        }
+        if (param.getAclToModify() != null && !param.getAclToModify().getBucketACL().isEmpty()) {
+            this.bucketAclToModify = param.getAclToModify().getBucketACL();
+        }
+        if (param.getAclToDelete() != null && !param.getAclToDelete().getBucketACL().isEmpty()) {
+            this.bucketAclToDelete = param.getAclToDelete().getBucketACL();
+        }
+
+    }
+    
 }

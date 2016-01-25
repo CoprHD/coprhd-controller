@@ -1,3 +1,5 @@
+#{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
+
 <div id="physicalAssetsPanel">
   <div class="panel panel-default">
     <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.physicalAssets'}</h3></div>
@@ -10,7 +12,7 @@
       #{/if}
     #{if storageArrayCount != null}
       <ul class="list-group">
-        #{if controllers.security.Security.isSystemAdminOrRestrictedSystemAdmin() && controllers.infra.DisasterRecovery.isPrimarySite()}
+        #{if controllers.security.Security.isSystemAdminOrRestrictedSystemAdmin() && isActiveSite }
           #{license.ifController}
             <a class="list-group-item" href="@{arrays.StorageSystems.list()}">&{'adminDashboard.storageArrays'} #{badgeNumber storageArrayCount/}</a>
             <a class="list-group-item" href="@{arrays.StorageProviders.list()}">&{'adminDashboard.smisProviders'} #{badgeNumber smisProviderCount/}</a>
@@ -35,7 +37,7 @@
           #{/license.ifController}
         #{/else}
         #{license.ifController}
-          #{if controllers.security.Security.isTenantAdmin() && controllers.infra.DisasterRecovery.isPrimarySite()}
+          #{if controllers.security.Security.isTenantAdmin() && isActiveSite }
             <a class="list-group-item" href="@{compute.Hosts.list()}">&{'adminDashboard.hosts'} #{badgeNumber hostCount/}</a>
             <a class="list-group-item" href="@{compute.HostClusters.list()}">&{'adminDashboard.clusters'} #{badgeNumber clusterCount/}</a>
             <a class="list-group-item" href="@{compute.VCenters.list()}">&{'adminDashboard.vcenters'} #{badgeNumber vcenterCount/}</a>

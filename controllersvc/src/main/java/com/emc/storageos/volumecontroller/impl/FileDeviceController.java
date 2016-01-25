@@ -306,12 +306,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fsObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, fsObj));
                 //set inactive = false
                 fsObj.setInactive(false);
-                fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+                
             } else if (!result.getCommandPending()) {
                 fsObj.setInactive(true);
             }
-
-            _dbClient.updateObject(fsObj);
+            fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.persistObject(fsObj);
 
             if (!result.getCommandPending()) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, result.isCommandSuccess(), "", "", fsObj);

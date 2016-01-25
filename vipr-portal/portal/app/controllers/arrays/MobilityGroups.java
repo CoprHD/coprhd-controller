@@ -10,6 +10,7 @@ import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,6 +32,7 @@ import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
@@ -236,6 +238,8 @@ public class MobilityGroups extends ViprResourceController {
 
         public List<URI> clusters;
 
+        public List<URI> applications;
+
         public MobilityGroupForm(VolumeGroupRestRep applicationForm) {
             this.id = applicationForm.getId().toString();
             this.name = applicationForm.getName();
@@ -256,6 +260,10 @@ public class MobilityGroups extends ViprResourceController {
             this.clusters = Lists.newArrayList();
             for (NamedRelatedResourceRep cluster : getViprClient().application().getClusters(applicationForm.getId())) {
                 clusters.add(cluster.getId());
+            }
+            this.applications = Lists.newArrayList();
+            for (RelatedResourceRep application : getViprClient().application().getApplication(applicationForm.getId()).getParents()) {
+                applications.add(application.getId());
             }
         }
 
@@ -288,18 +296,23 @@ public class MobilityGroups extends ViprResourceController {
                 List<URI> addClusters = computeDiff(clusters, getViprClient().application().getClusters(URI.create(id)), true);
                 List<URI> removeClusters = computeDiff(clusters, getViprClient().application().getClusters(URI.create(id)), false);
 
+                List<URI> addApplications = computeDiff(applications, getViprClient().application().getApplication(URI.create(id))
+                        .getParents(), true);
+                List<URI> removeApplications = computeDiff(applications, getViprClient().application().getApplication(URI.create(id))
+                        .getParents(), false);
+
                 MobilityGroupSupportUtil.updateMobilityGroup(name, description, id, addVolumes, removeVolumes, addHosts, removeHosts,
-                        addClusters, removeClusters);
+                        addClusters, removeClusters, addApplications, removeApplications);
             }
 
         }
 
-        private List<URI> computeDiff(List<URI> selectedResources, List<NamedRelatedResourceRep> oldResources, boolean add) {
+        private List<URI> computeDiff(List<URI> selectedResources, Collection<? extends RelatedResourceRep> oldResources, boolean add) {
             List<URI> result = Lists.newArrayList();
             if (add && selectedResources != null) {
                 // TODO fix this looping...
                 List<URI> oldResourceIds = Lists.newArrayList();
-                for (NamedRelatedResourceRep oldResource : oldResources) {
+                for (RelatedResourceRep oldResource : oldResources) {
                     oldResourceIds.add(oldResource.getId());
                 }
                 for (URI selectedResource : selectedResources) {
@@ -308,7 +321,7 @@ public class MobilityGroups extends ViprResourceController {
                     }
                 }
             } else {
-                for (NamedRelatedResourceRep oldResource : oldResources) {
+                for (RelatedResourceRep oldResource : oldResources) {
                     if (selectedResources == null || !selectedResources.contains(oldResource.getId())) {
                         result.add(oldResource.getId());
                     }

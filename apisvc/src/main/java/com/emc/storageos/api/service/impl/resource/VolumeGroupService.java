@@ -72,6 +72,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.google.common.collect.Sets;
 
 /**
  * APIs to view, create, modify and remove volume groups
@@ -162,7 +163,7 @@ public class VolumeGroupService extends TaskResourceService {
         volumeGroup.addRoles(param.getRoles());
 
         // add parent if specified
-        String msg = setParent(volumeGroup, param.getParent());
+        String msg = setParent(volumeGroup, param.getParent(), true);
         if (msg != null && !msg.isEmpty()) {
             throw APIException.badRequests.volumeGroupCantBeCreated(volumeGroup.getLabel(), msg);
         }
@@ -347,9 +348,18 @@ public class VolumeGroupService extends TaskResourceService {
             isChanged = true;
         }
 
-        String parent = param.getParent();
-        if (parent != null && !parent.isEmpty()) {
-            String msg = setParent(volumeGroup, parent);
+        List<URI> addParents = param.getAddParents();
+        for (URI addParent : addParents) {
+            String msg = setParent(volumeGroup, addParent.toString(), true);
+            if (msg != null && !msg.isEmpty()) {
+                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
+            }
+            isChanged = true;
+        }
+
+        List<URI> removeParents = param.getRemoveParents();
+        for (URI removeParent : removeParents) {
+            String msg = setParent(volumeGroup, removeParent.toString(), false);
             if (msg != null && !msg.isEmpty()) {
                 throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
             }
@@ -1062,7 +1072,20 @@ public class VolumeGroupService extends TaskResourceService {
         }
     }
 
-    private String setParent(VolumeGroup volumeGroup, String parent) {
+    private void setParents(VolumeGroup volumeGroup, URI parent, boolean add) {
+        Set<URI> parents = volumeGroup.getParents();
+        if (parents == null) {
+            parents = Sets.newHashSet();
+        }
+        if (add) {
+            parents.add(parent);
+        } else {
+            parents.remove(parent);
+        }
+        volumeGroup.setParents(parents);
+    }
+
+    private String setParent(VolumeGroup volumeGroup, String parent, boolean add) {
         String errorMsg = null;
         // add parent if specified
         if (parent != null) {
@@ -1073,7 +1096,7 @@ public class VolumeGroupService extends TaskResourceService {
                 if (parentVG == null || parentVG.getInactive()) {
                     errorMsg = "The parent volume group does not exist";
                 } else {
-                    volumeGroup.setParent(parentId);
+                    setParents(volumeGroup, URI.create(parent), add);
                 }
             } else {
                 List<VolumeGroup> parentVg = CustomQueryUtility
@@ -1082,7 +1105,7 @@ public class VolumeGroupService extends TaskResourceService {
                 if (parentVg == null || parentVg.isEmpty()) {
                     errorMsg = "The parent volume group does not exist";
                 } else {
-                    volumeGroup.setParent(parentVg.iterator().next().getId());
+                    setParents(volumeGroup, parentVg.iterator().next().getId(), add);
                 }
             }
         }

@@ -19,7 +19,7 @@ public class VolumeGroup extends DataObject {
     private StringSet roles;
 
     // parent volume group
-    private URI parent;
+    private Set<URI> parents;
 
     private String migrationType;
 
@@ -125,15 +125,15 @@ public class VolumeGroup extends DataObject {
      */
     @RelationIndex(cf = "VolumeGroupParent", type = VolumeGroup.class)
     @Name("parent")
-    public URI getParent() {
-        return parent;
+    public Set<URI> getParents() {
+        return parents;
     }
 
     /**
      * @param parent the parent to set
      */
-    public void setParent(URI parent) {
-        this.parent = parent;
-        setChanged("parent");
+    public void setParents(Set<URI> parents) {
+        this.parents = parents;
+        setChanged("parents");
     }
 }

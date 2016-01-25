@@ -31,9 +31,23 @@ ARGC=$#
     echo "usage: vplex_export_test [test1|test2|test3|test4|test5|cleanup]*"
     exit 2;
 }
+
+SANITY_CONFIG_FILE=""
+# ============================================================
+# Check if there is a sanity configuration file specified
+# on the command line. In, which case, we should use that
+# ============================================================
+if [ "$1"x != "x" ]; then
+   if [ -f "$1" ]; then
+      SANITY_CONFIG_FILE=$1
+      echo Using sanity configuration file $SANITY_CONFIG_FILE
+      shift
+   fi
+fi
+
 ARGV=$*
 CWD=$(pwd)
-export PATH=$CWD:$CWD/..:$PATH
+export PATH=$CWD:$CWD/..:$(dirname $0):$(dirname $0)/..:$PATH
 echo "PATH: " $PATH
 
 # Virtual arrays
@@ -43,7 +57,7 @@ VANC1=VAnc1		# non-cross connected VPlex cluster-1
 VANC2=VAnc2		# non-cross connected VPlex cluster-2
 
 # Configuration file to be used  
-source ../conf/sanity.conf
+source $SANITY_CONFIG_FILE 
 
 # Variables that should be inherited from sanity
 BLK_SIZE=${BLK_SIZE:-1073741824}

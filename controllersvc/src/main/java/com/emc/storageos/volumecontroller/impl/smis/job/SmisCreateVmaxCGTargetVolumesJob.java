@@ -5,22 +5,25 @@
 
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.exceptions.DeviceControllerErrors;
-import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.volumecontroller.JobContext;
-import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.smis.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.exceptions.DeviceControllerErrors;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.JobContext;
+import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /**
  * A job used for creating VDEVs for a snapshot target group
@@ -37,6 +40,7 @@ public class SmisCreateVmaxCGTargetVolumesJob extends SmisJob {
         super(cimJob, storageSystem, taskCompleter, "CreateVdevVolume");
     }
 
+    @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         CloseableIterator<CIMObjectPath> iterator = null;
         DbClient dbClient = jobContext.getDbClient();

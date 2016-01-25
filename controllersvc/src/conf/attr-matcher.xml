@@ -28,8 +28,11 @@
 		 <ref bean="haMatcher" />
 		 <ref bean="protectionMatcher" />
          <ref bean="remoteMirrorProtectionMatcher"/>
+         <ref bean="srdfMetroMatcher"/>
          <ref bean="longTermRetentionMatcher"/>
          <ref bean="hdsShadowImagePairCountMatcher"/>
+         <ref bean="fileReplicationMatcher" />
+         <ref bean="minDataCenterMatcher"/>
 	</util:list>
 	
 	<util:list id="placementMatchers">
@@ -44,6 +47,10 @@
         <ref bean="poolPreferenceBasedOnDriveMathcer"/>
         <ref bean="softLimitMatcher"/>
         <ref bean="notificationLimitMatcher"/>
+        <ref bean="srdfMetroMatcher"/>
+        <ref bean="fileReplicationMatcher" />
+        <ref bean="copyModeMatcher" />
+        <ref bean="bucketquotaMatcher" />
 	</util:list>
 
     <util:list id="basicPlacementMatchers">
@@ -51,7 +58,13 @@
         <ref bean="neighborhoodsMatcher" />
         <ref bean="storageSystemMatcher" />
     </util:list>
-    
+
+
+	<util:list id="connectivityMatchers">
+		<ref bean="numPathsMatcher" />
+	</util:list>
+
+
     <bean id="portMetricsProcessor" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -72,6 +85,7 @@
 	<bean id="vnxBlockFastPolicyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VNXBlockAutoTieringPolicyMatcher" />
 	<bean id="capacityMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher"/>
 	<bean id="remoteMirrorProtectionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.RemoteMirrorProtectionMatcher"/>
+	<bean id="srdfMetroMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SRDFMetroMatcher"/>
 	<bean id="activePoolMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ActivePoolMatcher" />
 	<bean id="neighborhoodsMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsMatcher" />
 	<bean id="protocolsMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ProtocolsAttrMatcher" />
@@ -89,7 +103,10 @@
     <bean id="hdsShadowImagePairCountMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HDSShadowImagePairCountMatcher"/>
     <bean id="softLimitMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SoftLimitMatcher"/>
     <bean id="notificationLimitMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NotificationLimitMatcher"/>
-    
+    <bean id="fileReplicationMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileReplicationAttrMatcher" />
+    <bean id="copyModeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileCopyModeMatcher" />
+    <bean id="minDataCenterMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MinDataCenterMatcher"/>
+    <bean id="bucketquotaMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.BucketQuotaMatcher"/>
 	
 	<!-- The following bean represents how to inject a bean in a util class having static methods. 
 	     Ex. matcherFramework bean in a ImplicitPoolMatcher static method. -->

@@ -209,23 +209,6 @@ _gen_ssh_authkeys2() {
     _genconfig_done
 }
 
-# Get site uuid. It is generated once at first boot and based on vip
-# and store to /data/zk
-_genconfig_site_id() {
-    local site_id_file="/data/zk/siteid"
-    local site_id=""
-    if [ -f ${site_id_file} ] && [ -s ${site_id_file} ] ; then
-        site_id=$(cat ${site_id_file})
-    else
-        local seed="${_GENCONFIG_network_vip},${_GENCONFIG_network_vip6}"
-        local chksum=$(echo $seed | /usr/bin/sha1sum | cut -d ' ' -f 1)
-        site_id="${chksum:0:8}-${chksum:9:4}-${chksum:13:4}-${chksum:17:4}-${chksum:22:12}"
-        echo "${site_id}" > ${site_id_file}
-    fi
-    echo "${site_id}"
-}
-
-
 # This method returns the configured ip address of this machine
 _get_local_ip() {
     local nodeid="${_GENCONFIG_node_id}"
@@ -237,65 +220,49 @@ _get_local_ip() {
     echo "${ipaddr}"
 }
 
-
-# get ips in primary site
-_get_ips_in_primary() {
-    local cursite_begin_index="0"
-    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
-    local primary_cnt="${!var}"
+# get ips for a specified site
+# input:
+#    $1 - vdc id
+#    $2 - site id
+_get_ips_in_specified_site() {
+    local vdc_id=$1
+    local site_id=$2
     local ips=""
-    for i in $(seq ${primary_cnt}) ; do
-        local ipaddr=""
-        if [ "${_GENCONFIG_site_is_standby}" == "false" ]; then
-            # use ipaddr from ovf-env. for ip change support
-            local var="_GENCONFIG_network_${i}_ipaddr_service"
-            ipaddr="${!var}"
-            # remove ipv6's brackets
-            ipaddr=$(echo ${ipaddr} | sed -e 's/^\[//' -e 's/\]$//')
+    local var=""
+    local var6=""
+
+    var="_GENCONFIG_vdc_${vdc_id}_${site_id}_node_count"
+    local node_cnt="${!var}"
+    for i in $(seq 1 ${node_cnt}); do
+        # ips of local site should based on network_{i}_ipaddr properties, instead of properties started
+        # with vdc.  this is because in ip change use case, "vdc_*" properties was not updated with the
+        # new ip during first boot.
+        if [ "${vdc_id}" == "${_GENCONFIG_vdc_myid}" ] && [ "${site_id}" == "${_GENCONFIG_site_myid}" ] ; then
+            var="_GENCONFIG_network_${i}_ipaddr"
+            var6="_GENCONFIG_network_${i}_ipaddr6"
         else
-            local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr"
-            local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr6"
-            ipaddr="${!var}"
-            [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
+            var="_GENCONFIG_vdc_${vdc_id}_${site_id}_network_${i}_ipaddr"
+            var6="_GENCONFIG_vdc_${vdc_id}_${site_id}_network_${i}_ipaddr6"
         fi
+        local ipaddr="${!var}"
+        # remove ipv6's brackets, if had.
+        ipaddr=$(echo ${ipaddr} | sed -e 's/^\[//' -e 's/\]$//')
+        [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
         ips="${ips} ${ipaddr}"
     done
 
-    echo "${ips}"
-}
-
-# get ips in specified standby site
-# input - standby site id
-_get_ips_in_standby() {
-    local standby=$1
-    local ips=""
-
-    if [ -n "${_GENCONFIG_site_ids}" ] ; then
-        var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_node_count"
-        local standby_cnt="${!var}"
-        for standby_index in $(seq 1 ${standby_cnt}); do
-            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_${standby_index}_ipaddr"
-            var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_${standby_index}_ipaddr6"
-            local ipaddr="${!var}"
-            [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
-            ips="${ips} ${ipaddr}"
-        done
-    else
-        # no standby defined
-        echo ""
-    fi
     echo "$ips"
 }
+
 
 # get ips list of all nodes in the vdc, vip(s) not included
 _get_all_nodes_in_my_vdc() {
     local all_nodes=""
-    all_nodes+=$(_get_ips_in_primary)
-    if [ -n "${_GENCONFIG_site_ids}" ] ; then
-        local site_ids=$(echo ${_GENCONFIG_site_ids} | sed 's/,/ /g')
-        for standby in ${site_ids} ; do
-            all_nodes+=$(_get_ips_in_standby "${standby}")
-        done
-    fi
+
+    local site_ids=$(echo ${_GENCONFIG_site_ids} | sed 's/,/ /g')
+    for site in ${site_ids} ; do
+        all_nodes+=$(_get_ips_in_specified_site "${_GENCONFIG_vdc_myid}" "${site}")
+    done
+
     echo "${all_nodes}"
 }

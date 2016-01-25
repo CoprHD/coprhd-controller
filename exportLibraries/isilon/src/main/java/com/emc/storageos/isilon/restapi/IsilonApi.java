@@ -59,7 +59,8 @@ public class IsilonApi {
     private static final URI URI_CLUSTER = URI.create("/platform/1/cluster/identity");
     private static final URI URI_CLUSTER_CONFIG = URI.create("/platform/1/cluster/config");
     private static final URI URI_STATS = URI.create("/platform/1/statistics/");
-    private static final URI URI_STORAGE_POOLS = URI.create("/platform/1/diskpool/diskpools");
+    private static final URI URI_STORAGE_POOLS = URI.create("/platform/1/storagepool/storagepools");
+    private static final URI URI_DISK_POOLS = URI.create("/platform/1/diskpool/diskpools");
     private static final URI URI_ARRAY_GLOBAL_STATUS = URI.create("/platform/1/protocols/nfs/settings/global");
     private static final URI URI_ARRAY_GLOBAL_STATUS_ONEFS8 = URI.create("/platform/3/protocols/nfs/settings/global");
     private static final URI URI_STORAGE_PORTS = URI
@@ -70,6 +71,13 @@ public class IsilonApi {
 
     private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
+    private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
+    private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
+    private static final URI URI_REPLICATION_POLICIES = URI.create("/platform/1/sync/policies/");
+    private static final URI URI_REPLICATION_JOBS = URI.create("/platform/1/sync/jobs");
+    private static final URI URI_TARGET_REPLICATION_POLICIES = URI.create("platform/1/sync/target/policies/");
+    private static final URI URI_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/reports?policy_name=");
+    private static final URI URI_TARGET_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/target/reports?policy_name=");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -205,6 +213,8 @@ public class IsilonApi {
     }
 
     /**
+     * 
+     * /**
      * Get list of all sub directories of fspath
      * 
      * @param fspath
@@ -582,6 +592,46 @@ public class IsilonApi {
     }
 
     /**
+     * Generic get resource when key is not applicable
+     * 
+     * @param url url to get from
+     * @param id identifier for the object
+     * @param c Class of object representing the return value
+     * @return T Object parsed from the response, on success
+     * @throws IsilonException
+     */
+    private <T> T getObj(URI url, String id, Class<T> c) throws IsilonException {
+
+        ClientResponse resp = null;
+        try {
+            T returnInstance = null;
+            resp = _client.get(url.resolve(id));
+
+            if (resp.hasEntity()) {
+                JSONObject jObj = resp.getEntity(JSONObject.class);
+                if (resp.getStatus() == 200) {
+                    returnInstance = new Gson().fromJson(jObj.toString(), c);
+                } else {
+                    processErrorResponse("get", id, resp.getStatus(), jObj);
+                }
+            } else {
+                // no entity in response
+                processErrorResponse("get", id, resp.getStatus(), null);
+            }
+            return returnInstance;
+        } catch (IsilonException ie) {
+            throw ie;
+        } catch (Exception e) {
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc("", id, response, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+    }
+
+    /**
      * Generic modify resource with 204 as HTTP response code.
      * 
      * @param url
@@ -862,7 +912,7 @@ public class IsilonApi {
         if (thresholds != null && thresholds.length > 0) {
             quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", false, false, thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
-                                      // cluster size.
+            // cluster size.
         } else {
             quota = new IsilonSmartQuota(path);
         }
@@ -898,7 +948,7 @@ public class IsilonApi {
             quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", bThresholdsIncludeOverhead, bIncludeSnapshots,
                     thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
-                                      // cluster size.
+            // cluster size.
         } else {
             quota = new IsilonSmartQuota(path, bThresholdsIncludeOverhead, bIncludeSnapshots);
         }
@@ -1232,7 +1282,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonNFSACL getNFSACL(String path) throws IsilonException {
-        return get(_baseUrl.resolve(URI_IFS), path, "ACL", IsilonNFSACL.class);
+        String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
+        return getObj(_baseUrl.resolve(URI_IFS), aclUrl, IsilonNFSACL.class);
     }
 
     /**
@@ -1241,9 +1292,21 @@ public class IsilonApi {
      * @return storage pools
      * @throws IsilonException
      */
-    public List<IsilonStoragePool> getStoragePools() throws IsilonException {
+    public List<? extends IsilonPool> getStoragePools() throws IsilonException {
         IsilonList<IsilonStoragePool> pools = list(_baseUrl.resolve(URI_STORAGE_POOLS),
-                "diskpools", IsilonStoragePool.class, null);
+                "storagepools", IsilonStoragePool.class, null);
+        return pools.getList();
+    }
+
+    /**
+     * Get disk pools for OneFS version < 7.2
+     * 
+     * @return disk pools
+     * @throws IsilonException
+     */
+    public List<? extends IsilonPool> getDiskPools() throws IsilonException {
+        IsilonList<IsilonDiskPool> pools = list(_baseUrl.resolve(URI_DISK_POOLS),
+                "diskpools", IsilonDiskPool.class, null);
         return pools.getList();
     }
 
@@ -1661,6 +1724,160 @@ public class IsilonApi {
             }
         }
         return isNfsv4Enabled;
+    }
+
+    /**
+     * Checks to see if the SyncIQ service is enabled on the isilon device
+     * 
+     * @return boolean true if exists, false otherwise
+     */
+    public boolean isSyncIQEnabled(String firmwareVersion) throws IsilonException {
+        ClientResponse resp = null;
+        boolean isSyncIqEnabled = false;
+
+        try {
+            // Verify the Sync service is enable or not
+            // JSON response for the below should have service=on
+            resp = _client.get(_baseUrl.resolve(URI_SYNCIQ_SERVICE_STATUS));
+            JSONObject jsonResp = resp.getEntity(JSONObject.class);
+            if (jsonResp.has("settings") && jsonResp.getJSONObject("settings") != null) {
+            	if (jsonResp.getJSONObject("settings").has("service")) {
+            		 String syncService = jsonResp.getJSONObject("settings").getString("service");
+                     if (syncService != null && !syncService.isEmpty()) {
+                     	sLogger.info("IsilonApi - SyncIQ service status {} ", syncService);
+                     	if("on".equalsIgnoreCase(syncService)) {
+                     		isSyncIqEnabled = true;
+                     	}
+                     }
+            	}
+            }
+        } catch (Exception e) {
+            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+        return isSyncIqEnabled;
+    }
+
+    /**
+     * Get SyncIq license information from the Isilon array
+     * 
+     * @return IsilonReplicationLicenseInfo object
+     * @throws IsilonException
+     * @throws JSONException
+     */
+
+    public String getReplicationLicenseInfo() throws IsilonException, JSONException {
+    	String licenseStatus = "Unknown";
+        ClientResponse clientResp = _client.get(_baseUrl.resolve(URI_REPLICATION_LICENSE_INFO));
+        JSONObject jsonResp = clientResp.getEntity(JSONObject.class);
+        if (jsonResp.has("status")) {
+        	licenseStatus = jsonResp.get("status").toString();
+        	return licenseStatus;
+        }
+        return licenseStatus;
+    }
+
+    /**
+     * Get Replication Policy information from the Isilon array
+     * 
+     * @return IsilonSyncPolicy object
+     * @throws IsilonException
+     */
+    public IsilonSyncPolicy getReplicationPolicy(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", IsilonSyncPolicy.class);
+    }
+
+    /**
+     * Get Target Replication Policy information from the Isilon array
+     * 
+     * @return IsilonSyncPolicy object
+     * @throws IsilonException
+     */
+    public IsilonSyncTargetPolicy getTargetReplicationPolicy(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_TARGET_REPLICATION_POLICIES), id, "policies", IsilonSyncTargetPolicy.class);
+    }
+
+    /**
+     * Create Replication Policy
+     * 
+     * @param replicationPolicy IsilonSyncPolicy object
+     * @return String identifier for the policy created
+     * @throws IsilonException
+     */
+    public String createReplicationPolicy(IsilonSyncPolicy replicationPolicy) throws IsilonException {
+        return create(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", replicationPolicy);
+    }
+
+    /**
+     * Modify Replication Policy
+     * 
+     * @param id identifier/name of the Replication Policy to modify
+     * @param syncPolicy IsilonSyncPolicy object with the modified properties
+     * @throws IsilonException
+     */
+    public void modifyReplicationPolicy(String id, IsilonSyncPolicy syncPolicy) throws IsilonException {
+        modify(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", syncPolicy);
+    }
+
+    /**
+     * Delete replication policy
+     * 
+     * @param id identifier for the replication policy object to delete
+     * @throws IsilonException
+     */
+    public void deleteReplicationPolicy(String id) throws IsilonException {
+        delete(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies");
+    }
+
+    /**
+     * Get Replication Jobs information from the Isilon array
+     * 
+     * @param id identifier for the replication policy
+     * @return Replication Jobs object
+     * @throws IsilonException
+     */
+    public IsilonSyncJob getReplicationJob(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_REPLICATION_JOBS), id, "jobs", IsilonSyncJob.class);
+    }
+
+    /**
+     * Start a Replication Job
+     * 
+     * @param IsilonSyncJob Object
+     * @return policy_name
+     * @throws IsilonException
+     */
+    public String modifyReplicationJob(IsilonSyncJob job) throws IsilonException {
+        return create(_baseUrl.resolve(URI_REPLICATION_JOBS), "jobs", job);
+    }
+
+    /**
+     * Get Replication Reports information from the Isilon array
+     * 
+     * @param Name for the replication policy
+     * @return Replication Report Object
+     * @throws IsilonException
+     */
+
+    public IsilonList<IsilonSyncPolicyReport> getReplicationPolicyReports(String policyName) throws IsilonException {
+        URI uri = URI.create(URI_REPLICATION_POLICY_REPORTS.toString() + policyName);
+        return list(_baseUrl.resolve(uri), "reports", IsilonSyncPolicyReport.class, "");
+    }
+
+    /**
+     * Get Target Replication Reports information from the Isilon array
+     * 
+     * @param Name for the replication policy
+     * @return Replication Report Object
+     * @throws IsilonException
+     */
+
+    public IsilonList<IsilonSyncPolicyReport> getTargetReplicationPolicyReports(String policyName) throws IsilonException {
+        URI uri = URI.create(URI_TARGET_REPLICATION_POLICY_REPORTS.toString() + policyName);
+        return list(_baseUrl.resolve(uri), "reports", IsilonSyncPolicyReport.class, "");
     }
 
     private String getURIWithZoneName(String id, String zoneName) {

@@ -22,7 +22,7 @@ public interface CinderConstants {
     public static String DEFAULT_API_VERSION = REST_API_VERSION_2; // By default using v2
 
     public final static String KEY_CINDER_HOST_NAME = "CINDER_HOST_NAME";
-    public final static String KEY_CINDER_REST_PASS_WORD = "REST_PASSWORD";
+    public final static String KEY_CINDER_REST_PASSWORD = "REST_PASSWORD";           
     public final static String KEY_CINDER_REST_USER = "REST_USERNAME";
     public final static String KEY_CINDER_REST_URI_BASE = "REST_URI_BASE";
     public final static String KEY_CINDER_TENANT_NAME = "TENANT_NAME";
@@ -102,6 +102,38 @@ public interface CinderConstants {
     public static enum ComponentType {
         volume,
         snapshot;
+    }
+    
+    
+    /*
+     * Enum types for different kinds actions possible during volume attach 
+     * with enterprize cinder.  
+     */
+    public static enum ExportOperations
+    {
+        OS_RESERVE("os-reserve"),
+        OS_UNRESERVE("os-unreserve"),
+        OS_TERMINATE_CONNECTION("os-terminate_connection"),
+        OS_BEGIN_DETACHING("os-begin_detaching"),
+        OS_DETACH("os-detach"),
+        OS_INITIALIZE_CONNECTION("os-initialize_connection"),
+        OS_ATTACH("os-attach"),
+        OS_EXTEND("os-extend"),
+        OS_RESET_STATUS("os-reset_status"),        
+        OS_SET_BOOTABLE("os-set_bootable"),
+        OS_UPDATE_READONLY("os-update_readonly_flag");
+
+        public String operation = "";
+
+        ExportOperations(String operation)
+        {
+            this.operation = operation;
+        }
+
+        public String getOperation()
+        {
+            return this.operation;
+        }
     }
 
 }

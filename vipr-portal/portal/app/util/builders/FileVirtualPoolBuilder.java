@@ -6,6 +6,7 @@ package util.builders;
 
 import com.emc.storageos.model.vpool.FileVirtualPoolParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionParam;
+import com.emc.storageos.model.vpool.FileVirtualPoolReplicationParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionSnapshotsParam;
 
@@ -52,6 +53,23 @@ public class FileVirtualPoolBuilder extends VirtualPoolBuilder {
 
     public FileVirtualPoolBuilder setLongTermRetention(Boolean longTermRetention) {
         virtualPool.setLongTermRetention(longTermRetention);
+        return this;
+    }
+    
+    protected FileVirtualPoolReplicationParam getReplicationParam() {
+        if (getProtection().getReplicationParam() == null) {
+            getProtection().setReplicationParam(new FileVirtualPoolReplicationParam());
+
+        }
+        return virtualPool.getProtection().getReplicationParam();
+    }
+
+    public static FileVirtualPoolReplicationParam getReplicationParam(FileVirtualPoolRestRep virtualPool) {
+        return virtualPool != null ? virtualPool.getProtection().getReplicationParam() : null;
+    }
+
+    public FileVirtualPoolBuilder setReplicationParam(FileVirtualPoolReplicationParam replicationParam) {
+        getProtection().setReplicationParam(replicationParam);
         return this;
     }
 }

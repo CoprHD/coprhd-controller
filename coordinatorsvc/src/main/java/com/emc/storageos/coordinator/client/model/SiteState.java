@@ -38,6 +38,16 @@ public enum SiteState {
             return true;
         }
     },
+    
+    /**
+     * Active site is back after failover, site has been down graded.
+     */
+    ACTIVE_DEGRADED {
+        @Override
+        public boolean isDROperationOngoing() {
+            return false;
+        }
+    },
 
     /**
      *  Standby site. Adding site
@@ -83,6 +93,26 @@ public enum SiteState {
      *  Standby site. Replication is paused
      */
     STANDBY_PAUSED {
+        @Override
+        public boolean isDROperationOngoing() {
+            return false;
+        }
+    },
+
+    /**
+     *  Standby site. Db is being excluded from strategy options
+     */
+    STANDBY_DEGRADING {
+        @Override
+        public boolean isDROperationOngoing() {
+            return true;
+        }
+    },
+
+    /**
+     *  Standby site. Db is excluded from strategy options
+     */
+    STANDBY_DEGRADED {
         @Override
         public boolean isDROperationOngoing() {
             return false;

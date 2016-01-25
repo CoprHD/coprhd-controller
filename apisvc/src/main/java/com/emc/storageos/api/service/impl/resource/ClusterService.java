@@ -25,6 +25,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -340,7 +341,10 @@ public class ClusterService extends TaskResourceService {
     }
 
     private void populateCluster(ClusterParam param, Cluster cluster) {
-        cluster.setLabel(param.findName());
+        String clusterName = param.findName();
+        if (!Strings.isNullOrEmpty(clusterName)) {
+            cluster.setLabel(clusterName);
+        }
         if (param.getVcenterDataCenter() != null) {
             cluster.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ?
                     NullColumnValueGetter.getNullURI() : param.getVcenterDataCenter());

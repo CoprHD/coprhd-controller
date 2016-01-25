@@ -72,6 +72,7 @@ public class PathConstants {
     public static final String PROTECTION_SYSTEM_URL = "/vdc/protection-systems";
     public static final String FILE_SNAPSHOT_URL = "/file/snapshots";
     public static final String BLOCK_SNAPSHOT_URL = "/block/snapshots";
+    public static final String BLOCK_SNAPSHOT_SESSION_URL = "/block/snapshot-sessions";
     public static final String BLOCK_CONSISTENCY_GROUP_URL = "/block/consistency-groups";
     public static final String NETWORK_URL = "/vdc/networks";
     public static final String IP_INTERFACES_BY_NETWORK_URL = NETWORK_URL + "/{id}/ip-interfaces";
@@ -128,6 +129,10 @@ public class PathConstants {
     public static final String UNMANAGED_VOLUME_BY_STORAGE_SYSTEM_AND_VIRTUAL_POOL_URL = STORAGE_SYSTEM_URL
             + "/{storageSystemId}/unmanaged/{virtualPool}/volumes";
 
+    public static final String UNMANAGED_CGS_URL = "/vdc/unmanaged/cgs";
+    public static final String UNMANAGED_CG_BY_PROTECTION_SYSTEM_URL = PROTECTION_SYSTEM_URL
+            + "/{protectionSystemId}/unmanaged/cgs";
+
     public static final String UNMANAGED_EXPORTS_URL = "/vdc/unmanaged/export-masks";
     public static final String UNMANAGED_EXPORTS_BY_HOST_URL = HOST_URL
             + "/{hostId}/unmanaged-export-masks";
@@ -151,4 +156,9 @@ public class PathConstants {
     public static final String VIRTUAL_NAS_SERVER_BY_STORAGE_SYSTEM_URL = "/vdc/storage-systems/{storage-system-id}/vnasservers";
     public static final String VIRTUAL_NAS_SERVER_BY_VARRAY_URL = VIRTUAL_NAS_SERVER_URL + "/varray/{varray-id}";
     public static final String VIRTUAL_NAS_SERVER_BY_PROJECT_URL = "/project/{project-id}";
+
+    public static final String APP_SUPPORT_CREATE_APP_URL = "/volume-groups/block";
+    public static final String APP_SUPPORT_DELETE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/deactivate";
+    public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}";
+    public static final String APP_SUPPORT_VOLUME_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/volumes";
 }

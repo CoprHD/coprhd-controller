@@ -168,7 +168,7 @@ public class SystemsMapper {
             to.setParentNASURI(toNamedRelatedResource(pNAS, pNAS.getNasName()));
         }
 
-        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
+        to.setAssociatedProjects(from.getAssociatedProjects());
 
         to.setProtocols(from.getProtocols());
         to.setRegistrationStatus(from.getRegistrationStatus());
@@ -276,6 +276,7 @@ public class SystemsMapper {
         to.setRegistrationStatus(from.getRegistrationStatus());
         to.setCompatibilityStatus(from.getCompatibilityStatus());
         to.setDiscoveryStatus(from.getDiscoveryStatus());
+        to.setDataCenters(from.getDataCenters());
         to.setMaxPoolUtilizationPercentage((from.getMaxPoolUtilizationPercentage() != null) ? from
                 .getMaxPoolUtilizationPercentage() : Integer.valueOf(ControllerUtils.
                 getPropertyValueFromCoordinator(coordinatorClient, CapacityMatcher.MAX_POOL_UTILIZATION_PERCENTAGE)));

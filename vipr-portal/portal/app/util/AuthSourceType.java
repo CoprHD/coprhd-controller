@@ -5,5 +5,5 @@
 package util;
 
 public enum AuthSourceType {
-    ad, ldap;
+    ad, ldap, keystone;
 }

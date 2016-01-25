@@ -27,8 +27,7 @@
 
         <!-- 9 minutes timeout -->
         <property name="timeoutMs" value="540000"/>
-
-        <property name="siteId" value="${site_id}"/>
+        <property name="siteIdFile" value="/data/zk/siteid"/>
     </bean>
 
     <context:property-placeholder location="classpath:syssvc-info.properties" ignore-unresolvable="true"/>
@@ -38,6 +37,8 @@
         <property name="sysSvcName" value="${syssvc.name}"/>
         <property name="sysSvcVersion" value="${syssvc.version}"/>
         <property name="nodeCount" ref="nodeCount"/>
+        <property name="vdcShortId" value="${vdc_myid}"/>
+        <property name="vdcEndpoint" value="${network_vip_service}"/>
         <property name="inetAddessLookupMap" ref="inetAddessLookupMap"/>
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>

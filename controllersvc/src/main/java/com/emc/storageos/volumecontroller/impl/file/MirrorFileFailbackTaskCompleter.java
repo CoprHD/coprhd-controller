@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- */
-
 package com.emc.storageos.volumecontroller.impl.file;
 
 import java.net.URI;
@@ -17,21 +12,19 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
+public class MirrorFileFailbackTaskCompleter extends MirrorFileTaskCompleter {
 
+    private static final Logger _log = LoggerFactory.getLogger(MirrorFileFailbackTaskCompleter.class);
 
-public class MirrorFileFailoverTaskCompleter extends MirrorFileTaskCompleter {
-
-    private static final Logger _log = LoggerFactory.getLogger(MirrorFileFailoverTaskCompleter.class);
-
-    public MirrorFileFailoverTaskCompleter(Class clazz, List<URI> ids, String opId) {
+    public MirrorFileFailbackTaskCompleter(Class clazz, List<URI> ids, String opId) {
         super(clazz, ids, opId);
     }
     
-    public MirrorFileFailoverTaskCompleter(Class clazz, URI id, String opId) {
+    public MirrorFileFailbackTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
     }
 
-    public MirrorFileFailoverTaskCompleter(URI sourceURI, URI targetURI, String opId) {
+    public MirrorFileFailbackTaskCompleter(URI sourceURI, URI targetURI, String opId) {
         super(sourceURI, targetURI, opId);
     }
     
@@ -39,7 +32,7 @@ public class MirrorFileFailoverTaskCompleter extends MirrorFileTaskCompleter {
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            recordMirrorOperation(dbClient, OperationTypeEnum.FAILBACK_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
+            recordMirrorOperation(dbClient, OperationTypeEnum.FAILOVER_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
                     getTargetFileShare().getId().toString());
             
         } catch (Exception e) {
@@ -49,6 +42,4 @@ public class MirrorFileFailoverTaskCompleter extends MirrorFileTaskCompleter {
         }
     }
     
-  
-
 }

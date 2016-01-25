@@ -224,16 +224,12 @@ public class FileService extends TaskResourceService {
 
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
-        FAILOVER("failover", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER),
-        FAILOVER_TEST("failover-test", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST),
-        FAILOVER_TEST_CANCEL("failover-test-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST_CANCEL),
-        FAILOVER_CANCEL("failover-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_CANCEL),
-        SYNC("sync", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SYNC),
-        START("start", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_START),
-        STOP("stop", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_STOP),
-        PAUSE("pause", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_PAUSE),
-        SUSPEND("suspend", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SUSPEND),
-        RESUME("resume", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_RESUME),
+        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER),
+        FAILBACK("failback", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
+        START("start", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
+        STOP("stop", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
+        PAUSE("pause", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE),
+        RESUME("resume", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME),
         CHANGE_COPY_MODE("change-copy-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE),
         UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
@@ -272,7 +268,7 @@ public class FileService extends TaskResourceService {
                     return opValue.getResourceType();
                 }
             }
-            return ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION;
+            return ResourceOperationTypeEnum.FILE_PROTECTION_ACTION;
         }
     }
 
@@ -2470,15 +2466,12 @@ public class FileService extends TaskResourceService {
     *
     * NOTE: This is an asynchronous operation.
     *
-    * If volume is srdf protected, then invoking failover internally triggers
-    * SRDF SWAP on volume pairs.
-    *
     * @prereq none
     *
-    * @param id the URN of a ViPR Source volume
+    * @param id the URN of a ViPR Source fileshare
     * @param param Copy to failover to
     *
-    * @brief Failover the volume protection link
+    * @brief Failover the fileShare protection link
     * @return TaskList
     *
     * @throws ControllerException
@@ -2503,7 +2496,7 @@ public class FileService extends TaskResourceService {
 
        Copy copy = copies.get(0);
        if (copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
-           throw APIException.badRequests.actionNotApplicableForVplexVolumeMirrors(ProtectionOp.FAILOVER.getRestOp());
+           throw APIException.badRequests.actionNotApplicableForLocalMirrors(ProtectionOp.FAILOVER.getRestOp());
        } else if(copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString())) {
            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER.getRestOp());
            taskList.getTaskList().add(taskResp);
@@ -2512,6 +2505,52 @@ public class FileService extends TaskResourceService {
        }
        return taskList;
    }
+   
+   /**
+   *
+   * Request to failover the protection link associated with the param.copyID.
+   *
+   * NOTE: This is an asynchronous operation.
+   *
+   * @prereq none
+   *
+   * @param id the URN of a ViPR Source fileshare
+   * @param param Copy to failover to
+   *
+   * @brief Failover the fileShare protection link
+   * @return TaskList
+   *
+   * @throws ControllerException
+   */
+  @POST
+  @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+  @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+  @Path("/{id}/protection/continuous-copies/failback")
+  @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+  public TaskList failbackProtection(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
+
+      TaskResourceRep taskResp = null;
+      TaskList taskList = new TaskList();
+
+      ValidateCopiesParam(id, param);
+
+      List<Copy> copies = param.getCopies();
+
+      if (copies.size() != 1) {
+          throw APIException.badRequests.failoverCopiesParamCanOnlyBeOne();
+      }
+
+      Copy copy = copies.get(0);
+      if (copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
+          throw APIException.badRequests.actionNotApplicableForLocalMirrors(ProtectionOp.FAILOVER.getRestOp());
+      } else if(copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString())) {
+          taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILBACK.getRestOp());
+          taskList.getTaskList().add(taskResp);
+      } else {
+          throw APIException.badRequests.invalidCopyType(copy.getType());
+      }
+      return taskList;
+  }
    
    /**
     * List FileShare mirrors
@@ -2581,7 +2620,7 @@ public class FileService extends TaskResourceService {
         
         ArgValidator.checkEntity(copyFileShare, copyID, true);
         // Make sure that we don't have some pending
-        // operation against the volume
+        // operation against the fileshare
         checkForPendingTasks(Arrays.asList(sourcefileShare.getTenant().getURI()), Arrays.asList(sourcefileShare));
         
         Operation status = new Operation();
@@ -2753,13 +2792,15 @@ public class FileService extends TaskResourceService {
      */
     private static FileServiceApi getFileServiceImpl(VirtualPool vpool, DbClient dbClient) {
         // Mutually exclusive logic that selects an implementation of the file service
-        if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
-            if( vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())){
-                return getFileServiceApis("localmirror");
-            } else if(vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())){
-                return getFileServiceApis("remotemirror");
+        if (vpool.getFileReplicationType() != null) {
+            if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
+                if( vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())){
+                    return getFileServiceApis("localmirror");
+                } else if(vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())){
+                    return getFileServiceApis("remotemirror");
+                }
             }
-        } 
+        }
 
         return getFileServiceApis("default");
     }

@@ -446,7 +446,12 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 }
 
                 
-            } else if (opType.equalsIgnoreCase("suspend")) {
+            } else if (opType.equalsIgnoreCase("failback")) {
+                for (String target : targetfileUris) {
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    completer = new MirrorFileFailoverTaskCompleter(fileShare.getId(), targetFileShare.getId(), opId);
+                    getRemoteMirrorDevice(system).doFailoverLink(system, targetFileShare, completer);
+                }
                
             } else if (opType.equalsIgnoreCase("resume")) {
                 completer = new MirrorFileResumeTaskCompleter(FileShare.class, combined, opId);

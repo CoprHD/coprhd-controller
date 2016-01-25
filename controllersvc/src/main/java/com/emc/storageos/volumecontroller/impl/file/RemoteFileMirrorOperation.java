@@ -100,6 +100,16 @@ public interface RemoteFileMirrorOperation {
      * @param completer
      */
     void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer);
+    
+    /**
+     * Failback replication links.
+     *
+     * @param system
+     * @param target
+     * @param completer
+     */
+    void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer);
+
 
     
 }

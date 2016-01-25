@@ -74,6 +74,8 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
  */
 public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
+   
+
     private static final Logger _log = LoggerFactory.getLogger(IsilonFileStorageDevice.class);
 
     private static final String IFS_ROOT = "/ifs";
@@ -2632,10 +2634,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         // TODO Auto-generated method stub
         BiosCommandResult cmdResult = null;
-        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target.getId());
         if (target.getParentFileShare() != null) {
-            FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
-            String policyName = targetFileShare.getLabel();
+            String policyName = target.getLabel();
             cmdResult = doStartReplicationPolicy(system, policyName);
 
             if (cmdResult.getCommandSuccess()) {
@@ -2651,10 +2651,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         // TODO Auto-generated method stub
         BiosCommandResult cmdResult = null;
-        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target.getId());
         if (target.getParentFileShare() != null) {
-            FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
-            String policyName = targetFileShare.getLabel();
+            String policyName = target.getLabel();
             cmdResult = this.doStopReplicationPolicy(system, policyName);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
@@ -2676,9 +2674,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public void doSuspendLink(StorageSystem system, FileShare target, TaskCompleter completer) {
 
         BiosCommandResult cmdResult = null;
-        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target.getId());
         if (target.getParentFileShare() != null) {
-            String policyName = targetFileShare.getLabel();
+            String policyName = target.getLabel();
             cmdResult = this.doPauseReplicationPolicy(system, policyName);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
@@ -2690,10 +2687,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target.getId());
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
-            String policyName = targetFileShare.getLabel();
+            String policyName = target.getLabel();
             cmdResult = this.doResumeReplicationPolicy(system, policyName);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
@@ -2705,10 +2701,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target.getId());
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
-            String policyName = targetFileShare.getLabel();
+            String policyName = target.getLabel();
             cmdResult = this.doFailover(system, policyName);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
@@ -2717,6 +2712,22 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
         }
 
+    }
+    
+    @Override
+    public void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        BiosCommandResult cmdResult = null;
+        if (target.getParentFileShare() != null) {
+            String policyName = target.getLabel();
+            FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
+                       
+            //cmdResult = this.doFailBack(primarySystem, secondarySystem, policyName)(system, policyName);
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
+        }
     }
 
     // local mirror related operations

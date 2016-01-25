@@ -207,8 +207,9 @@ public class UpgradeService {
     @Path("cluster-state/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public ClusterInfo getClusterState(@QueryParam("force") String forceShow) throws IOException {
-        ClusterInfo clusterInfo = _coordinator.getClusterInfo();
+    public ClusterInfo getClusterState(@QueryParam("force") String forceShow, @QueryParam("site") String siteId)
+            throws IOException {
+        ClusterInfo clusterInfo = _coordinator.getClusterInfo(siteId);
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");
         }

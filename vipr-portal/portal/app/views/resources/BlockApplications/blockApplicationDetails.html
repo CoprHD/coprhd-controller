@@ -57,7 +57,7 @@ function updateClones(oSettings) {
                   source:@applicationCloneJson(application.id),                  
                   cssClass:'editableRows',
                   options:['iDisplayLength': '5', 'fnDrawCallback': 'updateClones']/} 
-          #{DataTable.expandHtml @getAssociatedVolumes(':id'), table:'cloneApplication'/}                        
+          #{DataTable.expandHtml @getAssociatedVolume(':id', ':application.id'), table:'cloneApplication'/}
 #{/collapse}
   </div>
 #{/if}

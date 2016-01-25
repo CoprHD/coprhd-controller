@@ -1,9 +1,18 @@
-<dl class="dl-horizontal">
-<dt>&{'application.volume'}</dt>
-<dd>
-    #{list volumes, as:'volume'}
-      <a href="@{resources.BlockVolumes.volume(volume.id)}">${volume.name}</a>#{if !volume_isLast}, #{/if}
-    #{/list}
-    #{else}&nbsp;#{/else}
-  </dd>
-</dl>
+#{extends 'main.html' /}
+#{breadcrumb.container}
+  #{breadcrumb.item @blockApplications()}&{'resources.applications'}#{/breadcrumb.item}
+  #{breadcrumb.item @blockApplicationDetails(application.id)}${application?.name}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${clone?.name}#{/breadcrumb.item}
+
+#{/breadcrumb.container}
+
+#{DataTable.header titleKey:'application.copy.volumes' /}
+#{DataTable.table id:'volumes',
+                  dataTable:dataTable,
+                  source:@getAssociatedVolumesJSON(clone.id),
+                  selectable:true /}
+<script type="text/javascript">
+function renderLink(o, val) {
+    return val;
+}
+</script>

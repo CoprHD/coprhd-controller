@@ -680,6 +680,7 @@ application.save.success=Saved '%s'
 applications.deleted=Application(s) deleted successfully
 Application.unknown=Unknown Application with ID '%s'
 application.resources.title=Application
+application.copy.volumes=Volumes For Copy
 
 # Custom Config
 CustomConfigs.list.title=Controller Configurations
@@ -3539,6 +3540,7 @@ volumes.varray=Virtual Array
 volumes.protocols=Protocols
 volumes.consistencygroup=Consistency Group
 volumes.wwn=WWN
+volumes.replicationGroup=Replication Group
 
 fileSystems.name=File System Name
 fileSystems.capacity=Size

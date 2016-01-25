@@ -32,6 +32,8 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 public class BlockApplications extends ResourceController {
 
     private static ApplicationSupportDataTable blockApplicationsDataTable = new ApplicationSupportDataTable();
+    private static Map<URI, String> virtualArrays = ResourceUtils.mapNames(BourneUtil.getViprClient().varrays().list());
+    private static Map<URI, String> virtualPools = ResourceUtils.mapNames(BourneUtil.getViprClient().blockVpools().list());
     
     public static void blockApplications() {
         renderArgs.put("dataTable", blockApplicationsDataTable);
@@ -53,8 +55,6 @@ public class BlockApplications extends ResourceController {
     
     public static void applicationVolumeJson(String id) {
     	List<Volume> volumeDetails = Lists.newArrayList();
-    	Map<URI, String> virtualArrays = ResourceUtils.mapNames(BourneUtil.getViprClient().varrays().list());
-        Map<URI, String> virtualPools = ResourceUtils.mapNames(BourneUtil.getViprClient().blockVpools().list());
         List<NamedRelatedResourceRep> volumes = AppSupportUtil.getVolumesByApplication(id);
         for (NamedRelatedResourceRep volume : volumes) {
             VolumeRestRep blockVolume = BourneUtil.getViprClient().blockVolumes().get((volume.getId()));
@@ -73,11 +73,26 @@ public class BlockApplications extends ResourceController {
         renderJSON(DataTablesSupport.createJSON(cloneDetails, params));
     }
     
-    public static void getAssociatedVolumes(String id) {
+    public static void getAssociatedVolume(String id, String applicationId) {
+    	VolumeRestRep clone = BourneUtil.getViprClient().blockVolumes().get(uri(id));
+    	VolumeGroupRestRep application =  AppSupportUtil.getApplication(applicationId);
+    	render(clone,application);
+    }
+    
+    public static void getAssociatedVolumes(String id, String applicationId) {
+    	renderArgs.put("dataTable", new VolumeApplicationDataTable());
+    	VolumeRestRep clone = BourneUtil.getViprClient().blockVolumes().get(uri(id));
+    	VolumeGroupRestRep application =  AppSupportUtil.getApplication(applicationId);
+    	render(clone,application);
+    }
+    
+    public static void getAssociatedVolumesJSON(String id) {
     	VolumeRestRep clone = BourneUtil.getViprClient().blockVolumes().get(uri(id));
     	URI associatedVolumeId = clone.getProtection().getFullCopyRep().getAssociatedSourceVolume().getId();
     	VolumeRestRep volumes = BourneUtil.getViprClient().blockVolumes().get(associatedVolumeId);
-    	render(volumes);   	
+    	List<Volume> volumeDetails = Lists.newArrayList();
+    	volumeDetails.add(new Volume(volumes, virtualArrays, virtualPools));
+    	renderJSON(DataTablesSupport.createJSON(volumeDetails, params));
     }
     
     public static class VolumeApplicationDataTable extends BlockVolumesDataTable {

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -708,19 +709,15 @@ public class CifsShareUtility {
     }
 
     public static void checkForUpdateShareACLOperationOnStorage(
-            String storageSystemType, String operation) {
+            String storageType, String operation) {
 
-        StorageSystem.Type storageSystemEnum = Enum.valueOf(
-                StorageSystem.Type.class, storageSystemType);
+        StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageType);
 
-        switch (storageSystemEnum) {
-            case vnxe:
-            case vnxfile:
-            case datadomain:
+        if (storageSystemType.equals(DiscoveredDataObject.Type.vnxe) || storageSystemType.equals(DiscoveredDataObject.Type.vnxfile)
+                || storageSystemType.equals(DiscoveredDataObject.Type.datadomain)) {
                 throw APIException.badRequests.operationNotSupportedForSystemType(
-                        operation, storageSystemType);
+                        operation, storageType);
         }
-
     }
 
     /**

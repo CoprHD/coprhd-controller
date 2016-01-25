@@ -292,7 +292,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doCreateConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, TaskCompleter taskCompleter)
+    public void doCreateConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, String replicationGroupName, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("Creating consistency group for volumes.....");
 
@@ -323,7 +323,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storageSystem,
-                                         URI consistencyGroupId, Boolean markInactive, TaskCompleter taskCompleter)
+                                         URI consistencyGroupId, String replicationGroupName,
+                                         String newReplicationGroupName,  Boolean markInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
     _log.info("Deleting consistency group: storage system {}, group {}", storageSystem.getNativeId(), consistencyGroupId );
 

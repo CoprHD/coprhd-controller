@@ -2942,13 +2942,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private void createDefaultACEForSMBShare(URI id, FileSMBShare fileShare,
             String storageType) {
 
-        StorageSystem.Type storageSystemType = Enum.valueOf(
-                StorageSystem.Type.class, storageType);
+        StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageType);
 
-        switch (storageSystemType) {
-            case vnxe:
-            case vnxfile:
-            case datadomain:
+        if (storageSystemType.equals(Type.vnxe) || storageSystemType.equals(Type.vnxfile) || storageSystemType.equals(Type.datadomain)) {
+       // switch (storageSystemType) {
+       //     case vnxe:
+       //     case vnxfile:
+       //     case datadomain:
                 SMBFileShare share = fileShare.getSMBFileShare();
                 CifsShareACL ace = new CifsShareACL();
                 ace.setUser(FileControllerConstants.CIFS_SHARE_USER_EVERYONE);
@@ -2975,10 +2975,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 _log.info("Creating default ACE for the share: {}", ace);
                 _dbClient.createObject(ace);
-                break;
-
-            default:
-                break;
+        //        break;
+        //
+        //    default:
+        //        break;
         }
 
     }

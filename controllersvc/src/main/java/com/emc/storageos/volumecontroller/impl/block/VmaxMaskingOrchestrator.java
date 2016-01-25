@@ -1396,39 +1396,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     	     		matchingMaskMap.put(maskMap.getKey(), maskMap.getValue());
     	     	}
     	    }    		    	
-    
+   
     	    return matchingMaskMap;
     	}
     	    
-    	//Get the initiators of this host
-    	List<String> initiators = new ArrayList<String>();    	
-    	URIQueryResultList uriQueryList = new URIQueryResultList();
-      
-    	if (exportGroup.getClusters() != null && !exportGroup.getClusters().isEmpty()) {
-    		_log.info("Exporting to Cluster");
-    		 List<URI> clusterHostUris = ComputeSystemHelper.getChildrenUris(_dbClient, URI.create(exportGroup.getClusters().iterator().next()), Host.class, "cluster");    		
-    		for (URI clusterHostUri : clusterHostUris) {
-    			 URIQueryResultList list = new URIQueryResultList();
-    			_dbClient.queryByConstraint(
-    				ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterHostUri, Initiator.class, "host"), list);
-    			Iterator<URI> uriIter = list.iterator();
-    	        while(uriIter.hasNext()) {
-    	            Initiator initiator = _dbClient.queryObject(Initiator.class, uriIter.next());
-    	            initiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));   
-    	            _log.info("ComputeResource (Cluster-Host) initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
-    	        }
-    		}
-    	} else if(exportGroup.getHosts() != null && !exportGroup.getHosts().isEmpty()) {
-    		_log.info("Exporting to Host");
-    		_dbClient.queryByConstraint(
-    				ContainmentConstraint.Factory.getContainedObjectsConstraint(URI.create(exportGroup.getHosts().iterator().next()), Initiator.class, "host"), uriQueryList);
-    		Iterator<URI> uriIter = uriQueryList.iterator();
-            while(uriIter.hasNext()) {
-                Initiator initiator = _dbClient.queryObject(Initiator.class, uriIter.next());
-                initiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));   
-                _log.info("ComputeResource (Host) initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
-            }
-    	}       
+    	List<String> initiators = getComputeResourceInitiators(exportGroup);       
         
         //Fetch all the existing masks for the compute resource
     	Map<String, Set<URI>> crMaskingViews = getDevice().findExportMasks(storage, initiators, true);    	
@@ -1446,7 +1418,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         	}
         	
         	for (Entry<String, Set<URI>> crMaskingViewEntry : crMaskingViews.entrySet()) {
-        		Set<URI> crMVs  = crMaskingViewEntry.getValue();
+        		Set<URI> crMVs = crMaskingViewEntry.getValue();
         		for (URI crMV : crMVs) {
         			ExportMask crMaskingView = _dbClient.queryObject(ExportMask.class, crMV);
         		
@@ -1474,6 +1446,43 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                  	
     	return matchingMaskMap;
     }
+
+	/** Fetch all the initiators of the compute resource (host/cluster) in the export group.
+	 * @param exportGroup Export Group
+	 * @return List of initiators
+	 */
+	private List<String> getComputeResourceInitiators(ExportGroup exportGroup) {
+		//Get the initiators of the compute resource in the exportGroup
+    	List<String> initiators = new ArrayList<String>();    	
+    	URIQueryResultList uriQueryList = new URIQueryResultList();
+      
+    	if (exportGroup.getClusters() != null && !exportGroup.getClusters().isEmpty()) {
+    		_log.info("Exporting to Cluster");
+    		 List<URI> clusterHostUris = ComputeSystemHelper.getChildrenUris(_dbClient, URI.create(exportGroup.getClusters().iterator().next()), Host.class, "cluster");    		
+    		for (URI clusterHostUri : clusterHostUris) {
+    			 URIQueryResultList list = new URIQueryResultList();
+    			_dbClient.queryByConstraint(
+    				ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterHostUri, Initiator.class, "host"), list);
+    			Iterator<URI> uriIter = list.iterator();
+    	        while(uriIter.hasNext()) {
+    	            Initiator initiator = _dbClient.queryObject(Initiator.class, uriIter.next());
+    	            initiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));   
+    	            _log.info("ComputeResource (Cluster-Host) initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
+    	        }
+    		}
+    	} else if(exportGroup.getHosts() != null && !exportGroup.getHosts().isEmpty()) {
+    		_log.info("Exporting to Host");
+    		_dbClient.queryByConstraint(
+    				ContainmentConstraint.Factory.getContainedObjectsConstraint(URI.create(exportGroup.getHosts().iterator().next()), Initiator.class, "host"), uriQueryList);
+    		Iterator<URI> uriIter = uriQueryList.iterator();
+            while(uriIter.hasNext()) {
+                Initiator initiator = _dbClient.queryObject(Initiator.class, uriIter.next());
+                initiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));   
+                _log.info("ComputeResource (Host) initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
+            }
+    	}
+		return initiators;
+	}
     
     /**
      * Apply business rules to "add" volumes to specific export masks.

@@ -31,6 +31,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpv6Setting;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -202,7 +203,7 @@ public class DisasterRecoveryService {
 
             String vip = param.getVip();
             if (vip.contains(":")) {
-                vip = ClusterIpv6Setting.decompressIpv6Address(param.getVip().substring(1,param.getVip().length()-1));
+                vip = DualInetAddress.normalizeInet6Address(param.getVip().substring(1, param.getVip().length() - 1));
             }
             standbySite.setVip(vip);
 

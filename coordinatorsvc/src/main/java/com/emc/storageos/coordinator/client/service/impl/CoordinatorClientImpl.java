@@ -237,7 +237,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
-        site.setVip(vdcEndpoint);
+        String vip = vdcEndpoint;
+        if (vdcEndpoint.contains(":")) {
+            vip = DualInetAddress.normalizeInet6Address(vdcEndpoint);
+        }
+        log.info("vip ipv6 address:{}", vip);
+        site.setVip(vip);
         site.setNodeCount(getNodeCount());
 
         Map<String, DualInetAddress> controlNodes = getInetAddessLookupMap().getControllerNodeIPLookupMap();
@@ -257,6 +262,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
             if (addr.hasInet6()) {
                 ipv6Addresses.put(nodeId, addr.getInet6());
+                log.info("ipv6 address:{}", addr.getInet6());
             } else {
                 ipv6Addresses.put(nodeId, PropertyConstants.IPV6_ADDR_DEFAULT);
             }

@@ -35,7 +35,7 @@ public class ClusterIpv6Setting implements Serializable {
     }
 
     public void setNetworkVip6(String network_vip6) {
-        this.network_vip6 = ClusterIpv6Setting.decompressIpv6Address(network_vip6);
+        this.network_vip6 = network_vip6;
     }
 
     @XmlElementWrapper(name = "network_addrs")
@@ -137,13 +137,13 @@ public class ClusterIpv6Setting implements Serializable {
     {
         String node_count = propMap.get(PropertyConstants.NODE_COUNT_KEY);
 
-        setNetworkVip6(decompressIpv6Address(propMap.get(PropertyConstants.IPV6_VIP_KEY)));
+        setNetworkVip6(propMap.get(PropertyConstants.IPV6_VIP_KEY));
         setNetworkGateway6(propMap.get(PropertyConstants.IPV6_GATEWAY_KEY));
         setNetworkPrefixLength(Integer.valueOf(propMap.get(PropertyConstants.IPV6_PREFIX_KEY)));
         network_addrs = new LinkedList<String>();
         for (int i = 1; i <= Integer.valueOf(node_count); i++) {
             String network_ipaddr6_key = String.format(PropertyConstants.IPV6_ADDR_KEY, i);
-            network_addrs.add(decompressIpv6Address(propMap.get(network_ipaddr6_key)));
+            network_addrs.add(propMap.get(network_ipaddr6_key));
         }
     }
 
@@ -262,35 +262,5 @@ public class ClusterIpv6Setting implements Serializable {
             return false;
         }
         return true;
-    }
-
-    /**
-     * decompress input address into a canonical ipv6 address
-     *
-     * @param address
-     * @return
-     */
-    public static String decompressIpv6Address(String address){
-        if (address == null) {
-            return null;
-        }
-
-        if (address.equals(PropertyConstants.IPV6_ADDR_DEFAULT))
-            return address;
-
-        address=address.trim();
-        StringBuilder stdForm = new StringBuilder();
-        String[] splitted=address.split(":");
-        for(String str:splitted){
-            if("".equals(str)){
-                for(int i=0;i<=8-splitted.length;i++){
-                    stdForm.append("0000:");
-                }
-            }else{
-                while(str.length()!=4)str="0"+str;
-                stdForm.append(str+":");
-            }
-        }
-        return stdForm.substring(0, stdForm.length()-1);
     }
 }

@@ -135,8 +135,8 @@ class CreateVolumeSchedulingThread implements Runnable {
             }
 
             // Call out to the respective block service implementation to prepare
-            // and create the volumes based on the recommendations.
-            blockServiceImpl.createVolumes(param, project, varray, vpool, recommendations, taskList, task, capabilities); */
+            // and create the volumes based on the recommendations.*/
+       //     blockServiceImpl.createVolumes(param, project, varray, vpool, recommendations, taskList, task, capabilities); 
         } catch (Exception ex) {
             for (TaskResourceRep taskObj : taskList.getTaskList()) {
                 if (ex instanceof ServiceCoded) {

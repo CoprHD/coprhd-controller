@@ -321,7 +321,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
              _logger.info(String
                      .format("SRDF RA Group Placement: Found that the RA Group does not have a label or does not contain any of the names (%s), which is currently required for leveraging existing RA Groups.",
                              StringUtils.join(grpNames, ",")));
-             continue;
+            // continue;
          }
 
          // Check to see if the source storage system ID matches
@@ -366,7 +366,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
              _logger.info(String
                      .format("SRDF RA Group Placement: Found that the RA Group does is using the proper copy policy of %s, instead it is using copy policy: %s",
                              copyMode, raGroup.getSupportedCopyMode().toString()));
-             continue;
+            // continue;
          }
 
          // More than 1 RA Group is available, only if RA Groups corresponding to given CGs is
@@ -377,7 +377,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
              _logger.info(String
                      .format("Found that the RDF Group has existing volumes with a CG different from expected: %s .",
                              cgObj.getLabel()));
-             continue;
+            // continue;
          }
 
          _logger.info(String

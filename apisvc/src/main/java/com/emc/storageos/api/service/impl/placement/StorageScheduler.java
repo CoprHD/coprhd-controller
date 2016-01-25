@@ -577,6 +577,8 @@ public class StorageScheduler implements Scheduler {
             // if
             // (candidatePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Clar_UnifiedStoragePool.toString()))
             // continue;
+            //REMOVE
+            poolWithCapacity = candidatePool;
             if (capacityMatcher.poolMatchesCapacity(candidatePool, capacity, resourceSize, false,
                     isThinlyProvisioned, thinVolumePreAllocationResourceSize)) {
                 poolWithCapacity = candidatePool;
@@ -617,6 +619,7 @@ public class StorageScheduler implements Scheduler {
             // if
             // (candidatePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Clar_UnifiedStoragePool.toString()))
             // continue;
+            poolsWithCapacity.add(candidatePool);
             if (capacityMatcher.poolMatchesCapacity(candidatePool, capacity, resourceSize, false,
                     isThinlyProvisioned, thinVolumePreAllocationResourceSize)) {
                 poolsWithCapacity.add(candidatePool);

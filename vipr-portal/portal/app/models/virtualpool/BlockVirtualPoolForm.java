@@ -160,7 +160,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         // Extra validation when mixed with high availability
         if (HighAvailability.isHighAvailability(highAvailability)) {
             if (!Boolean.TRUE.equals(multiVolumeConsistency)) {
-                Validation.addError(formName + ".multiVolumeConsistency", "vpool.rp.error.notMultiVolumeConsistent");
+                //Validation.addError(formName + ".multiVolumeConsistency", "vpool.rp.error.notMultiVolumeConsistent");
             }
         }
     }

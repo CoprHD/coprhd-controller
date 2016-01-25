@@ -71,7 +71,7 @@ public class CapacityMatcher extends AttributeMatcher {
             StoragePool pool = poolIterator.next();
             // During provisioning matching, this matcher runs against the volume size requested.
             if (!poolMatchesCapacity(pool, requiredCapacity, resourceSize, true, supportsThinProvisioning, thinVolumePreAllocationSize)) {
-                filteredPoolList.remove(pool);
+               // filteredPoolList.remove(pool);
             }
         }
         _log.info("Pools Matching capacity Ended :" + Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));

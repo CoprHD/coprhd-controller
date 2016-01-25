@@ -1535,6 +1535,7 @@ public class RecoverPointScheduler implements Scheduler {
             StoragePool pool = iter.next();
             if (pool.getId().equals(changeVpoolVolume.getPool())) {
                 // Make sure there's enough space for this journal volume in the current pool; it's preferred to use it.
+            	sourcePools.add(pool);
                 if (capacityMatcher.poolMatchesCapacity(pool, journalSize, journalSize, false, false, null)) {
                     sourcePools.add(pool);
                     break;

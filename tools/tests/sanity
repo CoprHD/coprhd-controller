@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr | ipsec} [local|ldap] [<timeslot>] | sanzoning'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec} [local|ldap] [<timeslot>] | sanzoning'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -107,6 +107,23 @@ elif [ ${SS} = "vdc" ]; then
 elif [ ${SS} = "dr" ]; then
         DR_SITE_B_IP=${4}
         DR_SITE_C_IP=${5}
+        if [ -n "${BOURNE_IPV6_MODE}" ]; then
+            AUTH=ipv6
+        else
+            AUTH=ldap
+        fi
+        echo AUTH=$AUTH
+elif [ ${SS} = "backuprestore" ]; then
+        if [[ $# -ne 6 ]]; then
+            echo "Invalid backuprestore parameters."
+            echo "usage: backuprestore backup-server-uri username password"
+            exit 1
+        fi
+        
+        BACKUP_SERVER_URL=$4
+        BACKUP_SERVER_USERNAME=$5
+        BACKUP_SERVER_PASSWORD=$6
+
         if [ -n "${BOURNE_IPV6_MODE}" ]; then
             AUTH=ipv6
         else
@@ -7725,100 +7742,209 @@ start_vdc_services()
     done
 }
 
-#Usage: sanity <conf path> <vip> backuprestore
-# E.g.: sanity conf/sanity.conf 137.69.169.21 backuprestore
+#Usage: sanity <conf path> <vip> backuprestore backup-server-uri username password
+# E.g.: sanity conf/sanity.conf 137.69.169.21 backuprestore ftp://X.X.X.X/foo root root-password 
 backuprestore_setup()
 {
     echo "Setup backup restore environment begin"
+    login_nd_configure_smtp_nd_add_licenses
     vip=$BOURNE_IPADDR
 
-    echo "Enable root ssh permit"
+    echo "Enable root ssh permit and configure backup server"
     syssvc $CONFIG_FILE "$vip" set_prop system_permit_root_ssh yes
-    echo "Enable root ssh permit done"
+
+    syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_username "${BACKUP_SERVER_USERNAME}"
+    syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_password "${BACKUP_SERVER_PASSWORD}"
+    syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_url "${BACKUP_SERVER_URL}"
+
+    echo "Done url=${BACKUP_EXTERNAL_LOCATION_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD}"
 }
 
 backuprestore_tests()
 {
     backupname='sanity'
+    backupname2='abc'
     filepath='/tmp/sanity.zip'
+    remote_backup_file=""
 
-    backup_tests "${backupname}" "${filepath}"
+    backup_tests "${backupname}" "${backupname2}" "${filepath}"
     restore_tests "${filepath}"
 }
 
 backup_tests()
 {
-    backupname=$1
-    filepath=$2
+    local backupname=$1
+    local backupname2=$2
+    local filepath=$3
 
     echo "Creating backup(${backupname})"
     backup create "${backupname}"
-    if [ $? == 0 ]; then
-        echo "Create backup successful"
-    else
-        echo "Create backup failed"
+
+    if [ $? -ne 0 ]; then
+        echo "Create backup ${backupname} failed"
         exit 1
     fi
 
-    echo "Creating backup(${backupname}-tmp)"
-    backup create "${backupname}-tmp"
-    if [ $? == 0 ]; then
-        echo "Create backup successful"
-    else
-        echo "Create backup failed"
+    echo "Create backup ${backupname} successful"
+
+    echo "Creating another backup(${backupname2})"
+    backup create "${backupname2}"
+
+    if [ $? -ne 0 ]; then
+        echo "Create backup ${backupname2} failed"
         exit 1
     fi
 
-    echo "Listing backup(${backupname})"
-    found=`backup list "${backupname}"`
+    echo "Create backup ${backupname2} successful"
+
+    echo "Listing local backup(${backupname})"
+    local found=$(backup list "${backupname}")
     echo "found=$found"
-    if [ "$found"x == "${backupname}"x ]; then
-        echo "List backup successful"
-    else
+
+    if [ "$found"x != "${backupname}"x ]; then
         echo "List backup failed"
         exit 1
     fi
 
-    echo "Deleting backup(${backupname}-tmp)"
-    backup delete "${backupname}-tmp"
-    if [ $? == 0 ]; then
-        echo "Delete backup successful"
-    else
+    echo "List local backup ${backupname} successful"
+
+    echo "Uploading backup(${backupname}) to ${BACKUP_EXTERNAL_LOCATION_URL}"
+    backup upload "${backupname}"
+
+    if [ $? != 0 ]; then
+        echo "Upload backup ${backupname} failed"
+        exit 1
+    fi
+
+    echo "Wait for upload ${backupname} to complete"
+
+    for(( i=0; i<60; i++ )); do
+       status=$(backup query-upload "${backupname}")
+       echo "status=${status}"
+
+       if [[ "${status}" == "DONE" || "${status}" == "FAILED" ]] ; then
+           break;
+       fi
+
+       sleep 10s
+    done
+
+    echo "status=${status}"
+    if [[ "${status}" != "DONE" ]]; then
+        echo "upload backup ${backupname} failed"
+        exit 1
+    fi
+
+    echo "Listing external backup(${backupname} from ${BACKUP_EXTERNAL_LOCATION_URL})"
+
+    found=""
+    for(( i=0; i<60; i++ )); do
+       found=$(backup list-external "${backupname}")
+       echo "found=${found}"
+
+       if [[ "${found}" != "" ]]; then
+           break;
+       fi
+       sleep 10s
+    done
+
+    if [[ "${found}" == "" ]]; then
+       echo "Failed to find backup ${backupname} on ${BACKUP_EXTERNAL_LOCATION_URL}"
+       exit 1
+    fi
+
+    echo "Pull backup(${found} from ${BACKUP_EXTERNAL_LOCATION_URL})"
+    backup pull "${found}"
+
+    if [[ $? -ne 0 ]]; then
+        echo "pull backup failed"
+        exit 1
+    fi
+
+    echo "Start to query pull status"
+    local status=""
+
+    for (( i=0; i<60; i++ )); do
+       status=$(backup query-pull "${found}" "false")
+       echo "status=${status}"
+
+       if [[ "${status}" == "DOWNLOAD_SUCCESS" ]]; then
+           break;
+       fi
+
+       sleep 10s
+    done
+
+    if [[ "${status}" != "DOWNLOAD_SUCCESS" ]]; then
+       echo "Failed to pull backup ${found}"
+       exit 1
+    fi
+
+    remote_backup_file="${found}"
+
+    echo "Deleting backup(${backupname2})"
+    backup delete "${backupname2}"
+
+    if [[ $? -ne 0 ]]; then
         echo "Delete backup failed"
         exit 1
     fi
 
-    echo "Listing backup(${backupname}-tmp)"
-    found=`backup list "${backupname}-tmp"`
+    echo "Delete backup ${backupname2} successful"
+
+    echo "Listing backup(${backupname2})"
+
+    found=`backup list "${backupname2}"`
     echo "found=$found"
-    if [ "$found"x == "${backupname}-tmp"x ]; then
+
+    if [[ "$found"x == "${backupname2}"x ]]; then
         echo "Backup(${backupname}-tmp) should not exist"
         exit 1
     fi
 
     echo "Downloading backup(${backupname}) to ${filepath}"
+
     backup download "${backupname}" "${filepath}"
-    if [[ $? == 0 && -f ${filepath} ]]; then
-        echo "Download backup successful"
-    else
+
+    if [[ $? -ne 0 ||  ! -f ${filepath} ]]; then
         echo "Download backup failed"
         exit 1
     fi
 
+    echo "Download backup successful"
+
     echo "Deleting backup(${backupname})"
+
     backup delete "${backupname}"
-    if [ $? == 0 ]; then
-        echo "Delete backup successful"
-    else
+
+    if [[ $? -ne 0 ]]; then
         echo "Delete backup failed"
         exit 1
     fi
+
+    echo "Delete backup successful"
 }
 
 restore_tests()
 {
-    filepath=$1
+    filepath="$1"
     password=$SYSADMIN_PASSWORD
+
+    echo "Restore from pulled backup ${remote_backup_file} password=${password}"
+    backup restore "${remote_backup_file}" "false" "${password}"
+
+    echo "Wait for stable"
+    sleep 30s
+
+    for (( i=0; i<60; i++ )); do
+       security login $SYSADMIN $SYSADMIN_PASSWORD
+
+       if [[ $? -eq 0 ]]; then
+            break;
+       fi
+       echo "login failed retry later"
+       sleep 10s
+    done
 
     echo "Uploading backup file ${filepath} to $BOURNE_IPADDR"
     SCP $BOURNE_IPADDR ${filepath} ${filepath}
@@ -7826,7 +7952,7 @@ restore_tests()
     echo "Restoring backup file ${filepath} on $BOURNE_IPADDR"    
     result=`SSH $BOURNE_IPADDR "echo -e 'yes\n$password' | /opt/storageos/bin/restore '${filepath}'" | grep 'Restore'`
     echo "$result"
-    if [ "$result"x != "Restore successful!"x ]; then
+    if [[ "$result"x != "Restore successful!"x ]]; then
         echo "Please check /opt/storageos/logs/bkutils.log for details"
         exit 1
     fi
@@ -8002,7 +8128,7 @@ fail(){
 
 trap _failure ERR INT
 set -E
-if [ "$3" != "vdc" ] && [ "$3" != "dr" ]; then
+if [ "$3" != "vdc" ] && [ "$3" != "dr" ] && [ "$3" != "backuprestore" ]; then
     common_setup	
 fi
 

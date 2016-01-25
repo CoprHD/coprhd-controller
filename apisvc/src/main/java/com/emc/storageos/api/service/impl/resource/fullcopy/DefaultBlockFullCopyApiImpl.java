@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource.fullcopy;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,14 +20,19 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -96,11 +102,14 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         int sourceCounter = 0;
         List<Volume> volumesList = new ArrayList<Volume>();
         BlockObject aFCSource = null;
+        Map<URI, VirtualArray> vArrayCache = new HashMap<URI, VirtualArray>();
         List<BlockObject> sortedSourceObjectList = sortFullCopySourceList(fcSourceObjList);
         for (BlockObject fcSourceObj : sortedSourceObjectList) {
             // Make sure when there are multiple source objects,
             // each full copy has a unique name.
             aFCSource = fcSourceObj;
+            // volumes in VolumeGroup can be from different vArrays
+            varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
             String copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
             VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
             VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(
@@ -113,6 +122,21 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         // Invoke the controller.
         return invokeFullCopyCreate(aFCSource, volumesList, createInactive, taskId);
+    }
+
+    /**
+     * Gets the varray from cache.
+     *
+     * @param vArrayCache the varray cache
+     * @param vArrayURI the virtual array
+     * @return the varray from cache
+     */
+    private VirtualArray getVarrayFromCache(Map<URI, VirtualArray> vArrayCache, URI vArrayURI) {
+        if (vArrayCache.get(vArrayURI) == null) {
+            VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, vArrayURI);
+            vArrayCache.put(vArrayURI, vArray);
+        }
+        return vArrayCache.get(vArrayURI);
     }
 
     /**
@@ -195,8 +219,22 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             taskList.getTaskList().add(volumeTask);
         }
 
-        addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
-                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
+        // if Volume is part of Application (COPY type VolumeGroup)
+        VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
+                ? ((Volume) fcSourceObj).getCopyTypeVolumeGroup(_dbClient) : null;
+        if (volumeGroup != null) {
+            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
+                    ResourceOperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY);
+            taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
+            
+            // get all volumes to create tasks for all CGs involved
+            List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            addConsistencyGroupTasks(volumes, taskList, taskId,
+                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
+        } else {
+            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
+        }
 
         try {
             BlockController controller = getController(BlockController.class,

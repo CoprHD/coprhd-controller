@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.util;
 
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,6 +53,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiException;
@@ -1405,4 +1408,52 @@ public class VPlexUtil {
         
         return false;
     }
+    
+    /**
+     * Check if the volume is a backend volume of a vplex volume
+     * @param volume the volume
+     * @param dbClient 
+     * @return true or false
+     */
+    public static boolean isVplexBackendVolume(Volume volume, DbClient dbClient) {
+        final List<Volume> vplexVolumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        getVolumesByAssociatedId(volume.getId().toString()));
+
+        for (Volume vplexVolume : vplexVolumes) {
+            URI storageURI = vplexVolume.getStorageController();
+            StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
+            if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks vplex back end volumes having backend cg
+     * 
+     * @param blockObjectList
+     * @param dbClient
+     * @return
+     */
+    public static boolean isBackendVolumesNotHavingBackendCG(List<? extends BlockObject> blockObjectList, DbClient dbClient) {
+        boolean result = false;
+        for (BlockObject blockObject : blockObjectList) {
+            if (blockObject instanceof Volume) {
+                Volume srcVolume = getVPLEXBackendVolume((Volume) blockObject, true, dbClient);
+                if (srcVolume.isInCG() && !ControllerUtils.checkCGCreatedOnBackEndArray(srcVolume)) {
+                    _log.error("Vplex backend volume {} is not associated with backend cg", srcVolume.getId());
+                    result = true;
+                    break;
+                }
+            } else {
+                // TODO what action we should here?
+                _log.info("Block object {} is not a Volume", blockObject.getId());
+            }
+        }
+        return result;
+    }
+
 }

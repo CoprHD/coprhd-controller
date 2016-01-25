@@ -73,6 +73,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -445,21 +446,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
         }
 
-        // Maintain pre-2.2 functionality for VPLEX CGs created prior to
-        // release 2.2, which does not allow snapping a consistency group.
-        URI cgStorageControllerURI = consistencyGroup.getStorageController();
-        if (!NullColumnValueGetter.isNullURI(cgStorageControllerURI)) {
-            // No snapshots for VPLEX consistency groups.
-            StorageSystem cgStorageController = _dbClient.queryObject(
-                    StorageSystem.class, cgStorageControllerURI);
-            if (DiscoveredDataObject.Type.vplex.name().equals(cgStorageController
-                    .getSystemType()) && (!consistencyGroup.checkForType(Types.LOCAL)
-                    || BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty())) {
-                _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
-                throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
-            }
-        }
-
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
@@ -471,22 +457,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Set snapshot type.
         String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
-        if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
-            snapshotType = BlockSnapshot.TechnologyType.RP.toString();
-        }
 
-        // Determine the snapshot volume for RP.
         Volume snapVolume = null;
-        if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
-            for (Volume volumeToSnap : volumeList) {
-                // Get the RP source volume.
-                if (volumeToSnap.getPersonality() != null
-                        && volumeToSnap.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-                    snapVolume = volumeToSnap;
-                    break;
-                }
-            }
-        } else if (!volumeList.isEmpty()) {
+        if (!volumeList.isEmpty()) {
             // Any volume.
             snapVolume = volumeList.get(0);
         }
@@ -1061,7 +1034,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     consistencyGroup.getStorageController(), StorageSystem.class);
         }
 
-        // VPlex, VNX, ScaleIO, and VMax volumes only
+        // IBMXIV, XtremIO, VPlex, VNX, ScaleIO, and VMax volumes only
         String systemType = cgStorageSystem.getSystemType();
         if (!systemType.equals(DiscoveredDataObject.Type.vplex.name())
                 && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())
@@ -1115,7 +1088,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
         }
 
-        if (param.hasVolumesToRemove() || (!isReplica && !volsAlreadyInCG)) {
+        if (cgStorageSystem.deviceIsType(Type.xtremio) || (cgStorageSystem.getUsingSmis80() && cgStorageSystem.deviceIsType(Type.vmax))) {
+            // CG can have replicas
+            if (_log.isDebugEnabled()) {
+                _log.debug("CG can have replicas for VMAX with SMI-S 8.x");
+            }
+        } else if (param.hasVolumesToRemove() || (!isReplica && !volsAlreadyInCG)) {
             // CG cannot have replicas when adding/removing volumes to/from CG
             // Check snapshots
             // Adding/removing volumes to/from a consistency group
@@ -1131,25 +1109,28 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 }
             }
 
-            // Check mirrors
-            // Adding/removing volumes to/from a consistency group
-            // is not supported when existing volumes in CG have mirrors.
-            if (cgVolumes != null && !cgVolumes.isEmpty()) {
-                Volume firstVolume = cgVolumes.get(0);
-                StringSet mirrors = firstVolume.getMirrors();
-                if (mirrors != null && !mirrors.isEmpty()) {
-                    throw APIException.badRequests.notAllowedWhenCGHasMirrors();
+            // VNX group clones and mirrors are just list of replicas, no corresponding group on array side
+            if (!cgStorageSystem.deviceIsType(Type.vnxblock)) {
+                // Check mirrors
+                // Adding/removing volumes to/from a consistency group
+                // is not supported when existing volumes in CG have mirrors.
+                if (cgVolumes != null && !cgVolumes.isEmpty()) {
+                    Volume firstVolume = cgVolumes.get(0);
+                    StringSet mirrors = firstVolume.getMirrors();
+                    if (mirrors != null && !mirrors.isEmpty()) {
+                        throw APIException.badRequests.notAllowedWhenCGHasMirrors();
+                    }
                 }
-            }
 
-            // Check clones
-            // Adding/removing volumes to/from a consistency group
-            // is not supported when the consistency group has
-            // volumes with full copies to which they are still
-            // attached or has volumes that are full copies that
-            // are still attached to their source volumes.
-            getFullCopyManager().verifyConsistencyGroupCanBeUpdated(consistencyGroup,
-                    cgVolumes);
+                // Check clones
+                // Adding/removing volumes to/from a consistency group
+                // is not supported when the consistency group has
+                // volumes with full copies to which they are still
+                // attached or has volumes that are full copies that
+                // are still attached to their source volumes.
+                getFullCopyManager().verifyConsistencyGroupCanBeUpdated(consistencyGroup,
+                        cgVolumes);
+            }
         }
 
         // Verify the volumes to be removed.
@@ -1168,6 +1149,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     }
                     if (!BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) {
                         blockServiceApiImpl.verifyRemoveVolumeFromCG(volume, cgVolumes);
+                    }
+                    // Check if the volume is assigned to an application
+                    VolumeGroup application = volume.getCopyTypeVolumeGroup(_dbClient);
+                    if (application != null) {
+                        throw APIException.badRequests.removeVolumeFromCGNotAllowed(volume.getLabel(), application.getLabel());
                     }
                 }
                 removeVolumesList.add(volumeURI);
@@ -1346,6 +1332,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the requests and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
 
         // Grab the first volume and call the block full copy
         // manager to create the full copies for the volumes
@@ -2058,6 +2047,20 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         return fcSourceURI;
     }
 
+    /**
+     * Check if the given CG volume is part of an application.
+     * If so, throw an error indicating replica operation is supported on CG.
+     *
+     * @param volume the CG volume
+     */
+    private void validateVolumeNotPartOfApplication(Volume volume, String replicaType) {
+        VolumeGroup volumeGroup = volume.getCopyTypeVolumeGroup(_dbClient);
+        if (volumeGroup != null) {
+            throw APIException.badRequests.replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(volumeGroup.getLabel(),
+                    replicaType);
+        }
+    }
+    
     /**
      * Creates tasks against consistency groups associated with a request and adds them to the given task list.
      *

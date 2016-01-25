@@ -108,7 +108,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
             // if volume is part of COPY type Volume Group, get only the Array Group volumes
             if (fcSourceVolume.getApplication(_dbClient) != null) {
-                // TODO Needs to get vplex volumes based on the backed volume replication group
+                // Get vplex volumes based on the backed volume replication group
                 String replicationGroupName = null;
                 s_logger.info("fcSourceVolume :{}", fcSourceVolume.getId());
                 StringSet backedVolumeList = fcSourceVolume.getAssociatedVolumes();

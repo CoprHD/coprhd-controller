@@ -1513,7 +1513,7 @@ public class ControllerUtils {
      * Group volumes by array group.
      *
      * @param volumes the volumes
-     * @param dbClient TODO
+     * @param dbClient dbCLient instance
      * @return the map of array group to volumes
      */
     public static Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes, DbClient dbClient) {

@@ -1169,7 +1169,8 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
             resultStatus: $scope.filterDialog.resultStatus,
             serviceType: $scope.filterDialog.serviceType,
             user: $scope.filterDialog.user,
-            keyword: $scope.filterDialog.keyword
+            keyword: $scope.filterDialog.keyword,
+            triggerByFilter: "true"
         };
         var url = APPLY_FILTER + "?" + encodeArgs(args);
         window.location.href = url;

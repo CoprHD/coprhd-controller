@@ -37,6 +37,7 @@ public class AuditLog extends Controller {
     private static final String PARAM_SERVICE = "serviceType";
     private static final String PARAM_USER = "user";
     private static final String PARAM_KEYWORD = "keyword";
+    private static final String PARAM_TRIGGER = "triggerByFilter";
 
     private static synchronized JAXBContext getContext() throws JAXBException {
         if (CONTEXT == null) {
@@ -57,12 +58,14 @@ public class AuditLog extends Controller {
         String serviceType = params.get(PARAM_SERVICE);
         String user = params.get(PARAM_USER);
         String keyword = params.get(PARAM_KEYWORD);
-        DateTime defaultStartTime = new DateTime().minusMinutes(15);
+        Boolean triggerByFilter = params.get(PARAM_TRIGGER, Boolean.class);
+        DateTime defaultStartTime = new DateTime().minusHours(5);
         renderArgs.put(PARAM_START, (startTime == null) ? defaultStartTime.getMillis() : startTime);
         renderArgs.put(PARAM_RESULT, resultStatus);
         renderArgs.put(PARAM_SERVICE, serviceType);
         renderArgs.put(PARAM_USER, user);
         renderArgs.put(PARAM_KEYWORD, keyword);
+        renderArgs.put(PARAM_TRIGGER, triggerByFilter);
         Common.copyRenderArgsToAngular();
 
         render(dataTable);
@@ -100,23 +103,16 @@ public class AuditLog extends Controller {
         String serviceType = params.get(PARAM_SERVICE);
         String user = params.get(PARAM_USER);
         String keyword = params.get(PARAM_KEYWORD);
-        if (!isAllNull(startTime, result, serviceType, user, keyword)) {
-            Logger.info("Fetch audit logs from multiply params.");
+        Boolean triggerParam = params.get(PARAM_TRIGGER, Boolean.class);
+        boolean triggerByFilter = triggerParam != null ? triggerParam.booleanValue() : false;
+        if (triggerByFilter) {
+            Logger.info("Fetch audit logs from filter's multiply params.");
             return BourneUtil.getViprClient().audit().getAsStream(new Date(startTime), new Date(), serviceType, user, result, keyword, LOG_LANG);
         }
 
         dateTime = dateTime != null ? dateTime : new Date().getTime();
-        Logger.info("Fetch audit logs from time bucket.");
+        Logger.info("Fetch audit logs from selected or current time bucket.");
         return BourneUtil.getViprClient().audit().getLogsForHourAsStream(new Date(dateTime), LOG_LANG);
-    }
-
-    private static boolean isAllNull(Object... objects) {
-        for (Object object : objects) {
-            if (object != null) {
-                return false;
-            }
-        }
-        return true;
     }
 
     public static void download() {

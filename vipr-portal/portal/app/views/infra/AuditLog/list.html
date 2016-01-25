@@ -33,8 +33,9 @@
 
 <div class="section-header"><h1>&{'audit.log.title'}</h1></div>
 
-<div class="well well-sm">
-    <form class="form-inline" onsubmit="refreshLog(); return false;" style="margin-bottom: 0px">
+<div id="system-logs">
+    <form class="form-inline col-md-6" onsubmit="refreshLog(); return false;"
+          style="margin-bottom: 0px;padding-top:10px;">
     #{field 'auditLogDate'}
     	%{
     		field.value = currentDate
@@ -54,78 +55,78 @@
 
     <input type="submit" class="btn btn-sm btn-primary" value="&{'system.logs.showLogs'}"/>
     </form>
-</div>
 
-<div id="system-logs" ng-controller="AuditLogCtrl">
-    <div class="filter-text">
-        <div class="buttons">
-            <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#filter-dialog"
-                    data-type="filter">
-                <span v-icon="filter"></span> {{'auditLog.changefilter' | t}}
-            </button>
-            <button type="button" class="btn btn-sm btn-default" data-toggle="modal" data-target="#filter-dialog"
-                    data-type="download">
-                <span v-icon="download"></span> {{'auditLog.download' | t}}
-            </button>
+    <div ng-controller="AuditLogCtrl">
+        <div class="filter-text">
+            <div class="buttons">
+                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#filter-dialog"
+                        data-type="filter">
+                    <span v-icon="filter"></span> {{'auditLog.changefilter' | t}}
+                </button>
+                <button type="button" class="btn btn-sm btn-default" data-toggle="modal" data-target="#filter-dialog"
+                        data-type="download">
+                    <span v-icon="download"></span> {{'auditLog.download' | t}}
+                </button>
+            </div>
+            <div class="clearfix"></div>
         </div>
-        <div class="description" ng-bind-html="filterText"></div>
-        <div class="clearfix"></div>
-    </div>
 
-    <div class="modal fade" id="filter-dialog">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">{{('systemLogs.'+filterDialog.type+'.title') | t}}</h4>
-                </div>
-                <div class="modal-body">
-                    <form class="form form-horizontal">
-                        <control-group v-field="filterDialog.resultStatus" width="9">
-                            <select-one options="resultStatusOptions"></select-one>
-                        </control-group>
-                        <control-group v-field="filterDialog.startTime" width="9">
-                            <date-picker ng-model="filterDialog.startTime_date" close="true"></date-picker>
-                            <time-picker ng-model="filterDialog.startTime_time"></time-picker>
-                        </control-group>
-                        <control-group v-field="filterDialog.endTime" width="9"
-                                       ng-show="filterDialog.type == 'download'">
-                            <date-picker ng-model="filterDialog.endTime_date" ng-hide="filterDialog.endTimeCurrentTime"
-                                         close="true"></date-picker>
-                            <time-picker ng-model="filterDialog.endTime_time"
-                                         ng-hide="filterDialog.endTimeCurrentTime"></time-picker>
-                            <div class="checkbox current-time-toggle">
-                                <label><input type="checkbox" ng-model="filterDialog.endTimeCurrentTime">
-                                    {{'filterDialog.currentTime' | t}}</label>
-                            </div>
-                        </control-group>
-                        <control-group v-field="filterDialog.serviceType" width="9">
-                            <input-text></input-text>
-                        </control-group>
-                        <control-group v-field="filterDialog.user" width="9">
-                            <input-text></input-text>
-                        </control-group>
-                        <control-group v-field="filterDialog.keyword" width="9">
-                            <input-text onkeydown="updateFilter(event.keyCode)"></input-text>
-                        </control-group>
-                        <control-group v-field="filterDialog.orderTypes" width="9"
-                                       ng-show="filterDialog.type == 'download'">
-                            <select-one options="orderTypeOptions"></select-one>
-                        </control-group>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" ng-click="downloadLogs()"
-                            ng-show="filterDialog.type == 'download'">
-                        <span v-icon="download"></span> {{'system.logs.download' | t}}
-                    </button>
-                    <button type="button" id="filterButton" class="btn btn-primary" ng-click="applyFilter()"
-                            ng-show="filterDialog.type == 'filter'">
-                        <span v-icon="filter"></span> {{'system.logs.update' | t}}
-                    </button>
-                    <button type="button" class="btn btn-default" data-dismiss="modal">
-                        <span v-icon="remove"></span> {{'button.close' | t}}
-                    </button>
+        <div class="modal fade" id="filter-dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title">{{('systemLogs.'+filterDialog.type+'.title') | t}}</h4>
+                    </div>
+                    <div class="modal-body">
+                        <form class="form form-horizontal">
+                            <control-group v-field="filterDialog.resultStatus" width="9">
+                                <select-one options="resultStatusOptions"></select-one>
+                            </control-group>
+                            <control-group v-field="filterDialog.startTime" width="9">
+                                <date-picker ng-model="filterDialog.startTime_date" close="true"></date-picker>
+                                <time-picker ng-model="filterDialog.startTime_time"></time-picker>
+                            </control-group>
+                            <control-group v-field="filterDialog.endTime" width="9"
+                                           ng-show="filterDialog.type == 'download'">
+                                <date-picker ng-model="filterDialog.endTime_date"
+                                             ng-hide="filterDialog.endTimeCurrentTime"
+                                             close="true"></date-picker>
+                                <time-picker ng-model="filterDialog.endTime_time"
+                                             ng-hide="filterDialog.endTimeCurrentTime"></time-picker>
+                                <div class="checkbox current-time-toggle">
+                                    <label><input type="checkbox" ng-model="filterDialog.endTimeCurrentTime">
+                                        {{'filterDialog.currentTime' | t}}</label>
+                                </div>
+                            </control-group>
+                            <control-group v-field="filterDialog.serviceType" width="9">
+                                <input-text></input-text>
+                            </control-group>
+                            <control-group v-field="filterDialog.user" width="9">
+                                <input-text></input-text>
+                            </control-group>
+                            <control-group v-field="filterDialog.keyword" width="9">
+                                <input-text onkeydown="updateFilter(event.keyCode)"></input-text>
+                            </control-group>
+                            <control-group v-field="filterDialog.orderTypes" width="9"
+                                           ng-show="filterDialog.type == 'download'">
+                                <select-one options="orderTypeOptions"></select-one>
+                            </control-group>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" ng-click="downloadLogs()"
+                                ng-show="filterDialog.type == 'download'">
+                            <span v-icon="download"></span> {{'system.logs.download' | t}}
+                        </button>
+                        <button type="button" id="filterButton" class="btn btn-primary" ng-click="applyFilter()"
+                                ng-show="filterDialog.type == 'filter'">
+                            <span v-icon="filter"></span> {{'system.logs.update' | t}}
+                        </button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">
+                            <span v-icon="remove"></span> {{'button.close' | t}}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -170,6 +171,7 @@ options = ['bFilter': false, 'fnServerParams': 'loadServerParams', 'sAjaxDataPro
         aoData.push({"name" : "serviceType", "value" : "${serviceType}"});
         aoData.push({"name" : "user", "value" : "${user}"});
         aoData.push({"name" : "keyword", "value" : "${keyword}"});
+        aoData.push({"name" : "triggerByFilter", "value" : "${triggerByFilter}"});
     }
 
     function renderTime(o, val) {

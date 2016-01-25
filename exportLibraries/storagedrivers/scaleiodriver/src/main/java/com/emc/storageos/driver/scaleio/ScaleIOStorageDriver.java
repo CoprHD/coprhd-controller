@@ -61,6 +61,9 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
                              if (result != null) {
                                  volume.setNativeId(result.getId());
+                                 long sizeInBytes = Long.parseLong(result.getSizeInKb()) * 1000;
+                                 volume.setAllocatedCapacity(sizeInBytes);
+
                                  successful++;
                              } else {
                                  log.error("Exception while creating volume");
@@ -91,7 +94,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      * Before completion of the request, set all required data for expanded volume in "volume" parameter.
      *
      * @param volume Volume to expand. Type: Input/Output argument.
-     * @param newCapacity Requested capacity. Type: input argument.
+     * @param newCapacity Requested capacity in GB. Type: input argument.
      * @return task
      */
     public DriverTask expandVolume(StorageVolume volume, long newCapacity) {

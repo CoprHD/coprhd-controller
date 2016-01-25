@@ -78,7 +78,7 @@ public class ScaleIOStorageDriverTest {
         storageVolumes.clear();
 
         // Create very large volume
-        newVolume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, (int) java.lang.Math.pow(10,10));
+        newVolume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, (int) Math.pow(10,10));
         storageVolumes.add(newVolume);
 
         task = driver.createVolumes(storageVolumes, capabilities);
@@ -98,16 +98,18 @@ public class ScaleIOStorageDriverTest {
 
     @Test
     public void testExpandVolume() throws Exception {
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_C, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+
         List<StorageVolume> storageVolumes = new ArrayList<>();
         StorageCapabilities capabilities = null;
 
-        StorageVolume volume = initializeVolume(10);
-        volume.setThinVolumePreAllocationSize(10L);
+        StorageVolume volume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, 11111111);
+        storageVolumes.add(volume);
 
         driver.createVolumes(storageVolumes, capabilities);
 
-        Long capacity = volume.getProvisionedCapacity();
-        capacity += 100;
+        long capacity = volume.getAllocatedCapacity() / (long) Math.pow(10, 9); //convert bytes to GB
+        capacity += 8;
 
         // Expand storage volume
         task = driver.expandVolume(volume, capacity);

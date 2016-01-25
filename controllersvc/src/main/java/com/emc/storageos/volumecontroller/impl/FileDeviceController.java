@@ -310,6 +310,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else if (!result.getCommandPending()) {
                 fsObj.setInactive(true);
             }
+            
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
             _dbClient.persistObject(fsObj);
 

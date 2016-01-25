@@ -24,6 +24,7 @@ import com.emc.sa.service.vipr.block.tasks.FailoverBlockVolume;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.vipr.client.Tasks;
 
@@ -98,6 +99,13 @@ public class FailoverBlockVolumeService extends ViPRService {
                 // This is a RP failover request so we need to pass along the copyName and pointInTime values.
                 // We only want to do this if the image selected is NOT the latest image (this is handled by
                 // the default case) but a specific snapshot or point in time.
+                if (uri(imageToAccess) != null) {
+                    // If the imageToAccess is a BlockSnapshot, the user is attempting to failover to
+                    // a specific RP bookmark. Get the name of that bookmark and pass it down.
+                    BlockSnapshotRestRep snapshot = BlockStorageUtils.getSnapshot(uri(imageToAccess));
+                    imageToAccess = snapshot.getName();
+                }
+
                 tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type, imageToAccess, pointInTime));
             } else {
                 tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type));

@@ -383,7 +383,7 @@ public class VPlexScheduler implements Scheduler {
         } else {
             return scheduleStorageForDistributedVPLEXVolume(srcVarray,
                     requestedVPlexSystems, srcStorageSystem, srcVpool, requestedHaVarray,
-                    haVpool, capabilities);
+                    haVpool, capabilities, project, vpoolUse, currentRecommendations);
         }
     }
 
@@ -533,23 +533,51 @@ public class VPlexScheduler implements Scheduler {
     private List<Recommendation> scheduleStorageForDistributedVPLEXVolume(
             VirtualArray srcVarray, Set<URI> requestedVPlexSystems, URI srcStorageSystem,
             VirtualPool srcVpool, VirtualArray haVarray, VirtualPool haVpool,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Project project,
+            VpoolUse srcVpoolUse, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+
+//        
+//        // See if any one VPlex system can utilize all the specified pools.
+//        for (Map.Entry<String, List<StoragePool>> entry : vplexPoolMapForSrcVarray.entrySet()) {
+//            if (entry.getValue().containsAll(allMatchingPools)) {
+//                _log.info(String.format("Generating local recommendations for VPLEX %s", entry.getKey()));
+//                recommendations.addAll(createVPlexRecommendations(baseRecommendations,
+//                        entry.getKey(), varray, vpool));
+//            }
+//        }
+//        
+//        if (recommendations.isEmpty()) {
+//            _log.info("No single VPLEX could front the entire set of recommendations");
+//        }
+//        _placementManager.logRecommendations("VPLEX Local", recommendations);
+//        return recommendations;
 
         _log.info("Executing VPlex high availability placement strategy for Distributed VPLEX Volumes.");
 
         // Initialize the list of recommendations.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
+        List<Recommendation> baseRecommendations = new ArrayList<Recommendation>();
+      
+      // Call the lower level scheduler to get it's recommendations.
+      Scheduler nextScheduler = _placementManager.getNextScheduler(
+              SchedulerType.vplex, srcVpool, srcVpoolUse);
+      _log.info(String.format("Calling next scheduler: %s", nextScheduler.getClass().getSimpleName()));
+      Set<List<Recommendation>> baseRecommendationSets = 
+              nextScheduler.getRecommendationsForVpool(
+                      srcVarray, project, srcVpool, srcVpoolUse, capabilities, currentRecommendations);
+      // For now take the first recommendation set.
+      Iterator<List<Recommendation>> setIterator = baseRecommendationSets.iterator();
+      if (setIterator.hasNext()) {
+          baseRecommendations.addAll(setIterator.next());
+      }
+      _log.info(String.format("Received %d recommendations from %s", 
+              baseRecommendations.size(), nextScheduler.getClass().getSimpleName()));
+      List<StoragePool> allMatchingPoolsForSrcVarray = _placementManager
+              .getStoragePoolsFromRecommendations(baseRecommendations);
+      _log.info("Found {} matching pools for source varray", allMatchingPoolsForSrcVarray.size());
 
         URI cgURI = capabilities.getBlockConsistencyGroup();
         BlockConsistencyGroup cg = (cgURI == null ? null : _dbClient.queryObject(BlockConsistencyGroup.class, cgURI));
-        
-        // Get all storage pools that match the passed source VirtualPool params,
-        // and source virtual array. In addition, the pool must have enough
-        // capacity to hold at least one resource of the requested size.
-        _log.info("Getting all matching pools for source varray {}", srcVarray.getId());
-        List<StoragePool> allMatchingPoolsForSrcVarray = getMatchingPools(srcVarray,
-                srcStorageSystem, srcVpool, capabilities);
-        _log.info("Found {} matching pools for source varray", allMatchingPoolsForSrcVarray.size());
 
         // Sort the matching pools for the source varray by VPLEX system.
         Map<String, List<StoragePool>> vplexPoolMapForSrcVarray =
@@ -618,8 +646,10 @@ public class VPlexScheduler implements Scheduler {
 
             // Check if the resource can be placed on the matching
             // pools for this VPlex storage system in the source varray.
-            List<Recommendation> recommendationsForSrcVarray = getRecommendationsForPools(
-                    srcVarray.getId().toString(), srcVpool, vplexPoolMapForSrcVarray.get(vplexStorageSystemId), capabilities);
+            List<Recommendation> recommendationsForSrcVarray = new ArrayList<Recommendation>();
+            recommendationsForSrcVarray.addAll(
+                    createVPlexRecommendations(baseRecommendations, 
+                    vplexStorageSystemId, srcVarray, srcVpool));
             if (recommendationsForSrcVarray.isEmpty()) {
                 _log.info("Matching pools for source varray insufficient for placement");
                 // For this VPlex, the pools for the source varray are
@@ -673,20 +703,21 @@ public class VPlexScheduler implements Scheduler {
                         // Remove the systems from the source side and see
                         // if the source side can still be placed when limited.
                         _log.info("Matching pools for HA varray now sufficient for placement");
-                        List<StoragePool> vplexPoolsForSrcVarray = new ArrayList<StoragePool>(
-                                vplexPoolMapForSrcVarray.get(vplexStorageSystemId));
-                        Iterator<StoragePool> vplexPoolsForSrcVarrayIter = vplexPoolsForSrcVarray.iterator();
-                        while (vplexPoolsForSrcVarrayIter.hasNext()) {
-                            StoragePool srcPool = vplexPoolsForSrcVarrayIter.next();
-                            URI poolSystem = srcPool.getStorageDevice();
-                            if (recommendedSrcSystems.contains(poolSystem)) {
-                                _log.info("Removing pool {} on system {} from consideration for source placement", srcPool.getId(),
-                                        poolSystem);
-                                vplexPoolsForSrcVarrayIter.remove();
-                            }
-                        }
-                        recommendationsForSrcVarray = getRecommendationsForPools(
-                                srcVarray.getId().toString(), srcVpool, vplexPoolsForSrcVarray, capabilities);
+// TODO - something about this code
+//                        List<StoragePool> vplexPoolsForSrcVarray = new ArrayList<StoragePool>(
+//                                vplexPoolMapForSrcVarray.get(vplexStorageSystemId));
+//                        Iterator<StoragePool> vplexPoolsForSrcVarrayIter = vplexPoolsForSrcVarray.iterator();
+//                        while (vplexPoolsForSrcVarrayIter.hasNext()) {
+//                            StoragePool srcPool = vplexPoolsForSrcVarrayIter.next();
+//                            URI poolSystem = srcPool.getStorageDevice();
+//                            if (recommendedSrcSystems.contains(poolSystem)) {
+//                                _log.info("Removing pool {} on system {} from consideration for source placement", srcPool.getId(),
+//                                        poolSystem);
+//                                vplexPoolsForSrcVarrayIter.remove();
+//                            }
+//                        }
+//                        recommendationsForSrcVarray = getRecommendationsForPools(
+//                                srcVarray.getId().toString(), srcVpool, vplexPoolsForSrcVarray, capabilities);
                         if (recommendationsForSrcVarray.isEmpty()) {
                             _log.info("Matching pools for source varray no longer sufficient for placement");
                             // Now we can't place the source side.
@@ -701,13 +732,13 @@ public class VPlexScheduler implements Scheduler {
             }
 
             // We have recommendations for pools in both the source and HA varrays.
-            recommendations.addAll(createVPlexRecommendations(
-                    vplexStorageSystemId, srcVarray, srcVpool, recommendationsForSrcVarray));
+            recommendations.addAll(recommendationsForSrcVarray);
             recommendations.addAll(createVPlexRecommendations(
                     vplexStorageSystemId, haVarray, haVpool, recommendationsForHaVarray));
 
             _log.info("Done trying to place resources for VPlex.");
         }
+        _placementManager.logRecommendations("VPLEX Distributed", recommendations);
 
         return recommendations;
     }

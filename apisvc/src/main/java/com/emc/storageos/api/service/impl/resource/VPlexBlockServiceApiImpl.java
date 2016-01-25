@@ -3179,6 +3179,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 for (String assocVolId : volume.getAssociatedVolumes()) {
                     Volume assocVolume = _dbClient.queryObject(Volume.class, URI.create(assocVolId));
                     if (null != assocVolume && !assocVolume.getInactive() && assocVolume.getNativeId() != null) {
+                        if (assocVolume.isSRDFSource()) {
+                            VolumeDescriptor srdfDescriptor = 
+                                    new VolumeDescriptor(VolumeDescriptor.Type.SRDF_SOURCE, 
+                                    assocVolume.getStorageController(), assocVolume.getId(), null, null);
+                            volumeDescriptors.add(srdfDescriptor);
+                        }
                         VolumeDescriptor assocDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
                                 assocVolume.getStorageController(), assocVolume.getId(), null, null);
                         volumeDescriptors.add(assocDesc);

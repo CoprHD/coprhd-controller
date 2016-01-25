@@ -48,6 +48,8 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
+import com.emc.storageos.model.application.VolumeGroupList;
+import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
@@ -252,6 +254,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createVolumeOptions(null, listSourceVolumes(api(ctx), project));
     }
 
+    @Asset("sourceBlockVolume")
+    @AssetDependencies({ "project", "blockVirtualPoolFilter", "consistencyGroupFilter" })
+    public List<AssetOption> getApplicationSourceVolumes(AssetOptionsContext ctx, URI project, URI vpool, URI cg) {
+        ResourceFilter<VolumeRestRep> virtualPoolFilter = vpool != null ? new VirtualPoolFilter(vpool)
+                : new DefaultResourceFilter<VolumeRestRep>();
+        ResourceFilter<VolumeRestRep> cgFilter = cg != null ? new BlockVolumeConsistencyGroupFilter(cg, false)
+                : new BlockVolumeConsistencyGroupFilter(null, true);
+
+        return createVolumeOptions(null, listSourceVolumes(api(ctx), project, virtualPoolFilter, cgFilter));
+    }
+
     @Asset("sourceBlockVolumeInConsistencyGroup")
     @AssetDependencies({ "project", "consistencyGroup" })
     public List<AssetOption> getSourceVolumesWithoutConsistencyGroup(AssetOptionsContext ctx, URI project, URI consistencyGroup) {
@@ -264,7 +277,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     /**
      * Get source volumes for a specific project. If the deletionType is VIPR_ONLY, create
      * a filter that only retrieves Volumes with Host Exports
-     *
+     * 
      * @param ctx
      * @param project
      * @param deletionType
@@ -274,40 +287,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "deletionType" })
     public List<AssetOption> getSourceVolumesWithDeletion(final AssetOptionsContext ctx, URI project, String deletionType) {
         debug("getting source block volumes (project=%s)", project);
-
-        List<VolumeRestRep> volumes;
-
-        if (VolumeDeleteTypeEnum.valueOf(deletionType).equals(VolumeDeleteTypeEnum.VIPR_ONLY)) {
-
-            final List<URI> volumesWithExports = new ArrayList<URI>();
-            for (ExportGroupRestRep export : api(ctx).blockExports().findByProject(project)) {
-                for (ExportBlockParam v : export.getVolumes()) {
-                    volumesWithExports.add(v.getId());
-                }
-            }
-
-            ResourceFilter<VolumeRestRep> volumesWithNoExports = new ResourceFilter<VolumeRestRep>() {
-                @Override
-                public boolean acceptId(URI id) {
-                    return true;
-                }
-
-                @Override
-                public boolean accept(VolumeRestRep item) {
-                    if (volumesWithExports.contains(item.getId())) {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                }
-            };
-
-            volumes = listSourceVolumes(api(ctx), project, volumesWithNoExports);
-
-        } else {
-            volumes = listSourceVolumes(api(ctx), project);
-        }
-
+        List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), project);
         return createVolumeOptions(null, volumes);
     }
 
@@ -536,7 +516,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of unique exports for a given volume.
-     *
+     * 
      * @param ctx
      *            the asset options context
      * @param volumeId
@@ -708,9 +688,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(api(ctx).blockVpools().getAll());
     }
 
+    @Asset("blockVirtualPoolFilter")
+    public List<AssetOption> getBlockVirtualPoolFilters(AssetOptionsContext ctx) {
+        List<AssetOption> options = createBaseResourceOptions(api(ctx).blockVpools().getAll());
+        options.add(0, new AssetOption("All", "All"));
+        return options;
+    }
+
     /**
      * Returns the virtual pools for a given virtualArray (initially added for the Create Volume service)
-     *
+     * 
      * @param ctx
      * @param virtualArray
      * @return
@@ -1757,6 +1744,28 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
     }
 
+    @Asset("application")
+    public List<AssetOption> getApplications(AssetOptionsContext ctx) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupList applications = client.application().getApplications();
+        return createNamedResourceOptions(applications.getVolumeGroups());
+    }
+
+    @Asset("applicationBlockVolume")
+    @AssetDependencies("application")
+    public List<AssetOption> getApplications(AssetOptionsContext ctx, URI application) {
+        final ViPRCoreClient client = api(ctx);
+        return createNamedResourceOptions(client.application().listVolumes(application));
+    }
+
+    @Asset("replicationGroup")
+    @AssetDependencies("application")
+    public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupRestRep application = client.application().getApplication(applicationId);
+        return createStringOptions(application.getReplicationGroupNames());
+    }
+
     class VirtualPoolFilter extends DefaultResourceFilter<VolumeRestRep> {
 
         private final URI virtualPoolId;
@@ -2030,7 +2039,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of volume IDs associated with the given exports.
-     *
+     * 
      * @param exports
      *            the export groups.
      * @return the set of volume IDs.
@@ -2049,11 +2058,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of volume IDs for volumes in the given project that are exported to the given host/cluster
-     *
+     * 
      * @param client An instance of the ViPRCoreClient
      * @param projectId The ViPR ID of the project
      * @param hostOrClusterId The ViPR ID of the host/cluster
-     *
+     * 
      * @return The set of Volume IDs
      */
     protected static Set<URI> getExportedVolumes(ViPRCoreClient client, URI projectId, URI hostOrClusterId, URI virtualArrayId) {
@@ -2076,7 +2085,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the value of the specified tag from the given volumes.
-     *
+     * 
      * @param tagName
      *            the tag name.
      * @param volumes
@@ -2113,7 +2122,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the volume details for a collection of volumes.
-     *
+     * 
      * @param client the bourne client.
      * @param volumes the collection of volumes.
      * @return the volume details.
@@ -2132,7 +2141,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the unique set of BlockVirtualPool IDs for the given volumes.
-     *
+     * 
      * @param volumes the volumes.
      * @return the block virtual pool IDs.
      */
@@ -2146,7 +2155,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all BlockVirtualPools mapped by ID.
-     *
+     * 
      * @param client the ViPR client instance.
      * @param ids the IDs.
      * @return the mapping of ID->BlockVirtualPoolRestRep
@@ -2161,7 +2170,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all BlockVirtualPools mapped by ID.
-     *
+     * 
      * @param client the ViPR client instance.
      * @param volumes the volumes for which we need the VPool information.
      * @return the mapping of ID->BlockVirtualPoolRestRep
@@ -2179,7 +2188,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all {@link VolumeRestRep}s that are either in the target VArray or use the target VArray for protection
-     *
+     * 
      * @param client the ViPR client instance.
      * @param targetVArrayId the target VArray ID.
      * @param volumes the volumes we are concerned with. (These should be VPlex volumes)
@@ -2211,7 +2220,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Class for holding all volume detail information, currently the volume and virtual pool.
-     *
+     * 
      * @author jonnymiller
      */
     public static class VolumeDetail {
@@ -2343,7 +2352,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Add the volume and it's snapshots to the 'blockObjects' list.
-     *
+     * 
      * When the method completes the snapshots that have been added to the blockObjects list will be removed from the snapshots list.
      */
     protected static void addVolume(List<BlockObjectRestRep> blockObjects, VolumeRestRep volume, List<BlockSnapshotRestRep> snapshots) {

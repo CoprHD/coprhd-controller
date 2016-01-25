@@ -150,17 +150,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return null;
     }
 
-    @Override
-    public void performNativeContinuousCopies(URI storage, URI sourceFileShare,
-            List<URI> mirrorURIs, String opType, String opId)
-            throws ControllerException {
-    }
-
-    @Override
-    public void performRemoteContinuousCopies(URI storage, URI copyId,
-            String opType, String opId) throws ControllerException {
-        
-    }
+    
     
     /**
      * Create Replication Session Step
@@ -410,7 +400,16 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return true;
     }
 
-    
+    @Override
+    public void performNativeContinuousCopies(URI storage, URI sourceFileShare,
+            List<URI> mirrorURIs, String opType, String opId) throws ControllerException {
+    }
+
+    @Override
+    public void performRemoteContinuousCopies(URI storage, URI copyId, 
+                        String opType, String opId) throws ControllerException {
+        
+    }
     
     /**
      * Convenience method to build a Map of URI's to their respective fileshares based on a List of

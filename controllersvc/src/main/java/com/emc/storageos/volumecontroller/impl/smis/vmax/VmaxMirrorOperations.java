@@ -57,7 +57,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
             BlockMirror mirrorObj = _dbClient.queryObject(BlockMirror.class, mirror);
             Volume volumeObj = _dbClient.queryObject(Volume.class, sourceVolume);
             CIMObjectPath srcRepSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
-            String volumeGroupName = _helper.getConsistencyGroupName(volumeObj, storage);
+            String volumeGroupName = _helper.getSourceConsistencyGroupName(volumeObj);
             CIMObjectPath volumeGroupPath = _cimPath.getReplicationGroupPath(storage, volumeGroupName);
             CIMObjectPath mirrorGroupPath = _cimPath.getReplicationGroupPath(storage, mirrorObj.getReplicationGroupInstance());
 
@@ -110,7 +110,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
             mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
             BlockMirror firstMirror = mirrors.get(0);
             Volume sourceVolume = _dbClient.queryObject(Volume.class, firstMirror.getSource());
-            String sourceGroupName = _helper.getConsistencyGroupName(sourceVolume, storage);
+            String sourceGroupName = _helper.getSourceConsistencyGroupName(sourceVolume);
             String replicaLabel = ControllerUtils.generateLabel(sourceVolume.getLabel(), firstMirror.getLabel());
             // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
             ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);

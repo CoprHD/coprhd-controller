@@ -772,14 +772,16 @@ public class UnManagedFilesystemService extends TaggedResource {
                  * Step 2: if project has any associated vNAS
                  * Step 3: then check nasUri in project associated vNAS list
                  */
+                _logger.debug("Project vNAS server list: {}", projectVNASServerSet);
+                _logger.debug("vNAS: {} assigned to project? {}", virtualNAS.getNasName(), !virtualNAS.isNotAssignedToProject());
                 if (!projectVNASServerSet.contains(nasUri) && !virtualNAS.isNotAssignedToProject()) {
                     _logger.info("vNAS: {} is not associated with project: {}.",
                             virtualNAS.getNasName(), project.getLabel());
                     isIngestValid = false;
                 } else {
-                    if (!virtualNAS.isNotAssignedToProject()) {
-                        _logger.info("vNAS: {} is associated with other project.",
-                                virtualNAS.getNasName());
+                    if (!virtualNAS.isNotAssignedToProject() &&
+                            !virtualNAS.getAssociatedProjects().contains(project.getId().toString())) {
+                        _logger.info("vNAS: {} is associated with other project.", virtualNAS.getNasName());
                         isIngestValid = false;
                     }
                 }
@@ -953,7 +955,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     .split(",")) {
 
                 switch (tempPermission) {
-                    case "Read":
+                    case "read":
                         tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_READ;
 
                         break;
@@ -963,7 +965,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     case "execute":
                         tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE;
                         break;
-                    case "FullControl":
+                    case "fullcontrol":
                         tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_FULLCONTROL;
                         break;
                 }

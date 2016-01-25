@@ -2427,7 +2427,6 @@ public class FileService extends TaskResourceService {
        verifyCopyIDs(param);
 
        // Validate for remotemirror Stop operation
-       validateRemoteMirrorStopOperation(id, param);
 
        return performFileProtectionAction(param, id, ProtectionOp.PAUSE.getRestOp());
    }

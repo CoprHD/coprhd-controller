@@ -14,6 +14,7 @@ import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupHosts;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByCluster;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByHost;
+import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumesByHostOrCluster;
 import com.emc.sa.service.vipr.block.tasks.MigrateBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.RemoveVolumesFromMobilityGroup;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -36,6 +37,12 @@ public class MobilityGroupMigrationService extends ViPRService {
     @Param(ServiceParams.TARGET_STORAGE_SYSTEM)
     private URI targetStorageSystem;
 
+    @Param(value = ServiceParams.INGEST_VOLUMES, required = false)
+    private Boolean ingestVolumes;
+
+    @Param(value = ServiceParams.PROJECT, required = false)
+    private URI project;
+
     private VolumeGroupRestRep mobilityGroup;
 
     @Override
@@ -45,6 +52,12 @@ public class MobilityGroupMigrationService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
+
+        if (ingestVolumes != null && ingestVolumes) {
+            // TODO ingest volumes
+            ingestVolumes();
+        }
+
         Tasks<VolumeRestRep> tasks = execute(new MigrateBlockVolumes(getVolumes(), mobilityGroup.getSourceStorageSystem(),
                 targetVirtualPool, targetStorageSystem));
 
@@ -56,6 +69,36 @@ public class MobilityGroupMigrationService extends ViPRService {
         } else {
             ExecutionUtils.fail("failTask.mobilityGroupMigration.noVolumesMigrated", new Object[] {}, new Object[] {});
         }
+
+    }
+
+    private void ingestVolumes() {
+        // String ingestionMethod = IngestionMethodEnum.FULL.toString();
+        List<NamedRelatedResourceRep> hostsOrClusters = Lists.newArrayList();
+        if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
+            hostsOrClusters = execute(new GetMobilityGroupHosts(mobilityGroup.getId()));
+        } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
+            hostsOrClusters = execute(new GetMobilityGroupClusters(mobilityGroup.getId()));
+        } else {
+            // TODO fail
+        }
+
+        for (NamedRelatedResourceRep hostOrCluster : hostsOrClusters) {
+            int remaining = execute(new GetUnmanagedVolumesByHostOrCluster(
+                    hostOrCluster.getId())).size();
+
+            logInfo("ingest.exported.unmanaged.volume.service.remaining", remaining);
+        }
+
+        //
+        // int succeed = execute(new IngestExportedUnmanagedVolumes(virtualPool, virtualArray, project,
+        // host == null ? null : host.getId(),
+        // cluster == null ? null : cluster.getId(),
+        // uris(volumeIds),
+        // ingestionMethod
+        // )).getTasks().size();
+        // logInfo("ingest.exported.unmanaged.volume.service.ingested", succeed);
+        // logInfo("ingest.exported.unmanaged.volume.service.skipped", volumeIds.size() - succeed);
 
     }
 

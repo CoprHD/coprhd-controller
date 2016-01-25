@@ -17,6 +17,17 @@
       type:"assetType.vipr.mobilityGroup"
     },
     
+    ingestVolumes:{
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    },
+    
+    project:{
+      type: "assetType.vipr.project"
+    },
+    
     targetVirtualPool:{
       type:"assetType.vipr.migrationTargetVirtualPool"
     },

@@ -68,6 +68,7 @@ public interface ServiceParams {
     public String COPIES = "copies";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
+    public String INGEST_VOLUMES = "ingestVolumes";
 
     public String TARGET_STORAGE_SYSTEM = "targetStorageSystem";
 

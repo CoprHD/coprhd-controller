@@ -142,6 +142,14 @@ public enum OperationTypeEnum {
     CREATE_FILE_MIRROR("FileSystemMirrorCreated", "FileSystemMirrorCreateFailed", "FileSystemMirror Create"),
     DELETE_FILE_MIRROR("FileSystemMirrorDeleted", "FileSystemMirrorDeleteFailed", "FileSystemMirror Delete"),
     
+    
+    SUSPEND_FILE_MIRROR("FileSystemMirrorSuspended", "FileSysteMirrorSuspendFailed", "FileSystemMirror Suspend"),
+    DETACH_FILE_MIRROR("FileSystemMirrorDetach", "FileSystemMirrorDetachFailed", "FileSystemMirror Detach"),
+    PAUSE_FILE_MIRROR("FileSystemMirrorPaused", "FileSystemMirrorPauseFailed", "FileSystemMirror Link Pause"),
+    RESUME_FILE_MIRROR("FileSystemMirrorResumed", "FileSystemMirrorResumeFailed", "FileSystemMirror Resume"),
+    FAILOVER_FILE_MIRROR("FileSystemMirrorFailover", "FileSystemMirrorFailOverFailed", "FileSystemMirror Fail Over"),
+    STOP_FILE_MIRROR("FileSystemMirrorStop", "FileSystemMirrorStopFailed", "FileSystemMirror Stop"),
+    
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
     UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),

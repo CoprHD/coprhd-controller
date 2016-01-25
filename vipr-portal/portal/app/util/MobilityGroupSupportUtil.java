@@ -62,8 +62,7 @@ public class MobilityGroupSupportUtil {
     }
 
     public static TaskList updateMobilityGroup(String name, String description, String id, List<URI> addVolumes, List<URI> removeVolumes,
-            List<URI> addHosts, List<URI> removeHosts, List<URI> addClusters, List<URI> removeClusters, List<URI> addApplications,
-            List<URI> removeApplications) {
+            List<URI> addHosts, List<URI> removeHosts, List<URI> addClusters, List<URI> removeClusters) {
         VolumeGroupUpdateParam update = new VolumeGroupUpdateParam();
         if (!name.isEmpty()) {
             update.setName(name);
@@ -92,12 +91,6 @@ public class MobilityGroupSupportUtil {
         }
         if (!removeClusters.isEmpty()) {
             update.setRemoveClustersList(removeClusters);
-        }
-        if (!addApplications.isEmpty()) {
-            update.setAddParents(addApplications);
-        }
-        if (!removeApplications.isEmpty()) {
-            update.setRemoveParents(removeApplications);
         }
 
         return BourneUtil.getViprClient().application().updateApplication(uri(id), update);

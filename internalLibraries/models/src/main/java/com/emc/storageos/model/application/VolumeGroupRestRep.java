@@ -24,7 +24,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 public class VolumeGroupRestRep extends DataObjectRestRep {
     private String description;
     private Set<String> roles;
-    private Set<RelatedResourceRep> parents;
+    private RelatedResourceRep parent;
     private URI sourceStorageSystem;
     private URI sourceVirtualPool;
     private String migrationType;
@@ -63,14 +63,14 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
      * 
      * @valid none
      */
-    @XmlElement(name = "parents")
-    @JsonProperty("parents")
-    public Set<RelatedResourceRep> getParents() {
-        return parents;
+    @XmlElement(name = "parent")
+    @JsonProperty("parent")
+    public RelatedResourceRep getParent() {
+        return parent;
     }
 
-    public void setParents(Set<RelatedResourceRep> parents) {
-        this.parents = parents;
+    public void setParent(RelatedResourceRep parent) {
+        this.parent = parent;
     }
 
     @XmlElement(name = "sourceStorageSystem")

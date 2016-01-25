@@ -262,9 +262,12 @@ public class MobilityGroups extends ViprResourceController {
                 clusters.add(cluster.getId());
             }
             this.applications = Lists.newArrayList();
-            for (RelatedResourceRep application : getViprClient().application().getApplication(applicationForm.getId()).getParents()) {
-                applications.add(application.getId());
-            }
+            // Set<RelatedResourceRep> applicationRefs = getViprClient().application().getApplication(applicationForm.getId()).getParents();
+            // if (applicationRefs != null) {
+            // for (RelatedResourceRep application : applicationRefs) {
+            // applications.add(application.getId());
+            // }
+            // }
         }
 
         public boolean isNew() {
@@ -296,13 +299,14 @@ public class MobilityGroups extends ViprResourceController {
                 List<URI> addClusters = computeDiff(clusters, getViprClient().application().getClusters(URI.create(id)), true);
                 List<URI> removeClusters = computeDiff(clusters, getViprClient().application().getClusters(URI.create(id)), false);
 
-                List<URI> addApplications = computeDiff(applications, getViprClient().application().getApplication(URI.create(id))
-                        .getParents(), true);
-                List<URI> removeApplications = computeDiff(applications, getViprClient().application().getApplication(URI.create(id))
-                        .getParents(), false);
+                // Set<RelatedResourceRep> apps = getViprClient().application().getApplication(URI.create(id))
+                // .getParents();
+                // List<URI> addApplications = computeDiff(applications, apps != null ? apps : new ArrayList<RelatedResourceRep>(), true);
+                // List<URI> removeApplications = computeDiff(applications, apps != null ? apps : new ArrayList<RelatedResourceRep>(),
+                // false);
 
                 MobilityGroupSupportUtil.updateMobilityGroup(name, description, id, addVolumes, removeVolumes, addHosts, removeHosts,
-                        addClusters, removeClusters, addApplications, removeApplications);
+                        addClusters, removeClusters);
             }
 
         }

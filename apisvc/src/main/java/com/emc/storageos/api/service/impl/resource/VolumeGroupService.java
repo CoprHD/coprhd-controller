@@ -87,7 +87,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexUtil;
-import com.google.common.collect.Sets;
 
 /**
  * APIs to view, create, modify and remove volume groups
@@ -190,7 +189,7 @@ public class VolumeGroupService extends TaskResourceService {
         volumeGroup.addRoles(param.getRoles());
 
         // add parent if specified
-        String msg = setParent(volumeGroup, param.getParent(), true);
+        String msg = setParent(volumeGroup, param.getParent());
         if (msg != null && !msg.isEmpty()) {
             throw APIException.badRequests.volumeGroupCantBeCreated(volumeGroup.getLabel(), msg);
         }
@@ -211,7 +210,7 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * List a volume group
-     * 
+     *
      * @param id volume group Id
      * @return ApplicationRestRep
      */
@@ -228,7 +227,7 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * List volume groups.
-     * 
+     *
      * @return A reference to VolumeGroupList.
      */
     @GET
@@ -246,7 +245,7 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Get application volumes
-     * 
+     *
      * @param id Application Id
      * @return NamedVolumesList
      */
@@ -328,7 +327,7 @@ public class VolumeGroupService extends TaskResourceService {
     /**
      * Delete the volume group.
      * When a volume group is deleted it will move to a "marked for deletion" state.
-     * 
+     *
      * @param id the URN of the volume group
      * @brief Deactivate application
      * @return No data returned in response body
@@ -373,7 +372,6 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * update a volume group
-     * 
      * @param id volume group id
      * @param param volume group update parameters
      * @return
@@ -404,26 +402,13 @@ public class VolumeGroupService extends TaskResourceService {
             isChanged = true;
         }
 
-        List<URI> addParents = param.getAddParents();
-        if (addParents != null) {
-            for (URI addParent : addParents) {
-                String msg = setParent(volumeGroup, addParent.toString(), true);
-                if (msg != null && !msg.isEmpty()) {
-                    throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
-                }
-                isChanged = true;
+        String parent = param.getParent();
+        if (parent != null && !parent.isEmpty()) {
+            String msg = setParent(volumeGroup, parent);
+            if (msg != null && !msg.isEmpty()) {
+                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
             }
-        }
-
-        List<URI> removeParents = param.getRemoveParents();
-        if (removeParents != null) {
-            for (URI removeParent : removeParents) {
-                String msg = setParent(volumeGroup, removeParent.toString(), false);
-                if (msg != null && !msg.isEmpty()) {
-                    throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
-                }
-                isChanged = true;
-            }
+            isChanged = true;
         }
 
         if (isChanged) {
@@ -457,14 +442,14 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Creates a volume group fullcopy
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param volumeGroupId the URI of the Volume Group
      *            - Volume group URI
      * @param param VolumeFullCopyCreateParam
-     * 
+     *
      * @brief Create volume group fullcopy
      * @return TaskList
      */
@@ -500,13 +485,13 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * List full copies for a volume group
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param cgURI The URI of the volume group.
-     * 
+     *
      * @brief List full copies for a volume group
-     * 
+     *
      * @return The list of full copies for the volume group
      */
     @GET
@@ -537,14 +522,14 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Get the specified volume group full copy.
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param cgURI The URI of the volume group.
      * @param fullCopyURI The URI of the full copy.
-     * 
+     *
      * @brief Get the specified volume group full copy.
-     * 
+     *
      * @return The full copy volume.
      */
     @GET
@@ -573,14 +558,14 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Detach the specified Volume group full copy.
-     * 
+     *
      * @prereq Create Volume group full copy as active.
-     * 
+     *
      * @param volumeGroupId The URI of the Volume group.
      * @param fullCopyURI The URI of the full copy.
-     * 
+     *
      * @brief Detach Volume group full copy.
-     * 
+     *
      * @return TaskList
      */
     @POST
@@ -633,6 +618,7 @@ public class VolumeGroupService extends TaskResourceService {
         }
     }
 
+
     private List<VolumeGroupUtils> getVolumeGroupUtils(VolumeGroup volumeGroup) {
         List<VolumeGroupUtils> utilsList = new ArrayList<VolumeGroupUtils>();
 
@@ -657,8 +643,7 @@ public class VolumeGroupService extends TaskResourceService {
          * @param taskList
          * @return
          */
-        public abstract void updateVolumesInVolumeGroup(DbClient dbClient, final VolumeGroupUpdateParam param, VolumeGroup volumeGroup,
-                String taskId, TaskList taskList);
+        public abstract void updateVolumesInVolumeGroup(DbClient dbClient, final VolumeGroupUpdateParam param, VolumeGroup volumeGroup, String taskId, TaskList taskList);
 
         /**
          * @param dbClient
@@ -706,7 +691,7 @@ public class VolumeGroupService extends TaskResourceService {
 
         /**
          * Add task for volumes and consistency groups
-         * 
+         *
          * @param addVols
          * @param removeVols
          * @param removeVolumeCGs
@@ -753,7 +738,7 @@ public class VolumeGroupService extends TaskResourceService {
 
         /**
          * Creates tasks against consistency group associated with a request and adds them to the given task list.
-         * 
+         *
          * @param group
          * @param taskList
          * @param taskId
@@ -770,7 +755,7 @@ public class VolumeGroupService extends TaskResourceService {
 
         /**
          * Creates tasks against volume associated with a request and adds them to the given task list.
-         * 
+         *
          * @param volume
          * @param taskList
          * @param taskId
@@ -1443,20 +1428,7 @@ public class VolumeGroupService extends TaskResourceService {
         }
     }
 
-    private void setParents(VolumeGroup volumeGroup, URI parent, boolean add) {
-        Set<URI> parents = volumeGroup.getParents();
-        if (parents == null) {
-            parents = Sets.newHashSet();
-        }
-        if (add) {
-            parents.add(parent);
-        } else {
-            parents.remove(parent);
-        }
-        volumeGroup.setParents(parents);
-    }
-
-    private String setParent(VolumeGroup volumeGroup, String parent, boolean add) {
+    private String setParent(VolumeGroup volumeGroup, String parent) {
         String errorMsg = null;
         // add parent if specified
         if (parent != null && !parent.isEmpty()) {
@@ -1467,10 +1439,10 @@ public class VolumeGroupService extends TaskResourceService {
                 if (parentVG == null || parentVG.getInactive()) {
                     errorMsg = "The parent volume group does not exist";
                 } else {
-                    setParents(volumeGroup, URI.create(parent), add);
+                    volumeGroup.setParent(parentId);
                 }
             } else if (NullColumnValueGetter.isNullValue(parent)) {
-                volumeGroup.setParents(Sets.newHashSet(NullColumnValueGetter.getNullURI()));
+                volumeGroup.setParent(NullColumnValueGetter.getNullURI());
             } else {
                 List<VolumeGroup> parentVg = CustomQueryUtility
                         .queryActiveResourcesByConstraint(_dbClient, VolumeGroup.class,
@@ -1478,7 +1450,7 @@ public class VolumeGroupService extends TaskResourceService {
                 if (parentVg == null || parentVg.isEmpty()) {
                     errorMsg = "The parent volume group does not exist";
                 } else {
-                    setParents(volumeGroup, parentVg.iterator().next().getId(), add);
+                    volumeGroup.setParent(parentVg.iterator().next().getId());
                 }
             }
         }

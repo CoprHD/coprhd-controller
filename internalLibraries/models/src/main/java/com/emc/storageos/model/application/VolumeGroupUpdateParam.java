@@ -27,8 +27,7 @@ public class VolumeGroupUpdateParam {
     private List<URI> addClustersList;
     private List<URI> removeClustersList;
 
-    private List<URI> addParents;
-    private List<URI> removeParents;
+    private String parent;
 
     public static class VolumeGroupVolumeList {
         private List<URI> volumes;
@@ -232,32 +231,17 @@ public class VolumeGroupUpdateParam {
     }
 
     /**
-     * @return the addParents
+     * @return the parent
      */
     @XmlElement
-    public List<URI> getAddParents() {
-        return addParents;
+    public String getParent() {
+        return parent;
     }
 
     /**
-     * @param addParents the parents to add
+     * @param parent the parent to add
      */
-    public void setAddParents(List<URI> addParents) {
-        this.addParents = addParents;
-    }
-
-    /**
-     * @return the removeParents
-     */
-    @XmlElement
-    public List<URI> getRemoveParents() {
-        return removeParents;
-    }
-
-    /**
-     * @param removeParents the parents to remove
-     */
-    public void setRemoveParents(List<URI> removeParents) {
-        this.removeParents = removeParents;
+    public void setParent(String parent) {
+        this.parent = parent;
     }
 }

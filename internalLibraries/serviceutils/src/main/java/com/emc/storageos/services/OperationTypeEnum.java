@@ -406,6 +406,13 @@ public enum OperationTypeEnum {
     UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "",
             "operation to update and verify a compute image server."),
     DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
+    CREATE_VOLUME_GROUP("CREATE VOLUME GROUP", "", "operation to create volume group"),
+    DELETE_VOLUME_GROUP("DELETE VOLUME GROUP", "", "operation to delete volume group"), 
+    UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "", "operation to update volume group"),
+
+    CREATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyCreated", "VolumeGroupFullCopyCreateFailed", "VolumeGroupFullCopy Created"),
+    DETACH_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyDetached", "VolumeGroupFullCopyDetachFailed", "VolumeGroupFullCopy Detached"),
+
     CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
     RESTORE_SNAPSHOT_SESSION("BlockSnapshotSessionRestored", "BlockSnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),
     DELETE_SNAPSHOT_SESSION("BlockSnapshotSessionDeleted", "BlockSnapshotSessionDeleteFailed", "BlockSnapshotSession Delete"),
@@ -415,6 +422,8 @@ public enum OperationTypeEnum {
             "Re-link targets to BlockSnapshotSession"),
     UNLINK_SNAPSHOT_SESSION_TARGET("UnlinkBlockSnapshotSessionTargets", "UnlinkBlockSnapshotSessionTargetsFailed",
             "Unlink targets from BlockSnapshotSession"),
+    UPDATE_BUCKET_ACL("UPDATE BUCKET ACL", "", "operation to update bucket ACL"),
+    DELETE_BUCKET_ACL("DELETE BUCKET ACL", "", "operation to delete bucket ACL"),
 
     /* Disaster Recovery Operations */
     ADD_STANDBY("ADD STANDBY", "", "operation to initiate adding a new standby to ensemble"),

@@ -60,6 +60,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.vplexcontroller.VPlexController;
 
@@ -102,17 +103,24 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // By default, if the passed volume is in a consistency group
         // all volumes in the consistency group should be copied.
         List<BlockObject> fcSourceObjList = new ArrayList<BlockObject>();
+        Volume fcSourceVolume = (Volume) fcSourceObj;
         URI cgURI = fcSourceObj.getConsistencyGroup();
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            // If there is no corresponding native CG for the VPLEX
-            // CG, then this is a CG created prior to 2.2 and in this
-            // case we want full copies treated like snapshots, which
-            // is only create a copy of the passed object.
-            if (!cg.checkForType(Types.LOCAL)) {
-                fcSourceObjList.add(fcSourceObj);
+            // if volume is part of COPY type Volume Group, get only the Array Group volumes
+            if (fcSourceVolume.isInVolumeGroup() && fcSourceVolume.getCopyTypeVolumeGroup(_dbClient) != null) {
+                fcSourceObjList.addAll(
+                        ControllerUtils.getVolumesPartOfRG(fcSourceVolume.getReplicationGroupInstance(), _dbClient));
             } else {
-                fcSourceObjList.addAll(getActiveCGVolumes(cg));
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                // If there is no corresponding native CG for the VPLEX
+                // CG, then this is a CG created prior to 2.2 and in this
+                // case we want full copies treated like snapshots, which
+                // is only create a copy of the passed object.
+                if (!cg.checkForType(Types.LOCAL)) {
+                    fcSourceObjList.add(fcSourceObj);
+                } else {
+                    fcSourceObjList.addAll(getActiveCGVolumes(cg));
+                }
             }
         } else {
             fcSourceObjList.add(fcSourceObj);
@@ -187,6 +195,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
             // If there are more than one volume in the consistency group, and they are on
             // different backend storage systems, return error.
+            // TODO check if we can allow this? backend volumes in multiple arrays
             if (fcSourceObjList.size() > 1) {
                 List<Volume> volumes = new ArrayList<Volume>();
                 for (BlockObject fcSource : fcSourceObjList) {
@@ -197,15 +206,11 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 }
             }
 
-            // Check if the source volume is an ingested CG, without any back end CGs yet. if yes, throw error
-            if (fcSourceObjList.get(0) instanceof Volume) {
-                Volume srcVol = (Volume) fcSourceObjList.get(0);
-                if (VPlexUtil.isVolumeInIngestedCG(srcVol, _dbClient)) {
-                    throw APIException.badRequests.fullCopyNotAllowedForIngestedCG(srcVol.getId().toString());
-                }
-            }
-
             // Platform specific checks.
+            // all the volumes in vplex cg should be having association with back end cg/Volume Group.
+            if (VPlexUtil.isBackendVolumesNotHavingBackendCG(fcSourceObjList, _dbClient)) {
+                throw APIException.badRequests.fullcopyNotAllowedWhenBackendVolumeDoestHavingCG();
+            }
             for (BlockObject fcSourceObj : fcSourceObjList) {
 
                 if (fcSourceObj instanceof Volume) {

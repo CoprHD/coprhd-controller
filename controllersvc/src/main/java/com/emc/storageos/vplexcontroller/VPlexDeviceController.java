@@ -10867,7 +10867,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 for (List<URI> removeVols : removeVolsMap.values()) {
                     Volume vol = getDataObject(Volume.class, removeVols.get(0), _dbClient);
                     URI cguri = vol.getConsistencyGroup();
-                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
                     URI storageUri = vol.getStorageController();
                     StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageUri);
                     // call ReplicaDeviceController

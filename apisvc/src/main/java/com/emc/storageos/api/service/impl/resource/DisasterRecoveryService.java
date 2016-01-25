@@ -825,18 +825,22 @@ public class DisasterRecoveryService {
     @Path("/{uuid}/retry")
     public SiteRestRep retryOperation(@PathParam("uuid") String uuid) {
         log.info("Begin to get site error by uuid {}", uuid);
+        Site standby;
 
         try {
-            Site standby = drUtil.getSiteFromLocalVdc(uuid);
-            int retryPeriod = DbConfigConstants.DEFAULT_RETRY_PERIOD;
+            standby = drUtil.getSiteFromLocalVdc(uuid);
+        } catch (CoordinatorException e) {
+            log.error("Can't find site {} from ZK", uuid);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+
+        InterProcessLock lock = drUtil.getDROperationLock();
+
+        try {
 
             if (!standby.getState().equals(SiteState.STANDBY_ERROR)) {
-                //throw APIException.badRequests.siteNotInErrorState();
-                throw APIException.badRequests.genericMessage("Standby site is not in STANDBY_ERROR state");
-            }
-            if ((System.currentTimeMillis() - standby.getLastStateUpdateTime()) / 1000 > retryPeriod){
-                //throw APIException.badRequests.siteInErrorStateForTooLong();
-                throw APIException.badRequests.genericMessage("Standby site has been in STANDBY_ERROR state too long");
+                log.error("site {} is in state {}, should be STANDBY_ERROR", uuid, standby.getState());
+                throw APIException.badRequests.operationOnlyAllowedOnErrorSite(standby.getName(), standby.getState().toString());
             }
 
             coordinator.startTransaction();
@@ -846,10 +850,12 @@ public class DisasterRecoveryService {
 
             log.info("Notify all sites for reconfig");
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
+
+            //Reuse the current action required
             SiteInfo siteInfo = coordinator.getTargetInfo(standby.getUuid(),SiteInfo.class);
             String drOperation = siteInfo.getActionRequired();
+
             for (Site standbySite : drUtil.listSites()) {
-                //TODO: No need to update action - but is it worth the call to get the action?
                 drUtil.updateVdcTargetVersion(standbySite.getUuid(), drOperation, vdcTargetVersion);
             }
 
@@ -857,13 +863,19 @@ public class DisasterRecoveryService {
 
             return siteMapper.map(standby);
 
-        } catch (CoordinatorException e) {
-            log.error("Can't find site {} from ZK", uuid);
-            throw APIException.badRequests.siteIdNotFound();
         } catch (Exception e) {
-            //TODO: fix this to be specific
-            log.error("Can't find site from ZK for UUID {} : {}" + uuid, e);
-            throw APIException.badRequests.siteIdNotFound();
+            log.error("Error retrying site operation for site {}", uuid, e);
+            coordinator.discardTransaction();
+            auditDisasterRecoveryOps(OperationTypeEnum.RETRY_STANDBY_OP, AuditLogManager.AUDITLOG_FAILURE, null, standby);
+            InternalServerErrorException retryStandbyOpFailedException =
+                    APIException.internalServerErrors.resumeStandbyFailed(standby.getName(), e.getMessage());
+            throw retryStandbyOpFailedException;
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception ignore) {
+                log.error(String.format("Lock release failed when retrying standby site last op: %s", uuid));
+            }
         }
     }
 
@@ -1045,7 +1057,7 @@ public class DisasterRecoveryService {
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null,
                     currentSite.getName(), currentSite.getVip());
             throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
-        } 
+        }
     }
 
     /**

@@ -277,6 +277,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
     public InternalServerErrorException resumeStandbyFailed(final String siteName, String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_RETRY_STANDBY_OP_FAILED)
+    public InternalServerErrorException retryStandbyOpFailed(final String siteName, String errMsg);
+
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_TIMEOUT)
     public InternalServerErrorException resumeStandbyFailedTimeout(final long timeoutValue);
 

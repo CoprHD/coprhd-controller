@@ -22,6 +22,7 @@ import util.IPsecUtils;
 import util.MessagesUtils;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.TimeZone;
@@ -103,10 +104,8 @@ public class IPsec extends ViprResourceController {
 
             long geTime= Long.parseLong(configVersion);
 
-            GregorianCalendar calendar = new GregorianCalendar(TimeZone.getDefault());
-            calendar.setTimeInMillis(geTime);
-
-            DateTime dateTime = new DateTime(geTime, DateTimeZone.forTimeZone(TimeZone.getDefault()));
+            Date date = new Date(geTime);
+            DateTime dateTime = new DateTime(date.getTime());
             DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(DATE_TIME_FORMAT);
 
             return dateTimeFormatter.print(dateTime);

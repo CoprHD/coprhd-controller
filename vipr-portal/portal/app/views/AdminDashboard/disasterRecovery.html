@@ -4,24 +4,28 @@
     <div class="panel-body">
 
  	<div class="row">
-  		<div class="col-md-12">
     		<div class="disasterDashboard">
-      			<table class="table table-condensed table-striped">
+      			<table class="table table-hover table-condensed" style="table-layout: fixed;border-collapse: collapse" >
 					<thead>
 					<tr>
 						<th>&{'disasterRecovery.name'}</th>
-						<th>&{'disasterRecovery.VirtualIP'}</th>
 						<th>&{'disasterRecovery.status'}</th>
+						<th>&{'disasterRecovery.networkHealth'}</th>
 					</tr>
 					</thead>
         			<tbody>
         				#{list items:drsites, as:'site'}
         				<tr>
-							<td>${site.name}</td>
-							<td>${site.vip}</td>
+							<td>
+								<form action="#{./vdcLink host:site.vip, path:''/}" method="POST" accept-charset="utf-8" enctype="application/x-www-form-urlencoded" id="StandbySite${site.uuid}">
+      								#{authenticityToken /}
+	  								<input type="hidden" name="auth-token" value="${token}">
+ 								</form>
+								<a href="#" onclick="$('#StandbySite${site.uuid}').submit(); return false;">${site.name}</a>
+							</td>
 							<td>
 								#{if site.state == "ACTIVE"}
-									<span class="glyphicon glyphicon-ok" style="color:#00FF00"></span><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>
+									<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>
 								#{/if}
 								#{if site.state == "ACTIVE_SWITCHING_OVER"}
 									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.primary.switchingover'}</span>
@@ -36,13 +40,13 @@
 									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.syncing'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_SYNCED"}
-									<span class="glyphicon glyphicon-ok" style="color:#00FF00" ></span><span> &{'renderFunctions.disasterRecovery.status.standby.synced'}</span>
+									<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span> &{'renderFunctions.disasterRecovery.status.standby.synced'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_PAUSING"}
 									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.pausing'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_PAUSED"}
-									<span class="glyphicon glyphicon-pause" style="color:#00BFFF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.paused'}</span>
+									<img class="glyphicon glyphicon-ok" src="/public/img/Pause.png"><span> &{'renderFunctions.disasterRecovery.status.standby.paused'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_TESTING"}
 									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.testing'}</span>
@@ -59,8 +63,22 @@
 								#{if site.state == "STANDBY_RESUMING"}
 									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.resuming'}</span>
 								#{/if}
+								#{if site.state == "ACTIVE_DEGRADED"}
+									<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png"><span> &{'renderFunctions.disasterRecovery.status.standby.failbackDegraded'}</span>
+								#{/if}
 								#{if site.state == "STANDBY_ERROR"}
-									<span class="glyphicon glyphicon-remove" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.standby.error'}</span>
+									<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png"><span> &{'renderFunctions.disasterRecovery.status.standby.error'}</span>
+								#{/if}
+							</td>
+							<td>
+								#{if site.networkHealth == "Good"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png" alt="Good">
+								#{/if}
+								#{if site.networkHealth == "Slow"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png" alt="Slow">
+								#{/if}
+								#{if site.networkHealth == "Broken"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png" alt="Broken">
 								#{/if}
 							</td>
 						</tr>
@@ -68,8 +86,29 @@
         			</tbody>
       			</table>
     		</div>
-  		</div>
 	</div>
+  </div>
+  #{if disasterRecoveryLastUpdated}   
+      <div class="panel-footer">
+        <small>&{'adminDashboard.lastUpdated'} <span data-format-relative-time="${disasterRecoveryLastUpdated.getTime()}"></span></small>
+      </div>
+    #{/if}
   </div>
 </div>
 
+<style type="text/css">
+.table td {
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table td:hover {
+  position:absolute;
+  max-width: none;
+  background:#fff;
+  z-index:100;
+  overflow: visible;
+}
+</style>

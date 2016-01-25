@@ -23,6 +23,7 @@ import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -453,6 +454,12 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
             Boolean updateOpStatus, String opId) throws InternalException {
         blockRMI("restoreFromFullCopy", storage, clones, updateOpStatus, opId);
 
+    }
+    
+    @Override
+    public void updateApplication(URI storage, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList,
+            URI application, String opId) throws ControllerException {
+        blockRMI("updateApplication", storage, addVolList, removeVolumeList, application, opId);
     }
 
     /**

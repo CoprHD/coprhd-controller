@@ -56,6 +56,8 @@ public class FtpClient {
         builder.command().add("-I");
         builder.command().add(uri + fileName);
 
+        log.info("command={}", builder.command());
+
         long length = 0;
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
@@ -97,6 +99,7 @@ public class FtpClient {
         builder.command().add("-");
         builder.command().add(uri + fileName);
 
+         log.info("command={}", builder.command());
         return new ProcessOutputStream(builder.start());
     }
 
@@ -104,6 +107,8 @@ public class FtpClient {
         ProcessBuilder builder = getBuilder();
         builder.command().add("-l");
         builder.command().add(uri);
+
+        log.info("cmd={}", builder.command());
 
         List<String> fileList = new ArrayList<String>();
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {

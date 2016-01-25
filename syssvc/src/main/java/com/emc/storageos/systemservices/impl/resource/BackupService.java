@@ -549,7 +549,9 @@ public class BackupService {
         }catch (Exception e) {
             String errMsg = String.format("Failed to send %s to %s", pushUri, endpoint);
             log.error(errMsg);
-            backupOps.setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_FAILED, 0, 0, false, false);
+            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.DOWNLOAD_FAILED;
+            s.setMessage(errMsg);
+            backupOps.setRestoreStatus(backupName, s, 0, 0, false, false);
             throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
         }
     }

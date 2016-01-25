@@ -108,6 +108,7 @@ public interface BackupConstants {
     String BACKUP_RESTORE_STATUS = "restorestatus";
     String LOCAL_RESTORE_KIND_PREFIX=BACKUP_RESTORE_STATUS + "/local";
     String REMOTE_RESTORE_KIND_PREFIX=BACKUP_RESTORE_STATUS + "/remote";
+    String DOWNLOAD_OWNER_SUFFIX="/owner";
     String RESTORE_LOCK="restore";
     String BACKUP_LOCK = "backup";
     String CURRENT_DOWNLOADING_BACKUP_NAME_KEY="name";

@@ -387,7 +387,7 @@ public class BackupOps {
     */
     public BackupRestoreStatus queryBackupRestoreStatus(String backupName, boolean isLocal) {
         Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
-                      getBackupConfigKind(isLocal), backupName);
+                getBackupConfigKind(isLocal), backupName);
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
 
         BackupRestoreStatus restoreStatus = new BackupRestoreStatus(allItems);
@@ -944,9 +944,29 @@ public class BackupOps {
 
     public boolean isDownloadInProgress() {
         CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
-        String lockPath = ZKPaths.makePath(ZkPath.MUTEX.toString(), BackupConstants.RESTORE_LOCK);
-        log.info("lockPath={}", lockPath);
-        return client.nodeExists(lockPath);
+
+        String lockOwner = getDownloadOwnerPath();
+        return client.nodeExists(lockOwner);
+    }
+
+    public void setDownloadOwner() throws Exception {
+        String lockOwner = getDownloadOwnerPath();
+        CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
+        CoordinatorClientInetAddressMap addrMap = client.getInetAddessLookupMap();
+        String myNodeId= addrMap.getNodeId();
+        log.info("lockOwner={} svcId={}", lockOwner, myNodeId);
+        client.createEphemeralNode(lockOwner, myNodeId.getBytes());
+    }
+
+    public void deleteDownloadOwner() throws Exception {
+        String lockOwner = getDownloadOwnerPath();
+        log.info("lockOwner={}", lockOwner);
+        CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
+        client.deleteNode(lockOwner);
+    }
+
+    private String getDownloadOwnerPath() {
+        return getBackupConfigPrefix()+BackupConstants.DOWNLOAD_OWNER_SUFFIX;
     }
 
     public InterProcessLock getLock(String name, long time, TimeUnit unit) {
@@ -981,6 +1001,11 @@ public class BackupOps {
         }
         try {
             lock.release();
+
+            CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
+        String lockPath = ZKPaths.makePath(ZkPath.MUTEX.toString(), BackupConstants.RESTORE_LOCK);
+        log.info("lockPath={} node exist={}", lockPath, client.nodeExists(lockPath));
+
             log.info("Release lock successful");
         } catch (Exception ignore) {
             log.error("Release lock failed", ignore);

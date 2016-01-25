@@ -135,6 +135,8 @@ public final class DownloadExecutor implements  Runnable {
             lock = backupOps.getLock(BackupConstants.RESTORE_LOCK,
                     -1, TimeUnit.MILLISECONDS); // -1= no timeout
 
+            backupOps.setDownloadOwner();
+
             BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
             if (s.isNotSuccess()) {
                 log.info("Already failed to download {}, no need to start it on this node", remoteBackupFileName);
@@ -166,7 +168,9 @@ public final class DownloadExecutor implements  Runnable {
             log.error("Failed to download e=", e);
         }finally {
             try {
+                log.info("release lock={}", lock);
                 backupOps.releaseLock(lock);
+                backupOps.deleteDownloadOwner();
             }catch (Exception e) {
                 log.error("Failed to remove listener e=",e);
             }
@@ -291,7 +295,9 @@ public final class DownloadExecutor implements  Runnable {
             }
         } catch(IOException e) {
             log.error("Failed to download {} from server e=", backupFileName, e);
-            backupOps.setRestoreStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOAD_FAILED, 0, 0, false, false);
+            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.DOWNLOAD_FAILED;
+            s.setMessage(e.getMessage());
+            backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, false, false);
             throw e;
         }
 

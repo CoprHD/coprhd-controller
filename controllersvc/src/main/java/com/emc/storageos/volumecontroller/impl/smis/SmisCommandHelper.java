@@ -6511,7 +6511,8 @@ public class SmisCommandHelper implements SmisConstants {
             CIMObjectPath[] targetVolumePath,
             int mode,
             CIMObjectPath repCollection,
-            CIMInstance repSetting) {
+            CIMInstance repSetting,
+            boolean addWaitForCopyState) {
         List<CIMArgument> args = new ArrayList<>();
         args.add(_cimArgument.referenceArray(CP_SOURCE_ELEMENTS, sourceVolumePath));
         args.add(_cimArgument.referenceArray(CP_TARGET_ELEMENTS, targetVolumePath));
@@ -6519,8 +6520,9 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.uint16(CP_MODE, mode));
         args.add(_cimArgument.reference(CP_CONNECTIVITY_COLLECTION, repCollection));
 
-        // WaitForCopyState only valid for Synchronous mode.
-        if (SRDFOperations.Mode.SYNCHRONOUS.getMode() == mode) {
+        // WaitForCopyState only valid for Synchronous mode
+        // Or Active Mode when adding pairs to an empty RDF group.
+        if (SRDFOperations.Mode.SYNCHRONOUS.getMode() == mode || addWaitForCopyState) {
             args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED));
         }
 

@@ -6,9 +6,9 @@ package com.emc.storageos.api.mapper;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +18,6 @@ import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -27,9 +26,9 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.TenantResource;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.DataObjectRestRep;
@@ -49,6 +48,7 @@ import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class DbObjectMapper {
     private static final Logger _log = LoggerFactory.getLogger(DbObjectMapper.class);
@@ -278,7 +278,11 @@ public class DbObjectMapper {
         mapDataObjectFields(from, rep);
         rep.setDescription(from.getDescription());
         rep.setRoles(from.getRoles());
-        rep.setParent(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, from.getParent()));
+        Set<RelatedResourceRep> parents = Sets.newHashSet();
+        for (URI parent : from.getParents()) {
+            parents.add(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, parent));
+        }
+        rep.setParents(parents);
         rep.setMigrationType(from.getMigrationType());
         rep.setMigrationGroupBy(from.getMigrationGroupBy());
         rep.setSourceStorageSystem(from.getSourceStorageSystem());

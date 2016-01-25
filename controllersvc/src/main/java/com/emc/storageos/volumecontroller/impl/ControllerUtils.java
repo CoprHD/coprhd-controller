@@ -1554,7 +1554,7 @@ public class ControllerUtils {
      * @param volumes volumes in the same replication group
      * @return boolean
      */
-    public static boolean replicationGroupHasNoOtherVolume(DbClient dbClient, String rpName, List<URI> volumes, URI storage) {
+    public static boolean replicationGroupHasNoOtherVolume(DbClient dbClient, String rpName, Collection<URI> volumes, URI storage) {
         List<Volume> rpVolumes = CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(rpName));

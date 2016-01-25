@@ -4419,35 +4419,31 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             return waitFor;
         }
 
-        // Get the consistency groups. If no consistency group for source
-        // volumes,
-        // just return. Get CGs from all descriptors.
-        // Assume volumes could be in different CGs
-        Map<URI, Set<URI>> cgToVolumes = new HashMap<URI, Set<URI>>();
+        // Sort the volumes by its system, and replicationGroup
+        Map<String, Set<URI>> rgVolsMap = new HashMap<String, Set<URI>>();
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             URI volumeURI = volumeDescriptor.getVolumeURI();
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-            if (volume != null && volume.isInCG()) {
-                URI cg = volume.getConsistencyGroup();
-                Set<URI> cgVolumeList = cgToVolumes.get(cg);
-                if (cgVolumeList == null) {
-                    cgVolumeList = new HashSet<URI>();
-                    cgToVolumes.put(cg, cgVolumeList);
+            String replicationGroup = volume.getReplicationGroupInstance(); 
+            if (volume != null && NullColumnValueGetter.isNotNullValue(replicationGroup)) {
+                URI storage = volume.getStorageController();
+                String key = storage.toString() + replicationGroup;
+                Set<URI> rgVolumeList = rgVolsMap.get(key);
+                if (rgVolumeList == null) {
+                    rgVolumeList = new HashSet<URI>();
+                    rgVolsMap.put(key, rgVolumeList);
                 }
 
-                cgVolumeList.add(volumeURI);
+                rgVolumeList.add(volumeURI);
             }
         }
 
-        if (cgToVolumes.isEmpty()) {
+        if (rgVolsMap.isEmpty()) {
             return waitFor;
         }
 
-        Set<Entry<URI, Set<URI>>> entrySet = cgToVolumes.entrySet();
-        for (Entry<URI, Set<URI>> entry : entrySet) {
+        for (Set<URI> volumeURIs : rgVolsMap.values()) {
             // find member volumes in the group
-            URI cgURI = entry.getKey();
-            Set<URI> volumeURIs = entry.getValue();
             List<Volume> volumeList = new ArrayList<Volume>();
             Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumeURIs);
             while (volumeIterator.hasNext()) {
@@ -4456,17 +4452,19 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     volumeList.add(volume);
                 }
             }
-
-            // delete CG from array
-            if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
-                _log.info("Adding step to delete consistency group %s", cgURI);
-                URI storage = volumeList.get(0).getStorageController();
+            Volume firstVol = volumeList.get(0);
+            String rpName = firstVol.getReplicationGroupInstance();
+            URI storage = firstVol.getStorageController();
+            URI cgURI = firstVol.getConsistencyGroup();
+            // delete replication group from array
+            if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, rpName, volumeURIs, storage)) {
+                _log.info(String.format("Adding step to delete the replication group %s", rpName));
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Deleting replication group for consistency group %s", cgURI),
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
-                        deleteConsistencyGroupMethod(storage, cgURI, null, null, false),
+                        deleteConsistencyGroupMethod(storage, cgURI, rpName, null, false),
                         rollbackMethodNullMethod(), null);
             }
         }

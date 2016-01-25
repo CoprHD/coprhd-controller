@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Project;
@@ -703,6 +704,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(CifsShareACL.class);
             ColumnField field = doType.getColumnField(FILE_SYSTEM_ID);
             return new ContainmentConstraintImpl(fsURI, CifsShareACL.class, field);
+        }
+        
+        public static ContainmentConstraint getBucketAclsConstraint(URI bucket) {
+            DataObjectType doType = TypeMap.getDoType(ObjectBucketACL.class);
+            ColumnField field = doType.getColumnField("bucketId");
+            return new ContainmentConstraintImpl(bucket, ObjectBucketACL.class, field);
         }
 
         public static ContainmentConstraint getSnapshotCifsShareAclsConstraint(URI snapshotURI) {

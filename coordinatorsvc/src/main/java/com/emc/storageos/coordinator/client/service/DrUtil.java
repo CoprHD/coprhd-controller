@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
@@ -26,8 +27,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SiteInfo.ActionScope;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -36,6 +37,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.vipr.model.sys.ClusterInfo;
 
 /**
  * Common utility functions for Disaster Recovery
@@ -51,6 +53,7 @@ public class DrUtil {
     public static final String ZOOKEEPER_MODE_READONLY = "read-only";
     public static final String ZOOKEEPER_MODE_LEADER = "leader";
     public static final String ZOOKEEPER_MODE_FOLLOWER = "follower";
+    public static final String ZOOKEEPER_MODE_STANDALONE = "standalone";
 
     private static final String DR_CONFIG_KIND = "disasterRecoveryConfig";
     private static final String DR_CONFIG_ID = "global";
@@ -66,7 +69,7 @@ public class DrUtil {
     public static final String KEY_STANDBY_DEGRADE_THRESHOLD = "degrade_standby_threshold_millis";
     public static final String KEY_FAILOVER_STANDBY_SITE_TIMEOUT = "failover_standby_site_timeout_millis";
     public static final String KEY_FAILOVER_ACTIVE_SITE_TIMEOUT = "failover_active_site_timeout_millis";
-
+    
     private CoordinatorClient coordinator;
 
     public DrUtil() {
@@ -131,23 +134,8 @@ public class DrUtil {
         return !isActiveSite();
     }
     
-    /**
-     * Get active site in current vdc
-     * 
-     * @return
-     */
-    public String getActiveSiteId() {
-        return getActiveSiteId(getLocalVdcShortId());
-    }
-    
-    /**
-     * Get active site in a specific vdc
-     *
-     * @param vdcShortId short id of the vdc
-     * @return uuid of the active site
-     */
-    public String getActiveSiteId(String vdcShortId) {
-        return getActiveSite(vdcShortId).getUuid();
+    public Site getActiveSite() {
+        return getActiveSite(getLocalVdcShortId());
     }
 
     /**
@@ -164,7 +152,8 @@ public class DrUtil {
                 return site;
             }
         }
-        throw CoordinatorException.retryables.cannotFindSite(vdcShortId);
+        
+        return Site.DUMMY_ACTIVE_SITE;
     }
     /**
      * Get local site configuration
@@ -197,10 +186,10 @@ public class DrUtil {
      * @return list of standby sites
      */
     public List<Site> listStandbySites() {
-        String activeSiteId = getActiveSiteId();
+        Site activeSite = getActiveSite();
         List<Site> result = new ArrayList<>();
         for(Site site : listSites()) {
-            if (!site.getUuid().equals(activeSiteId)) {
+            if (!site.getUuid().equals(activeSite.getUuid())) {
                 result.add(site);
             }
         }
@@ -533,4 +522,38 @@ public class DrUtil {
         return getVdcSiteMap().keySet().size() > 1;
     }
 
+    /**
+     * Get all vdc ids except local vdc
+     * 
+     * @return list of vdc ids
+     */
+    public List<String> getOtherVdcIds() {
+        Set<String> vdcIdSet = getVdcSiteMap().keySet();
+        String localVdcId = this.getLocalVdcShortId();
+        vdcIdSet.remove(localVdcId);
+        List<String> vdcIds = new ArrayList<>();
+        vdcIds.addAll(vdcIdSet);
+        return vdcIds;
+    }
+
+    /**
+     * Check if all sites of local vdc are
+     */
+    public boolean isAllSitesStable() {
+        boolean bStable = true;
+
+        for (Site site : listSites()) {
+            // skip checking node state for paused sites.
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                continue;
+            }
+            int nodeCount = site.getNodeCount();
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                log.info("Site {} is not stable {}", site.getUuid(), state);
+                bStable = false;
+            }
+        }
+        return bStable;
+    }
 }

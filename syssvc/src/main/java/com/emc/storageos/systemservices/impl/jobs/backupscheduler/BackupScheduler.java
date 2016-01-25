@@ -118,6 +118,10 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     @Override
     public Object call() throws Exception {
         log.info("Starting to configure scheduler");
+        if (drUtil.isStandby()) {
+            log.info("Current site is standby, disable BackupScheduler");
+            return null;
+        }
 
         if (this.scheduledTask != null) {
             cancelScheduledTask();

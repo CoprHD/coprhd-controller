@@ -30,6 +30,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOCluster;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusterInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusters;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroupVolInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
@@ -144,7 +145,14 @@ public class XtremIOV1Client extends XtremIOClient {
         return volumeList;
     }
 
+    
+    
     @Override
+	public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception {   	
+    	throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroups");
+	}
+
+	@Override
     public List<XtremIOObjectInfo> getXtremIOVolumeLinks(String clusterName) throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_VOLUMES_URI);
         XtremIOVolumesInfo volumeLinks = getResponseObject(XtremIOVolumesInfo.class, response);
@@ -541,4 +549,10 @@ public class XtremIOV1Client extends XtremIOClient {
     public XtremIOConsistencyGroup getSnapshotSetDetails(String snapshotSetName, String clusterName) throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getSnapshotSetDetails");
     }
+
+	@Override
+	public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(
+			XtremIOObjectInfo cgVolume, String clusterName) throws Exception {
+		throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroupInfo");
+	}
 }

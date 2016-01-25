@@ -10,6 +10,8 @@ import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate;
 
+import com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor;
+import com.emc.storageos.systemservices.impl.util.MailHandler;
 import org.apache.cassandra.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,12 +33,16 @@ import com.emc.storageos.systemservices.impl.audit.SystemAudit;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.server.impl.DbServiceImpl;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Default SysSvc implementation - starts/stops REST service
  */
 public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private static final Logger log = LoggerFactory.getLogger(SysSvcImpl.class);
-    
+
     private UpgradeManager _upgradeMgr;
     private InternalApiSignatureKeyGenerator _keyGenerator;
     private Thread _upgradeManagerThread = null;
@@ -46,6 +52,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private Thread _ipreconfigManagerThread = null;
     private int _timeout;
     private SoftwareUpdate _softwareUpdate;
+
+    @Autowired
+    private MailHandler _mailHandler;
 
     @Autowired
     private SecretsManager _secretsMgr;
@@ -61,6 +70,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
 
     @Autowired
     private ServiceBeacon _svcBeacon;
+
     @Autowired
     private CoordinatorClientExt _coordinator;
 
@@ -71,8 +81,15 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     // used by data node to poll the ip address change of controller cluster
     private ClusterAddressPoller _clusterPoller;
 
+    @Autowired
+    private DrSiteNetworkMonitor _drSiteNetworkMonitor;
+
     public void setUpgradeManager(UpgradeManager upgradeMgr) {
         _upgradeMgr = upgradeMgr;
+    }
+
+    public void setMailHandler(MailHandler mailHandler) {
+        _mailHandler = mailHandler;
     }
 
     public void setClusterPoller(ClusterAddressPoller _clusterPoller) {
@@ -159,6 +176,12 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         t.start();
     }
 
+    private void startNetworkMonitor() {
+        _ipreconfigManagerThread = new Thread(_drSiteNetworkMonitor);
+        _ipreconfigManagerThread.setName("DrSiteNetworkMonitor");
+        _ipreconfigManagerThread.start();
+    }
+
     @Override
     public void start() throws Exception {
         if (_app != null) {
@@ -190,6 +213,11 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
                 startSystemAudit(_dbClient);
             }
             _svcBeacon.start();
+
+
+            if (drUtil.isActiveSite()) {
+                startNetworkMonitor();
+            }
         } else {
             throw new Exception("No app found.");
         }
@@ -210,7 +238,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             
             @Override
             public void uncaughtException(Thread t, Throwable e) {
-                log.error("Thread {} throws uncaught exception {}", t, e);
+                log.error("Current thread throws uncaught exception", e);
             }
         });
         

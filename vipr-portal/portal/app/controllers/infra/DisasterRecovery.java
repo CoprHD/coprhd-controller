@@ -42,7 +42,8 @@ import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 
 @With(Common.class)
-@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_MONITOR") })
+@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_MONITOR"),
+        @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
 public class DisasterRecovery extends ViprResourceController {
     protected static final String SAVED_SUCCESS = "disasterRecovery.save.success";
     protected static final String PAUSED_SUCCESS = "disasterRecovery.pause.success";
@@ -72,7 +73,8 @@ public class DisasterRecovery extends ViprResourceController {
     }
 
     @FlashException("list")
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_ADMIN"),
+            @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void pause(@As(",") String[] ids) {
         List<String> uuids = Arrays.asList(ids);
         for (String uuid : uuids) {
@@ -91,7 +93,8 @@ public class DisasterRecovery extends ViprResourceController {
     }
 
     @FlashException("list")
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_ADMIN"),
+            @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void resume(String id) {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
@@ -245,34 +248,41 @@ public class DisasterRecovery extends ViprResourceController {
     }
 
     public static void errorDetails(String id) {
-        SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
         Boolean isError = false;
         String uuid = id;
-        if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
-            SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
-            isError = true;
-            if (disasterSiteError.getCreationTime() != null) {
-                DateTime creationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
-                renderArgs.put("creationTime", creationTime);
+        if (DisasterRecoveryUtils.hasStandbySite(id)) {
+            SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
+            if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
+                SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
+                isError = true;
+                if (disasterSiteError.getCreationTime() != null) {
+                    DateTime creationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
+                    renderArgs.put("creationTime", creationTime);
+                }
+                render(isError, uuid, disasterSiteError);
             }
-            render(isError, uuid, disasterSiteError);
+            else {
+                SiteDetailRestRep disasterSiteDetails = DisasterRecoveryUtils.getSiteDetails(id);
+                isError = false;
+                if (disasterSiteDetails.getCreationTime() != null) {
+                    DateTime creationTime = new DateTime(disasterSiteDetails.getCreationTime().getTime());
+                    renderArgs.put("creationTime", creationTime);
+                }
+                if (disasterSiteDetails.getPausedTime() != null) {
+                    DateTime pausedTime = new DateTime(disasterSiteDetails.getPausedTime().getTime());
+                    renderArgs.put("pausedTime", pausedTime);
+                }
+                if (disasterSiteDetails.getlastUpdateTime() != null) {
+                    DateTime lastUpdateTime = new DateTime(disasterSiteDetails.getlastUpdateTime().getTime());
+                    renderArgs.put("lastUpdateTime", lastUpdateTime);
+                }
+
+                render(isError, uuid, disasterSiteDetails);
+            }
         }
         else {
-            SiteDetailRestRep disasterSiteTime = DisasterRecoveryUtils.getSiteTime(id);
-            isError = false;
-            if (disasterSiteTime.getCreationTime() != null) {
-                DateTime creationTime = new DateTime(disasterSiteTime.getCreationTime().getTime());
-                renderArgs.put("creationTime", creationTime);
-            }
-            if (disasterSiteTime.getPausedTime() != null) {
-                DateTime pausedTime = new DateTime(disasterSiteTime.getPausedTime().getTime());
-                renderArgs.put("pausedTime", pausedTime);
-            }
-            if (disasterSiteTime.getlastUpdateTime() != null) {
-                DateTime lastUpdateTime = new DateTime(disasterSiteTime.getlastUpdateTime().getTime());
-                renderArgs.put("lastUpdateTime", lastUpdateTime);
-            }
-
+            SiteDetailRestRep disasterSiteTime = new SiteDetailRestRep();
+            uuid = "Unknown Standby site id: " + id;
             render(isError, uuid, disasterSiteTime);
         }
     }

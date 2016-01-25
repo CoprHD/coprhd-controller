@@ -324,4 +324,7 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_UPDATE_SITE_FAILED)
     public InternalServerErrorException updateSiteFailed(String siteName, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_UPGRADE_NOT_ALLOWED)
+    public InternalServerErrorException upgradeNotAllowedWithoutPausedSite();
 }

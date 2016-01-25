@@ -80,6 +80,7 @@ public abstract class VdcOpHandler {
     protected PropertyInfoExt targetVdcPropInfo;
     protected PropertyInfoExt localVdcPropInfo;
     protected SiteInfo targetSiteInfo;
+    protected boolean isRebootNeeded = false;
     
     public VdcOpHandler() {
     }
@@ -87,11 +88,15 @@ public abstract class VdcOpHandler {
     public abstract void execute() throws Exception;
     
     public boolean isRebootNeeded() {
-        return false;
+        return isRebootNeeded;
     }
     
+    public void setRebootNeeded(boolean rebootRequired) {
+        this.isRebootNeeded = rebootRequired;
+    }
+
     /**
-     * No-op - flush vdc config to local only
+     * No-op - simply do nothing
      */
     public static class NoopOpHandler extends VdcOpHandler{
         public NoopOpHandler() {
@@ -99,15 +104,13 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() {
-            flushVdcConfigToLocal();
         }
     }
-
+    
     /**
      * Rotate IPSec key
      */
     public static class IPSecRotateOpHandler extends VdcOpHandler {
-
         public IPSecRotateOpHandler() {
         }
         
@@ -181,33 +184,7 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
-            if (drUtil.isActiveSite()) {
-                log.info("Acquiring lock {} to update default properties of standby", LOCK_ADD_STANDBY);
-                InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_ADD_STANDBY);
-                lock.acquire();
-                log.info("Acquired lock successfully");
-                try {
-                    disableBackupSchedulerForStandby();
-                } finally {
-                    lock.release();
-                    log.info("Released lock for {}", LOCK_ADD_STANDBY);
-                }
-            }
             reconfigVdc();
-        }
-        
-        private void disableBackupSchedulerForStandby() {
-            List<Site> sites = drUtil.listSitesInState(SiteState.STANDBY_ADDING);
-            for (Site site : sites) {
-                String siteId = site.getUuid();
-                PropertyInfoExt sitePropInfo = coordinator.getSiteSpecificProperties(siteId);
-                if (sitePropInfo == null) {
-                    log.info("Disable backupscheduler for {}", site.getUuid());
-                    Map<String, String> siteProps = new HashMap<String, String>();
-                    siteProps.put(BackupConstants.SCHEDULER_ENABLED, "false");
-                    coordinator.setSiteSpecificProperties(siteProps, siteId);
-                }
-            }
         }
     }
 
@@ -217,11 +194,7 @@ public abstract class VdcOpHandler {
      */
     public static class DrChangeDataRevisionHandler extends VdcOpHandler {
         public DrChangeDataRevisionHandler() {
-        }
-        
-        @Override
-        public boolean isRebootNeeded() {
-            return true;
+            setRebootNeeded(true);
         }
 
         @Override
@@ -591,10 +564,12 @@ public abstract class VdcOpHandler {
                         log.error("Failed to release lock {}", LOCK_DEGRADE_STANDBY);
                     }
                 }
-
-                localRepository.restart(Constants.DBSVC_NAME);
-                localRepository.restart(Constants.GEODBSVC_NAME);
             }
+
+            // restart dbsvc/geodbsvc to start the data rebuild
+            localRepository.restart(Constants.DBSVC_NAME);
+            localRepository.restart(Constants.GEODBSVC_NAME);
+
             flushVdcConfigToLocal();
         }
     }
@@ -631,6 +606,7 @@ public abstract class VdcOpHandler {
         private boolean isRebootNeeded = true;
         
         public DrSwitchoverHandler() {
+            isRebootNeeded = true;
         }
         
         @Override
@@ -822,14 +798,8 @@ public abstract class VdcOpHandler {
      */
     public static class DrFailoverHandler extends VdcOpHandler {
         private Factory postHandlerFactory;
-        private boolean isRebootNeeded;
-        
+
         public DrFailoverHandler() {
-        }
-        
-        @Override
-        public boolean isRebootNeeded() {
-            return isRebootNeeded;
         }
         
         @Override
@@ -916,27 +886,37 @@ public abstract class VdcOpHandler {
             log.info("Reboot this node after failover");
         }
     }
-    
+
     /**
      * This handler will be triggered in active site when it detect there are other active sites exist.
      * Degraded itself to ACTIVE_DEGRADE and not provide any provisioning functions.
      * 
      */
     public static class DrFailbackDegradeHandler extends VdcOpHandler {
-
-        @Override
-        public boolean isRebootNeeded() {
-            return true;
+        public DrFailbackDegradeHandler() {
+            setRebootNeeded(true);
         }
-
+        
         @Override
         public void execute() throws Exception {
             //no need to wait any barrier and some nodes may not be up
             reconfigVdc(false);
         }
-        
     }
-    
+
+    /**
+     * IP Change handler to update IPs info from ZK to vdcproperty
+     */
+    public static class IPChangeHandler extends VdcOpHandler {
+        public IPChangeHandler() {
+        }
+
+        @Override
+        public void execute() throws Exception {
+            syncFlushVdcConfigToLocal();
+        }
+    }
+
     public CoordinatorClientExt getCoordinator() {
         return coordinator;
     }

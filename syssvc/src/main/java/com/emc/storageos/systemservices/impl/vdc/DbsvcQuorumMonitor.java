@@ -87,11 +87,21 @@ public class DbsvcQuorumMonitor implements Runnable {
 
         try {
             long vdcVersion = DrUtil.newVdcConfigVersion();
+
+            // Update degraded sites
             for (Site standbySite : sitesToDegrade) {
                 standbySite.setState(SiteState.STANDBY_DEGRADING);
                 coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
                 drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_DEGRADE_STANDBY, vdcVersion);
             }
+
+            // Update all other connected sites
+            List<Site> connectedSites = getOtherConnectedSites(sitesToDegrade);
+            for (Site site: connectedSites) {
+                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.NONE, vdcVersion);
+            }
+
+            // Update local site
             drUtil.updateVdcTargetVersion(coordinatorClient.getSiteId(), SiteInfo.DR_OP_DEGRADE_STANDBY, vdcVersion);
         } catch (Exception e) {
             log.error("Failed to initiate degrade standby operation. Try again later", e);
@@ -102,6 +112,18 @@ public class DbsvcQuorumMonitor implements Runnable {
                 log.error("Failed to release the dr operation lock", e);
             }
         }
+    }
+
+    private List<Site> getOtherConnectedSites(List<Site> excludedSites) {
+        List<Site> sites = new ArrayList<>();
+
+        for (Site site : drUtil.listStandbySites()) {
+            if (!excludedSites.contains(site)) {
+                sites.add(site);
+            }
+
+        }
+        return sites;
     }
 
     private void checkAndRejoinSite(Site standbySite) {
@@ -130,8 +152,9 @@ public class DbsvcQuorumMonitor implements Runnable {
             }
 
             try {
-                long vdcVersion = getCurrentVdcConfigVersion();
+                long vdcVersion = DrUtil.newVdcConfigVersion();
 
+                // Update version on the target standby
                 if ((System.currentTimeMillis() - monitorResult.getDbQuorumLostSince()) / 1000 >= gcGracePeriod
                         + drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD) / 1000) {
                     log.error("site {} has been degraded for too long, we will re-init the target standby", siteId);
@@ -141,6 +164,18 @@ public class DbsvcQuorumMonitor implements Runnable {
                 } else {
                     drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_REJOIN_STANDBY, vdcVersion);
                 }
+
+                // Update version on other connected standby sites if any
+                for (Site site : drUtil.listSites()) {
+                    if (site.equals(standbySite) ||
+                            site.getUuid().equals(coordinatorClient.getSiteId())) { // target site or local site
+                        continue;
+                    }
+                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.NONE, vdcVersion);
+                }
+
+                // Update version on active site but do nothing
+                drUtil.updateVdcTargetVersion(coordinatorClient.getSiteId(), SiteInfo.NONE, vdcVersion);
             } catch (Exception e) {
                 log.error("Failed to initiate rejoin standby operation. Try again later", e);
             } finally {
@@ -151,12 +186,6 @@ public class DbsvcQuorumMonitor implements Runnable {
                 }
             }
         }
-    }
-
-    private long getCurrentVdcConfigVersion() {
-        VdcConfigUtil vdcConfigUtil = new VdcConfigUtil(coordinatorClient);
-        PropertyInfoExt targetVdcProps = new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
-        return Long.parseLong(targetVdcProps.getProperty(Constants.VDC_CONFIG_VERSION));
     }
 
     private SiteMonitorResult updateSiteMonitorResult(Site standbySite) {

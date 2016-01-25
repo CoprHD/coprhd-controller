@@ -5,25 +5,22 @@
 
 package com.emc.storageos.db.client.impl;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.KeyspaceTracerFactory;
+import com.netflix.astyanax.connectionpool.ConnectionContext;
+import com.netflix.astyanax.connectionpool.ConnectionPool;
 import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -35,12 +32,13 @@ import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.partitioner.Murmur3Partitioner;
 import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.retry.RetryPolicy;
+import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
+import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
-import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.gms.Gossiper;
-import org.apache.cassandra.locator.IEndpointSnitch;
+import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
 import org.apache.cassandra.service.StorageProxy;
-import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.KsDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,8 +65,6 @@ public class DbClientContext {
     private static final int GEODB_THRIFT_PORT = 9260;
     private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
     private static final int DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC = 30;
-    // a normal node removal should succeed in 30s.
-    private static final int REMOVE_NODE_TIMEOUT_MILLIS = 1 * 60 * 1000; // 1 min
 
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
@@ -97,7 +93,6 @@ public class DbClientContext {
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
-    private ExecutorService removeNodeExecutor = Executors.newCachedThreadPool();
 
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
@@ -344,7 +339,6 @@ public class DbClientContext {
         }
 
         exe.shutdownNow();
-        removeNodeExecutor.shutdownNow();
     }
 
     /**
@@ -366,21 +360,55 @@ public class DbClientContext {
 
             // ensure a schema agreement before updating the strategy options
             // or else it's destined to fail due to SchemaDisagreementException
-            ensureSchemaAgreement();
+            boolean hasUnreachableNodes = ensureSchemaAgreement();
 
             String schemaVersion;
-            if (kd != null) {
+            if (hasUnreachableNodes) {
+                schemaVersion = alterKeyspaceWithThrift(kd, update);
+            } else if (kd != null) {
                 schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
             } else {
                 schemaVersion = cluster.addKeyspace(update).getResult().getSchemaId();
             }
     
-            if (wait) {
+            if (wait && !hasUnreachableNodes) {
                 waitForSchemaAgreement(schemaVersion);
             }
         } catch (ConnectionException ex) {
             log.error("Fail to update strategy option", ex);
             throw DatabaseException.fatals.failedToChangeStrategyOption(ex.getMessage());
+        }
+    }
+
+    /**
+     * Update the keyspace definition using low-level thrift API
+     * This is to bypass the precheck logic in Astyanax that throws SchemaDisagreementException when there are
+     * unreachable nodes in the cluster. Refer to https://github.com/Netflix/astyanax/issues/443 for details.
+     *
+     * @param kd existing keyspace definition, could be null
+     * @param update new keyspace definition
+     * @return new schema version after the update
+     */
+    private String alterKeyspaceWithThrift(KeyspaceDefinition kd, KeyspaceDefinition update) throws ConnectionException {
+        final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
+        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) clusterContext.getConnectionPool();
+        final KsDef def = ((ThriftKeyspaceDefinitionImpl) update).getThriftKeyspaceDefinition();
+        if (kd != null) {
+            return pool.executeWithFailover(
+                    new AbstractOperationImpl<String>(ks.newTracer(CassandraOperationType.UPDATE_KEYSPACE)) {
+                        @Override
+                        public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
+                            return client.system_update_keyspace(def);
+                        }
+                    }, clusterContext.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
+        } else {
+            return pool.executeWithFailover(
+                    new AbstractOperationImpl<String>(ks.newTracer(CassandraOperationType.ADD_KEYSPACE)) {
+                        @Override
+                        public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
+                            return client.system_add_keyspace(def);
+                        }
+                    }, clusterContext.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
         }
     }
 
@@ -408,14 +436,11 @@ public class DbClientContext {
     }
 
     /**
-     * Forcibly reach a schema agreement
-     * If a schema agreement cannot be reached ONLY because there are unreachable nodes,
-     * remove these unreachable nodes and try again.
+     * Try to reach a schema agreement among all the reachable nodes
      *
-     * This should be fine since all the removed nodes will add themselves back to gossip
-     * should they ever come back again.
+     * @return true if there are unreachable nodes
      */
-    public void ensureSchemaAgreement() {
+    public boolean ensureSchemaAgreement() {
         long start = System.currentTimeMillis();
         Map<String, List<String>> schemas = null;
         while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
@@ -432,71 +457,22 @@ public class DbClientContext {
                 // there are more than two schema versions besides UNREACHABLE, keep waiting.
                 continue;
             }
-            if (schemas.size() == 1 && !schemas.containsKey(StorageProxy.UNREACHABLE)) {
-                // schema agreement reached and we are all set
-                return;
-            }
-            // schemas.size() == 2, try removing the unreachable nodes from all sites and check again.
-            if (schemas.containsKey(StorageProxy.UNREACHABLE)) {
-                for (String nodeIp : schemas.get(StorageProxy.UNREACHABLE)) {
-                    try {
-                        removeCassandraNode(InetAddress.getByName(nodeIp));
-                    } catch (UnknownHostException e) {
-                        log.error("Invalid node IP: {}", nodeIp);
-                        throw new IllegalStateException(e);
-                    }
+            if (schemas.size() == 1) {
+                if (!schemas.containsKey(StorageProxy.UNREACHABLE)) {
+                    return false;
+                } else {
+                    // keep waiting if all nodes are unreachable
+                    continue;
                 }
             }
+            // schema.size() == 2, if one of them is UNREACHABLE, return
+            if (schemas.containsKey(StorageProxy.UNREACHABLE)) {
+                return true;
+            }
+            // else continue waiting
         }
         log.error("Unable to converge schema versions {}", schemas);
         throw new IllegalStateException("Unable to converge schema versions");
-    }
-
-    private void removeCassandraNode(InetAddress nodeIp) {
-        Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
-        String guid = hostIdMap.get(nodeIp.getHostAddress());
-        log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
-        Gossiper.instance.convict(nodeIp, 0);
-        ensureRemoveNode(guid);
-    }
-
-    public void removeDataCenter(String dcName) {
-        log.info("Remove Cassandra data center {}", dcName);
-        List<InetAddress> allNodes = new ArrayList<>();
-        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
-        allNodes.addAll(liveNodes);
-        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
-        allNodes.addAll(unreachableNodes);
-        for (InetAddress nodeIp : allNodes) {
-            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
-            String dc = snitch.getDatacenter(nodeIp);
-            log.info("node {} belongs to data center {} ", nodeIp, dc);
-            if (dc.equals(dcName)) {
-                removeCassandraNode(nodeIp);
-            }
-        }
-    }
-
-    /**
-     * A safer method to remove Cassandra node. Calls forceRemoveCompletion after REMOVE_NODE_TIMEOUT_MILLIS
-     * This will help to prevent node removal from hanging due to CASSANDRA-6542.
-     *
-     * @param guid
-     */
-    public void ensureRemoveNode(final String guid) {
-        Future<?> future = removeNodeExecutor.submit(new Runnable() {
-            public void run() {
-                StorageService.instance.removeNode(guid);
-            }
-        });
-        try {
-            future.get(REMOVE_NODE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            log.warn("removenode timeout, calling forceRemoveCompletion()");
-            StorageService.instance.forceRemoveCompletion();
-        } catch (InterruptedException | ExecutionException e) {
-            log.warn("Exception calling removenode", e);
-        }
     }
 
     /**

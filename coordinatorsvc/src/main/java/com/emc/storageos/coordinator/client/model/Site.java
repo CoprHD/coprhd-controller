@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.jsoup.helper.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -19,8 +17,7 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
  * Representation for a ViPR site, both primary and standby
  */
 public class Site {
-    private static final Logger log = LoggerFactory.getLogger(Site.class);
-
+    private static final String NO_ACTIVE_SITE_MESSAGE = "<no active site>";
     private static final String KEY_NAME = "name";
     private static final String KEY_DESCRIPTION = "description";
     private static final String KEY_VIP = "vip";
@@ -29,12 +26,16 @@ public class Site {
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
     private static final String KEY_LASTOPERATION = "lastOperation";
     private static final String KEY_SITE_STATE = "state";
+    private static final String KEY_PING = "networkLatencyInMs";
+    private static final String KEY_NETWORK_HEALTH = "networkHealth";
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
     private static final String KEY_NODECOUNT = "nodeCount";
     private static TreeMap<String, String> treeMapSorter = new TreeMap<String, String>();
     
     public static final String CONFIG_KIND = "disasterRecoverySites";
+    
+    public static final Site DUMMY_ACTIVE_SITE;
 
     private String uuid;
     private String vdcShortId;
@@ -46,9 +47,19 @@ public class Site {
     private String siteShortId;
     private long creationTime;
     private long lastStateUpdateTime;
+    private double networkLatencyInMs;
+    private String networkHealth;
     private SiteState state = SiteState.ACTIVE;
     private SiteState lastOperation;
     private int nodeCount;
+    
+    static {
+        DUMMY_ACTIVE_SITE = new Site();
+        DUMMY_ACTIVE_SITE.setUuid("");
+        DUMMY_ACTIVE_SITE.setVip(NO_ACTIVE_SITE_MESSAGE);
+        DUMMY_ACTIVE_SITE.setName(NO_ACTIVE_SITE_MESSAGE);
+        DUMMY_ACTIVE_SITE.setState(SiteState.NONE);
+    }
 
     public Site() {
     }
@@ -147,6 +158,22 @@ public class Site {
         this.creationTime = creationTime;
     }
 
+    public double getNetworkLatencyInMs() {
+        return networkLatencyInMs;
+    }
+
+    public void setNetworkLatencyInMs(double networkLatencyInMs) {
+        this.networkLatencyInMs = networkLatencyInMs;
+    }
+
+    public String getNetworkHealth() {
+        return networkHealth;
+    }
+
+    public void setNetworkHealth(String networkHealth) {
+        this.networkHealth = networkHealth;
+    }
+
     public long getLastStateUpdateTime() {
         return lastStateUpdateTime;
     }
@@ -207,6 +234,12 @@ public class Site {
         if (lastStateUpdateTime != 0L) {
             config.setConfig(KEY_LASTSTATEUPDATETIME, String.valueOf(lastStateUpdateTime));
         }
+        if (networkLatencyInMs != 0D) {
+            config.setConfig(KEY_PING, String.valueOf(networkLatencyInMs));
+        }
+        if (networkHealth != null) {
+            config.setConfig(KEY_NETWORK_HEALTH, networkHealth);
+        }
 
         if (lastOperation != null) {
             config.setConfig(KEY_LASTOPERATION, String.valueOf(lastOperation));
@@ -240,6 +273,7 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
+            this.networkHealth = config.getConfig(KEY_NETWORK_HEALTH);
             this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
@@ -253,6 +287,11 @@ public class Site {
             s = config.getConfig(KEY_LASTOPERATION);
             if (s != null) {
                 lastOperation = SiteState.valueOf(config.getConfig(KEY_LASTOPERATION));
+            }
+
+            s = config.getConfig(KEY_PING);
+            if (s != null) {
+                this.networkLatencyInMs = Double.valueOf(s);
             }
 
             s = config.getConfig(KEY_SITE_STATE);
@@ -307,6 +346,10 @@ public class Site {
         builder.append(siteShortId);
         builder.append(", creationTime=");
         builder.append(creationTime);
+        builder.append(", networkLatencyInMs=");
+        builder.append(networkLatencyInMs);
+        builder.append(", networkHealth=");
+        builder.append(networkHealth);
         builder.append("]");
         return builder.toString();
     }
@@ -322,4 +365,5 @@ public class Site {
         builder.append(", uuid=").append(uuid).append("]");
         return builder.toString();
     }
+    
 }

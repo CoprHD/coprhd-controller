@@ -50,4 +50,8 @@
     <bean id="backCompatPreYoda" class="java.lang.Boolean">
         <constructor-arg type="java.lang.String" value="${back_compat_preyoda}" />
     </bean>
+
+    <bean id="siteIsStandby" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="${site_is_standby}" />
+    </bean>
 </beans>

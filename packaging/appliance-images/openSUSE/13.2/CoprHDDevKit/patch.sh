@@ -18,6 +18,15 @@ if [ $? -ne 0 ]; then
 fi
 
 #######################################################
+# Deactivate non-distribution packages from initrd
+#######################################################
+if [ ! -f /usr/share/kiwi/image/vmxboot/suse-13.2/config.xml.bak ]; then
+  cp /usr/share/kiwi/image/vmxboot/suse-13.2/config.xml /usr/share/kiwi/image/vmxboot/suse-13.2/config.xml.bak
+fi
+sed -i /fribidi/d /usr/share/kiwi/image/vmxboot/suse-13.2/config.xml
+sed -i /fbiterm/d /usr/share/kiwi/image/vmxboot/suse-13.2/config.xml
+
+#######################################################
 # Changes for 3 digits to 5 digits version
 #######################################################
 FileValidator="$kiwiPath/KIWIXMLValidator.pm"

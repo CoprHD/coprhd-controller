@@ -60,7 +60,7 @@ bash /opt/ADG/conf/configure.sh installPackages
 bash /opt/ADG/conf/configure.sh installJava
 bash /opt/ADG/conf/configure.sh installNginx
 bash /opt/ADG/conf/configure.sh installStorageOS
-bash /opt/ADG/conf/configure.sh installVagrant
+bash /opt/ADG/conf/configure.sh installNetwork
 bash /opt/ADG/conf/configure.sh installXorg
 
 #======================================

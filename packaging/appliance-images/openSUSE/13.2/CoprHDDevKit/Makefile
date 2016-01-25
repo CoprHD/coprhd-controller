@@ -25,10 +25,11 @@ BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 VMDK := $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
 OVF := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
 VMX := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmx
+TBZ := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).tbz
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
 
 .DEFAULT: all
-.PHONY: downloadISO downloadRPM createREPO ovf vmx appliance devkit clean destroy
+.PHONY: downloadISO downloadRPM createREPO ovf vmx tbz appliance devkit clean destroy
 all: appliance
 
 ##################################################
@@ -79,7 +80,7 @@ destroy:
 	rm -fr $(WORKSPACE)/{iso,build,image,output,zypper}
 	$(call targetLog,-)
 
-appliance: | ovf vmx
+appliance: | ovf vmx tbz
 
 ovf: | $(OVF)
 	$(call targetLog,+)
@@ -87,6 +88,11 @@ ovf: | $(OVF)
 	$(call targetLog,-)
 
 vmx: | $(VMX)
+	$(call targetLog,+)
+	chmod a+r $(BUILD_DIR)/*
+	$(call targetLog,-)
+
+tbz: | $(TBZ)
 	$(call targetLog,+)
 	chmod a+r $(BUILD_DIR)/*
 	$(call targetLog,-)
@@ -142,4 +148,22 @@ $(VMX): | $(VMDK)
 	$(call targetLog,+)
 	[ -f $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk ] || cp $(VMDK) $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
 	cp $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmx $(VMX)
+	$(call targetLog,-)
+
+$(TBZ): | $(VMDK)
+	$(call targetLog,+)
+	echo '' > $(IMAGE_DIR)/etc/fstab
+	echo 'LOADER_TYPE="none"' > $(IMAGE_DIR)/etc/sysconfig/bootloader
+	echo 'LOADER_LOCATION="none"' >> $(IMAGE_DIR)/etc/sysconfig/bootloader
+	echo 'ROOTFS_FSCK="0"' > $(IMAGE_DIR)/etc/sysconfig/boot
+	echo 'ROOTFS_BLKDEV="/dev/null"' >> $(IMAGE_DIR)/etc/sysconfig/boot
+	echo 'console"' >> $(IMAGE_DIR)/etc/securetty
+	rm -fr $(IMAGE_DIR)/run/*
+	rm -fr $(IMAGE_DIR)/.kconfig
+	rm -fr $(IMAGE_DIR)/.profile
+	rm -fr $(IMAGE_DIR)/kiwi-hooks
+	rm -fr $(IMAGE_DIR)/image
+	rm -fr $(IMAGE_DIR)/Swap
+	[ ! -x /usr/bin/pigz ] || tar -c -f $(TBZ) -C $(IMAGE_DIR) -I pigz .
+	[ -x /usr/bin/pigz ] || tar -c -f $(TBZ) -C $(IMAGE_DIR) -J .
 	$(call targetLog,-)

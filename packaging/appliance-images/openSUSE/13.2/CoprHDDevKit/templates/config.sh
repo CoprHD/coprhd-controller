@@ -62,6 +62,7 @@ bash /opt/ADG/conf/configure.sh installNginx
 bash /opt/ADG/conf/configure.sh installStorageOS
 bash /opt/ADG/conf/configure.sh installNetwork
 bash /opt/ADG/conf/configure.sh installXorg
+systemctl enable docker
 
 #======================================
 # CoprHDDevKit setup

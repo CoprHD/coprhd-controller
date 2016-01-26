@@ -742,6 +742,14 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.reference(CP_SYNCHRONIZATION, groupSync) };
     }
 
+    public CIMArgument[] getActivePairSuspendInputArguments(CIMObjectPath groupSync) {
+        return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
+                _cimArgument.uint16(CP_OPERATION, SUSPEND_SYNC_PAIR),
+                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SUSPENDED),
+                _cimArgument.bool(CP_FORCE, true),
+                _cimArgument.reference(CP_SYNCHRONIZATION, groupSync) };
+    }
+
     public CIMArgument[] getASyncSwapInputArguments(CIMObjectPath groupSync) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, SWAP_SYNC_PAIR),
@@ -757,6 +765,13 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getASyncPairResumeInputArguments(CIMObjectPath groupSync) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
+                _cimArgument.reference(CP_SYNCHRONIZATION, groupSync) };
+    }
+
+    public CIMArgument[] getActivePairResumeInputArguments(CIMObjectPath groupSync) {
+        return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
+                _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
+                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED),
                 _cimArgument.reference(CP_SYNCHRONIZATION, groupSync) };
     }
 

@@ -42,6 +42,40 @@ public class ScaleIOConstants {
     public static final String MINIMUM_SUPPORTED_VERSION="1.32";
     public static final Boolean INCOMPATIBLE=false;
     public static final Boolean COMPATIBLE=true;
+    public enum TaskType{
+        DISCOVER_STORAGE_SYSTEM,
+        DISCOVER_STORAGE_POOLS,
+        DISCOVER_STORAGE_PORTS,
+
+        VOLUME_CREATE,
+        VOLUME_EXPAND,
+        VOLUME_DELETE,
+
+        SNAPSHOT_CREATE,
+        SNAPSHOT_DELETE,
+
+        CLONE_CREATE,
+        CLONE_DETACH,
+        CLONE_DELETE,
+
+        GET_ITL,
+        EXPORT,
+        UNEXPORT,
+
+        CG_SNAP_CREATE,
+        CG_SNAP_DELETE,
+        CG_CLONE_CREATE,
+        CG_CLONE_DELETE,
+
+        /*Not Supported Operations in ScaleIO*/
+        SNAPSHOT_RESTORE,
+        MIRROR_OPERATIONS,
+        CLONE_RESTORE,
+        CG_CREATE,
+        CG_DELETE
+
+
+    }
     enum PoolCapacityMultiplier {
 
         BYTES("Bytes", 1),
@@ -131,4 +165,5 @@ public class ScaleIOConstants {
     public static String getRemoveConsistencyGroupSnapshotsURI(String systemId) {
         return String.format("/api/instances/System::%1$s/action/removeConsistencyGroupSnapshots", systemId);
     }
+
 }

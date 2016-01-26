@@ -1,3 +1,20 @@
+/*
+ * Copyright 2016 Oregon State University
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
@@ -38,24 +55,31 @@ public class ScaleIORestHandleFactory {
      */
     public ScaleIORestClient getClientHandle(String systemNativeId, String ipAddr, int port, String username, String password)
             throws Exception {
-        ScaleIORestClient handle = null;
+        ScaleIORestClient handle;
+        String systemId = "";
+        if (systemNativeId != null) {
+            systemId = systemNativeId.trim();
+        }
         synchronized (syncObject) {
-            if (systemNativeId != null && systemNativeId.trim().length() > 0) {
-                handle = ScaleIORestClientMap.get(systemNativeId);
-            }
-            if (handle == null) {
-                URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(ipAddr, port));
-                handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, username,
-                        password, true);
-                if (handle == null) {
-                    log.info("Failed to get Rest Handle");
-                } else if (systemNativeId == null || systemNativeId.trim().length() == 0) {
-                    systemNativeId = handle.getSystemId();
+            if (!ScaleIORestClientMap.containsKey(systemId)) {
+                if (ipAddr != null && username != null && password != null) {
+                    URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(ipAddr, port));
+                    handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, username,
+                            password, true);
+                    try {
+                        systemId = handle.getSystemId(); // Get the exact systemId and check the availability of handle
+                        if (systemId != null) {
+                            ScaleIORestClientMap.put(systemId, handle);
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to get Rest Handle", e);
+                    }
+                } else {
+                    log.error("Some of the following for storage system {} are Missing: IP Address, username, password.", systemId);
                 }
-                ScaleIORestClientMap.put(systemNativeId, handle);
             }
         }
-        return handle;
+        return ScaleIORestClientMap.get(systemId);
     }
 
 }

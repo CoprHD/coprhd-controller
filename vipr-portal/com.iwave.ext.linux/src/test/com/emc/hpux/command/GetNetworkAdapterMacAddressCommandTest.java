@@ -15,9 +15,9 @@ import com.iwave.ext.command.CommandOutput;
 
 public class GetNetworkAdapterMacAddressCommandTest {
 
-    static String output = "0xF0F0F0F0F0F0";
+    private static String output = "0xF0F0F0F0F0F0";
 
-    static GetNetworkAdapterMacAddressCommand macAddressCommand = null;
+    private static GetNetworkAdapterMacAddressCommand macAddressCommand = null;
 
     @BeforeClass
     public synchronized static void setup() {

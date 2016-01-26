@@ -166,6 +166,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
         statusChecker.waitForAllNodesMigrationInit();
 
         if (schemaUtil.isGeoDbsvc()) {
+            // scan and update cassandra schema
+            checkDbSchema();
+            
             // no migration procedure for geosvc, just wait till migration is done on one of the
             // dbsvcs
             log.warn("Migration is not supported for Geodbsvc. Wait till migration is done");
@@ -229,6 +232,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
                 // check if we have a schema upgrade to deal with
                 if (!currentSchemaVersion.equals(targetVersion)) {
+                    log.info("Start scanning and creating new column families");
+                    schemaUtil.checkCf();
+                    log.info("Scanning and creating new column families succeed");
+                    
                     DbSchemasDiff diff = new DbSchemasDiff(persistedSchema, currentSchema,
                             ignoredPkgs);
                     if (diff.isChanged()) {
@@ -676,5 +683,27 @@ public class MigrationHandlerImpl implements MigrationHandler {
         }
 
         log.info("Finish dumping changes");
+    }
+    
+    private void checkDbSchema() {
+        log.info("Start scanning and creating new column families");
+        InterProcessLock lock = null;
+        try {
+            String lockName = schemaUtil.isGeoDbsvc() ? DbConfigConstants.GEODB_SCHEMA_LOCK : DbConfigConstants.DB_SCHEMA_LOCK;
+            // grab global lock for migration
+            lock = getLock(lockName);
+            schemaUtil.checkCf();
+            log.info("Scanning and creating new column families succeed");
+        } catch (Exception ex) {
+            log.warn("Unexpected error when scan db schema", ex);
+        } finally {
+            if (lock != null) {
+                try {
+                    lock.release();
+                } catch (Exception ignore) {
+                    log.debug("lock release failed");
+                }
+            }
+        }
     }
 }

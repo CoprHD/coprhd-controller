@@ -1225,11 +1225,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws InternalException
      */
     @Override
-    public void viprOnlyDeleteSnapshot(Map<URI, BlockSnapshot> snapshotMap, String taskId)
+    public void viprOnlyDeleteSnapshot(List<URI> snapshotURIs, String taskId)
             throws InternalException {
+        s_logger.info("Executing ViPR-only snapshot deletion");
 
         // Clean up the snapshot in the ViPR database.
-        for (URI snapshotURI : snapshotMap.keySet()) {
+        for (URI snapshotURI : snapshotURIs) {
             // If the BlockSnapshot instance represents a linked target, then
             // we need to remove the snapshot from the linked target list of the
             // session.
@@ -1238,6 +1239,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     snapSessionURIs);
             Iterator<URI> snapSessionURIsIter = snapSessionURIs.iterator();
             if (snapSessionURIsIter.hasNext()) {
+                URI snapSessionURI = snapSessionURIsIter.next();
+                s_logger.info("Snapshot {} is linked to snapshot session {}", snapshotURI, snapSessionURI);
                 BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIsIter.next());
                 snapSession.getLinkedTargets().remove(snapshotURI.toString());
                 _dbClient.updateObject(snapSession);
@@ -1248,15 +1251,16 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         }
 
         // Mark them inactive.
-        _dbClient.markForDeletion(_dbClient.queryObject(BlockSnapshot.class, snapshotMap.keySet()));
+        _dbClient.markForDeletion(_dbClient.queryObject(BlockSnapshot.class, snapshotURIs));
 
         // Update the task status for each snapshot to successfully completed.
-        for (BlockSnapshot snapshot : snapshotMap.values()) {
+        for (URI snapshotURI : snapshotURIs) {
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
             Operation op = snapshot.getOpStatus().get(taskId);
             op.ready("Snapshot succesfully deleted from ViPR");
             snapshot.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.updateObject(snapshot);
         }
-        _dbClient.updateObject(snapshotMap.values());
     }
 
     /**
@@ -1400,7 +1404,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param addToExisting When true, adds the block object to the existing objects list from the mask.
      */
     protected void cleanBlockObjectFromExports(URI boURI, boolean addToExisting) {
-
+        s_logger.info("Cleaning block object {} from exports", boURI);
         Map<URI, ExportGroup> exportGroupMap = new HashMap<URI, ExportGroup>();
         Map<URI, ExportGroup> updatedExportGroupMap = new HashMap<URI, ExportGroup>();
         Map<String, ExportMask> exportMaskMap = new HashMap<String, ExportMask>();
@@ -1409,6 +1413,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(boURI), exportGroupURIs);
         for (URI exportGroupURI : exportGroupURIs) {
+            s_logger.info("Cleaning block object from export group {}", exportGroupURI);
             ExportGroup exportGroup = null;
             if (exportGroupMap.containsKey(exportGroupURI)) {
                 exportGroup = exportGroupMap.get(exportGroupURI);
@@ -1418,6 +1423,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             }
 
             if (exportGroup.hasBlockObject(boURI)) {
+                s_logger.info("Removing block object from export group");
                 exportGroup.removeVolume(boURI);
                 if (!updatedExportGroupMap.containsKey(exportGroupURI)) {
                     updatedExportGroupMap.put(exportGroupURI, exportGroup);
@@ -1434,6 +1440,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     exportMaskMap.put(exportMaskId, exportMask);
                 }
                 if (exportMask.hasVolume(boURI)) {
+                    s_logger.info("Cleaning block object from export mask {}", exportMaskId);
                     StringMap exportMaskVolumeMap = exportMask.getVolumes();
                     String hluStr = exportMaskVolumeMap.get(boURI.toString());
                     exportMask.removeVolume(boURI);
@@ -1442,6 +1449,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     // mask, so that if the last ViPR created volume goes
                     // away, the physical mask will not be deleted.
                     if (addToExisting) {
+                        s_logger.info("Adding to existing volumes");
                         exportMask.addToExistingVolumesIfAbsent(bo, hluStr);
                     }
                     if (!updatedExportMaskMap.containsKey(exportMaskId)) {

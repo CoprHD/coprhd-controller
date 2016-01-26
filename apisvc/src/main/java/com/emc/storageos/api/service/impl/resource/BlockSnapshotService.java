@@ -12,7 +12,6 @@ import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.API_BAD
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -334,6 +333,7 @@ public class BlockSnapshotService extends TaskResourceService {
             List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
             URI cgURI = requestedSnapshot.getConsistencyGroup();
             if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                _log.info("Snapshot in consistency group {}", cgURI);
                 // Collect all the BlockSnapshots if part of a CG.
                 snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(requestedSnapshot, _dbClient);
             } else {
@@ -345,12 +345,12 @@ public class BlockSnapshotService extends TaskResourceService {
             checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), snapshots);
 
             // Create a task for each snapshot
-            Map<URI, BlockSnapshot> snapshotMap = new HashMap<URI, BlockSnapshot>();
+            List<URI> snapshotURIs = new ArrayList<URI>();
             for (BlockSnapshot snapshot : snapshots) {
+                snapshotURIs.add(snapshot.getId());
                 Operation op = _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), taskId,
                         ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT);
                 response.getTaskList().add(toTask(snapshot, taskId, op));
-                snapshotMap.put(snapshot.getId(), snapshot);
             }
 
             // Note that for snapshots of VPLEX volumes, the parent volume for the
@@ -358,7 +358,7 @@ public class BlockSnapshotService extends TaskResourceService {
             // vpool as the VPLEX volume and therefore, the correct implementation
             // should be returned.
             BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
-            blockServiceApiImpl.viprOnlyDeleteSnapshot(snapshotMap, taskId);
+            blockServiceApiImpl.viprOnlyDeleteSnapshot(snapshotURIs, taskId);
         } catch (APIException | InternalException e) {
             successStatus = false;
             String errorMsg = String.format("Exception attempting to ViPR-Only delete snapshot %s: %s",

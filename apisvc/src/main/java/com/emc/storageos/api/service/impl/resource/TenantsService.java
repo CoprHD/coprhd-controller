@@ -126,6 +126,8 @@ public class TenantsService extends TaggedResource {
     private static final String EVENT_SERVICE_TYPE = "tenant";
     private static final String EVENT_SERVICE_SOURCE = "TenantManager";
     private static final Logger _log = LoggerFactory.getLogger(TenantsService.class);
+    //Invalid ECS namespace
+    private static final String INVALID_OBJECT_NAMESPACE = "NONE~!@#$%^&*(";
 
     @Override
     public String getServiceType() {
@@ -320,7 +322,7 @@ public class TenantsService extends TaggedResource {
             while (nsItr.hasNext()) {
                 ObjectNamespace namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(param.getNamespace()) &&
-                        namesp.getStorageDevice().toString().equals(param.getNamespaceStorage())) {
+                        namesp.getStorageDevice().equals(param.getNamespaceStorage())) {
                     namesp.setTenant(tenant.getId());
                     namesp.setMapped(true);
                     _dbClient.updateObject(namesp);
@@ -335,12 +337,12 @@ public class TenantsService extends TaggedResource {
             while (nsItr.hasNext()) {
                 ObjectNamespace namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace()) &&
-                        namesp.getStorageDevice().toString().equals(tenant.getNamespaceStorage())) {
-                    namesp.setTenant(URI.create("NONE"));//updateobject resets only non-null fields
+                        namesp.getStorageDevice().equals(tenant.getNamespaceStorage())) {
+                    namesp.setTenant(URI.create(INVALID_OBJECT_NAMESPACE));//updateobject resets only non-null fields
                     namesp.setMapped(false);
                     _dbClient.updateObject(namesp);
-                    tenant.setNamespace("NONE");
-                    tenant.setNamespaceStorage("NONE");
+                    tenant.setNamespace(INVALID_OBJECT_NAMESPACE);
+                    tenant.setNamespaceStorage(URI.create(INVALID_OBJECT_NAMESPACE));
                     break;
                 }
             }
@@ -450,7 +452,7 @@ public class TenantsService extends TaggedResource {
             while (nsItr.hasNext()) {
                 ObjectNamespace namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(subtenant.getNamespace()) &&
-                        namesp.getStorageDevice().toString().equals(param.getNamespaceStorage())) {
+                        namesp.getStorageDevice().equals(param.getNamespaceStorage())) {
                     namesp.setTenant(subtenant.getId());
                     namesp.setMapped(true);
                     _dbClient.updateObject(namesp);

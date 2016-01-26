@@ -11001,6 +11001,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
     
     public Workflow.Method deleteConsistencyGroupMethod(URI storage, URI consistencyGroup, String groupName, Boolean markInactive) {
-        return new Workflow.Method("deleteReplicationGroupInConsistencyGroup", storage, consistencyGroup, groupName, null, markInactive);
+        return new Workflow.Method("deleteReplicationGroupInConsistencyGroup", storage, consistencyGroup, groupName, false, markInactive);
     }
 }

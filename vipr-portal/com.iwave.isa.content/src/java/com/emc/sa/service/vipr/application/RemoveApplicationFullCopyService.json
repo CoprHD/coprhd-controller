@@ -1,0 +1,14 @@
+{
+  baseKey:"RemoveApplicationFullCopy.Application",
+  serviceId:"RemoveApplicationFullCopy",
+  fields:{
+  
+    application:{
+      type:"assetType.vipr.application"
+    },
+    
+    fullCopy:{
+      type:"assetType.vipr.fullCopy"
+    }
+  }
+}

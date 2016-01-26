@@ -1899,7 +1899,7 @@ public class RecoverPointScheduler implements Scheduler {
      */
     private boolean verifyTargetStoragePoolAvailability(Volume volume, VirtualPool vpool) {
     	
-    	if(volume.getPersonality().equals(Volume.PersonalityTypes.METADATA.name())) {
+    	if(volume.checkPersonality(Volume.PersonalityTypes.METADATA.name())) {
     		VirtualPool journalVpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             if (verifyStoragePoolAvailability(journalVpool, volume.getPool())) {
                 return true;

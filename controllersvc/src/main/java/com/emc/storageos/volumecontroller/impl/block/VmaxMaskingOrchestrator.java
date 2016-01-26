@@ -27,7 +27,6 @@ import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -38,11 +37,8 @@ import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -72,7 +68,8 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ListMultimap;
 
 public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
-    private static final Logger _log = LoggerFactory.getLogger(VmaxMaskingOrchestrator
+
+	private static final Logger _log = LoggerFactory.getLogger(VmaxMaskingOrchestrator
             .class);
 
     private static final AtomicReference<BlockStorageDevice> VMAX_BLOCK_DEVICE = new
@@ -1370,6 +1367,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     												Map<ExportMask, ExportMaskPolicy> masksMap) {
     	
         Map<ExportMask, ExportMaskPolicy> matchingMaskMap = new HashMap<ExportMask, ExportMaskPolicy>();
+        final String RECOVERPOINT_JOURNAL = "journal";
+
     	
     	//If this is not a RP export, just return the exist masksMap
     	if (!exportGroup.checkInternalFlags(Flag.RECOVERPOINT)) {     		
@@ -1392,7 +1391,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     		_log.info("Looking for masks with JOURNAL keyword since this export group is intended for journal volumes only");
     	    for(Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {      
     	     	ExportMask rpMaskingView = maskMap.getKey();    	     	    	     
-    	     	if (rpMaskingView.getMaskName().toLowerCase().contains("journal")) {
+    	     	if (rpMaskingView.getMaskName().toLowerCase().contains(RECOVERPOINT_JOURNAL)) {
     	     		matchingMaskMap.put(maskMap.getKey(), maskMap.getValue());
     	     	}
     	    }    		    	
@@ -1420,7 +1419,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         	 
         	//If we got this far, then we are looking for masks that are not meant for JOURNALs. 
         	//Ignore RP masks with journal keyword.
-        	if (rpMaskingView.getMaskName().toLowerCase().contains("journal")) {
+        	if (rpMaskingView.getMaskName().toLowerCase().contains(RECOVERPOINT_JOURNAL)) {
         		_log.info(String.format("%s is a journal mask, not considering it for RP source/target copy volume", rpMaskingView.getMaskName()));
         		continue;
         	}

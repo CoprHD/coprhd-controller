@@ -57,15 +57,15 @@ public class VolumeDescriptor implements Serializable {
         }
     };
 
-    private Type _type;              // The type of this volume
-    private URI _deviceURI;          // Device this volume will be created on
-    private URI _volumeURI;          // The volume id or BlockObject id to be created
-    private URI _poolURI;            // The pool id to be used for creation
-    private VirtualPoolCapabilityValuesWrapper _capabilitiesValues;  // Non-volume-specific RP policy is stored in here
-    private URI _consistencyGroup;   // The consistency group this volume belongs to
-    private Long _volumeSize;        // Used to separate multi-volume create requests
-    private URI _migrationId;        // Reference to the migration object for this volume
-    private URI _computeResource;    // Host/Cluster to which the volume will be exported to, as part of the provisioning.
+    private Type type;              // The type of this volume
+    private URI deviceURI;          // Device this volume will be created on
+    private URI volumeURI;          // The volume id or BlockObject id to be created
+    private URI poolURI;            // The pool id to be used for creation
+    private VirtualPoolCapabilityValuesWrapper capabilitiesValues;  // Non-volume-specific RP policy is stored in here
+    private URI consistencyGroup;   // The consistency group this volume belongs to
+    private Long volumeSize;        // Used to separate multi-volume create requests
+    private URI migrationId;        // Reference to the migration object for this volume
+    private URI computeResource;    // Host/Cluster to which the volume will be exported to, as part of the provisioning.
 
     // Layer/device specific parameters (key/value) for this volume (serializable!)
     private Map<String, Object> parameters = new HashMap<String, Object>();
@@ -81,7 +81,7 @@ public class VolumeDescriptor implements Serializable {
             URI deviceURI, URI volumeURI, URI poolURI, URI consistencyGroupURI,
             VirtualPoolCapabilityValuesWrapper capabilities, Long volumeSize) {
         this(type, deviceURI, volumeURI, poolURI, consistencyGroupURI, capabilities);
-        _volumeSize = volumeSize;
+        this.volumeSize = volumeSize;
     }
 
     public VolumeDescriptor(Type type,
@@ -94,12 +94,12 @@ public class VolumeDescriptor implements Serializable {
     public VolumeDescriptor(Type type,
             URI deviceURI, URI volumeURI, URI poolURI, URI consistencyGroupURI,
             VirtualPoolCapabilityValuesWrapper capabilities) {
-        _type = type;
-        _deviceURI = deviceURI;
-        _volumeURI = volumeURI;
-        _poolURI = poolURI;
-        _capabilitiesValues = capabilities;
-        _consistencyGroup = consistencyGroupURI;
+        this.type = type;
+        this.deviceURI = deviceURI;
+        this.volumeURI = volumeURI;
+        this.poolURI = poolURI;
+        this.capabilitiesValues = capabilities;
+        this.consistencyGroup = consistencyGroupURI;
     }
 
     public VolumeDescriptor(Type type,
@@ -118,7 +118,7 @@ public class VolumeDescriptor implements Serializable {
     static public List<VolumeDescriptor> getDescriptors(List<VolumeDescriptor> descriptors, Type type) {
         List<VolumeDescriptor> list = new ArrayList<VolumeDescriptor>();
         for (VolumeDescriptor descriptor : descriptors) {
-            if (descriptor._type == type) {
+            if (descriptor.getType() == type) {
                 list.add(descriptor);
             }
         }
@@ -134,10 +134,10 @@ public class VolumeDescriptor implements Serializable {
     static public Map<URI, List<VolumeDescriptor>> getDeviceMap(List<VolumeDescriptor> descriptors) {
         HashMap<URI, List<VolumeDescriptor>> poolMap = new HashMap<URI, List<VolumeDescriptor>>();
         for (VolumeDescriptor desc : descriptors) {
-            if (poolMap.get(desc._deviceURI) == null) {
-                poolMap.put(desc._deviceURI, new ArrayList<VolumeDescriptor>());
+            if (poolMap.get(desc.getDeviceURI()) == null) {
+                poolMap.put(desc.getDeviceURI(), new ArrayList<VolumeDescriptor>());
             }
-            poolMap.get(desc._deviceURI).add(desc);
+            poolMap.get(desc.getDeviceURI()).add(desc);
         }
         return poolMap;
     }
@@ -151,10 +151,10 @@ public class VolumeDescriptor implements Serializable {
     static public Map<URI, List<VolumeDescriptor>> getPoolMap(List<VolumeDescriptor> descriptors) {
         HashMap<URI, List<VolumeDescriptor>> poolMap = new HashMap<URI, List<VolumeDescriptor>>();
         for (VolumeDescriptor desc : descriptors) {
-            if (poolMap.get(desc._poolURI) == null) {
-                poolMap.put(desc._poolURI, new ArrayList<VolumeDescriptor>());
+            if (poolMap.get(desc.getPoolURI()) == null) {
+                poolMap.put(desc.getPoolURI(), new ArrayList<VolumeDescriptor>());
             }
-            poolMap.get(desc._poolURI).add(desc);
+            poolMap.get(desc.getPoolURI()).add(desc);
         }
         return poolMap;
     }
@@ -170,17 +170,17 @@ public class VolumeDescriptor implements Serializable {
         for (VolumeDescriptor desc : descriptors) {
 
             // If the outside pool map doesn't exist, create it.
-            if (poolSizeMap.get(desc._poolURI) == null) {
-                poolSizeMap.put(desc._poolURI, new HashMap<Long, List<VolumeDescriptor>>());
+            if (poolSizeMap.get(desc.getPoolURI()) == null) {
+                poolSizeMap.put(desc.getPoolURI(), new HashMap<Long, List<VolumeDescriptor>>());
             }
 
             // If the inside size map doesn't exist, create it.
-            if (poolSizeMap.get(desc._poolURI).get(desc.getVolumeSize()) == null) {
-                poolSizeMap.get(desc._poolURI).put(desc.getVolumeSize(), new ArrayList<VolumeDescriptor>());
+            if (poolSizeMap.get(desc.getPoolURI()).get(desc.getVolumeSize()) == null) {
+                poolSizeMap.get(desc.getPoolURI()).put(desc.getVolumeSize(), new ArrayList<VolumeDescriptor>());
             }
 
             // Add volume to the list
-            poolSizeMap.get(desc._poolURI).get(desc.getVolumeSize()).add(desc);
+            poolSizeMap.get(desc.getPoolURI()).get(desc.getVolumeSize()).add(desc);
         }
 
         return poolSizeMap;
@@ -195,7 +195,7 @@ public class VolumeDescriptor implements Serializable {
     public static List<URI> getVolumeURIs(List<VolumeDescriptor> descriptors) {
         List<URI> volumeURIs = new ArrayList<URI>();
         for (VolumeDescriptor desc : descriptors) {
-            volumeURIs.add(desc._volumeURI);
+            volumeURIs.add(desc.getVolumeURI());
         }
         return volumeURIs;
     }
@@ -225,10 +225,10 @@ public class VolumeDescriptor implements Serializable {
             excluded.addAll(Arrays.asList(exclusive));
         }
         for (VolumeDescriptor desc : descriptors) {
-            if (excluded.contains(desc._type)) {
+            if (excluded.contains(desc.getType())) {
                 continue;
             }
-            if (included.isEmpty() || included.contains(desc._type)) {
+            if (included.isEmpty() || included.contains(desc.getType())) {
                 result.add(desc);
             }
         }
@@ -334,60 +334,60 @@ public class VolumeDescriptor implements Serializable {
 
     @Override
     public String toString() {
-        return "VolumeDescriptor [_type=" + _type + ", _deviceURI="
-                + _deviceURI + ", _volumeURI=" + _volumeURI + ", _poolURI="
-                + _poolURI + ", _consistencyGroup=" + _consistencyGroup +
-                ", _capabilitiesValues=" + _capabilitiesValues + ", parameters="
-                + parameters + ", size=" + _volumeSize + "]";
+        return "VolumeDescriptor [_type=" + getType() + ", _deviceURI="
+                + getDeviceURI() + ", _volumeURI=" + getVolumeURI() + ", _poolURI="
+                + getPoolURI() + ", _consistencyGroup=" + getConsistencyGroupURI() +
+                ", _capabilitiesValues=" + getCapabilitiesValues() + ", parameters="
+                + parameters + ", size=" + getVolumeSize() + "]";
     }
 
     public String toString(Volume volume) {
-        return "VolumeDescriptor [_type=" + _type + ", _deviceURI="
-                + _deviceURI + ", _poolURI="
-                + _poolURI + ", _consistencyGroup=" + _consistencyGroup +
-                ", _capabilitiesValues=" + _capabilitiesValues
+        return "VolumeDescriptor [_type=" + getType() + ", _deviceURI="
+                + getDeviceURI() + ", _poolURI="
+                + getPoolURI() + ", _consistencyGroup=" + getConsistencyGroupURI() +
+                ", _capabilitiesValues=" + getCapabilitiesValues()
                 + ", parameters=" + parameters + ", volume=" +
-                volume.toString() + ", size=" + _volumeSize + "]";
+                volume.toString() + ", size=" + getVolumeSize() + "]";
     }
 
     public Type getType() {
-        return _type;
+        return type;
     }
 
     public void setType(Type type) {
-        this._type = type;
+        this.type = type;
     }
 
     public URI getDeviceURI() {
-        return _deviceURI;
+        return deviceURI;
     }
 
     public void setDeviceURI(URI deviceURI) {
-        this._deviceURI = deviceURI;
+        this.deviceURI = deviceURI;
     }
 
     public URI getVolumeURI() {
-        return _volumeURI;
+        return volumeURI;
     }
 
     public void setVolumeURI(URI volumeURI) {
-        this._volumeURI = volumeURI;
+        this.volumeURI = volumeURI;
     }
 
     public URI getPoolURI() {
-        return _poolURI;
+        return poolURI;
     }
 
     public void setPoolURI(URI poolURI) {
-        this._poolURI = poolURI;
+        this.poolURI = poolURI;
     }
 
     public VirtualPoolCapabilityValuesWrapper getCapabilitiesValues() {
-        return _capabilitiesValues;
+        return capabilitiesValues;
     }
 
     public void setCapabilitiesValues(VirtualPoolCapabilityValuesWrapper capabilitiesValues) {
-        this._capabilitiesValues = capabilitiesValues;
+        this.capabilitiesValues = capabilitiesValues;
     }
 
     public Map<String, Object> getParameters() {
@@ -399,34 +399,34 @@ public class VolumeDescriptor implements Serializable {
     }
 
     public URI getConsistencyGroupURI() {
-        return _consistencyGroup;
+        return consistencyGroup;
     }
 
     public void setConsistencyGroupURI(URI consistencyGroupURI) {
-        this._consistencyGroup = consistencyGroupURI;
+        this.consistencyGroup = consistencyGroupURI;
     }
 
     public Long getVolumeSize() {
-        return _volumeSize;
+        return volumeSize;
     }
 
     public void setVolumeSize(Long _volumeSize) {
-        this._volumeSize = _volumeSize;
+        this.volumeSize = _volumeSize;
     }
 
     public URI getMigrationId() {
-        return _migrationId;
+        return migrationId;
     }
 
     public void setMigrationId(URI _migrationId) {
-        this._migrationId = _migrationId;
+        this.migrationId = _migrationId;
     }
 
 	public URI getComputeResource() {
-		return _computeResource;
+		return computeResource;
 	}
 
 	public void setComputeResource(URI _computeResource) {
-		this._computeResource = _computeResource;
+		this.computeResource = _computeResource;
 	}
 }

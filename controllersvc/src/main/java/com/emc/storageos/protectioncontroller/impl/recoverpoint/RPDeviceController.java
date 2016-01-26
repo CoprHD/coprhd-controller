@@ -156,7 +156,8 @@ import com.google.common.base.Joiner;
  */
 public class RPDeviceController implements RPController, BlockOrchestrationInterface, MaskingOrchestrator {
 
-    private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
+    private static final String DASHED_NEWLINE = "---------------------------------%n";
+	private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
     private static final String RPA = "-rpa-";
     // RecoverPoint consistency group name prefix
     private static final String CG_NAME_PREFIX = "ViPR-";
@@ -1009,6 +1010,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         Workflow workflow = null;
         boolean lockException = false;
         Map<URI, Set<URI>> exportGroupVolumesAdded = new HashMap<URI, Set<URI>>();
+        final String COMPUTE_RESOURCE_CLUSTER = "cluster";
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
@@ -1184,7 +1186,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 	URI computeResource = rpExport.getComputeResource();                	
                 	_log.info("RP Export: ComputeResource : " + computeResource.toString());
                 	
-                	if (computeResource.toString().toLowerCase().contains("cluster")) {
+                	
+					if (computeResource.toString().toLowerCase().contains(COMPUTE_RESOURCE_CLUSTER)) {
                 		Cluster cluster = _dbClient.queryObject(Cluster.class, computeResource);                		
                 		exportGroup.addCluster(cluster);
                 	} else {
@@ -1205,7 +1208,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // If the export group already exists, add the volumes to it, otherwise create a brand new
                 // export group.
                 StringBuilder buffer = new StringBuilder();
-                buffer.append(String.format("---------------------------------%n"));
+                buffer.append(String.format(DASHED_NEWLINE));
                 if (!addExportGroupToDB) {
                 	
                     buffer.append(String.format(
@@ -1213,7 +1216,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             storageSystem.getLabel(), rpSiteName, varray.getLabel()));
                     buffer.append(String.format("Export Group name is : [%s]%n", exportGroup.getGeneratedName()));
                     buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
-                    buffer.append(String.format("---------------------------------%n"));
+                    buffer.append(String.format(DASHED_NEWLINE));
                     _log.info(buffer.toString());
 
                     waitFor = _exportWfUtils.
@@ -1229,7 +1232,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     buffer.append(String.format("Export Group name is: [%s]%n", exportGroup.getGeneratedName()));
                     buffer.append(String.format("Export Group will have these initiators: [%s]%n", Joiner.on(',').join(initiatorSet)));
                     buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
-                    buffer.append(String.format("---------------------------------%n"));
+                    buffer.append(String.format(DASHED_NEWLINE));
                     _log.info(buffer.toString());
 
                     String exportStep = workflow.createStepId();
@@ -1929,7 +1932,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     rpExportMap.put(key, rpExport);
                 }
                 
-                _log.info(String.format("Add Journal Volume: [%s] to export : [%s]", volumeLabel, rpExport));
+                _log.info(String.format("Add Journal Volume: [%s] to export : [%s]", volumeLabel, rpExport.toString()));
 
                 rpExport.getVolumes().add(volumeId);
             }

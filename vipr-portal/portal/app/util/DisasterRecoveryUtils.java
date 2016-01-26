@@ -33,6 +33,10 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().listAllSites();
     }
 
+    public static int getSiteCount() {
+        return getViprClient().site().listAllSites().getSites().size();
+    }
+
     public static SiteActive checkActiveSite() {
         return getViprClient().site().checkIsActive();
     }

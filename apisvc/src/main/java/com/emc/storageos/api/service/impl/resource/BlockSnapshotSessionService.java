@@ -92,13 +92,13 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      *            the targets will be re-linked.
      * @param param The linked target information.
      * 
-     * @return A TaskResourceRep representing the snapshot session task.
+     * @return A TaskList representing the snapshot session tasks.
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/relink-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep relinkTargetVolumes(@PathParam("id") URI id, SnapshotSessionRelinkTargetsParam param) {
+    public TaskList relinkTargetVolumes(@PathParam("id") URI id, SnapshotSessionRelinkTargetsParam param) {
         return getSnapshotSessionManager().relinkTargetVolumesToSnapshotSession(id, param);
     }
 

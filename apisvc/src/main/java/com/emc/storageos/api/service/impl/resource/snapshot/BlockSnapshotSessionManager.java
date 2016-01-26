@@ -452,9 +452,9 @@ public class BlockSnapshotSessionManager {
      * @param snapSessionURI The URI of a BlockSnapshotSession instance.
      * @param param The linked target information.
      * 
-     * @return A TaskResourceRep.
+     * @return A TaskList.
      */
-    public TaskResourceRep relinkTargetVolumesToSnapshotSession(URI snapSessionURI, SnapshotSessionRelinkTargetsParam param) {
+    public TaskList relinkTargetVolumesToSnapshotSession(URI snapSessionURI, SnapshotSessionRelinkTargetsParam param) {
         s_logger.info("START relink targets to snapshot session {}", snapSessionURI);
 
         // Get the snapshot session.
@@ -491,6 +491,8 @@ public class BlockSnapshotSessionManager {
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSessionURI, taskId, op);
         snapSession.getOpStatus().put(taskId, op);
         TaskResourceRep response = toTask(snapSession, taskId);
+        TaskList taskList = new TaskList();
+        taskList.addTask(response);
 
         // Re-link the targets to the snapshot session.
         try {
@@ -512,7 +514,7 @@ public class BlockSnapshotSessionManager {
                 snapSessionURI.toString(), snapSessionSourceObj.getId().toString(), snapSessionSourceObj.getStorageController().toString());
 
         s_logger.info("FINISH relink targets to snapshot session {}", snapSessionURI);
-        return response;
+        return taskList;
     }
 
     /**

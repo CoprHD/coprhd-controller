@@ -584,7 +584,7 @@ public class BlockStorageScheduler {
      */
     private Map<URI, Map<URI, List<Initiator>>> getHostInitiatorsMapFromNetworkLite(
             Map<NetworkLite, List<Initiator>> net2InitiatorsMap) {
-        Map<URI, Map<URI, List<Initiator>>> hostInitiatorsMap = new HashMap<URI, Map<URI, List<Initiator>>>();
+        Map<URI, Map<URI, List<Initiator>>> hostNetworkInitiatorsMap = new HashMap<URI, Map<URI, List<Initiator>>>();
         for (Map.Entry<NetworkLite, List<Initiator>> entry : net2InitiatorsMap.entrySet()) {
             List<Initiator> initiators = entry.getValue();
             for (Initiator initiator : initiators) {
@@ -592,10 +592,10 @@ public class BlockStorageScheduler {
                 if (NullColumnValueGetter.isNullURI(host)) {
                     host = StoragePortsAssigner.unknown_host_uri;
                 }
-                Map<URI, List<Initiator>> hostMap = hostInitiatorsMap.get(host);
+                Map<URI, List<Initiator>> hostMap = hostNetworkInitiatorsMap.get(host);
                 if (hostMap == null) {
                     hostMap = new HashMap<URI, List<Initiator>>();
-                    hostInitiatorsMap.put(host, hostMap);
+                    hostNetworkInitiatorsMap.put(host, hostMap);
                 }
                 if (hostMap.get(entry.getKey().getId()) == null) {
                     hostMap.put(entry.getKey().getId(), new ArrayList<Initiator>());
@@ -603,7 +603,7 @@ public class BlockStorageScheduler {
                 hostMap.get(entry.getKey().getId()).add(initiator);
             }
         }
-        return hostInitiatorsMap;
+        return hostNetworkInitiatorsMap;
     }
 
     /**
@@ -2105,6 +2105,8 @@ public class BlockStorageScheduler {
                 continue;
             }
             StringMapUtil.addToListMap(map, network, initiator);
+            _log.info(String.format("Processing initiator %s (%s) network %s", 
+                    initiator.getInitiatorPort(), initiator.getHostName(), network.getLabel()));
         }
         return map;
     }
@@ -2181,21 +2183,6 @@ public class BlockStorageScheduler {
         return preZonedPortsByNetwork;
     }
     
-    /**
-     * Gets the host name for a hostURI if available. Otherwise returns URI as string.
-     * @param hostURI -- host URI
-     * @return hostname string if available
-     */
-    private String getHostName(URI hostURI) {
-        if (hostURI == StoragePortsAssigner.unknown_host_uri) {
-            return StoragePortsAssigner.unknown_host_uri.toString();
-        }
-        Host host = _dbClient.queryObject(Host.class, hostURI);
-        if (host == null) {
-            return StoragePortsAssigner.unknown_host_uri.toString();
-        }
-        return host.getHostName();
-    }
     
     /**
      * Converts Map<NetworkLite, List<StoragePort> to Map<URI, List<StoragePort>

@@ -145,6 +145,7 @@ public class ExportPathParams extends DataObject {
     @Transient
     public Integer getMaxInitiatorsPerPort() {
         if (maxInitiatorsPerPort == null) {
+            // 1 is the default because we normally want only one initiator to use each storage port
             return 1;
         }
         return maxInitiatorsPerPort;

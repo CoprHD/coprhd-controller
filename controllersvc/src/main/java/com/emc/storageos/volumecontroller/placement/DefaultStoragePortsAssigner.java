@@ -284,9 +284,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      * Determines if there are any hosts that only have connectivity to only one network.
      * We favor allocating more ports in a network if it is the only one some host has access to.
      * Returns a list of such networks.
-     * @param net2InitiatorsMap
+     * @param net2InitiatorsMap -- a map of Network URI to a set of Initiator objects in that network
      * @param hostToNetworks - outputs a map of Host URI to Netowrk URIs used by that host
-     * @return
+     * @return URI set of networks that are not redundant
      */
     private Set<URI> networksNotRedundant(Map<URI, Set<Initiator>> netToInitiatorsMap, 
             Map<URI, Set<URI>> hostToNetworks) {
@@ -466,7 +466,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             }
         }
         
-        // Now cycle through each Network, and process the forst initiator,
+        // Now cycle through each Network, and process the first initiator,
         // adding ports in up-to pathsPerInitiator increments if possible.
         // (We add fewer ports if the initiator already has some but not as many as pathsPerInitiator.
         // Initiators that have been processed are removed from the list.
@@ -529,6 +529,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                             pathParams.getMaxInitiatorsPerPort() - 1);
                     if (availPorts != null) {
                         assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
+                    } else {
+                        _log.info(String.format("No available ports for initiator %s", 
+                                initiator.getInitiatorPort()));
                     }
                 }
             }

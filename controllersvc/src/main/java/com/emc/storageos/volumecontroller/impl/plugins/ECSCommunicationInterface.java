@@ -23,7 +23,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatu
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ObjectNamespace;
-import com.emc.storageos.db.client.model.ObjectNamespace.ECS_RepGroup_Type;
+import com.emc.storageos.db.client.model.ObjectNamespace.OBJ_StoragePool_Type;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -355,7 +355,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     
                     // Now obtain the complete namespace details
                     ECSNamespaceRepGroup nsGroup = ecsApi.getNamespaceDetails(nsId);
-                    ecsNamespace.setRgType(nsGroup.getRgType());
+                    ecsNamespace.setPoolType(nsGroup.getRgType());
                     StringSet repGroups = new StringSet();
                     for (String rg : nsGroup.getReplicationGroups()) {
                         repGroups.add(rg);

@@ -35,7 +35,7 @@ public class ObjectNamespace extends DiscoveredDataObject {
     private URI _storageDevice;
     
     // Type indicating allowed or not-allowed
-    private ECS_RepGroup_Type _rgType;
+    private OBJ_StoragePool_Type _poolType;
     
     // Allowed or not-allowed storage pools (ECS replication groups). Its mutually exclusive
     private StringSet _storagePools;      
@@ -43,7 +43,7 @@ public class ObjectNamespace extends DiscoveredDataObject {
     // Namespace visible or deleted in ECS
     private String _discoveryStatus;
     
-    public enum ECS_RepGroup_Type {
+    public enum OBJ_StoragePool_Type {
         ALLOWED,
         DISALLOWED,
         NONE
@@ -102,14 +102,14 @@ public class ObjectNamespace extends DiscoveredDataObject {
         setChanged("storageDevice");
     }
 
-    @Name("rgType")
-    public ECS_RepGroup_Type getRgType() {
-        return _rgType;
+    @Name("poolType")
+    public OBJ_StoragePool_Type getPoolType() {
+        return _poolType;
     }
     
-    public void setRgType(ECS_RepGroup_Type rgType) {
-        this._rgType = rgType;
-        setChanged("rgType");
+    public void setPoolType(OBJ_StoragePool_Type poolType) {
+        this._poolType = poolType;
+        setChanged("poolType");
     }
 
     @Name("storagePools")

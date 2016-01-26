@@ -602,17 +602,18 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             URI volumeURI = volumeDescriptor.getVolumeURI();
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-            String replicationGroup = volume.getReplicationGroupInstance(); 
-            if (volume != null && NullColumnValueGetter.isNotNullValue(replicationGroup)) {
-                URI storage = volume.getStorageController();
-                String key = storage.toString() + replicationGroup;
-                Set<URI> rgVolumeList = rgVolsMap.get(key);
-                if (rgVolumeList == null) {
-                    rgVolumeList = new HashSet<URI>();
-                    rgVolsMap.put(key, rgVolumeList);
+            if (volume != null) {
+                String replicationGroup = volume.getReplicationGroupInstance(); 
+                if (NullColumnValueGetter.isNotNullValue(replicationGroup)) {
+                    URI storage = volume.getStorageController();
+                    String key = storage.toString() + replicationGroup;
+                    Set<URI> rgVolumeList = rgVolsMap.get(key);
+                    if (rgVolumeList == null) {
+                        rgVolumeList = new HashSet<URI>();
+                        rgVolsMap.put(key, rgVolumeList);
+                    }
+                    rgVolumeList.add(volumeURI);
                 }
-
-                rgVolumeList.add(volumeURI);
             }
         }
 

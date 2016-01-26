@@ -121,26 +121,6 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
         List<NamedRelatedResourceRep> refs = listByVolume(volumeId);
         return getByRefs(refs, filter);
     }
-    
-//    /**
-//     * Gets the block snapshot sessions for a given consistency group, optionally filtering the results.
-//     * 
-//     * <p>
-//     * API Call: <tt>GET /block/consistency-groups/{id}/protection/snapshot-sessions</tt>
-//     * 
-//     * @param consistencyGroupId
-//     *            the ID of the consistency group.
-//     * @param filter
-//     *            the filter to apply (may be null, for no filtering).
-//     * @return The list of snapshot sessions in the consistency group.
-//     * 
-//     * @see #getByRefs(java.util.Collection, ResourceFilter)
-//     */
-//    public List<BlockSnapshotSessionRestRep> getByCG(URI consistencyGroupId, ResourceFilter<BlockSnapshotSessionRestRep> filter) {
-//        final String url = "/block/consistency-groups/{id}/protection/snapshot-sessions";
-//        BlockSnapshotSessionList response = client.get(BlockSnapshotSessionList.class, url, consistencyGroupId);
-//        return getByRefs(response.getSnapSessionRelatedResourceList(), filter);
-//    } 
 
     /**
      * Create and link new targets to an existing BlockSnapshotSession instance.

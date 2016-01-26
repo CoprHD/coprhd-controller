@@ -30,8 +30,10 @@
     
     pointInTime:{
       type:"table",
-      displayAddButton: false,
-      displayHeader: false,
+      hideTableBorder,
+      hideHeader,
+      hideAddButton,
+      hideRemoveRow,
       items:{
         imageDate:{
           type:"failoverDate",

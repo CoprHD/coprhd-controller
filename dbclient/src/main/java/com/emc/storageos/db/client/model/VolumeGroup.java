@@ -125,14 +125,14 @@ public class VolumeGroup extends DataObject {
      */
     @RelationIndex(cf = "VolumeGroupParents", type = VolumeGroup.class)
     @Name("parents")
-    public StringSet getParent() {
+    public StringSet getParents() {
         return parents;
     }
 
     /**
      * @param parent the parent to set
      */
-    public void setParent(StringSet parents) {
+    public void setParents(StringSet parents) {
         this.parents = parents;
         setChanged("parents");
     }
@@ -144,7 +144,7 @@ public class VolumeGroup extends DataObject {
      */
     public void addParent(final URI parent) {
         if (null == this.parents) {
-            setParent(new StringSet());
+            setParents(new StringSet());
         }
         if (parent != null) {
             parents.add(parent.toString());

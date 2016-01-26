@@ -414,7 +414,8 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         Set<String> parents = param.getParents();
-        if (parents != null && !parents.isEmpty()) {
+        if (parents != null) {
+            volumeGroup.setParents(new StringSet());
             for (String parent : parents) {
                 String msg = setParent(volumeGroup, parent);
                 if (msg != null && !msg.isEmpty()) {

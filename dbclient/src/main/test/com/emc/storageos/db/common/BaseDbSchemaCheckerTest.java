@@ -29,6 +29,7 @@ import com.emc.storageos.db.common.diff.DbSchemasDiff;
 import com.emc.storageos.db.common.schema.DataObjectSchema;
 import com.emc.storageos.db.common.schema.DbSchema;
 import com.emc.storageos.db.common.schema.DbSchemas;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class BaseDbSchemaCheckerTest {
 
@@ -501,7 +502,7 @@ public class BaseDbSchemaCheckerTest {
         }
 
         @Override
-        public void process() {
+        public void process() throws MigrationCallbackException {
             log.info("in custom migration process()");
 
         }
@@ -516,7 +517,7 @@ public class BaseDbSchemaCheckerTest {
         }
 
         @Override
-        public void process() {
+        public void process() throws MigrationCallbackException {
             log.info("in custom migration 2 process()");
 
         }

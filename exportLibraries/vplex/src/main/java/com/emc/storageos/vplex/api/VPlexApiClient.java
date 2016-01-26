@@ -1206,6 +1206,10 @@ public class VPlexApiClient {
         return _virtualVolumeMgr.createDistributedVirtualVolume(
                 virtualVolume, newRemoteVolume, discoveryRequired, rename, clusterId);
     }
+    
+    public void setTransferSize(String transferSize) throws VPlexApiException {
+    	_virtualVolumeMgr.setRebuildTransferSize(transferSize);
+    }
 
     public WaitOnRebuildResult waitOnRebuildCompletion(String virtualVolume)
             throws VPlexApiException {

@@ -267,6 +267,19 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
+    <bean id="volumeGroupService" class="com.emc.storageos.api.service.impl.resource.VolumeGroupService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="placementManager" ref="placementManager"/>
+        <property name="blockServiceApis">
+        	<map>
+            	<entry key="block" value-ref="defaultBlockServiceApiImpl" />
+                <entry key="vplex" value-ref="vplexBlockServiceApiImpl" />
+                <entry key="rp" value-ref="rpBlockServiceApiImpl" />
+            </map>
+        </property>
+    </bean>
+    
     <bean id="defaultBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.DefaultBlockServiceApiImpl">
          <property name="dbClient" ref="dbclient"/>
          <property name="coordinator" ref="coordinator"/>
@@ -459,6 +472,7 @@
                 <ref bean="clusterService"/>
                 <ref bean="ipInterfaceService"/>
                 <ref bean="customConfigService"/>
+                <ref bean="volumeGroupService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>

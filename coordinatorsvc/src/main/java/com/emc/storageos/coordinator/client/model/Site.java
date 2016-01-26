@@ -265,9 +265,9 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
-            String networkHealth = config.getConfig(KEY_NETWORK_HEALTH);
-            if (networkHealth != null && !networkHealth.isEmpty()) {
-                this.networkHealth = Enum.valueOf(NetworkHealth.class, networkHealth);
+            String networkHealthStr = config.getConfig(KEY_NETWORK_HEALTH);
+            if (networkHealthStr != null && !networkHealthStr.isEmpty()) {
+                this.networkHealth = Enum.valueOf(NetworkHealth.class, networkHealthStr);
             }
             this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);

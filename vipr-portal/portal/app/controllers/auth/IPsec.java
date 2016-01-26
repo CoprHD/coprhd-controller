@@ -80,7 +80,7 @@ public class IPsec extends ViprResourceController {
         protected static final String UNKNOWN_DATE_TIME = "Unknown";
 
         public String status; //NOSONAR("Suppressing Sonar violation of status being public member. This is needed for the html template. Visibility Modifier")
-        public String configGeneratedDate; //NOSONAR("Suppressing Sonar violation of configGeneratedDate being public member. This is needed for the html template. Visibility Modifier")
+        public DateTime configGeneratedDate; //NOSONAR("Suppressing Sonar violation of configGeneratedDate being public member. This is needed for the html template. Visibility Modifier")
         public List<IPsecFailedNodeInfo> failureNodes; //NOSONAR("Suppressing Sonar violation of failureNodes being public member. This is needed for the html template. Visibility Modifier")
 
         public IPSecStatusInfo(IPsecStatus ipsecStatus) {
@@ -96,18 +96,17 @@ public class IPsec extends ViprResourceController {
             }
         }
 
-        private String convertToDateTime(String configVersion) {
+        private DateTime convertToDateTime(String configVersion) {
             if (StringUtils.isBlank(configVersion)) {
-                return UNKNOWN_DATE_TIME;
+                return null;
             }
 
             long geTime= Long.parseLong(configVersion);
 
             Date date = new Date(geTime);
             DateTime dateTime = new DateTime(date.getTime());
-            DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(DATE_TIME_FORMAT);
 
-            return dateTimeFormatter.print(dateTime);
+            return dateTime;
         }
     }
 }

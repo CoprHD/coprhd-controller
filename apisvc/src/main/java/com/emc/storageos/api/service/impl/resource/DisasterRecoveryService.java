@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.nio.charset.Charset;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,9 +29,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 
+import com.emc.storageos.security.authentication.StorageOSUser;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
@@ -125,6 +129,9 @@ public class DisasterRecoveryService {
 
     @Autowired
     private AuditLogManager auditMgr;
+
+    @Context
+    protected SecurityContext sc;
 
     /**
      * Record audit log for DisasterRecoveryService
@@ -830,6 +837,11 @@ public class DisasterRecoveryService {
         log.info("Begin to get site error by uuid {}", uuid);
         Site standby;
 
+        StorageOSUser user = (StorageOSUser) sc.getUserPrincipal();
+        if(user.getRoles().contains("")) {
+
+        }
+
         try {
             standby = drUtil.getSiteFromLocalVdc(uuid);
         } catch (CoordinatorException e) {
@@ -1158,7 +1170,6 @@ public class DisasterRecoveryService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public Response updateSite(@PathParam("uuid") String uuid, SiteUpdateParam siteParam) {
         log.info("Begin to update site information for {}", uuid);
-
         Site site = null;
 
         try {

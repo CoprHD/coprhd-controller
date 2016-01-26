@@ -857,6 +857,7 @@ disasterRecovery.deleteConfirm=WARNING: You are about to delete Standby Site(s).
 
 disasterRecovery.testButton=Test
 disasterRecovery.pauseButton=Pause
+disasterRecovery.retryButton=Retry
 disasterRecovery.resumeButton=Resume
 disasterRecovery.FailoverButton=Failover
 disasterRecovery.SwitchoverButton=Switchover
@@ -909,6 +910,7 @@ disasterRecovery.switchover.standby.vip= with site VIP:
 disasterRecovery.confirm.switchover=WARNING: Are you sure you want to Switchover to Standby site ?
 disasterRecovery.confirm.failover=WARNING: Failover could lead to Data Lost. Are you sure you want to Failover to Standby site ?
 disasterRecovery.confirm.pause=WARNING: Are you sure you want to Pause the Standby site ?
+disasterRecovery.confirm.retry=WARNING: Are you sure you want to Retry the last Operation on Standby site ?
 disasterRecovery.error.code=Error Code
 disasterRecovery.error.code.name=Error Code Name
 disasterRecovery.error.message=Error Message

@@ -10,15 +10,15 @@ import java.util.List;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
- * ECS object storage namespace configuration
+ * Object storage namespace configuration
  * 
  * This class extends DiscoveredDataObject and not TenantResource. 
  * There are different ECS Replication Groups that can be allowed or disallowed with namespace. 
  * RG can be dynamically changed. Fields are discovered/rediscovered to keep up to date.
  * Hence its better to derive from DiscoveredDataObject  
  */
-@Cf("ECSNamespace")
-public class ECSNamespace extends DiscoveredDataObject {
+@Cf("ObjectNamespace")
+public class ObjectNamespace extends DiscoveredDataObject {
     // name of namespace; Its possible to have namespace name and id different
     private String _nsName;
     

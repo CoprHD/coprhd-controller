@@ -54,7 +54,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.ECSNamespace;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
@@ -1223,7 +1223,7 @@ public class StorageSystemService extends TaskResourceService {
         Iterator<URI> ecsNsIter = ecsNamespaceURIs.iterator();
         while (ecsNsIter.hasNext()) {
             URI nsURI = ecsNsIter.next();
-            ECSNamespace namespace = _dbClient.queryObject(ECSNamespace.class,
+            ObjectNamespace namespace = _dbClient.queryObject(ObjectNamespace.class,
                     nsURI);
             if (namespace != null && !namespace.getInactive()) {
                 ecsNamespaceList.getNamespaces().add(toNamedRelatedResource(namespace, namespace.getNativeGuid()));
@@ -1272,14 +1272,14 @@ public class StorageSystemService extends TaskResourceService {
         StorageSystem system = queryResource(id);
         ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
 
-        ArgValidator.checkFieldUriType(nsId, ECSNamespace.class, "nativeId");
-        ECSNamespace ecsNamespace = _dbClient.queryObject(ECSNamespace.class, nsId);
+        ArgValidator.checkFieldUriType(nsId, ObjectNamespace.class, "nativeId");
+        ObjectNamespace ecsNamespace = _dbClient.queryObject(ObjectNamespace.class, nsId);
         ArgValidator.checkEntity(ecsNamespace, nsId, isIdEmbeddedInURL(nsId));
         
         return toObjectNamespaceRestRep(ecsNamespace, _dbClient, _coordinator);
     }
     
-    private ObjectNamespaceRestRep toObjectNamespaceRestRep(ECSNamespace ecsNamespace, DbClient dbClient,
+    private ObjectNamespaceRestRep toObjectNamespaceRestRep(ObjectNamespace ecsNamespace, DbClient dbClient,
             CoordinatorClient coordinator) {
 
         return map(ecsNamespace);

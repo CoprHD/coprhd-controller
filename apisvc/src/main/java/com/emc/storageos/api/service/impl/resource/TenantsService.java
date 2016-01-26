@@ -56,7 +56,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObjectWithACLs;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.ECSNamespace;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
@@ -315,10 +315,10 @@ public class TenantsService extends TaggedResource {
             tenant.setNamespace(param.getNamespace());
             tenant.setNamespaceStorage(param.getNamespaceStorage());
             //Update tenant info in respective namespace CF
-            List<URI> allNamespaceURI = _dbClient.queryByType(ECSNamespace.class, true);
-            Iterator<ECSNamespace> nsItr = _dbClient.queryIterativeObjects(ECSNamespace.class, allNamespaceURI);
+            List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
+            Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
-                ECSNamespace namesp = nsItr.next();
+                ObjectNamespace namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(param.getNamespace()) &&
                         namesp.getStorageDevice().toString().equals(param.getNamespaceStorage())) {
                     namesp.setTenant(tenant.getId());
@@ -330,10 +330,10 @@ public class TenantsService extends TaggedResource {
         } else if (tenant.getNamespace() != null && (param.getNamespace() == null || param.getNamespace().isEmpty())) {
             // existing namespce is being unmapped
             // remove mapping in respective namespace CF
-            List<URI> allNamespaceURI = _dbClient.queryByType(ECSNamespace.class, true);
-            Iterator<ECSNamespace> nsItr = _dbClient.queryIterativeObjects(ECSNamespace.class, allNamespaceURI);
+            List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
+            Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
-                ECSNamespace namesp = nsItr.next();
+                ObjectNamespace namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace()) &&
                         namesp.getStorageDevice().toString().equals(tenant.getNamespaceStorage())) {
                     namesp.setTenant(URI.create("NONE"));//updateobject resets only non-null fields
@@ -445,10 +445,10 @@ public class TenantsService extends TaggedResource {
             subtenant.setNamespace(param.getNamespace());
             subtenant.setNamespaceStorage(param.getNamespaceStorage());
             //Update tenant info in respective namespace CF
-            List<URI> allNamespaceURI = _dbClient.queryByType(ECSNamespace.class, true);
-            Iterator<ECSNamespace> nsItr = _dbClient.queryIterativeObjects(ECSNamespace.class, allNamespaceURI);
+            List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
+            Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
-                ECSNamespace namesp = nsItr.next();
+                ObjectNamespace namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(subtenant.getNamespace()) &&
                         namesp.getStorageDevice().toString().equals(param.getNamespaceStorage())) {
                     namesp.setTenant(subtenant.getId());

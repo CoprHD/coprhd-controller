@@ -20,7 +20,7 @@ import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DecommissionedResource;
-import com.emc.storageos.db.client.model.ECSNamespace;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
@@ -669,7 +669,7 @@ public interface AlternateIdConstraint extends Constraint {
         }
 
         public static AlternateIdConstraint getECSNamespaceByNativeGuidConstraint(String nativeGuid) {
-            DataObjectType doType = TypeMap.getDoType(ECSNamespace.class);
+            DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
     }

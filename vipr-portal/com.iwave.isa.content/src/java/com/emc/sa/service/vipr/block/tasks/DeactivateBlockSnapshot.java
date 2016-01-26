@@ -13,7 +13,7 @@ import com.emc.vipr.client.Tasks;
 
 public class DeactivateBlockSnapshot extends WaitForTasks<BlockSnapshotRestRep> {
     private final URI snapshotId;
-    private final VolumeDeleteTypeEnum type;
+    private VolumeDeleteTypeEnum type = VolumeDeleteTypeEnum.FULL;
 
     public DeactivateBlockSnapshot(String snapshotId, VolumeDeleteTypeEnum type) {
         this(uri(snapshotId), type);

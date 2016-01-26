@@ -4,12 +4,15 @@
  */
 package com.emc.sa.service.vipr.block;
 
+import static com.emc.sa.service.ServiceParams.COPIES;
+import static com.emc.sa.service.ServiceParams.VOLUMES;
+
+import java.util.List;
+
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
-import java.util.List;
-import static com.emc.sa.service.ServiceParams.COPIES;
-import static com.emc.sa.service.ServiceParams.VOLUMES;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 
 @Service("RemoveContinuousCopy")
 public class RemoveContinuousCopyService extends ViPRService {
@@ -26,6 +29,6 @@ public class RemoveContinuousCopyService extends ViPRService {
 
     @Override
     public void execute() {
-        BlockStorageUtils.removeContinuousCopiesForVolume(uri(volumeId), uris(copyIds));
+        BlockStorageUtils.removeContinuousCopiesForVolume(uri(volumeId), uris(copyIds), VolumeDeleteTypeEnum.FULL);
     }
 }

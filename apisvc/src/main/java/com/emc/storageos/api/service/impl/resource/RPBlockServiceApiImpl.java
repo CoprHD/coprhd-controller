@@ -1820,7 +1820,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     @Override
-    public TaskList deactivateMirror(StorageSystem device, URI mirror, String task) {
+    public TaskList deactivateMirror(StorageSystem device, URI mirror, String task, String deleteType) {
         throw APIException.methodNotAllowed.notSupported();
     }
 

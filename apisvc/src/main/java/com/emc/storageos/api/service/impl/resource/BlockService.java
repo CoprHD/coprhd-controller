@@ -2545,7 +2545,7 @@ public class BlockService extends TaskResourceService {
      * 
      * @param id the URN of a ViPR Source volume
      * @param param List of copies to deactivate
-     * 
+     * @param deleteType the type of deletion
      * @brief Delete continuous copies
      * @return TaskList
      * 
@@ -2555,7 +2555,8 @@ public class BlockService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/continuous-copies/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList deactivateMirror(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
+    public TaskList deactivateMirror(@PathParam("id") URI id, CopiesParam param,
+            @DefaultValue("FULL") @QueryParam("type") String deleteType) throws ControllerException {
 
         TaskList taskList = new TaskList();
 
@@ -2613,12 +2614,21 @@ public class BlockService extends TaskResourceService {
                     blockServiceApi = getBlockServiceImpl("mirror");
                 }
 
-                auditOp(OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, true, AuditLogManager.AUDITOP_BEGIN,
-                        copyID.toString(), mirrorLabel);
+                // Deactivate the mirror
+                TaskList deactivateTaskList = blockServiceApi.deactivateMirror(device, mirrorURI, task, deleteType);
 
-                TaskList deactivateTaskList = blockServiceApi.deactivateMirror(device, mirrorURI, task);
+                // Create the audit log message
+                String opStage = VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType) ? null : AuditLogManager.AUDITOP_BEGIN;
+                boolean opStatus = true;
+                for (TaskResourceRep resultTask : deactivateTaskList.getTaskList()) {
+                    if (Operation.Status.error.name().equals(resultTask.getState())) {
+                        opStatus = false;
+                        break;
+                    }
+                }
+                auditOp(OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, opStatus, opStage, copyID.toString(), mirrorLabel);
 
-                // Add task for this copy
+                // Add tasks for this copy
                 taskList.getTaskList().addAll(deactivateTaskList.getTaskList());
 
             } else {

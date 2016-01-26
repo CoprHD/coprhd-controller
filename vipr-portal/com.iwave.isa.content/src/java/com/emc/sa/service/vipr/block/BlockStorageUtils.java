@@ -490,23 +490,27 @@ public class BlockStorageUtils {
         return ResourceUtils.ids(execute(new GetActiveContinuousCopiesForVolume(volumeId)));
     }
 
-    public static void removeContinuousCopiesForVolume(URI volumeId) {
+    public static void removeContinuousCopiesForVolume(URI volumeId, VolumeDeleteTypeEnum type) {
         if (!ResourceType.isType(BLOCK_SNAPSHOT, volumeId)) {
             Collection<URI> continuousCopyIds = getActiveContinuousCopies(volumeId);
-            removeContinuousCopiesForVolume(volumeId, continuousCopyIds);
+            removeContinuousCopiesForVolume(volumeId, continuousCopyIds, type);
         }
     }
 
-    public static void removeContinuousCopiesForVolume(URI volumeId, Collection<URI> continuousCopyIds) {
-        removeBlockResourcesFromExports(continuousCopyIds);
+    public static void removeContinuousCopiesForVolume(URI volumeId, Collection<URI> continuousCopyIds, VolumeDeleteTypeEnum type) {
+        if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
+            removeBlockResourcesFromExports(continuousCopyIds);
+        }
         for (URI continuousCopyId : continuousCopyIds) {
-            removeContinuousCopy(volumeId, continuousCopyId);
+            removeContinuousCopy(volumeId, continuousCopyId, type);
         }
     }
 
-    private static void removeContinuousCopy(URI volumeId, URI continuousCopyId) {
-        execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
-        Tasks<VolumeRestRep> tasks = execute(new DeactivateContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
+    private static void removeContinuousCopy(URI volumeId, URI continuousCopyId, VolumeDeleteTypeEnum type) {
+        if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
+            execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
+        }
+        Tasks<VolumeRestRep> tasks = execute(new DeactivateContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE, type));
         addAffectedResources(tasks);
     }
 
@@ -589,7 +593,7 @@ public class BlockStorageUtils {
             // the controller should return an error.
             if (canRemoveReplicas(volumeId)) {
                 removeSnapshotsForVolume(volumeId, type);
-                removeContinuousCopiesForVolume(volumeId);
+                removeContinuousCopiesForVolume(volumeId, type);
                 removeFullCopiesForVolume(volumeId, blockResourceIds);
             }
         }

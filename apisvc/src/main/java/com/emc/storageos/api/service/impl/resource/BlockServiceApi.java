@@ -195,11 +195,11 @@ public interface BlockServiceApi {
      * @param device StorageSystem requested
      * @param mirrorURI URI of mirror to be deactivated
      * @param task Task ID
+     * @param deleteType The type of mirror deletion i.e., FULL or VIPR_ONLY
      * 
      * @return TaskList
      */
-    public TaskList deactivateMirror(StorageSystem device, URI mirrorURI,
-            String task) throws ControllerException;
+    public TaskList deactivateMirror(StorageSystem device, URI mirrorURI, String task, String deleteType) throws ControllerException;
 
     /**
      * Gets the list of potential vpools for a vpool change for the passed volume.

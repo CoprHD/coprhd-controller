@@ -54,7 +54,9 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -547,8 +549,10 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      * 
      * @throws ControllerException
      */
+    @SuppressWarnings("unchecked")
     @Override
-    public TaskList deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String taskId) throws ControllerException {
+    public TaskList deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String taskId, String deleteType)
+            throws ControllerException {
         _log.info("START: deactivate mirror");
 
         TaskList taskList = new TaskList();
@@ -564,17 +568,26 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             Map<BlockMirror, Volume> groupMirrorSourceMap = getGroupMirrorSourceMap(mirror, sourceVolume);
             mirrorURIs = new ArrayList<URI>(transform(new ArrayList<BlockMirror>(groupMirrorSourceMap.keySet()), FCTN_MIRROR_TO_URI));
 
-            // deactivate (detach and delete) mirrorURI
-            Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
-                    ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, mirrorURI.toString());
-            taskList.getTaskList().add(toTask(sourceVolume, Arrays.asList(mirror), taskId, op));
+            if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
+                // Create a task for each source/mirror pair.
+                for (Entry<BlockMirror, Volume> entry : groupMirrorSourceMap.entrySet()) {
+                    Operation op = _dbClient.createTaskOpStatus(Volume.class, entry.getValue().getId(), taskId,
+                            ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, entry.getKey().getId().toString());
+                    taskList.getTaskList().add(toTask(entry.getValue(), Arrays.asList(entry.getKey()), taskId, op));
+                }
+            } else {
+                // deactivate (detach and delete) mirrorURI
+                Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
+                        ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, mirrorURI.toString());
+                taskList.getTaskList().add(toTask(sourceVolume, Arrays.asList(mirror), taskId, op));
 
-            // detach and promote other mirrors in the group
-            groupMirrorSourceMap.remove(mirror);
-            populateTaskList(sourceVolume, groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.DETACH_BLOCK_MIRROR);
+                // detach and promote other mirrors in the group
+                groupMirrorSourceMap.remove(mirror);
+                populateTaskList(sourceVolume, groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.DETACH_BLOCK_MIRROR);
 
-            // detached mirrors (except the one deleted), will be promoted to regular block volumes
-            promotees = preparePromotedVolumes(new ArrayList<BlockMirror>(groupMirrorSourceMap.keySet()), taskList, taskId);
+                // detached mirrors (except the one deleted), will be promoted to regular block volumes
+                promotees = preparePromotedVolumes(new ArrayList<BlockMirror>(groupMirrorSourceMap.keySet()), taskList, taskId);
+            }
         } else {
             // for single volume mirror, deactivate task will detach and delete the mirror
             mirrorURIs = Arrays.asList(mirror.getId());
@@ -584,29 +597,76 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         }
 
         try {
-            BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-            controller.deactivateMirror(storageSystem.getId(), mirrorURIs, promotees, isCG, taskId);
-        } catch (ControllerException e) {
-            String errorMsg = format("Failed to deactivate continuous copy %s", mirror.getId().toString());
-            _log.error(errorMsg, e);
+            if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
+                // Perform any database cleanup that is required.
+                cleanupForViPROnlyMirrorDelete(mirrorURIs);
 
+                // Mark them inactive.
+                _dbClient.markForDeletion(_dbClient.queryObject(BlockMirror.class, mirrorURIs));
+
+                // Update the task status for each snapshot to successfully completed.
+                for (TaskResourceRep taskResourceRep : taskList.getTaskList()) {
+                    Volume taskVolume = _dbClient.queryObject(Volume.class, taskResourceRep.getResource().getId());
+                    Operation op = taskVolume.getOpStatus().get(taskId);
+                    op.ready("Continuous copy succesfully deleted from ViPR");
+                    taskVolume.getOpStatus().updateTaskStatus(taskId, op);
+                    _dbClient.updateObject(taskVolume);
+                }
+            } else {
+                BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
+                controller.deactivateMirror(storageSystem.getId(), mirrorURIs, promotees, isCG, taskId);
+            }
+        } catch (ControllerException e) {
+            String errorMsg = format("Failed to deactivate continuous copy %s: %s", mirror.getId().toString(), e.getMessage());
+            _log.error(errorMsg);
+            for (TaskResourceRep taskResourceRep : taskList.getTaskList()) {
+                taskResourceRep.setState(Operation.Status.error.name());
+                taskResourceRep.setMessage(errorMsg);
+                _dbClient.error(URIUtil.getModelClass(taskResourceRep.getResource().getId()),
+                        taskResourceRep.getResource().getId(), taskId, e);
+            }
+
+            // Mark the mirrors that would have been promoted inactive.
             if (promotees != null && !promotees.isEmpty()) {
                 List<Volume> volumes = _dbClient.queryObject(Volume.class, promotees);
                 for (Volume volume : volumes) {
                     volume.setInactive(true);
                 }
-                _dbClient.persistObject(volumes);
+                _dbClient.updateObject(volumes);
             }
-
-            _dbClient.error(Volume.class, mirror.getSource().getURI(), taskId, e);
-
+        } catch (Exception e) {
+            String errorMsg = format("Failed to deactivate continuous copy %s: %s", mirror.getId().toString(), e.getMessage());
+            _log.error(errorMsg);
+            ServiceCoded sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
             for (TaskResourceRep taskResourceRep : taskList.getTaskList()) {
                 taskResourceRep.setState(Operation.Status.error.name());
-                taskResourceRep.setMessage(errorMsg);
+                taskResourceRep.setMessage(sc.getMessage());
+                _dbClient.error(URIUtil.getModelClass(taskResourceRep.getResource().getId()),
+                        taskResourceRep.getResource().getId(), taskId, sc);
+            }
+
+            // Mark the mirrors that would have been promoted inactive.
+            if (promotees != null && !promotees.isEmpty()) {
+                List<Volume> volumes = _dbClient.queryObject(Volume.class, promotees);
+                for (Volume volume : volumes) {
+                    volume.setInactive(true);
+                }
+                _dbClient.updateObject(volumes);
             }
         }
 
         return taskList;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void cleanupForViPROnlyMirrorDelete(List<URI> mirrorURIs) {
+        // Remove mirrors from ExportGroup(s) and ExportMask(s).
+        for (URI mirrorURI : mirrorURIs) {
+            cleanBlockObjectFromExports(mirrorURI, true);
+        }
     }
 
     @Override

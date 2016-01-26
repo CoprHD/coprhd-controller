@@ -297,7 +297,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws ControllerException
      */
     @Override
-    public TaskList deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String task) throws ControllerException {
+    public TaskList deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String task, String deleteType) throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
     }
 
@@ -394,11 +394,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             URI systemURI, List<URI> volumeURIs, String deletionType);
 
     /**
-     * Get the volume descriptors for all volumes to be deleted given the passed
-     * volumes.
+     * Perform any database clean up required as a result of removing the volumes
+     * with the passed URIs from the ViPR database.
      * 
-     * @param volumeDescriptors The descriptors for all volumes involved in the
-     *            ViPR only delete
+     * @param volumeDescriptors The descriptors for all volumes involved in the ViPR only delete.
      */
     protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
         // Remove volumes from ExportGroup(s) and ExportMask(s).
@@ -406,6 +405,15 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         for (URI volumeURI : volumeURIs) {
             cleanBlockObjectFromExports(volumeURI, true);
         }
+    }
+
+    /**
+     * Perform any database clean up required as a result of removing the mirrors
+     * with the passed URIs from the ViPR database.
+     * 
+     * @param mirroURIs The URIs of the mirrors involved in the ViPR only delete.
+     */
+    protected void cleanupForViPROnlyMirrorDelete(List<URI> mirrorURIs) {
     }
 
     /**

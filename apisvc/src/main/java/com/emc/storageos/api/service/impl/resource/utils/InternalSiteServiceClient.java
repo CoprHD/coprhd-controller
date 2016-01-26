@@ -26,7 +26,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
 
     private static final String INTERNAL_SITE_ROOT = "/site/internal";
     private static final String INTERNAL_SITE_INIT_STANDBY = INTERNAL_SITE_ROOT + "/initstandby";
-    private static final String SITE_INTERNAL_FAILOVER = INTERNAL_SITE_ROOT + "/failover?newActiveSiteUUid=%s&vdcVersion=%d";
+    private static final String SITE_INTERNAL_FAILOVER = INTERNAL_SITE_ROOT + "/failover?newActiveSiteUUid=%s&oldActiveSiteUUid=%s&vdcVersion=%d";
     private static final String SITE_INTERNAL_FAILOVERPRECHECK = INTERNAL_SITE_ROOT + "/failoverprecheck";
     private static final String SITE_INTERNAL_SWITCHOVERPRECHECK = INTERNAL_SITE_ROOT + "/switchoverprecheck";
     private static final String SITE_INTERNAL_SWITCHOVER = INTERNAL_SITE_ROOT + "/switchover?newActiveSiteUUid=%s&vdcVersion=%d";
@@ -109,8 +109,8 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         return response;
     }
     
-    public void failover(String newActiveSiteUUID, long vdcVersion) {
-        String getVdcPath = String.format(SITE_INTERNAL_FAILOVER, newActiveSiteUUID, vdcVersion);
+    public void failover(String newActiveSiteUUID, String oldActiveSiteUUID, long vdcVersion) {
+        String getVdcPath = String.format(SITE_INTERNAL_FAILOVER, newActiveSiteUUID, oldActiveSiteUUID, vdcVersion);
         WebResource rRoot = createRequest(getVdcPath);
         
         try {

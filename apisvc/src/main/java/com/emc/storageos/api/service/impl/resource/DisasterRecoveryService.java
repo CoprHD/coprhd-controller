@@ -1031,7 +1031,7 @@ public class DisasterRecoveryService {
             for (Site site : allStandbySites) {
                 if (!site.getUuid().equals(uuid) && clientCacheMap.containsKey(site.getUuid())) {
                     InternalSiteServiceClient client = clientCacheMap.get(site.getUuid());
-                    client.failover(uuid, vdcTargetVersion);
+                    client.failover(uuid, oldActiveSite.getUuid(), vdcTargetVersion);
                 }
             }
 
@@ -1087,20 +1087,20 @@ public class DisasterRecoveryService {
     @Path("/internal/failover")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response failover(@QueryParam("newActiveSiteUUid") String newActiveSiteUUID, @QueryParam("vdcVersion") String vdcTargetVersion) {
-        log.info("Begin to failover internally with newActiveSiteUUid {}", newActiveSiteUUID);
+    public Response failover(@QueryParam("newActiveSiteUUid") String newActiveSiteUUID,
+            @QueryParam("oldActiveSiteUUid") String oldActiveSiteUUID, @QueryParam("vdcVersion") String vdcTargetVersion) {
+        log.info("Begin to failover internally with newActiveSiteUUid {}, oldActiveSiteUUid {}", newActiveSiteUUID, oldActiveSiteUUID);
 
         Site currentSite = drUtil.getLocalSite();
         String uuid = currentSite.getUuid();
 
         try {
             // set state
-            String activeSiteId = drUtil.getActiveSite().getUuid();
             Site oldActiveSite = new Site();
-            if (StringUtils.isEmpty(activeSiteId)) {
+            if (StringUtils.isEmpty(oldActiveSiteUUID)) {
                 log.info("Cant't find active site id, go on to do failover");
             } else {
-                oldActiveSite = drUtil.getSiteFromLocalVdc(activeSiteId);
+                oldActiveSite = drUtil.getSiteFromLocalVdc(oldActiveSiteUUID);
                 oldActiveSite.setState(SiteState.ACTIVE_FAILING_OVER);
                 coordinator.removeServiceConfiguration(oldActiveSite.toConfiguration());
             }

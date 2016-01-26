@@ -611,11 +611,10 @@ public class CoordinatorClientExt {
         return getClusterInfo(_coordinator.getSiteId());
     }
 
-    public ClusterInfo getClusterInfo(String siteId) {
+    public ClusterInfo getClusterInfo(String siteIdParam) {
         try {
-            if (siteId == null) {
-                siteId = _coordinator.getSiteId();
-            }
+            String siteId = siteIdParam == null ? _coordinator.getSiteId() : siteIdParam;
+
             // get target repository and configVersion
             final RepositoryInfo targetRepository = _coordinator.getTargetInfo(RepositoryInfo.class);
             final PropertyInfoExt targetProperty = _coordinator.getTargetInfo(PropertyInfoExt.class);
@@ -1043,10 +1042,8 @@ public class CoordinatorClientExt {
         return getAllNodes(_coordinator.getSiteId());
     }
 
-    public List<String> getAllNodes(String siteId) {
-        if (siteId == null) {
-            siteId = _coordinator.getSiteId();
-        }
+    public List<String> getAllNodes(String siteIdParam) {
+        String siteId = siteIdParam == null ? _coordinator.getSiteId() : siteIdParam;
         List<String> nodeIds = new ArrayList<>();
         try {
             List<Service> svcs = getAllServices(siteId);

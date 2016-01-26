@@ -1329,7 +1329,7 @@ public class ControllerUtils {
      * @return
      */
     public static boolean isNotInRealVNXRG(Volume volume, DbClient dbClient) {
-        if (volume != null && ControllerUtils.isVnxVolume(volume, dbClient)) {
+        if (volume != null && volume.isInCG() && ControllerUtils.isVnxVolume(volume, dbClient)) {
             BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
             if (consistencyGroup != null && !consistencyGroup.getInactive()) {
                 return !consistencyGroup.getArrayConsistency();

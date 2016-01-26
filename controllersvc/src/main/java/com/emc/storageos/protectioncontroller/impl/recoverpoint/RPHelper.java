@@ -2048,10 +2048,12 @@ public class RPHelper {
         exportGroup.setType(ExportGroupType.Cluster.name());
         exportGroup.setZoneAllInitiators(true);
         
+        //If this is an exportGroup intended only for journal volumes, set the RECOVERPOINT_JOURNAL flag
         if (isJournalExport) {
         	exportGroup.addInternalFlags(Flag.RECOVERPOINT_JOURNAL);
-        	exportGroup.setGeneratedName(exportGroup.getGeneratedName()+"_JOURNAL");
-        	exportGroup.setLabel(exportGroup.getGeneratedName()+"_JOURNAL");
+        	String egName = exportGroup.getGeneratedName() + "_JOURNAL";
+        	exportGroup.setGeneratedName(egName);
+        	exportGroup.setLabel(egName);
         }
         
         return exportGroup;

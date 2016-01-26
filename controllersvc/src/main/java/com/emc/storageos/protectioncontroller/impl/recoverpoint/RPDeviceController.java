@@ -44,9 +44,8 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
@@ -272,7 +271,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         private URI varray;
         private List<URI> volumes;
         private URI computeResource;
-        private boolean isJournalExport;
+        private boolean isJournalExport; //If journal varray is specified which is different from the copy for that RP site, then this flag is true to indicate this is a journal only export
 
         public RPExport() {
         }
@@ -1183,10 +1182,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 //Update Host/Cluster export information if the source volume is exported information on the Source volume
                 if (rpExport.getComputeResource() != null) {                	
                 	URI computeResource = rpExport.getComputeResource();                	
-                	// TODO : Bharath - determine whether the passed in ID is a host or cluster ID.
                 	_log.info("RP Export: ComputeResource : " + computeResource.toString());
                 	
-                	if (computeResource.toString().contains("Cluster") || computeResource.toString().contains("cluster")) {
+                	if (computeResource.toString().toLowerCase().contains("cluster")) {
                 		Cluster cluster = _dbClient.queryObject(Cluster.class, computeResource);                		
                 		exportGroup.addCluster(cluster);
                 	} else {
@@ -2176,7 +2174,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 protectionSet.setInactive(true);
             }
 
-            _dbClient.persistObject(protectionSet);
+            _dbClient.updateObject(protectionSet);
         }
 
         _dbClient.updateObject(protectionSet);
@@ -3652,42 +3650,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
         _log.info("Export Group does NOT already exist in database.");
         return null;
-    }
-
-    /**
-     * Get an initiator as specified by the passed initiator data. First checks
-     * if an initiator with the specified port already exists in the database,
-     * and simply returns that initiator, otherwise creates a new initiator.
-     *
-     * @param initiatorParam The data for the initiator.
-     *
-     * @return A reference to an initiator.
-     *
-     * @throws InternalException When an error occurs querying the database.
-     */
-    private Initiator getOrCreateNewInitiator(Initiator initiatorParam)
-            throws InternalException {
-        Initiator initiator = null;
-        URIQueryResultList resultsList = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(
-                initiatorParam.getInitiatorPort()), resultsList);
-        Iterator<URI> resultsIter = resultsList.iterator();
-        if (resultsIter.hasNext()) {
-            initiator = _dbClient.queryObject(Initiator.class, resultsIter.next());
-            // If the hostname has been changed then we need to update the
-            // Initiator object to reflect that change.
-            if (NullColumnValueGetter.isNotNullValue(initiator.getHostName())
-                    && !initiator.getHostName().equals(initiatorParam.getHostName())) {
-                initiator.setHostName(initiatorParam.getHostName());
-                _dbClient.updateObject(initiator);
-            }
-        } else {
-            initiatorParam.setId(URIUtil.createId(Initiator.class));
-            _dbClient.createObject(initiatorParam);
-            initiator = initiatorParam;
-        }
-
-        return initiator;
     }
 
     @Override

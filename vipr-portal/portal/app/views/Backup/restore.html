@@ -32,7 +32,6 @@
 		        <span id="errorInfo" hidden="hidden">
                 &{'restore.download.error'}
                 </span>
-                <div id="checkDetailMsg" style="color:#2c95dd"></div>
                 </td>
             </tr>
         </table>
@@ -57,12 +56,16 @@
         #{/field}
     </div>
 
-    #{if isGeo == true}
+    #{if status.isGeo()}
         <div id="checkBoxForRestoreGeo">
             <label><input type="checkbox" name="restoreForm.isGeoFromScratch"> &{'restore.geo.checkbox.help'}</label>
 
-            <div class="alert alert-danger"> &{'restore.geo.disconnect'} </div>
+            <div class="alert alert-warning"> &{'restore.geo.disconnect'} </div>
         </div>
+    #{/if}
+
+    #{if status.isNotSuccess()}
+        <div class="alert alert-danger">${status.getStatus()}</div>
     #{/if}
 
     <div class="alert alert-info"> &{'restore.prompt'} </div>
@@ -120,7 +123,9 @@
                 }
                 var totalSize = result.backupSize;
                 var downloadSize = result.downloadSize;
-                var realPercent = downloadSize / totalSize * 100;
+                if (totalSize != 0) {
+                    var realPercent = downloadSize / totalSize * 100;
+                }
                 var basePercent = 50;
                 var progress = 0;
                 if(realPercent >= 100) {
@@ -128,7 +133,7 @@
                     if(progress >= 100) {
                         progress = 99;
                     }
-                } else {
+                } else if(realPercent != null){
                     progress = realPercent;
                     if (progress >= basePercent) {
                         progress = basePercent;

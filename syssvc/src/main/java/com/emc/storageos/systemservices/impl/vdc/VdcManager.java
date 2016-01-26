@@ -780,7 +780,7 @@ public class VdcManager extends AbstractManager {
         String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
         String targetDbSchemaVersion = coordinator.getCoordinatorClient().getTargetDbSchemaVersion();
         log.info("Current schema version {}", currentDbSchemaVersion);
-        return targetDbSchemaVersion.equals(currentDbSchemaVersion) || !coordinator.isDBMigrationDone();
+        return targetDbSchemaVersion.equals(currentDbSchemaVersion) && coordinator.isDBMigrationDone();
     }
 
     private boolean allVdcGetUpgradedToYoda() {

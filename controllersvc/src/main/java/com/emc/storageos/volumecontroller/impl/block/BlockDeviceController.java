@@ -4011,6 +4011,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMethodNullMethod(), null);
             }
 
+            // TODO Move these changes to ReplicaDeviceController#addStepsForAddingVolumesToCG
+            if (checkIfCGHasSnapshotSessions(addVolumesList)) {
+                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                        String.format("Updating SnapVx sessions for consistency group %s", consistencyGroup),
+                        waitFor, storage, storageSystem.getSystemType(),
+                        this.getClass(),
+                        addSnapshotSessionsToConsistencyGroupMethod(storage, consistencyGroup, addVolumesList),
+                        rollbackMethodNullMethod(), null);
+            }
+
             // For SRDF, we need to create target consistency group and
             // add target volumes to that target consistency group.
             if (srdfCG) {
@@ -5481,5 +5491,41 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 throw DeviceControllerException.exceptions.restoreBlockSnapshotSessionFailed(e);
             }
         }
+    }
+
+    // TODO Move the methods below into ReplicaDeviceController
+    private boolean checkIfCGHasSnapshotSessions(List<URI> addVolumesList) {
+        List<? extends BlockObject> volumes = BlockObject.fetch(_dbClient, addVolumesList);
+        for (BlockObject volume : volumes) {
+            List<BlockSnapshotSession> sessions =
+                    CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                            ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+            if (!sessions.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Workflow.Method addSnapshotSessionsToConsistencyGroupMethod(URI storage, URI consistencyGroup, List<URI> addVolumesList) {
+        return new Workflow.Method("addSnapshotSessionsToConsistencyGroup", storage, consistencyGroup, addVolumesList);
+    }
+
+    public boolean addSnapshotSessionsToConsistencyGroup(URI storage, URI consistencyGroup, List<URI> addVolumesList, String opId)
+            throws ControllerException {
+        TaskCompleter taskCompleter = null;
+        WorkflowStepCompleter.stepExecuting(opId);
+        try {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
+            getDevice(storageSystem.getSystemType()).doAddSnapshotSessionsToConsistencyGroup(
+                    storageSystem, consistencyGroup, addVolumesList, taskCompleter);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(_dbClient, serviceError);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+            return false;
+        }
+        return true;
     }
 }

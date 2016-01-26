@@ -63,9 +63,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         if (existingInitiatorsMap == null) {
             existingInitiatorsMap = new HashMap<URI, Set<Initiator>>();
         }
-
-        URI[] networkURIs = new URI[0];
-        networkURIs = net2InitiatorsMap.keySet().toArray(networkURIs);
+        
         Integer allocated = 0;
         Map<URI, Integer> net2NumPortsMap = new HashMap<URI, Integer>();
 
@@ -83,6 +81,10 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             }
             allInitiatorsMap.get(netURI).addAll(initiators);
         }
+        
+        // Get the network URIs from all the initiators.
+        URI[] networkURIs = new URI[0];
+        networkURIs = allInitiatorsMap.keySet().toArray(networkURIs);
 
         // Get the maximum number of initiators in a single host for each given Network.
         // This is the combination of the existing initiators and the new initiators.
@@ -112,6 +114,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             addedThisPass = false;
             for (int index = 0; index < networkURIs.length; index++) {
                 URI networkURI = networkURIs[index];
+                _log.debug("Processing network " + networkURI);
                 // If a nonRedundantNet, then at least one host is using only this network,
                 // so we set an upper bound of maxPaths on the number of ports requested.
                 // Otherwise we know there is at least one other network with initiators
@@ -139,6 +142,8 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 // and we are under the pathLimit, add a paths_per_initiator ports
                 // to our request for this network.
                 Integer currentPorts = net2NumPortsMap.get(networkURI);
+                _log.info(String.format("Network %s pathLimit %d maxHostInitiators %d currentPorts %d",
+                        networkURI, pathLimit, maxHostInitiators, currentPorts));
                 if (currentPorts <= (pathLimit - pathsPerInitiator) 
                         && currentPorts < (maxHostInitiators * pathsPerInitiator)) {
                     net2NumPortsMap.put(networkURI, currentPorts + pathsPerInitiator);
@@ -154,7 +159,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             for (Set<Initiator> initSet : allInitiatorsMap.values()) {
                 initiatorCount += initSet.size();
             }
-            _log.info(String.format("Could not allocate min_path number of ports: ports needed %d "
+            _log.info(String.format("Could not request min_path number of ports: ports needed %d "
                     + "total initiators %d paths_per_initiator %d min_paths %d max_paths %d",
                     allocated, initiatorCount, pathParams.getPathsPerInitiator(),
                     pathParams.getMinPaths(), pathParams.getMaxPaths()));

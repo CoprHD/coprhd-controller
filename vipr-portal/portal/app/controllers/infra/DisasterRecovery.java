@@ -51,6 +51,7 @@ public class DisasterRecovery extends ViprResourceController {
     protected static final String SWITCHOVER_SUCCESS = "disasterRecovery.switchover.success";
     protected static final String SWITCHOVER_ERROR = "disasterRecovery.switchover.error";
     protected static final String RESUMED_SUCCESS = "disasterRecovery.resume.success";
+    protected static final String RETRY_SUCCESS = "disasterRecovery.retry.success";
     protected static final String SAVED_ERROR = "disasterRecovery.save.error";
     protected static final String DELETED_SUCCESS = "disasterRecovery.delete.success";
     protected static final String DELETED_ERROR = "disasterRecovery.delete.error";
@@ -100,6 +101,18 @@ public class DisasterRecovery extends ViprResourceController {
         if (result != null) {
             SiteRestRep siteresume = DisasterRecoveryUtils.resumeStandby(id);
             flash.success(MessagesUtils.get(RESUMED_SUCCESS, siteresume.getName()));
+        }
+        list();
+    }
+
+    @FlashException("list")
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_ADMIN"),
+            @Restrict("RESTRICTED_SYSTEM_ADMIN") })
+    public static void retry(String id) {
+        SiteRestRep result = DisasterRecoveryUtils.getSite(id);
+        if (result != null) {
+            SiteRestRep siteretry = DisasterRecoveryUtils.retryStandby(id);
+            flash.success(MessagesUtils.get(RETRY_SUCCESS, siteretry.getName()));
         }
         list();
     }

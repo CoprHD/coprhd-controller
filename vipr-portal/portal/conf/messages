@@ -864,6 +864,7 @@ disasterRecovery.SwitchoverButton=Switchover
 disasterRecovery.save.success=Standby add request initiated for site: '%s'
 disasterRecovery.pause.success=Pause request initiated...
 disasterRecovery.resume.success=Resume request initiated for site: '%s'
+disasterRecovery.retry.success=Retry request initiated for site: '%s'
 disasterRecovery.test.success=Test Mode request initiated for site: '%s'
 disasterRecovery.save.error=Failed to add standby '%s'
 disasterRecovery.pause.error=Failed to pause standby '%s'

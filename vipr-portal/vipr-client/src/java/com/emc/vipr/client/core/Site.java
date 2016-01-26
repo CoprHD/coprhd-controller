@@ -49,6 +49,10 @@ public class Site {
         return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/resume/");
     }
 
+    public SiteRestRep retrySite(String uuid) {
+        return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/retry/");
+    }
+
     public ClientResponse syncSite(String uuid, SiteConfigParam input) {
         return client.put(ClientResponse.class, input, PathConstants.SITE_URL + "/" + uuid + "/initstandby/");
     }

@@ -127,7 +127,7 @@ public class TenantsService extends TaggedResource {
     private static final String EVENT_SERVICE_SOURCE = "TenantManager";
     private static final Logger _log = LoggerFactory.getLogger(TenantsService.class);
     //Invalid ECS namespace
-    private static final String INVALID_OBJECT_NAMESPACE = "NONE~!@#$%^&*(";
+    private static final String INVALID_OBJECT_NAMESPACE = "NONE~!@#";
 
     @Override
     public String getServiceType() {

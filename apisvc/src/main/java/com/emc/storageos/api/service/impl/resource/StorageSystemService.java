@@ -1265,7 +1265,7 @@ public class StorageSystemService extends TaskResourceService {
      * Get details of the object namespace associated with a particular storage system
      * 
      * @param id storage system URN ID
-     * @param nsId namepace id 
+     * @param nsId namespace id 
      * @return details of namespace
      */
     

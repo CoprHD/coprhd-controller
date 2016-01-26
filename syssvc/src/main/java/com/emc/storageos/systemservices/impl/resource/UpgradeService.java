@@ -313,7 +313,7 @@ public class UpgradeService {
                     nodeCount);
             if (state != ClusterInfo.ClusterState.STABLE) {
                 _log.error("Site {} is not stable: {}", site.getUuid(), state);
-                throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getUuid(), state.toString());
+                throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getName(), state.toString());
             }
         }
     }

@@ -197,7 +197,7 @@ public class Upgrade extends Controller {
         // if the current status is downloading,
         // don't go back to the index page until download is complete on all sites
         if (currentStatus.equals(DOWNLOADING_CLUSTER_STATE)) {
-            renderJSON(false);
+            renderJSON(!clusterState.equals(currentStatus) && !isStandbySiteDownloading());
         } else {
             boolean statusChanged = !clusterState.equals(currentStatus);
             renderJSON(statusChanged);
@@ -208,7 +208,7 @@ public class Upgrade extends Controller {
     private static boolean isStandbySiteDownloading() {
         for (SiteRestRep standby : DisasterRecoveryUtils.getStandbySites()) {
             ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo(standby.getUuid());
-            if (calculateClusterState(clusterInfo).equals(DOWNLOADING_CLUSTER_STATE)) {
+            if (calculateClusterState(clusterInfo, standby.getUuid()).equals(DOWNLOADING_CLUSTER_STATE)) {
                 return true;
             }
         }
@@ -246,9 +246,15 @@ public class Upgrade extends Controller {
         return (int) Math.round(((double) bytes / (double) total) * 100);
     }
 
+    @Util
     private static String calculateClusterState(ClusterInfo clusterInfo) {
+        return calculateClusterState(clusterInfo, null);
+    }
+
+    @Util
+    private static String calculateClusterState(ClusterInfo clusterInfo, String siteId) {
         if (clusterInfo.getCurrentState().equalsIgnoreCase(ClusterInfo.ClusterState.SYNCING.toString())) {
-            DownloadProgress downloadProgress = getSysClient().upgrade().getDownloadProgress();
+            DownloadProgress downloadProgress = getSysClient().upgrade().getDownloadProgress(siteId);
             if (isDownloadInProgress(downloadProgress)) {
                 return DOWNLOADING_CLUSTER_STATE;
             }

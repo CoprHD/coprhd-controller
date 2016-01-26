@@ -194,11 +194,15 @@
                             }
                         }
                     });
+
+                    // as soon as the active site finishes downloading, hide the cancel button
+                    if (downloadFinished && index == 0) {
+                        $("#cancelButton").hide();
+                    }
                     index = index + 1;
                 });
 
                 if (downloadFinished) {
-                    $("#cancelButton").hide();
                     setTimeout(goToIndex, 1000);
                 }
             },

@@ -119,11 +119,12 @@ def sub_foreach(s, foreach):
             head += tail[:m1.start()]
             for i in range(len(foreach[k])):
                 v = foreach[k][i]
-                if i == 0:
-                    sub_str = r.sub(v , q)
-                else:
-                    sub_str = sep + r.sub(v, q)
-                head += sub_str
+                if v:
+                    if i == 0:
+                        sub_str = r.sub(v , q)
+                    else:
+                        sub_str = sep + r.sub(v, q)
+                    head += sub_str
             tail  = tail[m1.end() + m2.end():]
             continue
                 

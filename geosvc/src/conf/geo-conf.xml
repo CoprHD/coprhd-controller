@@ -12,11 +12,8 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xmlns:context="http://www.springframework.org/schema/context"
-    xmlns:util="http://www.springframework.org/schema/util"
      xsi:schemaLocation="http://www.springframework.org/schema/beans
      http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
-    http://www.springframework.org/schema/util
-    http://www.springframework.org/schema/util/spring-util-3.0.xsd
      http://www.springframework.org/schema/context
      http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
@@ -51,6 +48,7 @@
     <bean id="auditLogManager"
         class="com.emc.storageos.security.audit.AuditLogManager">
       <property name="dbClient" ref="dbclient"/>
+      <property name="coordinator" ref="coordinator" />
     </bean>
     
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
@@ -77,13 +75,16 @@
         <property name="dependencyChecker" ref="dependencyChecker"/>
     </bean>
 
+    <bean id="ipsecService" class="com.emc.storageos.geo.service.impl.resource.IpsecService"/>
+
     <bean id="vdcConfService" class="com.emc.storageos.geo.service.impl.resource.VdcConfigService">
         <property name="service" ref="serviceinfo"/>
+        <property name="sysUtils" ref="sysUtils" />
+        <property name="ipsecConfig" ref="ipsecConfig" />
     </bean>
 
     <bean id="vdcConfHelper" class="com.emc.storageos.geo.service.impl.util.VdcConfigHelper"/>
 
-    <bean id="vdcConfigUtil" class="com.emc.storageos.db.client.util.VdcConfigUtil"/>
     <bean id="vdcLockHelper" class="com.emc.storageos.geo.vdccontroller.impl.VdcOperationLockHelper">
         <property name="dbClient" ref="dbclient"/>
         <property name="service" ref="serviceinfo"/>
@@ -98,6 +99,7 @@
                 <ref bean="queryService"/>               
                 <ref bean="vdcConfService"/>
                 <ref bean="versionService"/>
+                <ref bean="ipsecService"/>
                 <bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.ContextProvider"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.ValidatingJacksonJsonProvider"/>
@@ -165,10 +167,6 @@
         <property name="localUsers" ref="localUserMap"/>
     </bean>
 
-    <bean id="permissionsFilterFactory" class="com.emc.storageos.api.service.authorization.PermissionsFilterFactory">
-        <property name="permissionsHelper" ref="permissionsHelper"/>
-    </bean>
-
     <bean id="responseFilter" class="com.emc.storageos.api.errorhandling.filters.TaskResponseFilter"/>
 
     <bean id="dbclient" class="com.emc.storageos.geo.vdccontroller.impl.InternalDbClient" init-method="start">
@@ -212,7 +210,9 @@
         <property name="ciphersToInclude" ref="strongCiphers"/>
         <property name="coordinator" ref="coordinator"/>  
     </bean>
-
+	
+	<bean id="sysUtils" class="com.emc.storageos.services.util.SysUtils" />
+	
     <!--
     <bean id="restLinkFactory" class="com.emc.storageos.api.service.impl.response.RestLinkFactory">
         <property name="dbClient" ref="dbclient"/>

@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class BlockObjectNormalizeWwnMigration extends BaseCustomMigrationCallback {
 
@@ -26,7 +27,7 @@ public class BlockObjectNormalizeWwnMigration extends BaseCustomMigrationCallbac
     private static final Logger log = LoggerFactory.getLogger(BlockObjectNormalizeWwnMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         processType(Volume.class);
         processType(BlockSnapshot.class);
         processType(BlockMirror.class);

@@ -5,9 +5,38 @@
 
 package com.emc.storageos.db.server;
 
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+
+import java.beans.Introspector;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+
+import org.apache.cassandra.config.Schema;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientContext;
@@ -25,24 +54,12 @@ import com.emc.storageos.db.server.impl.MigrationHandlerImpl;
 import com.emc.storageos.db.server.impl.SchemaUtil;
 import com.emc.storageos.db.server.util.StubBeaconImpl;
 import com.emc.storageos.db.server.util.StubCoordinatorClientImpl;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.LoggingUtils;
-
-import org.apache.cassandra.config.Schema;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
-import java.beans.Introspector;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.URI;
-import java.util.*;
 
 /**
  * Dbsvc unit test base
@@ -60,7 +77,7 @@ public class DbsvcTestBase {
     protected static ServiceImpl service;
     protected static DbClientImpl _dbClient;
     protected static boolean isDbStarted = false;
-    protected static DbVersionInfo _dbVersionInfo;
+    protected static DbVersionInfo sourceVersion;
     protected static File _dataDir;
     protected static CoordinatorClient _coordinator = new StubCoordinatorClientImpl(
             URI.create("thrift://localhost:9160"));
@@ -102,13 +119,14 @@ public class DbsvcTestBase {
     public static void setup() throws IOException {
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("dbversion-info.xml");
 
-        _dbVersionInfo = (DbVersionInfo)ctx.getBean("dbVersionInfo");
+        sourceVersion = (DbVersionInfo)ctx.getBean("dbVersionInfo");
         _dataDir = new File(dataDir);
         if (_dataDir.exists() && _dataDir.isDirectory()) {
             cleanDirectory(_dataDir);
         }
         _dataDir.mkdir();
-        startDb(_dbVersionInfo.getSchemaVersion(), null);
+        
+        startDb(sourceVersion.getSchemaVersion(), sourceVersion.getSchemaVersion(), null);
     }
 
     @AfterClass
@@ -141,17 +159,20 @@ public class DbsvcTestBase {
     /**
      * Start embedded DB
      */
-    protected static void startDb(String schemaVersion, String extraModelsPkg) throws IOException {
-        startDb(schemaVersion, extraModelsPkg, null);
+    protected static void startDb(String currentVersion, String targetVersion,  String extraModelsPkg) throws IOException {
+        startDb(currentVersion, targetVersion, extraModelsPkg, null);
     }
 
     /**
      * Start embedded DB
      */
-    protected static void startDb(String schemaVersion, String extraModelsPkg, DataObjectScanner scanner) throws IOException {
-        _dbVersionInfo = new DbVersionInfo();
-        _dbVersionInfo.setSchemaVersion(schemaVersion);
-
+    protected static void startDb(String currentVersion, String targetVersion, String extraModelsPkg, DataObjectScanner scanner) throws IOException {
+        sourceVersion = new DbVersionInfo();
+        sourceVersion.setSchemaVersion(currentVersion);
+        
+        DbVersionInfo targetVersionInfo = new DbVersionInfo();
+        targetVersionInfo.setSchemaVersion(targetVersion);
+        
         List<String> packages = new ArrayList<String>();
         packages.add("com.emc.storageos.db.client.model");
         packages.add("com.emc.sa.model");
@@ -162,10 +183,9 @@ public class DbsvcTestBase {
 
         service = new ServiceImpl();
         service.setName("dbsvc");
-        service.setVersion(schemaVersion);
+        service.setVersion(targetVersion);
         service.setEndpoint(URI.create("thrift://localhost:9160"));
         service.setId("db-standalone");
-
         StubBeaconImpl beacon = new StubBeaconImpl(service);
         if (scanner == null) {
             scanner = new DataObjectScanner();
@@ -182,14 +202,29 @@ public class DbsvcTestBase {
         }
 
         _coordinator.setInetAddessLookupMap(inetAddressMap);
-        _coordinator.setDbVersionInfo(_dbVersionInfo);
-
+        _coordinator.setDbVersionInfo(sourceVersion);
+        
+        ConfigurationImpl cfg = new ConfigurationImpl();
+        cfg.setKind(Constants.DB_CONFIG);
+        cfg.setId(Constants.GLOBAL_ID);
+        cfg.setConfig(Constants.SCHEMA_VERSION, currentVersion);
+        _coordinator.persistServiceConfiguration(cfg);
+        
         statusChecker = new DbServiceStatusChecker();
         statusChecker.setCoordinator(_coordinator);
         statusChecker.setClusterNodeCount(1);
-        statusChecker.setDbVersionInfo(_dbVersionInfo);
+        statusChecker.setDbVersionInfo(sourceVersion);
         statusChecker.setServiceName(service.getName());
-
+        
+        SecretKey key = null;
+        try {
+            KeyGenerator keyGenerator = null;
+            keyGenerator = KeyGenerator.getInstance("HmacSHA256");
+            key = keyGenerator.generateKey();
+        } catch (NoSuchAlgorithmException e) {
+            fail("generate key fail");
+        }
+        
         schemaUtil  = new MockSchemaUtil();
         schemaUtil.setKeyspaceName("Test");
         schemaUtil.setClusterName("Test");
@@ -197,9 +232,10 @@ public class DbsvcTestBase {
         schemaUtil.setService(service);
         schemaUtil.setStatusChecker(statusChecker);
         schemaUtil.setCoordinator(_coordinator);
-        schemaUtil.setVdcShortId("vdc1");
+        schemaUtil.setVdcShortId("datacenter1");
+        schemaUtil.setDrUtil(new DrUtil(_coordinator));
 
-        DbClientContext dbctx = new DbClientContext();
+        DbClientContext dbctx = new MockDbClientContext();
         dbctx.setClusterName("Test");
         dbctx.setKeyspaceName("Test");
         schemaUtil.setClientContext(dbctx);
@@ -226,6 +262,7 @@ public class DbsvcTestBase {
         _encryptionProvider.setCoordinator(_coordinator);
 
         _dbClient = getDbClientBase();
+        _dbClient.setDbVersionInfo(targetVersionInfo);
         PasswordUtils passwordUtils = new PasswordUtils();
         passwordUtils.setCoordinator(_coordinator);
         passwordUtils.setEncryptionProvider(_encryptionProvider);
@@ -285,12 +322,12 @@ public class DbsvcTestBase {
 
     protected static InternalDbClient getDbClientBase(InternalDbClient dbClient) {
         dbClient.setCoordinatorClient(_coordinator);
-        dbClient.setDbVersionInfo(_dbVersionInfo);
+        dbClient.setDbVersionInfo(sourceVersion);
         dbClient.setBypassMigrationLock(true);
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
 
-        DbClientContext localCtx = new DbClientContext();
+        DbClientContext localCtx = new MockDbClientContext();
         localCtx.setClusterName("Test");
         localCtx.setKeyspaceName("Test");
         dbClient.setLocalContext(localCtx);
@@ -311,23 +348,30 @@ public class DbsvcTestBase {
         }
     }
     
+    static class MockDbClientContext extends DbClientContext {
+        @Override
+        public int getThriftPort() {
+            return 9160;
+        }
+    }
+    
     protected static class TestMockDbServiceImpl extends DbServiceImpl {
-    	@Override
-    	public void setDbInitializedFlag() {
-    		String os = System.getProperty("os.name").toLowerCase();
-    		if( os.indexOf("windows") >= 0) {
-    			String currentPath = System.getProperty("user.dir");
-        		_log.info("CurrentPath is {}", currentPath);
-    			File dbInitializedFlag = new File(".");
-    			try {
+        @Override
+        public void setDbInitializedFlag() {
+            String os = System.getProperty("os.name").toLowerCase();
+            if( os.indexOf("windows") >= 0) {
+                String currentPath = System.getProperty("user.dir");
+                _log.info("CurrentPath is {}", currentPath);
+                File dbInitializedFlag = new File(".");
+                try {
                     if (!dbInitializedFlag.exists())
                         new FileOutputStream(dbInitializedFlag).close();
                 }catch (Exception e) {
                     _log.error("Failed to create file {} e", dbInitializedFlag.getName(), e);
                 }
-    		}else{
-    			super.setDbInitializedFlag();
-    		}
+            }else{
+                super.setDbInitializedFlag();
+            }
             
         }
     }

@@ -10,21 +10,6 @@ import java.util.List;
 import java.util.Set;
 
 public class Strings {
-    public static String join(final String sep, Object... objs) {
-        StringBuilder s = new StringBuilder();
-        for (int i = 0; i < objs.length; i++) {
-            if (i > 0) {
-                s.append(sep);
-            }
-            s.append(objs[i].toString());
-        }
-        return s.toString();
-    }
-
-    public static String join(final String sep, String... strings) {
-        return join(sep, (Object[]) strings);
-    }
-
     public static String repr(final Object object) {
         if (object == null) {
             return "(null)";
@@ -77,9 +62,7 @@ public class Strings {
     }
 
     public static void main(String[] args) {
-        System.out.println(Strings.join("_", "ala", "ma", "kota"));
         String[] a = { "ala", "ma", "kota" };
-        System.out.println(Strings.join(" ", a));
         String s = "Ala\nma\nKota\na kot ma ale\rA KOT\n\0\001\01000";
         System.out.println(s);
         System.out.println(Strings.repr(s));

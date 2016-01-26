@@ -160,6 +160,9 @@ public class ComputeImageServers extends ViprResourceController {
         public String osInstallNetworkAddress;
 
         public Integer osInstallTimeOut;
+        
+        public Integer sshTimeout;
+        public Integer imageImportTimeout;
 
         public String status;
 
@@ -191,6 +194,8 @@ public class ComputeImageServers extends ViprResourceController {
             this.tftpBootDir = computeImageServer.getTftpBootDir();
             this.userName = computeImageServer.getImageServerUser();
             this.osInstallTimeOut = computeImageServer.getOsInstallTimeout();
+            this.sshTimeout = computeImageServer.getSshTimeout();
+            this.imageImportTimeout = computeImageServer.getImageImportTimeout();
             this.computeImages = computeImageServer.getComputeImages();
             this.failedImages = computeImageServer.getFailedImages();
             this.password = ""; // the platform will never return the real password //NOSONAR
@@ -240,6 +245,8 @@ public class ComputeImageServers extends ViprResourceController {
             createParam.setImageServerUser(this.userName);
             createParam.setImageServerPassword(this.password);
             createParam.setOsInstallTimeout(this.osInstallTimeOut);
+            createParam.setImageImportTimeout(this.imageImportTimeout);
+            createParam.setSshTimeout(this.sshTimeout);
             createParam.setTftpBootDir(this.tftpBootDir);
             createParam.setImageServerSecondIp(this.osInstallNetworkAddress);
             return ComputeImageServerUtils.create(createParam);
@@ -251,6 +258,8 @@ public class ComputeImageServers extends ViprResourceController {
             updateParam.setImageServerIp(this.imageServerIp);
             updateParam.setTftpBootDir(this.tftpBootDir);
             updateParam.setOsInstallTimeout(this.osInstallTimeOut);
+            updateParam.setImageImportTimeout(this.imageImportTimeout);
+            updateParam.setSshTimeout(this.sshTimeout);
             updateParam.setImageServerUser(this.userName);
             updateParam.setImageServerSecondIp(this.osInstallNetworkAddress);
             if (this.password != null && this.password.length() > 0) {

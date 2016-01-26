@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -466,10 +467,22 @@ public class MigrationService extends TaskResourceService {
             StorageOSUser user = getUserFromContext();
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
+        if (migration == null || migration.getInactive()) {
+            throw APIException.badRequests.cancelMigrationFailed(id.toString(), "The migration is invalid");
+        }
         String status = migration.getMigrationStatus();
         String migrationName = migration.getLabel();
         URI volId = migration.getVolume();
         Volume vplexVol = _dbClient.queryObject(Volume.class, volId);
+        if (vplexVol == null || vplexVol.getInactive()) {
+            throw APIException.badRequests.cancelMigrationFailed(migrationName, "The migrating volume is not valid");
+        }
+        
+        // Don't allow cancel operation if the vplex volume is in a CG
+        URI cgURI = vplexVol.getConsistencyGroup();
+        if (!NullColumnValueGetter.isNullURI(cgURI)) {
+            throw APIException.badRequests.cancelMigrationFailed(migrationName, "Migration cancellation is not supported for the volumes in consistency group");
+        }
 
         if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
             throw APIException.badRequests.migrationHasntStarted(id.toString());

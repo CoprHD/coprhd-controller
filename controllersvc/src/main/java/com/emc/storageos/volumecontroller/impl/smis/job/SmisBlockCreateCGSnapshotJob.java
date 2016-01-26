@@ -4,6 +4,21 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
+import java.net.URI;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.cim.CIMProperty;
+import javax.wbem.CloseableIterator;
+import javax.wbem.client.WBEMClient;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -17,25 +32,10 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.cim.CIMProperty;
-import javax.wbem.CloseableIterator;
-import javax.wbem.client.WBEMClient;
-
-import java.net.URI;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 public class SmisBlockCreateCGSnapshotJob extends SmisSnapShotJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisBlockCreateCGSnapshotJob.class);
-    private Boolean _wantSyncActive;
-    private String _sourceGroupId;
+    private final Boolean _wantSyncActive;
+    private final String _sourceGroupId;
 
     public SmisBlockCreateCGSnapshotJob(CIMObjectPath cimJob,
             URI storageSystem, boolean wantSyncActive, String sourceGroupId,
@@ -45,6 +45,7 @@ public class SmisBlockCreateCGSnapshotJob extends SmisSnapShotJob {
         _sourceGroupId = sourceGroupId;
     }
 
+    @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         CloseableIterator<CIMObjectPath> syncVolumeIter = null;
         DbClient dbClient = jobContext.getDbClient();
@@ -109,7 +110,7 @@ public class SmisBlockCreateCGSnapshotJob extends SmisSnapShotJob {
                         snapshot.setCreationTime(now);
                         snapshot.setWWN(wwn.toUpperCase());
                         snapshot.setAlternateName(alternativeName);
-                        commonSnapshotUpdate(snapshot, syncVolume, client, storage, _sourceGroupId, relationshipName);
+                        commonSnapshotUpdate(snapshot, syncVolume, client, storage, _sourceGroupId, relationshipName, true, dbClient);
                         _log.info(String.format("For sync volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). " +
                                 "Replication Group instance is %5$s. Associated volume is %6$s",
                                 syncVolumePath.toString(), snapshot.getId().toString(),

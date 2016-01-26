@@ -135,4 +135,12 @@ public interface FatalCoordinatorExceptions {
     public FatalCoordinatorException unableToRemoveTheState(final String key,
             final Throwable cause);
 
+    @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
+    public FatalCoordinatorException unableToCreateInstanceOfTargetInfo(final String className, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
+    public FatalCoordinatorException unableToDeletePath(String path, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
+    public FatalCoordinatorException unableToCheckNodeExists(String path, final Throwable cause);
 }

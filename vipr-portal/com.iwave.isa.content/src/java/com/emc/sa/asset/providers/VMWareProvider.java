@@ -219,7 +219,7 @@ public class VMWareProvider extends BaseHostProvider {
             Integer hlu = volumeHlus.get(volume.getId());
             String hluLabel = hlu == null ? "N/A" : hlu.toString();
             String datastoresLabel = datastoreNames.isEmpty() ? "N/A" : StringUtils.join(datastoreNames, ",");
-            options.add(newAssetOption(volume.getId(), "volume.hlu.datastore", volume.getDeviceLabel(), hluLabel, datastoresLabel));
+            options.add(newAssetOption(volume.getId(), "volume.hlu.datastore", volume.getName(), hluLabel, datastoresLabel));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

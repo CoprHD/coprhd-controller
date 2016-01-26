@@ -24,8 +24,10 @@
                 </foreach>
             </list>
         </property>
+
         <!-- 9 minutes timeout -->
         <property name="timeoutMs" value="540000"/>
+        <property name="siteIdFile" value="/data/zk/siteid"/>
     </bean>
 
     <context:property-placeholder location="classpath:syssvc-info.properties" />
@@ -35,6 +37,8 @@
         <property name="sysSvcName" value="${syssvc.name}"/>
         <property name="sysSvcVersion" value="${syssvc.version}"/>
         <property name="nodeCount" ref="nodeCount"/>
+        <property name="vdcShortId" value="${vdc_myid}"/>
+        <property name="vdcEndpoint" value="${network_vip_service}"/>
         <property name="inetAddessLookupMap" ref="inetAddessLookupMap"/>
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>
@@ -47,5 +51,9 @@
 
     <bean id="productName" class="com.emc.storageos.coordinator.client.model.ProductName">
         <property name="name" value="vipr" />
+    </bean>
+    
+    <bean id="drUtil" class="com.emc.storageos.coordinator.client.service.DrUtil">
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 </beans>

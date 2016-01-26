@@ -46,6 +46,7 @@ import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ConstraintImpl;
 import com.emc.storageos.db.client.model.AllowedGeoVersion;
+import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.Host;
@@ -54,14 +55,20 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.NoInactiveIndex;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.ProjectResourceSnapshot;
+import com.emc.storageos.db.client.model.PropertyListDataObject;
+import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.TenantResource;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer;
+import com.emc.storageos.db.client.model.Token;
+import com.emc.storageos.db.client.model.VdcVersion;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
@@ -108,6 +115,10 @@ public class DbClientImpl implements DbClient {
     private static final int DEFAULT_TS_PAGE_SIZE = 100;
     private static final int DEFAULT_BATCH_SIZE = 1000;
     protected static final int DEFAULT_PAGE_SIZE = 100;
+    
+    static private final List<Class<? extends DataObject>> excludeClasses = Arrays.asList(
+            Token.class, StorageOSUserDAO.class, VirtualDataCenter.class,
+            PropertyListDataObject.class, PasswordHistory.class, CustomConfig.class, VdcVersion.class);
 
     protected DbClientContext localContext;
     protected DbClientContext geoContext;
@@ -245,7 +256,6 @@ public class DbClientImpl implements DbClient {
         setupContext();
 
         _indexCleaner = new IndexCleaner();
-
         initDone = true;
     }
 
@@ -385,29 +395,17 @@ public class DbClientImpl implements DbClient {
         return objs.get(0);
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id) {
         return queryObject(clazz, Arrays.asList(id));
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids) {
         return queryObject(clazz, ids, false);
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly) {
         DataObjectType doType = TypeMap.getDoType(clazz);
 
@@ -1712,6 +1710,46 @@ public class DbClientImpl implements DbClient {
     }
 
     @Override
+    public boolean hasUsefulData() {
+        Collection<DataObjectType> doTypes = TypeMap.getAllDoTypes();
+
+        for (DataObjectType doType : doTypes) {
+            Class clazz = doType.getDataObjectClass();
+
+            if (hasDataInCF(clazz)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
+    private <T extends DataObject> boolean hasDataInCF(Class<T> clazz) {
+        if (excludeClasses.contains(clazz)) {
+            return false; // ignore the data in those CFs
+        }
+
+        // true: query only active object ids, for below reason:
+        // add site should succeed just when remove the data in site2.
+        List<URI> ids = queryByType(clazz, true, null, 2);
+
+        if (clazz.equals(TenantOrg.class)) {
+            if (ids.size() > 1) {
+                // at least one non-root tenant exist
+                return true;
+            }
+
+            return false;
+        }
+
+        if (!ids.isEmpty()) {
+            _log.info("The class {} has data e.g. id={}", clazz.getSimpleName(), ids.get(0));
+            return true;
+        }
+
+        return false;
+    }
+
     public boolean checkGeoCompatible(String expectVersion) {
         _geoVersion = VdcUtil.getMinimalVdcVersion();
         return VdcUtil.VdcVersionComparator.compare(_geoVersion, expectVersion) >= 0;

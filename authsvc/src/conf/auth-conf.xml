@@ -32,6 +32,14 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="localAuthenticationProvider" ref="localAuthNProvider"/>
     </bean>
+      <bean id="keystoneFactory" class="com.emc.storageos.keystone.restapi.KeystoneRestClientFactory"
+          init-method="init" destroy-method="shutdown">
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="maxConnections" value="300"/>
+        <property name="maxConnectionsPerHost" value="100"/>
+        <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="needCertificateManager" value="true"/>
+    </bean>
 
     <bean id="authnServiceApp"
 		class="com.emc.storageos.auth.service.impl.resource.AuthenticationApp">
@@ -44,6 +52,7 @@
                 <bean class="com.emc.storageos.auth.service.impl.resource.UserTenantResource" />
                 <bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
                 <bean class="com.emc.storageos.auth.service.impl.resource.AuthnProviderValidatorResource">
+                    <property name="keystoneFactory" ref="keystoneFactory"/>                         
                     <property name="coordinator" ref="coordinator"/>
                     <property name="dbClient" ref="dbclient"/>
                 </bean>

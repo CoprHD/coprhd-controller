@@ -1,0 +1,18 @@
+[Unit]
+Description=ipsec service
+
+Wants=network.service storageos-installer.service ipchecktool.service
+After=network.service storageos-installer.service ipchecktool.service ntpd.service
+ConditionFileNotEmpty=/etc/ipsec.conf
+ConditionFileNotEmpty=/etc/ipsec.secrets
+ConditionPathExists=/var/run/storageos/bootmode_normal
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/ipsec start
+ExecStop=/usr/sbin/ipsec stop
+RemainAfterExit=yes
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

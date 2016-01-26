@@ -39,7 +39,10 @@ _usage() {
     echo "   or: $0 --reconfig-props [ntp] [dns] [ssh] [connectemc] [password]" >&2
     echo "   or: $0 --reconfig-security" >&2
     echo "   or: $0 --restart service"  >&2
+    echo "   or: $0 --stop service"  >&2
     echo "   or: $0 --reload ntp|ssh|connectemc" >&2
+    echo "   or: $0 --reconfig-coordinator observer|participant" >&2
+    echo "   or: $0 --remote-systool node_id command parameter" >&2
     echo "   or: $0 --test"             >&2
     exit 2
 }
@@ -349,12 +352,22 @@ _set_ssl_props() {
     _write_props_file "${1}" "${bootfs_ssl_props}"
 }
 
+_set_data_revision() {
+    _write_props_file "${1}" "${bootfs_datarevision_props}"
+}
+
 _get_ovf_props() {
     _read_file "${ovf_props_file}"
 }
 
 _get_props_defaults() {
     _read_file "${dflts_file}"
+}
+
+_get_data_revision() {
+    if [ -f "${bootfs_datarevision_props}" ] ; then
+        _read_file "${bootfs_datarevision_props}"
+    fi
 }
 
 _write_file_and_set_permissions() {
@@ -423,6 +436,20 @@ EOF
     _fatal     "Failed to exec /etc/genconfig ${1}"
 }
 
+# 
+# Reconfigure coordinatorsvc mode. for standby only
+#
+# participant - disconnect and exit observer mode. becomes writable
+# observer - reconnect and enter observer mode. becomes read-only
+#
+_reconfig_coordinator() {
+    exec /etc/genconfig "coordinator" << EOF
+$(_get_props)
+dr_coordinator_type=${1}
+EOF
+    _fatal     "Failed to exec /etc/genconfig ${1}"
+}
+
 _reconfig_security() {
     if ! _is_appliance ; then
         _fatal2 66 "Not a real appliance. Reconfig manually."
@@ -436,8 +463,17 @@ EOF
     fi
 }
 
+_remote_systool() {
+    exec /usr/bin/ssh storageos@${1} "sudo /etc/systool ${2} ${3}"
+    _fatal     "Failed to exec /usr/bin/ssh storageos@${1} \"sudo /etc/systool ${2} ${3}\""
+}
+
 _restart() {
     /usr/bin/systemctl restart storageos-${1%*svc} || _fatal2 67 "Unexpected restart ${1} failure. Error code $?"
+}
+
+_stop() {
+    /usr/bin/systemctl stop storageos-${1%*svc} || _fatal2 68 "Unexpected stop ${1} failure. Error code $?"
 }
 
 _reload() {
@@ -450,6 +486,15 @@ _reload() {
             exec /usr/bin/systemctl restart connectemc ;;
         ssl)
             exec /usr/bin/systemctl restart nginx ;;
+        firewall)
+            exec /usr/bin/systemctl restart SuSEfirewall2 ;;
+        ipsec)
+            exec /usr/bin/systemctl restart ipsec ;;
+        reset-coordinator)
+            /etc/storageos/storageos stop
+            rm -fR /data/zk/version-2/
+            /etc/storageos/storageos drstandby
+            ;;
         *)
             _fatal2 2 "Unsupported service type ${1}" ;;
     esac
@@ -656,6 +701,10 @@ _props_trymerge() {
         if [ -f "${bootfs_ssl_props}" ] ; then
             cat  "${bootfs_ssl_props}"
         fi
+
+        if [ -f "${bootfs_datarevision_props}" ] ; then
+            cat "${bootfs_datarevision_props}"
+        fi 
     }
 }
 
@@ -705,6 +754,7 @@ bootfs_dev=$(/sbin/findfs UUID=${BOOTFS_UUID} 2>/dev/null) || bootfs_dev='/dev/s
 bootfs_mntp=${bootfs_mntp:-'/.volumes/bootfs'}
 bootfs_vdc_props=${bootfs_vdc_props:-${bootfs_mntp}/etc/vdcconfig.properties}
 bootfs_ssl_props=${bootfs_ssl_props:-${bootfs_mntp}/etc/ssl.properties}
+bootfs_datarevision_props=${bootfs_datarevision_props:-${bootfs_mntp}/etc/datarevision.properties}
 override_props='config-override.properties'
 bootfs_override_props=${bootfs_mntp}/etc/${override_props}
 override_link='/etc/'${override_props}
@@ -764,6 +814,7 @@ case ${#} in
             --get-controller-ovfprops) _s _get_controller_props ;;            
             --getvdcprops)            _s _get_vdc_props ;;
             --getsslprops)            _s _get_ssl_props ;;
+            --get-data-revision)      _s _get_data_revision ;;
             --getbootfsdev)           _s _get_bootfs_dev ;;
             --initializeprops)        _x _initialize_props ;;
             --remount-rw)             _x _bootfs_mount_rw "no" ;;
@@ -781,14 +832,18 @@ case ${#} in
             --set-controller-ovfprops) _x _set_controller_props "${2}" ;;            
             --setvdcprops)            _x _set_vdc_props        "${2}" ;;
             --setsslprops)            _x _set_ssl_props        "${2}" ;;
+            --set-data-revision)      _x _set_data_revision    "${2}" ;;
             --restart)                _x _restart              "${2}" ;;
-            --reconfig-props)          _x _reconfig_props       "${2}" ;;
+            --stop)                   _x _stop                 "${2}" ;;
+            --reconfig-props)         _x _reconfig_props       "${2}" ;;
             --reload)                 _x _reload               "${2}" ;;
+            --reconfig-coordinator)   _x _reconfig_coordinator "${2}" ;;
             *)                        _usage
         esac;;
     4)  case ${1} in 
-            --getprops)               _s _get_props "${2}" "${3}" "${4}" ;;
-            *)
+            --getprops)               _s _get_props      "${2}" "${3}" "${4}" ;;
+            --remote-systool)         _s _remote_systool "${2}" "${3}" "${4}" ;;
+            *)                        _usage
         esac;;
     *)  _usage
 esac

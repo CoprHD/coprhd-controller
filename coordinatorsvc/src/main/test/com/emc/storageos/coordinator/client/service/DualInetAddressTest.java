@@ -8,6 +8,7 @@ import java.net.UnknownHostException;
 
 import org.junit.Test;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -198,6 +199,8 @@ public class DualInetAddressTest {
         System.out.println("*** testFromAddress: End");
     }
 
+    // This test requires internal accessible hosts and therefore is not viable for public/external builds of CoprHD, therefore disabling by default.
+    @Ignore
     @Test
     public void testFromHostname() {
         System.out.println("*** testFromHostname: Start");
@@ -292,6 +295,8 @@ public class DualInetAddressTest {
         System.out.println("*** testFromHostname: End");
     }
 
+    // This test requires internal accessible hosts and therefore is not viable for public/external builds of CoprHD, therefore disabling by default.
+    @Ignore
     @Test
     public void testConnectable() {
         System.out.println("*** testConnectable: Start");

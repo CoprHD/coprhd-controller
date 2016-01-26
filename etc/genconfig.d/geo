@@ -10,7 +10,7 @@
 # it is provided by or on behalf of EMC.
 
 _get_geo_props() {
-    _get_props node_index node_id node_count
+    _get_props node_index node_id node_count site_is_standby
 }
 
 _genconfig_exec _gen_template         /opt/storageos/conf/geo-var.xml   $(_get_geo_props)

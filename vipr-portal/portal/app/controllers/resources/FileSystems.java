@@ -328,6 +328,9 @@ public class FileSystems extends ResourceController {
 
             FileNfsACLUpdateParams input = new FileNfsACLUpdateParams();
             input.setAcesToDelete(aces);
+            if (subDir != null && !"null".equals(subDir)) {
+                input.setSubDir(subDir);
+            }
             ViPRCoreClient client = BourneUtil.getViprClient();
             client.fileSystems().updateNfsACL(uri(fileSystem), input);
         }

@@ -12,5 +12,6 @@
         rebootRequired : true,
         controlNodeOnly : true,
         value : "vipr${iter}",
+        siteSpecific : true,
     },
 ]

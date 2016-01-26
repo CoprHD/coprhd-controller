@@ -339,15 +339,33 @@ public class WorkflowService {
         _instance.updateStepStatus(stepId, state, state.getServiceCode(), message);
     }
 
+
+    /**
+     * See {@link #updateStepStatus(String, StepState, ServiceCode, String, boolean)} . Do automatic rollback in case of workflow error
+     * 
+     * @param stepId
+     * @param state
+     * @param code
+     * @param message
+     * @throws WorkflowException
+     */
+    private void updateStepStatus(String stepId, StepState state, ServiceCode code, String message) throws WorkflowException {
+        updateStepStatus(stepId, state, code, message, true);
+    }
+    
     /**
      * Given a ZK path to a Callback node, get the data which is a StatusUpdateMessage
      * and update the appropriate step status.
      * 
      * @param stepId -- The Step Id of the step.
-     * @param path - Zookeeper path to a /workflow/callbacks node containing StatusUpdateMessage
+     * @param state
+     * @param code
+     * @param message
+     * @param automaticRollback whether to rollback in case of error at the end of workflow 
      * @throws WorkflowException
+     * 
      */
-    private void updateStepStatus(String stepId, StepState state, ServiceCode code, String message) throws WorkflowException {
+    private void updateStepStatus(String stepId, StepState state, ServiceCode code, String message, boolean automaticRollback) throws WorkflowException {
         // String path = getZKCallbackPath(stepId);
         String workflowPath = getZKStep2WorkflowPath(stepId);
         Workflow workflow = null;
@@ -393,7 +411,7 @@ public class WorkflowService {
                 }
                 // Check to see if the workflow might be finished, or need a rollback.
                 if (workflow.allStatesTerminal()) {
-                    workflowDeleted = doWorkflowEndProcessing(workflow);
+                    workflowDeleted = doWorkflowEndProcessing(workflow, automaticRollback);
                 }
             }
         } catch (Exception ex) {
@@ -413,10 +431,11 @@ public class WorkflowService {
      * Initiates rollback if necessary, does final task completer.
      * 
      * @param workflow
+     * @param automaticRollback 
      * @return deleted
      * @throws DeviceControllerException
      */
-    private boolean doWorkflowEndProcessing(Workflow workflow) throws DeviceControllerException {
+    private boolean doWorkflowEndProcessing(Workflow workflow, boolean automaticRollback) throws DeviceControllerException {
         Map<String, StepStatus> statusMap = workflow.getStepStatusMap();
 
         // Print out the status of each step into the log.
@@ -453,7 +472,7 @@ public class WorkflowService {
         }
 
         // Initiate rollback if needed.
-        if (workflow.isRollbackState() == false && state == StepState.ERROR) {
+        if (automaticRollback && workflow.isRollbackState() == false && state == StepState.ERROR) {
             if (workflow._rollbackHandler != null) {
                 workflow._rollbackHandler.initiatingRollback(workflow,
                         workflow._rollbackHandlerArgs);
@@ -1729,6 +1748,11 @@ public class WorkflowService {
         _instance.updateStepStatus(stepId, StepState.ERROR, coded.getServiceCode(), coded.getMessage());
     }
 
+    public static void completerStepErrorWithoutRollback(String stepId, ServiceCoded coded)
+            throws WorkflowException {
+        _instance.updateStepStatus(stepId, StepState.ERROR, coded.getServiceCode(), coded.getMessage(), false);
+    }
+    
     public static void completerStepCancelled(String stepId, ServiceCoded coded)
             throws WorkflowException {
         _instance.updateStepStatus(stepId, StepState.CANCELLED, coded.getServiceCode(), coded.getMessage());

@@ -66,8 +66,136 @@ public class FileShare extends FileObject implements ProjectResource {
     // set when a file share is release from a project for internal object use
     private URI _originalProject;
     
+    
     private URI virtualNAS;
+    
+    //mirror related attributes
+    
+    //mirror target fileshares
+    private StringSet _mirrorfsTargets;
+    
+    //source file share
+    private NamedURI _parentFileShare;
+    
+    //file share accesss state
+    private String _accessState;
+   
+    //file share mirror status
+    private String _mirrorStatus;
+    
+    // Basic volume personality type (source, target)
+    private String _personality;
 
+    
+    public enum MirrorStatus {
+        UNKNOWN("0"),
+        FAILED_OVER("1"),
+        IN_SYNC("2"),
+        SUSPENDED("3"),
+        CONSISTENT("4"),
+        FAILED_BACK("5"),
+        DETACHED("6"),
+        OTHER("7");
+        private final String status;
+
+        MirrorStatus(String status) {
+            this.status = status;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        private static final MirrorStatus[] copyOfValues = values();
+
+        public static String getLinkStatusDisplayName(String status) {
+            for (MirrorStatus statusValue : copyOfValues) {
+                if (statusValue.getStatus().contains(status)) {
+                    return statusValue.name();
+                }
+            }
+            return MirrorStatus.OTHER.name();
+        }
+    }
+    
+    public static enum FileAccessState {
+        UNKNOWN("0"),
+        READABLE("1"),
+        WRITEABLE("2"),
+        READWRITE("3");
+
+
+        private final String state;
+
+        FileAccessState(String state) {
+            this.state = state;
+        }
+
+        public String getState() {
+            return state;
+        }
+    }
+
+    public static enum PersonalityTypes {
+        SOURCE, // Source fileShare
+        TARGET, // Target fileShare
+    }
+    
+    @Name("mirrorfsTargets")
+    public StringSet getMirrorfsTargets() {
+        return _mirrorfsTargets;
+    }
+
+    public void setMirrorfsTargets(StringSet mirrorfsTargets) {
+        this._mirrorfsTargets = mirrorfsTargets;
+        setChanged("mirrorfsTargets");
+        
+    }
+
+    @Name("parentFileShare")
+    public NamedURI getParentFileShare() {
+        return _parentFileShare;
+    }
+    
+    public void setParentFileShare(NamedURI parentFileShare) {
+        this._parentFileShare = parentFileShare;
+        setChanged("parentFileShare");
+    }
+    
+    @Name("accessState")
+    public String getAccessState() {
+        return _accessState;
+    }
+
+    public void setAccessState(String accessState) {
+        this._accessState = accessState;
+        setChanged("accessState");
+    }
+
+    @Name("mirrorStatus")
+    public String getMirrorStatus() {
+        return _mirrorStatus;
+    }
+
+    public void setMirrorStatus(String mirrorStatus) {
+        this._mirrorStatus = mirrorStatus;
+        setChanged("mirrorStatus");
+    }
+    
+    @Name("personality")
+    @AlternateId("AltIdIndex")
+    public String getPersonality() {
+        return _personality;
+    }
+    
+    public void setPersonality(String personality) {
+        this._personality = personality;
+        setChanged("personality");
+    }
+
+
+    //getter and setter 
+  
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
     public NamedURI getProject() {

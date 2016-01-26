@@ -203,13 +203,13 @@ public class LDAPsources extends ViprResourceController {
 
         public String managerPassword;
 
-        @Required
+       
         public String searchBase;
 
-        @Required
+        
         public String searchFilter;
 
-        @Required
+       
         public String searchScope;
 
         @Required
@@ -387,7 +387,7 @@ public class LDAPsources extends ViprResourceController {
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
 
-            if (StringUtils.equals(AuthSourceType.ad.name(), mode)) {
+        	if (StringUtils.equals(AuthSourceType.ad.name(), mode) || StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
                 Validation.required(fieldName + ".groupAttribute", groupAttribute);
             }
             Validation.required(fieldName + ".domains", parseMultiLineInput(this.domains.get(0)));
@@ -396,6 +396,7 @@ public class LDAPsources extends ViprResourceController {
             if (isNew()) {
                 Validation.required(fieldName + ".managerPassword", this.managerPassword);
             }
+        	if (!StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
 
             if (StringUtils.lastIndexOf(this.searchFilter, "=") < 0) {
                 Validation.addError(fieldName + ".searchFilter",
@@ -411,6 +412,7 @@ public class LDAPsources extends ViprResourceController {
             }
 
             validateLDAPGroupProperties(fieldName);
+        	}
         }
 
         private void validateLDAPGroupProperties(String fieldName) {

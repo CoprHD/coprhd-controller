@@ -27,4 +27,9 @@ public class ObjectVirtualPoolBuilder extends VirtualPoolBuilder {
         virtualPool.setMaxRetention(maxRetention);
         return this;
     }
+    
+    public ObjectVirtualPoolBuilder setMinDataCenters(Integer minDataCenters) {
+        virtualPool.setMinDataCenters(minDataCenters);
+        return this;
+    }
 }

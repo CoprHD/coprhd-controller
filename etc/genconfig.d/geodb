@@ -10,16 +10,16 @@
 # it is provided by or on behalf of EMC.
 
 _get_geodbvar_props() {
-    _get_props vdc_myid node_id node_index
+    _get_props vdc_myid node_id node_index site_myid site_my_uuid back_compat_preyoda
 }
 
 _get_geodbconf_props() {
-    if [ -e "/data/db/no_db_encryption" ]; then
-        echo "geodb_encryption=dc"
-    else
+    if [ "${_GENCONFIG_back_compat_preyoda}" == "true" ]; then
         echo "geodb_encryption=all"
+    else
+        echo "geodb_encryption=none"
     fi
-    echo "dbclient_encrypt=false"
+
     echo "network_ipaddr_effective=${_GENCONFIG_network_ipaddr_effective}"
 
     for i in ${_GENCONFIG_node_indexes} ; do
@@ -34,15 +34,24 @@ _get_geodbconf_props() {
     if [ "${_GENCONFIG_vdc_myid}" != "${_GENCONFIG_vdc_ids}" ]; then
         local OLD_IFS="${IFS}"; IFS="${IFS},"
         for vdc in ${_GENCONFIG_vdc_ids}; do
-            local var="_GENCONFIG_vdc_${vdc}_node_count"
+            [ "${_GENCONFIG_vdc_myid}" == "${vdc}" ] && continue
             # we don't support standalone in multiple vdc
-            var="_GENCONFIG_vdc_${vdc}_network_1_ipaddr"
+            var="_GENCONFIG_vdc_${vdc}_site1_network_1_ipaddr"
             if [ -z "${!var}" ]; then
-                var="_GENCONFIG_vdc_${vdc}_network_1_ipaddr6"
+                var="_GENCONFIG_vdc_${vdc}_site1_network_1_ipaddr6"
             fi
             list+=" ${!var}"
         done
         IFS="${OLD_IFS}"
+    fi
+    # for standby sites, add the first node from primary site to the list as well
+    # TODO: add first node from other standby sites
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
+        var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_1_ipaddr"
+        if [ -z "${!var}" ]; then
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_1_ipaddr6"
+        fi
+        list+=" ${!var}"
     fi
     echo "vdc_seeds_ipaddr=$(echo $list | tr ' ' ',')"
 }
@@ -52,7 +61,13 @@ _get_geodb_jmx_props() {
 }
 
 _get_rackdc_props() {
-    echo "vdc_myid=${_GENCONFIG_vdc_myid}"
+    # always use vdc short id as cassandra dc name for first site
+    # in the vdc. in order to keep backward compatibility with geo
+    if [ "${_GENCONFIG_site_myid}" == "site1" ]; then
+        echo "vdc_myid=${_GENCONFIG_vdc_myid}"
+    else
+        echo "vdc_myid=${_GENCONFIG_site_my_uuid}"
+    fi
 }
 
 # _gen_template will generate properties based on *-template.xml, replace macro in *-template.*
@@ -60,4 +75,5 @@ _get_rackdc_props() {
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/geodb-var.xml               $(_get_geodbvar_props)
 _genconfig_exec _gen_template           /opt/storageos/conf/geodb-jmx-var.xml           $(_get_geodb_jmx_props)
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/geodb-conf.yaml             $(_get_geodbconf_props)
-_genconfig_exec _gen_template           /opt/storageos/conf/cassandra-rackdc.properties $(_get_rackdc_props)
+_genconfig_exec _gen_template           /opt/storageos/conf/cassandra-rackdc.properties $(_get_rackdc_props
+)

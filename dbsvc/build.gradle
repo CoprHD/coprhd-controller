@@ -1,5 +1,35 @@
 apply plugin: 'scripts'
 
+configurations {
+    springloaded
+    jamm
+    cliRuntime.extendsFrom(runtime)               // see below for rationale
+    cliRuntimeOnly.extendsFrom(runtimeOnly)       // see below for rationale
+}
+
+// Currently we ship 2 versions of the jline library: 1.0 (for cassandra 2.0.10) and 2.13 (for ZooKeeper 3.5).
+// By default gradle uses the 2.13 version when generating the service startup scripts, but the cassandra-cli
+// fails to start when jline 2.13 is in its classpath
+// 
+// To resolve this, we'll define special runtime configurations for the Cassandra CLI which use a resolution
+// strategy that forces the use of Jline 1.0, and then override the classpath element in the cassandraCli scripts
+// closure to force its script to be generated with the proper version.
+//
+// Note that: Cassandra doesn't depend on jline since 2.2, so this method should and need to be removed
+// after upgrading Cassandra to 2.2 or later version.
+
+configurations.cliRuntime {
+    resolutionStrategy {
+       force 'jline:jline:1.0'
+    }
+}
+
+configurations.cliRuntimeOnly {
+    resolutionStrategy {
+       force 'jline:jline:1.0'
+    }
+}
+
 scripts {
     dbsvc {
         mainClass = "com.emc.storageos.db.server.impl.Main"
@@ -11,12 +41,12 @@ scripts {
         jvmArgs += " -XX:+UseThreadPriorities -XX:ThreadPriorityPolicy=42 -Xss228k -XX:+UseParNewGC"+
                    " -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -XX:SurvivorRatio=8 -XX:MaxTenuringThreshold=1"+
                    " -XX:CMSInitiatingOccupancyFraction=75 -XX:+UseCMSInitiatingOccupancyOnly"+
-                   " -javaagent:${project.installDir}/lib/jamm-0.2.5.jar"
+                   " -javaagent:${project.installDir}/lib/jamm-0.3.0.jar"
         jvmArgs += " -DbuildType=" + buildType
 
         String p = project.rootDir
-       p += "/build/conf"
-       sourceSets.test.runtimeClasspath = files(p) + sourceSets.test.runtimeClasspath
+        p += "/build/conf"
+        sourceSets.test.runtimeClasspath = files(p) + sourceSets.test.runtimeClasspath
     }
 
     cassandraCli {
@@ -24,18 +54,16 @@ scripts {
         mainClass = "org.apache.cassandra.cli.CliMain"
         maxMemory = "256m"
         service = false
+        classpath = project.configurations.cliRuntime.allArtifacts.files +
+                    project.configurations.cliRuntime +
+                    project.configurations.cliRuntimeOnly
     }
     nodetool {
-        mainClass = "org.apache.cassandra.tools.NodeCmd"
+        mainClass = "org.apache.cassandra.tools.NodeTool"
         jvmArgs += " -Dstorage-config=${project.installDir}/conf"
         maxMemory = "32m"
         service = false
     }
-}
-
-configurations {
-    springloaded
-    jamm
 }
 
 dependencies {
@@ -45,11 +73,13 @@ dependencies {
     provided rootProject.toolsJar
     
     testCompile library(javassist),
-            rootProject.toolsJar
+            rootProject.toolsJar,
+            "org.mockito:mockito-all:1.9.5"
 
     runtimeOnly project(":com.emc.sa.model")
+    runtimeOnly "javax.inject:javax.inject:1"
     springloaded library(spring_loaded)
-    jamm "com.github.stephenc:jamm:0.2.5"
+    jamm "com.github.jbellis:jamm:0.3.0"
 }
 
 task dbScripts(type: Copy) {
@@ -157,12 +187,24 @@ task upgradeTests(type:Test, dependsOn:compileTestJava) {
 
     reports.junitXml.destination = file("${reporting.baseDir}/upgrade-tests")
     reports.html.destination = reports.junitXml.destination
-
+    
     include "com/emc/storageos/db/server/upgrade/**/*.class"
     exclude "com/emc/storageos/db/server/upgrade/impl/negative/**/*.class"
     exclude "com/emc/storageos/db/server/upgrade/impl/callback/AddFooToProjectTest.class"
     exclude "com/emc/storageos/db/server/upgrade/impl/callback/AddPrefixToProjectOwner.class"
 }
+
+task migrationTest(type:Test, dependsOn:compileTestJava) {
+    forkEvery = 1
+    maxHeapSize = '4096m'
+
+    reports.junitXml.destination = file("${reporting.baseDir}/upgrade-tests")
+    reports.html.destination = reports.junitXml.destination
+
+    exclude "com/emc/storageos/db/server/*.class"
+    include "com/emc/storageos/db/server/upgrade/impl/callback/YourMigrationTest.class"
+}
+
 testUsingJavassist(upgradeTests, [
     "com.emc.storageos.db.server.upgrade.impl.DbUpgradeTest",
 ])

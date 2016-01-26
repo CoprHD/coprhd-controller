@@ -19,7 +19,7 @@ _dbclient_props() {
 }
 
 _sa_props() {
-    _get_props node_id network_ipaddr_service network_vip_service
+    _get_props node_id network_ipaddr_service network_vip_service site_is_standby
 }
 
 _genconfig_exec _gen_template_cluster   /opt/storageos/portal/conf/application-var.conf $(_portal_props)

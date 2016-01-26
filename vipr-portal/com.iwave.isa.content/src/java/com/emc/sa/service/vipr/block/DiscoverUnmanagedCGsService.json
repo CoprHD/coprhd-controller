@@ -1,0 +1,14 @@
+{
+  baseKey:"DiscoverUnmanagedCGs.Block",
+  serviceId:"DiscoverUnmanagedCGs",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
+  fields:{
+    protectionSystems:{
+      type:"assetType.vipr.unmanagedBlockProtectionSystem",
+      select: "many",
+      lockable: true
+    }
+  }
+}

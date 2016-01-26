@@ -57,97 +57,97 @@ public class SyncInfoTest {
                                // ("squid:S1848 Suppress Sonar warning that created objects are never used. The constructor is called to set static fields")
         // tests getLeaderSyncInfo
         List<SoftwareVersion> localVersions = arrayToList(new String[] {
-                "storageos-1.0.0.0.r500", "storageos-1.0.0.0.r555", "storageos-1.0.0.1.r500" });
+                "vipr-1.0.0.0.r500", "vipr-1.0.0.0.r555", "vipr-1.0.0.1.r500" });
         List<SoftwareVersion> remoteVersions = arrayToList(new String[] {
-                "storageos-1.0.0.2.r500", "storageos-1.0.0.0.r555", "storageos-1.0.0.1.r500" });
+                "vipr-1.0.0.2.r500", "vipr-1.0.0.0.r555", "vipr-1.0.0.1.r500" });
 
         // invalid args
-        RepositoryInfo localState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.1.r500"),
+        RepositoryInfo localState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.1.r500"),
                 remoteVersions);
-        RepositoryInfo remoteState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.1.r500"),
+        RepositoryInfo remoteState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.1.r500"),
                 remoteVersions);
         Assert.assertTrue(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState).isEmpty());
 
         // test -1 - add 1, nothing to remove
-        remoteState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.0.r555"),
+        remoteState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.0.r555"),
                 remoteVersions);
-        localState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.0.r500"),
+        localState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.0.r500"),
                 localVersions);
         SyncInfo syncInfo = SyncInfoBuilder.getTargetSyncInfo(localState, remoteState);
         Assert.assertTrue(syncInfo.getToRemove().isEmpty());
-        Assert.assertEquals(arrayToList(new String[] { "storageos-1.0.0.2.r500" }), syncInfo.getToInstall());
+        Assert.assertEquals(arrayToList(new String[] { "vipr-1.0.0.2.r500" }), syncInfo.getToInstall());
 
         // test 2 - sync 1, remove 1
         localVersions = arrayToList(new String[] {
-                "storageos-1.0.0.0.r500", "storageos-1.0.0.0.r555", "storageos-1.0.0.1.r500" });
+                "vipr-1.0.0.0.r500", "vipr-1.0.0.0.r555", "vipr-1.0.0.1.r500" });
         remoteVersions = arrayToList(new String[] {
-                "storageos-1.0.0.1.r555", "storageos-1.0.0.0.r555", "storageos-1.0.0.1.r500" });
-        remoteState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.1.r500"),
+                "vipr-1.0.0.1.r555", "vipr-1.0.0.0.r555", "vipr-1.0.0.1.r500" });
+        remoteState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.1.r500"),
                 remoteVersions);
-        localState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.0.r555"),
+        localState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.0.r555"),
                 localVersions);
-        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "storageos-1.0.0.1.r555",
+        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "vipr-1.0.0.1.r555",
                 new String[] {});
 
         // test 3 - sync to remote current
         // phase - 1
         localVersions = arrayToList(new String[] {
-                "storageos-1.0.0.0.r500", "storageos-1.0.0.0.r555", "storageos-1.0.0.1.r500" });
+                "vipr-1.0.0.0.r500", "vipr-1.0.0.0.r555", "vipr-1.0.0.1.r500" });
         remoteVersions = arrayToList(new String[] {
-                "storageos-1.0.0.2.r555", "storageos-1.0.0.1.r500", "storageos-1.0.0.2.r500" });
-        remoteState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.2.r555"),
+                "vipr-1.0.0.2.r555", "vipr-1.0.0.1.r500", "vipr-1.0.0.2.r500" });
+        remoteState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.2.r555"),
                 remoteVersions);
-        localState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.1.r500"),
+        localState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.1.r500"),
                 localVersions);
-        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "storageos-1.0.0.2.r500",
+        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "vipr-1.0.0.2.r500",
                 new String[] {});
 
         // phase 2
         localVersions = arrayToList(new String[] {
-                "storageos-1.0.0.2.r500", "storageos-1.0.0.0.r555", "storageos-1.0.0.1.r500" });
+                "vipr-1.0.0.2.r500", "vipr-1.0.0.0.r555", "vipr-1.0.0.1.r500" });
         remoteVersions = arrayToList(new String[] {
-                "storageos-1.0.0.2.r555", "storageos-1.0.0.1.r500", "storageos-1.0.0.2.r500" });
-        remoteState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.2.r555"),
+                "vipr-1.0.0.2.r555", "vipr-1.0.0.1.r500", "vipr-1.0.0.2.r500" });
+        remoteState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.2.r555"),
                 remoteVersions);
-        localState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.1.r500"),
+        localState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.1.r500"),
                 localVersions);
-        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "storageos-1.0.0.2.r555",
+        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "vipr-1.0.0.2.r555",
                 new String[] {});
 
         // test 4 - complete disjoint , upgradable
         // phase 1
         localVersions = arrayToList(new String[] {
-                "storageos-1.0.0.0.r500", "storageos-1.0.0.0.r555", "storageos-1.0.0.0.r600" });
+                "vipr-1.0.0.0.r500", "vipr-1.0.0.0.r555", "vipr-1.0.0.0.r600" });
         remoteVersions = arrayToList(new String[] {
-                "storageos-1.0.0.0.r700", "storageos-1.0.0.0.r750", "storageos-1.0.0.0.r800" });
-        remoteState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.0.r800"),
+                "vipr-1.0.0.0.r700", "vipr-1.0.0.0.r750", "vipr-1.0.0.0.r800" });
+        remoteState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.0.r800"),
                 remoteVersions);
-        localState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.0.r500"),
+        localState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.0.r500"),
                 localVersions);
-        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "storageos-1.0.0.0.r700",
+        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "vipr-1.0.0.0.r700",
                 new String[] {});
         // phase 2
         localVersions = arrayToList(new String[] {
-                "storageos-1.0.0.0.r500", "storageos-1.0.0.0.r700", "storageos-1.0.0.0.r600" });
+                "vipr-1.0.0.0.r500", "vipr-1.0.0.0.r700", "vipr-1.0.0.0.r600" });
         remoteVersions = arrayToList(new String[] {
-                "storageos-1.0.0.0.r700", "storageos-1.0.0.0.r750", "storageos-1.0.0.0.r800" });
-        remoteState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.0.r800"),
+                "vipr-1.0.0.0.r700", "vipr-1.0.0.0.r750", "vipr-1.0.0.0.r800" });
+        remoteState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.0.r800"),
                 remoteVersions);
-        localState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.0.r500"),
+        localState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.0.r500"),
                 localVersions);
-        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "storageos-1.0.0.0.r750",
+        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "vipr-1.0.0.0.r750",
                 new String[] {});
 
         // phase 3 - nothing to do - no-deletable
         localVersions = arrayToList(new String[] {
-                "storageos-1.0.0.0.r500", "storageos-1.0.0.0.r700", "storageos-1.0.0.0.r750" });
+                "vipr-1.0.0.0.r500", "vipr-1.0.0.0.r700", "vipr-1.0.0.0.r750" });
         remoteVersions = arrayToList(new String[] {
-                "storageos-1.0.0.0.r700", "storageos-1.0.0.0.r750", "storageos-1.0.0.0.r800" });
-        remoteState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.0.r800"),
+                "vipr-1.0.0.0.r700", "vipr-1.0.0.0.r750", "vipr-1.0.0.0.r800" });
+        remoteState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.0.r800"),
                 remoteVersions);
-        localState = new RepositoryInfo(new SoftwareVersion("storageos-1.0.0.0.r500"),
+        localState = new RepositoryInfo(new SoftwareVersion("vipr-1.0.0.0.r500"),
                 localVersions);
-        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "storageos-1.0.0.0.r800",
+        verifyEqual(SyncInfoBuilder.getTargetSyncInfo(localState, remoteState), "vipr-1.0.0.0.r800",
                 new String[] {});
     }
 

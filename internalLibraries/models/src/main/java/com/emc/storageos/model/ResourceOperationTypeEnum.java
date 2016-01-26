@@ -47,7 +47,7 @@ public enum ResourceOperationTypeEnum {
     COMMIT_VOLUME_MIGRATION("COMMIT VOLUME MIGRATION", "commit volume migration"),
     ROLLBACK_COMMIT_VOLUME_MIGRATION("ROLLBAK COMMIT VOLUME MIGRATION", "rollback commit volume migration"),
     DELETE_MIGRATION_SOURCE_VOLUMES("DELETE MIGRATION SOURCE VOLUMES", "delete migration source volumes"),
-    PAUSE_MIGRATION("PAUSE MIGRATION", "puase migration"),
+    PAUSE_MIGRATION("PAUSE MIGRATION", "pause migration"),
     RESUME_MIGRATION("RESUME MIGRATION", "resume migration"),
     CANCEL_MIGRATION("CANCEL MIGRATION", "cancel migration"),
     DELETE_MIGRATION("DELETE MIGRATION", "delete migration"),
@@ -63,7 +63,8 @@ public enum ResourceOperationTypeEnum {
     RESTORE_VOLUME_FULL_COPY("RESTORE VOLUME FULL COPY", "restore a volume from a full copy"),
     RESTORE_CONSISTENCY_GROUP_FULL_COPY("RESTORE CONSISTENCY GROUP FULL COPY", "restore a consistency group from a full copy"),
     RESYNCHRONIZE_VOLUME_FULL_COPY("RESYNCHRONIZE VOLUME FULL COPY", "resynchronize a full copy from its source"),
-    RESYNCHRONIZE_CONSISTENCY_GROUP_FULL_COPY("RESYNCHRONIZE CONSISTENCY GROUP FULL COPY", "resynchronize full copies from a consistency group"),
+    RESYNCHRONIZE_CONSISTENCY_GROUP_FULL_COPY("RESYNCHRONIZE CONSISTENCY GROUP FULL COPY",
+            "resynchronize full copies from a consistency group"),
     ESTABLISH_VOLUME_FULL_COPY("ESTABLISH VOLUME FULL COPY GROUP", "establish group relation between volume group and full copy group"),
     CREATE_VOLUME_SNAPSHOT("CREATE VOLUME SNAPSHOT", "create a volume snapshot"),
     ASSIGN_VOLUME_TAG("ASSIGN VOLUME TAG", "tag a volume"),
@@ -74,6 +75,8 @@ public enum ResourceOperationTypeEnum {
     DEACTIVATE_VOLUME_SNAPSHOT("DEACTIVATE VOLUME SNAPSHOT", "deactivate volume snapshot"),
     ESTABLISH_VOLUME_SNAPSHOT("ESTABLISH VOLUME SNAPSHOT GROUP", "establish group relation between volume group and snapshot group"),
     ASSIGN_VOLUME_SNAPSHOT_TAG("TAG VOLUME SNAPSHOT", "tag a volume snapshot"),
+    CREATE_VOLUME_GROUP_FULL_COPY("CREATE VOLUME GROUP FULL COPY", "create a volume group full copy"),
+    DETACH_VOLUME_GROUP_FULL_COPY("DETACH VOLUME GROUP FULL COPY", "detach a volume group full copy"),
     CREATE_EXPORT_GROUP("CREATE EXPORT GROUP", "create export group operation"),
     DELETE_EXPORT_GROUP("DELETE EXPORT GROUP", "delete export group operation"),
     ADD_EXPORT_VOLUME("ADD VOLUME TO EXPORT GROUP", "add volume to export group"),
@@ -107,6 +110,8 @@ public enum ResourceOperationTypeEnum {
     UPDATE_BUCKET("UPDATE BUCKET", "update bucket operation"),
     DELETE_BUCKET("DELETE BUCKET", "delete bucket operation"),
     CREATE_BUCKET("CREATE BUCKET", "create bucket operation"),
+    UPDATE_BUCKET_ACL("UPDATE BUCKET ACL", "update bucket ACL operation"),
+    DELETE_BUCKET_ACL("DELETE BUCKET ACL", "delete bucket ACL operation"),
 
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "tag a filesystem"),
     DELETE_FILE_SNAPSHOT("DELETE FILESYSTEM SNAPSHOT", "delete filesystem snapshot"),
@@ -284,6 +289,7 @@ public enum ResourceOperationTypeEnum {
     REMOVE_VDC("REMOVE VDC", "remove a VDC from ViPR"),
     DISCONNECT_VDC("DISCONNECT VDC", "temporarily disconnect a VDC from ViPR"),
     RECONNECT_VDC("RECONNECT VDC", "reconnect a VDC to ViPR"),
+    REBUILD_SET_TRANSFER_SPEED("REBUILD_SET_TRANSFER_SPEED", "Rebuild Set Transfer Speed"),
     UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED("UPGRADE VPLEX LOCAL TO DISTRIBUTED", "Upgrade a VPLEX local volume to distributed"),
     WAIT_ON_VPLEX_VOLUME_REBUILD("WAIT ON VPLEX VOLUME REBUILD", "Wait on VPLEX volume rebuild"),
     ADD_ALIAS("ADD ALIAS", "add one or more aliases"),
@@ -297,7 +303,14 @@ public enum ResourceOperationTypeEnum {
     SYS_EVENT("SYSTEM EVENT", "System Event"),
     CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER", "Create and verify a compute image server"),
     UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "Update and verify a compute image server"),
-    CREATE_VPLEX_VOLUME_FROM_SNAPSHOT("CREATE VPLEX VOLUME FROM SNAPSHOT", "Create a VPLEX volume on top of a block snapshot target volume");
+    CREATE_VPLEX_VOLUME_FROM_SNAPSHOT("CREATE VPLEX VOLUME FROM SNAPSHOT", "Create a VPLEX volume on top of a block snapshot target volume"),
+    UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "Update a volume group"),
+    CREATE_SNAPSHOT_SESSION("CREATE SNAPSHOT SESSION", "create a snapshot session"),
+    LINK_SNAPSHOT_SESSION_TARGETS("LINK SNAPSHOT SESSION TARGETS", "links target volumes to a snapshot session"),
+    RELINK_SNAPSHOT_SESSION_TARGETS("RELINK SNAPSHOT SESSION TARGETS", "re-links target volumes to a snapshot session"),
+    UNLINK_SNAPSHOT_SESSION_TARGETS("UNLINK SNAPSHOT SESSION TARGETS", "unlinks target volumes from a snapshot session"),
+    RESTORE_SNAPSHOT_SESSION("RESTORE SNAPSHOT SESSION", "restore source from snapshot session"),
+    DELETE_SNAPSHOT_SESSION("DELETE SNAPSHOT SESSION", "delete snapshot session");
 
     private final String name;
     private final String description;

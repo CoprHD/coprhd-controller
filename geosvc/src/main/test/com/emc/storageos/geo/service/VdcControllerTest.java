@@ -869,7 +869,7 @@ public class VdcControllerTest {
             return ClusterInfo.ClusterState.STABLE;
         }
 
-        public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+        public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException {
             if (RepositoryInfo.class.equals(clazz)) {
                 SoftwareVersion current = new SoftwareVersion("vipr-2.3.0.0.100");
                 List<SoftwareVersion> versions = new ArrayList<SoftwareVersion>();

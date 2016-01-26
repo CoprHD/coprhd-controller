@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
 import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
 
 /**
@@ -65,7 +66,6 @@ public class CustomConnectionPoolMonitor extends CountingConnectionPoolMonitor {
                 }
                 prevOpFailureCount.set(getOperationFailureCount());
                 prevOpSuccessCount.set(getOperationSuccessCount());
-
             }
         }, 60, _monitorIntervalSeconds, TimeUnit.SECONDS);
     }
@@ -73,4 +73,6 @@ public class CustomConnectionPoolMonitor extends CountingConnectionPoolMonitor {
     private String dumpStats() {
         return super.toString();
     }
+    
+    
 }

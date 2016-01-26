@@ -61,12 +61,11 @@ public class TrustStoreLoader {
         InterProcessLock tsLock = null;
 
         try {
-
             /*
              * the lock and version check to make sure, within one vdc only one service which uses truststore (like authsvc)
              * fill up zk truststore at same time.
              */
-            log.info("To load the trust store, trying to get the lock: {} ", CA_CERTS_LOCK);
+            log.info("Loading the builtin trust store ...");
             tsLock = coordHelper.acquireLock(CA_CERTS_LOCK);
 
             if (compareTrustStoreVersion()) { // same version in zk and local
@@ -79,6 +78,7 @@ public class TrustStoreLoader {
 
             addVersionInZK();
 
+            log.info("Loaded the builtin trust store successfully");
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {

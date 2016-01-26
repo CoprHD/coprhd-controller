@@ -27,6 +27,7 @@ public class UnmanagedHelper {
     public static final String IS_FULL_COPY = "IS_FULL_COPY";
     public static final String IS_LOCAL_MIRROR = "IS_LOCAL_MIRROR";
     public static final String IS_VOLUME_EXPORTED = "IS_VOLUME_EXPORTED";
+    public static final String IS_NONRP_EXPORTED = "IS_NONRP_EXPORTED";
 
     public static Set<URI> getVpoolsForUnmanaged(List<StringHashMapEntry> characteristicsEntries,
             List<String> supportedVPoolUris) {
@@ -54,6 +55,10 @@ public class UnmanagedHelper {
         return getValue(characteristicsEntries, IS_VOLUME_EXPORTED, true);
     }
 
+    public static boolean isNonRPExported(List<StringHashMapEntry> characteristicsEntries) {
+        return getValue(characteristicsEntries, IS_NONRP_EXPORTED, true);
+    }
+    
     public static boolean isMirror(List<StringHashMapEntry> characteristicsEntries) {
         return getValue(characteristicsEntries, IS_LOCAL_MIRROR, true);
     }

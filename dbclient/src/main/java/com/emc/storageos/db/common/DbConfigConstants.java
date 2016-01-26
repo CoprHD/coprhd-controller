@@ -48,4 +48,13 @@ public abstract class DbConfigConstants {
     public static final Integer DEFUALT_NUM_TOKENS = 16;
     public static final String DEFAULT_VDC_DB_VERSION = "2.2";
     public static final String VERSION_PART_SEPERATOR = ".";
+
+    // Timestamp for the last data sync with the acitve site
+    public static final String LAST_DATA_SYNC_TIME = "lastDataSyncTime";
+
+    // Default GC grace period
+    public static final int DEFAULT_GC_GRACE_PERIOD = 5 * 24 * 60 * 60; // 5 days, in seconds
+    
+    public static final String DB_SCHEMA_LOCK = "dbschema";
+    public static final String GEODB_SCHEMA_LOCK = "geodbschema";
 }

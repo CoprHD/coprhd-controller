@@ -34,7 +34,8 @@ public class CollectorFactory {
                 result = new AllStorageSyncsInCGCollector(dbClient, utils);
             }
         } else {
-            if (SRDFOperations.Mode.ASYNCHRONOUS.toString().equalsIgnoreCase(target.getSrdfCopyMode())) {
+            if (SRDFOperations.Mode.ASYNCHRONOUS.toString().equalsIgnoreCase(target.getSrdfCopyMode()) ||
+                    SRDFOperations.Mode.ACTIVE.toString().equalsIgnoreCase(target.getSrdfCopyMode())) {
                 result = new AllStorageSyncsInRDFGroupCollector(dbClient, utils);
             } else {
                 result = new StorageSynchronizedCollector(dbClient, utils);

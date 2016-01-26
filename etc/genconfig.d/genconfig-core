@@ -208,3 +208,61 @@ _gen_ssh_authkeys2() {
     _genconfig_write 400 ${user}:${group} "${authkeys_filename}" "${val}"
     _genconfig_done
 }
+
+# This method returns the configured ip address of this machine
+_get_local_ip() {
+    local nodeid="${_GENCONFIG_node_id}"
+    local nodenum=${nodeid#vipr}
+    local var="_GENCONFIG_network_${nodenum}_ipaddr"
+    local var6="_GENCONFIG_network_${nodenum}_ipaddr6"
+    local ipaddr="${!var}"
+    [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
+    echo "${ipaddr}"
+}
+
+# get ips for a specified site
+# input:
+#    $1 - vdc id
+#    $2 - site id
+_get_ips_in_specified_site() {
+    local vdc_id=$1
+    local site_id=$2
+    local ips=""
+    local var=""
+    local var6=""
+
+    var="_GENCONFIG_vdc_${vdc_id}_${site_id}_node_count"
+    local node_cnt="${!var}"
+    for i in $(seq 1 ${node_cnt}); do
+        # ips of local site should based on network_{i}_ipaddr properties, instead of properties started
+        # with vdc.  this is because in ip change use case, "vdc_*" properties was not updated with the
+        # new ip during first boot.
+        if [ "${vdc_id}" == "${_GENCONFIG_vdc_myid}" ] && [ "${site_id}" == "${_GENCONFIG_site_myid}" ] ; then
+            var="_GENCONFIG_network_${i}_ipaddr"
+            var6="_GENCONFIG_network_${i}_ipaddr6"
+        else
+            var="_GENCONFIG_vdc_${vdc_id}_${site_id}_network_${i}_ipaddr"
+            var6="_GENCONFIG_vdc_${vdc_id}_${site_id}_network_${i}_ipaddr6"
+        fi
+        local ipaddr="${!var}"
+        # remove ipv6's brackets, if had.
+        ipaddr=$(echo ${ipaddr} | sed -e 's/^\[//' -e 's/\]$//')
+        [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
+        ips="${ips} ${ipaddr}"
+    done
+
+    echo "$ips"
+}
+
+
+# get ips list of all nodes in the vdc, vip(s) not included
+_get_all_nodes_in_my_vdc() {
+    local all_nodes=""
+
+    local site_ids=$(echo ${_GENCONFIG_site_ids} | sed 's/,/ /g')
+    for site in ${site_ids} ; do
+        all_nodes+=$(_get_ips_in_specified_site "${_GENCONFIG_vdc_myid}" "${site}")
+    done
+
+    echo "${all_nodes}"
+}

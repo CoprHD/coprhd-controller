@@ -461,7 +461,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         Map<String, LocalReplicaObject> unManagedVolToLocalReplicaMap = new HashMap<String, LocalReplicaObject>();
         _keyMap.put(Constants.UN_VOLUME_LOCAL_REPLICA_MAP, unManagedVolToLocalReplicaMap);
 
-        Map<String, String> snapshotToSynchronizationAspectMap = new HashMap<String, String>();
+        Map<String, Map<String, String>> snapshotToSynchronizationAspectMap = new HashMap<String, Map<String, String>>();
         _keyMap.put(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP, snapshotToSynchronizationAspectMap);
     }
 

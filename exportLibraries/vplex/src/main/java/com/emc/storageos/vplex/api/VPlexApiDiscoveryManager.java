@@ -3842,18 +3842,22 @@ public class VPlexApiDiscoveryManager {
         int status = response.getStatus();
         response.close();
 
-        if (status != VPlexApiConstants.SUCCESS_STATUS) {
-            throw VPlexApiException.exceptions.failedGettingDeviceStructure(String.valueOf(status));
-        }
-
-        // Successful Response
-        List<VPlexDeviceInfo> deviceInfoList =
-                VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
-                        responseStr, VPlexDeviceInfo.class);
-
         Map<String, String> distributedDevicePathToClusterMap = new HashMap<String, String>();
-        for (VPlexDeviceInfo device : deviceInfoList) {
-            distributedDevicePathToClusterMap.put(device.getPath(), device.getCluster());
+
+        if (status == VPlexApiConstants.SUCCESS_STATUS) {
+            // Successful Response
+            List<VPlexDeviceInfo> deviceInfoList =
+                    VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                            responseStr, VPlexDeviceInfo.class);
+
+            for (VPlexDeviceInfo device : deviceInfoList) {
+                distributedDevicePathToClusterMap.put(device.getPath(), device.getCluster());
+            }
+        } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
+            // return an empty list (at the end of this method) rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
+        } else {
+            throw VPlexApiException.exceptions.failedGettingDeviceStructure(String.valueOf(status));
         }
 
         s_logger.info("TIMER: getDistributedDevicePathToClusterMap took {}ms",

@@ -43,16 +43,19 @@ public class Backup extends Controller {
     protected static final String DELETED_SUCCESS = "backup.delete.success";
     protected static final String DELETED_ERROR = "backup.delete.error";
 
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void list() {
         BackupDataTable dataTable = new BackupDataTable();
         render(dataTable);
     }
 
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void listJson() {
         List<BackupDataTable.Backup> backups = BackupDataTable.fetch();
         renderJSON(DataTablesSupport.createJSON(backups, params));
     }
 
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void itemsJson(@As(",") String[] ids) {
     	  List<BackupDataTable.Backup> results = Lists.newArrayList();
           if (ids != null && ids.length > 0) {
@@ -77,7 +80,10 @@ public class Backup extends Controller {
     }
 
     @FlashException(keep = true, referrer = { "create" })
-    public static void save(@Valid BackupForm backupForm) {
+    public static void save() {
+        BackupForm backupForm = new BackupForm();
+        backupForm.name = params.get("backupForm.name");
+        backupForm.force = params.get("backupForm.force", boolean.class);
         backupForm.validate("name");
         if (Validation.hasErrors()) {
             Common.handleError();
@@ -117,6 +123,7 @@ public class Backup extends Controller {
             list();
     }
     
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void getUploadStatus(String id) {
             BackupUploadStatus status = BackupUtils.getUploadStatus(id);
             renderJSON(status);

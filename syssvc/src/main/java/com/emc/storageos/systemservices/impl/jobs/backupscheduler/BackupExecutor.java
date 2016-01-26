@@ -8,8 +8,10 @@ import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
-
 import com.emc.storageos.services.util.Strings;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +36,7 @@ public class BackupExecutor {
         this.cli = cli;
     }
 
-    public void runOnce() throws Exception {
+    public void create() throws Exception {
         if (this.cfg.schedulerEnabled) {
             try (AutoCloseable lock = this.cfg.lock()) {
                 this.cfg.reload();
@@ -46,9 +48,6 @@ public class BackupExecutor {
                 if (shouldDoBackup()) {
                     doBackup();
                 }
-
-                log.info("Start to delete expired backups");
-                deleteExpiredBackups();
             } catch (Exception e) {
                 log.error("Fail to run schedule backup", e);
             }
@@ -88,8 +87,8 @@ public class BackupExecutor {
                 ScheduledBackupTag.toTimestamp(nowDate),
                 ScheduledBackupTag.toTimestamp(expected));
 
-        // if now is before target time && this is NOT first backup
-        if (nowDate.before(expected) && !this.cfg.retainedBackups.isEmpty()) {
+        // if now is before target time
+        if (nowDate.before(expected)) {
             return false;
         }
 
@@ -100,7 +99,9 @@ public class BackupExecutor {
                 ScheduledBackupTag.toTimestamp(lastBackupDateTime),
                 ScheduledBackupTag.toTimestamp(expected));
 
-        if (lastBackupDateTime != null && curTimeRange.contains(lastBackupDateTime)) {
+        // If current time range already has one backup which was created at or after the expected time,
+        // no need create again. This check could avoid repeated creation while also considered reconfigure scenario.
+        if (lastBackupDateTime != null && curTimeRange.contains(lastBackupDateTime) && !lastBackupDateTime.before(expected)) {
             return false;
         }
 
@@ -129,10 +130,8 @@ public class BackupExecutor {
                 this.cfg.retainedBackups.add(tag);
                 this.cfg.persist();
 
-                descParams = this.cli.getDescParams(tag);
-                this.cli.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
                 return;
-            } catch (BackupException e) {
+            } catch (InternalServerErrorException e) {
                 lastException = e;
                 log.error(String.format("Exception when creating backup %s (retry #%d)",
                         tag, retryCount), e);
@@ -146,10 +145,19 @@ public class BackupExecutor {
         }
 
         if (lastException != null) {
-            descParams = this.cli.getDescParams(tag);
-            descParams.add(lastException.getLocalizedMessage());
-            this.cli.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             this.cfg.sendBackupFailureToRoot(tag, lastException.getMessage());
+        }
+    }
+
+    public void reclaim() throws Exception {
+        if (this.cfg.schedulerEnabled) {
+            try (AutoCloseable lock = this.cfg.lock()) {
+                this.cfg.reload();
+                log.info("Start to delete expired backups");
+                deleteExpiredBackups();
+            } catch (Exception e) {
+                log.error("Fail to run schedule backup", e);
+            }
         }
     }
 
@@ -157,7 +165,7 @@ public class BackupExecutor {
         // Remove out-of-date backup tags from master list
         if (this.cfg.retainedBackups.size() > this.cfg.copiesToKeep) {
             log.info("Found backups {} in retain list, keeping last {}",
-                    Strings.join(",", this.cfg.retainedBackups.toArray(new String[this.cfg.retainedBackups.size()])),
+                    StringUtils.join(this.cfg.retainedBackups, ','),
                     this.cfg.copiesToKeep);
             do {
                 this.cfg.retainedBackups.remove(this.cfg.retainedBackups.first());
@@ -173,7 +181,7 @@ public class BackupExecutor {
             if (!this.cfg.retainedBackups.contains(tag)) {
                 try {
                     this.cli.deleteBackup(tag);
-                } catch (BackupException e) {
+                } catch (InternalServerErrorException e) {
                     log.error("Failed to delete scheduled backup from cluster", e);
                 }
             }

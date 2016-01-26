@@ -8,7 +8,9 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.*;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueTaskConsumer;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
@@ -18,6 +20,7 @@ import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.ClusterInfo;
+
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -37,7 +40,7 @@ import static com.emc.storageos.coordinator.client.model.Constants.*;
 /**
  * Dummy coordinator client for use with dbsvc unit tests
  */
-public class StubCoordinatorClientImpl implements CoordinatorClient {
+public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     private final Service _dbinfo;
     private DbVersionInfo dbVersionInfo;
     private CoordinatorClientInetAddressMap inetAddessLookupMap;
@@ -288,6 +291,11 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
+        return null;
+    }
+
+    @Override
     public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception {
         throw new UnsupportedOperationException();
@@ -300,7 +308,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> void persistRuntimeState(String key, T state) throws CoordinatorException {
-        throw new UnsupportedOperationException();
+        return;
     }
 
     @Override
@@ -310,13 +318,18 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
     @Override
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
+        
+    }
+    
+    @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
-            throws Exception {
+            throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
@@ -417,9 +430,54 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
         String targetVersion = getTargetDbSchemaVersion();
         return !(currentVersion.equals(targetVersion));
     }
+    
+    @Override
+    public String getSiteId() {
+    	return "testsiteid";
+    }
 
     @Override
+    public void addSite(String siteId) {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
     public void removeRuntimeState(String key) throws CoordinatorException {
-        return;
+    }
+    
+    @Override
+    public InterProcessLock getSiteLocalLock(String name) throws CoordinatorException {
+        return this.getLock(name);
+    }
+
+    @Override
+    public void removeServiceConfiguration(String siteId, Configuration... configs) throws CoordinatorException {
+        this.removeServiceConfiguration(configs);
+    }
+
+    @Override
+    public List<Configuration> queryAllConfiguration(String siteId, String kind) throws CoordinatorException {
+        return this.queryAllConfiguration(kind);
+    }
+
+    @Override
+    public void persistServiceConfiguration(String siteId, Configuration... configs) throws CoordinatorException {
+        this.persistServiceConfiguration(configs);
+    }
+
+    @Override
+    public List<Service> locateAllServices(String siteId, String name, String version, String tag, String endpointKey)
+            throws CoordinatorException {
+        return this.locateAllServices(name, version, tag, endpointKey);
+    }
+
+    @Override
+    public Configuration queryConfiguration(String siteId, String kind, String id) throws CoordinatorException {
+        return this.queryConfiguration(kind, id);
+    }
+
+    @Override
+    public void setTargetInfo(String siteId, CoordinatorSerializable info) throws CoordinatorException {
+        this.setTargetInfo(info);
     }
 }

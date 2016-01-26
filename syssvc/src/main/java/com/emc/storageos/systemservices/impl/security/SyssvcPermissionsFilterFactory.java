@@ -28,7 +28,7 @@ import java.util.Set;
  * Class implements ResourceFilterFactory to add permissions filter where needed
  */
 public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFactory {
-    private static final List<String> FORBBIDEN_PATHS = Arrays.asList("backupset", "control/cluster/recovery");
+    private static final List<String> FORBIDDEN_PATHS = Arrays.asList("backupset", "control/cluster/recovery");
     private BasePermissionsHelper _permissionsHelper;
 
     @Autowired(required = false)
@@ -150,7 +150,7 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
         }
 
         private boolean isPathForbidden(String path) {
-            for (String forbid : FORBBIDEN_PATHS) {
+            for (String forbid : FORBIDDEN_PATHS) {
                 if (path.startsWith(forbid)) {
                     return true;
                 }

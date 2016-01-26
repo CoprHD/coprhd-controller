@@ -49,5 +49,8 @@ public interface ECSExceptions {
 
     @DeclareServiceCode(ServiceCode.ECS_BUCKET_GET_OWNER_ERROR)
     public ECSException getBucketOwnerFailed(final String bucketName, final String info);
+    
+    @DeclareServiceCode(ServiceCode.ECS_BUCKET_ACL_ERROR)
+    public ECSException bucketACLUpdateFailed(final String bucketName, final String message);
 
 }

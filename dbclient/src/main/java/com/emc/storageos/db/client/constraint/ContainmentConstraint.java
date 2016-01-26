@@ -764,7 +764,7 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(id, ExportGroup.class, field);
     }
         
-        public static ContainmentConstraint getStorageDeviceECSNamespaceConstraint(URI device) {
+        public static ContainmentConstraint getStorageDeviceObjectNamespaceConstraint(URI device) {
             DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
             ColumnField field = doType.getColumnField(STORAGE_DEVICE);
             return new ContainmentConstraintImpl(device, ObjectNamespace.class, field);

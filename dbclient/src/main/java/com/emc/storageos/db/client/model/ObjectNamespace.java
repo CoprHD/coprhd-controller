@@ -13,7 +13,7 @@ import com.emc.storageos.model.valid.EnumType;
  * Object storage namespace configuration
  * 
  * This class extends DiscoveredDataObject and not TenantResource. 
- * There are different ECS Replication Groups that can be allowed or disallowed with namespace. 
+ * There are different Object Replication Groups that can be allowed or disallowed with namespace. 
  * RG can be dynamically changed. Fields are discovered/rediscovered to keep up to date.
  * Hence its better to derive from DiscoveredDataObject  
  */
@@ -40,7 +40,7 @@ public class ObjectNamespace extends DiscoveredDataObject {
     // Allowed or not-allowed storage pools (ECS replication groups). Its mutually exclusive
     private StringSet _storagePools;      
 
-    // Namespace visible or deleted in ECS
+    // Namespace visible or deleted in Object storage
     private String _discoveryStatus;
     
     public enum OBJ_StoragePool_Type {

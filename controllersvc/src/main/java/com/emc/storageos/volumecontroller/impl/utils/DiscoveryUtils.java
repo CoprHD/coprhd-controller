@@ -732,7 +732,7 @@ public class DiscoveryUtils {
     }
 
     /**
-     * Dump & remove deleted namespaces in ECS
+     * Dump & remove deleted namespaces in object storage
      * 
      * @param discoveredNamespaces
      * @param dbClient
@@ -741,15 +741,15 @@ public class DiscoveryUtils {
     public static void checkNamespacesNotVisible(List<ObjectNamespace> discoveredNamespaces,
             DbClient dbClient, URI storageSystemId) {
         // Get the namespaces previousy discovered
-        URIQueryResultList ECSNamespaceURIs = new URIQueryResultList();
+        URIQueryResultList objNamespaceURIs = new URIQueryResultList();
         dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceECSNamespaceConstraint(storageSystemId),
-                ECSNamespaceURIs);
-        Iterator<URI> ECSNamespaceIter = ECSNamespaceURIs.iterator();
+                ContainmentConstraint.Factory.getStorageDeviceObjectNamespaceConstraint(storageSystemId),
+                objNamespaceURIs);
+        Iterator<URI> objNamespaceIter = objNamespaceURIs.iterator();
 
         List<URI> existingNamespacesURI = new ArrayList<URI>();
-        while (ECSNamespaceIter.hasNext()) {
-            existingNamespacesURI.add(ECSNamespaceIter.next());
+        while (objNamespaceIter.hasNext()) {
+            existingNamespacesURI.add(objNamespaceIter.next());
         }
 
         List<URI> discoveredNamespacesURI = new ArrayList<URI>();
@@ -761,10 +761,10 @@ public class DiscoveryUtils {
         Set<URI> namespacesDiff = Sets.difference(new HashSet<URI>(existingNamespacesURI), new HashSet<URI>(discoveredNamespacesURI));
 
         if (!namespacesDiff.isEmpty()) {
-            Iterator<ObjectNamespace> ECSNamespaceIt = dbClient.queryIterativeObjects(ObjectNamespace.class, namespacesDiff, true);
-            while (ECSNamespaceIt.hasNext()) {
-                ObjectNamespace namespace = ECSNamespaceIt.next();
-                _log.info("ECS Namespace deleted {} : {}", namespace.getNativeId(), namespace.getId());
+            Iterator<ObjectNamespace> objNamespaceIt = dbClient.queryIterativeObjects(ObjectNamespace.class, namespacesDiff, true);
+            while (objNamespaceIt.hasNext()) {
+                ObjectNamespace namespace = objNamespaceIt.next();
+                _log.info("Object Namespace deleted {} : {}", namespace.getNativeId(), namespace.getId());
                 namespace.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
                 namespace.setInactive(true);
                 dbClient.updateObject(namespace);

@@ -1215,21 +1215,21 @@ public class StorageSystemService extends TaskResourceService {
         StorageSystem system = queryResource(id);
         ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
 
-        ObjectNamespaceList ecsNamespaceList = new ObjectNamespaceList();
-        URIQueryResultList ecsNamespaceURIs = new URIQueryResultList();
+        ObjectNamespaceList objNamespaceList = new ObjectNamespaceList();
+        URIQueryResultList objNamespaceURIs = new URIQueryResultList();
         _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceECSNamespaceConstraint(id),
-                ecsNamespaceURIs);
-        Iterator<URI> ecsNsIter = ecsNamespaceURIs.iterator();
+                ContainmentConstraint.Factory.getStorageDeviceObjectNamespaceConstraint(id),
+                objNamespaceURIs);
+        Iterator<URI> ecsNsIter = objNamespaceURIs.iterator();
         while (ecsNsIter.hasNext()) {
             URI nsURI = ecsNsIter.next();
             ObjectNamespace namespace = _dbClient.queryObject(ObjectNamespace.class,
                     nsURI);
             if (namespace != null && !namespace.getInactive()) {
-                ecsNamespaceList.getNamespaces().add(toNamedRelatedResource(namespace, namespace.getNativeGuid()));
+                objNamespaceList.getNamespaces().add(toNamedRelatedResource(namespace, namespace.getNativeGuid()));
             }
         }
-        return ecsNamespaceList;
+        return objNamespaceList;
     }
     
     /**
@@ -1261,6 +1261,14 @@ public class StorageSystemService extends TaskResourceService {
         return StoragePoolService.toStoragePoolRep(storagePool, _dbClient, _coordinator);
     }
 
+    /**
+     * Get details of the object namespace associated with a particular storage system
+     * 
+     * @param id storage system URN ID
+     * @param nsId namepace id 
+     * @return details of namespace
+     */
+    
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/object-namespaces/{nsId}")

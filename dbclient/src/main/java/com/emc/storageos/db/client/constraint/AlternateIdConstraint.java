@@ -668,7 +668,7 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("sessionInstance"), sessionInstance);
         }
 
-        public static AlternateIdConstraint getECSNamespaceByNativeGuidConstraint(String nativeGuid) {
+        public static AlternateIdConstraint getObjectNamespaceByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }

@@ -332,7 +332,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
                 URIQueryResultList uriQueryList = new URIQueryResultList();
                 _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                        getECSNamespaceByNativeGuidConstraint(nsNativeGuid), uriQueryList);
+                        getObjectNamespaceByNativeGuidConstraint(nsNativeGuid), uriQueryList);
 
                 // Even if the namespace GUID is duplicated, URI-storageSystemId is unique
                 Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, uriQueryList);

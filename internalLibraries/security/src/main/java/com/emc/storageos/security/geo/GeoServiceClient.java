@@ -73,6 +73,7 @@ public class GeoServiceClient extends BaseServiceClient {
     public static final String VDCCONFIG_RESET_BLACKLIST = VDCCONFIG_URI + "/resetblacklist";
     public static final String INTERVDC_IPSEC_SERVICE = INTERVDC_URI + "/ipsec";
     public static final String INTERVDC_IPSEC_KEY_ROTATION_URI = INTERVDC_IPSEC_SERVICE + "/key";
+    public static final String INTERVDC_IPSEC_PROPERTIES_URI = INTERVDC_IPSEC_SERVICE + "/properties";
 
     public static final int MAX_RETRIES = 12;
 
@@ -662,6 +663,22 @@ public class GeoServiceClient extends BaseServiceClient {
             throw e;
         } catch (Exception e) {
             throw GeoException.fatals.failedToSedPostCheckRequest(peerVdcId, e);
+        }
+    }
+
+    /**
+     * retrieve ipsec related properties from remote vdc.
+     */
+    public VdcIpsecPropertiesResponse getIpsecProperties() {
+        WebResource rRoot = createRequest(INTERVDC_IPSEC_PROPERTIES_URI);
+        try {
+            return addSignature(rRoot).accept(MediaType.APPLICATION_XML).get(VdcIpsecPropertiesResponse.class);
+        } catch (UnauthorizedException e) {
+            throw GeoException.fatals.unableConnect(endPoint, e);
+        } catch (GeoException e) {
+            throw e;
+        } catch (Exception e) {
+            throw GeoException.fatals.unableConnect(endPoint, e);
         }
     }
 }

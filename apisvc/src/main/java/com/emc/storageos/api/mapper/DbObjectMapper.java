@@ -285,7 +285,10 @@ public class DbObjectMapper {
             }
             rep.setParents(parents);
         }
+        rep.setSourceStorageSystem(from.getSourceStorageSystem());
+        rep.setSourceVirtualPool(from.getSourceVirtualPool());
+        rep.setMigrationGroupBy(from.getMigrationGroupBy());
+        rep.setMigrationType(from.getMigrationType());
         return rep;
     }
-
 }

@@ -50,21 +50,29 @@ public class VplexBackendVolumesToSeparateMasksStrategy implements VPlexBackendP
     @Override
     public void execute() {
         // https://coprhd.atlassian.net/browse/COP-19956
-        // Examine the placement descriptor and see if it shows that the same volumes are being placed
-        // against different ExportMasks, but these ExportMasks point to the same VPlex cluster. If so,
-        // we want to place the volume into a single ExportMask instead.
+        // TL;DR: Examine the placement descriptor and see if it shows that the same volumes are being placed
+        // against different ExportMasks. If so, we want to place the volume into a single ExportMask instead.
+        //
+        // This code path runs after we have called into the backend array masking orchestration to suggest
+        // viable ExportMasks for volume placement. The ExportMasks should also have been validated and so we
+        // know that they are for a single VPlex cluster and are good to use. But it is possible that the
+        // ExportMasks that are suggested contain non-overlapping initiators, but point to the same VPlex
+        // cluster. In this situation, we are presented with a placement descriptor that says to place the
+        // volume in multiple ExportMasks. It would seem to make sense, looking at it purely from the
+        // initiators perspective; since none of suggested ExportMasks share initiators, they look like they
+        // point to different compute resources to which we would like to expose the volume(s). But, in the
+        // case of VPlex, we should understand that regardless of which ExportMask that's used, the volume
+        // will be made visible to a VPlex cluster. So, there's no need to place the volume into multiple
+        // ExportMasks, hence, we have the logic below to re-place the volume into only one of the ExportMasks.
         Map<URI, Set<URI>> volumeToMasks = createVolumeToMasksMap();
         Set<URI> multiplyPlacedVolumes = new HashSet<>(); // Filled in by anyVolumesPlacedToMultipleMasks()
         if (anyVolumesPlacedToMultipleMasks(multiplyPlacedVolumes, volumeToMasks)) {
-            // Determine if the masks that the volumes are multiple placed against, point to the same
-            // VPlex cluster. If they do, then we shall adjust placement to select the ExportMask
-            // that has the least number of total volumes.
+            // Adjust placement to select the ExportMask that has the least number of total volumes.
             for (URI volumeURI : multiplyPlacedVolumes) {
                 Set<URI> placedMasks = volumeToMasks.get(volumeURI);
-                Map<URI, ExportMask> exportMaskMap = new HashMap<>(); // Filled in by masksAreForSameVPlexCluster()
-                if (masksAreForSameVPlexCluster(exportMaskMap, placedMasks)) {
-                    placeVolumeToMaskWithLeastNumberOfVolumes(volumeURI, exportMaskMap);
-                }
+                Map<URI, ExportMask> exportMaskMap = createExportMaskMap(placedMasks);
+                // Re-place the volume into the ExportMask with the least volumes
+                placeVolumeToMaskWithLeastNumberOfVolumes(volumeURI, exportMaskMap);
             }
         }
 
@@ -136,37 +144,22 @@ public class VplexBackendVolumesToSeparateMasksStrategy implements VPlexBackendP
     }
 
     /**
-     * Given a set of ExportMask URIs, determines if the ExportMasks that they represent are associated with the same VPlex cluster.
+     * Given a set of ExportMask URIs, return a map of ExportMask URI to ExportMask object
      * 
      * @param exportMaskMap [OUT] - Mapping of ExportMask URI to ExportMask object
      * @param placedMasks [IN] - ExportMask URIs
-     * @return true, iff the ExportMasks referenced by 'placedMasks' point to the same cluster
+     * @return Map of ExportMask URI to ExportMask objects
      */
-    private boolean masksAreForSameVPlexCluster(Map<URI, ExportMask> exportMaskMap, Set<URI> placedMasks) {
-        // Get a mapping of port WWN to the cluster
-        Map<String, String> wwnToClusterID = VPlexUtil.getPortIdToClusterMap(dbClient, placementDescriptor.getVplex());
-        Set<String> clusterIDsFound = new HashSet<>();
-        Iterator<ExportMask> exportMaskIterator = dbClient.queryIterativeObjects(ExportMask.class, placedMasks);
+    private Map<URI, ExportMask> createExportMaskMap(Set<URI> placedMasks) {
+        Map<URI, ExportMask> exportMaskMap = new HashMap<>();
+        Iterator<ExportMask> exportMaskIterator = dbClient.queryIterativeObjects(ExportMask.class, placedMasks, true);
         // Iterator through the list of masks that indicate that have the
         // same volumes placed against them.
         while (exportMaskIterator.hasNext()) {
             ExportMask exportMask = exportMaskIterator.next();
             exportMaskMap.put(exportMask.getId(), exportMask);
-            Set<URI> initiatorURIs = ExportMaskUtils.getAllInitiatorsForExportMask(dbClient, exportMask);
-            Iterator<Initiator> initiatorIterator = dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
-            // Iterate through the list of initiators for the ExportMask.
-            // Find the clusterID associated with it, then add it to the
-            // clusterIDsFound set.
-            while (initiatorIterator.hasNext()) {
-                Initiator initiator = initiatorIterator.next();
-                String clusterID = wwnToClusterID.get(Initiator.normalizePort(initiator.getInitiatorPort()));
-                if (clusterID != null) {
-                    clusterIDsFound.add(clusterID);
-                }
-            }
         }
-        log.info("The following clusters: {} are associated with these ExportMasks: {}", clusterIDsFound, placedMasks);
-        return clusterIDsFound.size() == 1;
+        return exportMaskMap;
     }
 
     /**

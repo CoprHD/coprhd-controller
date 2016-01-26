@@ -48,11 +48,11 @@ _checkConfigurable() {
 _get_ipv6_compressed(){
     local ipaddr
     if [ "${1}" = "::0" ]; then
-        echo ""
-        return 0
+        echo "::0"
+    else
+        ipaddr=$(sipcalc ${1} | egrep '^Compressed address' | awk '{print $4}')
+        [ ! -z ${ipaddr} ] && echo ${ipaddr} || echo ${1}
     fi
-    ipaddr=$(sipcalc ${1} | egrep '^Compressed address' | awk '{print $4}')
-    [ ! -z ${ipaddr} ] && echo ${ipaddr} || echo ${1}
 }
 
 _isIPConsistent() {

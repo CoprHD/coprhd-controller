@@ -263,9 +263,7 @@ class VolumeGroup(object):
         volume_group_uri = self.query_by_name(name)
         
         request = dict()
-        clones = dict()
-        clones["volume"] = cloneUris.split(',')
-        request["volumes"] = clones
+        request["volumes"] = cloneUris.split(',')
         
         # if partial request
         if (partial):
@@ -299,9 +297,7 @@ class VolumeGroup(object):
         volume_group_uri = self.query_by_name(name)
         
         request = dict()
-        clones = dict()
-        clones["volume"] = cloneUris.split(',')
-        request["volumes"] = clones
+        request["volumes"] = cloneUris.split(',')
         
         # if partial request
         if (partial):
@@ -335,16 +331,14 @@ class VolumeGroup(object):
         volume_group_uri = self.query_by_name(name)
         
         request = dict()
-        clones = dict()
-        clones["volume"] = cloneUris.split(',')
-        request["volumes"] = clones
+        request["volumes"] = cloneUris.split(',')
         
         # if partial request
         if (partial):
             request["partial"] = partial
 
         body = json.dumps(request)
-        
+
         (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",
@@ -371,9 +365,7 @@ class VolumeGroup(object):
         volume_group_uri = self.query_by_name(name)
         
         request = dict()
-        clones = dict()
-        clones["volume"] = cloneUris.split(',')
-        request["volumes"] = clones
+        request["volumes"] = cloneUris.split(',')
         
         # if partial request
         if (partial):
@@ -405,10 +397,9 @@ class VolumeGroup(object):
         o = common.json_decode(s)
         return o      
     
-    def volume_group_clone_get(self, name, clone):
+    def volume_group_clone_get(self, name, cloneURI):
         
         volumeGroupUri = self.query_by_name(name)
-        cloneURI = self.volume_query(clone)
         print "volume group URI is " + volumeGroupUri
         print "clone URI is " + cloneURI
         
@@ -435,7 +426,9 @@ class VolumeGroup(object):
         Returns:
             response of the create operation
         '''
-         
+        
+        volumeGroupUri = self.query_by_name(name)
+
         request = {
             'name': clone_name,
             'type': None,
@@ -449,15 +442,13 @@ class VolumeGroup(object):
         # if partial request
         if (partial):
             request["partial"] = partial
-            volumes = dict()
-            volumes["volume"] = volumeUris.split(',')
-            request["volumes"] = volumes
+            request["volumes"] = volumeUris.split(',')
             
 
         body = json.dumps(request)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
-                                             VolumeGroup.URI_VOLUME_GROUP_CLONE,
+                                             VolumeGroup.URI_VOLUME_GROUP_CLONE.format(volumeGroupUri),
                                              body)
         o = common.json_decode(s)
         if(sync):
@@ -472,7 +463,7 @@ class VolumeGroup(object):
 
 def show_volume_group_volume_parser(subcommand_parsers, common_parser):
     volume_group_volume_parser = subcommand_parsers.add_parser('show-volumes',
-                        description='ViPR Project Show CLI usage.',
+                        description='ViPR VolumeGroup Show Volumes CLI usage.',
                                                 parents=[common_parser],
                                                 conflict_handler='resolve',
                                                 help='Show volume group volumes')
@@ -501,7 +492,7 @@ def volume_group_volume_show(args):
 
 def show_volume_group_children_parser(subcommand_parsers, common_parser):
     volume_group_volume_parser = subcommand_parsers.add_parser('show-children',
-                        description='ViPR Project Show CLI usage.',
+                        description='ViPR VolumeGroup Show Children CLI usage.',
                                                 parents=[common_parser],
                                                 conflict_handler='resolve',
                                                 help='Show volume group child volume groups')
@@ -806,11 +797,10 @@ def volume_clone_list_parser(cc_common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    mandatory_args.add_argument('-project', '-pr',
+    cc_common_parser.add_argument('-project', '-pr',
                                 metavar='<projectname>',
                                 dest='project',
-                                help='Name of project',
-                                required=True)
+                                help='Name of project')
     cc_common_parser.add_argument('-tenant', '-tn',
                              metavar='<tenantname>',
                              dest='tenant',
@@ -861,7 +851,8 @@ def volume_group_clone_common_parser(cc_common_parser):
                             metavar='<clonename,...>',
                             dest='clones',
                             help='A clone of a volume group specifying which clone Set to act on. ' +
-                            'For partial operation, specify one clone from each Array Replication Group')
+                            'For partial operation, specify one clone from each Array Replication Group',
+                            required=True)
     
     cc_common_parser.add_argument('-tenant', '-tn',
                              metavar='<tenantname>',
@@ -1173,15 +1164,10 @@ def clone_list_parser(subcommand_parsers, common_parser):
 # List Clone Function
 def volume_group_clone_list(args):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
         
     try:
         res= obj.volume_group_clone_list(args.name)
-        if('volume' in res):
-            from common import TableGenerator
-            TableGenerator(res['volume'], ['name']).printTable()
-        return
+        return common.format_json_object(res)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
@@ -1216,9 +1202,11 @@ def volume_group_clone_get(args):
     if(not args.tenant):
         args.tenant = ""
         
-    try:        
+    try:
+        vol = Volume(args.ip, args.port)
+        cloneURI = vol.volume_query(args.tenant + "/" + args.project + "/" + args.clone)
         res= obj.volume_group_clone_get(args.name,
-            args.tenant + "/" + args.project + "/" + args.clone)
+            cloneURI)
         
         return common.format_json_object(res)
 

@@ -2075,6 +2075,8 @@ rpvplex_cdp()
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
+	--journalVpool rp_targets \
+	--journalVarray $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_local
 
     run cos create block rpvplex_cdp$1-sync $POOLS_AUTO_MATCH \
@@ -2088,6 +2090,8 @@ rpvplex_cdp()
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
+	--journalVpool rp_targets \
+	--journalVarray $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_local
 }
 
@@ -2364,6 +2368,7 @@ rp_network_setup()
     networksystem create $RECOVERPOINT_BROCADE_NETWORK brocade --smisip $RECOVERPOINT_BROCADE_NETWORK_PROVIDER --smisport 5988 --smisuser $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_USERNAME --smispw "$RECOVERPOINT_BROCADE_NETWORK_PROVIDER_PASSWORD" --smisssl false
     sleep 20
     transportzone listall
+    exit;
 }
 
 rp_smis_setup()

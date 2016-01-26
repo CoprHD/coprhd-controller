@@ -1035,7 +1035,7 @@ public class DisasterRecoveryService {
             } else {
                 oldActiveSite = drUtil.getSiteFromLocalVdc(activeSiteId);
                 oldActiveSite.setState(SiteState.ACTIVE_FAILING_OVER);
-                coordinator.removeServiceConfiguration(oldActiveSite.toConfiguration());
+                drUtil.removeSite(oldActiveSite);
             }
             
             Site newActiveSite = drUtil.getSiteFromLocalVdc(newActiveSiteUUID);

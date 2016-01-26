@@ -333,7 +333,7 @@ public abstract class VdcOpHandler {
                     for (Site site : toBeRemovedSites) {
                         try {
                             removeDbNodesFromStrategyOptions(site);
-                            drUtil.removeSiteConfiguration(site);
+                            drUtil.removeSite(site);
                         } catch (Exception e) { 
                             populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
                             throw e;
@@ -854,7 +854,7 @@ public abstract class VdcOpHandler {
                 removeDbNodesFromGossip(oldActiveSite);
                 removeDbNodesFromStrategyOptions(oldActiveSite);
                 postHandlerFactory.initializeAllHandlers();
-                drUtil.removeSiteConfiguration(oldActiveSite);
+                drUtil.removeSite(oldActiveSite);
             } catch (Exception e) {
                 log.error("Failed to remove old acitve site in failover, {}", e);
                 throw e;

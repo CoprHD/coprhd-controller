@@ -125,7 +125,7 @@ public class BlockSnapshots extends ResourceController {
         if (ids != null) {
             ViPRCoreClient client = BourneUtil.getViprClient();
             for (URI id : ids) {
-                Tasks<BlockSnapshotRestRep> task = client.blockSnapshots().deactivate(id);
+                Tasks<BlockSnapshotRestRep> task = client.blockSnapshots().deactivate(id, VolumeDeleteTypeEnum.FULL);
             }
             flash.put("info", MessagesUtils.get("resources.snapshots.deactivate", ids.size()));
         }

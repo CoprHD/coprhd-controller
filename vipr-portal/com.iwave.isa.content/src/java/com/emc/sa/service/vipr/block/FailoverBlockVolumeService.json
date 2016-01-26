@@ -26,16 +26,23 @@
     	type: "assetType.vipr.imageToAccess",
     	required: "false",
         lockable: true
-    },
+    }, 
     
-    imageDate:{
-        type:"date",
-        required: "false"
-    },
+    pointInTime:{
+      type:"table",
+      displayAddButton: false,
+      displayHeader: false,
+      items:{
+        imageDate:{
+          type:"failoverDate",
+          required: "false"
+        },
+        imageTime:{
+          type:"failoverDate",
+          required: "false"
+        }
+      }
+    }    
     
-    imageTime:{
-    	type:"time",
-        required: "false"
-    }
   }
 }

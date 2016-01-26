@@ -4886,7 +4886,7 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.reference(CP_SOURCE_GROUP, srcCG));
         args.add(_cimArgument.reference(CP_TARGET_GROUP, tgtCG));
         // args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance));
-        // WaitForCopyState only valid for Synchronous mode.
+        // WaitForCopyState only valid for Active mode.
         if (SRDFOperations.Mode.ACTIVE.getMode() == mode) {
             args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED));
         }

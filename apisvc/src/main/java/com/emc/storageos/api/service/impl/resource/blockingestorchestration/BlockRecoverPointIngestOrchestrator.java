@@ -856,9 +856,15 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 Volume volume = _dbClient.queryObject(Volume.class, volumeId);
                 if (volume == null) {
                     // Check the "just created" list in the volume context
-                    // TODO FIXME: this map uses the nativeGuid, not URI
-                    if (volumeContext.getObjectsToBeCreatedMap().get(volumeId.toString()) != null) {
-                        volume = (Volume) volumeContext.getObjectsToBeCreatedMap().get(volumeId.toString());
+                    for (BlockObject blockObject : volumeContext.getObjectsToBeCreatedMap().values()) {
+                        if (blockObject.getId().toString().equals(volumeId.toString())) {
+                            if (blockObject instanceof Volume) {
+                                volume = (Volume) blockObject;
+                                break;
+                            }
+                        }
+                    }
+                    if (volume != null) {
                         volumes.add(volume);
                     } else {
                         continue;

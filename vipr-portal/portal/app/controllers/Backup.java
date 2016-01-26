@@ -177,7 +177,9 @@ public class Backup extends Controller {
     }
 
     public static void cancelPullBackup(Type type) {
-        BackupUtils.cancelPullBackup();
+        if (type == Type.REMOTE) {
+            BackupUtils.cancelPullBackup();
+        }
         list(type);
     }
 

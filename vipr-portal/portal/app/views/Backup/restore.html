@@ -80,7 +80,9 @@
         $('#restoreForm').on('keyup keypress', function(e) {
             var code = e.keyCode || e.which;
             if (code == 13) {
-                e.preventDefault();
+                if($("#restoreBtn").is(":disabled")) {
+                    e.preventDefault();
+                }
                 return false;
             }
         });
@@ -96,7 +98,7 @@
     function checkPullStatusUpdates() {
         var checkUpdate = window.setInterval(function () {
             if (stop) {
-                console.info("stop");
+                console.info("stop interval");
                 clearInterval(checkUpdate);
                 return;
             }
@@ -133,8 +135,8 @@
                     }
                 }
 
-                console.info("1=%s 2=%s 3=%s 4=%s ", totalSize, downloadSize, progress, description);
-                updateProgressBar("Status", progress);
+                console.info("progress=%s \n info=%s ", progress, description);
+                updateProgressBar("Status", parseInt(progress));
 
                 if (result.status == "DOWNLOAD_SUCCESS") {
                     updateProgressBar("Status", 100);

@@ -164,6 +164,8 @@ $(TBZ): | $(VMDK)
 	rm -fr $(IMAGE_DIR)/kiwi-hooks
 	rm -fr $(IMAGE_DIR)/image
 	rm -fr $(IMAGE_DIR)/Swap
+	sed -i s/"udev_sync = 1"/"udev_sync = 0"/g $(IMAGE_DIR)/etc/lvm/lvm.conf
+	sed -i s/"udev_rules = 1"/"udev_rules = 0"/g $(IMAGE_DIR)/etc/lvm/lvm.conf
 	[ ! -x /usr/bin/pigz ] || tar -c -f $(TBZ) -C $(IMAGE_DIR) -I pigz .
 	[ -x /usr/bin/pigz ] || tar -c -f $(TBZ) -C $(IMAGE_DIR) -J .
 	$(call targetLog,-)

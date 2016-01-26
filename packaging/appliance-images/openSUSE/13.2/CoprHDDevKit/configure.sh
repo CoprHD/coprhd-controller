@@ -8,6 +8,8 @@ function installRepositories
 {
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-oss \
          --no-gpgcheck http://download.opensuse.org/distribution/13.2/repo/oss/suse suse-13.2-oss
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-oss-update \
+         --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-non-oss \
          --no-gpgcheck http://download.opensuse.org/distribution/13.2/repo/non-oss/suse suse-13.2-non-oss
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-monitoring \
@@ -22,15 +24,27 @@ function installRepositories
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/Appliances/openSUSE_13.2 suse-13.2-appliances
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-containers \
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/containers/openSUSE_13.2 suse-13.2-containers
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-oss-update \
+         --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
+
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  3 suse-13.2-oss
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  3 suse-13.2-oss-update
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority 99 suse-13.2-non-oss
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-monitoring
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-seife
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  4 suse-13.2-python
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  5 suse-13.2-building
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-appliances
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-containers
 
   return 0
 }
 
 function installPackages
 {
+  # distribution packages
   mkdir -p /tmp/coprhd.d
   cp -f /etc/zypp/repos.d/suse-13.2-oss.repo /tmp/coprhd.d/
-  cp -f /etc/zypp/repos.d/suse-13.2-non-oss.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-monitoring.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-python.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-seife.repo /tmp/coprhd.d/
@@ -42,18 +56,20 @@ function installPackages
            --no-gpgcheck ${ISO} suse-13.2-iso
     zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 2 suse-13.2-iso
   fi
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 1 suse-13.2-monitoring
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 1 suse-13.2-seife
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 1 suse-13.2-containers
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 3 suse-13.2-oss
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 4 suse-13.2-python
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks modifyrepo --priority 5 suse-13.2-non-oss
 
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --details --no-recommends --force-resolution ant apache2-mod_perl apache2-prefork atop bind-libs bind-utils ca-certificates-cacert ca-certificates-mozilla curl createrepo dhcpcd docker docker-compose expect fontconfig fonts-config gcc-c++ GeoIP GeoIP-data git git-core glib2-devel gpgme grub2 ifplugd inst-source-utils iproute2 iputils java-1_7_0-openjdk java-1_7_0-openjdk-devel java-1_8_0-openjdk java-1_8_0-openjdk-devel keepalived kernel-default kernel-default-devel kernel-source kiwi kiwi-desc-isoboot kiwi-desc-oemboot kiwi-desc-vmxboot kiwi-templates libaudiofile1 libesd0 libgcrypt-devel libGeoIP1 libgpg-error-devel libmng2 libopenssl-devel libpcrecpp0 libpcreposix0 libqt4 libqt4-sql libqt4-x11 libSDL-1_2-0 libserf-devel libtool libuuid-devel libvpx1 libxml2-devel libXmu6 lvm2 make mkfontdir mkfontscale mozilla-nss-certs netcfg net-tools nfs-client openssh openssh-fips p7zip pam-devel parted pcre-devel perl-Config-General perl-Error perl-Tk plymouth python-cjson python-devel python-gpgme python-iniparse python-libxml2 python-py python-requests python-setools qemu qemu-tools readline-devel regexp rpm-build setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 subversion sudo SuSEfirewall2 sysconfig sysconfig-netconfig syslinux sysstat systemd-logger tar telnet unixODBC vim virtualbox virtualbox-guest-kmp-default virtualbox-host-kmp-default wget xbitmaps xfsprogs xml-commons-jaxp-1.3-apis xmlstarlet xorg-x11-essentials xorg-x11-fonts xorg-x11-server xz-devel yum zlib-devel
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks clean
-
   rm -fr /tmp/coprhd.d
+
+  # distribution updates and security fixes
+  mkdir -p /tmp/coprhd.d
+  cp -f /etc/zypp/repos.d/suse-13.2-oss-update.repo /tmp/coprhd.d/
+
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks update lvm2 udev
+  rm -fr /tmp/coprhd.d
+
+  zypper --non-interactive clean
 }
 
 function installJava

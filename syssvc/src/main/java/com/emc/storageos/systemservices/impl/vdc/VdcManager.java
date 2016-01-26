@@ -383,27 +383,6 @@ public class VdcManager extends AbstractManager {
         String action = targetSiteInfo.getActionRequired();
         boolean isGeoConfigChange = isGeoConfigChange();
         
-        log.info("Step3: Process vdc op handlers, action = {}", action);
-        if (isGeoConfig()) {
-            log.info("Step5: Acquiring reboot lock for vdc properties change.");
-            if (!getRebootLock(svcId)) {
-                retrySleep();
-            } else if (!isQuorumMaintained()) {
-                releaseRebootLock(svcId);
-                retrySleep();
-            } else {
-                log.info("Step5: Setting vdc properties and reboot");
-                targetVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
-                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-                if (backCompatPreYoda) {
-                    log.info("Back compatiblilty to preyoda flag detected. Skip the reboot until all vdcs are upgraded to yoda");
-                } else {
-                    reboot();
-                }
-            }
-            return;
-        }
-
         log.info("Step5: Setting vdc properties not rebooting for single VDC change, action = {}", action);
         VdcOpHandler opHandler = getOpHandler(action);
         opHandler.setTargetSiteInfo(targetSiteInfo);

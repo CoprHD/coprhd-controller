@@ -160,19 +160,11 @@ public class Backup extends Controller {
     public static void restore(String id, Type type) {
         if (type == Type.REMOTE) { // pull first if remote backup set
             BackupUtils.pullBackup(id);
-            BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, false);
-            long totalSize = status.getBackupSize();
-            long downloadSize = status.getDownoadSize();
-            int checkProgress = 0;
-            if (totalSize != 0) {
-                checkProgress = downloadSize / totalSize > 100 ? 100 : (int) (downloadSize / totalSize);
-            }
-            renderArgs.put("downloadStatus", status.getStatus().name());
-            renderArgs.put("checkProgress", checkProgress);
         }
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
         renderArgs.put("id", id);
         renderArgs.put("type", type);
-        renderArgs.put("isGeo", false);
+        renderArgs.put("isGeo", status.isGeo());
         render();
     }
 
@@ -194,7 +186,7 @@ public class Backup extends Controller {
         if (status.isNotSuccess()) {
             list(type);
         }
-        Maintenance.maintenance(Common.reverseRoute(Backup.class, "list", "type", type));
+        Maintenance.maintenance(Common.reverseRoute(AdminDashboard.class, "dashboard"));
     }
 
     public static void getRestoreStatus(String id, Type type) {

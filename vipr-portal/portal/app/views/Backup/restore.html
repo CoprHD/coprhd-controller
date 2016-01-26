@@ -24,7 +24,7 @@
                 %{
                     style = "success"
                     }%
-                    #{progressBar name:"Status", percentage:checkProgress, style:style/}
+                    #{progressBar name:"Status", style:style/}
                 </td>
             </tr>
             <tr>
@@ -59,7 +59,7 @@
 
     #{if isGeo == true}
         <div id="checkBoxForRestoreGeo">
-            <label><input type="checkbox"> &{'restore.geo.checkbox.help'}</label>
+            <label><input type="checkbox" name="restoreForm.isGeoFromScratch"> &{'restore.geo.checkbox.help'}</label>
 
             <div class="alert alert-danger"> &{'restore.geo.disconnect'} </div>
         </div>

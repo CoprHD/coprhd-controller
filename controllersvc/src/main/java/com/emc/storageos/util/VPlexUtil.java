@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.emc.storageos.db.client.util.WWNUtility;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1405,22 +1404,5 @@ public class VPlexUtil {
         }
         
         return false;
-    }
-
-    /**
-     * Returns a map of port wwn to cluster id ("1" or "2") for vplex ports
-     *
-     * @param dbClient [IN] - Client used for querying DB
-     * @param vplex [IN] - StorageSystem object to query
-     * @return Map of port wwn to cluster id
-     */
-    public static Map<String, String> getPortIdToClusterMap(DbClient dbClient, StorageSystem vplex) {
-        Map<String, String> portIdToClusterMap = new HashMap<String, String>();
-        List<StoragePort> ports = ConnectivityUtil.getStoragePortsForSystem(dbClient, vplex.getId());
-        for (StoragePort port : ports) {
-            portIdToClusterMap.put(WWNUtility.getUpperWWNWithNoColons(port.getPortNetworkId()),
-                    ConnectivityUtil.getVplexClusterOfPort(port));
-        }
-        return portIdToClusterMap;
     }
 }

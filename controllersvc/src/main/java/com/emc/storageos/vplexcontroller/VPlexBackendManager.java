@@ -16,7 +16,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
-import com.emc.storageos.util.VPlexUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -184,7 +183,7 @@ public class VPlexBackendManager {
     private void buildDataStructures(StorageSystem vplex, StorageSystem array, URI varrayURI) {
 
         // The map of Port WWN to cluster id will be used for validation
-        _portWwnToClusterMap = VPlexUtil.getPortIdToClusterMap(_dbClient, vplex);
+        _portWwnToClusterMap = getPortIdToClusterMap(vplex);
 
         // Get the initiator port map for this VPLEX and storage system
         // for this volume's virtual array.
@@ -632,6 +631,22 @@ public class VPlexBackendManager {
             stepsAdded = true;
         }
         return stepsAdded;
+    }
+
+    /**
+     * Returns a map of port wwn to cluster id ("1" or "2") for vplex ports
+     *
+     * @param vplex StorageSystem
+     * @return Map of port wwn to cluster id
+     */
+    private Map<String, String> getPortIdToClusterMap(StorageSystem vplex) {
+        Map<String, String> portIdToClusterMap = new HashMap<String, String>();
+        List<StoragePort> ports = ConnectivityUtil.getStoragePortsForSystem(_dbClient, vplex.getId());
+        for (StoragePort port : ports) {
+            portIdToClusterMap.put(WWNUtility.getUpperWWNWithNoColons(port.getPortNetworkId()),
+                    ConnectivityUtil.getVplexClusterOfPort(port));
+        }
+        return portIdToClusterMap;
     }
 
     /**

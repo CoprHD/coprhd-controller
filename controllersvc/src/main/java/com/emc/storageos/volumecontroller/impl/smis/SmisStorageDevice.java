@@ -26,6 +26,8 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,24 +37,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.RemoteDirectorGroup;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
@@ -1935,6 +1921,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockObject> blockObjects = new ArrayList<BlockObject>();
             for (URI blockObjectURI : blockObjectURIs) {
+                // FIXME Performance improvement here
                 BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
                 if (blockObject != null) {
                     blockObjects.add(blockObject);
@@ -1990,6 +1977,23 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                                 consistencyGroup.getCgNameOnStorageSystem(storage.getId()), errMsg));
                 return;
             }
+
+            Map<String, List<BlockSnapshotSession>> sessionLabelsMap = new HashMap<>();
+            for (BlockObject blockObject : blockObjects) {
+                List<BlockSnapshotSession> sessions =
+                        CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                        ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(blockObject.getId()));
+
+                if (!sessions.isEmpty()) {
+                    for (BlockSnapshotSession session : sessions) {
+                        if (!sessionLabelsMap.containsKey(session.getSessionLabel())) {
+                            sessionLabelsMap.put(session.getSessionLabel(), new ArrayList<BlockSnapshotSession>());
+                        }
+                        sessionLabelsMap.get(session.getSessionLabel()).add(session);
+                    }
+                }
+            }
+
             if (!replicas.isEmpty()) {
                 addReplicasToConsistencyGroup(storage, consistencyGroup, replicas, uriToBlockObjectMap);
             } else if (!volumes.isEmpty()) {
@@ -2080,6 +2084,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     _dbClient.updateAndReindexObject(volumeObject);
                 }
 
+                // Now we have a set of snapshot session labels to create groups from.
+                fabricateSourceGroupAspects(storage, consistencyGroup, sessionLabelsMap);
+
                 // refresh target provider to update its view on target CG
                 if (isSrdfTarget) {
                     refreshStorageSystem(storage.getId(), null);
@@ -2107,6 +2114,40 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
                             consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
+    }
+
+    private void fabricateSourceGroupAspects(StorageSystem storage, BlockConsistencyGroup cg,
+                                             Map<String, List<BlockSnapshotSession>> sessionLabelsMap) throws WBEMException {
+        // 1) Run Harsha's method to fab SourceGroup aspect
+        for (Map.Entry<String, List<BlockSnapshotSession>> entry : sessionLabelsMap.entrySet()) {
+            String sessionLabel = entry.getKey();
+            List<BlockSnapshotSession> oldSessions = entry.getValue();
+
+            _log.info("Fabricating synchronization aspect for SourceGroup {}", cg.getLabel());
+            CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
+            CIMArgument[] iArgs = _helper.fabricateSourceGroupSynchronizationAspectInputArguments(storage, cg, sessionLabel);
+            CIMArgument[] oArgs = new CIMArgument[5];
+            _helper.invokeMethod(storage, replicationSvc, "EMCRemoveSFSEntries", iArgs, oArgs);
+
+            BlockSnapshotSession templateSession = oldSessions.get(0);
+            // 2) Mark non-CG BlockSnapshotSession instances as inactive.
+            for (BlockSnapshotSession oldSession : oldSessions) {
+                oldSession.setInactive(true);
+            }
+            _dbClient.updateObject(oldSessions);
+
+            // 3) Create new BlockSnapshotSession instance, pointing to the new Source CG
+            BlockSnapshotSession newSession = new BlockSnapshotSession();
+            newSession.setId(URIUtil.createId(BlockSnapshotSession.class));
+            newSession.setConsistencyGroup(cg.getId());
+            newSession.setProject(new NamedURI(templateSession.getProject().getURI(), templateSession.getProject().getName()));
+            newSession.setLabel(templateSession.getSessionLabel());
+            newSession.setSessionLabel(templateSession.getSessionLabel());
+            _dbClient.createObject(newSession);
+            // Just need to update the session instance...
+        }
+
+        // TODO Call associatorNames on the CG with class *SourceGroup.  Determine the 1-to-1 mapping.
     }
 
     /**

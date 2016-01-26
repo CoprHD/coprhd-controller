@@ -37,8 +37,8 @@ public class ObjectNamespace extends DiscoveredDataObject {
     // Type indicating allowed or not-allowed
     private ECS_RepGroup_Type _rgType;
     
-    // Allowed or not-allowed ECS replication groups. Its mutually exclusive
-    private StringSet _replicationGroups;      
+    // Allowed or not-allowed storage pools (ECS replication groups). Its mutually exclusive
+    private StringSet _storagePools;      
 
     // Namespace visible or deleted in ECS
     private String _discoveryStatus;
@@ -112,14 +112,14 @@ public class ObjectNamespace extends DiscoveredDataObject {
         setChanged("rgType");
     }
 
-    @Name("replicationGroups")
-    public StringSet getReplicationGroups() {
-        return _replicationGroups;
+    @Name("storagePools")
+    public StringSet getStoragePools() {
+        return _storagePools;
     }
     
-    public void setReplicationGroups(StringSet replicationGroups) {
-        this._replicationGroups = replicationGroups;
-        setChanged("replicationGroups");
+    public void setStoragePools(StringSet storagePools) {
+        this._storagePools = storagePools;
+        setChanged("storagePools");
     }
     
     @EnumType(DiscoveryStatus.class)

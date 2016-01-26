@@ -360,7 +360,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     for (String rg : nsGroup.getReplicationGroups()) {
                         repGroups.add(rg);
                     }
-                    ecsNamespace.setReplicationGroups(repGroups);
+                    ecsNamespace.setStoragePools(repGroups);
                     ecsNamespace.setNsName(nsGroup.getNamespaceName());
                     ecsNamespace.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                     

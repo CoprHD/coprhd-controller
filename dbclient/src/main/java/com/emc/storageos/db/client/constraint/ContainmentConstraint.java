@@ -762,7 +762,7 @@ public interface ContainmentConstraint extends Constraint {
 
         public static ContainmentConstraint getVolumesGroupsByVolumeGroupId(URI volumeGroupId) {
             DataObjectType doType = TypeMap.getDoType(VolumeGroup.class);
-            return new ContainmentConstraintImpl(volumeGroupId, VolumeGroup.class, doType.getColumnField("parent"));
+            return new ContainmentConstraintImpl(volumeGroupId, VolumeGroup.class, doType.getColumnField("parents"));
         }
 
         /**

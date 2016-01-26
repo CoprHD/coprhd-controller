@@ -22,7 +22,7 @@ public class VolumeGroupCreateParam {
     private String name;
     private String description;
     private Set<String> roles;
-    private String parent;
+    private Set<String> parents;
     private URI sourceStorageSystem;
     private URI sourceVirtualPool;
     private String migrationType;
@@ -82,18 +82,18 @@ public class VolumeGroupCreateParam {
     }
 
     /**
-     * @return the parent
+     * @return the parents
      */
     @XmlElement
-    public String getParent() {
-        return parent;
+    public Set<String> getParents() {
+        return parents;
     }
 
     /**
-     * @param parent the parent to set
+     * @param parents the parent to set
      */
-    public void setParent(String parent) {
-        this.parent = parent;
+    public void setParents(Set<String> parents) {
+        this.parents = parents;
     }
 
     @XmlElement(name = "sourceStorageSystem")

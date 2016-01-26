@@ -18,8 +18,8 @@ public class VolumeGroup extends DataObject {
     // The role of the volume group, either COPY, DR, or MOBILITY
     private StringSet roles;
 
-    // parent volume group
-    private URI parent;
+    // parent volume groups
+    private StringSet parents;
 
     private String migrationType;
 
@@ -123,17 +123,31 @@ public class VolumeGroup extends DataObject {
     /**
      * @return the parent
      */
-    @RelationIndex(cf = "VolumeGroupParent", type = VolumeGroup.class)
-    @Name("parent")
-    public URI getParent() {
-        return parent;
+    @RelationIndex(cf = "VolumeGroupParents", type = VolumeGroup.class)
+    @Name("parents")
+    public StringSet getParent() {
+        return parents;
     }
 
     /**
      * @param parent the parent to set
      */
-    public void setParent(URI parent) {
-        this.parent = parent;
-        setChanged("parent");
+    public void setParent(StringSet parents) {
+        this.parents = parents;
+        setChanged("parents");
+    }
+
+    /**
+     * Add parents.
+     * 
+     * @param parents
+     */
+    public void addParent(final URI parent) {
+        if (null == this.parents) {
+            setParent(new StringSet());
+        }
+        if (parent != null) {
+            parents.add(parent.toString());
+        }
     }
 }

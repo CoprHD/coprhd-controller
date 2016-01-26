@@ -7110,4 +7110,20 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.reference(CP_SYNCHRONIZATION, syncObject)
         };
     }
+
+    public CIMArgument[] fabricateSourceGroupSynchronizationAspectInputArguments(StorageSystem system,
+                                                                                 BlockConsistencyGroup cg,
+                                                                                 String sessionLabel) {
+        List<String> addSFSEntries = new ArrayList<>();
+        addSFSEntries.add("AddSFSEntries");
+        String repGrpName = cg.getSystemConsistencyGroups().get(system.getId().toString()).iterator().next();
+        addSFSEntries.add(formatSessionLabelForFabrication(system.getSerialNumber(), repGrpName, sessionLabel));
+        return new CIMArgument[] {
+                _cimArgument.stringArray("SFSEntries", addSFSEntries.toArray(new String[addSFSEntries.size()]))
+        };
+    }
+
+    private String formatSessionLabelForFabrication(String systemSerial, String replicationGroupName, String sessionLabel) {
+        return String.format("%s+%s##SSNAME+%s", systemSerial, replicationGroupName, sessionLabel);
+    }
 }

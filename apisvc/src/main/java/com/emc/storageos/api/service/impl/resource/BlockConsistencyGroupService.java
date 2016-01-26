@@ -198,10 +198,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         final Class<? extends DataObject> clazz;
 
-        if (URIUtil.isType(id, BlockSnapshot.class)) {
-            clazz = BlockSnapshot.class;
-        } else if (URIUtil.isType(id, BlockSnapshotSession.class)) {
+        if (URIUtil.isType(id, BlockSnapshotSession.class)) {
             clazz = BlockSnapshotSession.class;
+        } else if (URIUtil.isType(id, BlockSnapshot.class)) {
+            clazz = BlockSnapshot.class;
         } else {
             clazz = BlockConsistencyGroup.class;
         }

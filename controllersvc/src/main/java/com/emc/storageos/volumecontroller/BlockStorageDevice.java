@@ -573,12 +573,12 @@ public interface BlockStorageDevice {
      * @param storage
      * @param consistencyGroup
      * @param replicationGroupName name of the replication group to be deleted
-     * @param newReplicationGroupName String that used as group name in ViPR when existing group is deleted from storage system
+     * @param keepRGName Boolean if true, ViPR will keep group name for CG
      * @param markInactive
      * @param taskCompleter
      */
     public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup,
-            String replicationGroupName, String newReplicationGroupName, Boolean markInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * Connect the device - called when a new device is added

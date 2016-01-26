@@ -68,6 +68,10 @@ angular.module('tags').directive({
 					scope.isFailover = true;
 				#{/if}
              }
+
+             if(scope.row.status.toUpperCase() == "STANDBY_ERROR"){
+				scope.isRetrySite = true;
+             }
         	 
         	 if(scope.row.status.toUpperCase() == "ACTIVE"){
 				scope.isResumeSite = false;

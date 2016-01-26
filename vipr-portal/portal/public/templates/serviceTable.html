@@ -2,7 +2,7 @@
   <label class="control-label col-sm-3">{{table.label}}:</label>
   <div class="col-sm-9 controls">
     <table class="table">
-      <thead ng-show="table.displayHeader">
+      <thead ng-show="!table.hideHeader">
       <tr>
         <th ng-repeat="item in table.items | values | unlocked">{{item.label}}</th>
         <th>&nbsp;</th>
@@ -13,10 +13,10 @@
         <td ng-repeat="item in row | values | unlocked">
           <service-field name="{{table.name}}[{{$parent.$parent.$index}}].{{item.name}}" item="item" control-only='true'></service-field>
         </td>
-        <td><a ng-click="deleteRow($index)" class="close">&times;</a></td>
+        <td ng-show="!table.hideRemoveRow"><a ng-click="deleteRow($index)" class="close">&times;</a></td>
       </tr>
       </tbody>
-      <tfoot ng-show="table.displayAddButton">
+      <tfoot ng-show="!table.hideAddButton">
       <tr>
         <td colspan="{{table.value.length}}">
           <button type='button' class='btn btn-sm btn-success' ng-click="addRow()"><i v-icon='plus'></i>{{'button.add' | t}}</button>

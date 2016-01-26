@@ -71,6 +71,12 @@ public class SRDFUtils implements SmisConstants {
     private CIMObjectPathFactory cimPath;
     private SmisCommandHelper helper;
 
+    public enum SyncDirection {
+        SOURCE_TO_TARGET,
+        TARGET_TO_SOURCE,
+        NONE
+    }
+
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
@@ -211,7 +217,7 @@ public class SRDFUtils implements SmisConstants {
 
         return result;
     }
-    
+
     public Collection<CIMObjectPath> getStorageSynchronizationsInRemoteGroup(StorageSystem provider, RemoteDirectorGroup group) {
         CIMObjectPath remoteGroupPath = cimPath.getRemoteReplicationCollection(provider, group);
         List<CIMObjectPath> volumePathsInRemoteGroup = getVolumePathsInRemoteGroup(provider, remoteGroupPath);
@@ -282,7 +288,7 @@ public class SRDFUtils implements SmisConstants {
 
         return dbClient.queryObject(Volume.class, volumeURIs);
     }
-    
+
     /**
      * Gets associated ViPR volumes based on the SRDF group
      * 
@@ -305,7 +311,6 @@ public class SRDFUtils implements SmisConstants {
 
         return dbClient.queryObject(Volume.class, volumeURIs);
     }
-
 
     public Predicate<? super Volume> volumePersonalityPredicate(final PersonalityTypes personality) {
         return new Predicate<Volume>() {

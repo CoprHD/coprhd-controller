@@ -2,7 +2,7 @@
   <label class="control-label col-sm-3">{{table.label}}:</label>
   <div class="col-sm-9 controls">
     <table class="table">
-      <thead>
+      <thead ng-show="table.displayHeader">
       <tr>
         <th ng-repeat="item in table.items | values | unlocked">{{item.label}}</th>
         <th>&nbsp;</th>
@@ -16,7 +16,7 @@
         <td><a ng-click="deleteRow($index)" class="close">&times;</a></td>
       </tr>
       </tbody>
-      <tfoot>
+      <tfoot ng-show="table.displayAddButton">
       <tr>
         <td colspan="{{table.value.length}}">
           <button type='button' class='btn btn-sm btn-success' ng-click="addRow()"><i v-icon='plus'></i>{{'button.add' | t}}</button>

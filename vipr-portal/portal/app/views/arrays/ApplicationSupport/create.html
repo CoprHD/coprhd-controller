@@ -1,0 +1,62 @@
+%{
+  titleKey = 'ApplicationForm.' + (applicationForm?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = "application.create.description"
+  image = '/public/img/assets/Application.png'
+}%
+
+#{extends 'main.html' /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:applicationForm?.id ? true : false/}
+#{set 'moreScripts'}
+    #{get 'moreScripts'/}
+#{/set}
+  
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'Application.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<script>
+$(document).ready(function() {
+	var editMode = #{get 'editMode'/};
+});
+</script>
+
+<div class="container">
+  #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image  /}
+
+  #{alerts/}
+
+  #{form @save(), id:'applicationForm',class:'form form-horizontal', autocomplete:"off"}
+  
+  	#{if applicationForm?.id}
+        #{field 'applicationForm.id'}
+            <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    #{/if}
+    
+    #{if applicationForm?.roles}
+        #{field 'applicationForm.roles'}
+           <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    #{/if}
+
+    #{field "applicationForm.name"}
+      %{
+        field.cssClass = fieldCssClass
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field/}
+    #{/field}
+   
+     #{field 'applicationForm.description'}
+        %{
+          field.cssClass = 'span0'
+          field.required = false
+        }%
+      #{Form.inputTextControlGroup field:field/}
+    #{/field}
+
+    #{Form.saveCancel cancelHref:@cancel() /}
+  #{/form}
+</div>

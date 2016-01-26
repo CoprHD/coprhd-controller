@@ -88,10 +88,12 @@ angular.module("services", []).directive({
                 if (item.type == "text") {
                     type = '<input-text>';
                     tagAttrs = {'maxlength': validation.max || 1024}; //Maximum length of an OrderParameter is 1024
-                } else if (item.type == "date") {
+                } else if (item.type == "failoverDate") {
                     type = '<date-picker>';
-                } else if (item.type == "time") {
+                    tagAttrs = {'ng-model' : "failover.date"};
+                } else if (item.type == "failoverTime") {
                     type = '<time-picker>';
+                    tagAttrs = {'ng-model' : "failover.time"};
                 } else if (item.type == "password" || item.type == "password.verify") {
                     type = '<input-password>';
                     tagAttrs = {'maxlength': validation.max || 1024}; //Maximum length of an OrderParameter is 1024

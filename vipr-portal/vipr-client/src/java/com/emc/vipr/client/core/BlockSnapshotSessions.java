@@ -11,6 +11,7 @@ import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
@@ -121,25 +122,25 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
         return getByRefs(refs, filter);
     }
     
-    /**
-     * Gets the block snapshot sessions for a given consistency group, optionally filtering the results.
-     * 
-     * <p>
-     * API Call: <tt>GET /block/consistency-groups/{id}/protection/snapshot-sessions</tt>
-     * 
-     * @param consistencyGroupId
-     *            the ID of the consistency group.
-     * @param filter
-     *            the filter to apply (may be null, for no filtering).
-     * @return The list of snapshot sessions in the consistency group.
-     * 
-     * @see #getByRefs(java.util.Collection, ResourceFilter)
-     */
-    public List<BlockSnapshotSessionRestRep> getByCG(URI consistencyGroupId, ResourceFilter<BlockSnapshotSessionRestRep> filter) {
-        final String url = "/block/consistency-groups/{id}/protection/snapshot-sessions";
-        BlockSnapshotSessionList response = client.get(BlockSnapshotSessionList.class, url, consistencyGroupId);
-        return getByRefs(response.getSnapSessionRelatedResourceList(), filter);
-    } 
+//    /**
+//     * Gets the block snapshot sessions for a given consistency group, optionally filtering the results.
+//     * 
+//     * <p>
+//     * API Call: <tt>GET /block/consistency-groups/{id}/protection/snapshot-sessions</tt>
+//     * 
+//     * @param consistencyGroupId
+//     *            the ID of the consistency group.
+//     * @param filter
+//     *            the filter to apply (may be null, for no filtering).
+//     * @return The list of snapshot sessions in the consistency group.
+//     * 
+//     * @see #getByRefs(java.util.Collection, ResourceFilter)
+//     */
+//    public List<BlockSnapshotSessionRestRep> getByCG(URI consistencyGroupId, ResourceFilter<BlockSnapshotSessionRestRep> filter) {
+//        final String url = "/block/consistency-groups/{id}/protection/snapshot-sessions";
+//        BlockSnapshotSessionList response = client.get(BlockSnapshotSessionList.class, url, consistencyGroupId);
+//        return getByRefs(response.getSnapSessionRelatedResourceList(), filter);
+//    } 
 
     /**
      * Create and link new targets to an existing BlockSnapshotSession instance.
@@ -241,5 +242,60 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      */
     protected String getByVolumeUrl() {
         return PathConstants.BLOCK_VOLUMES_URL + "/{volumeId}/protection/snapshot-sessions";
+    }
+    
+    /**
+     * Gets the URL for listing block snapshot sessions by consistency group:
+     * <tt>/block/consistency-groups/{consistencyGroupId}/protection/snapshots</tt>
+     * 
+     * @return the URL for listing by consistency group.
+     */
+    protected String getByConsistencyGroupUrl() {
+        return PathConstants.BLOCK_CONSISTENCY_GROUP_URL + "/{consistencyGroupId}/protection/snapshot-sessions";
+    }
+
+    /**
+     * Lists the block snapshot sessions for a consistency group by ID.
+     * <p>
+     * <API Call: <tt>GET /block/consistency-groups/{consistencyGroupId}/protection/snapshot-sessions</tt>
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @return the list of block snapshot session references.
+     */
+    public List<NamedRelatedResourceRep> listByConsistencyGroup(URI consistencyGroupId) {
+        return getList(getByConsistencyGroupUrl(), consistencyGroupId);
+    }
+
+    /**
+     * Gets the block snapshot sessions for a consistency group by ID.
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @return the list of block snapshot session references.
+     * 
+     * @see #listByConsistencyGroup(URI)
+     * @see #getByRefs(java.util.Collection)
+     */
+    public List<BlockSnapshotSessionRestRep> getByConsistencyGroup(URI consistencyGroupId) {
+        return getByConsistencyGroup(consistencyGroupId, null);
+    }
+
+    /**
+     * Gets the block snapshot sessions for a consistency group by ID, optionally filtering the results.
+     * 
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @param filter
+     *            the filter to apply (may be null, for no filtering).
+     * @return the list of block snapshot session references.
+     * 
+     * @see #listByConsistencyGroup(URI)
+     * @see #getByRefs(java.util.Collection, ResourceFilter)
+     */
+    public List<BlockSnapshotSessionRestRep> getByConsistencyGroup(URI consistencyGroupId,
+            ResourceFilter<BlockSnapshotSessionRestRep> filter) {
+        List<NamedRelatedResourceRep> refs = listByConsistencyGroup(consistencyGroupId);
+        return getByRefs(refs, filter);
     }
 }

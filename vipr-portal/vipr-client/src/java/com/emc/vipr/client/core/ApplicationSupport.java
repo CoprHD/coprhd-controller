@@ -5,6 +5,7 @@
 package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_APP_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DELETE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
@@ -22,6 +23,7 @@ import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.VolumeGroupFullCopyCreateParam;
 import com.emc.vipr.client.impl.RestClient;
 
 public class ApplicationSupport {
@@ -97,5 +99,18 @@ public class ApplicationSupport {
      */
     public NamedVolumesList getVolumeByApplication(URI id) {
         return client.get(NamedVolumesList.class, APP_SUPPORT_VOLUME_URL, id);
+    }
+    
+    /**
+     * Creates a full copy of an application.
+     * API Call: POST /volume-groups/block/{id}/protection/full-copies
+     * 
+     * @param id application id to create full copy of
+     * @param input input parameters for create full copy request
+     * @return list of tasks
+     */
+    public TaskList createFullCopyOfApplication(URI id, VolumeGroupFullCopyCreateParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_CREATE_FULL_COPY_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
     }
 }

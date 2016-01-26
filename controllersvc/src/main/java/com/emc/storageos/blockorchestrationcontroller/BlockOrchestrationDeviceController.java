@@ -60,7 +60,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createVolumes(java.util.List, java.lang.String)
      */
     @Override
@@ -95,7 +95,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     workflow, waitFor, volumes, taskId);
 
             s_logger.info("Checking for Replica steps");
-            // Call the ReplicaDeviceController to add its methods if volumes are added to CG, and the CG associated with replication group(s)
+            // Call the ReplicaDeviceController to add its methods if volumes are added to CG, and the CG associated with replication
+            // group(s)
             waitFor = _replicaDeviceController.addStepsForCreateVolumes(
                     workflow, waitFor, volumes, taskId);
 
@@ -128,7 +129,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#deleteVolumes(java.util.List, java.lang.String)
      */
     @Override
@@ -143,7 +144,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     DELETE_VOLUMES_WF_NAME, true, taskId);
             String waitFor = null;    // the wait for key returned by previous call
 
-            // Call the ReplicaDeviceController to add its methods if volumes are removed from, and the CG associated with replication group(s)
+            // Call the ReplicaDeviceController to add its methods if volumes are removed from, and the CG associated with replication
+            // group(s)
             waitFor = _replicaDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
 
@@ -162,7 +164,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // Next, call the BlockDeviceController to add its methods.
             waitFor = _blockDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
-          
+
             // Call the VPlexDeviceController to add its post-delete methods.
             waitFor = _vplexDeviceController.addStepsForPostDeleteVolumes(
                     workflow, waitFor, volumes, taskId, completer);
@@ -188,7 +190,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#expandVolume(java.net.URI, long, java.lang.String)
      */
     @Override
@@ -237,7 +239,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
      * java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
-    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, String taskId) throws ControllerException {
+    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, String syncDirection, String taskId)
+            throws ControllerException {
         List<URI> volUris = Arrays.asList(volume);
         BlockSnapshotRestoreCompleter completer = new BlockSnapshotRestoreCompleter(snapshot, taskId);
         try {
@@ -252,15 +255,15 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // Call the VplexDeviceController to add its steps for restore volume from snapshot
             waitFor = _vplexDeviceController.addStepsForRestoreVolume(
-                    workflow, waitFor, storage, pool, volume, snapshot, null, taskId, completer);
+                    workflow, waitFor, storage, pool, volume, snapshot, null, syncDirection, taskId, completer);
 
             // Call the BlockDeviceController to add its steps for restore volume from snapshot
             waitFor = _blockDeviceController.addStepsForRestoreVolume(
-                    workflow, waitFor, storage, pool, volume, snapshot, Boolean.TRUE, taskId, completer);
+                    workflow, waitFor, storage, pool, volume, snapshot, Boolean.TRUE, syncDirection, taskId, completer);
 
             // Call the RPDeviceController to add its steps for post restore volume from snapshot
             waitFor = _rpDeviceController.addStepsForRestoreVolume(
-                    workflow, waitFor, storage, pool, volume, snapshot, null, taskId, completer);
+                    workflow, waitFor, storage, pool, volume, snapshot, null, syncDirection, taskId, completer);
 
             // Call the RP controller to add RP post restore steps
             waitFor = _rpDeviceController.addPostRestoreVolumeSteps(
@@ -324,7 +327,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // CGs. Mainly used for VPLEX->RP+VPLEX change vpool. The existing VPLEX volume would not be
             // in any CG and we now need it's backing volume(s) to be added to their local array CG.
             waitFor = postRPChangeVpoolSteps(workflow, waitFor, volumes, taskId);
-
+            
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
             String successMessage = "Change Virtual Pool suceeded for volumes: " + volURIs.toString();
@@ -396,7 +399,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     /**
      * Needed to perform post change vpool operations on RP volumes.
-     *
+     * 
      * @param workflow The current workflow
      * @param waitFor The previous operation to wait for
      * @param volumeDescriptors All the volume descriptors
@@ -408,7 +411,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         // Get the list of descriptors needed for post change virtual pool operations on RP.
         List<VolumeDescriptor> rpVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] {
-                        VolumeDescriptor.Type.RP_EXISTING_SOURCE,
+                VolumeDescriptor.Type.RP_EXISTING_SOURCE,
                 }, null);
 
         // If no volume descriptors match, just return

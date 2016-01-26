@@ -10,7 +10,6 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 
@@ -26,6 +25,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class ComputeImageServerMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory
@@ -41,7 +41,7 @@ public class ComputeImageServerMigration extends BaseCustomMigrationCallback {
     private static final String IMAGE_SERVER_ENC_PWD = "image_server_encpassword";
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         try {
             // Retrieve data from zk db using coordinator client
             Configuration config1 = coordinatorClient.queryConfiguration(

@@ -1,0 +1,45 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.app'] /}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @blockApplications()}&{'resources.applications'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${application?.name}#{/breadcrumb.item}
+#{/breadcrumb.container}
+<script type="text/javascript">
+function renderLink(o, val) {
+	var data = o.aData;
+	var url = #{jsAction @resources.BlockVolumes.volume(':id') /};
+    var href = url(data);
+    
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+function updateVolumes(oSettings) {
+    var count = $('#volumeApplication table').dataTable({ bRetrieve: true }).fnGetData().length;
+    
+    if (count != '0') {
+    	$('#volumesCountBadge').text(count);
+    }
+  }
+</script>
+<div class="clear"></div>
+
+<div id="applicationDetails" class="container" style="margin-bottom: 2em;">
+#{alerts/}
+
+#{if application}
+#{Resources.header resource:application, typeKey: 'affectedResources.application'/}
+<div class="col-sm-12">
+    <div class="panel-group">
+      
+        #{collapse 'resources.volumes', badge: 'volumesCountBadge', noPanelBody: true}          
+          #{DataTable.table id:'volumeApplication',
+                  dataTable:dataTable,
+                  source:@applicationVolumeJson(application.id), 
+                  cssClass:'editableRows',
+                  options:['iDisplayLength': '5', 'fnDrawCallback': 'updateVolumes']/}
+                  
+        #{/collapse}
+      
+    </div>
+  </div>
+#{/if}

@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.smis;
 import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkSnapshotSessionConsistencyGroup;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_REPLICATION_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE_GROUP;
 import static java.text.MessageFormat.format;
 
 import java.net.URI;
@@ -2012,22 +2013,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 return;
             }
 
-            Map<String, List<BlockSnapshotSession>> sessionLabelsMap = new HashMap<>();
-            for (BlockObject blockObject : blockObjects) {
-                List<BlockSnapshotSession> sessions =
-                        CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
-                        ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(blockObject.getId()));
-
-                if (!sessions.isEmpty()) {
-                    for (BlockSnapshotSession session : sessions) {
-                        if (!sessionLabelsMap.containsKey(session.getSessionLabel())) {
-                            sessionLabelsMap.put(session.getSessionLabel(), new ArrayList<BlockSnapshotSession>());
-                        }
-                        sessionLabelsMap.get(session.getSessionLabel()).add(session);
-                    }
-                }
-            }
-
             if (!replicas.isEmpty()) {
                 addReplicasToConsistencyGroup(storage, consistencyGroup, replicas, uriToBlockObjectMap);
             } else if (!volumes.isEmpty()) {
@@ -2128,9 +2113,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     }
                 }
 
-                // Now we have a set of snapshot session labels to create groups from.
-                fabricateSourceGroupAspects(storage, consistencyGroup, sessionLabelsMap);
-
                 // refresh target provider to update its view on target CG
                 if (isSrdfTarget) {
                     refreshStorageSystem(storage.getId(), null);
@@ -2190,10 +2172,33 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             newSession.setLabel(templateSession.getSessionLabel());
             newSession.setSessionLabel(templateSession.getSessionLabel());
             _dbClient.createObject(newSession);
-            // Just need to update the session instance...
-        }
 
-        // TODO Call associatorNames on the CG with class *SourceGroup.  Determine the 1-to-1 mapping.
+            // Determine the session instance and update the BlockSnapshotSession
+            String groupName = _helper.getConsistencyGroupName(cg, storage);
+            CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
+            CloseableIterator<CIMObjectPath> associatorNames = null;
+
+            try {
+                _log.info("Finding associated source group aspects...");
+                associatorNames =
+                        _helper.getAssociatorNames(storage, cgPath, null, SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE_GROUP,
+                                null, null);
+                while (associatorNames.hasNext()) {
+                    CIMObjectPath aspectPath = associatorNames.next();
+                    _log.info("Found {}", aspectPath);
+                    String instanceId = aspectPath.getKeyValue(CP_INSTANCE_ID).toString();
+                    if (instanceId.contains(newSession.getSessionLabel())) {
+                        newSession.setSessionInstance(instanceId);
+                        _dbClient.updateObject(newSession);
+                        break;
+                    }
+                }
+            } finally {
+                if (associatorNames != null) {
+                    associatorNames.close();
+                }
+            }
+        }
     }
 
     /**
@@ -2988,5 +2993,39 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
         }
         return doGroupCreation;
+    }
+
+    @Override
+    public void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> volumes, TaskCompleter taskCompleter) {
+        List<? extends BlockObject> blockObjects = BlockObject.fetch(_dbClient, volumes);
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
+        Map<String, List<BlockSnapshotSession>> sessionLabelsMap = new HashMap<>();
+
+        for (BlockObject blockObject : blockObjects) {
+            List<BlockSnapshotSession> sessions =
+                    CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                            ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(blockObject.getId()));
+
+            if (!sessions.isEmpty()) {
+                for (BlockSnapshotSession session : sessions) {
+                    if (!sessionLabelsMap.containsKey(session.getSessionLabel())) {
+                        sessionLabelsMap.put(session.getSessionLabel(), new ArrayList<BlockSnapshotSession>());
+                    }
+                    sessionLabelsMap.get(session.getSessionLabel()).add(session);
+                }
+            }
+        }
+
+        try {
+            fabricateSourceGroupAspects(storageSystem, cg, sessionLabelsMap);
+
+            taskCompleter.ready(_dbClient);
+        } catch (WBEMException e) {
+            _log.error("Problem in adding snapshot sessions to Consistency Group {}", consistencyGroup, e);
+
+            taskCompleter.error(_dbClient, DeviceControllerException.exceptions
+                    .failedToAddMembersToConsistencyGroup(cg.getLabel(),
+                            cg.getCgNameOnStorageSystem(storageSystem.getId()), e.getMessage()));
+        }
     }
 }

@@ -1030,4 +1030,6 @@ public interface BlockStorageDevice {
      */
     public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException;
+
+    void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> addVolumesList, TaskCompleter taskCompleter);
 }

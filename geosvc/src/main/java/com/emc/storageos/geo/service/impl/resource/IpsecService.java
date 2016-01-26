@@ -44,8 +44,9 @@ public class IpsecService {
     @POST
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public void changeIpsecStatus(@QueryParam("status") String status,
-                                  @QueryParam("status") String vdcConfigVersion) {
-        log.info("Processing a request for changing ipsec status to " + status);
+                                  @QueryParam("vdc_config_version") String vdcConfigVersion) {
+        log.info("Processing a request for changing ipsec status: status="
+                + status + ", vdc_config_version=" + vdcConfigVersion);
 
         ipsecConfig.setIpsecStatus(status);
         log.info("Saved the ipsec status to ZK");

@@ -556,6 +556,26 @@ public class BackupService {
         }
     }
 
+    private void redirectRestoreRequest(String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
+        URI restoreURL =
+           URI.create(String.format(SysClientFactory.URI_NODE_BACKUPS_RESTORE_TEMPLATE, backupName, isLocal, password, isGeoFromScratch));
+
+        URI endpoint = null;
+        try {
+            endpoint = backupOps.getFirstNodeURI();
+            log.info("redirect restore URI {} to {}", restoreURL, endpoint);
+            SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
+            sysClient.post(restoreURL, null, null);
+        }catch (Exception e) {
+            String errMsg = String.format("Failed to send %s to %s", restoreURL, endpoint);
+            log.error(errMsg);
+            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
+            s.setMessage(errMsg);
+            backupOps.setRestoreStatus(backupName, s, 0, 0, false, false);
+            throw SysClientException.syssvcExceptions.restoreFailed(backupName, errMsg);
+        }
+    }
+
     /**
      *  Cancel the current download backup operation
      *  If there are no downloading running, do nothing
@@ -571,6 +591,60 @@ public class BackupService {
         log.info("To cancel the current download");
 
         backupOps.cancelDownload();
+
+        log.info("done");
+        return Response.status(202).build();
+    }
+
+    @POST
+    @Path("internal/restore/")
+    public Response internalRestore(@QueryParam("backupname") String backupName,
+                                  @QueryParam("isLocal") boolean isLocal,
+                                  @QueryParam("password") String password,
+                                  @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
+        log.info("Recieve internal restore resquest");
+        return doRestore(backupName, isLocal, password, isGeoFromScratch);
+    }
+
+    private Response doRestore(@QueryParam("backupname") String backupName, @QueryParam("isLocal") boolean isLocal, @QueryParam("password") String password, @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
+        log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
+                new Object[] {backupName, isLocal, password, isGeoFromScratch});
+
+        if (!backupOps.isActiveSite()) {
+            setRestoreFailed(backupName, "The current site is not an active site");
+            //no return here
+        }
+
+        if (!backupOps.isClusterStable()) {
+            setRestoreFailed(backupName, "The cluster is not stable");
+            //no return here
+        }
+
+        File backupDir= getBackupDir(backupName, isLocal);
+
+        String myNodeId = backupOps.getCurrentNodeId();
+        log.info("myNodeId={} backupdir={}", myNodeId, backupDir.getAbsolutePath());
+
+        try {
+            backupOps.checkBackup(backupDir);
+        }catch (Exception e) {
+            if (backupOps.shouldHaveBackupData()) {
+                String errMsg = String.format("Invalid backup the node %s: %s", myNodeId, e.getMessage());
+                setRestoreFailed(backupName, errMsg);
+                //no return here
+            }
+
+            log.info("The current node doesn't have valid backup data {} so redirect to virp1", backupDir.getAbsolutePath());
+            redirectRestoreRequest(backupName, isLocal, password, isGeoFromScratch);
+            return Response.status(202).build();
+        }
+
+        String[] restoreCommand=new String[]{restoreCmd,
+                backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
+                restoreLog};
+        log.info("The restore command={}", restoreCommand);
+
+        Exec.exec(120 * 1000, restoreCommand);
 
         log.info("done");
         return Response.status(202).build();
@@ -594,30 +668,8 @@ public class BackupService {
                                   @QueryParam("isLocal") boolean isLocal,
                                   @QueryParam("password") String password,
                                   @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
-        log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
-                new Object[] {backupName, isLocal, password, isGeoFromScratch});
-
-        if (!backupOps.isActiveSite()) {
-            setRestoreFailed(backupName, "The current site is not an active site");
-            //no return here
-        }
-
-        if (!backupOps.isClusterStable()) {
-            setRestoreFailed(backupName, "The cluster is not stable");
-            //no return here
-        }
-
-        File backupDir= getBackupDir(backupName, isLocal);
-
-        String[] restoreCommand=new String[]{restoreCmd,
-                backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
-                restoreLog};
-        log.info("The restore command={}", restoreCommand);
-
-        Exec.exec(120 * 1000, restoreCommand);
-
-        log.info("done");
-        return Response.status(202).build();
+        log.info("Recieve restore resquest");
+        return doRestore(backupName, isLocal, password, isGeoFromScratch);
     }
 
     private Response setRestoreFailed(String backupName, String msg) {
@@ -651,11 +703,7 @@ public class BackupService {
         }
 
         File backupDir = isLocal ? new File(backupOps.getBackupDir(), backupName) : new File(BackupConstants.RESTORE_DIR, backupName);
-        if (backupDir.exists()) {
-            return backupDir;
-        }
-        
-        throw APIException.badRequests.invalidParameter("backupname", backupName);
+        return backupDir;
     }
 
     /**

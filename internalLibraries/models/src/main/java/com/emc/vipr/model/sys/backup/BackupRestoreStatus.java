@@ -147,7 +147,7 @@ public class BackupRestoreStatus {
     }
 
     public boolean isNotSuccess() {
-        return status == Status.DOWNLOAD_FAILED || status == Status.RESTORE_FAILED || status == Status.DOWNLOAD_CANCELLED;
+        return status == Status.DOWNLOAD_FAILED || status == Status.RESTORE_FAILED;
     }
 
     //convert to Map to persist to ZK

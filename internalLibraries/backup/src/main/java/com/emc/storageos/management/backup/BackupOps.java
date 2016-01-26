@@ -29,13 +29,7 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
-import com.emc.storageos.coordinator.client.model.ProductName;
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.common.impl.ZkPath;
-import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.apache.curator.utils.ZKPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,11 +50,15 @@ import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Service;
 
 import com.emc.storageos.services.util.FileUtils;
+import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.exceptions.RetryableBackupException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.vipr.model.sys.ClusterInfo;
 
 public class BackupOps {
     private static final Logger log = LoggerFactory.getLogger(BackupOps.class);
@@ -316,7 +314,7 @@ public class BackupOps {
         }
     }
 
-    public boolean isValidBackup(File backupFolder) {
+    public void checkBackup(File backupFolder) throws Exception {
         FilenameFilter filter = new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
@@ -327,9 +325,12 @@ public class BackupOps {
         File[] backupFiles = backupFolder.listFiles(filter);
         File infoPropertyFile = null;
         boolean isGeo = false;
+        boolean found_db_file=false;
+        boolean found_geodb_file=false;
 
         if (backupFiles == null) {
-            return false;
+            String errMsg = String.format("The %s contains no backup files");
+            throw new RuntimeException(errMsg);
         }
 
         for (File file : backupFiles) {
@@ -343,16 +344,40 @@ public class BackupOps {
                 isGeo = true;
             }
 
+            String filename = file.getName();
+            if (filename.contains("_db_")) {
+                found_db_file = true;
+            }else if (filename.contains("_geodb_")) {
+                found_geodb_file = true;
+            }
+
             if (!checkMD5(file)) {
-                log.info("MD5 of {} does not match its md5 file", file.getAbsolutePath());
-                return false;
+                String errMsg = String.format("MD5 of %s does not match its md5 file", file.getAbsolutePath());
+                log.info(errMsg);
+                throw new RuntimeException(errMsg);
             }
         }
 
-        return (infoPropertyFile != null) && isValidBackup(infoPropertyFile, isGeo);
+        log.info("found db {} geodb {}", found_db_file, found_geodb_file);
+        if (!found_db_file) {
+            String errMsg = String.format("%s does not contain db files", backupFolder.getAbsolutePath());
+            throw new RuntimeException(errMsg);
+        }
+
+        if (!found_geodb_file) {
+            String errMsg = String.format("%s does not contain geodb files", backupFolder.getAbsolutePath());
+            throw new RuntimeException(errMsg);
+        }
+
+        if (infoPropertyFile == null) {
+            String errMsg = String.format("%s does not contain property file", backupFolder.getAbsolutePath());
+            throw new RuntimeException(errMsg);
+        }
+
+        checkBackup(infoPropertyFile, isGeo);
     }
 
-    private boolean isValidBackup(File propertyInfoFile, boolean isGeo) {
+    private void checkBackup(File propertyInfoFile, boolean isGeo) throws Exception {
         RestoreManager manager = new RestoreManager();
         CoordinatorClientImpl client = (CoordinatorClientImpl) coordinatorClient;
         manager.setNodeCount(client.getNodeCount());
@@ -364,14 +389,14 @@ public class BackupOps {
         manager.setIpAddress6(ipaddress6);
         manager.setEnableChangeVersion(false);
 
-        try {
-            manager.checkBackupInfo(propertyInfoFile, isGeo);
-        }catch (Exception e) {
-            log.info("Invalid backup e=",e);
-            return false;
-        }
+        manager.checkBackupInfo(propertyInfoFile, isGeo);
+    }
 
-        return true;
+    public boolean shouldHaveBackupData() {
+        String myNodeId = getCurrentNodeId();
+        log.info("myNodeId={}", myNodeId);
+
+        return myNodeId.equals("vipr1") || myNodeId.equals("vipr2") || myNodeId.equals("vipr3");
     }
 
     public void addRestoreListener(NodeListener listener) throws Exception {
@@ -448,7 +473,7 @@ public class BackupOps {
                 new Object[]{backupName, status, backupSize, increasedSize, increaseCompletedNodeNumber});
 
         BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
-        if (status != null && status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ) {
+        if ( status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ) {
             if (!s.getStatus().canBeCanceled()) {
                 return;
             }
@@ -1228,7 +1253,7 @@ public class BackupOps {
         List<Service> services = coordinatorClient.locateAllServices(
                 ((CoordinatorClientImpl) coordinatorClient).getSysSvcName(),
                 ((CoordinatorClientImpl) coordinatorClient).getSysSvcVersion(),
-                (String) null, null);
+                null, null);
 
         //get URL schema and port
         Service svc = services.get(0);
@@ -1252,6 +1277,17 @@ public class BackupOps {
         }
 
         return nodesInfo;
+    }
+
+    public URI getFirstNodeURI() throws URISyntaxException {
+        Map<String, URI> nodesInfo = getNodesInfo();
+
+        return nodesInfo.get("node1");
+    }
+
+    public String getCurrentNodeId() {
+        CoordinatorClientInetAddressMap addr = coordinatorClient.getInetAddessLookupMap();
+        return addr.getNodeId();
     }
 
     public boolean isClusterStable() {

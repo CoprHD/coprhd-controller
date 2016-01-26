@@ -198,11 +198,13 @@ public final class DownloadExecutor implements  Runnable {
 
         File backupFolder= backupOps.getDownloadDirectory(remoteBackupFileName);
 
-        if (backupOps.isValidBackup(backupFolder)) {
+        try {
+            backupOps.checkBackup(backupFolder);
             log.info("The backup {} for this node has already been downloaded", remoteBackupFileName);
             postDownload();
-
             return; //already downloaded, no need to download again
+        } catch (Exception e) {
+            // no backup or invalid backup, so download it again
         }
 
         ZipEntry zentry = zin.getNextEntry();
@@ -229,12 +231,16 @@ public final class DownloadExecutor implements  Runnable {
         BackupRestoreStatus restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
         log.info("status={}", restoreStatus);
 
-        if (!validBackup()) {
-            log.error("Invalid backup");
-            Status s = Status.DOWNLOAD_FAILED;
-            s.setMessage("Invalid backup");
-            backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, true, false);
-            return;
+        if (backupOps.shouldHaveBackupData()) {
+            try {
+                validBackup();
+            }catch (Exception e) {
+                log.error("Invalid backup");
+                Status s = Status.DOWNLOAD_FAILED;
+                s.setMessage(e.getMessage());
+                backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, true, false);
+                return;
+            }
         }
 
         Status s = null;
@@ -252,9 +258,9 @@ public final class DownloadExecutor implements  Runnable {
         }
     }
 
-    private boolean validBackup() {
+    private void validBackup() throws Exception {
         File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
-        return backupOps.isValidBackup(downloadedDir);
+        backupOps.checkBackup(downloadedDir);
     }
 
     private boolean isMyBackupFile(ZipEntry backupEntry) throws UnknownHostException {

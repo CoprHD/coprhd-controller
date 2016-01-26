@@ -7,6 +7,7 @@ package util;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -92,6 +93,7 @@ public class MobilityGroupSupportUtil {
         if (!removeClusters.isEmpty()) {
             update.setRemoveClustersList(removeClusters);
         }
+        update.setParents(new HashSet<String>());
 
         return BourneUtil.getViprClient().application().updateApplication(uri(id), update);
     }

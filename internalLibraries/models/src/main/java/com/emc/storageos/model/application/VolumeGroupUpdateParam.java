@@ -242,7 +242,7 @@ public class VolumeGroupUpdateParam {
     /**
      * @param parents the parents to add
      */
-    public void setParent(Set<String> parents) {
+    public void setParents(Set<String> parents) {
         this.parents = parents;
     }
 }

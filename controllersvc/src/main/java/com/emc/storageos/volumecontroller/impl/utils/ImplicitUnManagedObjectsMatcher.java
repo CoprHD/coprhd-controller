@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
@@ -54,8 +55,9 @@ public class ImplicitUnManagedObjectsMatcher {
         List<URI> vpoolURIs = dbClient.queryByType(VirtualPool.class, true);
         List<VirtualPool> vpoolList = dbClient.queryObject(VirtualPool.class, vpoolURIs);
         Set<URI> srdfEnabledTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(dbClient);
+        Set<URI> rpEnabledTargetVPools = RPHelper.fetchRPTargetVirtualPools(dbClient);
         for (VirtualPool vpool : vpoolList) {
-            matchVirtualPoolsWithUnManagedVolumes(vpool, srdfEnabledTargetVPools, null, dbClient);
+            matchVirtualPoolsWithUnManagedVolumes(vpool, srdfEnabledTargetVPools, rpEnabledTargetVPools, dbClient);
         }
     }
 
@@ -227,8 +229,8 @@ public class ImplicitUnManagedObjectsMatcher {
             }
 
             // Verify whether unmanaged volume RP properties with the Vpool
-            boolean isRPSourceVpool = (null != virtualPool.getProtectionRemoteCopySettings() && !virtualPool
-                    .getProtectionRemoteCopySettings().isEmpty());
+            boolean isRPSourceVpool = (null != virtualPool.getProtectionVarraySettings() && !virtualPool
+                    .getProtectionVarraySettings().isEmpty());
             boolean isRPTargetVpool = rpEnabledTargetVPools == null ? false : (rpEnabledTargetVPools.contains(virtualPool.getId()));
             remoteVolType = unManagedObjectInfo.get(SupportedVolumeInformation.RP_PERSONALITY.toString());
             isRegularVolume = (null == remoteVolType);

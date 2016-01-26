@@ -176,8 +176,8 @@ public abstract class VdcOpHandler {
                     log.info("Real IPsec key already existed, No need to rotate.");
                     return;
                 }
-                String version = ipsecMgr.rotateKey();
-                log.info("Kicked off IPsec key rotation. The version is {}", version);
+                String version = ipsecMgr.rotateKey(true);
+                log.info("Initiated IPsec key enabling and rotation. The version is {}", version);
         }
 
         private InterProcessLock acquireIPsecLock() throws Exception {

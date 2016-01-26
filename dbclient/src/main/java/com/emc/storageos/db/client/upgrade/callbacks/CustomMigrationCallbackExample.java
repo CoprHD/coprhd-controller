@@ -22,16 +22,21 @@ public class CustomMigrationCallbackExample extends BaseCustomMigrationCallback 
 	}
 	
 	private void validateHostLabelLength() throws MigrationCallbackException {
-		DbClient dbClient = this.getDbClient();
-		List<URI> hostIds = dbClient.queryByType(Host.class, true);
-		Iterator<Host> hosts = dbClient.queryIterativeObjects(Host.class, hostIds, true);
-		while (hosts.hasNext()) {
-			Host host = hosts.next();
-			if (host.getLabel()!=null && host.getLabel().length()<MIN_LABEL_LENGTH) {
-				String errorMsg = String.format("%s failed: invalid label length %s(%s)", this.getName(), Host.class.getSimpleName(), host.getId().toString());
-				throw new MigrationCallbackException(errorMsg, new IllegalStateException());
+		try {
+			DbClient dbClient = this.getDbClient();
+			List<URI> hostIds = dbClient.queryByType(Host.class, true);
+			Iterator<Host> hosts = dbClient.queryIterativeObjects(Host.class, hostIds, true);
+			while (hosts.hasNext()) {
+				Host host = hosts.next();
+				if (host.getLabel()!=null && host.getLabel().length()<MIN_LABEL_LENGTH) {
+					String errorMsg = String.format("%s failed: invalid label length %s(%s)", this.getName(), Host.class.getSimpleName(), host.getId().toString());
+					throw new MigrationCallbackException(errorMsg, new IllegalStateException());
+				}
 			}
+
+		} catch (Exception e) {
+			String errorMsg = String.format("%s encounter unexpected error %s", this.getName(), e.getMessage());
+			throw new MigrationCallbackException(errorMsg, e);
 		}
 	}
-
 }

@@ -220,17 +220,21 @@ public class IPSecMonitor implements Runnable {
     private Map<String, String>  getIpsecPropsThroughHTTPS(String node) {
         Map<String, String> props = new HashMap<String, String>();
 
-        GeoClientCacheManager geoClientMgr =  getGeoClientManager();
-        if (geoClientMgr != null) {
-            GeoServiceClient geoClient = geoClientMgr.getGeoClient(getVdcShortIdByIp(node));
-            VdcIpsecPropertiesResponse ipsecProperties = geoClient.getIpsecProperties();
-            if (ipsecProperties != null) {
-                props.put(IPSEC_KEY, ipsecProperties.getIpsecKey());
-                props.put(VDC_CONFIG_VERSION, ipsecProperties.getVdcConfigVersion());
-                props.put(IPSEC_STATUS, ipsecProperties.getIpsecStatus());
+        try {
+            GeoClientCacheManager geoClientMgr = getGeoClientManager();
+            if (geoClientMgr != null) {
+                GeoServiceClient geoClient = geoClientMgr.getGeoClient(getVdcShortIdByIp(node));
+                VdcIpsecPropertiesResponse ipsecProperties = geoClient.getIpsecProperties();
+                if (ipsecProperties != null) {
+                    props.put(IPSEC_KEY, ipsecProperties.getIpsecKey());
+                    props.put(VDC_CONFIG_VERSION, ipsecProperties.getVdcConfigVersion());
+                    props.put(IPSEC_STATUS, ipsecProperties.getIpsecStatus());
+                }
+            } else {
+                log.warn("GeoClientCacheManager is null, skip getting ipsec properties from " + node);
             }
-        } else {
-            log.warn("GeoClientCacheManager is null, skip getting ipsec properties from " + node);
+        } catch (Exception e) {
+            log.warn("can't get ipsec properties from remote vdc: " + node, e);
         }
 
         return props;

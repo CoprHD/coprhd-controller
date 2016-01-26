@@ -178,7 +178,7 @@
                 $.each(siteProgress, function(siteId, percent) {
                     $.each(percent, function(nodeId, downloadStatus) {
                         var progressBarId = 'site' + index + '-' + nodeId;
-                        updateProgressBar(progressBarId,downloadStatus.percent);
+                        updateProgressBar(progressBarId, downloadStatus.percent);
                         if (downloadStatus.percent != 100) {
                             downloadFinished = false;
                         }

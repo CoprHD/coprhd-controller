@@ -194,8 +194,14 @@ public class Upgrade extends Controller {
         ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo();
         String clusterState = calculateClusterState(clusterInfo);
 
-        boolean statusChanged = !clusterState.equals(currentStatus);
-        renderJSON(statusChanged);
+        // if the current status is downloading,
+        // don't go back to the index page until download is complete on all sites
+        if (currentStatus.equals(DOWNLOADING_CLUSTER_STATE)) {
+            renderJSON(false);
+        } else {
+            boolean statusChanged = !clusterState.equals(currentStatus);
+            renderJSON(statusChanged);
+        }
     }
 
     @Util

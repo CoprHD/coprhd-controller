@@ -550,6 +550,10 @@
         {
           "image": "icon_application_remove_volumes.png",
           "baseService": "RemoveVolumesFromApplication"
+        },
+        {
+          "image": "Service_Create_Full_Copy.png",
+          "baseService": "CreateCloneOfApplication"
         }
       ]
     }

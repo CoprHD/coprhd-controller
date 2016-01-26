@@ -20,9 +20,12 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Map.Entry;
 
 import javax.xml.bind.DataBindingException;
 
@@ -588,9 +591,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
 
-        // Create the CG on each system it has yet to be created on. We do not want to create backend
-        // CG for VPLEX CG.
-        List<URI> deviceURIs = new ArrayList<URI>();
+        // Create the CG on each system it has yet to be created on.
+        Map<URI, Set<String>> deviceURIs = new HashMap<URI, Set<String>>();
         for (VolumeDescriptor descr : volumes) {
             // If the descriptor's associated volume is the backing volume for a RP+VPlex
             // journal/target volume, we want to ignore its storage system. We do not want to
@@ -602,25 +604,32 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (NullColumnValueGetter.isNotNullValue(rpName)) {
                 _log.info("Creating backend CG.");
                 URI deviceURI = descr.getDeviceURI();
-                if (!deviceURIs.contains(deviceURI)) {
-                    deviceURIs.add(deviceURI);
+                Set<String> rpNames = deviceURIs.get(deviceURI);
+                if (rpNames == null) {
+                    rpNames = new HashSet<String>(); 
                 }
+                rpNames.add(rpName);
+                deviceURIs.put(deviceURI, rpNames);
             }
         }
 
         boolean createdCg = false;
-        for (URI deviceURI : deviceURIs) {
-            // If the consistency group has already been created in the array, just return
-            if (!consistencyGroup.created(deviceURI)) {
-                // Create step to create consistency group
-                waitFor = workflow.createStep(stepGroup,
-                        String.format("Creating consistency group  %s", consistencyGroupURI), waitFor,
-                        deviceURI, getDeviceType(deviceURI),
-                        this.getClass(),
-                        createConsistencyGroupMethod(deviceURI, consistencyGroupURI),
-                        deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, null, null, false), null);
-                createdCg = true;
-                _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
+        for (Map.Entry<URI, Set<String>> entry : deviceURIs.entrySet()) {
+            URI deviceURI = entry.getKey();
+            Set<String> rpNames = entry.getValue();
+            for (String rpName : rpNames) {
+                // If the consistency group has already been created in the array, just return
+                if (!consistencyGroup.created(deviceURI, rpName)) {
+                    // Create step to create consistency group
+                    waitFor = workflow.createStep(stepGroup,
+                            String.format("Creating consistency group  %s", consistencyGroupURI), waitFor,
+                            deviceURI, getDeviceType(deviceURI),
+                            this.getClass(),
+                            createConsistencyGroupMethod(deviceURI, consistencyGroupURI, rpName),
+                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rpName, null, false), null);
+                    createdCg = true;
+                    _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
+                }
             }
         }
 
@@ -3328,9 +3337,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
                     _dbClient.queryObject(Volume.class, sourceVolume) : null;
-            VolumeGroup volumeGroup = (source != null && source.isInVolumeGroup())
-                    ? source.getCopyTypeVolumeGroup(_dbClient) : null;
-            if (volumeGroup != null) {
+            VolumeGroup volumeGroup = (source != null)
+                    ? source.getApplication(_dbClient) : null;
+            if (volumeGroup != null
+                    && !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, source)) {
                 /**
                  * If a Volume is in Volume Group (COPY type),
                  * Query all volumes belonging to that Volume Group,
@@ -3555,45 +3565,59 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     @Override
     public void activateFullCopy(URI storage, List<URI> fullCopy, String opId) {
-        TaskCompleter completer = new CloneCreateWorkflowCompleter(fullCopy, opId);
+        TaskCompleter completer = new CloneWorkflowCompleter(fullCopy, opId);
         try {
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            // need to create a workflow to wait sync finish, then do fracture/activate
+            Workflow workflow = _workflowService.getNewWorkflow(this, ACTIVATE_CLONE_WF_NAME, false, opId);
+            _log.info("Created new activate workflow with operation id {}", opId);
 
-            if (storageSystem.deviceIsType(Type.vnxblock)) {
-                // need to create a workflow to wait sync finish, then do fracture/activate
-                Workflow workflow = _workflowService.getNewWorkflow(this, RESYNC_CLONE_WF_NAME, false, opId);
-                _log.info("Created new activate workflow with operation id {}", opId);
-                boolean isCG = checkCloneConsistencyGroup(fullCopy.get(0), _dbClient, completer);
-                String previousStep = null;
-                if (isCG) {
-                    for (URI cloneUri : fullCopy) {
-                        Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, Arrays.asList(cloneUri), false);
+            // Groups the given full copies based on their array replication groups if in Application/CG
+            // for Non-CG case, the map will have single entry
+            Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(fullCopy, completer);
+
+            for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
+                _log.info("Activating full copy group {}", arrayGroupName);
+                List<Volume> fullCopyObjects = arrayGroupToFullCopies.get(arrayGroupName);
+                List<URI> fullCopyURIs = new ArrayList<URI>(transform(fullCopyObjects, fctnDataObjectToID()));
+                Volume firstFullCopy = fullCopyObjects.get(0);
+                storage = firstFullCopy.getStorageController();
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+                // add CG to taskCompleter
+                boolean isCG = checkCloneConsistencyGroup(firstFullCopy.getId(), _dbClient, completer);
+
+                if (storageSystem.deviceIsType(Type.vnxblock)) {
+                    String previousStep = null;
+                    if (isCG) {
+                        for (URI cloneUri : fullCopyURIs) {
+                            Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, Arrays.asList(cloneUri),
+                                    false);
+                            String waitForSyncStep = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
+                                    "Waiting for synchronization", previousStep, storage,
+                                    storageSystem.getSystemType(), getClass(), waitForSyncMethod, null, null);
+                            previousStep = waitForSyncStep;
+                        }
+                    } else {
+                        Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, fullCopyURIs, isCG);
                         String waitForSyncStep = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
                                 "Waiting for synchronization", previousStep, storage,
                                 storageSystem.getSystemType(), getClass(), waitForSyncMethod, null, null);
                         previousStep = waitForSyncStep;
                     }
+                    workflow.createStep(ACTIVATE_CLONE_GROUP, "Activating clone", previousStep,
+                            storage, getDeviceType(storage), BlockDeviceController.class,
+                            activateCloneMethod(storage, fullCopyURIs), rollbackMethodNullMethod(), null);
 
                 } else {
-                    Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, fullCopy, isCG);
-                    String waitForSyncStep = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
-                            "Waiting for synchronization", previousStep, storage,
-                            storageSystem.getSystemType(), getClass(), waitForSyncMethod, null, null);
-                    previousStep = waitForSyncStep;
+                    workflow.createStep(ACTIVATE_CLONE_GROUP, "Activating clone", null,
+                            storage, getDeviceType(storage), BlockDeviceController.class,
+                            activateCloneMethod(storage, fullCopyURIs), rollbackMethodNullMethod(), null);
                 }
-                workflow.createStep(ACTIVATE_CLONE_GROUP, "Activating clone", previousStep,
-                        storage, getDeviceType(storage), BlockDeviceController.class,
-                        activateCloneMethod(storage, fullCopy), rollbackMethodNullMethod(), null);
-                _log.info("Executing workflow");
-                String msg = String.format("Actitvate %s completed successfully", fullCopy.get(0));
-
-                completer = new CloneCreateWorkflowCompleter(fullCopy, opId);
-
-                workflow.executePlan(completer, msg);
-
-            } else {
-                activateFullCopyStep(storage, fullCopy, opId);
             }
+
+            _log.info("Executing Activate workflow");
+            String msg = String.format("Actitvate %s completed successfully", fullCopy.get(0));
+            workflow.executePlan(completer, msg);
+
         } catch (Exception e) {
             String msg = String.format("Could not activate the clone %s", fullCopy.get(0));
             _log.error(msg, e);
@@ -3649,6 +3673,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
+    private static final String DETACH_CLONE_WF_NAME = "DETACH_CLONE_WORKFLOW";
+
     @Override
     public void detachFullCopy(URI storage, List<URI> fullCopyVolumes, String taskId)
             throws ControllerException {
@@ -3658,42 +3684,22 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             TaskCompleter taskCompleter = new CloneWorkflowCompleter(fullCopyVolumes, taskId);
 
-            Volume clone = _dbClient.queryObject(Volume.class, fullCopyVolumes.get(0));
-            URI sourceVolume = clone.getAssociatedSourceVolume();
-
-            Workflow workflow = _workflowService.getNewWorkflow(this, FULL_COPY_WORKFLOW, true, taskId);
-
-            Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
-                    _dbClient.queryObject(Volume.class, sourceVolume) : null;
-            VolumeGroup volumeGroup = (source != null && source.isInVolumeGroup())
-                    ? source.getCopyTypeVolumeGroup(_dbClient) : null;
-            if (volumeGroup != null) {
-                _log.info("Detaching full copy for Application {}", volumeGroup.getLabel());
-                // add VolumeGroup to taskCompleter
-                taskCompleter.addVolumeGroupId(volumeGroup.getId());
-            }
+            Workflow workflow = _workflowService.getNewWorkflow(this, DETACH_CLONE_WF_NAME, true, taskId);
 
             if (ConsistencyUtils.getCloneConsistencyGroup(fullCopyVolumes.get(0), _dbClient) != null) {
                 /**
                  * Group the given full-copies by Array Replication Group and create workflow step for each Array Group,
                  * these steps runs in parallel
                  */
-                List<Volume> fullCopyVolumeObjects = new ArrayList<Volume>();
-                Iterator<Volume> iterator = _dbClient.queryIterativeObjects(Volume.class, fullCopyVolumes);
-                while (iterator.hasNext()) {
-                    fullCopyVolumeObjects.add(iterator.next());
-                }
-                Map<String, List<Volume>> arrayGroupToFullCopies = ControllerUtils.groupVolumesByArrayGroup(fullCopyVolumeObjects);
+                Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(fullCopyVolumes, taskCompleter);
+
                 for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
+                    _log.info("Detaching full copy group {}", arrayGroupName);
                     List<Volume> arrayGroupFullCopies = arrayGroupToFullCopies.get(arrayGroupName);
-                    storageSystem = _dbClient.queryObject(StorageSystem.class, arrayGroupFullCopies.get(0).getStorageController());
-                    _log.info("Detaching full copy for full copy group {}", arrayGroupName);
+                    Volume firstFullCopy = arrayGroupFullCopies.get(0);
+                    storageSystem = _dbClient.queryObject(StorageSystem.class, firstFullCopy.getStorageController());
                     // add CG to taskCompleter
-                    BlockConsistencyGroup cg = ConsistencyUtils.getCloneConsistencyGroup(arrayGroupFullCopies.get(0).getId(), _dbClient);
-                    if (cg != null) {
-                        taskCompleter.addConsistencyGroupId(cg.getId());
-                    }
-                    // getDevice(storageSystem.getSystemType()).doDetachGroupClone(storageSystem, fullCopyVolumes, taskCompleter);
+                    checkCloneConsistencyGroup(firstFullCopy.getId(), _dbClient, taskCompleter);
 
                     List<URI> arrayGroupFullCopyURIs = new ArrayList<URI>(transform(arrayGroupFullCopies, fctnDataObjectToID()));
                     Workflow.Method detachMethod = detachFullCopyMethod(storageSystem.getId(), arrayGroupFullCopyURIs);
@@ -3702,14 +3708,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             null);
                 }
             } else {
-                // getDevice(storageSystem.getSystemType()).doDetachClone(storageSystem, fullCopyVolumes.get(0), taskCompleter);
-
                 Workflow.Method detachMethod = detachFullCopyMethod(storage, fullCopyVolumes);
                 workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", null,
                         storage, storageSystem.getSystemType(), getClass(), detachMethod, rollbackMethodNullMethod(), null);
             }
 
-            workflow.executePlan(taskCompleter, "Successfully detached full copies");
+            String msg = String.format("Detach %s completed successfully", fullCopyVolumes.get(0));
+            workflow.executePlan(taskCompleter, msg);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
@@ -4501,7 +4506,71 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public String addStepsForPostDeleteVolumes(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumes, String taskId,
             VolumeWorkflowCompleter completer) {
-        // Nothing to do, no steps to add
+        // delete replication group if it becomes empty
+        // Get the list of descriptors which represent source volumes to be deleted
+        List<VolumeDescriptor> volumeDescriptors = VolumeDescriptor.filterByType(volumes,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.SRDF_SOURCE,
+                        VolumeDescriptor.Type.SRDF_EXISTING_SOURCE,
+                        VolumeDescriptor.Type.SRDF_TARGET }, null);
+
+        // If no source volumes, just return
+        if (volumeDescriptors.isEmpty()) {
+            _log.info("No post deletion step required");
+            return waitFor;
+        }
+
+        // Get the consistency groups. If no consistency group for source
+        // volumes,
+        // just return. Get CGs from all descriptors.
+        // Assume volumes could be in different CGs
+        Map<URI, Set<URI>> cgToVolumes = new HashMap<URI, Set<URI>>();
+        for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
+            URI volumeURI = volumeDescriptor.getVolumeURI();
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            if (volume != null && volume.isInCG()) {
+                URI cg = volume.getConsistencyGroup();
+                Set<URI> cgVolumeList = cgToVolumes.get(cg);
+                if (cgVolumeList == null) {
+                    cgVolumeList = new HashSet<URI>();
+                    cgToVolumes.put(cg, cgVolumeList);
+                }
+
+                cgVolumeList.add(volumeURI);
+            }
+        }
+
+        if (cgToVolumes.isEmpty()) {
+            return waitFor;
+        }
+
+        Set<Entry<URI, Set<URI>>> entrySet = cgToVolumes.entrySet();
+        for (Entry<URI, Set<URI>> entry : entrySet) {
+            // find member volumes in the group
+            URI cgURI = entry.getKey();
+            Set<URI> volumeURIs = entry.getValue();
+            List<Volume> volumeList = new ArrayList<Volume>();
+            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumeURIs);
+            while (volumeIterator.hasNext()) {
+                Volume volume = volumeIterator.next();
+                if (volume != null && !volume.getInactive()) {
+                    volumeList.add(volume);
+                }
+            }
+
+            // delete CG from array
+            if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
+                _log.info("Adding step to delete consistency group %s", cgURI);
+                URI storage = volumeList.get(0).getStorageController();
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                        String.format("Deleting replication group for consistency group %s", cgURI),
+                        waitFor, storage, storageSystem.getSystemType(),
+                        this.getClass(),
+                        deleteConsistencyGroupMethod(storage, cgURI, null, null, false),
+                        rollbackMethodNullMethod(), null);
+            }
+        }
+
         return waitFor;
     }
 
@@ -4526,71 +4595,81 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void restoreFromFullCopy(URI storage, List<URI> clones,
             Boolean updateOpStatus, String opId) throws InternalException {
-        CloneCreateWorkflowCompleter completer = new CloneCreateWorkflowCompleter(clones, opId);
+        TaskCompleter completer = new CloneWorkflowCompleter(clones, opId);
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_FROM_CLONE_WF_NAME, false, opId);
             _log.info("Created new restore workflow with operation id {}", opId);
-            String waitFor = null;
 
-            Volume clone = _dbClient.queryObject(Volume.class, clones.get(0));
-            URI source = clone.getAssociatedSourceVolume();
-            BlockObject sourceObj = BlockObject.fetch(_dbClient, source);
-            /**
-             * We need to detach SRDF link before performing clone restore to SRDF R2 volume.
-             * OPT#477320
-             */
-            if (sourceObj instanceof Volume && isNonSplitSRDFTargetVolume((Volume) sourceObj)) {
+            // Groups the given full copies based on their array replication groups if in Application/CG
+            // for Non-CG case, the map will have single entry
+            Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(clones, completer);
 
-                Volume sourceVolume = (Volume) sourceObj;
-                URI srdfSourceVolumeURI = sourceVolume.getSrdfParent().getURI();
-                Volume srdfSourceVolume = _dbClient.queryObject(Volume.class, srdfSourceVolumeURI);
-                URI srdfSourceStorageSystemURI = srdfSourceVolume.getStorageController();
-                // split all members the group
-                Workflow.Method splitMethod = srdfDeviceController.splitSRDFLinkMethod(srdfSourceStorageSystemURI,
-                        srdfSourceVolumeURI, source, false);
+            for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
+                _log.info("Restoring full copy group {}", arrayGroupName);
+                List<Volume> fullCopyObjects = arrayGroupToFullCopies.get(arrayGroupName);
+                List<URI> fullCopyURIs = new ArrayList<URI>(transform(fullCopyObjects, fctnDataObjectToID()));
+                Volume firstFullCopy = fullCopyObjects.get(0);
+                storage = firstFullCopy.getStorageController();
+                StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+                // add CG to taskCompleter
+                boolean isCG = checkCloneConsistencyGroup(firstFullCopy.getId(), _dbClient, completer);
+                String waitFor = null;
 
-                Workflow.Method splitRollbackMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI,
-                        srdfSourceVolumeURI, source);
+                Volume clone = _dbClient.queryObject(Volume.class, fullCopyURIs.get(0));
+                URI source = clone.getAssociatedSourceVolume();
+                BlockObject sourceObj = BlockObject.fetch(_dbClient, source);
+                /**
+                 * We need to detach SRDF link before performing clone restore to SRDF R2 volume.
+                 * OPT#477320
+                 */
+                if (sourceObj instanceof Volume && isNonSplitSRDFTargetVolume((Volume) sourceObj)) {
 
-                waitFor = workflow.createStep(SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_GROUP,
-                        SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_DESC, waitFor, srdfSourceStorageSystemURI,
-                        getDeviceType(srdfSourceStorageSystemURI), SRDFDeviceController.class, splitMethod,
-                        splitRollbackMethod, null);
-            }
+                    Volume sourceVolume = (Volume) sourceObj;
+                    URI srdfSourceVolumeURI = sourceVolume.getSrdfParent().getURI();
+                    Volume srdfSourceVolume = _dbClient.queryObject(Volume.class, srdfSourceVolumeURI);
+                    URI srdfSourceStorageSystemURI = srdfSourceVolume.getStorageController();
+                    // split all members the group
+                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFLinkMethod(srdfSourceStorageSystemURI,
+                            srdfSourceVolumeURI, source, false);
 
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI,
+                            srdfSourceVolumeURI, source);
 
-            String description = String.format("Restore volume from %s", clones.get(0));
-            boolean isCG = checkCloneConsistencyGroup(clones.get(0), _dbClient, completer);
+                    waitFor = workflow.createStep(SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_GROUP,
+                            SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_DESC, waitFor, srdfSourceStorageSystemURI,
+                            getDeviceType(srdfSourceStorageSystemURI), SRDFDeviceController.class, splitMethod,
+                            splitRollbackMethod, null);
+                }
 
-            workflow.createStep(RESTORE_FROM_CLONE_GROUP, description, waitFor,
-                    storage, getDeviceType(storage), BlockDeviceController.class,
-                    restoreFromCloneMethod(storage, clones, updateOpStatus, isCG),
-                    rollbackMethodNullMethod(), null);
+                String description = String.format("Restore volume from %s", fullCopyURIs.get(0));
+                String previousStep = workflow.createStep(RESTORE_FROM_CLONE_GROUP, description, waitFor,
+                        storage, getDeviceType(storage), BlockDeviceController.class,
+                        restoreFromCloneMethod(storage, fullCopyURIs, updateOpStatus, isCG),
+                        rollbackMethodNullMethod(), null);
 
-            String previousStep = RESTORE_FROM_CLONE_GROUP;
-            if (isCG && system.deviceIsType(Type.vnxblock)) {
-                for (URI cloneUri : clones) {
-                    Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, Arrays.asList(cloneUri), false);
+                if (isCG && system.deviceIsType(Type.vnxblock)) {
+                    for (URI cloneUri : fullCopyURIs) {
+                        Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, Arrays.asList(cloneUri), false);
+                        String waitForSyncStep = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
+                                "Waiting for synchronization", previousStep, storage,
+                                system.getSystemType(), getClass(), waitForSyncMethod, rollbackMethodNullMethod(), null);
+                        previousStep = waitForSyncStep;
+                    }
+
+                } else {
+                    Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, fullCopyURIs, isCG);
                     String waitForSyncStep = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
                             "Waiting for synchronization", previousStep, storage,
                             system.getSystemType(), getClass(), waitForSyncMethod, rollbackMethodNullMethod(), null);
                     previousStep = waitForSyncStep;
                 }
+                if (system.deviceIsType(Type.vmax) || system.deviceIsType(Type.vnxblock)) {
+                    addFractureSteps(workflow, system, fullCopyURIs, previousStep, isCG);
+                }
+            }
 
-            } else {
-                Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, clones, isCG);
-                String waitForSyncStep = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
-                        "Waiting for synchronization", previousStep, storage,
-                        system.getSystemType(), getClass(), waitForSyncMethod, rollbackMethodNullMethod(), null);
-                previousStep = waitForSyncStep;
-            }
-            if (system.deviceIsType(Type.vmax) || system.deviceIsType(Type.vnxblock)) {
-                addFractureSteps(workflow, system, clones, previousStep, isCG);
-            }
             _log.info("Executing workflow {}", RESTORE_FROM_CLONE_GROUP);
             String msg = String.format("Restore from %s completed successfully", clones.get(0));
-
             workflow.executePlan(completer, msg);
 
         } catch (Exception e) {
@@ -4698,42 +4777,55 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void resyncFullCopy(URI storage, List<URI> clones,
             Boolean updateOpStatus, String opId) throws InternalException {
-        CloneCreateWorkflowCompleter completer = new CloneCreateWorkflowCompleter(clones, opId);
+        TaskCompleter completer = new CloneWorkflowCompleter(clones, opId);
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, RESYNC_CLONE_WF_NAME, false, opId);
             _log.info("Created new resync workflow with operation id {}", opId);
-            boolean isCG = checkCloneConsistencyGroup(clones.get(0), _dbClient, completer);
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
-            String description = String.format("Resync clone %s", clones.get(0));
-            workflow.createStep(RESYNC_CLONE_GROUP, description, null,
-                    storage, getDeviceType(storage), BlockDeviceController.class,
-                    resyncCloneMethod(storage, clones, updateOpStatus, isCG),
-                    rollbackMethodNullMethod(), null);
-            String previousStep = RESYNC_CLONE_GROUP;
-            if (isCG && system.deviceIsType(Type.vnxblock)) {
-                for (URI cloneUri : clones) {
-                    Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, Arrays.asList(cloneUri), false);
+
+            // Groups the given full copies based on their array replication groups if in Application/CG
+            // for Non-CG case, the map will have single entry
+            Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(clones, completer);
+
+            for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
+                _log.info("Resynchronizing full copy group {}", arrayGroupName);
+                List<Volume> fullCopyObjects = arrayGroupToFullCopies.get(arrayGroupName);
+                List<URI> fullCopyURIs = new ArrayList<URI>(transform(fullCopyObjects, fctnDataObjectToID()));
+                Volume firstFullCopy = fullCopyObjects.get(0);
+                storage = firstFullCopy.getStorageController();
+                StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+                // add CG to taskCompleter
+                boolean isCG = checkCloneConsistencyGroup(firstFullCopy.getId(), _dbClient, completer);
+
+                String description = String.format("Resync clone %s", fullCopyURIs.get(0));
+                String previousStep = workflow.createStep(RESYNC_CLONE_GROUP, description, null,
+                        storage, getDeviceType(storage), BlockDeviceController.class,
+                        resyncCloneMethod(storage, fullCopyURIs, updateOpStatus, isCG),
+                        rollbackMethodNullMethod(), null);
+
+                if (isCG && system.deviceIsType(Type.vnxblock)) {
+                    for (URI cloneUri : fullCopyURIs) {
+                        Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, Arrays.asList(cloneUri), false);
+                        String waitForSyncStep = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
+                                "Waiting for synchronization", previousStep, storage,
+                                system.getSystemType(), getClass(), waitForSyncMethod, null, null);
+                        previousStep = waitForSyncStep;
+                    }
+                } else {
+                    Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, fullCopyURIs, isCG);
                     String waitForSyncStep = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
                             "Waiting for synchronization", previousStep, storage,
                             system.getSystemType(), getClass(), waitForSyncMethod, null, null);
                     previousStep = waitForSyncStep;
                 }
+                if (system.deviceIsType(Type.vnxblock)) {
+                    addFractureSteps(workflow, system, fullCopyURIs, previousStep, isCG);
+                } else {
+                    setCloneReplicaStateStep(workflow, system, fullCopyURIs, previousStep, ReplicationState.SYNCHRONIZED);
+                }
+            }
 
-            } else {
-                Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, clones, isCG);
-                String waitForSyncStep = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
-                        "Waiting for synchronization", previousStep, storage,
-                        system.getSystemType(), getClass(), waitForSyncMethod, null, null);
-                previousStep = waitForSyncStep;
-            }
-            if (system.deviceIsType(Type.vnxblock)) {
-                addFractureSteps(workflow, system, clones, previousStep, isCG);
-            } else {
-                setCloneReplicaStateStep(workflow, system, clones, previousStep, ReplicationState.SYNCHRONIZED);
-            }
             _log.info("Executing workflow {}", RESYNC_CLONE_GROUP);
             String msg = String.format("Resync %s completed successfully", clones.get(0));
-
             workflow.executePlan(completer, msg);
 
         } catch (Exception e) {
@@ -5296,6 +5388,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             this.getClass(),
                             removeFromConsistencyGroupMethod(storageUri, cguri, removeVols),
                             addToConsistencyGroupMethod(storage, cguri, null, removeVols), null);
+                    // remove replication group if the CG will become empty
+                    String groupName = vol.getReplicationGroupInstance();
+                    if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, groupName, removeVols, storageUri)) {
+                        waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                                String.format("Deleting replication group for consistency group %s", cguri),
+                                waitFor, storage, storageSystem.getSystemType(),
+                                this.getClass(),
+                                deleteConsistencyGroupMethod(storage, cguri, groupName, null, false),
+                                rollbackMethodNullMethod(), null);
+                    }
                 }
             }
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
@@ -5941,4 +6043,31 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return fullCopyURIs;
     }
 
+    /**
+     * Groups the given full copies based on their array replication group.
+     * If full copies are not part of CG, return the given full copies as a single entry.
+     * It also adds VolumeGroup to taskCompleter if full copy is part of application.
+     */
+    private Map<String, List<Volume>> groupFullCopiesByArrayGroup(List<URI> fullCopies, TaskCompleter completer) {
+        Map<String, List<Volume>> arrayGroupToFullCopies = null;
+
+        List<Volume> fullCopyVolumeObjects = new ArrayList<Volume>();
+        Iterator<Volume> iterator = _dbClient.queryIterativeObjects(Volume.class, fullCopies);
+        while (iterator.hasNext()) {
+            fullCopyVolumeObjects.add(iterator.next());
+        }
+
+        if (ConsistencyUtils.getCloneConsistencyGroup(fullCopies.get(0), _dbClient) != null) {
+            // add VolumeGroup to taskCompleter
+            if (ControllerUtils.checkCloneInApplication(fullCopies.get(0), _dbClient, completer)) {
+                _log.info("Full copy is part of an Application");
+            }
+            arrayGroupToFullCopies = ControllerUtils.groupVolumesByArrayGroup(fullCopyVolumeObjects);
+        } else {
+            arrayGroupToFullCopies = new HashMap<String, List<Volume>>();
+            arrayGroupToFullCopies.put("NO_ARRAY_GROUP", fullCopyVolumeObjects);
+        }
+
+        return arrayGroupToFullCopies;
+    }
 }

@@ -3540,7 +3540,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {
-        List<String> groupNames = new ArrayList<String>();
+        Set<String> groupNames = new HashSet<String>();
         final List<Volume> volumes = CustomQueryUtility
                 .queryActiveResourcesByConstraint(_dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));

@@ -1817,7 +1817,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 Set<Volume> volumes = new HashSet<Volume>();
 
                 // Check to see if this is a SOURCE volume
-                if (volume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) {
+                if (volume.checkPersonality(PersonalityTypes.SOURCE.toString())) {
                     // Now check the vpool to ensure we're exporting to the source volume to then correct place or
                     // places in the case of MetroPoint, however, it could be a change vpool. In that case get the change
                     // vpool new vpool.
@@ -1883,7 +1883,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
 
                     // Add host information to the export if specified
-                    if (vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
+                    if (vol.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
                     	for(VolumeDescriptor desc : volumeDescriptors) {
                     		if (desc.getVolumeURI().equals(vol.getId())) {
                     			if (!NullColumnValueGetter.isNullURI(desc.getComputeResource())) {
@@ -2357,8 +2357,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         }
                     }
                 }
-            } else if (NullColumnValueGetter.isNotNullValue(volume.getPersonality())
-                    && PersonalityTypes.SOURCE.toString().equals(volume.getPersonality())
+            } else if (volume.checkPersonality(PersonalityTypes.SOURCE.toString())
                     && VirtualPool.vPoolSpecifiesMetroPoint(virtualPool)) {
                 // We are dealing with a MetroPoint distributed volume so we need to get 2 export groups, one
                 // export group for each cluster.
@@ -3493,10 +3492,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                     vol.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
                     vol.setInternalSiteName(volume.getInternalSiteName());
-                    if (vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                    if (vol.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
                         vol.setAccessState(Volume.VolumeAccessState.READWRITE.name());
                         vol.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
-                    } else if (vol.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
+                    } else if (vol.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
                         vol.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                         vol.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
                     }
@@ -3919,8 +3918,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     // If protectionVolume is a source, then the "source" sent in must be a target. Verify.
                     taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_CANCEL_RP_LINK);
                     Volume targetVolume = null;
-                    if (protectionVolume.getPersonality() != null &&
-                            protectionVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString())) {
+                    if (protectionVolume.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
                         targetVolume = _dbClient.queryObject(Volume.class, id);
                     } else {
                         targetVolume = protectionVolume;
@@ -3949,7 +3947,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             } else if (op.equals("failover-cancel")) {
                 // If the "protectionVolume" is a source personality volume, we're probably dealing with a failover cancel.
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_CANCEL_RP_LINK);
-                if (protectionVolume.getPersonality().toString().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.name())) {
+                if (protectionVolume.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
                     taskCompleter
                             .error(_dbClient,
                                     _locker,
@@ -4124,13 +4122,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         //
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
-            if ((protectionVolume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) &&
+            if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) &&
                     (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 // This is a TARGET we failed over to. We need to build up all of its targets
                 for (URI potentialTargetVolumeID : volumeIDs) {
                     Volume potentialTargetVolume = _dbClient.queryObject(Volume.class, potentialTargetVolumeID);
-                    if (NullColumnValueGetter.isNotNullValue(potentialTargetVolume.getPersonality()) &&
-                            !potentialTargetVolume.getPersonality().toString().equals(Volume.PersonalityTypes.METADATA.toString()) &&
+                    if (!potentialTargetVolume.checkPersonality(Volume.PersonalityTypes.METADATA.toString()) &&
                             NullColumnValueGetter.isNotNullValue(potentialTargetVolume.getRSetName()) &&
                             potentialTargetVolume.getRSetName().equals(protectionVolume.getRSetName()) &&
                             !potentialTargetVolumeID.equals(protectionVolume.getId())) {
@@ -4146,14 +4143,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 protectionVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
                 protectionVolume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
                 _dbClient.updateObject(protectionVolume);
-            } else if (protectionVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+            } else if (protectionVolume.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
                 _log.info("Change personality of source volume " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient) + " to target");
                 protectionVolume.setPersonality(Volume.PersonalityTypes.TARGET.toString());
                 protectionVolume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                 protectionVolume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
                 protectionVolume.getRpTargets().clear();
                 _dbClient.updateObject(protectionVolume);
-            } else if (!protectionVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.toString())) {
+            } else if (!protectionVolume.checkPersonality(Volume.PersonalityTypes.METADATA.toString())) {
                 _log.info("Target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient) + " is a target that remains a target");
                 // TODO: Handle failover to CRR. Need to remove the CDP volumes (including journals)
             }
@@ -4184,13 +4181,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
-            if ((protectionVolume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) &&
+            if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) &&
                     (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 _log.info("Change flags of failover target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
                 protectionVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
                 protectionVolume.setLinkStatus(Volume.LinkStatus.FAILED_OVER.name());
                 _dbClient.updateObject(protectionVolume);
-            } else if (protectionVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+            } else if (protectionVolume.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
                 _log.info("Change flags of failover source " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
                 protectionVolume.setLinkStatus(Volume.LinkStatus.FAILED_OVER.name());
                 _dbClient.updateObject(protectionVolume);
@@ -4220,13 +4217,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
-            if ((protectionVolume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) &&
+            if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) &&
                     (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 _log.info("Change flags of failover target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
                 protectionVolume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                 protectionVolume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
                 _dbClient.updateObject(protectionVolume);
-            } else if (protectionVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+            } else if (protectionVolume.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
                 _log.info("Change flags of failover source " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
                 protectionVolume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
                 _dbClient.updateObject(protectionVolume);
@@ -4985,7 +4982,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // If the volume type is TARGET, then the enable image access request is part of snapshot create, just add the volumeWWN to
                 // the list.
                 // If the personality is SOURCE, then the enable image access request is part of export operation.
-                if (volume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
+                if (volume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
                     volumeWWNs.add(RPHelper.getRPWWn(volume.getId(), _dbClient));
                 } else {
                     // Now determine the target volume that corresponds to the site of the snapshot
@@ -5091,7 +5088,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // If the volume type is TARGET, then the enable image access request is part of snapshot create, just add the volumeWWN to
                 // the list.
                 // If the personality is SOURCE, then the enable image access request is part of export operation.
-                if (volume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
+                if (volume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
                     volumeWWNs.add(RPHelper.getRPWWn(volume.getId(), _dbClient));
                 } else {
                     // Now determine the target volume that corresponds to the site of the snapshot

@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to initialize the new DataObject.internalFlags field
@@ -32,7 +33,7 @@ public class DataObjectInternalFlagsInitializer extends BaseCustomMigrationCallb
     private static final Logger log = LoggerFactory.getLogger(DataObjectInternalFlagsInitializer.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         updateFlagsAndProjectForInternalFileShares();
         updateInternalVolumes();
     }

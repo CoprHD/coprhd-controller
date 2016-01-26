@@ -1047,6 +1047,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     }
                 }
             }
+            
+            if (!matchedVPools.contains(vpool.getId().toString())) {
+                s_logger.info("   virtual pool {} is not valid because "
+                        + "the volume resides on a cluster that does not match the varray(s) associated with the vpool",
+                        vpool.getLabel());                
+            }
         }
 
         // add this info to the unmanaged volume object

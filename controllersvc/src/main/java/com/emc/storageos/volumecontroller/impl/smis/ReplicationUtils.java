@@ -321,7 +321,7 @@ public class ReplicationUtils {
             DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) throws Exception {
         BlockConsistencyGroup blockConsistencyGroup = dbClient.queryObject(
                 BlockConsistencyGroup.class, replica.getConsistencyGroup());
-        String deviceName = blockConsistencyGroup.getCgNameOnStorageSystem(storage.getId());
+        String deviceName = helper.getSourceConsistencyGroupName(replica);
         String label = blockConsistencyGroup.getLabel();
         CIMObjectPath path = cimPath.getReplicationGroupPath(storage, deviceName);
         CIMInstance instance = helper.checkExists(storage, path, false, false);
@@ -340,7 +340,7 @@ public class ReplicationUtils {
             DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) {
         Volume clone = dbClient.queryObject(Volume.class, cloneUri);
         Volume sourceVol = dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
-        String consistencyGroupName = helper.getConsistencyGroupName(sourceVol, storage);
+        String consistencyGroupName = helper.getSourceConsistencyGroupName(sourceVol);
         String replicationGroupName = clone.getReplicationGroupInstance();
         return cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, replicationGroupName);
     }
@@ -552,7 +552,7 @@ public class ReplicationUtils {
             DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) {
         BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorUri);
         Volume sourceVol = dbClient.queryObject(Volume.class, mirror.getSource());
-        String consistencyGroupName = helper.getConsistencyGroupName(sourceVol, storage);
+        String consistencyGroupName = helper.getSourceConsistencyGroupName(sourceVol);
         String replicationGroupName = mirror.getReplicationGroupInstance();
         return cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, replicationGroupName);
     }

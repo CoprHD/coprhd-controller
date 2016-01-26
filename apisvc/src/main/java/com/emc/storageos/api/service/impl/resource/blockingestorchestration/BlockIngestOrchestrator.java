@@ -80,6 +80,18 @@ public abstract class BlockIngestOrchestrator {
         _dbClient = dbClient;
     }
 
+    // A reference to the ingest strategy factory.
+    protected IngestStrategyFactory ingestStrategyFactory;
+
+    /**
+     * Setter for the ingest strategy factory.
+     * 
+     * @param ingestStrategyFactory A reference to the ingest strategy factory.
+     */
+    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
+        this.ingestStrategyFactory = ingestStrategyFactory;
+    }
+
     /**
      * Ingesta BlockObjects Volume, Snapshot, or Clone. All Replica subclasses should extend this.
      * 
@@ -411,10 +423,21 @@ public abstract class BlockIngestOrchestrator {
             deviceLabel = blockObject.getNativeGuid();
         }
 
-        blockObject.setDeviceLabel(deviceLabel);
-        blockObject.setLabel(deviceLabel);
+        managedVolumeSetLabel(blockObject, deviceLabel);
         blockObject.setNativeId(nativeId);
         blockObject.setAlternateName(nativeId);
+    }
+
+
+    /**
+     * Set the label and device label, given an unmanaged volume
+     * 
+     * @param blockObject block object
+     * @param deviceLabel device label
+     */
+    protected void managedVolumeSetLabel(BlockObject blockObject, String deviceLabel) {
+        blockObject.setLabel(deviceLabel);
+        blockObject.setDeviceLabel(deviceLabel);
     }
 
     /**
@@ -976,7 +999,7 @@ public abstract class BlockIngestOrchestrator {
         StringSet unmanagedReplicaGUIDs = new StringSet();
         StringSet expectedIngestedReplicas = new StringSet();
         List<BlockObject> foundIngestedReplicas = new ArrayList<BlockObject>();
-        List<String> foundIngestedReplicaNativeGuids = new ArrayList<String>();
+        StringSet foundIngestedReplicaNativeGuids = new StringSet();
 
         StringSet mirrors = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.MIRRORS.toString(),
                 unManagedVolumeInformation);
@@ -1100,7 +1123,7 @@ public abstract class BlockIngestOrchestrator {
      * @param foundIngestedReplicas
      * @param foundIngestedReplicaNativeGuids
      */
-    private void getFoundIngestedReplicaURIs(List<BlockObject> foundIngestedReplicas, List<String> foundIngestedReplicaNativeGuids) {
+    private void getFoundIngestedReplicaURIs(List<BlockObject> foundIngestedReplicas, StringSet foundIngestedReplicaNativeGuids) {
         if (null != foundIngestedReplicas && !foundIngestedReplicas.isEmpty()) {
             for (BlockObject blockObj : foundIngestedReplicas) {
                 _logger.info("getFoundIngestedReplicaURIs blockObj: " + blockObj);

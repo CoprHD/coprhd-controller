@@ -54,7 +54,7 @@
         <property name="defaultPskFile" value="${product.home:/opt/storageos}/conf/psk.default"/>
     </bean>
 
-	<bean id="auditLogManagerFactory" class="com.emc.storageos.security.audit.AuditLogManagerFactory">
+	<bean id="auditLogManagerFactory" class="com.emc.storageos.security.audit.AuditLogManagerFactory" lazy-init="false">
         <property name="coordinator" ref="coordinator"/>
         <property name="dbClient" ref="dbclient"/>
     </bean>

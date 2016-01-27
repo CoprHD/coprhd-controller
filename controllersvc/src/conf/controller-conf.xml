@@ -15,6 +15,7 @@
     <import resource="classpath:controller-var.xml"/>
     <import resource="classpath:jmx-conf.xml"/>
     <import resource="classpath:attr-matcher.xml"/>
+    <import resource="classpath:security-common.xml" />
     <import resource="classpath:controller-compute-prov.xml"/>
     <import resource="classpath:controller-hds-prov.xml"/>
     <import resource="classpath:controller-scaleio-prov.xml"/>

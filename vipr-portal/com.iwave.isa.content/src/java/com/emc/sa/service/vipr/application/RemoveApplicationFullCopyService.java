@@ -23,7 +23,7 @@ public class RemoveApplicationFullCopyService extends ViPRService {
     @Param(ServiceParams.APPLICATION)
     private URI applicationId;
 
-    @Param(ServiceParams.NAME)
+    @Param(ServiceParams.COPY_NAME)
     protected String name;
     
     protected URI volumeId;

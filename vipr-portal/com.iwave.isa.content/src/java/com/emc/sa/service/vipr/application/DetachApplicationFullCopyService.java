@@ -23,14 +23,14 @@ public class DetachApplicationFullCopyService extends ViPRService {
     @Param(ServiceParams.APPLICATION)
     private URI applicationId;
 
-    @Param(ServiceParams.NAME)
-    protected String name;
+    @Param(ServiceParams.COPY_NAME)
+    protected String fullCopyName;
     
     protected URI volumeId;
 
     @Override
     public void execute() throws Exception {
-        Tasks<? extends DataObjectRestRep> tasks = execute(new DetachApplicationFullCopy(applicationId, volumeId, name));
+        Tasks<? extends DataObjectRestRep> tasks = execute(new DetachApplicationFullCopy(applicationId, volumeId, fullCopyName));
         addAffectedResources(tasks);
     }
     
@@ -41,7 +41,7 @@ public class DetachApplicationFullCopyService extends ViPRService {
             for (NamedRelatedResourceRep volId : volList.getVolumes()) {
                 VolumeRestRep vol = getClient().blockVolumes().get(volId.getId());
                 if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null && 
-                        name.equals(vol.getProtection().getFullCopyRep().getFullCopySetName())) {
+                        fullCopyName.equals(vol.getProtection().getFullCopyRep().getFullCopySetName())) {
                     volumeId = vol.getId();
                 }
             }

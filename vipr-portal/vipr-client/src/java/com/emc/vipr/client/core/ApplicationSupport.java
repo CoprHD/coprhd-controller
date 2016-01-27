@@ -8,6 +8,7 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_APP
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DELETE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DETACH_FULL_COPY_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRONIZE_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
@@ -134,7 +135,7 @@ public class ApplicationSupport {
      * GET /volume-groups/block/{id}/volumes
      */
     public NamedVolumesList getFullCopiesByApplication(URI id) {
-        return client.get(NamedVolumesList.class, APP_SUPPORT_VOLUME_URL, id);
+        return client.get(NamedVolumesList.class, APP_SUPPORT_FULL_COPY_URL, id);
     }
     
     /**

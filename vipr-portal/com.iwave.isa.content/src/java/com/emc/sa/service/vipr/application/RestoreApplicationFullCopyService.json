@@ -7,8 +7,8 @@
       type:"assetType.vipr.application"
     },
     
-    fullCopy:{
-      type:"assetType.vipr.fullCopy"
+    copyName:{
+      type:"assetType.vipr.fullCopyName"
     }
   }
 }

@@ -1724,7 +1724,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createStringOptions(application.getReplicationGroupNames());
     }
 
-    @Asset("fullCopy")
+    @Asset("fullCopyName")
     @AssetDependencies("application")
     public List<AssetOption> getApplicationFullCopyNames(AssetOptionsContext ctx, URI applicationId) {
         final ViPRCoreClient client = api(ctx);

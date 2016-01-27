@@ -160,9 +160,9 @@ public class PathConstants {
     public static final String APP_SUPPORT_CREATE_APP_URL = "/volume-groups/block";
     public static final String APP_SUPPORT_FULL_COPY_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/protection/full-copies";
     public static final String APP_SUPPORT_CREATE_FULL_COPY_URL = APP_SUPPORT_FULL_COPY_URL;
-    public static final String APP_SUPPORT_DETACH_FULL_COPY_URL = APP_SUPPORT_CREATE_APP_URL + APP_SUPPORT_FULL_COPY_URL + "/detach";
-    public static final String APP_SUPPORT_RESTORE_FULL_COPY_URL = APP_SUPPORT_CREATE_APP_URL + APP_SUPPORT_FULL_COPY_URL + "/restore";
-    public static final String APP_SUPPORT_RESYNCHRONIZE_FULL_COPY_URL = APP_SUPPORT_CREATE_APP_URL + APP_SUPPORT_FULL_COPY_URL + "/resynchronize";
+    public static final String APP_SUPPORT_DETACH_FULL_COPY_URL = APP_SUPPORT_FULL_COPY_URL + "/detach";
+    public static final String APP_SUPPORT_RESTORE_FULL_COPY_URL = APP_SUPPORT_FULL_COPY_URL + "/restore";
+    public static final String APP_SUPPORT_RESYNCHRONIZE_FULL_COPY_URL = APP_SUPPORT_FULL_COPY_URL + "/resynchronize";
     public static final String APP_SUPPORT_DELETE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/deactivate";
     public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}";
     public static final String APP_SUPPORT_VOLUME_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/volumes";

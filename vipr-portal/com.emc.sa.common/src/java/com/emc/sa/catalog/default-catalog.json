@@ -565,7 +565,7 @@
         },
         {
           "image": "icon_application_resych_full_copy.png",
-          "baseService": "ResychApplicationFullCopy"
+          "baseService": "ResynchronizeApplicationFullCopy"
         }
       ]
     }

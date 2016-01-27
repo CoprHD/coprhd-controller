@@ -5,7 +5,7 @@
 package com.emc.sa.service.vipr.application;
 
 import java.net.URI;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
@@ -27,8 +27,7 @@ public class DetachApplicationFullCopy extends WaitForTasks<TaskResourceRep> {
 
     @Override
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
-        List<URI> volList = new ArrayList<URI>();
-        volList.add(volumeId);
+        List<URI> volList = Collections.singletonList(volumeId);
         VolumeGroupFullCopyDetachParam input = new VolumeGroupFullCopyDetachParam(false, volList);
         TaskList taskList = getClient().application().detachApplicationFullCopy(applicationId, input);
 

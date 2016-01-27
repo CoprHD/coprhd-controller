@@ -382,31 +382,22 @@
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
     </bean>
 
-    <!-- Storage drivers -->
     <bean id="externalBlockStorageDevice" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalBlockStorageDevice">
         <property name="dbClient" ref="dbclient"/>
         <property name="locker" ref="locker"/>
         <property name="exportMaskOperationsHelper" ref="externalDeviceExportMaskOperationsHelper"/>
+        <!-- Block storage drivers -->
         <property name="drivers">
             <map>
-
                 <!-- E@R
                 <entry key="scaleiosystem" value-ref="scaleioStorageDriver"/>
-                -->
-
-                <!--
-                <entry key="cloudarray" value-ref="cloudarrayStorageDriver"/>
                 -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
             </map>
         </property>
     </bean>
-    <!-- E@R
-        <bean id="scaleioStorageDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
-        </bean>
-    -->
-    <!--
-        <bean id="cloudarrayStorageDriver" class="com.emc.storageos.driver.cloudarray.CloudArrayStorageDriver">
+    <!-- Driver class for scaleio block storage driver -->
+    <!-- E@R    <bean id="scaleioStorageDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
         </bean>
     -->
     <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">

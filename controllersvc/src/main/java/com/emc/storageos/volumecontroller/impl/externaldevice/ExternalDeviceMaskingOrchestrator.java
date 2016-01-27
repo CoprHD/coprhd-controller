@@ -36,37 +36,26 @@ import com.google.common.base.Joiner;
 
 public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrchestrator {
 
-    public static final String EXTERNAL_STORAGE_DEVICE = "externalBlockStorageDevice";
-    public static final String STORAGE_DRIVER_MANAGER = "storageDriverManager";
     private static final Logger _log = LoggerFactory.getLogger(ExternalDeviceMaskingOrchestrator.class);
-    private static final AtomicReference<StorageDriverManager> DRIVER_MANAGER = new AtomicReference<>();
-    private static final AtomicReference<BlockStorageDevice> EXTERNAL_BLOCK_DEVICE = new AtomicReference<>();
+    private StorageDriverManager driverManager = null;
+    private BlockStorageDevice device = null;
 
     @Override
     public BlockStorageDevice getDevice()
     {
-        BlockStorageDevice device = EXTERNAL_BLOCK_DEVICE.get();
-        synchronized (EXTERNAL_BLOCK_DEVICE)
+        synchronized (device)
         {
-            if (device == null)
-            {
-                device = (BlockStorageDevice) ControllerServiceImpl.getBean(EXTERNAL_STORAGE_DEVICE);
-                EXTERNAL_BLOCK_DEVICE.compareAndSet(null, device);
+            if (device == null) {
+                device = (BlockStorageDevice) ControllerServiceImpl.getBean(StorageDriverManager.EXTERNAL_STORAGE_DEVICE);
             }
         }
         return device;
     }
 
-    public StorageDriverManager getDriverManager()
+    public synchronized StorageDriverManager getDriverManager()
     {
-        StorageDriverManager driverManager = DRIVER_MANAGER.get();
-        synchronized (DRIVER_MANAGER)
-        {
-            if (driverManager == null)
-            {
-                driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(STORAGE_DRIVER_MANAGER);
-                DRIVER_MANAGER.compareAndSet(null, driverManager);
-            }
+        if (driverManager == null) {
+            driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
         }
         return driverManager;
     }

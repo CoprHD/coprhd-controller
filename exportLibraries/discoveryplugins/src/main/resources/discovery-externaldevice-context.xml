@@ -4,20 +4,17 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
 
-    <!-- Discovery drivers -->
+
     <!-- E@R  <bean id="scaleioDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
-     </bean> -->
-     <!-- <bean id="cloudArrayDriver" class="com.emc.storageos.driver.cloudarray.CloudArrayStorageDriver">
      </bean> -->
      <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
      </bean>
 
      <bean id="externaldevice" class="com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface">
+         <!-- Discovery storage drivers -->
          <property name="drivers">
              <map>
                 <!-- E@R  <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
-                <!--  <entry key="cloudarray" value-ref="cloudArrayDriver"/> -->
-                <!-- Test only  -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
             </map>
         </property>

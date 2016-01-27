@@ -59,6 +59,7 @@ import com.google.common.base.Strings;
 public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     private Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
+    // Storage drivers for block  devices
     private Map<String, AbstractStorageDriver> drivers;
     private DbClient dbClient;
     private ControllerLockingService locker;
@@ -84,7 +85,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         this.exportMaskOperationsHelper = exportMaskOperationsHelper;
     }
 
-    public BlockStorageDriver getDriver(String driverType) {
+    public synchronized BlockStorageDriver getDriver(String driverType) {
         // look up driver
         BlockStorageDriver storageDriver = blockDrivers.get(driverType);
         if (storageDriver != null) {

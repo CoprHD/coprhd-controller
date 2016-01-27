@@ -57,7 +57,7 @@ public class ExternalDeviceCommunicationInterface extends
         _drivers = drivers;
     }
 
-    private DiscoveryDriver getDriver(String driverType) {
+    private synchronized DiscoveryDriver getDriver(String driverType) {
         // look up driver
         DiscoveryDriver discoveryDriver = discoveryDrivers.get(driverType);
         if (discoveryDriver != null) {
@@ -77,14 +77,12 @@ public class ExternalDeviceCommunicationInterface extends
 
 
     private void init(AbstractStorageDriver driver) {
-        // TODO: temp code, may need to initialize this same way we initialize all service objects for communication interfaces, through
-        // TODO: inject() methods. For now do it here to minimize changes in controller-conf.xml
         Registry driverRegistry = RegistryImpl.getInstance(_dbClient);
         driver.setDriverRegistry(driverRegistry);
         LockManager lockManager = LockManagerImpl.getInstance(_locker);
         driver.setLockManager(lockManager);
-
     }
+
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile) throws BaseCollectionException {
 

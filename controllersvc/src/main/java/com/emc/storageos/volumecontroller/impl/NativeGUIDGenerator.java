@@ -105,9 +105,10 @@ public class NativeGUIDGenerator {
         OBJECT_TYPE_SET.add(VIRTUAL_NAS);
     }
 
-    // TODO: is this safe? What if StorageDriverManager bean was not loaded at this time? Could we get null here?
+    // Cannot get this bean throw ControllerServiceImpl context, since ControllerServiceImpl is not loaded by spring in apisvc. The context is null.
+    //private static StorageDriverManager storageDriverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
     private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
-            getApplicationContext().getBean("storageDriverManager");
+           getApplicationContext().getBean("storageDriverManager");
 
     /**
      * static block maps the names existed as part of indications with the corresponding devices

@@ -6,6 +6,7 @@ package com.emc.storageos.db.client.model;
 
 import com.emc.storageos.services.util.StorageDriverManager;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,99 +18,11 @@ public class DiscoveredDataObject extends DataObject {
     // Indicates if the object is Southbound driver managed.
     private Boolean _isDriverManaged = false;
 
-    // TODO: is this safe? What if StorageDriverManager bean was not loaded at this time? Could we get null here?
     private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
-                                              getApplicationContext().getBean("storageDriverManager");
-/*
-        // known device types
-    public static enum Type {
-        isilon,
-        ddmc,
-        datadomain,
-        vnxblock,
-        vnxfile,
-        vmax,
-        netapp,
-        netappc,
-        vplex,
-        mds,
-        brocade,
-        rp,
-        srdf,
-        host,
-        vcenter,
-        hds,
-        ucs,
-        ibmxiv,
-        openstack,
-        vnxe,
-        scaleio,
-        xtremio,
-        ecs,
-        // E@R scaleiosystem,
-        driversystem;
-
-        static public boolean isDriverManagedStorageSystem(String storageType) {
-            return storageDriverManager.isDriverManaged(storageType);
-        }
-
-        static public boolean isFileStorageSystem(String storageType) {
-            if (storageDriverManager.isDriverManaged(storageType)) {
-                return storageDriverManager.isFileStorageSystem(storageType);
-            } else {
-                Type type = Type.valueOf(storageType);
-                return (type == isilon || type == vnxfile || type == netapp || type == netappc || type == vnxe || type == datadomain);
-            }
-        }
-
-        static public boolean isProviderStorageSystem(String storageType) {
-            if (storageDriverManager.isDriverManaged(storageType)) {
-                return storageDriverManager.isProviderStorageSystem(storageType);
-            } else {
-                Type type = Type.valueOf(storageType);
-                return (type == vnxblock) ||
-                        (type == datadomain) ||
-                        (type == vmax) ||
-                        (type == hds) ||
-                        (type == openstack) ||
-                        (type == vplex) ||
-                        (type == ibmxiv) ||
-                        (type == xtremio) ||
-                        (type == scaleio);
-            }
-        }
-
-        static public boolean isVPlexStorageSystem(Type type) {
-            return (type == vplex);
-        }
-
-        static public boolean isIBMXIVStorageSystem(Type type) {
-            return (type == ibmxiv);
-        }
-
-        static public boolean isBlockStorageSystem(String storageType) {
-            if (storageDriverManager.isDriverManaged(storageType)) {
-                return storageDriverManager.isBlockStorageSystem(storageType);
-            } else {
-                Type type = Type.valueOf(storageType);
-                return (type == vnxblock || type == vmax || type == vnxe || type == hds || type == ibmxiv || type == xtremio || type == scaleio);
-            }
-        }
-
-
-        static public boolean isHDSStorageSystem(Type type) {
-            return (type == hds);
-        }
-
-        static public boolean isObjectStorageSystem(Type type) {
-            return (type == ecs);
-        }
-
-    }
-*/
-
+                                              getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
     // known device types
-    public static class Type {
+    public static class Type implements Serializable {
+        private static final long serialVersionUID = 1L;
         static private Map<String, Type> types = new HashMap<>();
 
         static public Type isilon = new Type("isilon", types.values().size());
@@ -135,10 +48,7 @@ public class DiscoveredDataObject extends DataObject {
         static public Type scaleio = new Type("scaleio", types.values().size());
         static public Type xtremio = new Type("xtremio", types.values().size());
         static public Type ecs = new Type("ecs", types.values().size());
-        /**
-         // E@R scaleiosystem,
-         driversystem;
-         */
+
         private String name;
         private int ordinal;
 

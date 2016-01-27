@@ -6,17 +6,19 @@
 package com.emc.storageos.services.util;
 
 
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+
 public class StorageDriverManager implements ApplicationContextAware {
+
+    public static final String EXTERNAL_STORAGE_DEVICE = "externalBlockStorageDevice";
+    public static final String STORAGE_DRIVER_MANAGER = "storageDriverManager";
 
     private static ApplicationContext _context;
     @Override

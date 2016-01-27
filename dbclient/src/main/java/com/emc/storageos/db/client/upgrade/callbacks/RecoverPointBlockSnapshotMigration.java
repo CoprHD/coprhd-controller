@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to migrate BlockObject consistencyGroup to the new
@@ -32,7 +33,7 @@ public class RecoverPointBlockSnapshotMigration extends BaseCustomMigrationCallb
     private static final Logger log = LoggerFactory.getLogger(RecoverPointBlockSnapshotMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         migrateRpBlockSnapshots();
     }
 

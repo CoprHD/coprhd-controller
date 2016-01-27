@@ -9,6 +9,8 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +27,7 @@ public class VcenterTenantsSharingMigration extends BaseCustomMigrationCallback 
     protected static final Logger _log = LoggerFactory.getLogger(VcenterTenantsSharingMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         DbClient dbClient = getDbClient();
         List<URI> vcenterURIs = dbClient.queryByType(Vcenter.class, false);
         Iterator<Vcenter> vcentersIter = dbClient.queryIterativeObjects(Vcenter.class, vcenterURIs);

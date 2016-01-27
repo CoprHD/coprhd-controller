@@ -15,6 +15,8 @@ UNIT_FILES_LOCATION=$AIO_SCRIPTS_LOCATION/unit_files/*
 UPDATE_SCRIPTS_LOCATION=$AIO_SCRIPTS_LOCATION/bin/*
 DB_FILE_LOCATION=$AIO_SCRIPTS_LOCATION/dbFiles/*
 
+SIMULATOR_BUILD_LOCATION="https://build.coprhd.org/jenkins/userContent/simulators/"
+
 
 #####################################################################
 # Install intit scritps                                             #
@@ -56,8 +58,10 @@ echo "Installing Simulators binaries"
 echo "Installing CISCO"
 
 
-LATEST_URL="http://lglw8129.lss.emc.com/simulators/cisco-simulators/cisco-sim.zip" 
-wget $LATEST_URL || exit 1
+LATEST_URL=$SIMULATOR_BUILD_LOCATION"cisco-sim/cisco-sim-1.0.0.0.1453093200.zip"
+echo "Downloading $LATEST_URL"
+wget $LATEST_URL -O cisco-sim.zip || exit 1
+
 unzip cisco-sim.zip
 chmod -R 777 cisco-sim
 mkdir -p /data/simulators/cisco-sim/
@@ -73,7 +77,10 @@ rm  cisco-sim*.zip
 					#############################
 echo "Installing ECOM"
 
-wget http://lglw8129.lss.emc.com/simulators/smis-simulators/smis-simulator.zip || exit 1
+LATEST_URL=$SIMULATOR_BUILD_LOCATION"smis-sim/smis-sim-1.0.0.0.1453438800.zip"
+echo "Downloading $LATEST_URL"
+wget $LATEST_URL -O smis-simulator.zip || exit 1
+
 unzip smis-simulator.zip
 mkdir -p /data/simulators/ecom80/
 mkdir -p /data/simulators/ecom462/
@@ -110,8 +117,10 @@ chmod 777 /data/simulators/ecom462/bin/ECOM462
 					#############################
 echo "Installing HDS"
 
-LATEST_URL="http://lglw8129.lss.emc.com/simulators/hds-simulators/hds-sim.zip"
-wget $LATEST_URL || exit 1
+LATEST_URL=$SIMULATOR_BUILD_LOCATION"hds-sim/hds-sim-1.0.0.0.1438920000.zip" 
+echo "Downloading $LATEST_URL"
+wget $LATEST_URL -O hds-sim.zip || exit 1
+
 unzip hds-sim.zip -d hds-sim
 mkdir -p /data/simulators/hds-sim/
 cp -r hds-sim/* /data/simulators/hds-sim/
@@ -124,8 +133,10 @@ rm hds-sim.zip
 
 echo "Installing LDAP"
 
-LATEST_URL="http://lglw8129.lss.emc.com/simulators/ldap-simulators/ldap-sim.zip"
-wget $LATEST_URL || exit 1
+LATEST_URL=$SIMULATOR_BUILD_LOCATION"ldap-sim/ldap-simulators-1.0.0.0.1-bin.zip" 
+echo "Downloading $LATEST_URL"
+wget $LATEST_URL -O ldap-sim.zip || exit 1
+
 unzip ldap-sim.zip
 mkdir -p /data/simulators/ldap-sim/
 cp -r ldapsvc-*/* /data/simulators/ldap-sim/
@@ -157,7 +168,7 @@ chmod 777 /data/simulators/ldap-sim/bin/run.sh
 					#############################
 echo "Installing RP"
 
-LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?rp | grep -oP '"queryResultZip":"\K.*?zip'`
+LATEST_URL=$SIMULATOR_BUILD_LOCATION"rp-sim/rp-simulators-1.0.0.0.29-bin.zip" 
 echo "Downloading $LATEST_URL"
 wget $LATEST_URL || exit 1
 
@@ -174,9 +185,9 @@ rm -f rp-simulators-*.zip
 					#############################
 echo "Installing VPLEX"
 
-LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?vplex | grep -oP '"queryResultZip":"\K.*?zip'`
-JAR_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?vplex | grep -oP '"queryResult":"\K.*?jar'`
-VERSION=${JAR_URL##*-}
+LATEST_URL=$SIMULATOR_BUILD_LOCATION"vplex-sim/vplex-simulators-1.0.0.0.41-bin.zip" 
+VERSION=${LATEST_URL##*simulators-}
+VERSION=${LATEST_URL%%-*}
 echo "Downloading $LATEST_URL"
 wget $LATEST_URL || exit 1
 
@@ -185,7 +196,7 @@ mkdir -p /data/simulators/vplex-sim/
 mkdir -p /data/simulators/vplex-sim_2/
 cp -r vplex-*/* /data/simulators/vplex-sim/
 cp -r vplex-*/* /data/simulators/vplex-sim_2/
-mv /data/simulators/vplex-sim_2/vplex-simulators-*.jar /data/simulators/vplex-sim_2/vplex-simulators2-$VERSION
+mv /data/simulators/vplex-sim_2/vplex-simulators-*.jar /data/simulators/vplex-sim_2/vplex-simulators2-$VERSION.jar
 ./bin/setupSim --setup-default
 rm -r vplex-*
 rm -f vplex-simulators-*.zip
@@ -195,8 +206,10 @@ rm -f vplex-simulators-*.zip
 					#############################
 echo "Installing WINDOWS"
 
-LATEST_URL="http://lglw8129.lss.emc.com/simulators/win-simulators/win-sim.zip"
-wget $LATEST_URL || exit 1
+LATEST_URL=$SIMULATOR_BUILD_LOCATION"win-sim/win-sim-1.0.0.0.1442808000.zip" 
+echo "Downloading $LATEST_URL"
+wget $LATEST_URL -O win-sim.zip || exit 1
+
 unzip win-sim.zip
 mkdir -p /data/simulators/win-sim/
 cp -r win-sim/* /data/simulators/win-sim/
@@ -208,9 +221,9 @@ rm  win-sim.zip
 					#############################
 echo "Installing XIO"
 
-LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?xio | grep -oP '"queryResultZip":"\K.*?zip'`
-JAR_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?xio | grep -oP '"queryResult":"\K.*?jar'`
-VERSION=${JAR_URL##*-}
+LATEST_URL=$SIMULATOR_BUILD_LOCATION"xio-sim/xio-simulators-1.0.0.0.35-bin.zip" 
+VERSION=${LATEST_URL##*simulators-}
+VERSION=${LATEST_URL%%-*}
 echo "Downloading $LATEST_URL"
 wget $LATEST_URL || exit 1
 

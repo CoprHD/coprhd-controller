@@ -6,7 +6,6 @@
 ##################################################
 #  Setup
 ##################################################
-export DO_NOT_START := yes
 WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHDDevKit
 VERSION := 2.5.0.0

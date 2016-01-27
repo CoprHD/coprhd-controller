@@ -66,6 +66,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
@@ -1309,7 +1310,21 @@ public class VolumeIngestionUtil {
         Set<String> storagePortUriStr = new HashSet<String>((Collections2.transform(storagePortUris,
                 CommonTransformerFunctions.FCTN_URI_TO_STRING)));
         SetView<String> diff = Sets.difference(portsInUnManagedMask, storagePortUriStr);
-        if (!diff.isEmpty()) {
+        // Temporary relaxation of storage port restriction for XIO:
+        // With XIO we do not have the ability to remove specific (and possibly unavailable) storage ports
+        // from the LUN maps.  So a better check specifically for XIO is to ensure that we at least have one
+        // storage port in the varray.
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
+        boolean portsValid = true;
+        if (storageSystem != null) {
+            if (storageSystem.getSystemType().equalsIgnoreCase(SystemType.xtremio.toString())) {
+                portsValid = diff.size() < portsInUnManagedMask.size();
+            } else {
+                portsValid = diff.isEmpty();
+            }                    
+        }
+        
+        if (!portsValid) {
             _logger.warn("Storage Ports {} in unmanaged mask {} is not available in VArray {}", new Object[] {
                     Joiner.on(",").join(diff), mask.getMaskName(), varray });
             if (volume instanceof Volume) {

@@ -23,10 +23,12 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.SmbShareResponse;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
@@ -125,6 +127,19 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("project")
     public List<AssetOption> getUnmountedFilesystems(AssetOptionsContext ctx, URI project) {
         return createFilesystemOptions(api(ctx).fileSystems().findByProject(project), new UnmountedFilesytemsPredicate());
+    }
+    
+    @Asset("fileFilePolicy")
+    @AssetDependencies("project")
+    public List<AssetOption> getFilePolicies(AssetOptionsContext ctx, URI project) {
+        List<AssetOption> options = Lists.newArrayList();
+        SchedulePolicyList policies = api(ctx).tenants().getSchedulePoliciesByTenant(ctx.getTenant());
+        for (NamedRelatedResourceRep policy : policies.getSchdulePolicies()) {
+            options.add(new AssetOption(policy.getName(), policy.getName()));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+        //return createFilesystemOptions(api(ctx).fileSystems().findByProject(project), new UnmountedFilesytemsPredicate());
     }
 
     @Asset("fileSnapshot")

@@ -13,6 +13,7 @@ import java.util.Properties;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
@@ -504,5 +505,22 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> deleteShareACL(URI id, String shareName) {
         return deleteTask(getShareACLsUrl(), id, shareName);
+    }
+    
+    /**
+     * Associate a file policy to a given file system 
+     * <p>
+     * API Call: <tt>PUT /file/filesystems/{id}/assign-file-policy/{file_policy_uri}</tt>
+     * 
+     * @param fileSystemId
+     *            the ID of the file system.
+     * @param filePolicyId
+     *            the ID of the file policy.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId, FileSystemParam input) {
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/assign-file-policy/{file_policy_uri}");
+        URI targetUri = builder.build(fileSystemId, filePolicyId);
+        return putTaskURI(input, targetUri);
     }
 }

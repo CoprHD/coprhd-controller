@@ -1,0 +1,21 @@
+{
+  baseKey:"AssociateFilePolicyToFileSystem.File",
+  serviceId:"AssociateFilePolicyToFileSystem",
+  destructive: true,
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileFilesystem",
+      select:"one"
+    },
+
+    filePolicy:{
+      type:"assetType.vipr.fileFilePolicy",
+      select:"one"
+    }
+  }
+}

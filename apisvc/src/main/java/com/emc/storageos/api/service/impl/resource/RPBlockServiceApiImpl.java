@@ -1331,6 +1331,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     break;
                 }
             }
+            
+            if (storageSystemsMatch && skipCapacityAdjustments(storageSystem, isChangeVpool)) {
+                _log.info(String.format("Skipping capacity adjustments, none required."));
+                capacity = requestedSize;
+                return capacity;
+            }
 
             // If the storage systems do not all match we need to figure out matching volume
             // allocation sizes for all storage systems. CG creation will likely fail if
@@ -1467,6 +1473,33 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         return capacity;
+    }
+
+    /**
+     * There are times when we do not want to perform any capacity adjustments and 
+     * to just allow the Storage System to prepare the volumes for us as they normally 
+     * would. In these cases it's most likely that all sizes will be uniform which
+     * usually makes RP happy anyway.
+     * 
+     * This is influenced by the type of the Storage System and also whether or not
+     * this is a change vpool operation or a straight up create volume for RP.
+     * 
+     * @param storageSystem Storage System to check
+     * @param isChangeVpool Boolean to indicate whether this is a change vpool operation or not
+     * @return true if we want to skip capacity adjustments for RP, false otherwise.
+     */
+    private boolean skipCapacityAdjustments(StorageSystem storageSystem, boolean isChangeVpool) {
+        boolean skipCapacityAdjustments = false;
+        
+        if (storageSystem != null) {
+            if (isChangeVpool 
+                    && DiscoveredDataObject.Type.xtremio.name().equals(storageSystem.getSystemType())) {
+                // Do not perform any adjustments for XIO when it's a change vpool operation.
+                skipCapacityAdjustments = true;
+            }
+        }
+        
+        return skipCapacityAdjustments;
     }
 
     /**

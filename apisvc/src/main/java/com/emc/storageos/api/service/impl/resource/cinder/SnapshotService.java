@@ -44,6 +44,7 @@ import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.CinderConstants.ComponentStatus;
 import com.emc.storageos.cinder.model.CinderSnapshot;
 import com.emc.storageos.cinder.model.CinderSnapshotListRestResp;
@@ -126,6 +127,9 @@ public class SnapshotService extends TaskResourceService {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
     }
 
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
+    }
     /**
      * The snapshot of a volume in Block Store is a point in time copy of the
      * volume. This API allows the user to create snapshot of a volume
@@ -819,6 +823,12 @@ public class SnapshotService extends TaskResourceService {
             objQuota = getCinderHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
         }
 
+        HashMap<String, String> qMap = getQuotaHelper().convertKeyValPairsStringToMap(objQuota.getLimits());
+        
+        long snapshotLimit = Long.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.SNAPSHOTS.getLimit()));
+        long totalGBLimit = Long.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.GIGABYTES.getLimit()));
+        long volumesLimit = Long.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.VOLUMES.getLimit()));
+        
         Project proj = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
         if (proj == null) {
             throw APIException.badRequests.projectWithTagNonexistent(openstack_tenant_id);
@@ -838,15 +848,15 @@ public class SnapshotService extends TaskResourceService {
         totalSizeUsed = stats.spaceUsed;
 
         _log.info(String
-                .format("objQuota.getVolumesLimit():%s ,objQuota.getSnapshotsLimit():%s,objQuota.getTotalQuota():%s,totalSizeUsed:%s,totalSnapshotsUsed:%s,willconsume:%s",
-                        objQuota.getVolumesLimit(), objQuota.getSnapshotsLimit(), objQuota.getTotalQuota(),
+                .format("totalGBLimit:%s ,snapshotLimit:%s,totalGBLimit:%s,totalSizeUsed:%s,totalSnapshotsUsed:%s,willconsume:%s",
+                        totalGBLimit, snapshotLimit, totalGBLimit,
                         totalSizeUsed, totalSnapshotsUsed, (totalSizeUsed + (long) (requestedSize / GB))));
 
-        if ((objQuota.getSnapshotsLimit() != -1)
-                && (objQuota.getSnapshotsLimit() <= totalSnapshotsUsed)) {
+        if ((snapshotLimit != -1)
+                && (snapshotLimit <= totalSnapshotsUsed)) {
             return false;
-        } else if ((objQuota.getTotalQuota() != -1)
-                && (objQuota.getTotalQuota() <= (totalSizeUsed + (long) (requestedSize / GB)))) {
+        } else if ((totalGBLimit != -1)
+                && (totalGBLimit <= (totalSizeUsed + (long) (requestedSize / GB)))) {
             return false;
         } else {
             return true;

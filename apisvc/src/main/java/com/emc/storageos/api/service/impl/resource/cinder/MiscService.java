@@ -33,6 +33,7 @@ import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.CinderAvailZonesResp;
 import com.emc.storageos.cinder.model.CinderAvailabiltyZone;
 import com.emc.storageos.cinder.model.CinderExtension;
@@ -85,6 +86,10 @@ public class MiscService extends TaskResourceService {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
     }
 
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
+    }
+
     /**
      * Get Limits
      * 
@@ -93,7 +98,8 @@ public class MiscService extends TaskResourceService {
      * @brief Get Limits
      * @return limits
      */
-    @GET
+    @SuppressWarnings("unused")
+	@GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/limits")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -123,17 +129,26 @@ public class MiscService extends TaskResourceService {
         totalSizeUsed = (int) objUsageStats.spaceUsed;
 
         QuotaOfCinder projQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
+        
+
+        HashMap<String, String> qMap = getQuotaHelper().convertKeyValPairsStringToMap(projQuota.getLimits());
+        
+        int snapshotLimit = Integer.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.SNAPSHOTS.getLimit()));
+        int totalGBLimit = Integer.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.GIGABYTES.getLimit()));
+        int volumesLimit = Integer.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.VOLUMES.getLimit()));
+
         if (projQuota != null) {
-            maxTotalVolumes = projQuota.getVolumesLimit().intValue();
-            maxTotalSnapshots = (int) projQuota.getSnapshotsLimit().intValue();
+            maxTotalVolumes = volumesLimit;
+            maxTotalSnapshots = snapshotLimit;
         }
         else {
             QuotaOfCinder quotaObj = new QuotaOfCinder();
             quotaObj.setId(URI.create(UUID.randomUUID().toString()));
             quotaObj.setProject(project.getId());
-            quotaObj.setVolumesLimit(QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA);
+            quotaObj.setLimits(getQuotaHelper().createDefaultLimitsInStrFormat(null));
+            /*quotaObj.setVolumesLimit(QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA);
             quotaObj.setSnapshotsLimit(QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA);
-            quotaObj.setTotalQuota((long) maxQuota);
+            quotaObj.setTotalQuota((long) maxQuota);*/
             _dbClient.createObject(quotaObj);
             maxTotalSnapshots = (int) QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA;
             maxTotalVolumes = (int) QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA;

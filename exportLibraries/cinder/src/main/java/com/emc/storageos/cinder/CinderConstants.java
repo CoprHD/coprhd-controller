@@ -69,6 +69,7 @@ public interface CinderConstants {
      */
     public static String DEFAULT_QUOTA_CLASS = "default";
     public static String CLASS_NAME_KEY= "class_name";
+    public static String TENANT_ID_KEY= "class_name";
     public static final long DEFAULT_VOLUME_TYPE_QUOTA = -1;
 
 

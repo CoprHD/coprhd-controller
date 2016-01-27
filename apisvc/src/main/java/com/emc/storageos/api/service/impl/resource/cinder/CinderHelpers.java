@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.CinderAvailabiltyZone;
 import com.emc.storageos.cinder.model.UsageStats;
 import com.emc.storageos.db.client.DbClient;
@@ -49,6 +50,7 @@ public class CinderHelpers {
     public CinderHelpers() {
     }
 
+    
     public static CinderHelpers getInstance(DbClient dbClient, PermissionsHelper permissionsHelper) {
 
         if (instCinderHelpers == null) {
@@ -60,6 +62,13 @@ public class CinderHelpers {
         }
         return instCinderHelpers;
     }
+    
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
+    }
+
+    
+    
     /**
      * Get project from the OpenStack Tenant ID parameter
      * 
@@ -403,10 +412,16 @@ public class CinderHelpers {
         QuotaOfCinder quotaObj = new QuotaOfCinder();
         quotaObj.setId(URI.create(UUID.randomUUID().toString()));
         quotaObj.setProject(project.getId());
-        quotaObj.setVolumesLimit(QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA);
+        /*quotaObj.setVolumesLimit(QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA);
         quotaObj.setSnapshotsLimit(QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA);
-        quotaObj.setTotalQuota(maxQuota);
+        quotaObj.setTotalQuota(maxQuota);*/
+//
+//        String strLimits = "";        
+//        for(CinderConstants.ResourceQuotaDefaults item : CinderConstants.ResourceQuotaDefaults.class.getEnumConstants()){
+//        	strLimits = strLimits + item.getResource() + "=" + String.valueOf(item.getLimit()) + ":";
+//		}  
 
+        quotaObj.setLimits(getQuotaHelper().createDefaultLimitsInStrFormat(null));        
         _log.info("Creating default quota for project");
         _dbClient.createObject(quotaObj);
         return quotaObj;
@@ -427,12 +442,20 @@ public class CinderHelpers {
     public QuotaOfCinder createVpoolDefaultQuota(Project project, VirtualPool vpool) {
         QuotaOfCinder objQuotaOfCinder = new QuotaOfCinder();
         objQuotaOfCinder.setProject(project.getId());
-        objQuotaOfCinder.setVolumesLimit(QuotaService.DEFAULT_VOLUME_TYPE_VOLUMES_QUOTA);
+        /*objQuotaOfCinder.setVolumesLimit(QuotaService.DEFAULT_VOLUME_TYPE_VOLUMES_QUOTA);
         objQuotaOfCinder.setSnapshotsLimit(QuotaService.DEFAULT_VOLUME_TYPE_SNAPSHOTS_QUOTA);
-        objQuotaOfCinder.setTotalQuota(QuotaService.DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA);
+        objQuotaOfCinder.setTotalQuota(QuotaService.DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA);*/
         objQuotaOfCinder.setId(URI.create(UUID.randomUUID().toString()));
         objQuotaOfCinder.setVpool(vpool.getId());
-
+        
+//
+//        String strLimits = "";        
+//        for(CinderConstants.ResourceQuotaDefaults item : CinderConstants.ResourceQuotaDefaults.class.getEnumConstants()){
+//        	strLimits = strLimits + vpool.getLabel() + "_" + item.getResource() + "=" + 
+//        					vpool.getLabel() + "_" + String.valueOf(item.getLimit()) + ":";
+//		}  
+        objQuotaOfCinder.setLimits(getQuotaHelper().createDefaultLimitsInStrFormat(vpool.getLabel()));
+        
         _log.info("Create vpool default quota");
         _dbClient.createObject(objQuotaOfCinder);
         return objQuotaOfCinder;

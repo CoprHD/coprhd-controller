@@ -46,6 +46,7 @@ import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.CinderConstants.ComponentStatus;
 import com.emc.storageos.cinder.model.Attachment;
 import com.emc.storageos.cinder.model.CinderVolume;
@@ -140,6 +141,10 @@ public class VolumeService extends TaskResourceService {
 
     protected CinderHelpers getCinderHelper() {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
+    }
+    
+    protected QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
     }
 
     /**
@@ -762,18 +767,26 @@ public class VolumeService extends TaskResourceService {
 
         totalVolumesUsed = stats.volumes;
         totalSizeUsed = stats.spaceUsed;
+        
+
+        HashMap<String, String> qMap = getQuotaHelper().convertKeyValPairsStringToMap(objQuota.getLimits());
+        
+        long snapshotLimit = Long.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.SNAPSHOTS.getLimit()));
+        long totalGBLimit = Long.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.GIGABYTES.getLimit()));
+        long volumesLimit = Long.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.VOLUMES.getLimit()));
+
 
         _log.info(String.format("VolumesLimit():%s ,TotalQuota:%s , TotalSizeUsed:%s, TotalVolumesUsed:%s, RequestedConsumption:%s",
-                objQuota.getVolumesLimit(), objQuota.getTotalQuota(), totalSizeUsed, totalVolumesUsed,
+        		volumesLimit, totalGBLimit, totalSizeUsed, totalVolumesUsed,
                 (totalSizeUsed + (long) (requestedSize / GB))));
 
-        if ((objQuota.getVolumesLimit() != QuotaService.DEFAULT_VOLUME_TYPE_VOLUMES_QUOTA)
-                && (objQuota.getVolumesLimit() <= totalVolumesUsed))
+        if ((volumesLimit != CinderConstants.DEFAULT_VOLUME_TYPE_QUOTA)
+                && (volumesLimit <= totalVolumesUsed))
         {
             return isValidVolume;
         }
-        else if ((objQuota.getTotalQuota() != QuotaService.DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA)
-                && (objQuota.getTotalQuota() <= (totalSizeUsed + (long) (requestedSize / GB))))
+        else if ((totalGBLimit != CinderConstants.DEFAULT_VOLUME_TYPE_QUOTA)
+                && (totalGBLimit <= (totalSizeUsed + (long) (requestedSize / GB))))
         {
             return isValidVolume;
         }

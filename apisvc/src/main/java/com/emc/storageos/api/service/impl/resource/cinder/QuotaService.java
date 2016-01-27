@@ -47,6 +47,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
+
 @Path("/v2/{tenant_id}/os-quota-sets")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
         readAcls = { ACL.OWN, ACL.ALL },
@@ -121,24 +122,32 @@ public class QuotaService extends TaskResourceService {
                     (quotaObj.getProject().toString().equalsIgnoreCase(project.getId().toString()))) {
                 if (quotaObj.getVpool() != null) {
                     VirtualPool pool = _dbClient.queryObject(VirtualPool.class, quotaObj.getVpool());
-                    respCinderQuota.quota_set.put("gigabytes" + "_" + pool.getLabel(), String.valueOf(quotaObj.getTotalQuota()));
+                    
+                    respCinderQuota.quota_set.putAll(getQuotaHelper().convertKeyValPairsStringToMap(quotaObj.getLimits()));
+                    
+                    /*respCinderQuota.quota_set.put("gigabytes" + "_" + pool.getLabel(), String.valueOf(quotaObj.getTotalQuota()));
                     respCinderQuota.quota_set.put("snapshots" + "_" + pool.getLabel(), String.valueOf(quotaObj.getSnapshotsLimit()));
-                    respCinderQuota.quota_set.put("volumes" + "_" + pool.getLabel(), String.valueOf(quotaObj.getVolumesLimit()));
+                    respCinderQuota.quota_set.put("volumes" + "_" + pool.getLabel(), String.valueOf(quotaObj.getVolumesLimit()));*/
                     vpoolsMap.put(pool.getLabel(), pool.getLabel());
                 }
                 else {
-                    respCinderQuota.quota_set.put("gigabytes", String.valueOf(quotaObj.getTotalQuota()));
+                    /*respCinderQuota.quota_set.put("gigabytes", String.valueOf(quotaObj.getTotalQuota()));
                     respCinderQuota.quota_set.put("snapshots", String.valueOf(quotaObj.getSnapshotsLimit()));
-                    respCinderQuota.quota_set.put("volumes", String.valueOf(quotaObj.getVolumesLimit().intValue()));
+                    respCinderQuota.quota_set.put("volumes", String.valueOf(quotaObj.getVolumesLimit().intValue()));*/
+                    respCinderQuota.quota_set.putAll(getQuotaHelper().convertKeyValPairsStringToMap(quotaObj.getLimits()));
                     bDefProjQuotasExist = true;
                 }
             }
         }
 
         if (!bDefProjQuotasExist) {
-            respCinderQuota.quota_set.put("gigabytes", String.valueOf(maxQuota));
+            /*respCinderQuota.quota_set.put("gigabytes", String.valueOf(maxQuota));
             respCinderQuota.quota_set.put("snapshots", String.valueOf(DEFAULT_PROJECT_SNAPSHOTS_QUOTA));
-            respCinderQuota.quota_set.put("volumes", String.valueOf(DEFAULT_PROJECT_VOLUMES_QUOTA));
+            respCinderQuota.quota_set.put("volumes", String.valueOf(DEFAULT_PROJECT_VOLUMES_QUOTA));*/
+        	HashMap<String, String> qMap = new HashMap<String, String>();
+        	qMap = getQuotaHelper().convertKeyValPairsStringToMap(getQuotaHelper().createDefaultLimitsInStrFormat(null));
+        	
+         	respCinderQuota.quota_set.putAll(qMap);
             getCinderHelper().createProjectDefaultQuota(project);
         }
 
@@ -155,11 +164,14 @@ public class QuotaService extends TaskResourceService {
                         continue;
                     }
                     else {
-                        respCinderQuota.quota_set.put("gigabytes" + "_" + pool.getLabel(),
+                        /*respCinderQuota.quota_set.put("gigabytes" + "_" + pool.getLabel(),
                                 String.valueOf(DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA));
                         respCinderQuota.quota_set.put("snapshots" + "_" + pool.getLabel(),
                                 String.valueOf(DEFAULT_VOLUME_TYPE_SNAPSHOTS_QUOTA));
-                        respCinderQuota.quota_set.put("volumes" + "_" + pool.getLabel(), String.valueOf(DEFAULT_VOLUME_TYPE_VOLUMES_QUOTA));
+                        respCinderQuota.quota_set.put("volumes" + "_" + pool.getLabel(), String.valueOf(DEFAULT_VOLUME_TYPE_VOLUMES_QUOTA));*/
+                    	HashMap<String, String> qMap = new HashMap<String, String>();
+                    	qMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(qMap, openstack_target_tenant_id, pool.getLabel());
+                    	
                         getCinderHelper().createVpoolDefaultQuota(project, pool);
                     }
                 }
@@ -197,7 +209,7 @@ public class QuotaService extends TaskResourceService {
 		Map<String, String> vpoolsMap = new HashMap<String, String>();
 		List<URI> vpools = _dbClient.queryByType(VirtualPool.class, true);
 		
-		defaultQuotaMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(defaultQuotaMap , openstack_target_tenant_id);
+		defaultQuotaMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(defaultQuotaMap , openstack_target_tenant_id, null);
 		respCinderQuota.quota_set.putAll(defaultQuotaMap); 
 		    	
     	_log.info("respCinderQuota is {}", respCinderQuota.quota_set.toString());
@@ -285,12 +297,17 @@ public class QuotaService extends TaskResourceService {
                     VirtualPool pool = _dbClient.queryObject(VirtualPool.class, vpoolUri);
                     if ((pool != null) && (pool.getLabel().equals(vpoolName)) && (vpoolName != null) && (vpoolName.length() > 0)) {
 
-                        if (quotaUpdates.quota_set.containsKey("gigabytes_" + vpoolName))
+                        /*if (quotaUpdates.quota_set.containsKey("gigabytes_" + vpoolName))
                             quotaObj.setTotalQuota(new Long(quotaUpdates.quota_set.get("gigabytes_" + vpoolName)));
                         if (quotaUpdates.quota_set.containsKey("volumes_" + vpoolName))
                             quotaObj.setVolumesLimit(new Long(quotaUpdates.quota_set.get("volumes_" + vpoolName)));
                         if (quotaUpdates.quota_set.containsKey("snapshots_" + vpoolName))
-                            quotaObj.setSnapshotsLimit(new Long(quotaUpdates.quota_set.get("snapshots_" + vpoolName)));
+                            quotaObj.setSnapshotsLimit(new Long(quotaUpdates.quota_set.get("snapshots_" + vpoolName)));*/
+                        HashMap<String, String> qMap = new HashMap<String, String>();
+                        qMap = getQuotaHelper().convertKeyValPairsStringToMap(quotaObj.getLimits());
+                    	qMap.putAll(quotaUpdates.quota_set);
+                    	qMap.remove(CinderConstants.TENANT_ID_KEY);                        
+                    	quotaObj.setLimits(getQuotaHelper().convertMapToKeyValPairsString(qMap));                    	
                         noEntriesInDB = false;
                         _dbClient.updateObject(quotaObj);
                         return getQuotaDetailFormat(header, quotaUpdates);
@@ -299,17 +316,21 @@ public class QuotaService extends TaskResourceService {
                 else if (!bVpoolQuotaUpdate) {
                     // The user requested update of project quota.
                     // The current db entry is a project quota entity.(because to reach here vpoolUri should be Null.
-                    if (quotaUpdates.quota_set.containsKey("gigabytes"))
+                    /*if (quotaUpdates.quota_set.containsKey("gigabytes"))
                         quotaObj.setTotalQuota(new Long(quotaUpdates.quota_set.get("gigabytes")));
                     if (quotaUpdates.quota_set.containsKey("volumes"))
                         quotaObj.setVolumesLimit(new Long(quotaUpdates.quota_set.get("volumes")));
                     if (quotaUpdates.quota_set.containsKey("snapshots"))
-                        quotaObj.setSnapshotsLimit(new Long(quotaUpdates.quota_set.get("snapshots")));
+                        quotaObj.setSnapshotsLimit(new Long(quotaUpdates.quota_set.get("snapshots")));*/
+                	HashMap<String, String> qMap = new HashMap<String, String>();
+                    qMap = getQuotaHelper().convertKeyValPairsStringToMap(quotaObj.getLimits());
+                	qMap.putAll(quotaUpdates.quota_set);
+                	qMap.remove(CinderConstants.TENANT_ID_KEY);                        
+                	quotaObj.setLimits(getQuotaHelper().convertMapToKeyValPairsString(qMap));
                     noEntriesInDB = false;
                     _dbClient.updateObject(quotaObj);
                     return getQuotaDetailFormat(header, quotaUpdates);
                 }
-
             }
         }
 
@@ -321,7 +342,13 @@ public class QuotaService extends TaskResourceService {
             if (bVpoolQuotaUpdate) {
                 objQuotaOfCinder.setVpool(objVpool.getId());
                 _log.info("Updating Quota of Vpool");
-                if (quotaUpdates.quota_set.containsKey("gigabytes_" + vpoolName))
+                
+                HashMap<String, String> qMap = new HashMap<String, String>();                
+            	qMap.putAll(quotaUpdates.quota_set);
+            	qMap.remove(CinderConstants.TENANT_ID_KEY);                        
+            	objQuotaOfCinder.setLimits(getQuotaHelper().createDefaultLimitsInStrFormat(objVpool.getLabel()));
+            	
+                /*if (quotaUpdates.quota_set.containsKey("gigabytes_" + vpoolName))
                     objQuotaOfCinder.setTotalQuota(new Long(quotaUpdates.quota_set.get("gigabytes_" + vpoolName)));
                 else
                     objQuotaOfCinder.setTotalQuota(DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA);
@@ -334,11 +361,11 @@ public class QuotaService extends TaskResourceService {
                 if (quotaUpdates.quota_set.containsKey("snapshots_" + vpoolName))
                     objQuotaOfCinder.setSnapshotsLimit(new Long(quotaUpdates.quota_set.get("snapshots_" + vpoolName)));
                 else
-                    objQuotaOfCinder.setSnapshotsLimit(DEFAULT_VOLUME_TYPE_SNAPSHOTS_QUOTA);
+                    objQuotaOfCinder.setSnapshotsLimit(DEFAULT_VOLUME_TYPE_SNAPSHOTS_QUOTA);*/
 
             }
             else {
-                if (quotaUpdates.quota_set.containsKey("gigabytes"))
+                /*if (quotaUpdates.quota_set.containsKey("gigabytes"))
                     objQuotaOfCinder.setTotalQuota(new Long(quotaUpdates.quota_set.get("gigabytes")));
                 else
                     objQuotaOfCinder.setTotalQuota(maxQuota);
@@ -351,14 +378,17 @@ public class QuotaService extends TaskResourceService {
                 if (quotaUpdates.quota_set.containsKey("snapshots"))
                     objQuotaOfCinder.setSnapshotsLimit(new Long(quotaUpdates.quota_set.get("snapshots")));
                 else
-                    objQuotaOfCinder.setSnapshotsLimit(DEFAULT_PROJECT_SNAPSHOTS_QUOTA);
+                    objQuotaOfCinder.setSnapshotsLimit(DEFAULT_PROJECT_SNAPSHOTS_QUOTA);*/
+            	HashMap<String, String> qMap = new HashMap<String, String>();                
+            	qMap.putAll(quotaUpdates.quota_set);
+            	qMap.remove(CinderConstants.TENANT_ID_KEY);                        
+            	objQuotaOfCinder.setLimits(getQuotaHelper().createDefaultLimitsInStrFormat(null));            	
             }
             objQuotaOfCinder.setId(URI.create(UUID.randomUUID().toString()));
             _dbClient.createObject(objQuotaOfCinder);
             return getQuotaDetailFormat(header, quotaUpdates);
         }
         return getQuotaDetailFormat(header, quotaUpdates);
-
     }
     
     

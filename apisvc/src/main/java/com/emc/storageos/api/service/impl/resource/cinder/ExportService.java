@@ -32,6 +32,7 @@ import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.CinderConstants.ComponentStatus;
 import com.emc.storageos.cinder.CinderConstants.ExportOperations;
 import com.emc.storageos.cinder.model.CinderInitConnectionResponse;
@@ -999,12 +1000,21 @@ public class ExportService extends VolumeService {
 
         totalSizeUsed = stats.spaceUsed;
 
+        HashMap<String, String> qMap = getQuotaHelper().convertKeyValPairsStringToMap(objQuota.getLimits());
+        
+        long snapshotLimit = Long.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.SNAPSHOTS.getLimit()));
+        long totalGBLimit = Long.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.GIGABYTES.getLimit()));
+        long volumesLimit = Long.valueOf(qMap.get(CinderConstants.ResourceQuotaDefaults.VOLUMES.getLimit()));
+
+        
         _log.info(String.format("ProvisionedCapacity:%s ,TotalQuota:%s , TotalSizeUsed:%s, RequestedSize:%s, VolCapacity:%s",
-                (long) (vol.getProvisionedCapacity() / GB), objQuota.getTotalQuota(), totalSizeUsed,
+                (long) (vol.getProvisionedCapacity() / GB), totalGBLimit, totalSizeUsed,
                 (long) (requestedSize / GB), (long) vol.getCapacity() / GB));
 
-        if ((objQuota.getTotalQuota() != QuotaService.DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA)
-                && (objQuota.getTotalQuota() <= (totalSizeUsed + ((long) (requestedSize / GB) - (long) (vol.getProvisionedCapacity() / GB)))))
+        
+
+        if ((totalGBLimit != QuotaService.DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA)
+                && (totalGBLimit <= (totalSizeUsed + ((long) (requestedSize / GB) - (long) (vol.getProvisionedCapacity() / GB)))))
             return false;
         else
             return true;

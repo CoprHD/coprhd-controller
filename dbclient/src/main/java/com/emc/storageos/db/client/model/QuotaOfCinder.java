@@ -31,9 +31,20 @@ public class QuotaOfCinder extends DataObject {
     private Long   snapLimit;
     private Long   totalGB;
     private Long   volumeLimit;
+    private String limits;
     //private Boolean _quotaEnabled;
 
-    @Name("volumeLimit")
+    @Name("limits")
+    public String getLimits() {
+		return limits;
+	}
+
+	public void setLimits(String limits) {
+		this.limits = limits;
+		setChanged("limits");
+	}
+
+	/*@Name("volumeLimit")
     public Long getVolumesLimit() {
     	return (null == volumeLimit) ? 0L : volumeLimit;
 	}
@@ -41,7 +52,7 @@ public class QuotaOfCinder extends DataObject {
 	public void setVolumesLimit(Long _volumes) {
 		this.volumeLimit = _volumes;
         setChanged("volumeLimit");
-	}
+	}*/
 
 	@RelationIndex(cf = "RelationIndex", type = Project.class)
     @Name("project")
@@ -66,7 +77,7 @@ public class QuotaOfCinder extends DataObject {
         setChanged("vpool");
     }
         
-    @Name("totalGB")
+    /*@Name("totalGB")
     public Long getTotalQuota(){
         return (null == totalGB) ? 0L : totalGB;
     }
@@ -84,16 +95,16 @@ public class QuotaOfCinder extends DataObject {
     public void setSnapshotsLimit(Long snapsLimit) {
     	snapLimit = snapsLimit;
         setChanged("snapLimit");
-    }
+    }*/
     
     public String toString(){
     	StringBuffer buf = new StringBuffer();
     	buf.append("Id:"+this.getId().toString()+"\n");
     	buf.append("Project:"+this.getProject().toString()+"\n");
     	buf.append("VPool:"+this.getVpool()+ "\n");
-    	buf.append("snapshots:"+ this.getSnapshotsLimit().toString() +"\n");
-    	buf.append("totalGB:"+this.getTotalQuota().toString()+"\n");
-    	buf.append("volumes:"+this.getVolumesLimit().toString()+ "\n");    	
+    	//buf.append("snapshots:"+ this.getSnapshotsLimit().toString() +"\n");
+    	//buf.append("totalGB:"+this.getTotalQuota().toString()+"\n");
+    	//buf.append("volumes:"+this.getVolumesLimit().toString()+ "\n");    	
     	return buf.toString();
     }
     

@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.ExceptionUtils;
 import com.emc.storageos.db.client.util.ExportGroupNameGenerator;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceAndUUIDNameGenerator;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -838,13 +839,25 @@ public class UnManagedVolumeService extends TaskResourceService {
     							unManagedVolume.getLabel(), "Unable to locate volume which is part of a consistency group ingestion operation");
     				}
     				_logger.info("Volume {} was ingested as part of previous ingestion operation.", volume.getLabel());
-    				volume.setConsistencyGroup(consistencyGroup.getId());
-    				// add the volume to the list of cg objects to be 
-    				// updated because it already exists in the database
-    				consistencyGroupObjectsToUpdate.put(volume.getId().toString(), volume);
+
+                    // TEMPORARY HACK WJEIV
+                    // This change is here to ensure that RP consistency groups are not overwritten by lower-level CGs.
+                    // Once Ganga checks in his changes for combined CGs, this code will be removed.
+                    if (temporaryOverwriteCG(volume)) {
+    				    volume.setConsistencyGroup(consistencyGroup.getId());
+    				
+    				    // add the volume to the list of cg objects to be 
+    				    // updated because it already exists in the database
+    				    consistencyGroupObjectsToUpdate.put(volume.getId().toString(), volume);
+    				}
     			} else {
-    				_logger.info("Adding ingested volume {} to consistency group {}", volume.getLabel(), consistencyGroup.getLabel());
-    				volume.setConsistencyGroup(consistencyGroup.getId());
+                    // TEMPORARY HACK WJEIV
+                    // This change is here to ensure that RP consistency groups are not overwritten by lower-level CGs.
+                    // Once Ganga checks in his changes for combined CGs, this code will be removed.
+    			    if (temporaryOverwriteCG(volume)) {
+    			        _logger.info("Adding ingested volume {} to consistency group {}", volume.getLabel(), consistencyGroup.getLabel());
+    			        volume.setConsistencyGroup(consistencyGroup.getId());
+    			    }
     			}
     		}
     		// All unmanaged volumes have been ingested, remove unmanaged consistency group
@@ -855,6 +868,21 @@ public class UnManagedVolumeService extends TaskResourceService {
     		_logger.info("Updating unmanaged consistency group {}", unManagedCG.getLabel());
     	}
     	consistencyGroupObjectsToUpdate.put(unManagedCG.getId().toString(), unManagedCG);
+    }
+
+    // TEMPORARY HACK WJEIV
+    // This change is here to ensure that RP consistency groups are not overwritten by lower-level CGs.
+    // Once Ganga checks in his changes for combined CGs, this code will be removed.
+    private boolean temporaryOverwriteCG(BlockObject volume) {
+        boolean overwriteCG = true;
+        if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+            BlockConsistencyGroup bcg = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+            if (bcg == null || bcg.checkForType(BlockConsistencyGroup.Types.RP)) {
+                // This is a CG that is brand new and not saved yet, or it's RP
+                overwriteCG = false;
+            } 
+        }
+        return overwriteCG;
     }
     
 }

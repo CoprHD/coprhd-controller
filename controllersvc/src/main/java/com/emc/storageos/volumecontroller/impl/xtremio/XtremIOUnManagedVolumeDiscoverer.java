@@ -609,16 +609,29 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     // update the RP volumes with snap to remove the rp snaps and update the HAS_REPLICAS if required
                     for (String rpVolumeGUID : rpVolumeSnapMap.keySet()) {
                         UnManagedVolume volume = rpVolumeMap.get(rpVolumeGUID);
+                        if (volume == null) {
+                            // The parent is already managed by CoprHD
+                            continue;
+                        }
+                        
                         // Remove the reference of the snapshot from the snapshot list.
-                        volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString())
-                                .removeAll(rpVolumeSnapMap.get(rpVolumeGUID));
-
-                        // If it's the last snapshot, remove the whole key.
-                        if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).isEmpty()) {
-                            volume.getVolumeInformation().remove(SupportedVolumeInformation.SNAPSHOTS.toString());
-                            // TODO: Also check for mirrors, if XIO has that sort of thing, before shutting off HAS_REPLICAS
+                        if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()) != null) {
+                            String key = SupportedVolumeInformation.SNAPSHOTS.toString();
+                            for (String rpSnap : rpVolumeSnapMap.get(rpVolumeGUID)) {
+                                volume.getVolumeInformation().get(key).remove(rpSnap);
+                            }
+                            
+                            // If it's the last snapshot, remove the whole key.
+                            if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).isEmpty()) {
+                                volume.getVolumeInformation().remove(SupportedVolumeInformation.SNAPSHOTS.toString());
+                                // TODO: Also check for mirrors, if XIO has that sort of thing, before shutting off HAS_REPLICAS
+                                volume.putVolumeCharacterstics(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
+                            }
+                        } else {
                             volume.putVolumeCharacterstics(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
                         }
+                        
+                        dbClient.updateObject(volume);
                     }
                 }
             }

@@ -27,6 +27,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Bloc
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRecoverPointIngestOrchestrator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
@@ -3042,8 +3043,16 @@ public class VolumeIngestionUtil {
         if (umpset.getManagedVolumeIds() != null) {
             for (String volumeID : umpset.getManagedVolumeIds()) {
                 Volume volume = dbClient.queryObject(Volume.class, URI.create(volumeID));
+
+                // Add all volumes (managed only) to the new protection set
+                if (pset.getVolumes() == null) {
+                    pset.setVolumes(new StringSet());
+                }
+
+                pset.getVolumes().add(volumeID);
+
                 if (volume == null) {
-                    _logger.error("Unable to retrieve volume : " + volume + " from database.  Ignoring in protection set ingestion.");
+                    _logger.error("Unable to retrieve volume : " + volumeID + " from database.  Ignoring in protection set ingestion.");
                     // this will be the expected case for a newly-ingested Volume (because it hasn't been saved yet,
                     // so we make sure to add the volume in RecoverPointVolumeIngestionContext.commitBackend
                     continue;
@@ -3054,12 +3063,6 @@ public class VolumeIngestionUtil {
                     pset.setProject(volume.getProject().getURI());
                 }
 
-                // Add all volumes (managed only) to the new protection set
-                if (pset.getVolumes() == null) {
-                    pset.setVolumes(new StringSet());
-                }
-
-                pset.getVolumes().add(volumeID);
             }
         }
 
@@ -3069,9 +3072,9 @@ public class VolumeIngestionUtil {
 
     /**
      * Create a block consistency group for the given protection set
-     * 
      * @param pset protection set
      * @param dbClient
+     * 
      * @return BlockConsistencyGroup
      */
     public static BlockConsistencyGroup createRPBlockConsistencyGroup(ProtectionSet pset, DbClient dbClient) {
@@ -3087,7 +3090,6 @@ public class VolumeIngestionUtil {
         cg.setTenant(project.getTenantOrg());
         cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
         _logger.info("Created new block consistency group: " + cg.getId().toString());
-
         return cg;
     }
 

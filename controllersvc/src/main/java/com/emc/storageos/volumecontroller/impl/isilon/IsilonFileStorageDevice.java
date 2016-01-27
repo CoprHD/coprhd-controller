@@ -64,9 +64,13 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobStart;
+import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateFileSystemJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 /**
@@ -2252,7 +2256,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @param policyName
      * @return
      */
-    public BiosCommandResult doStartReplicationPolicy(StorageSystem system, String policyName) {
+    public BiosCommandResult doStartReplicationPolicy(StorageSystem system, String policyName, 
+                                                        TaskCompleter taskCompleter) {
         try {
 
             IsilonApi isi = getIsilonDevice(system);
@@ -2276,11 +2281,22 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 job.setId(policyName);
 
                 isi.modifyReplicationJob(job);
-
+                
                 policy = isi.getReplicationPolicy(policyName);
-                while (policy.getLastJobState().equals(JobState.running)) {
-                    // wait till job is finished
+                if(policy.getLastJobState().equals(JobState.running)) {
                     policy = isi.getReplicationPolicy(policyName);
+                    IsilonSyncJobStart isiSyncJobStart = 
+                            new IsilonSyncJobStart(policyName, system.getId(), taskCompleter, policyName);
+                    try {
+                        ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobStart));
+                    } catch (Exception ex) {
+                        _log.error("Create file system got the exception", ex);
+                        ServiceError error = DeviceControllerErrors.isilon.jobFailed("StartMirrorSession");
+                        if (taskCompleter != null) {
+                            taskCompleter.error(_dbClient, error);
+                        }
+                        return BiosCommandResult.createErrorResult(error);
+                    }
                 }
                 if (policy.getLastJobState().equals(JobState.finished)) {
                     _log.info("IsilonFileStorageDevice doStartReplicationPolicy - {}  - complete", policyName);
@@ -2495,7 +2511,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
              * cluster to primary cluster.
              */
 
-            result = doStartReplicationPolicy(secondarySystem, mirrorPolicyName);
+            result = doStartReplicationPolicy(secondarySystem, mirrorPolicyName, null);
             if (!result.isCommandSuccess()) {
                 return result;
             }
@@ -2650,7 +2666,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
-            cmdResult = doStartReplicationPolicy(system, policyName);
+            cmdResult = doStartReplicationPolicy(system, policyName, null);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
             } else {
@@ -2740,12 +2756,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public void doCreateMirror(StorageSystem storage, URI mirror, Boolean createInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        mirrorOperations.createSingleMirrorFileShare(storage, mirror, createInactive, taskCompleter);
+        mirrorOperations.createMirrorFileShare(storage, mirror, createInactive, taskCompleter);
     }
 
     @Override
     public void doDeleteMirror(StorageSystem storage, URI mirror, Boolean createInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        mirrorOperations.deleteSingleMirrorFileShare(storage, mirror, taskCompleter);
+        mirrorOperations.deleteMirrorFileShare(storage, mirror, taskCompleter);
     }
 }

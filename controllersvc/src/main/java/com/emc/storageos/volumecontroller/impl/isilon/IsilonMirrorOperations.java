@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
@@ -21,6 +22,10 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
 
     private DbClient _dbClient;
     private IsilonApiFactory _factory;
+
+    public IsilonApiFactory getIsilonApiFactory() {
+        return _factory;
+    }
 
     /**
      * Set Isilon API factory
@@ -36,13 +41,19 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void createSingleMirrorFileShare(StorageSystem storage, URI mirror,
+    public void createMirrorFileShare(StorageSystem storage, URI mirror,
             Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
 
     }
 
     @Override
-    public void deleteSingleMirrorFileShare(StorageSystem storage, URI mirror,
+    public void deleteMirrorFileShare(StorageSystem storage, URI mirror,
             TaskCompleter taskCompleter) throws DeviceControllerException {
     }
+    
+    IsilonApi getIsilonClient(StorageSystem storage) {
+        return getIsilonApiFactory().getRESTClient(storage.getId());
+    }
+    
+    
 }

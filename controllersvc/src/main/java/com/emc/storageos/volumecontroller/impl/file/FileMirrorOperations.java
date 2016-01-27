@@ -20,7 +20,7 @@ public interface FileMirrorOperations {
      * @param taskCompleter
      * @throws DeviceControllerException
      */
-    void createSingleMirrorFileShare(StorageSystem storage, URI mirror, Boolean createInactive, TaskCompleter taskCompleter)
+    void createMirrorFileShare(StorageSystem storage, URI mirror, Boolean createInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException;
 
     /**
@@ -31,7 +31,7 @@ public interface FileMirrorOperations {
      * @param taskCompleter
      * @throws DeviceControllerException
      */
-    void deleteSingleMirrorFileShare(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException;
+    void deleteMirrorFileShare(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     //add management operation (pause, resume, failover, failback)
 

@@ -5,34 +5,31 @@
 package com.emc.sa.service.vipr.application;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.VolumeGroupFullCopyCreateParam;
+import com.emc.storageos.model.block.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.vipr.client.Tasks;
 
 // TODO move to tasks package
-public class CreateCloneOfApplication extends WaitForTasks<TaskResourceRep> {
+public class ResynchronizeApplicationFullCopy extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
-    private final String name;
-    private final Integer count;
+    private final URI volumeId;
 
-    public CreateCloneOfApplication(URI applicationId, String name, Integer count) {
+    public ResynchronizeApplicationFullCopy(URI applicationId, URI volumeId, String name) {
         this.applicationId = applicationId;
-        this.name = name;
-        this.count = count;
+        this.volumeId = volumeId;
         provideDetailArgs(applicationId, name);
     }
 
     @Override
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
-        VolumeGroupFullCopyCreateParam input = new VolumeGroupFullCopyCreateParam();
-        input.setName(name);
-        input.setCount(count);
-        input.setCreateInactive(false);
-        input.setPartial(false);
-        TaskList taskList = getClient().application().createFullCopyOfApplication(applicationId, input);
+        List<URI> volList = Collections.singletonList(volumeId);
+        VolumeGroupFullCopyResynchronizeParam input = new VolumeGroupFullCopyResynchronizeParam(false, volList);
+        TaskList taskList = getClient().application().resynchronizeApplicationFullCopy(applicationId, input);
 
         return new Tasks<TaskResourceRep>(getClient().auth().getClient(), taskList.getTaskList(),
                 TaskResourceRep.class);

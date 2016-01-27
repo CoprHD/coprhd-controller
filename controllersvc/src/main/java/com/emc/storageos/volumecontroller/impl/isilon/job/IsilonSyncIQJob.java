@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.isilon.job;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,8 +15,10 @@ import java.util.Map;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.isilon.restapi.IsilonApi;
+import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonSyncJob;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
@@ -129,8 +132,22 @@ public class IsilonSyncIQJob extends Job implements Serializable {
      * @return
      */
     public IsilonApi getIsilonRestClient(JobContext jobContext) {
+        StorageSystem device = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUri);
          if(jobContext.getIsilonApiFactory() != null) {
-             return jobContext.getIsilonApiFactory().getRESTClient(_storageSystemUri);
+             IsilonApi isilonAPI;
+             URI deviceURI;
+             try {
+                 deviceURI = new URI("https", null, device.getIpAddress(), device.getPortNumber(), "/", null, null);
+             } catch (URISyntaxException ex) {
+                 throw IsilonException.exceptions.errorCreatingServerURL(device.getIpAddress(), device.getPortNumber(), ex);
+             }
+             //get rest client
+             if (device.getUsername() != null && !device.getUsername().isEmpty()) {
+                 isilonAPI = jobContext.getIsilonApiFactory().getRESTClient(deviceURI, device.getUsername(), device.getPassword());
+             } else {
+                 isilonAPI = jobContext.getIsilonApiFactory().getRESTClient(deviceURI);
+             }
+             return isilonAPI;
          }
          return null;
     }
@@ -169,4 +186,6 @@ public class IsilonSyncIQJob extends Job implements Serializable {
         }
         return errorMessage;
     }
+    
+   
 }

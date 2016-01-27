@@ -59,10 +59,10 @@ public class JobContext
 
     public JobContext(DbClient dbClient, CIMConnectionFactory cimConnectionFactory,
             VPlexApiFactory vplexApiFactory, HDSApiFactory hdsApiFactory, CinderApiFactory cinderApiFactory,
-            VNXeApiClientFactory vnxeApiClientFactory, IsilonApiFactory isilonApiFactory, SmisCommandHelper helper,
+            VNXeApiClientFactory vnxeApiClientFactory,SmisCommandHelper helper,
             XIVSmisCommandHelper xivHelper) {
         this(dbClient, cimConnectionFactory, vplexApiFactory, hdsApiFactory,
-                cinderApiFactory, vnxeApiClientFactory, isilonApiFactory, helper);
+                cinderApiFactory, vnxeApiClientFactory, helper);
 
         _xivHelper = xivHelper;
     }

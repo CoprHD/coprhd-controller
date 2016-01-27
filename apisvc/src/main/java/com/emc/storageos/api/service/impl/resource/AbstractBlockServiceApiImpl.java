@@ -1249,7 +1249,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             if (snapSessionURIsIter.hasNext()) {
                 URI snapSessionURI = snapSessionURIsIter.next();
                 s_logger.info("Snapshot {} is linked to snapshot session {}", snapshotURI, snapSessionURI);
-                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIsIter.next());
+                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
                 snapSession.getLinkedTargets().remove(snapshotURI.toString());
                 _dbClient.updateObject(snapSession);
             }

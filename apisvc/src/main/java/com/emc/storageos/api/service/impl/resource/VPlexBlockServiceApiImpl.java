@@ -570,6 +570,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             taskList.getTaskList().add(toTask(sourceVolume, Arrays.asList(mirror), taskId, op));
 
             if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
+                s_logger.info("Perform ViPR-only delete for VPLEX mirrors %s", mirrorURI);
+
                 // Perform any database cleanup that is required.
                 cleanupForViPROnlyMirrorDelete(Arrays.asList(mirrorURI));
 

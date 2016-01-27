@@ -23,7 +23,7 @@ import com.google.common.collect.ListMultimap;
 /**
  * FileCopyModeMatcher - is an attribute matcher to select storage pools
  * with given replication copy mode.
- *
+ * 
  */
 
 public class FileCopyModeMatcher extends AttributeMatcher {
@@ -60,10 +60,10 @@ public class FileCopyModeMatcher extends AttributeMatcher {
 
         for (StoragePool pool : allPools) {
             // Ignore the storage pools from same source system!!
-            if (pool.getStorageDevice().toASCIIString().equalsIgnoreCase(sourceSystem)) {
+            if (pool.getStorageDevice().toString().equalsIgnoreCase(sourceSystem)) {
                 continue;
             }
-            if (pool.getSupportedCopyTypes().contains(copyType)) {
+            if (pool.getSupportedCopyTypes() != null && pool.getSupportedCopyTypes().contains(copyType)) {
                 matchedPools.add(pool);
             }
         }

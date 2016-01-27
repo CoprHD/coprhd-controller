@@ -84,6 +84,10 @@ public class TenantUtils {
     public static TenantOrgRestRep create(TenantCreateParam tenantCreateParam) {
         return getViprClient().tenants().create(tenantCreateParam);
     }
+    
+    /*public static List<StringOption> getAllNamespace() {
+        return getViprClient().tenants().getAllNamespace();
+    }*/
 
     public static boolean isRootTenant(URI tenantId) {
         return isRootTenant(getViprClient().tenants().get(tenantId));

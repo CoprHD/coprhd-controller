@@ -97,8 +97,7 @@ public class Tenants extends ViprResourceController {
         if (viprTenant != null) {
             TenantForm tenant = new TenantForm().from(viprTenant, quota);
             tenant.usermapping = UserMappingForm.loadUserMappingForms(viprTenant.getUserMappings());
-
-            addRenderArgs(tenant);
+            
             render(tenant);
         }
         else {
@@ -194,6 +193,10 @@ public class Tenants extends ViprResourceController {
 
         Gson g = new Gson();
         renderArgs.put("domainsJson", g.toJson(domains));
+        
+        List<StringOption> allNamespace = new ArrayList<StringOption>();
+        allNamespace.add(new StringOption("nsid", "s3namespace"));
+        renderArgs.put("allNamespace", allNamespace);
     }
 
     @Util

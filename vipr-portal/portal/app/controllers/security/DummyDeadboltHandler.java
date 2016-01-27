@@ -34,7 +34,7 @@ public class DummyDeadboltHandler extends Controller implements DeadboltHandler 
             String username = System.getProperty("viprUsername", "root");
             String password = System.getProperty("viprPassword", "Changeme1!");
 
-            String token = BourneUtil.getViprClient().auth().login(username, password);
+            String token = BourneUtil.getViprClient().auth().login("root", "ChangeMe1!");
             response.setCookie(AUTH_TOKEN_KEY, token, "14d");
             // This won't be in the current request. Fake it so the auth token is picked up by the security module
             request.cookies.put(AUTH_TOKEN_KEY, response.cookies.get(AUTH_TOKEN_KEY));

@@ -46,12 +46,12 @@ titleKey = 'tenants.' + (tenant?.id ? 'edit' : 'create') + '.title';
        #{Form.booleanCheckBoxControlGroup field:field /}
     #{/field}
 	#{field 'tenant.namespace'}
-        #{Form.controlGroup field:field}
-            #{Form.inputText field:field/}
+      
+        #{Form.selectOneControlGroup field:field, options:allNamespace, cssClass:'span3' }
           %{
 			field.helpText = messages.get("${field.name}.help")
           %}
-        #{/Form.controlGroup}
+        #{/Form.selectOneControlGroup}
       #{/field}
 
     <legend>&{'tenant.quota'}<small>&{'tenant.quota.description'}</small></legend>

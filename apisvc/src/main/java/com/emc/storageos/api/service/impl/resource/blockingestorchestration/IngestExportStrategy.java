@@ -59,7 +59,7 @@ public class IngestExportStrategy {
                 List<String> errorMessages = requestContext.getErrorMessagesForVolume(unManagedVolume.getNativeGuid());
 
                 // If the internal flags are set, return the block object
-                if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) && !blockObject.checkInternalFlags(Flag.RECOVERPOINT)) {
+                if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
                     // check if none of the export masks are ingested
                     if (masksIngestedCount.intValue() == 0) {
                         throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(

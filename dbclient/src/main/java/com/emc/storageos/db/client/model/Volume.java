@@ -761,6 +761,20 @@ public class Volume extends BlockObject implements ProjectResource {
         this.replicaState = state;
         setChanged("replicaState");
     }
+    
+    /**
+     * Returns true if the volume is of the personality of the passed in param.
+     * 
+     * @param personality to check
+     * 
+     * @return true if the volume is of that personality, false otherwise
+     */
+    public boolean checkPersonality(String personality) {    	
+    	if (NullColumnValueGetter.isNotNullValue(this.getPersonality()) && this.getPersonality().equalsIgnoreCase(personality)) {
+    		return true;
+    	}    		
+		return false;
+    }
 
     /**
      * Returns true if the passed volume is in an export group, false otherwise.
@@ -918,8 +932,8 @@ public class Volume extends BlockObject implements ProjectResource {
             }
         }
         return false;
-    }
-
+    }    
+    
     public static enum ReplicationState {
         UNKNOWN(0), SYNCHRONIZED(1), CREATED(2), RESYNCED(3), INACTIVE(4), DETACHED(5), RESTORED(6);
 

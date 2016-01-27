@@ -104,11 +104,12 @@ public class ControllerLockingUtil {
     }
     
     /**
+     * This method is only invoked by RecoverPoint controller at this point as RP systems are treated as clusters for export,
+     * but they do not have a real host object associated with each initiator. 
+     * 
      * Returns a list of lock keys for export of Hosts to StorageSystems.
      * This is constructed from a list of Initiators.
      * All the host names are collected from the Initiators.
-     * This method is only invoked by RecoverPoint controller at this point as RP systems are treated as clusters for export,
-     * but they dont have a real host object associated with each initiator. 
      * The keys are constructed from a concatenation of the host URI and the storage system URI.
      * 
      * @param dbClient
@@ -117,7 +118,8 @@ public class ControllerLockingUtil {
      *  (could be a Protection System or null in which case only host in key)
      * @return List<String> where each item in list is a lockKey
      */
-    static public List<String> getStorageLockKeysByHostName(DbClient dbClient, 
+      
+    static public List<String> getStorageLockKeysForRecoverPoint(DbClient dbClient, 
             Collection<URI> initiatorURIs, URI storageURI) {
         String storageKey = getStorageKey(dbClient, storageURI);
         List<String> lockKeys = new ArrayList<String>();

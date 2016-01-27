@@ -4,7 +4,7 @@
    isSecurityAdmin = currentUser?.roles?.find{ "SECURITY_ADMIN".equals(it.roleName)} != null
    isRestrictedSecurityAdmin = currentUser?.roles?.find{ "RESTRICTED_SECURITY_ADMIN".equals(it.roleName)} != null
    isSystemAdmin = currentUser?.roles?.find{ "SYSTEM_ADMIN".equals(it.roleName)} != null
-   isSelectable = isSecurityAdmin && isRootUser == false
+   isSelectable = (isSecurityAdmin || isSystemAdmin) && isRootUser == false
 }%
 #{extends 'main.html'/}
 #{set navSelected: ['nav.virtualStorage', 'nav.vdcs'] /}

@@ -2405,7 +2405,7 @@ public class FileService extends TaskResourceService {
 
         if (!vpool.getScheduleSnapshots()) {
             // Throw an error
-            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool does not support snapshot schedule");
+            throw APIException.methodNotAllowed.notSupportedWithReason("Snapshot schedule is not supported by vpool: " + vpool.getLabel());
         }
 
         if (fs.getFilePolicies().contains(filePolicyUri.toString())) {
@@ -2554,7 +2554,7 @@ public class FileService extends TaskResourceService {
      * @param fs FileShare object
      */
     private void getFilePolicyRestRep(FilePolicyRestRep fpRest, SchedulePolicy fp, FileShare fs) {
-        String snapshotScheduleName = "Vipr_" + fp.getPolicyName() + "_" + fs.getName();
+        String snapshotScheduleName = fp.getPolicyName() + "_" + fs.getName();
         String pattern = snapshotScheduleName + "_YYYY-MM-DD_HH-MM";
         fpRest.setPolicyId(fp.getId());
         fpRest.setPolicyName(fp.getPolicyName());

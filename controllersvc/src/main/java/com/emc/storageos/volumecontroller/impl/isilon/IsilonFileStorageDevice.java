@@ -2656,7 +2656,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // for isilon we need to create a new policy for each individual file system
 
         SchedulePolicy fp = args.getFilePolicy();
-        String snapshotScheduleName = "Coprhd_" + fp.getPolicyName() + "_" + args.getFsName();
+        String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
         String pattern = snapshotScheduleName + "_%Y-%m-%d_%H-%M";
         String Schedulevalue = getIsilonScheduleString(fp);
         Integer expireValue = getSnapshotExpireValue(fp);
@@ -2676,7 +2676,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
 
         SchedulePolicy fp = args.getFilePolicy();
-        String snapshotScheduleName = "Coprhd_" + fp.getPolicyName() + "_" + args.getFsName();
+        String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
         IsilonApi isi = getIsilonDevice(storageObj);
         try {
             isi.deleteSnapshotSchedule(snapshotScheduleName);

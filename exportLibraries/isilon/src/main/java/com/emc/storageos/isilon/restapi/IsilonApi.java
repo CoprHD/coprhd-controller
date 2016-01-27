@@ -560,7 +560,8 @@ public class IsilonApi {
         ClientResponse resp = null;
         try {
             resp = _client.delete(url);
-            if (resp.getStatus() != 204) {
+            // error 404 means Snapshot Schedule can not be found, assuming it already deleted.
+            if (resp.getStatus() != 200 && resp.getStatus() != 204 && resp.getStatus() != 404) {
                 processErrorResponse("delete", "URL =" + url, resp.getStatus(),
                         resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);
 

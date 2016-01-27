@@ -1332,9 +1332,25 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
             
-            if (storageSystemsMatch && skipCapacityAdjustments(storageSystem, isChangeVpool)) {
-                _log.info(String.format("Skipping capacity adjustments, none required."));
-                capacity = requestedSize;
+            // Special case if it's a change vpool and all XIO, we can simply reuse the source capacity
+            // so that the target(s) have the all the same size.
+            if (storageSystemsMatch 
+                    && isChangeVpool
+                    && DiscoveredDataObject.Type.xtremio.name().equals(storageSystem.getSystemType())) {                
+             
+                for (Volume volume : allVolumesToUpdateCapacity) {
+                    if (NullColumnValueGetter.isNotNullValue(volume.getPersonality())
+                            && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                        capacity = volume.getProvisionedCapacity();
+                        break;
+                    }
+                }     
+                
+                for (Volume volume : allVolumesToUpdateCapacity) {                   
+                    updateVolumeCapacity(volume, capacity, isExpand);
+                }     
+                
+                _log.info(String.format("Capacity adjustments made for XIO change vpool operation."));                
                 return capacity;
             }
 
@@ -1473,33 +1489,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         return capacity;
-    }
-
-    /**
-     * There are times when we do not want to perform any capacity adjustments and 
-     * to just allow the Storage System to prepare the volumes for us as they normally 
-     * would. In these cases it's most likely that all sizes will be uniform which
-     * usually makes RP happy anyway.
-     * 
-     * This is influenced by the type of the Storage System and also whether or not
-     * this is a change vpool operation or a straight up create volume for RP.
-     * 
-     * @param storageSystem Storage System to check
-     * @param isChangeVpool Boolean to indicate whether this is a change vpool operation or not
-     * @return true if we want to skip capacity adjustments for RP, false otherwise.
-     */
-    private boolean skipCapacityAdjustments(StorageSystem storageSystem, boolean isChangeVpool) {
-        boolean skipCapacityAdjustments = false;
-        
-        if (storageSystem != null) {
-            if (isChangeVpool 
-                    && DiscoveredDataObject.Type.xtremio.name().equals(storageSystem.getSystemType())) {
-                // Do not perform any adjustments for XIO when it's a change vpool operation.
-                skipCapacityAdjustments = true;
-            }
-        }
-        
-        return skipCapacityAdjustments;
     }
 
     /**
@@ -3018,7 +3007,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         capacity));
                 // Update capacity and persist volume
                 volume.setCapacity(capacity);
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
             } else {
                 _log.info(String.format("Do not update capacity for volume [%s] as this is an expand operation.", volume.getLabel()));
             }

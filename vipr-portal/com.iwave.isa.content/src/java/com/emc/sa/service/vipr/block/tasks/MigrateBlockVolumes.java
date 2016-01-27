@@ -34,6 +34,8 @@ public class MigrateBlockVolumes extends ViPRExecutionTask<Task<VolumeRestRep>> 
         param.setVirtualPool(targetVirtualPoolId);
         param.setVolume(volumeId);
 
-        return getClient().blockVolumes().migrate(param);
+        Task<VolumeRestRep> task = getClient().blockVolumes().migrate(param);
+        addOrderIdTag(task.getTaskResource().getId());
+        return task;
     }
 }

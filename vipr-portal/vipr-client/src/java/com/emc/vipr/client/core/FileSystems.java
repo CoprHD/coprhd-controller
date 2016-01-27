@@ -22,6 +22,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParam;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -532,9 +533,8 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the configuration of the new continuous copies.
      * @return tasks for monitoring the progress of the operation(s).
      */
-    public Task<FileShareRestRep> startFileContinuousCopies(URI id, CopiesParam input) {
-        TaskList task = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/start", id);
-        return null;//new Task<FileShareRestRep>(client, task.getTaskList(), BlockMirrorRestRep.class);
+    public Task<FileShareRestRep> startFileContinuousCopies(URI id, FileReplicationParam input) {
+        return postTask(input, getContinuousCopiesUrl() + "/start", id);
     }
     
     /**

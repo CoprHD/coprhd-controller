@@ -151,4 +151,8 @@ public class VolumeGroup extends DataObject {
             parents.add(parent.toString());
         }
     }
+
+    public void clearParents() {
+        parents.clear();
+    }
 }

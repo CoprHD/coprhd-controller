@@ -530,7 +530,7 @@ public class BackupService {
             throw new RuntimeException(e);
         }
 
-        backupOps.setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, size, 0, false, true);
+        backupOps.setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, size, 0, false, true, true);
     }
 
     private void notifyOtherNodes(String backupName) {
@@ -551,7 +551,7 @@ public class BackupService {
             log.error(errMsg);
             BackupRestoreStatus.Status s = BackupRestoreStatus.Status.DOWNLOAD_FAILED;
             s.setMessage(errMsg);
-            backupOps.setRestoreStatus(backupName, s, 0, 0, false, false);
+            backupOps.setRestoreStatus(backupName, s, 0, 0, false, false, true);
             throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
         }
     }
@@ -571,7 +571,7 @@ public class BackupService {
             log.error(errMsg);
             BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
             s.setMessage(errMsg);
-            backupOps.setRestoreStatus(backupName, s, 0, 0, false, false);
+            backupOps.setRestoreStatus(backupName, s, 0, 0, false, false, true);
             throw SysClientException.syssvcExceptions.restoreFailed(backupName, errMsg);
         }
     }
@@ -676,7 +676,7 @@ public class BackupService {
         BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
         s.setMessage(msg);
 
-        backupOps.setRestoreStatus(backupName, s, 0, 0, false, false);
+        backupOps.setRestoreStatus(backupName, s, 0, 0, false, false, true);
         throw SyssvcException.syssvcExceptions.restoreFailed(backupName, msg);
     }
 

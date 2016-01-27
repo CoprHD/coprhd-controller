@@ -7,6 +7,7 @@ package util;
 
 import static util.BourneUtil.getViprClient;
 
+import java.util.Iterator;
 import java.util.List;
 
 import com.emc.storageos.model.dr.SiteDetailRestRep;
@@ -102,6 +103,18 @@ public class DisasterRecoveryUtils {
             }
         }
         return null;
+    }
+
+    public static List<SiteRestRep> getStandbySites() {
+        List<SiteRestRep> sites = getViprClient().site().listAllSites().getSites();
+        Iterator<SiteRestRep> iterator = sites.iterator();
+        while (iterator.hasNext()) {
+            SiteRestRep site = iterator.next();
+            if (site.getState().toUpperCase().equals(String.valueOf(SiteState.ACTIVE))) {
+                iterator.remove();
+            }
+        }
+        return sites;
     }
 
     public static boolean isActiveSite() {

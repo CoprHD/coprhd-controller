@@ -20,35 +20,41 @@
 <br/>
 
 #{Form.subheader titleKey:"upgrade.downloadProgress", descriptionKey:"upgrade.downloadProgress.description"/}
-    <table class="download-progress-table">
-        #{list items:downloadStatus.entrySet(), as:'nodeEntry'}
-            <tr>
-                <td>Node ${nodeEntry.getKey()}&nbsp;</td>
-                <td width="300">
-                    %{
-                        style = "success"
-                        if (nodeEntry.getValue().isErrorStatus()) {
-                            style="danger"
-                        }
-                    }%
+    #{set i:0 /}
+    #{list items:downloadStatus.entrySet(), as:'siteEntry'}
+        <b>${siteEntry.getKey()}</b>
+        <table class="download-progress-table">
+            #{list items:siteEntry.getValue().entrySet(), as:'nodeEntry'}
+                #{set progressBarId:'site'+i+'-'+nodeEntry.getKey() /}
+                <tr>
+                    <td>Node ${nodeEntry.getKey()}&nbsp;</td>
+                    <td width="300">
+                        %{
+                            style = "success"
+                            if (nodeEntry.getValue().isErrorStatus()) {
+                                style="danger"
+                            }
+                        }%
 
-                    #{progressBar name:nodeEntry.getKey(), percentage:nodeEntry.getValue().percent, style:style/}
-                </td>
-                <td>
-                    <span id="download-status-${nodeEntry.getKey()}">
-                        #{if nodeEntry.getValue().isErrorStatus()}
-                            #{if nodeEntry.getValue().status.equals("CHECKSUMERROR")}
-                                &{'upgrade.downloadChecksumError'}
+                        #{progressBar name:progressBarId, percentage:nodeEntry.getValue().percent, style:style/}
+                    </td>
+                    <td>
+                        <span id="download-status-${progressBarId}">
+                            #{if nodeEntry.getValue().isErrorStatus()}
+                                #{if nodeEntry.getValue().status.equals("CHECKSUMERROR")}
+                                    &{'upgrade.downloadChecksumError'}
+                                #{/if}
+                                #{elseif nodeEntry.getValue().status.equals("DOWNLOADERROR")}
+                                    &{'upgrade.downloadError'}
+                                #{/elseif}
                             #{/if}
-                            #{elseif nodeEntry.getValue().status.equals("DOWNLOADERROR")}
-                                &{'upgrade.downloadError'}
-                            #{/elseif}
-                        #{/if}
-                    </span>
-                </td>
-            </tr>
-        #{/list}
-    </table>
+                        </span>
+                    </td>
+                </tr>
+            #{/list}
+        </table>
+        #{set i:i+1 /}
+    #{/list}
 </div>
 #{/if}
 
@@ -166,28 +172,37 @@
             dataType: "json",
             timeout: (30 * 1000), // 30 sec timeout
 
-            success: function(percent) {
+            success: function(siteProgress) {
                 var downloadFinished = true;
-                $.each(percent, function(nodeId, downloadStatus) {
-                    updateProgressBar(nodeId,downloadStatus.percent);
-                    if (downloadStatus.percent != 100) {
-                        downloadFinished = false;
-                    }
-
-                    if (!(downloadStatus.status == "NORMAL" || downloadStatus.status == "COMPLETED")) {
-                        updateProgressBarStyle(nodeId, "danger")
-
-                        if (downloadStatus.status == "DOWNLOADERROR") {
-                            $("#download-status-"+nodeId).text('&{'upgrade.downloadError'}');
+                var index = 0;
+                $.each(siteProgress, function(siteId, percent) {
+                    $.each(percent, function(nodeId, downloadStatus) {
+                        var progressBarId = 'site' + index + '-' + nodeId;
+                        updateProgressBar(progressBarId, downloadStatus.percent);
+                        if (downloadStatus.percent != 100) {
+                            downloadFinished = false;
                         }
-                        else if (downloadStatus.status == "CHECKSUMERROR") {
-                            $("#download-status-"+nodeId).text('&{'upgrade.downloadChecksumError'}');
+
+                        if (!(downloadStatus.status == "NORMAL" || downloadStatus.status == "COMPLETED")) {
+                            updateProgressBarStyle(progressBarId, "danger")
+
+                            if (downloadStatus.status == "DOWNLOADERROR") {
+                                $("#download-status-"+progressBarId).text('&{'upgrade.downloadError'}');
+                            }
+                            else if (downloadStatus.status == "CHECKSUMERROR") {
+                                $("#download-status-"+progressBarId).text('&{'upgrade.downloadChecksumError'}');
+                            }
                         }
+                    });
+
+                    // as soon as the active site finishes downloading, hide the cancel button
+                    if (downloadFinished && index == 0) {
+                        $("#cancelButton").hide();
                     }
+                    index = index + 1;
                 });
 
                 if (downloadFinished) {
-                    $("#cancelButton").hide();
                     setTimeout(goToIndex, 1000);
                 }
             },

@@ -35,7 +35,7 @@ public interface ServiceUnavailableExceptions {
     public ServiceUnavailableException clusterStateNotStable();
 
     @DeclareServiceCode(ServiceCode.SYS_CLUSTER_STATE_NOT_STABLE)
-    public ServiceUnavailableException siteClusterStateNotStable(String siteId, String state);
+    public ServiceUnavailableException siteClusterStateNotStable(String siteName, String state);
 
     @DeclareServiceCode(ServiceCode.SYS_SERVICE_BUSY)
     public ServiceUnavailableException logServiceIsBusy();

@@ -5,13 +5,7 @@
 
 package com.emc.storageos.coordinator.client.service.impl;
 
-import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
-import static com.emc.storageos.coordinator.client.model.Constants.DB_CONFIG;
-import static com.emc.storageos.coordinator.client.model.Constants.GLOBAL_ID;
-import static com.emc.storageos.coordinator.client.model.Constants.MIGRATION_STATUS;
-import static com.emc.storageos.coordinator.client.model.Constants.NODE_DUALINETADDR_CONFIG;
-import static com.emc.storageos.coordinator.client.model.Constants.SCHEMA_VERSION;
-import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
+import static com.emc.storageos.coordinator.client.model.Constants.*;
 import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY;
 import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY_ID;
 import static com.emc.storageos.coordinator.mapper.PropertyInfoMapper.decodeFromString;
@@ -672,9 +666,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     
     private boolean isSiteSpecific(String kind) {
         if (kind.equals(SiteInfo.CONFIG_KIND)
-            || kind.equals(SiteError.CONFIG_KIND)
-            || kind.equals(PowerOffState.CONFIG_KIND)
-            || kind.equals(SiteMonitorResult.CONFIG_KIND)) {
+                || kind.equals(SiteError.CONFIG_KIND)
+                || kind.equals(PowerOffState.CONFIG_KIND)
+                || kind.equals(SiteMonitorResult.CONFIG_KIND)
+                || kind.equals(DOWNLOADINFO_KIND)) {
             return true;
         }
         return false;
@@ -1547,7 +1542,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return getAllNodeInfos(clazz, nodeIdFilter, _zkConnection.getSiteId());
     }
     
-    private <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
+    public <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
             Pattern nodeIdFilter, String siteId) throws Exception {
         final Map<Service, T> infos = new HashMap<Service, T>();
         List<Service> allSysSvcs = locateAllServices(siteId, sysSvcName, sysSvcVersion, (String) null, null);

@@ -41,7 +41,7 @@ public class IsilonReplicationTest {
 
     public static void testStartReplicationPolicy() {
         IsilonReplicationTest.setUp();
-        result = _isi.doStartReplicationPolicy(_device, "mudit_policy");
+        result = _isi.doStartReplicationPolicy(_device, "mudit_policy", null);
         result.getCommandStatus();
     }
 

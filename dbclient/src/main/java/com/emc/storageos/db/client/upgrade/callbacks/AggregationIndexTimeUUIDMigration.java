@@ -17,6 +17,8 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.services.util.AlertsLogger;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +36,7 @@ public class AggregationIndexTimeUUIDMigration extends BaseCustomMigrationCallba
     private AlertsLogger alertLog = AlertsLogger.getAlertsLogger();
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         log.info("Starting aggregation index processing");
         boolean success = true;
         try {

@@ -43,6 +43,19 @@ public class JobContext
         _helper = helper;
         this._isilonApiFactory = isilonApiFactory;
     }
+    
+    public JobContext(DbClient dbClient, CIMConnectionFactory cimConnectionFactory,
+            VPlexApiFactory vplexApiFactory, HDSApiFactory hdsApiFactory, CinderApiFactory cinderApiFactory,
+            VNXeApiClientFactory vnxeApiClientFactory, SmisCommandHelper helper) {
+        _dbClient = dbClient;
+        _cimConnectionFactory = cimConnectionFactory;
+        _vplexApiFactory = vplexApiFactory;
+        this.hdsApiFactory = hdsApiFactory;
+        this.cinderApiFactory = cinderApiFactory;
+        _vnxeApiClientFactory = vnxeApiClientFactory;
+        _helper = helper;
+        
+    }
 
     public JobContext(DbClient dbClient, CIMConnectionFactory cimConnectionFactory,
             VPlexApiFactory vplexApiFactory, HDSApiFactory hdsApiFactory, CinderApiFactory cinderApiFactory,

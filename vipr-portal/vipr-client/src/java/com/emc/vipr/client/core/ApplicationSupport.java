@@ -9,6 +9,7 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_FUL
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DELETE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
@@ -101,6 +102,14 @@ public class ApplicationSupport {
         return client.get(NamedVolumesList.class, APP_SUPPORT_VOLUME_URL, id);
     }
     
+
+    /*
+     * Get full copies for application
+     * GET /volume-groups/block/{id}/protection/full-copies
+     */
+    public NamedVolumesList getClonesByApplication(URI id) {
+    	return client.get(NamedVolumesList.class, APP_SUPPORT_CLONE_URL, id);
+    }
     /**
      * Creates a full copy of an application.
      * API Call: POST /volume-groups/block/{id}/protection/full-copies

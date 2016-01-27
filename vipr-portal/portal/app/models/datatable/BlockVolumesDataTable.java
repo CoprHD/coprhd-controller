@@ -28,7 +28,7 @@ public class BlockVolumesDataTable extends DataTable {
 
     public BlockVolumesDataTable() {
         addColumn("name").setRenderFunction("renderLink");
-        addColumn("capacity");
+        addColumn("capacity").setRenderFunction("render.sizeInGb");
         addColumn("varray");
         addColumn("vpool");
         addColumn("protocols");

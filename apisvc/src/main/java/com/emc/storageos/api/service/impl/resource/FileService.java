@@ -2605,37 +2605,33 @@ public class FileService extends TaskResourceService {
         
         FileShare copyFileShare = null;
         
-        FileShare sourcefileShare = _dbClient.queryObject(FileShare.class, id);
-        
         if (null == copyID) {
-            copyFileShare = sourcefileShare;
-            copyID = sourcefileShare.getId();
+            copyFileShare = _dbClient.queryObject(FileShare.class, id);
+            copyID = copyFileShare.getId();
+             ArgValidator.checkEntity(copyFileShare, id, true);
         } else {
-            copyFileShare = sourcefileShare;
-            copyID = sourcefileShare.getId();
+            copyFileShare = _dbClient.queryObject(FileShare.class, copyID);
+            
+            ArgValidator.checkEntity(copyFileShare, copyID, true);
         }
-        
-
-        ArgValidator.checkEntity(sourcefileShare, id, true);
-        
-        ArgValidator.checkEntity(copyFileShare, copyID, true);
+       
         // Make sure that we don't have some pending
         // operation against the fileshare
-        checkForPendingTasks(Arrays.asList(sourcefileShare.getTenant().getURI()), Arrays.asList(sourcefileShare));
+        checkForPendingTasks(Arrays.asList(copyFileShare.getTenant().getURI()), Arrays.asList(copyFileShare));
         
         Operation status = new Operation();
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
-        _dbClient.createTaskOpStatus(FileShare.class, sourcefileShare.getId(), task, status);
+        _dbClient.createTaskOpStatus(FileShare.class, copyFileShare.getId(), task, status);
         
         //get storagesystem list
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourcefileShare.getStorageDevice());
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, copyFileShare.getStorageDevice());
         
         FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
         
         //call controller service
         controller.performRemoteContinuousCopies(system.getId(), copyID, op, task);
 
-        return toTask(sourcefileShare, task, status);
+        return toTask(copyFileShare, task, status);
     }
 
 

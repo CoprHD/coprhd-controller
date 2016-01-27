@@ -30,18 +30,13 @@
     
     pointInTime:{
       type:"table",
-      showTableBorder: "false",
-      showHeader: "false",
-      showAddButton: "false",
-      showRemoveRow: "false",
-      
       items:{
         imageDate:{
           type:"failoverDate",
           required: "false"
         },
         imageTime:{
-          type:"failoverDate",
+          type:"failoverTime",
           required: "false"
         }
       }

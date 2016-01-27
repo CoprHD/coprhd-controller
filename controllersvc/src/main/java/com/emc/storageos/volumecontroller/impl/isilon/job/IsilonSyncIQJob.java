@@ -82,6 +82,7 @@ public class IsilonSyncIQJob extends Job implements Serializable {
     
                     _errorDescription = isiGetReportErrMsg(isiApiClient .getReplicationPolicyReports(currentJob).getList());
                     _pollResult.setJobPercentComplete(100);
+                    _pollResult.setErrorDescription(_errorDescription);
                     _status = JobStatus.FAILED;
                     _logger.error("IsilonSyncIQJob: {} failed; Details: {}", currentJob, _errorDescription);
                 }
@@ -98,7 +99,7 @@ public class IsilonSyncIQJob extends Job implements Serializable {
             }
         }
         _pollResult.setJobStatus(_status);
-        _pollResult.setErrorDescription(_errorDescription);
+        
         return _pollResult;
     }
 

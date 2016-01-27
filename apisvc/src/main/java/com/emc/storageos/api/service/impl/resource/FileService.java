@@ -2600,38 +2600,30 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
     }
 
-    private TaskResourceRep performProtectionAction(URI id, URI copyID, String op) throws InternalException {
+    private TaskResourceRep performProtectionAction(URI id, String op) throws InternalException {
         String task = UUID.randomUUID().toString();
         
-        FileShare copyFileShare = null;
+        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
+        ArgValidator.checkEntity(sourceFileShare, id, true);
         
-        if (null == copyID) {
-            copyFileShare = _dbClient.queryObject(FileShare.class, id);
-            copyID = copyFileShare.getId();
-             ArgValidator.checkEntity(copyFileShare, id, true);
-        } else {
-            copyFileShare = _dbClient.queryObject(FileShare.class, copyID);
-            
-            ArgValidator.checkEntity(copyFileShare, copyID, true);
-        }
-       
+               
         // Make sure that we don't have some pending
         // operation against the fileshare
-        checkForPendingTasks(Arrays.asList(copyFileShare.getTenant().getURI()), Arrays.asList(copyFileShare));
+        checkForPendingTasks(Arrays.asList(sourceFileShare.getTenant().getURI()), Arrays.asList(sourceFileShare));
         
         Operation status = new Operation();
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
-        _dbClient.createTaskOpStatus(FileShare.class, copyFileShare.getId(), task, status);
+        _dbClient.createTaskOpStatus(FileShare.class, sourceFileShare.getId(), task, status);
         
         //get storagesystem list
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, copyFileShare.getStorageDevice());
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
         
         FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
         
         //call controller service
-        controller.performRemoteContinuousCopies(system.getId(), copyID, op, task);
+        controller.performRemoteContinuousCopies(system.getId(), id, op, task);
 
-        return toTask(copyFileShare, task, status);
+        return toTask(sourceFileShare, task, status);
     }
 
 
@@ -2654,7 +2646,7 @@ public class FileService extends TaskResourceService {
             // If copyID is null all copies are stopped
             if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString()) ||
                     copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
-                taskResp = performProtectionAction(id, copyID, op);
+                taskResp = performProtectionAction(id, op);
                 taskList.getTaskList().add(taskResp);
             } else {
                 throw APIException.badRequests.invalidCopyType(copy.getType());

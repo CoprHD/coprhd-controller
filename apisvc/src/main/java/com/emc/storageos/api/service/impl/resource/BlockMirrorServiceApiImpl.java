@@ -598,6 +598,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
         try {
             if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
+                _log.info("Perform ViPR-only delete for mirrors %s", mirrorURIs);
+
                 // Perform any database cleanup that is required.
                 cleanupForViPROnlyMirrorDelete(mirrorURIs);
 

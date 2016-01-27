@@ -122,7 +122,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext) parentRequestContext.getVolumeContext();
 
         UnManagedVolume unManagedVolume = volumeContext.getUnmanagedVolume();
-        boolean unManagedVolumeExported = volumeContext.isVolumeExported();
 
         // Validation checks on the unmanaged volume we're trying to ingest
         validateUnManagedVolumeProperties(unManagedVolume, volumeContext.getVarray(),
@@ -205,7 +204,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             UnManagedVolume unManagedVolume, Volume volume) {
         if (null == volume) {
             // We need to ingest the volume w/o the context of RP. (So, ingest a VMAX if it's VMAX, VPLEX if it's VPLEX, etc)
-
             IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume,
                     IngestStrategyFactory.DISREGARD_PROTECTION);
 
@@ -281,6 +279,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         volume.setRSetName(rpRSetName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setInternalSiteName(rpInternalSiteName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setProtectionController(URI.create(rpProtectionSystem)); // This comes from UNMANAGED_CG discovery of Protection System
+        volume.addInternalFlags(Flag.RECOVERPOINT); // Add internal flags
     }
 
     /**

@@ -14,7 +14,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
@@ -102,6 +101,7 @@ import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParam;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -142,13 +142,10 @@ import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.model.block.Copy;
 
 @Path("/file/filesystems")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        readAcls = { ACL.OWN, ACL.ALL },
-        writeRoles = { Role.TENANT_ADMIN },
-        writeAcls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+        Role.TENANT_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 public class FileService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(FileService.class);
@@ -199,7 +196,7 @@ public class FileService extends TaskResourceService {
     public void setFileScheduler(FileStorageScheduler fileScheduler) {
         _fileScheduler = fileScheduler;
     }
-    
+
     FilePlacementManager _filePlacementManager;
 
     // File service implementations
@@ -216,7 +213,7 @@ public class FileService extends TaskResourceService {
     public void setFilePlacementManager(FilePlacementManager placementManager) {
         _filePlacementManager = placementManager;
     }
-    
+
     public enum FileTechnologyType {
         LOCAL_MIRROR,
         REMOTE_MIRROR,
@@ -301,9 +298,9 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(project, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
-        
+
         return createFSInternal(param, project, tenant, null);
-        
+
     }
 
     /*
@@ -311,7 +308,7 @@ public class FileService extends TaskResourceService {
      * the internal object case
      * NOTE - below method should always work with project being null
      */
-	public TaskResourceRep createFSInternal(FileSystemParam param, Project project,
+    public TaskResourceRep createFSInternal(FileSystemParam param, Project project,
             TenantOrg tenant, DataObject.Flag[] flags) throws InternalException {
         ArgValidator.checkFieldUriType(param.getVpool(), VirtualPool.class, "vpool");
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
@@ -324,7 +321,7 @@ public class FileService extends TaskResourceService {
         // VNX file has min 2MB size, NetApp 20MB and Isilon 0
         // VNX File 8.1.6 min 1GB size
         ArgValidator.checkFieldMinimum(fsSizeMB, 1024, "MB", "size");
-        
+
         ArrayList<String> requestedTypes = new ArrayList<String>();
 
         // check varray
@@ -341,32 +338,31 @@ public class FileService extends TaskResourceService {
         if (!VirtualPool.Type.file.name().equals(cos.getType())) {
             throw APIException.badRequests.virtualPoolNotForFileBlockStorage(VirtualPool.Type.file.name());
         }
-        
-        //prepare vpool capability values
+
+        // prepare vpool capability values
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fsSize);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(cos.getSupportedProvisioningType())) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
         }
-        
+
         setProtectionCapWrapper(cos, capabilities);
-        
 
         // verify quota
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, fsSize, "filesystem");
         String suggestedNativeFsId = param.getFsId() == null ? "" : param.getFsId();
-        
-        // Find the implementation that services this vpool and fileshare 
+
+        // Find the implementation that services this vpool and fileshare
         FileServiceApi fileServiceApi = getFileServiceImpl(cos, _dbClient);
         TaskList taskList = createFileTaskList(param, project, tenant, neighborhood, cos, flags, task);
-        
+
         // call thread that does the work.
-    	CreateFileSystemSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, 
-    													neighborhood, project, cos, tenant, flags, 
-    													capabilities, taskList, task, requestedTypes, param,
-    													fileServiceApi, suggestedNativeFsId);
-    	
+        CreateFileSystemSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,
+                neighborhood, project, cos, tenant, flags,
+                capabilities, taskList, task, requestedTypes, param,
+                fileServiceApi, suggestedNativeFsId);
+
         auditOp(OperationTypeEnum.CREATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getLabel(), param.getSize(), neighborhood.getId().toString(),
                 project == null ? null : project.getId().toString());
@@ -374,6 +370,7 @@ public class FileService extends TaskResourceService {
         // return the file share taskrep
         return taskList.getTaskList().get(0);
     }
+
     /**
      * Allocate, initialize and persist state of the fileSystem being created.
      * 
@@ -423,48 +420,48 @@ public class FileService extends TaskResourceService {
         _dbClient.createObject(fs);
         return fs;
     }
-    
+
     void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
-        if(vPool.getFileReplicationType() != null) { //file replication tyep either LOCAL OR REMOTE
-            if(vPool.getRpRpoType() != null) { //rpo type can be DAYS or HOURS
+        if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
+            if (vPool.getRpRpoType() != null) { // rpo type can be DAYS or HOURS
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_TYPE, vPool.getRpRpoType());
             }
-            
-            if(vPool.getFrRpoValue() != null) { 
+
+            if (vPool.getFrRpoValue() != null) {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_VALUE, vPool.getFrRpoValue());
             }
-            //async or copy
-            //async - soure changes will mirror target
-            //copy - it kind backup, it is full copy
-            if(vPool.getFileReplicationCopyMode() != null) {
+            // async or copy
+            // async - soure changes will mirror target
+            // copy - it kind backup, it is full copy
+            if (vPool.getFileReplicationCopyMode() != null) {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_COPY_MODE, vPool.getFrRpoValue());
             }
-            
+
         }
     }
-    
+
     /**
      * A method that pre-creates task and FileShare object to return to the caller of the API.
+     * 
      * @param param
      * @param project - project of the FileShare
      * @param tenantOrg - tenant of the FileShare
      * @param varray - varray of the FileShare
      * @param vpool - vpool of the Fileshare
      * @param flags -
-     * @param task 
+     * @param task
      * @return
      */
     TaskList createFileTaskList(FileSystemParam param, Project project, TenantOrg tenantOrg,
             VirtualArray varray, VirtualPool vpool, DataObject.Flag[] flags, String task) {
-    	TaskList taskList = new TaskList();
-    	FileShare fs = prepareEmptyFileSystem(param, project, tenantOrg, varray, vpool, flags, task);
-    	TaskResourceRep fileTask = toTask(fs, task);
+        TaskList taskList = new TaskList();
+        FileShare fs = prepareEmptyFileSystem(param, project, tenantOrg, varray, vpool, flags, task);
+        TaskResourceRep fileTask = toTask(fs, task);
         taskList.getTaskList().add(fileTask);
         _log.info(String.format("FileShare and Task Pre-creation Objects [Init]--  Source FileSystem: %s, Task: %s, Op: %s",
                 fs.getId(), fileTask.getId(), task));
-    	return taskList;
+        return taskList;
     }
-
 
     /**
      * Get info for file system
@@ -1471,14 +1468,14 @@ public class FileService extends TaskResourceService {
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
-                                task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM);
+                task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM);
         op.setDescription("Filesystem deactivate");
 
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getId().toString(), device.getId().toString());
         try {
-            fileServiceApi.deleteFileSystems(device.getId(), fileShareURIs, 
-            		param.getDeleteType(), param.getForceDelete(), task);
+            fileServiceApi.deleteFileSystems(device.getId(), fileShareURIs,
+                    param.getDeleteType(), param.getForceDelete(), task);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
                 _log.error("Delete error", e);
@@ -1535,6 +1532,7 @@ public class FileService extends TaskResourceService {
 
     /**
      * Allocate, initialize and persist state of the fileSystem being created.
+     * 
      * @param param
      * @param project
      * @param tenantOrg
@@ -2203,7 +2201,7 @@ public class FileService extends TaskResourceService {
         NfsACLs acls = util.getNfsAclFromDB(allDirs);
 
         if (acls.getNfsACLs() != null && !acls.getNfsACLs().isEmpty()) {
-            _log.info("Found {} Acl rules for filesystem {}", acls.getNfsACLs().size(), fs.getId() );
+            _log.info("Found {} Acl rules for filesystem {}", acls.getNfsACLs().size(), fs.getId());
         } else {
             _log.info("No Acl rules found for filesystem  {}", fs.getId());
         }
@@ -2332,269 +2330,202 @@ public class FileService extends TaskResourceService {
 
         return toTask(fs, task, op);
     }
-    
-    
+
     /**
-    *
-    * Start continuous copies.
-    *
-    *
-    * @prereq none
-    *
-    * @param id the URN of a ViPR Source fileshare
-    * @param param List of copies to start
-    *
-    * @brief Start continuous copies.
-    * @return TaskList
-    *
-    * @throws ControllerException
-    *
-    */
-   @POST
-   @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-   @Path("/{id}/protection/continuous-copies/start")
-   @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-   public TaskList startContinuousCopies(@PathParam("id") URI id, CopiesParam param)
-           throws ControllerException {
-       ValidateCopiesParam(id, param);
-       // Verify that the copy IDs are either all specified or none are specified
-       // for a particular protection type. Combinations are not allowed
-       verifyCopyIDs(param);
+     *
+     * Start continuous copies.
+     *
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR Source fileshare
+     * @param param List of copies to start
+     *
+     * @brief Start continuous copies.
+     * @return TaskList
+     *
+     * @throws ControllerException
+     *
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/start")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList startContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
+            throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        return performFileProtectionAction(param, id, ProtectionOp.START.getRestOp());
+    }
 
-       return performFileProtectionAction(param, id, ProtectionOp.START.getRestOp());
-   }
-   
-   
-   /**
-    * Stop continuous copies.
-    *
-    *
-    * @prereq none
-    *
-    * @param id the URN of a ViPR Source fileshare
-    * @param param List of copies to stop
-    *
-    * @brief Stop continuous copies.
-    * @return TaskList
-    *
-    * @throws ControllerException
-    */
-   @POST
-   @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-   @Path("/{id}/protection/continuous-copies/stop")
-   @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-   public TaskList stopContinuousCopies(@PathParam("id") URI id, CopiesParam param)
-           throws ControllerException {
+    /**
+     * Stop continuous copies.
+     *
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR Source fileshare
+     * @param param
+     *
+     * @brief Stop continuous copies.
+     * @return TaskList
+     *
+     * @throws ControllerException
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/stop")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList stopContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
+            throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        return performFileProtectionAction(param, id, ProtectionOp.STOP.getRestOp());
+    }
 
-       ValidateCopiesParam(id, param);
+    /**
+     * Pause continuous copies for given source fileshare
+     *
+     * NOTE: This is an asynchronous operation.
+     *
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR Source fileshare
+     * @param param
+     *
+     * @brief Pause continuous copies
+     * @return TaskList
+     *
+     * @throws ControllerException
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/pause")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList pauseContinuousCopies(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        return performFileProtectionAction(param, id, ProtectionOp.PAUSE.getRestOp());
+    }
 
-       // Verify that the copy IDs are either all specified or none are specified
-       // for a particular protection type. Combinations are not allowed
-       verifyCopyIDs(param);
+    /**
+     * Resume continuous copies for given source fileshare
+     *
+     * NOTE: This is an asynchronous operation.
+     *
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR Source fileshare
+     * @param param
+     *
+     * @brief Resume continuous copies
+     * @return TaskList
+     *
+     * @throws ControllerException
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/resume")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList resumeContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
+            throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        return performFileProtectionAction(param, id, ProtectionOp.RESUME.getRestOp());
+    }
 
-       return performFileProtectionAction(param, id, ProtectionOp.STOP.getRestOp());
-   }
+    /**
+     *
+     * Request to failover the protection link associated with the param.copyID.
+     *
+     * NOTE: This is an asynchronous operation.
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR Source fileshare
+     * @param param FileReplicationParam to failover to
+     *
+     * @brief Failover the fileShare protection link
+     * @return TaskList
+     *
+     * @throws ControllerException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/failover")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList failoverProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        return performFileProtectionAction(param, id, ProtectionOp.FAILOVER.getRestOp());
+    }
 
+    /**
+     *
+     * Request to fail Back the protection link associated with the param.copyID.
+     *
+     * NOTE: This is an asynchronous operation.
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR Source files hare
+     * @param param FileReplicationParam to fail Back to
+     *
+     * @brief Fail Back the fileShare protection link
+     * @return TaskList
+     *
+     * @throws ControllerException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/failback")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList failbackProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        return performFileProtectionAction(param, id, ProtectionOp.FAILBACK.getRestOp());
+    }
 
-   /**
-    * Pause continuous copies for given source fileshare
-    *
-    * NOTE: This is an asynchronous operation.
-    *
-    *
-    * @prereq none
-    *
-    * @param id the URN of a ViPR Source fileshare
-    * @param param List of copies to pause
-    *
-    * @brief Pause continuous copies
-    * @return TaskList
-    *
-    * @throws ControllerException
-    */
-   @POST
-   @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-   @Path("/{id}/protection/continuous-copies/pause")
-   @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-   public TaskList pauseContinuousCopies(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
-       ValidateCopiesParam(id, param);
+    /**
+     * List FileShare mirrors
+     *
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR FileShare to list mirrors
+     *
+     * @brief List fileShare mirrors
+     * @return FileShare mirror response containing a list of mirror identifiers
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public MirrorList getNativeContinuousCopies(@PathParam("id") URI id) {
+        MirrorList list = new MirrorList();
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
 
-       // Verify that the copy IDs are either all specified or none are specified
-       // for a particular protection type. Combinations are not allowed
-       verifyCopyIDs(param);
+        StringSet sourceFileShareMirrors = sourceFileShare.getMirrorfsTargets();
 
-       // Validate for remotemirror Stop operation
+        if (sourceFileShareMirrors == null || sourceFileShareMirrors.isEmpty()) {
+            return list;
+        }
 
-       return performFileProtectionAction(param, id, ProtectionOp.PAUSE.getRestOp());
-   }
+        for (String uriStr : sourceFileShareMirrors) {
 
-   /**
-    * Resume continuous copies for given source fileshare
-    *
-    * NOTE: This is an asynchronous operation.
-    *
-    *
-    * @prereq none
-    *
-    * @param id the URN of a ViPR Source fileshare
-    * @param param List of copies to resume
-    *
-    * @brief Resume continuous copies
-    * @return TaskList
-    *
-    * @throws ControllerException
-    */
-   @POST
-   @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-   @Path("/{id}/protection/continuous-copies/resume")
-   @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-   public TaskList resumeContinuousCopies(@PathParam("id") URI id, CopiesParam param)
-           throws ControllerException {
+            FileShare fileMirror = _dbClient.queryObject(FileShare.class, URI.create(uriStr));
 
-       ValidateCopiesParam(id, param);
+            if (fileMirror == null || fileMirror.getInactive()) {
+                _log.warn("Stale mirror {} found for fileShare {}", uriStr, sourceFileShare.getId());
+                continue;
+            }
+            list.getMirrorList().add(toNamedRelatedResource(fileMirror));
+        }
 
-       // Verify that the copy IDs are either all specified or none are specified
-       // for a particular protection type. Combinations are not allowed
-       verifyCopyIDs(param);
+        return list;
+    }
 
-       return performFileProtectionAction(param, id, ProtectionOp.RESUME.getRestOp());
-   }
-
-   /**
-    *
-    * Request to failover the protection link associated with the param.copyID.
-    *
-    * NOTE: This is an asynchronous operation.
-    *
-    * @prereq none
-    *
-    * @param id the URN of a ViPR Source fileshare
-    * @param param Copy to failover to
-    *
-    * @brief Failover the fileShare protection link
-    * @return TaskList
-    *
-    * @throws ControllerException
-    */
-   @POST
-   @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-   @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-   @Path("/{id}/protection/continuous-copies/failover")
-   @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-   public TaskList failoverProtection(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
-
-       TaskResourceRep taskResp = null;
-       TaskList taskList = new TaskList();
-
-       ValidateCopiesParam(id, param);
-
-       List<Copy> copies = param.getCopies();
-
-       if (copies.size() != 1) {
-           throw APIException.badRequests.failoverCopiesParamCanOnlyBeOne();
-       }
-
-       Copy copy = copies.get(0);
-       if (copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
-           throw APIException.badRequests.actionNotApplicableForLocalMirrors(ProtectionOp.FAILOVER.getRestOp());
-       } else if(copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString())) {
-           taskResp = performProtectionAction(id, ProtectionOp.FAILOVER.getRestOp());
-           taskList.getTaskList().add(taskResp);
-       } else {
-           throw APIException.badRequests.invalidCopyType(copy.getType());
-       }
-       return taskList;
-   }
-   
-   /**
-   *
-   * Request to failover the protection link associated with the param.copyID.
-   *
-   * NOTE: This is an asynchronous operation.
-   *
-   * @prereq none
-   *
-   * @param id the URN of a ViPR Source fileshare
-   * @param param Copy to failover to
-   *
-   * @brief Failover the fileShare protection link
-   * @return TaskList
-   *
-   * @throws ControllerException
-   */
-  @POST
-  @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-  @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-  @Path("/{id}/protection/continuous-copies/failback")
-  @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-  public TaskList failbackProtection(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
-
-      TaskResourceRep taskResp = null;
-      TaskList taskList = new TaskList();
-
-      ValidateCopiesParam(id, param);
-
-      List<Copy> copies = param.getCopies();
-
-      if (copies.size() != 1) {
-          throw APIException.badRequests.failoverCopiesParamCanOnlyBeOne();
-      }
-
-      Copy copy = copies.get(0);
-      if (copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
-          throw APIException.badRequests.actionNotApplicableForLocalMirrors(ProtectionOp.FAILBACK.getRestOp());
-      } else if(copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString())) {
-          taskResp = performProtectionAction(id, ProtectionOp.FAILBACK.getRestOp());
-          taskList.getTaskList().add(taskResp);
-      } else {
-          throw APIException.badRequests.invalidCopyType(copy.getType());
-      }
-      return taskList;
-  }
-   
-   /**
-    * List FileShare mirrors
-    *
-    *
-    * @prereq none
-    *
-    * @param id the URN of a ViPR FileShare to list mirrors
-    *
-    * @brief List fileShare mirrors
-    * @return FileShare mirror response containing a list of mirror identifiers
-    */
-   @GET
-   @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-   @Path("/{id}/protection/continuous-copies")
-   @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-   public MirrorList getNativeContinuousCopies(@PathParam("id") URI id) {
-       MirrorList list = new MirrorList();
-       ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-       FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
-
-       StringSet sourceFileShareMirrors = sourceFileShare.getMirrorfsTargets();
-
-       if (sourceFileShareMirrors == null || sourceFileShareMirrors.isEmpty()) {
-           return list;
-       }
-
-       for (String uriStr : sourceFileShareMirrors) {
-           
-               FileShare fileMirror = _dbClient.queryObject(FileShare.class, URI.create(uriStr));
-
-               if (fileMirror == null || fileMirror.getInactive()) {
-                   _log.warn("Stale mirror {} found for fileShare {}", uriStr, sourceFileShare.getId());
-                   continue;
-               }
-               list.getMirrorList().add(toNamedRelatedResource(fileMirror));
-       }
-
-       return list;
-   }
-    
-    
     void ValidateCopiesParam(URI uriFS, CopiesParam param) {
-        // Validate the source fileshare URI
+        // Validate the source file share URI
         ArgValidator.checkFieldUriType(uriFS, FileShare.class, "id");
         // Validate the list of copies
         ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
@@ -2602,64 +2533,37 @@ public class FileService extends TaskResourceService {
 
     private TaskResourceRep performProtectionAction(URI id, String op) throws InternalException {
         String task = UUID.randomUUID().toString();
-        
+
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
         ArgValidator.checkEntity(sourceFileShare, id, true);
-        
-               
+
         // Make sure that we don't have some pending
-        // operation against the fileshare
+        // operation against the file share
         checkForPendingTasks(Arrays.asList(sourceFileShare.getTenant().getURI()), Arrays.asList(sourceFileShare));
-        
+
         Operation status = new Operation();
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
         _dbClient.createTaskOpStatus(FileShare.class, sourceFileShare.getId(), task, status);
-        
-        //get storagesystem list
+
+        // get storage system list
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-        
+
         FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
-        
-        //call controller service
+
+        // call controller service
         controller.performRemoteContinuousCopies(system.getId(), id, op, task);
 
         return toTask(sourceFileShare, task, status);
     }
 
-
-    private TaskList performFileProtectionAction(CopiesParam param, URI id, String op) {
-        // Process the list of copies
+    private TaskList performFileProtectionAction(FileReplicationParam param, URI id, String op) {
         TaskResourceRep taskResp = null;
         TaskList taskList = new TaskList();
-        // Process the list of copies
-        for (Copy copy : param.getCopies()) {
-
-            // If copyID is not set all copies are stopped
-            URI copyID = copy.getCopyID();
-            if (!URIUtil.isValid(copyID)) {
-                copyID = null;
-                
-            }
-            // Validate a copy type was passed
-            ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
-
-            // If copyID is null all copies are stopped
-            if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString()) ||
-                    copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
-                taskResp = performProtectionAction(id, op);
-                taskList.getTaskList().add(taskResp);
-            } else {
-                throw APIException.badRequests.invalidCopyType(copy.getType());
-            }
-
-            // If copyID is null, we have already stopped all copies
-            if (copyID == null) {
-                return taskList;
-            }
-        }
+        taskResp = performProtectionAction(id, op);
+        taskList.getTaskList().add(taskResp);
         return taskList;
     }
-    
+
     /**
      * Verify that all the copy IDs passed for a protection type are either
      * set to valid URIs, or none are set. A combination of the two is not allowed.
@@ -2667,37 +2571,6 @@ public class FileService extends TaskResourceService {
      *
      * @param param List of copies to verify
      */
-
-    private void verifyCopyIDs(CopiesParam param) {
-        boolean rmEmpty = false;
-        boolean rmSet = false;
-        boolean nativeEmpty = false;
-
-        // Process the list of copies to ensure either all are set or all are empty
-        boolean nativeSet = false;
-        for (Copy copy : param.getCopies()) {
-            URI copyID = copy.getCopyID();
-            if (URIUtil.isValid(copyID)) {
-                if (copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
-                    nativeEmpty = true;
-                } else if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString())) {
-                    rmEmpty = true;
-                }
-            } else {
-                if (copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
-                    nativeSet = true;
-                } else{
-                    rmSet = true;
-                }
-            }
-        }
-
-        if (rmEmpty && rmSet) {
-            throw APIException.badRequests.invalidCopyIDCombination(FileTechnologyType.LOCAL_MIRROR.toString());
-        } else if(nativeEmpty && nativeSet)  {
-            throw APIException.badRequests.invalidCopyIDCombination(FileTechnologyType.REMOTE_MIRROR.toString());
-        }
-    }
 
     private void copyPropertiesToSave(FileExportRule orig, ExportRule dest, FileShare fs) {
 
@@ -2758,7 +2631,7 @@ public class FileService extends TaskResourceService {
         dest.setRootHosts(orig.getRootHosts());
         dest.setMountPoint(orig.getMountPoint());
     }
-    
+
     /**
      * Returns the bean responsible for servicing the request
      *
@@ -2770,7 +2643,7 @@ public class FileService extends TaskResourceService {
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, fileShare.getVirtualPool());
         return getFileServiceImpl(vPool, dbClient);
     }
-    
+
     /**
      * Returns the bean responsible for servicing the request
      *
@@ -2782,9 +2655,9 @@ public class FileService extends TaskResourceService {
         // Mutually exclusive logic that selects an implementation of the file service
         if (vpool.getFileReplicationType() != null) {
             if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
-                if( vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())){
+                if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())) {
                     return getFileServiceApis("localmirror");
-                } else if(vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())){
+                } else if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())) {
                     return getFileServiceApis("remotemirror");
                 }
             }

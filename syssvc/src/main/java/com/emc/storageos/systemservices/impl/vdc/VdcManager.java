@@ -704,7 +704,7 @@ public class VdcManager extends AbstractManager {
             opHandler.execute();
         }
 
-        if (ipsecEnabledLocally()) {
+        if (ipsecSyncedLocally()) {
             log.info("IPsec is enabled locally. Ready to disable db ssl.");
 
             // update backCompatPreYoda to false everywhere
@@ -718,15 +718,18 @@ public class VdcManager extends AbstractManager {
         }
     }
 
-    private boolean ipsecEnabledLocally() {
+    private boolean ipsecSyncedLocally() throws Exception {
         localVdcPropInfo = localRepository.getVdcPropertyInfo();
-        String ipsecStatus = localVdcPropInfo.getProperty(IPsecConfig.IPSEC_STATUS);
-        log.info("Local ipsec is {}", ipsecStatus);
+        targetVdcPropInfo = loadVdcConfig();
+        String localVersion = localVdcPropInfo.getProperty(Constants.VDC_CONFIG_VERSION);
+        String targetVersion = targetVdcPropInfo.getProperty(Constants.VDC_CONFIG_VERSION);
+        log.info("Target vdc version is {}, local vdc version is {}", targetVersion, localVersion);
 
-        if (ipsecStatus == null || ipsecStatus.equals(IPsecManager.STATUS_ENABLED)) {
-            return true;
+        if (localVersion == null || targetVersion == null) {
+            return false;
         }
-        return false;
+
+        return targetVersion.equals(localVersion);
     }
 
     private void rollingRestartDbSvc() {
@@ -735,17 +738,22 @@ public class VdcManager extends AbstractManager {
             final String svcId = coordinator.getMySvcId();
             if (!getRebootLock(svcId)) {
                 retrySleep();
+                continue;
             }
+
             if (!isQuorumMaintained()) {
                 releaseRebootLock(svcId);
                 retrySleep();
+                continue;
             }
+
             try {
                 log.info("Rolling restart the db and geodb");
                 restartdb();
             } finally {
                 releaseRebootLock(svcId);
             }
+            return;
         }
     }
 
@@ -774,7 +782,7 @@ public class VdcManager extends AbstractManager {
 
     private boolean allVdcGetUpgradedToYoda() {
         boolean toYOda = dbClient.checkGeoCompatible("2.5");
-        log.info("If Geo DB is upgraded to Yoda {}", toYOda);
+        log.info("If Geo DB is upgraded to Yoda: {}", toYOda);
         return toYOda;
     }
 

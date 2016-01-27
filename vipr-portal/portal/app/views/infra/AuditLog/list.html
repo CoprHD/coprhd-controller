@@ -108,10 +108,6 @@
                             <control-group v-field="filterDialog.keyword" width="9">
                                 <input-text onkeydown="updateFilter(event.keyCode)"></input-text>
                             </control-group>
-                            <control-group v-field="filterDialog.orderTypes" width="9"
-                                           ng-show="filterDialog.type == 'download'">
-                                <select-one options="orderTypeOptions"></select-one>
-                            </control-group>
                         </form>
                     </div>
                     <div class="modal-footer">

@@ -1185,8 +1185,7 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
             resultStatus: $scope.filterDialog.resultStatus,
             serviceType: $scope.filterDialog.serviceType,
             user: $scope.filterDialog.user,
-            keyword: $scope.filterDialog.keyword,
-            orderTypes: $scope.filterDialog.orderTypes
+            keyword: $scope.filterDialog.keyword
         };
         if ($scope.filterDialog.endTimeCurrentTime) {
             args.endTime = new Date().getTime();

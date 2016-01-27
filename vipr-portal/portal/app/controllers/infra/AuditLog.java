@@ -14,6 +14,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
 import models.datatable.AuditLogDataTable;
+import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import play.Logger;
 import play.mvc.Controller;
@@ -23,6 +24,9 @@ import util.BourneUtil;
 import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
+import util.support.SupportAuditPackageCreator;
+
+import static render.RenderSupportAuditPackage.renderSupportAuditPackage;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_AUDITOR") })
@@ -87,8 +91,7 @@ public class AuditLog extends Controller {
                 }
 
                 renderJSON(logs.getAuditLogs());
-            }
-            else {
+            } else {
                 renderJSON(Collections.<String> emptyList());
             }
         } catch (JAXBException e) {
@@ -107,7 +110,8 @@ public class AuditLog extends Controller {
         boolean triggerByFilter = triggerParam != null ? triggerParam.booleanValue() : false;
         if (triggerByFilter) {
             Logger.info("Fetch audit logs from filter's multiply params.");
-            return BourneUtil.getViprClient().audit().getAsStream(new Date(startTime), new Date(), serviceType, user, result, keyword, LOG_LANG);
+            return BourneUtil.getViprClient().audit().getAsStream(new Date(startTime), new Date(), serviceType, user, result, keyword,
+                    LOG_LANG);
         }
 
         dateTime = dateTime != null ? dateTime : new Date().getTime();
@@ -115,7 +119,28 @@ public class AuditLog extends Controller {
         return BourneUtil.getViprClient().audit().getLogsForHourAsStream(new Date(dateTime), LOG_LANG);
     }
 
-    public static void download() {
+    public static void download(Long startTime, Long endTime, String serviceType, String user, String resultStatus, String keyword) {
+        SupportAuditPackageCreator creator = new SupportAuditPackageCreator(request, BourneUtil.getViprClient());
 
+        if (startTime != null) {
+            creator.setStartTime(new Date(startTime));
+        }
+        if (endTime != null) {
+            creator.setEndTime(new Date(endTime));
+        }
+        if (StringUtils.isNotEmpty(serviceType)) {
+            creator.setSvcType(serviceType);
+        }
+        if (StringUtils.isNotEmpty(user)) {
+            creator.setUser(user);
+        }
+        if (StringUtils.isNotEmpty(resultStatus)) {
+            creator.setResult(resultStatus);
+        }
+        if (StringUtils.isNotEmpty(keyword)) {
+            creator.setKeyword(keyword);
+        }
+        creator.setLanguage(LOG_LANG);
+        renderSupportAuditPackage(creator);
     }
 }

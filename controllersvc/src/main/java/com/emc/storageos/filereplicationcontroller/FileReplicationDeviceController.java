@@ -435,7 +435,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 for (String target : targetfileUris) {
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
                     completer = new MirrorFileFailoverTaskCompleter(fileShare.getId(), targetFileShare.getId(), opId);
-                    getRemoteMirrorDevice(system).doFailoverLink(system, targetFileShare, completer);
+                    StorageSystem systemTarget = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
+                    getRemoteMirrorDevice(systemTarget).doFailoverLink(systemTarget, targetFileShare, completer);
                 }
 
             } else if (opType.equalsIgnoreCase("pause")) {
@@ -450,7 +451,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 for (String target : targetfileUris) {
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
                     completer = new MirrorFileFailoverTaskCompleter(fileShare.getId(), targetFileShare.getId(), opId);
-                    getRemoteMirrorDevice(system).doFailoverLink(system, targetFileShare, completer);
+                    StorageSystem systemTarget = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
+                    getRemoteMirrorDevice(systemTarget).doFailbackLink(systemTarget, targetFileShare, completer);
                 }
                
             } else if (opType.equalsIgnoreCase("resume")) {
@@ -476,7 +478,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
                     completer = new MirrorFileStopTaskCompleter(fileShare.getId(), targetFileShare.getId(), opId);                    
-                    
                     getRemoteMirrorDevice(system).doStopMirrorLink(system, targetFileShare, completer);
                 }
             } 

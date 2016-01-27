@@ -82,7 +82,7 @@ public class IsilonReplicationTest {
         _device.setUsername(userName);
         _device.setPassword(password);
 
-        result = _isi.doFailover(_device, "mudit_policy");
+        result = _isi.doFailover(_device, "mudit_policy", null);
         result.getCommandStatus();
     }
 
@@ -104,7 +104,7 @@ public class IsilonReplicationTest {
         _device2.setUsername(userName);
         _device2.setPassword(password);
 
-        result = _isi.doFailBack(_device, _device2, "mudit_policy");
+        result = _isi.doFailBack(_device, _device2, "mudit_policy", null);
 
     }
 

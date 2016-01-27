@@ -68,6 +68,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobFailover;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobStart;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateFileSystemJob;
@@ -2460,7 +2461,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    public BiosCommandResult doFailover(StorageSystem system, String policyName) {
+    public BiosCommandResult doFailover(StorageSystem system, String policyName, TaskCompleter taskCompleter) {
         try {
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncJob job = new IsilonSyncJob();
@@ -2470,10 +2471,22 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             isi.modifyReplicationJob(job);
 
             IsilonSyncTargetPolicy targetPolicy = isi.getTargetReplicationPolicy(policyName);
-            while (targetPolicy.getLastJobState().equals(JobState.running)
+            if (targetPolicy.getLastJobState().equals(JobState.running)
                     && targetPolicy.getFoFbState().equals(FOFB_STATES.enabling_writes)) {
                 // wait till job is finished
-                targetPolicy = isi.getTargetReplicationPolicy(policyName);
+                IsilonSyncJobFailover isiSyncJobFailover = 
+                        new IsilonSyncJobFailover(policyName, system.getId(), taskCompleter, policyName);
+                try {
+                    ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobFailover));
+                    return BiosCommandResult.createPendingResult();
+                } catch (Exception ex) {
+                    _log.error("Create file system got the exception", ex);
+                    ServiceError error = DeviceControllerErrors.isilon.jobFailed("StartMirrorSession");
+                    if (taskCompleter != null) {
+                        taskCompleter.error(_dbClient, error);
+                    }
+                    return BiosCommandResult.createErrorResult(error);
+                }
             }
             if (targetPolicy.getLastJobState().equals(JobState.finished)
                     && targetPolicy.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
@@ -2491,7 +2504,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    public BiosCommandResult doFailBack(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName) {
+    public BiosCommandResult doFailBack(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName, TaskCompleter taskCompleter) {
 
         String mirrorPolicyName = policyName.concat("_mirror");
         BiosCommandResult result;
@@ -2522,7 +2535,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
              * i.e Fail over to Primary Cluster
              */
 
-            result = doFailover(primarySystem, mirrorPolicyName);
+            result = doFailover(primarySystem, mirrorPolicyName, null);
             if (!result.isCommandSuccess()) {
                 return result;
             }
@@ -2721,11 +2734,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+    public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer) {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
-            cmdResult = this.doFailover(system, policyName);
+            cmdResult = this.doFailover(systemTarget, policyName, completer);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
             } else {
@@ -2740,7 +2753,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (target.getParentFileShare() != null) {
             StorageSystem secondarySystem = _dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
             String policyName = target.getLabel();
-            cmdResult = doFailBack(primarySystem, secondarySystem, policyName);
+            cmdResult = doFailBack(primarySystem, secondarySystem, policyName, completer);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
             } else {

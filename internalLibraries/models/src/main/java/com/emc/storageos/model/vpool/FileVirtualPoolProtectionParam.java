@@ -37,7 +37,6 @@ public class FileVirtualPoolProtectionParam extends VirtualPoolProtectionParam {
     /**
      * The schedule snapshot protection settings for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "schedule_snapshots")
     public Boolean getScheduleSnapshots() {

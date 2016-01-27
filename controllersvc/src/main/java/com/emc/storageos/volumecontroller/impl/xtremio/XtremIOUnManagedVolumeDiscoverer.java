@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -478,7 +479,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 // TODO need to think of ways to handle unknown initiators
                 continue;
             }
-            String hostName = knownInitiator.getHostName();
+            // Special case for RP: group masks by cluster.
+            String hostName = knownInitiator.checkInternalFlags(Flag.RECOVERPOINT) ? knownInitiator.getClusterName() : knownInitiator.getHostName();
             if (hostName != null && !hostName.isEmpty()) {
                 log.info("   found an initiator in ViPR on host " + hostName);
                 String igName = initiator.getInitiatorGroup().get(1);

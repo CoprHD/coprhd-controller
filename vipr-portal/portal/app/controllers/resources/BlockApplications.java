@@ -98,6 +98,7 @@ public class BlockApplications extends ResourceController {
             alterColumn("protocols").hidden();
             alterColumn("wwn").hidden();
             addColumn("replicationGroup");
+            sortAll();
         }
     }
     

@@ -483,5 +483,6 @@ public interface SmisConstants {
     public static int COPY_BEFORE_ACTIVATE = 10;
     public static int PROVISIONING_TARGET_SAME_AS_SOURCE = 5;
     public static int SMIS810_TF_DIFFERENTIAL_CLONE_VALUE = 32770;
-
+    public static String DEFAULT_REPLICATION_SETTING_DATA_ELEMENT_NAME = "DefaultReplicationSettingData";
+    public static final String VNX_VIRTUAL_RG = "VNXVirtualRG_";
 }

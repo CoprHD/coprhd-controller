@@ -8,7 +8,6 @@ package com.emc.storageos.isilon.restapi;
 import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -65,6 +64,13 @@ public class IsilonApi {
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
     private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
     private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
+    private static final URI URI_REPLICATION_POLICIES = URI.create("/platform/1/sync/policies/");
+    private static final URI URI_REPLICATION_JOBS = URI.create("/platform/1/sync/jobs");
+    private static final URI URI_TARGET_REPLICATION_POLICIES = URI.create("platform/1/sync/target/policies/");
+    private static final URI URI_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/reports?policy_name=");
+    private static final URI URI_TARGET_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/target/reports?policy_name=");
+    private static final URI URI_SNAPSHOTIQ_LICENSE_INFO = URI.create("/platform/1/snapshot/license");
+    private static final URI URI_SNAPSHOT_SCHEDULES = URI.create("/platform/1/snapshot/schedules");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -190,6 +196,8 @@ public class IsilonApi {
     }
 
     /**
+     * 
+     * /**
      * Get list of all sub directories of fspath
      * 
      * @param fspath directory path to lookup
@@ -498,6 +506,119 @@ public class IsilonApi {
     }
 
     /**
+     * Create snapshot Schedule implementation
+     * 
+     * @param url url to post the create to
+     * @param key reference string used in error reporting, representing the
+     *            object type
+     * @param obj Object to post for the create
+     * @return String identifier returns from the server
+     * @throws IsilonException
+     */
+    private <T> String createSnapshotSchedule(URI url, String key, T obj) throws IsilonException {
+
+        ClientResponse resp = null;
+        try {
+            String body = new Gson().toJson(obj);
+            String id = null;
+            resp = _client.post(url, body);
+            if (resp.hasEntity()) {
+                JSONObject jObj = resp.getEntity(JSONObject.class);
+                sLogger.debug("Create Snapshot Scedule {} : Output from Server : ", key, jObj.toString());
+
+                if (jObj.has("id")) {
+                    id = jObj.getString("id");
+                } else {
+                    throw IsilonException.exceptions.createSnapshotScheduleError(key, jObj.toString());
+                }
+            } else {
+                // no entity
+                throw IsilonException.exceptions.createSnapshotScheduleError(key, String.valueOf(resp.getStatus()));
+            }
+            return id;
+        } catch (IsilonException ie) {
+            throw ie;
+        } catch (Exception e) {
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.createResourceFailedOnIsilonArray(key, response, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+    }
+
+    /**
+     * delete the snapshot schedule
+     * 
+     * @param url url to delete
+     * @param id identifier to be deleted
+     * @param key reference string representing the object type being deleted
+     * @throws IsilonException
+     */
+    private void deleteSnapshotSchedule(URI url) throws IsilonException {
+        ClientResponse resp = null;
+        try {
+            resp = _client.delete(url);
+            // error 404 means Snapshot Schedule can not be found, assuming it already deleted.
+            if (resp.getStatus() != 200 && resp.getStatus() != 204 && resp.getStatus() != 404) {
+                processErrorResponse("delete", "URL =" + url, resp.getStatus(),
+                        resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);
+
+            }
+        } catch (IsilonException ie) {
+            throw ie;
+        } catch (Exception e) {
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.deletePolicyFailedOnIsilonArray(url.toString(), response, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+    }
+
+    /* snapshot schedule */
+    /**
+     * Create snapshot schedule
+     * 
+     * @param name String label to be used for the snapshot schedule
+     * @param path directory path to snapshot
+     * @param schedule frequency at which snapshot is taken
+     * @param pattern naming pattern for the snapshot
+     * @param duration expiration of snapshot
+     * @return String identifier for the snapshot schedule created
+     * @throws IsilonException
+     */
+    public String createSnapshotSchedule(String name, String path, String schedule, String pattern, Integer duration)
+            throws IsilonException {
+        return createSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedule", new IsilonSnapshotSchedule(name, path,
+                schedule, pattern,
+                duration));
+    }
+
+    /**
+     * Modify snapshot schedule
+     * 
+     * @param id Identifier for the snapshot schedule to be modified
+     * @param s schedules object with the modified values
+     * @throws IsilonException
+     */
+    public void modifySnapshotSchedule(String id, IsilonSnapshotSchedule s) throws IsilonException {
+        modify(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), id, "schedule", s);
+    }
+
+    /**
+     * Delete a snapshot schedule
+     * 
+     * @param id Identifier of the snapshot to delete
+     * @throws IsilonException
+     */
+    public void deleteSnapshotSchedule(String id) throws IsilonException {
+        deleteSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES + "/" + id));
+    }
+
+    /**
      * Generic get resource
      * 
      * @param url url to get from
@@ -544,7 +665,7 @@ public class IsilonApi {
             }
         }
     }
-    
+
     /**
      * Generic get resource when key is not applicable
      * 
@@ -741,7 +862,7 @@ public class IsilonApi {
     public void modifyExport(String id, IsilonExport exp) throws IsilonException {
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
-    
+
     /**
      * Modify export in access zone
      * 
@@ -750,7 +871,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
     }
 
@@ -773,7 +894,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonExport getExport(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         return get(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "exports", IsilonExport.class);
     }
 
@@ -786,7 +907,7 @@ public class IsilonApi {
     public void deleteExport(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export");
     }
-    
+
     /**
      * Delete export in access zone
      * 
@@ -794,7 +915,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteExport(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export");
     }
 
@@ -1078,7 +1199,7 @@ public class IsilonApi {
     public void modifyShare(String id, IsilonSMBShare s) throws IsilonException {
         modify(_baseUrl.resolve(URI_SMB_SHARES), id, "share", s);
     }
-    
+
     /**
      * Modify SMB share in access zone
      * 
@@ -1087,7 +1208,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyShare(String id, String zoneName, IsilonSMBShare s) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         modify(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share", s);
     }
 
@@ -1111,7 +1232,7 @@ public class IsilonApi {
      */
     public IsilonSMBShare getShare(String id, String zoneName) throws IsilonException {
 
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         return get(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "shares", IsilonSMBShare.class);
     }
 
@@ -1124,7 +1245,7 @@ public class IsilonApi {
     public void deleteShare(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_SMB_SHARES), id, "share");
     }
-    
+
     /**
      * Delete SMB share in access zone
      * 
@@ -1132,7 +1253,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteShare(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         delete(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share");
     }
 
@@ -1157,7 +1278,7 @@ public class IsilonApi {
      */
     public IsilonNFSACL getNFSACL(String path) throws IsilonException {
         String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
-        return getObj(_baseUrl.resolve(URI_IFS),aclUrl,IsilonNFSACL.class);
+        return getObj(_baseUrl.resolve(URI_IFS), aclUrl, IsilonNFSACL.class);
     }
 
     /**
@@ -1168,10 +1289,10 @@ public class IsilonApi {
      */
     public List<? extends IsilonPool> getStoragePools() throws IsilonException {
         IsilonList<IsilonStoragePool> pools = list(_baseUrl.resolve(URI_STORAGE_POOLS),
-        		"storagepools", IsilonStoragePool.class, null);
+                "storagepools", IsilonStoragePool.class, null);
         return pools.getList();
     }
-    
+
     /**
      * Get disk pools for OneFS version < 7.2
      * 
@@ -1180,7 +1301,7 @@ public class IsilonApi {
      */
     public List<? extends IsilonPool> getDiskPools() throws IsilonException {
         IsilonList<IsilonDiskPool> pools = list(_baseUrl.resolve(URI_DISK_POOLS),
-        		"diskpools", IsilonDiskPool.class, null);
+                "diskpools", IsilonDiskPool.class, null);
         return pools.getList();
     }
 
@@ -1588,8 +1709,7 @@ public class IsilonApi {
         }
         return isNfsv4Enabled;
     }
-    
-    
+
     /**
      * Checks to see if the SyncIQ service is enabled on the isilon device
      * 
@@ -1598,22 +1718,22 @@ public class IsilonApi {
     public boolean isSyncIQEnabled(String firmwareVersion) throws IsilonException {
         ClientResponse resp = null;
         boolean isSyncIqEnabled = false;
-        
+
         try {
             // Verify the Sync service is enable or not
-        	// JSON response for the below should have service=on
+            // JSON response for the below should have service=on
             resp = _client.get(_baseUrl.resolve(URI_SYNCIQ_SERVICE_STATUS));
             JSONObject jsonResp = resp.getEntity(JSONObject.class);
             if (jsonResp.has("settings") && jsonResp.getJSONObject("settings") != null) {
-            	if (jsonResp.getJSONObject("settings").has("service")) {
-            		 String syncService = jsonResp.getJSONObject("settings").getString("service");
-                     if (syncService != null && !syncService.isEmpty()) {
-                     	sLogger.info("IsilonApi - SyncIQ service status {} ", syncService);
-                     	if("on".equalsIgnoreCase(syncService)) {
-                     		isSyncIqEnabled = true;
-                     	}
-                     }
-            	}
+                if (jsonResp.getJSONObject("settings").has("service")) {
+                    String syncService = jsonResp.getJSONObject("settings").getString("service");
+                    if (syncService != null && !syncService.isEmpty()) {
+                        sLogger.info("IsilonApi - SyncIQ service status {} ", syncService);
+                        if ("on".equalsIgnoreCase(syncService)) {
+                            isSyncIqEnabled = true;
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
@@ -1624,7 +1744,7 @@ public class IsilonApi {
         }
         return isSyncIqEnabled;
     }
-    
+
     /**
      * Get SyncIq license information from the Isilon array
      * 
@@ -1634,22 +1754,151 @@ public class IsilonApi {
      */
 
     public String getReplicationLicenseInfo() throws IsilonException, JSONException {
-    	String licenseStatus = "Unknown";
+        String licenseStatus = "Unknown";
         ClientResponse clientResp = _client.get(_baseUrl.resolve(URI_REPLICATION_LICENSE_INFO));
         JSONObject jsonResp = clientResp.getEntity(JSONObject.class);
         if (jsonResp.has("status")) {
-        	licenseStatus = jsonResp.get("status").toString();
-        	return licenseStatus;
+            licenseStatus = jsonResp.get("status").toString();
+            return licenseStatus;
         }
         return licenseStatus;
     }
-    
+
+    /**
+     * Get Replication Policy information from the Isilon array
+     * 
+     * @return IsilonSyncPolicy object
+     * @throws IsilonException
+     */
+    public IsilonSyncPolicy getReplicationPolicy(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", IsilonSyncPolicy.class);
+    }
+
+    /**
+     * Get Target Replication Policy information from the Isilon array
+     * 
+     * @return IsilonSyncPolicy object
+     * @throws IsilonException
+     */
+    public IsilonSyncTargetPolicy getTargetReplicationPolicy(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_TARGET_REPLICATION_POLICIES), id, "policies", IsilonSyncTargetPolicy.class);
+    }
+
+    /**
+     * Create Replication Policy
+     * 
+     * @param replicationPolicy IsilonSyncPolicy object
+     * @return String identifier for the policy created
+     * @throws IsilonException
+     */
+    public String createReplicationPolicy(IsilonSyncPolicy replicationPolicy) throws IsilonException {
+        return create(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", replicationPolicy);
+    }
+
+    /**
+     * Modify Replication Policy
+     * 
+     * @param id identifier/name of the Replication Policy to modify
+     * @param syncPolicy IsilonSyncPolicy object with the modified properties
+     * @throws IsilonException
+     */
+    public void modifyReplicationPolicy(String id, IsilonSyncPolicy syncPolicy) throws IsilonException {
+        modify(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", syncPolicy);
+    }
+
+    /**
+     * Delete replication policy
+     * 
+     * @param id identifier for the replication policy object to delete
+     * @throws IsilonException
+     */
+    public void deleteReplicationPolicy(String id) throws IsilonException {
+        delete(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies");
+    }
+
+    /**
+     * Get Replication Jobs information from the Isilon array
+     * 
+     * @param id identifier for the replication policy
+     * @return Replication Jobs object
+     * @throws IsilonException
+     */
+    public IsilonSyncJob getReplicationJob(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_REPLICATION_JOBS), id, "jobs", IsilonSyncJob.class);
+    }
+
+    /**
+     * Start a Replication Job
+     * 
+     * @param IsilonSyncJob Object
+     * @return policy_name
+     * @throws IsilonException
+     */
+    public String modifyReplicationJob(IsilonSyncJob job) throws IsilonException {
+        return create(_baseUrl.resolve(URI_REPLICATION_JOBS), "jobs", job);
+    }
+
+    /**
+     * Get Replication Reports information from the Isilon array
+     * 
+     * @param Name for the replication policy
+     * @return Replication Report Object
+     * @throws IsilonException
+     */
+
+    public IsilonList<IsilonSyncPolicyReport> getReplicationPolicyReports(String policyName) throws IsilonException {
+        URI uri = URI.create(URI_REPLICATION_POLICY_REPORTS.toString() + policyName);
+        return list(_baseUrl.resolve(uri), "reports", IsilonSyncPolicyReport.class, "");
+    }
+
+    /**
+     * Get Target Replication Reports information from the Isilon array
+     * 
+     * @param Name for the replication policy
+     * @return Replication Report Object
+     * @throws IsilonException
+     */
+
+    public IsilonList<IsilonSyncPolicyReport> getTargetReplicationPolicyReports(String policyName) throws IsilonException {
+        URI uri = URI.create(URI_TARGET_REPLICATION_POLICY_REPORTS.toString() + policyName);
+        return list(_baseUrl.resolve(uri), "reports", IsilonSyncPolicyReport.class, "");
+    }
+
     private String getURIWithZoneName(String id, String zoneName) {
         StringBuffer buffer = new StringBuffer(id);
         buffer.append("?zone=");
         String accesszoneName = zoneName.replace(" ", "%20");
         buffer.append(accesszoneName);
-    	return buffer.toString();
+        return buffer.toString();
+    }
+
+    /**
+     * Checks to see if the SnapshotIQ service is enabled on the isilon device
+     * 
+     * @return licenseStatus Status of SnapshotIQ license
+     * @throws IsilonException
+     * @throws JSONException
+     */
+    public String snapshotIQLicenseInfo() throws IsilonException, JSONException {
+        ClientResponse resp = null;
+        String licenseStatus = "Unknown";
+
+        try {
+            // Verify whether SnapshotIQ service is enabled on ISILON array or not
+            resp = _client.get(_baseUrl.resolve(URI_SNAPSHOTIQ_LICENSE_INFO));
+            JSONObject jsonResp = resp.getEntity(JSONObject.class);
+            if (jsonResp.has("status")) {
+                licenseStatus = jsonResp.get("status").toString();
+            }
+        } catch (Exception e) {
+            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+        sLogger.info("Isilon snapshotIQ license status is  {}", licenseStatus);
+        return licenseStatus;
     }
 
 }

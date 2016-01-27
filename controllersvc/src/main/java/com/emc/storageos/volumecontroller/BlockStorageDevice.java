@@ -561,9 +561,10 @@ public interface BlockStorageDevice {
      * 
      * @param storage
      * @param consistencyGroup
+     * @param replicationGroupName
      * @param taskCompleter
      */
-    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup,
+    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName,
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
@@ -571,11 +572,13 @@ public interface BlockStorageDevice {
      * 
      * @param storage
      * @param consistencyGroup
+     * @param replicationGroupName name of the replication group to be deleted
+     * @param newReplicationGroupName String that used as group name in ViPR when existing group is deleted from storage system
      * @param markInactive
      * @param taskCompleter
      */
     public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup,
-            Boolean markInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
+            String replicationGroupName, String newReplicationGroupName, Boolean markInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * Connect the device - called when a new device is added
@@ -719,7 +722,7 @@ public interface BlockStorageDevice {
     public void doWaitForGroupSynchronized(StorageSystem storageObj,
             List<URI> target, TaskCompleter completer);
 
-    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
+    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName,
             List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void doRemoveFromConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
@@ -874,6 +877,27 @@ public interface BlockStorageDevice {
      * @throws Exception
      */
     public void doDetachListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws Exception;
+
+    /**
+     * Fracture list replica.
+     *
+     * @param storage the storage system
+     * @param replicaList the replicas
+     * @param sync
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doFractureListReplica(StorageSystem storage, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter) throws Exception;
+
+    /**
+     * Delete list replica.
+     *
+     * @param storage the storage system
+     * @param replicaList the replicas
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doDeleteListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws Exception;
 
     /*
      * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs

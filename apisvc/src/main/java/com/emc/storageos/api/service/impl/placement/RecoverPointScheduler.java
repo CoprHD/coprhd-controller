@@ -1890,11 +1890,11 @@ public class RecoverPointScheduler implements Scheduler {
     /**
      * Based on the current volume request's virtual pool, determine the protection settings and use them to determine
      * the protection virtual arrays and the associated protection virtual pool. Pass the protection virtual array
-     * along with the existing target volume to determine if the storage pools align
+     * along with the existing target/target-journal volume to determine if the storage pools align
      *
-     * @param volume - existing target volume
+     * @param volume - existing volume
      * @param vpool - virtual pool being used in the current volume request
-     * @return true or false depending whether the existing target volume's storage pool is available to the current virtual pool of the
+     * @return true or false depending whether the existing volume's storage pool is available to the current virtual pool of the
      *         request
      */
     private boolean verifyTargetStoragePoolAvailability(Volume volume, VirtualPool vpool) {

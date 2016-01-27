@@ -1125,7 +1125,7 @@ public class RPHelper {
             existingCGTargetJournalVolume = validExistingTargetJournalVolumes.get(0);
         }
         
-        _log.info("selectExistingJournalsForTargetVolume :: Found we can use journal volume : " + existingCGTargetJournalVolume);
+        _log.info(String.format("selectExistingJournalsForTargetVolume :: Found we can use journal volume : %s", existingCGTargetJournalVolume));
         return existingCGTargetJournalVolume;
     }
 

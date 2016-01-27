@@ -272,7 +272,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         private URI varray;
         private List<URI> volumes;
         private URI computeResource;
-        private boolean isJournalExport; //If journal varray is specified which is different from the copy for that RP site, then this flag is true to indicate this is a journal only export
+        // If journal varray is specified which is different from the copy for that RP site, 
+        // then this flag is true to indicate this is a journal only export
+        private boolean isJournalExport; 
 
         public RPExport() {
         }
@@ -1184,9 +1186,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 //Update Host/Cluster export information if the source volume is exported information on the Source volume
                 if (rpExport.getComputeResource() != null) {                	
                 	URI computeResource = rpExport.getComputeResource();                	
-                	_log.info("RP Export: ComputeResource : " + computeResource.toString());
-                	
-                	
+                	_log.info(String.format("RP Export: ComputeResource : %s", computeResource.toString()));
+                	                	
 					if (computeResource.toString().toLowerCase().contains(COMPUTE_RESOURCE_CLUSTER)) {
                 		Cluster cluster = _dbClient.queryObject(Cluster.class, computeResource);                		
                 		exportGroup.addCluster(cluster);

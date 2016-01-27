@@ -624,7 +624,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             deviceURI, getDeviceType(deviceURI),
                             this.getClass(),
                             createConsistencyGroupMethod(deviceURI, consistencyGroupURI, rpName),
-                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rpName, null, false), null);
+                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rpName, false, false), null);
                     createdCg = true;
                     _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
                 }
@@ -4204,7 +4204,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 String.format("Deleting replication group for consistency group %s", consistencyGroup),
                                 waitFor, storage, storageSystem.getSystemType(),
                                 this.getClass(),
-                                deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, null, false),
+                                deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false),
                                 rollbackMethodNullMethod(), null);
                     }
                 }
@@ -4465,7 +4465,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         String.format("Deleting replication group for consistency group %s", cgURI),
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
-                        deleteConsistencyGroupMethod(storage, cgURI, rpName, null, false),
+                        deleteConsistencyGroupMethod(storage, cgURI, rpName, false, false),
                         rollbackMethodNullMethod(), null);
             }
         }
@@ -5295,7 +5295,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 String.format("Deleting replication group for consistency group %s", cguri),
                                 waitFor, storage, storageSystem.getSystemType(),
                                 this.getClass(),
-                                deleteConsistencyGroupMethod(storage, cguri, groupName, null, false),
+                                deleteConsistencyGroupMethod(storage, cguri, groupName, false, false),
                                 rollbackMethodNullMethod(), null);
                     }
                 }

@@ -1335,7 +1335,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
+        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
 
         // Grab the first volume and call the block full copy
         // manager to create the full copies for the volumes
@@ -1367,7 +1367,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
+        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1399,9 +1399,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
-        // TODO check for cases - part of VPLEX/RP CG volumes are in Application and remaining are not
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
+        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
 
         // Get the full copy source.
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
@@ -1438,7 +1437,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
+        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1471,7 +1470,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
+        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1506,7 +1505,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // TODO check deactivate case
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), FULL_COPY);
+        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
 
         // Verify the full copy.
         verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -2066,16 +2065,19 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
-     * Check if the given CG volume is part of an application.
-     * If so, throw an error indicating replica operation is not supported on CG.
+     * Check if any of the given CG volumes is part of an application.
+     * If so, throw an error indicating replica operation is not supported on CG
+     * and it should be performed at application level.
      *
      * @param volume the CG volume
      */
-    private void validateVolumeNotPartOfApplication(Volume volume, String replicaType) {
-        VolumeGroup volumeGroup = volume.getApplication(_dbClient);
-        if (volumeGroup != null) {
-            throw APIException.badRequests.replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(volumeGroup.getLabel(),
-                    replicaType);
+    private void validateVolumeNotPartOfApplication(List<Volume> volumes, String replicaType) {
+        for (Volume volume : volumes) {
+            VolumeGroup volumeGroup = volume.getApplication(_dbClient);
+            if (volumeGroup != null) {
+                throw APIException.badRequests.replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(volumeGroup.getLabel(),
+                        replicaType);
+            }
         }
     }
     

@@ -193,7 +193,7 @@ public class Backup extends Controller {
 
     public static void getRestoreStatus(String id, Type type) {
         BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
-        renderJSON(status);
+        renderJSON(new RestoreStatus(status));
     }
 
     private static void backToReferrer() {
@@ -255,6 +255,26 @@ public class Backup extends Controller {
         public void restore() throws ViPRException {
             BackupUtils.restore(name, StringUtils.trimToNull(password), isLocal, isGeoFromScratch);
         }
+    }
+
+    public static class RestoreStatus {
+        private String backupName;
+        private long backupSize;
+        private long downloadSize;
+        private BackupRestoreStatus.Status status;
+        private boolean isGeo;
+
+        private String message;
+
+        public RestoreStatus(BackupRestoreStatus origin) {
+            this.backupName = origin.getBackupName();
+            this.backupSize = origin.getBackupSize();
+            this.downloadSize = origin.getDownoadSize();
+            this.status = origin.getStatus();
+            this.isGeo = origin.isGeo();
+            this.message = origin.getStatus().getMessage();
+        }
+
     }
 
 }

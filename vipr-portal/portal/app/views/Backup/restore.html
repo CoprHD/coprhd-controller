@@ -29,9 +29,7 @@
             </tr>
             <tr>
                 <td width="300">
-		        <span id="errorInfo" hidden="hidden">
-                &{'restore.download.error'}
-                </span>
+		        <span id="errorInfo"></span>
                 </td>
             </tr>
         </table>
@@ -151,7 +149,7 @@
                 else if (result.status == "DOWNLOAD_FAILED") {
                     updateProgressBar("Status",100);
                     updateProgressBarStyle("Status", "danger");
-                    $("#errorInfo").removeAttr('hidden');
+                    $("#errorInfo").text(result.status+': '+result.message);
                     stop = true;
                 }
             },

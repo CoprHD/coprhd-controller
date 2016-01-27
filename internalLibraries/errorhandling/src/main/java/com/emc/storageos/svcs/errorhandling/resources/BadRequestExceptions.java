@@ -53,7 +53,7 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException snapshotsNotSupportedForVNXVRG();
+    public BadRequestException snapshotsNotSupportedForNonRealVNXRG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllowedWhenVNXCGHasSnapshot();
@@ -945,6 +945,14 @@ public interface BadRequestExceptions {
     public BadRequestException noMatchingStoragePoolsForContinuousCopiesVpoolForVplex(final String varrayLabel, final String vpoolLabel,
             final String storageSystem);
 
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noMatchingStoragePoolsForRemoteFileReplication(
+            final URI vpoolId, final Set<String> varrayId);
+
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noMatchingStoragePoolsForVpoolAndVarrays(
+            final URI vpoolId, final Set<String> varrayId);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_MISSING)
     public BadRequestException noRoleSpecifiedInAssignmentEntry();
 
@@ -1114,25 +1122,25 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidCopyMode(String copyMode);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidReplicationRPOType(String rpoType);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidVirtualPoolFromVirtualArray(URI vpool, URI varray);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidReplicationType(String copyMode);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException noReplicationRemoteCopies(String replicationType);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException noReplicationTypesSpecified();
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException moreThanOneRemoteCopiesSpecified();
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException remoteCopyDoesNotExists(URI varray, URI vpool);
 
@@ -1524,13 +1532,7 @@ public interface BadRequestExceptions {
             final String commaSeperatedPrincipals);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException inventoryDeleteNotSupportedonExportedVolumes(final String nativeGuid);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException notSupportedForInternalVolumes();
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException inventoryDeleteNotSupportedOnSnapshots(final String nativeGuid);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException consistencyGroupAddVolumeThatIsInDifferentProject(final String name,
@@ -1582,7 +1584,7 @@ public interface BadRequestExceptions {
     // inactiveRemoteVArrayDetected
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException inactiveRemoteVArrayDetected(final URI vArray);
-    
+
     // inactiveRemoteVPoolDetected
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException inactiveRemoteVPoolDetected(final URI vPool);
@@ -2715,7 +2717,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidIpsecStatus();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllowedToAddVdcInDRConfig();
 
@@ -2784,6 +2786,28 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException backupIntervalIsInvalid(String interval);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidPermissionForBucketACL(String permission);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException userGroupAndCustomGroupInACLFound(String user, String group, String customgroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException missingUserOrGroupOrCustomGroupInACE(String opName);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException multipleACLsWithUserOrGroupOrCustomGroupFound(String opType, String userOrGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException bucketACLNotFoundFound(String opType, String acl);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException bucketACLAlreadyExists(String opType, String acl);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);
+
 }
 
 

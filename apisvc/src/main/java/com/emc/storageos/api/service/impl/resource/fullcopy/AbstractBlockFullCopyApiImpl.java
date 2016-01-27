@@ -529,7 +529,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
          * Delete volume api call will delete all its related replicas for VMAX using SMI 8.0.3.
          * Hence vmax using 8.0.3 can be delete even if volume has replicas.
          */
-        if (volume.isInCG() && BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+        if (volume.isInCG() && BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient)) {
             return true;
         }
 

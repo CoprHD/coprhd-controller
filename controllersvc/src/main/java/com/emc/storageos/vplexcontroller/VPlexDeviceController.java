@@ -10867,7 +10867,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 for (List<URI> removeVols : removeVolsMap.values()) {
                     Volume vol = getDataObject(Volume.class, removeVols.get(0), _dbClient);
                     URI cguri = vol.getConsistencyGroup();
-                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
                     URI storageUri = vol.getStorageController();
                     StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageUri);
                     // call ReplicaDeviceController
@@ -10944,12 +10943,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     
     /**
      * Add steps to add backend volumes to replication group.
-     * @param workflow
-     * @param waitFor
-     * @param addVolumes
-     * @param replicationGroupName
-     * @param cguri
-     * @param opId
+     * @param workflow workflow to add steps to
+     * @param waitFor tag new steps should wait for (also returned)
+     * @param addVolumes volumes to add to replication group
+     * @param replicationGroupName name of replication group to add to
+     * @param cguri uri of BlockConsistencyGroup volumes are associated with
+     * @param opId task id for workflow steps
      * @return the last step Id
      */
     private String addStepsToAddVolumesToReplicationGroup(Workflow workflow, String waitFor, Map<URI, List<URI>>addVolumes, 
@@ -11001,6 +11000,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
     
     public Workflow.Method deleteConsistencyGroupMethod(URI storage, URI consistencyGroup, String groupName, Boolean markInactive) {
-        return new Workflow.Method("deleteReplicationGroupInConsistencyGroup", storage, consistencyGroup, groupName, null, markInactive);
+        return new Workflow.Method("deleteReplicationGroupInConsistencyGroup", storage, consistencyGroup, groupName, false, markInactive);
     }
 }

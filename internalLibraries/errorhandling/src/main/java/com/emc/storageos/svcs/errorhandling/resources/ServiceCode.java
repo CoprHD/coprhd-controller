@@ -586,6 +586,7 @@ public enum ServiceCode {
     ECS_BUCKET_UPDATE_ERROR(65010),
     ECS_BUCKET_DELETE_ERROR(65011),
     ECS_BUCKET_GET_OWNER_ERROR(65012),
+    ECS_BUCKET_ACL_ERROR(65017),
 
     // ****************************
     // Old style of Service codes

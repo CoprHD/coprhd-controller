@@ -1318,14 +1318,6 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public void doCreateMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-
-    }
-
-    @Override
     public void doFractureMirror(StorageSystem storage, URI mirror,
             Boolean sync, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -1432,7 +1424,7 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage,
-            URI consistencyGroupId, String replicationGroupName, String newReplicationGroupName, Boolean markInactive, TaskCompleter taskCompleter)
+            URI consistencyGroupId, String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _logger.info("Deleting consistency group, array: {}", storage.getSerialNumber());
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
@@ -2528,6 +2520,17 @@ public class VNXeStorageDevice extends VNXeOperations
             TaskCompleter taskCompleter) throws DeviceControllerException {
         // If this operation is unsupported by default it's not necessarily an error
         return;
+    }
+    
+    //file mirror related operations
+    public void doCreateMirror(StorageSystem storage, URI mirror, 
+    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException{
+    	throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+    
+    public void doDeleteMirror(StorageSystem storage, URI mirror, 
+    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException{
+    	throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override

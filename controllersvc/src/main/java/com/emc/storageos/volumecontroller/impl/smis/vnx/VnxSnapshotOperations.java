@@ -234,7 +234,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             URI snapshot = snapshotList.get(0);
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
-            if (ControllerUtils.isInVNXVirtualRG(volume, _dbClient)) {
+            if (ControllerUtils.isNotInRealVNXRG(volume, _dbClient)) {
                 throw DeviceControllerException.exceptions.groupSnapshotNotSupported(volume.getReplicationGroupInstance());
             }
 

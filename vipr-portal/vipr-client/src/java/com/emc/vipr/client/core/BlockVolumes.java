@@ -458,7 +458,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      */
     public Tasks<VolumeRestRep> deactivateContinuousCopies(URI id, CopiesParam input, VolumeDeleteTypeEnum type) {
         URI uri = client.uriBuilder(getContinuousCopiesUrl() + "/deactivate").queryParam("type", type).build(id);
-        TaskList tasks = client.postURI(TaskList.class, uri);
+        TaskList tasks = client.postURI(TaskList.class, input, uri);
         return new Tasks<>(client, tasks.getTaskList(), resourceClass);
     }
 

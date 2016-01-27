@@ -6,7 +6,7 @@
 ##################################################
 #  Setup
 ##################################################
-WORKSPACE := $(shell pwd)
+WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := AIO-Simulators
 VERSION := 2.5.0.0
 JOB := 999

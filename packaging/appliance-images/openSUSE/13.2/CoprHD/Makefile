@@ -7,7 +7,7 @@
 #  Setup
 ##################################################
 export DO_NOT_START := yes
-WORKSPACE := $(shell pwd)
+WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHD
 VERSION := 2.5.0.0
 JOB := 999

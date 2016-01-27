@@ -704,9 +704,8 @@ public class VdcManager extends AbstractManager {
             opHandler.execute();
         }
 
-        // Then do rolling reboot if ready
-        if (ipsecMgr.isKeyRotationDone()) {
-            log.info("IPsec key rotation for upgrade is done. Starting rolling reboot.");
+        if (ipsecEnabledLocally()) {
+            log.info("IPsec is enabled locally. Ready to disable db ssl.");
 
             // update backCompatPreYoda to false everywhere
             vdcConfigUtil.setBackCompatPreYoda(false);
@@ -717,6 +716,17 @@ public class VdcManager extends AbstractManager {
 
             rollingRestartDbSvc();
         }
+    }
+
+    private boolean ipsecEnabledLocally() {
+        localVdcPropInfo = localRepository.getVdcPropertyInfo();
+        String ipsecStatus = localVdcPropInfo.getProperty(IPsecConfig.IPSEC_STATUS);
+        log.info("Local ipsec is {}", ipsecStatus);
+
+        if (ipsecStatus == null || ipsecStatus.equals(IPsecManager.STATUS_ENABLED)) {
+            return true;
+        }
+        return false;
     }
 
     private void rollingRestartDbSvc() {

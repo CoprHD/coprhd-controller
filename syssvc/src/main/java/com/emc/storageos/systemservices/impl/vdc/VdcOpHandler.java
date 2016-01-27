@@ -172,12 +172,14 @@ public abstract class VdcOpHandler {
         }
 
         private void initEnableAndRotateIpsec() throws Exception {
-                if (ipsecKeyExisted()) {
-                    log.info("Real IPsec key already existed, No need to rotate.");
-                    return;
-                }
-                String version = ipsecMgr.rotateKey(true);
-                log.info("Initiated IPsec key enabling and rotation. The version is {}", version);
+           if (ipsecKeyExisted()) {
+                log.info("Real IPsec key already existed, No need to rotate.");
+                return;
+            }
+
+            ipsecMgr.verifyClusterIsStable();
+            String version = ipsecMgr.rotateKey(true);
+            log.info("Initiated IPsec key enabling and rotation. The version is {}", version);
         }
 
         private InterProcessLock acquireIPsecLock() throws Exception {

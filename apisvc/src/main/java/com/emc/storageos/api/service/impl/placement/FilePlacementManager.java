@@ -53,11 +53,12 @@ public class FilePlacementManager {
     private Scheduler getFileServiceImpl(VirtualPool vpool) {
 
         // Select an implementation of the right scheduler
-        Scheduler scheduler;
-        if (vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name()) ||
-                vpool.getFileReplicationType().equals(FileReplicationType.REMOTE.name()) || 
-                VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
-            scheduler = storageSchedulers.get("mirrorfile");
+        Scheduler scheduler = null;
+        if(VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
+            if (vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name()) ||
+                    vpool.getFileReplicationType().equals(FileReplicationType.REMOTE.name())) {
+                scheduler = storageSchedulers.get("mirrorfile");
+            }
         } else {
             scheduler = storageSchedulers.get("file");
         }

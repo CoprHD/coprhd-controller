@@ -2289,6 +2289,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             new IsilonSyncJobStart(policyName, system.getId(), taskCompleter, policyName);
                     try {
                         ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobStart));
+                        return BiosCommandResult.createPendingResult();
                     } catch (Exception ex) {
                         _log.error("Create file system got the exception", ex);
                         ServiceError error = DeviceControllerErrors.isilon.jobFailed("StartMirrorSession");
@@ -2666,9 +2667,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
-            cmdResult = doStartReplicationPolicy(system, policyName, null);
+            cmdResult = doStartReplicationPolicy(system, policyName, completer);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
+            } else if (cmdResult.getCommandPending()){
+                completer.statusPending(_dbClient, cmdResult.getMessage());
             } else {
                 completer.error(_dbClient, cmdResult.getServiceCoded());
             }

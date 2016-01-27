@@ -241,7 +241,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         if (vdcEndpoint.contains(":")) {
             vip = DualInetAddress.normalizeInet6Address(vdcEndpoint);
         }
-        log.info("vip ipv6 address:{}", vip);
         site.setVip(vip);
         site.setNodeCount(getNodeCount());
 

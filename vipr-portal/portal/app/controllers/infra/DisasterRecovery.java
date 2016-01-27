@@ -255,7 +255,7 @@ public class DisasterRecovery extends ViprResourceController {
         SiteErrorResponse error = DisasterRecoveryUtils.getSiteError(uuid);
         if(!error.getOperation().equals(SiteState.STANDBY_PAUSING.name())
                 && !error.getOperation().equals(SiteState.STANDBY_RESUMING.name())
-                && !error.getOperation().equals(SiteState.STANDBY_FAILING_OVER.name()){
+                && !error.getOperation().equals(SiteState.STANDBY_FAILING_OVER.name())){
             return false;
         }
         return true;

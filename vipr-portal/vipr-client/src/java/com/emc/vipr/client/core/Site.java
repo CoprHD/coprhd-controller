@@ -78,7 +78,7 @@ public class Site {
     }
 
     public SiteErrorResponse getSiteError(String uuid) {
-        return client.get(SiteErrorResponse.class, PathConstants.SITE_URL + "/" + uuid + "/error");
+        return client.post(SiteErrorResponse.class, PathConstants.SITE_URL + "/" + uuid + "/error");
     }
 
     public SiteDetailRestRep getSiteDetails(String uuid) {

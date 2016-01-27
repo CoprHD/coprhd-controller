@@ -1003,7 +1003,6 @@ restore.title=Data Restore
 restore.from.version=Restore From Data Backup
 restore.download.progress=Download Progress
 restore.download.progress.description=The system is downloading the backup file
-restore.download.error=Failed to download external backup.
 restoreForm.password=Root Password
 restore.checkbox=no
 restore.geo.checkbox.help=To restore the vdc1 in an all crashed Geo Environment

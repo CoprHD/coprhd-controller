@@ -731,7 +731,7 @@ public class StorageSystemService extends TaskResourceService {
         return systemsList;
     }
 
-    
+    /*
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
@@ -744,7 +744,7 @@ public class StorageSystemService extends TaskResourceService {
             objNamespaceList.getNamespaces().add(toNamedRelatedResource(iter.next()));
         }
         return objNamespaceList;
-    }
+    }*/
     
     /**
      * Get information about the registered storage system with the passed id.
@@ -765,7 +765,7 @@ public class StorageSystemService extends TaskResourceService {
         restRep.setNumResources(getNumResources(system, _dbClient));
         return restRep;
     }
-    
+    /*
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
@@ -777,7 +777,7 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkEntityNotNull(objNamespace, id, isIdEmbeddedInURL(id));
         ObjectNamespaceRestRep restRep = map(objNamespace);
         return restRep;
-    }
+    }*/
 
     /**
      * Allows the user register the storage system with the passed id.

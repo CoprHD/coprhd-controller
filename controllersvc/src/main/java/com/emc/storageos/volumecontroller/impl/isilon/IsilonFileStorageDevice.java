@@ -802,11 +802,29 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     quota.getThresholds().getHard());
         }
         // Modify quota for file system.
-        IsilonSmartQuota expandedQuota = isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, capacity,
-                args.getFsNotificationLimit() != null ? Long.valueOf(args.getFsNotificationLimit()) : 0L,
-                args.getFsSoftLimit() != null ? Long.valueOf(args.getFsSoftLimit()) : 0L,
-                args.getFsSoftGracePeriod() != null ? Long.valueOf(args.getFsSoftGracePeriod()) : 0L);
+        IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
         isi.modifyQuota(quotaId, expandedQuota);
+    }
+
+    private IsilonSmartQuota getExpandedQuota(IsilonApi isi, FileDeviceInputOutput args, Long capacity) {
+        Long notificationLimit = 0L;
+        Long softLimit = 0L;
+        Long softGracePeriod = 0L;
+
+        if (args.getFsNotificationLimit() != null) {
+            notificationLimit = Long.valueOf(args.getFsNotificationLimit());
+        }
+
+        if (args.getFsSoftLimit() != null) {
+            softLimit = Long.valueOf(args.getFsSoftLimit());
+        }
+
+        if (args.getFsSoftGracePeriod() != null) {
+            softGracePeriod = Long.valueOf(args.getFsSoftGracePeriod());
+        }
+
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, capacity,
+                notificationLimit, softLimit, softGracePeriod);
     }
 
     @Override
@@ -871,10 +889,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // create directory for the file share
             isi.createDir(args.getFsMountPath(), true);
 
+            Long softGrace = null;
+            if (args.getFsSoftGracePeriod() != null) {
+                softGrace = Long.valueOf(args.getFsSoftGracePeriod());
+            }
+
             // set quota - save the quota id to extensions
             String qid = createQuotaWithThreshold(args.getFsMountPath(), args.getFsCapacity(), args.getFsSoftLimit(),
-                    args.getFsNotificationLimit(), args.getFsSoftGracePeriod() != null ? Long.valueOf(args.getFsSoftGracePeriod()) : null,
-                    isi);
+                    args.getFsNotificationLimit(), softGrace, isi);
 
             if (args.getFsExtensions() == null) {
                 args.initFsExtensions();
@@ -884,7 +906,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // set protection level
             // String protection = args.getFSProtectionLevel();
             // Call isilon api to set protection level
-
 
             _log.info("IsilonFileStorageDevice doCreateFS {} - complete", args.getFsId());
             return BiosCommandResult.createSuccessfulResult();
@@ -1169,10 +1190,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // create directory for the file share
             isi.createDir(qDirPath, true);
 
-            String qid = createQuotaWithThreshold(qDirPath, qDirSize,
-                    quotaDir.getSoftLimit() != null ? Long.valueOf(quotaDir.getSoftLimit()) : 0L,
-                    quotaDir.getNotificationLimit() != null ? Long.valueOf(quotaDir.getNotificationLimit()) : 0L,
-                    quotaDir.getSoftGrace() != null ? Long.valueOf(quotaDir.getSoftGrace()) : 0L, isi);
+            String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, isi);
 
             if (args.getQuotaDirExtensions() == null) {
                 args.initQuotaDirExtensions();
@@ -1248,19 +1266,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // Isilon does not allow to update quota directory to zero.
                 if (qDirSize > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
-                    IsilonSmartQuota expandedQuota = isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, qDirSize,
-                            quotaDir.getNotificationLimit() != null ? quotaDir.getNotificationLimit() : 0L,
-                            quotaDir.getSoftLimit() != null ? quotaDir.getSoftLimit() : 0L,
-                            quotaDir.getSoftGrace() != null ? quotaDir.getSoftGrace() : 0L);
+                    IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 }
 
             } else {
                 // Create a new Quota
-                String qid = createQuotaWithThreshold(qDirPath, qDirSize,
-                        quotaDir.getSoftLimit() != null ? Long.valueOf(quotaDir.getSoftLimit()) : 0L,
-                        quotaDir.getNotificationLimit() != null ? Long.valueOf(quotaDir.getNotificationLimit()) : 0L,
-                        quotaDir.getSoftGrace() != null ? Long.valueOf(quotaDir.getSoftGrace()) : 0L, isi);
+                String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, isi);
 
                 if (args.getQuotaDirExtensions() == null) {
                     args.initQuotaDirExtensions();
@@ -1274,6 +1286,48 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.error("doUpdateQuotaDirectory failed.", e);
             return BiosCommandResult.createErrorResult(e);
         }
+    }
+
+    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(QuotaDirectory quotaDir, Long qDirSize, IsilonApi isi) {
+        Long notificationLimit = 0L;
+        Long softlimit = 0L;
+        Long softGrace = 0L;
+
+        if (quotaDir.getNotificationLimit() != null) {
+            notificationLimit = Long.valueOf(quotaDir.getNotificationLimit());
+        }
+
+        if (quotaDir.getSoftLimit() != null) {
+            softlimit = Long.valueOf(quotaDir.getSoftLimit());
+        }
+
+        if (quotaDir.getSoftGrace() != null) {
+            softGrace = Long.valueOf(quotaDir.getSoftGrace());
+        }
+
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, qDirSize,
+                notificationLimit, softlimit, softGrace);
+    }
+
+    private String checkThresholdAndcreateQuota(QuotaDirectory quotaDir, Long qDirSize, String qDirPath, IsilonApi isi) {
+        Long notificationLimit = 0L;
+        Long softlimit = 0L;
+        Long softGrace = 0L;
+
+        if (quotaDir.getNotificationLimit() != null) {
+            notificationLimit = Long.valueOf(quotaDir.getNotificationLimit());
+        }
+
+        if (quotaDir.getSoftLimit() != null) {
+            softlimit = Long.valueOf(quotaDir.getSoftLimit());
+        }
+
+        if (quotaDir.getSoftGrace() != null) {
+            softGrace = Long.valueOf(quotaDir.getSoftGrace());
+        }
+        
+        return createQuotaWithThreshold(qDirPath, qDirSize,
+                softlimit, notificationLimit, softGrace, isi);
     }
 
     public String createQuotaWithThreshold(String qDirPath, Long qDirSize, Long softLimitSize, Long notificationLimitSize,
@@ -2187,15 +2241,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     /**
      * Set the clients to isilon export based on type
      * 
-<<<<<<< HEAD
+     * <<<<<<< HEAD
+     * 
      * @param type one of "rw", "root" or "ro"
      * @param hosts the clients to be set
-=======
+     *            =======
      * @param type
      *            one of "rw", "root" or "ro"
      * @param hosts
      *            the clients to be set
->>>>>>> 3f201f1da3a6dae193cc6516415c8ef96824cf56
+     *            >>>>>>> 3f201f1da3a6dae193cc6516415c8ef96824cf56
      * @param isilonExport
      */
     private void setClientsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {
@@ -2330,7 +2385,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.error("Replication Policy - {} can't be PAUSED because policy's last job is in {} state", policyName,
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed("doResumeReplicationPolicy as : Replication Policy Job can't be PAUSED because policy's last job is NOT in RUNNING state");
+                        .jobFailed(
+                                "doResumeReplicationPolicy as : Replication Policy Job can't be PAUSED because policy's last job is NOT in RUNNING state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -2354,7 +2410,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.error("Replication Policy - {} can't be RESUMED because policy's last job is in {} state", policyName,
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed("doResumeReplicationPolicy as : Replication Policy Job can't be RESUMED because policy's last job is NOT in PAUSED state");
+                        .jobFailed(
+                                "doResumeReplicationPolicy as : Replication Policy Job can't be RESUMED because policy's last job is NOT in PAUSED state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -2377,7 +2434,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.error("Replication Policy - {} can't be CANCEL because policy's last job is in {} state", policyName,
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed("doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
+                        .jobFailed(
+                                "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
                 return BiosCommandResult.createErrorResult(error);
             }
 
@@ -2612,7 +2670,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-              FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
+        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
         String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), target.getLabel());
         BiosCommandResult cmdResult = doCancelReplicationPolicy(system, policyName);
         if (cmdResult.getCommandSuccess()) {
@@ -2641,7 +2699,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        
+
     }
 
     @Override

@@ -254,7 +254,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
         ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
         
-        if(param.getSoftLimit() != 0L) {
+        if (param.getSoftLimit() != 0L) {
             ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
         }
         quotaDir.setSoftLimit(param.getSoftLimit() != 0 ? param.getSoftLimit() :

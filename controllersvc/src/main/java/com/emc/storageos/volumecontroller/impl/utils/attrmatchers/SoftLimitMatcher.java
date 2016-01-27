@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2013 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
 
 import java.util.ArrayList;
@@ -27,8 +31,7 @@ public class SoftLimitMatcher extends AttributeMatcher {
         _logger.info("started matching pools with soft limit.");
         for (StoragePool pool : allPools) {
             StorageSystem system = _objectCache.getDbClient().queryObject(StorageSystem.class, pool.getStorageDevice());
-            if (system.getSupportSoftLimit().equals(attributeMap.get(Attributes.support_soft_limit
-                    .toString()))) {
+            if (system.getSupportSoftLimit().equals(attributeMap.get(Attributes.support_soft_limit))) {
                 filteredPools.add(pool);
             }
         }

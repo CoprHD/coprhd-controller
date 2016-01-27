@@ -212,7 +212,7 @@ public class SchedulePolicyService extends TaggedResource {
             schedulePolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency());
             if (isValidSnapshotExpire) {
                 schedulePolicy.setSnapshotExpireType(param.getSnapshotExpire().getExpireType());
-                if (!param.getSnapshotExpire().getExpireType().equalsIgnoreCase(SnapshotExpireType.never.toString())) {
+                if (!param.getSnapshotExpire().getExpireType().equalsIgnoreCase(SnapshotExpireType.NEVER.toString())) {
                     schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
                 } else {
                     schedulePolicy.setSnapshotExpireTime(null);
@@ -377,24 +377,25 @@ public class SchedulePolicyService extends TaggedResource {
     public static boolean validateSnapshotExpireParam(ScheduleSnapshotExpireParam expireParam) {
 
         String expireType = expireParam.getExpireType();
+        SnapshotExpireType expireTy = SnapshotExpireType.valueOf(expireType);
         long seconds = 0;
         long minPeriod = 7200;
         long maxPeriod = 10 * 365 * 24 * 3600;
         int expireValue = expireParam.getExpireValue();
-        switch (expireType.toLowerCase()) {
-            case "hours":
+        switch (expireTy) {
+            case HOURS:
                 seconds = expireValue * 3600;
                 break;
-            case "days":
+            case DAYS:
                 seconds = expireValue * 24 * 3600;
                 break;
-            case "weeks":
+            case WEEKS:
                 seconds = expireValue * 7 * 24 * 3600;
                 break;
-            case "months":
+            case MONTHS:
                 seconds = expireValue * 30 * 24 * 3600;
                 break;
-            case "never":
+            case NEVER:
                 return true;
             default:
                 return false;

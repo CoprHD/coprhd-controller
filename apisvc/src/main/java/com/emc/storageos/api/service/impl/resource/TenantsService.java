@@ -94,6 +94,7 @@ import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
 import com.emc.storageos.model.schedulepolicy.PolicyParam;
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyResp;
 import com.emc.storageos.model.tenant.TenantCreateParam;
 import com.emc.storageos.model.tenant.TenantOrgBulkRep;
 import com.emc.storageos.model.tenant.TenantOrgList;
@@ -1165,6 +1166,7 @@ public class TenantsService extends TaggedResource {
     /**
      * Create schedule policy and persist into CoprHD DB.
      * 
+     * @param id the URN of a CoprHD Tenant/Subtenant
      * @param param schedule policy parameters
      * @brief Create schedule policy
      * @return No data returned in response body
@@ -1175,7 +1177,24 @@ public class TenantsService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
-    public Response createSchedulePolicy(@PathParam("id") URI id, PolicyParam param) {
+    public SchedulePolicyResp createSchedulePolicy(@PathParam("id") URI id, PolicyParam param) {
+        SchedulePolicyResp schedulePolicyResp = createPolicy(id, param);
+        auditOp(OperationTypeEnum.CREATE_SCHEDULE_POLICY, true, null, param.getPolicyName(),
+                id.toString(), schedulePolicyResp.getId().toString());
+        return schedulePolicyResp;
+    }
+
+    /**
+     * Worker method for create schedule policy. Allows external requests (REST) as well as
+     * internal requests that may not have a security context.
+     * 
+     * @param id the URN of a CoprHD Tenant/Subtenant
+     * @param param schedule policy parameters
+     * @brief Create schedule policy
+     * @return No data returned in response body
+     * @throws BadRequestException
+     */
+    public SchedulePolicyResp createPolicy(URI id, PolicyParam param) {
         TenantOrg tenant = getTenantById(id, true);
 
         // Make policy name as mandatory field
@@ -1244,7 +1263,9 @@ public class TenantsService extends TaggedResource {
         }
         recordTenantEvent(OperationTypeEnum.CREATE_SCHEDULE_POLICY, tenant.getId(),
                 schedulePolicy.getId());
-        return Response.ok().build();
+
+        return new SchedulePolicyResp(schedulePolicy.getId(), toLink(ResourceTypeEnum.SCHEDULE_POLICY,
+                schedulePolicy.getId()), schedulePolicy.getLabel());
     }
 
     /**

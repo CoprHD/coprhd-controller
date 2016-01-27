@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.security.audit;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -7,6 +11,10 @@ public class AuditLogManagerFactory {
     private static DbClient dbClient;
     private static CoordinatorClient coordinator;
     
+    /**
+     * get the instance of AuditLogManager
+     * @return
+     */
     public static AuditLogManager getAuditLogManager() {
         AuditLogManager auditLogManager = new AuditLogManager();
         auditLogManager.setCoordinator(coordinator);

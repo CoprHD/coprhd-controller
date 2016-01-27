@@ -60,6 +60,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
+import com.emc.vipr.client.core.util.UnmanagedHelper;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.gson.annotations.SerializedName;
@@ -567,14 +568,23 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                     SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
                                     TRUE);
                         } else {
-                            log.info("unmanaged volume {} is an RP volume", hostUnManagedVol.getLabel());
-                            hostUnManagedVol.putVolumeCharacterstics(
-                                    SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
-                                    TRUE);
+                            // Specific to XIO.  The snapshot will be in the same lunmap as the regular volumes.  Ignore this volume in ViPR.
+                            String isSnapShot = hostUnManagedVol.getVolumeCharacterstics().get(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString()); 
+                            if (isSnapShot != null && isSnapShot.equalsIgnoreCase("true")) {
+                                dbClient.markForDeletion(hostUnManagedVol);
+                                hostUnManagedVol = null;
+                            } else {
+                                log.info("unmanaged volume {} is an RP volume", hostUnManagedVol.getLabel());
+                                hostUnManagedVol.putVolumeCharacterstics(
+                                        SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
+                                        TRUE);
+                            }
                         }
 
-                        mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
-                        unManagedExportVolumesToUpdate.add(hostUnManagedVol);
+                        if (hostUnManagedVol != null) {
+                            mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
+                            unManagedExportVolumesToUpdate.add(hostUnManagedVol);
+                        }
                     }
                 }
             }

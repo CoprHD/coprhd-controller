@@ -193,8 +193,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         _dbClient);
 
                 // remove the unmanaged mask from unmanaged volume only if the block object has not been marked as internal
-                // For now, setting check for RP volume as well, where we also want to cause this disassociation.
-                if (!blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) || blockObject.checkInternalFlags(Flag.RECOVERPOINT)) {
+                if (!blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
                     _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}", 
                             unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
                     unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());

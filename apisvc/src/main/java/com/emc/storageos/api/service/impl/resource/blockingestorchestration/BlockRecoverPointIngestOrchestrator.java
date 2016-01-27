@@ -279,7 +279,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         volume.setRSetName(rpRSetName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setInternalSiteName(rpInternalSiteName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setProtectionController(URI.create(rpProtectionSystem)); // This comes from UNMANAGED_CG discovery of Protection System
-        volume.addInternalFlags(Flag.RECOVERPOINT); // Add internal flags
     }
 
     /**

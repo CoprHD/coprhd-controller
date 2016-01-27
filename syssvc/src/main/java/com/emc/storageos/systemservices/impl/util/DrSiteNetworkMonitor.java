@@ -10,6 +10,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,6 +91,11 @@ public class DrSiteNetworkMonitor implements Runnable{
     };
 
     private void checkPing() {
+        
+        if (!drUtil.isActiveSite()) {
+            _log.info("This site is not active site, no need to do network monitor");
+            return;
+        }
 
         Site active = drUtil.getActiveSite();
         if (!Site.NetworkHealth.GOOD.equals(active.getNetworkHealth()) || active.getNetworkLatencyInMs() != 0) {

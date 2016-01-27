@@ -91,6 +91,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public final static int MAX_DISABLED = 0;
     // Maximum number of native snapshots allowed (0 == disabled, -1 == unlimited)
     private Integer _maxNativeSnapshots;
+    // It indicates whether virtual pool supports schedule snapshot
+    private Boolean scheduleSnapshot = false;
     // Maximum number of native continuous copies allowed (0 == disabled, -1 == unlimited)
     private Integer _maxNativeContinuousCopies;
     // This attribute is applicable only to Block Systems.
@@ -111,7 +113,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Boolean autoCrossConnectExport = false;
     // Max retention for a Virtual Pool
     private Integer maxRetention;
-    
+
     // File Replication attributes.
     // Replication type { Local or Remote}
     private String fileReplicationType;
@@ -121,11 +123,10 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private String _frRpoType;
     // File Replication RPO type
     private String _fileReplicationCopyMode;
-    
-    
+
     // File Repilcation copies
     private StringMap _fileRemoteCopySettings;
-    
+
     public static enum FileReplicationType {
         LOCAL, REMOTE, NONE;
         public static boolean lookup(final String name) {
@@ -139,13 +140,13 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         public static boolean validFileReplication(final String name) {
         	if (LOCAL.name().equalsIgnoreCase(name) || REMOTE.name().equalsIgnoreCase(name)) {
         		return true;
-        	}
+    }
             return false;
         }
     }
     
     public static enum FileReplicationRPOType {
-        MINUTES("minutes"), 
+        MINUTES("minutes"),
         HOURS("hours");
         private final String _value;
 
@@ -158,7 +159,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
 
         public static FileReplicationRPOType fromValue(final String v) {
-        	FileReplicationRPOType returnVal = lookup(v);
+            FileReplicationRPOType returnVal = lookup(v);
             if (returnVal == null) {
                 throw new IllegalArgumentException(v);
             }
@@ -180,8 +181,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
     };
 
-    //Minimum number of data centers in this virtual pool
-    //This is required only for object virtual pools
+    // Minimum number of data centers in this virtual pool
+    // This is required only for object virtual pools
     private Integer minDataCenters;
 
     public static enum MetroPointType {
@@ -366,14 +367,14 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
                     || vnxe.name().equalsIgnoreCase(name)
                     || datadomain.name().equalsIgnoreCase(name);
         }
-        
+
         public static boolean isBlockTypeSystem(final String name) {
             return vnxblock.name().equalsIgnoreCase(name) || vmax.name().equalsIgnoreCase(name)
                     || hds.name().equalsIgnoreCase(name) || openstack.name().equalsIgnoreCase(name)
                     || scaleio.name().equalsIgnoreCase(name) || xtremio.name().equalsIgnoreCase(name)
                     || ibmxiv.name().equalsIgnoreCase(name) || vnxe.name().equalsIgnoreCase(name);
         }
-        
+
         public static boolean isObjectTypeSystem(final String name) {
             return ecs.name().equalsIgnoreCase(name);
         }
@@ -856,7 +857,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("rpRpoValue")
     public Long getRpRpoValue() {
-        // Return 0 if value is not set.  This helps with upgrade scenarios.
+        // Return 0 if value is not set. This helps with upgrade scenarios.
         return _rpRpoValue == null ? 0 : _rpRpoValue;
     }
 
@@ -941,9 +942,9 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         return highAvailability != null
                 && (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability));
     }
-    
+
     /**
-     * Returns whether or not the passed VirtualPool specifies MetroPoint.  This requires
+     * Returns whether or not the passed VirtualPool specifies MetroPoint. This requires
      * the MetroPoint flag to be enabled along with RP protection and VPLex distributed.
      * 
      * @param virtualPool A reference to the VirtualPool
@@ -1253,7 +1254,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return settings;
     }
-    
+
     /**
      * Return the remote protection setting objects associated with this virtual pool.
      * 
@@ -1430,17 +1431,17 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         this.autoCrossConnectExport = autoCrossConnectExport;
         setChanged("autoCrossConnectExport");
     }
-    
+
     @Name("maxRetention")
     public Integer getMaxRetention() {
-        return (maxRetention==null) ? 0 : maxRetention;
+        return (maxRetention == null) ? 0 : maxRetention;
     }
 
     public void setMaxRetention(Integer maxRetention) {
-        this.maxRetention = (null==maxRetention || maxRetention == 0) ? 0 : maxRetention;
+        this.maxRetention = (null == maxRetention || maxRetention == 0) ? 0 : maxRetention;
         setChanged("maxRetention");
     }
-    
+
     @Name("fileReplicationType")
     public String getFileReplicationType() {
         return fileReplicationType;
@@ -1450,7 +1451,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         this.fileReplicationType = fileReplicationType;
         setChanged("fileReplicationType");
     }
-    
+
     @Name("fileRemoteCopySettings")
     public StringMap getFileRemoteCopySettings() {
         return _fileRemoteCopySettings;
@@ -1460,7 +1461,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         this._fileRemoteCopySettings = fileRemoteCopySettings;
         setChanged("fileRemoteCopySettings");
     }
-    
+
     @Name("frRpoValue")
     public Long getFrRpoValue() {
         return _frRpoValue;
@@ -1480,7 +1481,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         this._frRpoType = frRpoType;
         setChanged("frRpoType");
     }
-    
+
     @Name("replicationCopyMode")
     public String getFileReplicationCopyMode() {
         return _fileReplicationCopyMode;
@@ -1493,12 +1494,23 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("minDataCenters")
     public Integer getMinDataCenters() {
-        return (minDataCenters==null) ? 0 : minDataCenters;
+        return (minDataCenters == null) ? 0 : minDataCenters;
     }
 
     public void setMinDataCenters(Integer minDataCenters) {
-        this.minDataCenters = (null==minDataCenters || minDataCenters == 0) ? 0 : minDataCenters;
+        this.minDataCenters = (null == minDataCenters || minDataCenters == 0) ? 0 : minDataCenters;
         setChanged("minDataCenters");
     }
-    
+
+    @Name("scheduleSnapshot")
+    public Boolean getScheduleSnapshots() {
+        return (scheduleSnapshot != null) ?
+                scheduleSnapshot : false;
+    }
+
+    public void setScheduleSnapshots(Boolean scheduleSnapshot) {
+        this.scheduleSnapshot = scheduleSnapshot;
+        setChanged("scheduleSnapshot");
+    }
+
 }

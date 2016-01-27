@@ -124,6 +124,7 @@ public class VolumeGroup extends DataObject {
      * @return the parent
      */
     @RelationIndex(cf = "VolumeGroupParents", type = VolumeGroup.class)
+    @IndexByKey
     @Name("parents")
     public StringSet getParents() {
         return parents;

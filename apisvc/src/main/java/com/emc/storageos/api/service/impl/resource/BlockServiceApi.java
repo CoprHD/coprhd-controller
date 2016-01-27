@@ -455,7 +455,7 @@ public interface BlockServiceApi {
      * @param parentVolume The volume to be restored.
      * @param taskId The unique task identifier.
      */
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String syncDirection, String taskId);
 
     /**
      * Resynchronize the passed snapshot.

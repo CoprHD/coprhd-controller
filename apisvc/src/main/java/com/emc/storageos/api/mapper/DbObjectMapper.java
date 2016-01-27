@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -46,6 +47,7 @@ import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
 import com.emc.storageos.model.host.TenantResourceRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Lists;
@@ -280,6 +282,35 @@ public class DbObjectMapper {
         rep.setRoles(from.getRoles());
         rep.setParent(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, from.getParent()));
         return rep;
+    }
+
+    public static SchedulePolicyRestRep map(SchedulePolicy from) {
+        if (from == null) {
+            return null;
+        }
+        SchedulePolicyRestRep to = new SchedulePolicyRestRep();
+        if (from.getTenantOrg() != null) {
+            to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenantOrg().getURI()));
+        }
+        to.setPolicyId(from.getId());
+        to.setPolicyType(from.getPolicyType());
+        to.setPolicyName(from.getPolicyName());
+        if (from.getScheduleFrequency() != null) {
+            to.setScheduleFrequency(from.getScheduleFrequency());
+            to.setScheduleRepeat(from.getScheduleRepeat());
+            to.setScheduleTime(from.getScheduleTime());
+        }
+        if (from.getScheduleDayOfWeek() != null) {
+            to.setScheduleDayOfWeek(from.getScheduleDayOfWeek());
+        }
+        if (from.getScheduleDayOfMonth() != null) {
+            to.setScheduleDayOfMonth(from.getScheduleDayOfMonth());
+        }
+        if (from.getSnapshotExpireType() != null) {
+            to.setSnapshotExpireType(from.getSnapshotExpireType());
+            to.setSnapshotExpireTime(from.getSnapshotExpireTime());
+        }
+        return to;
     }
 
 }

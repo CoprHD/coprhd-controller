@@ -147,7 +147,7 @@ public class FileMirrorSchedular implements Scheduler {
                         // prepare the target recommendation
                         FileRecommendation targetRecommendation = targetFileRecommendations.get(0);
                         prepareTargetFileRecommendation(copyMode,
-                                vArray, targetRecommendation, fileMirrorRecommendation);
+                                targetArray, targetRecommendation, fileMirrorRecommendation);
 
                         fileMirrorRecommendations.add(fileMirrorRecommendation);
                     }

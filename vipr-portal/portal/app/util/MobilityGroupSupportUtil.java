@@ -7,7 +7,6 @@ package util;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import java.net.URI;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -71,29 +70,29 @@ public class MobilityGroupSupportUtil {
         if (!description.isEmpty()) {
             update.setDescription(description);
         }
-        if (!addVolumes.isEmpty()) {
+        if (addVolumes != null && !addVolumes.isEmpty()) {
             VolumeGroupVolumeList addVolumesList = new VolumeGroupVolumeList();
             addVolumesList.setVolumes(addVolumes);
             update.setAddVolumesList(addVolumesList);
         }
-        if (!removeVolumes.isEmpty()) {
+        if (removeVolumes != null && !removeVolumes.isEmpty()) {
             VolumeGroupVolumeList removeVolumesList = new VolumeGroupVolumeList();
             removeVolumesList.setVolumes(removeVolumes);
             update.setRemoveVolumesList(removeVolumesList);
         }
-        if (!addHosts.isEmpty()) {
+        if (addHosts != null && !addHosts.isEmpty()) {
             update.setAddHostsList(addHosts);
         }
-        if (!removeHosts.isEmpty()) {
+        if (removeHosts != null && !removeHosts.isEmpty()) {
             update.setRemoveHostsList(removeHosts);
         }
-        if (!addClusters.isEmpty()) {
+        if (addClusters != null && !addClusters.isEmpty()) {
             update.setAddClustersList(addClusters);
         }
-        if (!removeClusters.isEmpty()) {
+        if (removeClusters != null && !removeClusters.isEmpty()) {
             update.setRemoveClustersList(removeClusters);
         }
-        update.setParents(new HashSet<String>());
+        // update.setParents(new HashSet<String>());
 
         return BourneUtil.getViprClient().application().updateApplication(uri(id), update);
     }

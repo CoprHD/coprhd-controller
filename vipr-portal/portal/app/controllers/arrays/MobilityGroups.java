@@ -9,6 +9,7 @@ import static controllers.Common.flashException;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -34,11 +35,15 @@ import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.application.VolumeGroupUpdateParam;
+import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.core.filters.ResourceFilter;
+import com.emc.vipr.client.core.filters.VplexVolumeFilter;
 import com.emc.vipr.client.exceptions.ViPRException;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -118,7 +123,7 @@ public class MobilityGroups extends ViprResourceController {
             if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
                 // TODO based on migration type, only show VPLEX volumes
                 List<URI> volumeIds = getViprClient().blockVolumes().listBulkIds();
-                renderArgs.put("volumes", getViprClient().blockVolumes().getByIds(volumeIds));
+                renderArgs.put("volumes", getViprClient().blockVolumes().getByIds(volumeIds, new VplexVolumeFilter()));
             } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
                 // TODO only show hosts connected to virtual pool
                 List<URI> hostIds = getViprClient().hosts().listBulkIds();
@@ -249,25 +254,37 @@ public class MobilityGroups extends ViprResourceController {
             this.sourceVirtualPool = applicationForm.getSourceVirtualPool();
             this.migrationType = applicationForm.getMigrationType();
             this.migrationGroupBy = applicationForm.getMigrationGroupBy();
+
             this.volumes = Lists.newArrayList();
-            for (NamedRelatedResourceRep vol : getViprClient().application().getVolumes(applicationForm.getId())) {
-                volumes.add(vol.getId());
+            if (migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
+                for (NamedRelatedResourceRep vol : getViprClient().application().getVolumes(applicationForm.getId())) {
+                    volumes.add(vol.getId());
+                }
             }
+
             this.hosts = Lists.newArrayList();
-            for (NamedRelatedResourceRep host : getViprClient().application().getHosts(applicationForm.getId())) {
-                hosts.add(host.getId());
+            if (migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
+                for (NamedRelatedResourceRep host : getViprClient().application().getHosts(applicationForm.getId())) {
+                    hosts.add(host.getId());
+                }
             }
+
             this.clusters = Lists.newArrayList();
-            for (NamedRelatedResourceRep cluster : getViprClient().application().getClusters(applicationForm.getId())) {
-                clusters.add(cluster.getId());
+            if (migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
+                for (NamedRelatedResourceRep cluster : getViprClient().application().getClusters(applicationForm.getId())) {
+                    clusters.add(cluster.getId());
+                }
             }
             this.applications = Lists.newArrayList();
-            // Set<RelatedResourceRep> applicationRefs = getViprClient().application().getApplication(applicationForm.getId()).getParents();
-            // if (applicationRefs != null) {
-            // for (RelatedResourceRep application : applicationRefs) {
-            // applications.add(application.getId());
-            // }
-            // }
+            if (migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.APPLICATIONS.name())) {
+                NamedVolumeGroupsList applicationRefs =
+                        getViprClient().application().getChildrenVolumeGroups(applicationForm.getId());
+                if (applicationRefs != null) {
+                    for (RelatedResourceRep application : applicationRefs.getVolumeGroups()) {
+                        applications.add(application.getId());
+                    }
+                }
+            }
         }
 
         public boolean isNew() {
@@ -284,31 +301,88 @@ public class MobilityGroups extends ViprResourceController {
                         migrationGroupBy, migrationType);
             } else {
                 VolumeGroupRestRep oldApplication = MobilityGroupSupportUtil.getMobilityGroup(id);
+                this.migrationGroupBy = oldApplication.getMigrationGroupBy();
+
                 if (oldApplication.getName().equals(name)) {
                     this.name = "";
                 }
                 if (oldApplication.getDescription().equals(description)) {
                     this.description = "";
                 }
-                List<URI> addVolumes = computeDiff(volumes, getViprClient().application().getVolumes(URI.create(id)), true);
-                List<URI> removeVolumes = computeDiff(volumes, getViprClient().application().getVolumes(URI.create(id)), false);
+                List<URI> addVolumes = null;
+                List<URI> removeVolumes = null;
+                if (this.migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
+                    List<NamedRelatedResourceRep> allVolumes = getViprClient().application().getVolumes(URI.create(id));
+                    addVolumes = computeDiff(volumes, allVolumes, true);
+                    removeVolumes = computeDiff(volumes, allVolumes, false);
+                }
 
-                List<URI> addHosts = computeDiff(hosts, getViprClient().application().getHosts(URI.create(id)), true);
-                List<URI> removeHosts = computeDiff(hosts, getViprClient().application().getHosts(URI.create(id)), false);
+                List<URI> addHosts = null;
+                List<URI> removeHosts = null;
+                if (this.migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
+                    List<NamedRelatedResourceRep> allHosts = getViprClient().application().getHosts(URI.create(id));
+                    addHosts = computeDiff(hosts, allHosts, true);
+                    removeHosts = computeDiff(hosts, allHosts, false);
+                }
 
-                List<URI> addClusters = computeDiff(clusters, getViprClient().application().getClusters(URI.create(id)), true);
-                List<URI> removeClusters = computeDiff(clusters, getViprClient().application().getClusters(URI.create(id)), false);
+                List<URI> addClusters = null;
+                List<URI> removeClusters = null;
+                if (this.migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
+                    List<NamedRelatedResourceRep> allClustes = getViprClient().application().getClusters(URI.create(id));
+                    addClusters = computeDiff(clusters, allClustes, true);
+                    removeClusters = computeDiff(clusters, allClustes, false);
+                }
 
-                // Set<RelatedResourceRep> apps = getViprClient().application().getApplication(URI.create(id))
-                // .getParents();
-                // List<URI> addApplications = computeDiff(applications, apps != null ? apps : new ArrayList<RelatedResourceRep>(), true);
-                // List<URI> removeApplications = computeDiff(applications, apps != null ? apps : new ArrayList<RelatedResourceRep>(),
-                // false);
+                List<URI> addApplications = null;
+                List<URI> removeApplications = null;
+                if (this.migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.APPLICATIONS.name())) {
+                    NamedVolumeGroupsList apps = getViprClient().application().getChildrenVolumeGroups(URI.create(id));
+                    addApplications = computeDiff(applications, apps != null ? apps.getVolumeGroups()
+                            : new ArrayList<RelatedResourceRep>(), true);
+                    removeApplications = computeDiff(applications, apps != null ? apps.getVolumeGroups()
+                            : new ArrayList<RelatedResourceRep>(),
+                            false);
+                }
 
                 MobilityGroupSupportUtil.updateMobilityGroup(name, description, id, addVolumes, removeVolumes, addHosts, removeHosts,
                         addClusters, removeClusters);
+
+                //
+
+                if (addApplications != null) {
+                    for (URI add : addApplications) {
+                        Set<RelatedResourceRep> parents = getViprClient().application().getApplication(add).getParents();
+                        VolumeGroupUpdateParam param = new VolumeGroupUpdateParam();
+                        Set<String> parentResults = getParents(parents);
+                        parentResults.add(id);
+                        param.setParents(parentResults);
+                        getViprClient().application().updateApplication(add, param);
+                    }
+                }
+
+                if (removeApplications != null) {
+                    for (URI add : removeApplications) {
+                        Set<RelatedResourceRep> parents = getViprClient().application().getApplication(add).getParents();
+                        VolumeGroupUpdateParam param = new VolumeGroupUpdateParam();
+                        Set<String> parentResults = getParents(parents);
+                        parentResults.remove(id);
+                        param.setParents(parentResults);
+                        getViprClient().application().updateApplication(add, param);
+                    }
+                }
             }
 
+        }
+
+        private Set<String> getParents(Set<RelatedResourceRep> apps) {
+            Set<String> result = Sets.newHashSet();
+            if (apps == null) {
+                return result;
+            }
+            for (RelatedResourceRep app : apps) {
+                result.add(app.getId().toString());
+            }
+            return result;
         }
 
         private List<URI> computeDiff(List<URI> selectedResources, Collection<? extends RelatedResourceRep> oldResources, boolean add) {

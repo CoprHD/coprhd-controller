@@ -153,6 +153,8 @@ public class VolumeGroup extends DataObject {
     }
 
     public void clearParents() {
-        parents.clear();
+        if (parents != null) {
+            parents.clear();
+        }
     }
 }

@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -62,7 +63,7 @@ public class ScaleIOStorageDriverTest {
         Registry registry = new InMemoryRegistryImpl();
         driver = new ScaleIOStorageDriver();
 
-        //driver.setHandleFactory(handleFactory);
+        // driver.setHandleFactory(handleFactory);
 
         // driver.setScaleIORestHandleFactory(scaleIORestHandleFactory);
 
@@ -476,7 +477,6 @@ public class ScaleIOStorageDriverTest {
         return snapshot;
 
     }
-
 
     /**
      * Initialized a list of snapshots whose parent volumes are from same storage system

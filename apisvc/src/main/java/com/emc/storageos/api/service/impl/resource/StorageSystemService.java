@@ -731,6 +731,21 @@ public class StorageSystemService extends TaskResourceService {
         return systemsList;
     }
 
+    
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ObjectNamespaceList getObjectNamespaces() {
+        ObjectNamespaceList objNamespaceList = new ObjectNamespaceList();
+
+        List<URI> ids = _dbClient.queryByType(ObjectNamespace.class, true);
+        Iterator<ObjectNamespace> iter = _dbClient.queryIterativeObjects(ObjectNamespace.class, ids);
+        while (iter.hasNext()) {
+            objNamespaceList.getNamespaces().add(toNamedRelatedResource(iter.next()));
+        }
+        return objNamespaceList;
+    }
+    
     /**
      * Get information about the registered storage system with the passed id.
      * 
@@ -748,6 +763,19 @@ public class StorageSystemService extends TaskResourceService {
         StorageSystem system = queryResource(id);
         StorageSystemRestRep restRep = map(system);
         restRep.setNumResources(getNumResources(system, _dbClient));
+        return restRep;
+    }
+    
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ObjectNamespaceRestRep getObjectNamespace(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, ObjectNamespace.class, "id");
+        ArgValidator.checkUri(id);
+        ObjectNamespace objNamespace = _dbClient.queryObject(ObjectNamespace.class, id);
+        ArgValidator.checkEntityNotNull(objNamespace, id, isIdEmbeddedInURL(id));
+        ObjectNamespaceRestRep restRep = map(objNamespace);
         return restRep;
     }
 

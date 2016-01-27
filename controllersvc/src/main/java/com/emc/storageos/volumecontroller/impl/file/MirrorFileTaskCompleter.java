@@ -73,7 +73,9 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 	protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
 			throws DeviceControllerException {
         setStatus(dbClient, status, coded);
-        updateWorkflowStatus(status, coded);
+        if (isNotifyWorkflow()) {
+            updateWorkflowStatus(status, coded);
+        }
         updateFileSystemStatus(dbClient, status);
     }
 

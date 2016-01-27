@@ -35,8 +35,7 @@ public class MirrorFileStartTaskCompleter extends MirrorFileTaskCompleter {
             throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            recordMirrorOperation(dbClient, OperationTypeEnum.START_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
-                    getTargetFileShare().getId().toString());
+            recordMirrorOperation(dbClient, OperationTypeEnum.START_FILE_MIRROR, status, getSourceFileShare().getId().toString());
 
         } catch (Exception e) {
             _log.error("Failed updating status. SRDFMirrorStop {}, for task " + getOpId(), getId(), e);

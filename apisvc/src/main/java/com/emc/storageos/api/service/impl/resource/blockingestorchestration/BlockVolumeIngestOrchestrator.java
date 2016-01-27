@@ -163,8 +163,8 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             _logger.info("All the related replicas and parent has been ingested ",
                     unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as
-            // inactive after successful expor. tDo not mark inactive for RP volumes because the RP masks should still be ingested
-            // even though they are not exported to host/cluster. RP volumes will be marked inactive after successful ingestion of RP masks.
+            // inactive after successful export. Do not mark inactive for RP volumes because the RP masks should still be ingested
+            // even though they are not exported to host/cluster. UnManaged RP volumes will be marked inactive after successful ingestion of RP masks.
             if (!unManagedVolumeExported && !VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
                 unManagedVolume.setInactive(true);
                 requestContext.getUnManagedVolumesToBeDeleted().add(unManagedVolume);

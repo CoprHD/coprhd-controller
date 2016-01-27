@@ -518,21 +518,23 @@ public class BlockStorageUtils {
         return ResourceUtils.ids(execute(new GetActiveFullCopiesForVolume(volumeId)));
     }
 
-    public static void removeFullCopiesForVolume(URI volumeId, Collection<URI> vols) {
+    public static void removeFullCopiesForVolume(URI volumeId, Collection<URI> vols, VolumeDeleteTypeEnum type) {
         List<URI> fullCopiesIds = getActiveFullCopies(volumeId);
         vols.removeAll(fullCopiesIds);
-        removeFullCopies(fullCopiesIds);
+        removeFullCopies(fullCopiesIds, type);
     }
 
-    public static void removeFullCopies(Collection<URI> fullCopyIds) {
+    public static void removeFullCopies(Collection<URI> fullCopyIds, VolumeDeleteTypeEnum type) {
         for (URI fullCopyId : fullCopyIds) {
-            removeFullCopy(fullCopyId);
+            removeFullCopy(fullCopyId, type);
         }
     }
 
-    public static void removeFullCopy(URI fullCopyId) {
-        detachFullCopy(fullCopyId);
-        removeBlockResources(Collections.singletonList(fullCopyId), VolumeDeleteTypeEnum.FULL);
+    public static void removeFullCopy(URI fullCopyId, VolumeDeleteTypeEnum type) {
+        if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
+            detachFullCopy(fullCopyId);
+        }
+        removeBlockResources(Collections.singletonList(fullCopyId), type);
     }
 
     public static void detachFullCopies(Collection<URI> fullCopyIds) {
@@ -587,14 +589,10 @@ public class BlockStorageUtils {
         }
 
         for (URI volumeId : allBlockResources) {
-            // For ViPR-only delete we don't automatically try and ViPR-only
-            // delete snapshots, full copies, or continuous copies of the volume.
-            // If a volume has snapshots, full copies, or continuous copies then
-            // the controller should return an error.
             if (canRemoveReplicas(volumeId)) {
                 removeSnapshotsForVolume(volumeId, type);
                 removeContinuousCopiesForVolume(volumeId, type);
-                removeFullCopiesForVolume(volumeId, blockResourceIds);
+                removeFullCopiesForVolume(volumeId, blockResourceIds, type);
             }
         }
         deactivateBlockResources(blockResourceIds, type);

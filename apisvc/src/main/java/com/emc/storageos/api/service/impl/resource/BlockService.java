@@ -1956,7 +1956,7 @@ public class BlockService extends TaskResourceService {
 
             // For a volume that is a full copy or is the source volume for
             // full copies deleting the volume may not be allowed.
-            if (!getFullCopyManager().volumeCanBeDeleted(volume)) {
+            if ((!VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) && (!getFullCopyManager().volumeCanBeDeleted(volume))) {
                 throw APIException.badRequests.cantDeleteFullCopyNotDetached(volume.getLabel());
             }
         }

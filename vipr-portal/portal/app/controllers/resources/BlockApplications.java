@@ -109,6 +109,8 @@ public class BlockApplications extends ResourceController {
     		addColumn("protocol");
     	}
     	
+    	// Suppressing Sonar violation of need for accessor methods.
+    	@SuppressWarnings("ClassVariableVisibilityCheck")
     	public static class Clone {
     		public URI id;
     		public String name;

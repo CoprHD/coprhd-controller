@@ -108,7 +108,7 @@ public class FileSystemParam {
         this.fsId = fsId;
     }
 
-    @XmlElement(name="softLimit", required=false)
+    @XmlElement(name="soft_limit", required=false)
     public int getSoftLimit() {
         return softLimit;
     }
@@ -117,7 +117,7 @@ public class FileSystemParam {
         this.softLimit = softLimit;
     }
 
-    @XmlElement(name="softGrace", required=false)
+    @XmlElement(name="soft_grace", required=false)
     public int getSoftGrace() {
         return softGrace;
     }
@@ -125,7 +125,7 @@ public class FileSystemParam {
     public void setSoftGrace(int softGrace) {
         this.softGrace = softGrace;
     }
-    @XmlElement(name="notificationLimit", required=false)
+    @XmlElement(name="notification_limit", required=false)
     public int getNotificationLimit() {
         return notificationLimit;
     }

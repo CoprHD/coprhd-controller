@@ -72,7 +72,7 @@ public class QuotaDirectoryCreateParam {
         this.size = size;
     }
 
-    @XmlElement(name="softLimit")
+    @XmlElement(name="soft_limit")
     public int getSoftLimit() {
         return softLimit;
     }
@@ -81,7 +81,7 @@ public class QuotaDirectoryCreateParam {
         this.softLimit = softLimit;
     }
 
-    @XmlElement(name="notificationLimit")
+    @XmlElement(name="notification_limit")
     public int getNotificationLimit() {
         return notificationLimit;
     }
@@ -90,7 +90,7 @@ public class QuotaDirectoryCreateParam {
         this.notificationLimit = notificationLimit;
     }
 
-    @XmlElement(name="softGrace")
+    @XmlElement(name="soft_grace")
     public int getSoftGrace() {
         return softGrace;
     }

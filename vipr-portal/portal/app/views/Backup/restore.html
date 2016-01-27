@@ -78,15 +78,7 @@
 <script type="text/javascript">
     var stop = false;
     $(document).ready(function () {
-        $('#restoreForm').on('keyup keypress', function(e) {
-            var code = e.keyCode || e.which;
-            if (code == 13) {
-                if($("#restoreBtn").is(":disabled")) {
-                    e.preventDefault();
-                }
-                return false;
-            }
-        });
+        disableEnter(true);
 
         type = "${type}";
         REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
@@ -95,6 +87,20 @@
             checkPullStatusUpdates();
         }
     });
+
+    function disableEnter(disable) {
+        $('#restoreForm').on('keyup keypress', function (e) {
+            var code = e.keyCode || e.which;
+            if (code == 13) {
+                if (disable && $("#restoreBtn").is(":disabled")) {
+                    e.preventDefault();
+                    return false;
+                } else {
+                    this.submit();
+                }
+            }
+        });
+    }
 
     function checkPullStatusUpdates() {
         var checkUpdate = window.setInterval(function () {
@@ -144,6 +150,7 @@
                 if (result.status == "DOWNLOAD_SUCCESS") {
                     updateProgressBar("Status", 100);
                     $("#restoreBtn").prop("disabled", false);
+                    disableEnter(false);
                     stop = true;
                 }
                 else if (result.status == "DOWNLOAD_FAILED") {

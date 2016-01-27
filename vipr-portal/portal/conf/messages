@@ -3376,6 +3376,9 @@ quota.name=Name
 quota.size=Size (GB)
 quota.oplock=Read/Write Cache
 quota.securityStyle=Security Style
+quota.softLimit=Soft Limit
+quota.notificationLimit=Advisory Limit
+quota.softGrace=Grace Period (Days)
 
 resources.filesnapshots=File Snapshots
 resources.filesnapshots.deleteconfirm=Are you sure you want to delete this file snapshot?

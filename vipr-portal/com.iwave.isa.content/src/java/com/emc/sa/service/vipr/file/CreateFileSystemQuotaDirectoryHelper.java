@@ -53,9 +53,13 @@ public class CreateFileSystemQuotaDirectoryHelper {
     }
 
     public void createFileSystemQuotaDirectories() {
+        int tempSoftLimit=(softLimit!=null)?softLimit:0;
+        int tempAdvisoryLimit=(advisoryLimit!=null)?advisoryLimit:0; 
+        int tempGracePeriod=(gracePeriod!=null)?gracePeriod:0;        
+        
         for (FileShareRestRep fs : fileSystems) {
             URI fsId = fs.getId();
-            FileStorageUtils.createFileSystemQuotaDirectory(fsId, name, oplock, securityStyle, size, softLimit, advisoryLimit, gracePeriod);
+            FileStorageUtils.createFileSystemQuotaDirectory(fsId, name, oplock, securityStyle, size, tempSoftLimit, tempAdvisoryLimit, tempGracePeriod);
         }
     }
 }

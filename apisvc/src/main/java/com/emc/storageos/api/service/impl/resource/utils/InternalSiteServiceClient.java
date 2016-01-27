@@ -22,7 +22,7 @@ import com.sun.jersey.api.client.WebResource;
 /**
  * Internal API for communication among sites (within one specific VDC)
  */
-public class InternalSiteServiceClient extends BaseServiceClient {
+public class InternalSiteServiceClient extends BaseServiceClient implements AutoCloseable {
 
     private static final String INTERNAL_SITE_ROOT = "/site/internal";
     private static final String INTERNAL_SITE_INIT_STANDBY = INTERNAL_SITE_ROOT + "/initstandby";
@@ -152,5 +152,10 @@ public class InternalSiteServiceClient extends BaseServiceClient {
             throw e;
         }
         
+    }
+
+    @Override
+    public void close() {
+        this.shutdown();
     }
 }

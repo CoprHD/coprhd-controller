@@ -36,6 +36,12 @@ public class Site {
     
     public static final Site DUMMY_ACTIVE_SITE;
 
+    public enum NetworkHealth {
+        GOOD,
+        SLOW,
+        BROKEN
+    }
+
     private String uuid;
     private String vdcShortId;
     private String name;
@@ -47,7 +53,7 @@ public class Site {
     private long creationTime;
     private long lastStateUpdateTime;
     private double networkLatencyInMs;
-    private String networkHealth;
+    private NetworkHealth networkHealth;
     private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
     
@@ -156,11 +162,11 @@ public class Site {
         this.networkLatencyInMs = networkLatencyInMs;
     }
 
-    public String getNetworkHealth() {
+    public NetworkHealth getNetworkHealth() {
         return networkHealth;
     }
 
-    public void setNetworkHealth(String networkHealth) {
+    public void setNetworkHealth(NetworkHealth networkHealth) {
         this.networkHealth = networkHealth;
     }
 
@@ -228,7 +234,7 @@ public class Site {
             config.setConfig(KEY_PING, String.valueOf(networkLatencyInMs));
         }
         if (networkHealth != null) {
-            config.setConfig(KEY_NETWORK_HEALTH, networkHealth);
+            config.setConfig(KEY_NETWORK_HEALTH, networkHealth.toString());
         }
 
         if (state != null) {
@@ -259,7 +265,10 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
-            this.networkHealth = config.getConfig(KEY_NETWORK_HEALTH);
+            String networkHealthStr = config.getConfig(KEY_NETWORK_HEALTH);
+            if (networkHealthStr != null && !networkHealthStr.isEmpty()) {
+                this.networkHealth = Enum.valueOf(NetworkHealth.class, networkHealthStr);
+            }
             this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {

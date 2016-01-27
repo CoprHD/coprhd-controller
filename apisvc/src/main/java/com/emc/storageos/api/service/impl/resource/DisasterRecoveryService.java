@@ -1034,8 +1034,7 @@ public class DisasterRecoveryService {
                 log.info("Cant't find active site id, go on to do failover");
             } else {
                 oldActiveSite = drUtil.getSiteFromLocalVdc(activeSiteId);
-                oldActiveSite.setState(SiteState.ACTIVE_FAILING_OVER);
-                coordinator.removeServiceConfiguration(oldActiveSite.toConfiguration());
+                drUtil.removeSite(oldActiveSite);
             }
             
             Site newActiveSite = drUtil.getSiteFromLocalVdc(newActiveSiteUUID);

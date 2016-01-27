@@ -102,10 +102,9 @@ public class MobilityGroupMigrationService extends ViPRService {
     }
 
     private static <T> void waitAndRefresh(List<Task<T>> tasks) {
-        long t = 100;  // >0 to keep waitFor(t) from waiting until task completes
         for (Task<T> task : tasks) {
             try {
-                task.waitFor(t); // internal polling interval overrides (typically ~10 secs)
+                task.waitFor();
             } catch (TimeoutException te) {
                 // ignore timeout after polling interval
             } catch (Exception e) {

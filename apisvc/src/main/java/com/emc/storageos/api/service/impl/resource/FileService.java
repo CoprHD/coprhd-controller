@@ -2498,7 +2498,7 @@ public class FileService extends TaskResourceService {
        if (copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
            throw APIException.badRequests.actionNotApplicableForLocalMirrors(ProtectionOp.FAILOVER.getRestOp());
        } else if(copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString())) {
-           taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER.getRestOp());
+           taskResp = performProtectionAction(id, ProtectionOp.FAILOVER.getRestOp());
            taskList.getTaskList().add(taskResp);
        } else {
            throw APIException.badRequests.invalidCopyType(copy.getType());
@@ -2544,7 +2544,7 @@ public class FileService extends TaskResourceService {
       if (copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.toString())) {
           throw APIException.badRequests.actionNotApplicableForLocalMirrors(ProtectionOp.FAILBACK.getRestOp());
       } else if(copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.toString())) {
-          taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILBACK.getRestOp());
+          taskResp = performProtectionAction(id, ProtectionOp.FAILBACK.getRestOp());
           taskList.getTaskList().add(taskResp);
       } else {
           throw APIException.badRequests.invalidCopyType(copy.getType());

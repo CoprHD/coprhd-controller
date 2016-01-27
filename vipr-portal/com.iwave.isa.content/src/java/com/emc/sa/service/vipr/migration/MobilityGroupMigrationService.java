@@ -1,6 +1,7 @@
 package com.emc.sa.service.vipr.migration;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -18,7 +19,8 @@ import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByCluster;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByHost;
 import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumesByHostOrCluster;
 import com.emc.sa.service.vipr.block.tasks.MigrateBlockVolumes;
-import com.emc.sa.service.vipr.block.tasks.RemoveVolumesFromMobilityGroup;
+import com.emc.sa.service.vipr.block.tasks.RemoveVolumeFromMobilityGroup;
+import com.emc.sa.service.vipr.compute.ComputeUtils;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
@@ -26,6 +28,8 @@ import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
+import com.emc.vipr.client.exceptions.TimeoutException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -62,18 +66,52 @@ public class MobilityGroupMigrationService extends ViPRService {
             ingestVolumes();
         }
 
-        Tasks<VolumeRestRep> tasks = execute(new MigrateBlockVolumes(getVolumes(), mobilityGroup.getSourceStorageSystem(),
-                targetVirtualPool, targetStorageSystem));
+        List<Task<VolumeRestRep>> tasks = new ArrayList<>();
 
-        if (!tasks.getTasks().isEmpty()) {
-            if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
-                execute(new RemoveVolumesFromMobilityGroup(mobilityGroup.getId(), getVolumeList(tasks)));
+        for (URI volume : getVolumes()) {
+            try {
+                Task<VolumeRestRep> migrationTask = execute(new MigrateBlockVolumes(volume, mobilityGroup.getSourceStorageSystem(),
+                        targetVirtualPool, targetStorageSystem));
+                tasks.add(migrationTask);
+            } catch (ServiceErrorException ex) {
+                ExecutionUtils.currentContext().logError(ex.getDetailedMessage());
             }
-            addAffectedResources(tasks);
-        } else {
+        }
+
+        if (tasks.isEmpty()) {
             ExecutionUtils.fail("failTask.mobilityGroupMigration.noVolumesMigrated", new Object[] {}, new Object[] {});
         }
 
+        while (!tasks.isEmpty()) {
+            waitAndRefresh(tasks);
+            for (Task<VolumeRestRep> successfulTask : ComputeUtils.getSuccessfulTasks(tasks)) {
+                URI volumeId = successfulTask.getResourceId();
+                addAffectedResource(volumeId);
+                tasks.remove(successfulTask);
+                if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
+                    execute(new RemoveVolumeFromMobilityGroup(mobilityGroup.getId(), volumeId));
+                }
+            }
+            for (Task<VolumeRestRep> failedTask : ComputeUtils.getFailedTasks(tasks)) {
+                String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
+                ExecutionUtils.currentContext().logError("computeutils.exportbootvolumes.failure",
+                        failedTask.getResource().getName(), errorMessage);
+                tasks.remove(failedTask);
+            }
+        }
+    }
+
+    private static <T> void waitAndRefresh(List<Task<T>> tasks) {
+        long t = 100;  // >0 to keep waitFor(t) from waiting until task completes
+        for (Task<T> task : tasks) {
+            try {
+                task.waitFor(t); // internal polling interval overrides (typically ~10 secs)
+            } catch (TimeoutException te) {
+                // ignore timeout after polling interval
+            } catch (Exception e) {
+                ExecutionUtils.currentContext().logError("computeutils.task.exception", e.getMessage());
+            }
+        }
     }
 
     private void ingestVolumes() {

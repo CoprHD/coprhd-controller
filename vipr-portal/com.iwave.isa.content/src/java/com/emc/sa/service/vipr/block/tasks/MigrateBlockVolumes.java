@@ -5,46 +5,35 @@
 package com.emc.sa.service.vipr.block.tasks;
 
 import java.net.URI;
-import java.util.Set;
 
-import com.emc.sa.service.vipr.tasks.WaitForTasks;
+import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.block.MigrationParam;
 import com.emc.storageos.model.block.VolumeRestRep;
-import com.emc.vipr.client.Tasks;
-import com.emc.vipr.client.exceptions.ServiceErrorException;
+import com.emc.vipr.client.Task;
 
-public class MigrateBlockVolumes extends WaitForTasks<VolumeRestRep> {
-    private final Set<URI> volumeIds;
+public class MigrateBlockVolumes extends ViPRExecutionTask<Task<VolumeRestRep>> {
+    private final URI volumeId;
     private final URI sourceStorageSystem;
     private final URI targetVirtualPoolId;
     private final URI targetStorageSystem;
 
-    public MigrateBlockVolumes(Set<URI> volumeIds, URI sourceStorageSystem, URI targetVirtualPoolId, URI targetStorageSystem) {
-        this.volumeIds = volumeIds;
+    public MigrateBlockVolumes(URI volumeId, URI sourceStorageSystem, URI targetVirtualPoolId, URI targetStorageSystem) {
+        this.volumeId = volumeId;
         this.sourceStorageSystem = sourceStorageSystem;
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.targetStorageSystem = targetStorageSystem;
-        provideDetailArgs(volumeIds, sourceStorageSystem, targetVirtualPoolId, targetStorageSystem);
+        provideDetailArgs(volumeId, sourceStorageSystem, targetVirtualPoolId, targetStorageSystem);
     }
 
     @Override
-    protected Tasks<VolumeRestRep> doExecute() throws Exception {
-        Tasks<VolumeRestRep> tasks = new Tasks<VolumeRestRep>(getClient().auth().getClient(), null,
-                VolumeRestRep.class);
+    public Task<VolumeRestRep> executeTask() throws Exception {
 
-        for (URI volume : volumeIds) {
-            MigrationParam param = new MigrationParam();
-            param.setSrcStorageSystem(sourceStorageSystem);
-            param.setTgtStorageSystem(targetStorageSystem);
-            param.setVirtualPool(targetVirtualPoolId);
-            param.setVolume(volume);
+        MigrationParam param = new MigrationParam();
+        param.setSrcStorageSystem(sourceStorageSystem);
+        param.setTgtStorageSystem(targetStorageSystem);
+        param.setVirtualPool(targetVirtualPoolId);
+        param.setVolume(volumeId);
 
-            try {
-                tasks.getTasks().add(getClient().blockVolumes().migrate(param));
-            } catch (ServiceErrorException ex) {
-                logError(ex.getDetailedMessage());
-            }
-        }
-        return tasks;
+        return getClient().blockVolumes().migrate(param);
     }
 }

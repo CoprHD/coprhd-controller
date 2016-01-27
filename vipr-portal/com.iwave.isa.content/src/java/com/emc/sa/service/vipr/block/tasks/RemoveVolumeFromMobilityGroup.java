@@ -5,29 +5,29 @@
 package com.emc.sa.service.vipr.block.tasks;
 
 import java.net.URI;
-import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
 import com.emc.vipr.client.Tasks;
+import com.google.common.collect.Lists;
 
-public class RemoveVolumesFromMobilityGroup extends WaitForTasks<DataObjectRestRep> {
-    private final List<URI> volumeIds;
+public class RemoveVolumeFromMobilityGroup extends WaitForTasks<DataObjectRestRep> {
+    private final URI volumeId;
     private final URI mobilityGroup;
 
-    public RemoveVolumesFromMobilityGroup(URI mobilityGroup, List<URI> volumeIds) {
-        this.volumeIds = volumeIds;
+    public RemoveVolumeFromMobilityGroup(URI mobilityGroup, URI volumeId) {
+        this.volumeId = volumeId;
         this.mobilityGroup = mobilityGroup;
-        provideDetailArgs(volumeIds, mobilityGroup);
+        provideDetailArgs(volumeId, mobilityGroup);
     }
 
     @Override
     protected Tasks<DataObjectRestRep> doExecute() throws Exception {
         VolumeGroupUpdateParam updateParam = new VolumeGroupUpdateParam();
         VolumeGroupVolumeList volumeList = new VolumeGroupVolumeList();
-        volumeList.setVolumes(this.volumeIds);
+        volumeList.setVolumes(Lists.newArrayList(volumeId));
         updateParam.setRemoveVolumesList(volumeList);
         return new Tasks<DataObjectRestRep>(getClient().auth().getClient(), getClient().application()
                 .updateApplication(this.mobilityGroup, updateParam).getTaskList(),

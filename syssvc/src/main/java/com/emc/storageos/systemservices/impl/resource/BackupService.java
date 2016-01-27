@@ -623,7 +623,6 @@ public class BackupService {
         File backupDir= getBackupDir(backupName, isLocal);
 
         String myNodeId = backupOps.getCurrentNodeId();
-        log.info("myNodeId={} backupdir={}", myNodeId, backupDir.getAbsolutePath());
 
         try {
             backupOps.checkBackup(backupDir);
@@ -642,7 +641,8 @@ public class BackupService {
         String[] restoreCommand=new String[]{restoreCmd,
                 backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
                 restoreLog};
-        log.info("The restore command={}", restoreCommand);
+
+        log.info("The restore command=<{}>", restoreCommand);
 
         Exec.exec(120 * 1000, restoreCommand);
 

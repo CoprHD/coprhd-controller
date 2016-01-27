@@ -263,7 +263,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                         targetVpool = _dbClient.queryObject(VirtualPool.class, protectionSettings.getVirtualPool());
                     }
 
-                    fileLabelBuilder = new StringBuilder(sourceFileShare.toString()).append("-target-" + targetVArray.getLabel());
+                    fileLabelBuilder = new StringBuilder(sourceFileShare.getLabel().toString()).append("-target-" + targetVArray.getLabel());
                     targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                             project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
 

@@ -1208,7 +1208,8 @@ public class TenantsService extends TaggedResource {
             // check snapshot expire type is valid or not
             String expireType = param.getSnapshotExpire().getExpireType();
             if (!ArgValidator.isValidEnum(expireType, SnapshotExpireType.class)) {
-                _log.error("Invalid schedule snapshot expire type {}. Valid Snapshot expire types are hours, days, weeks and months",
+                _log.error(
+                        "Invalid schedule snapshot expire type {}. Valid Snapshot expire types are hours, days, weeks, months and never",
                         expireType);
                 throw APIException.badRequests.invalidScheduleSnapshotExpireType(expireType);
             }
@@ -1231,7 +1232,11 @@ public class TenantsService extends TaggedResource {
             schedulePolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency());
             if (isValidSnapshotExpire) {
                 schedulePolicy.setSnapshotExpireType(param.getSnapshotExpire().getExpireType());
-                schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
+                if (!param.getSnapshotExpire().getExpireType().equalsIgnoreCase(SnapshotExpireType.never.toString())) {
+                    schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
+                } else {
+                    schedulePolicy.setSnapshotExpireTime(null);
+                }
             }
             schedulePolicy.setTenantOrg(new NamedURI(tenant.getId(), schedulePolicy.getLabel()));
             _dbClient.createObject(schedulePolicy);

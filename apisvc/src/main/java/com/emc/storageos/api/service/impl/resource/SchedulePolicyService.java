@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.SchedulePolicy.SchedulePolicyType;
 import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.file.ScheduleSnapshotExpireParam;
 import com.emc.storageos.model.schedulepolicy.PolicyParam;
@@ -149,12 +150,20 @@ public class SchedulePolicyService extends TaggedResource {
         // check policy
         ArgValidator.checkFieldUriType(policyId, SchedulePolicy.class, "policyId");
 
+        // Check policy is associated with FS before update
+        SchedulePolicy schedulePolicy = getPolicyById(policyId, true);
+        StringSet resources = schedulePolicy.getAssignedResources();
+        if (resources != null && !resources.isEmpty()) {
+            _log.error("Unable to update schedule policy {} as it is already associated with resources",
+                    schedulePolicy.getPolicyName());
+            throw APIException.badRequests.unableToUpdateSchedulePolicy(schedulePolicy.getPolicyName());
+        }
+
         // check schedule policy type is valid or not
         if (!ArgValidator.isValidEnum(param.getPolicyType(), SchedulePolicyType.class)) {
             throw APIException.badRequests.invalidSchedulePolicyType(param.getPolicyType());
         }
 
-        SchedulePolicy schedulePolicy = getPolicyById(policyId, true);
         _log.info("Schedule policy {} update started", schedulePolicy.getPolicyName());
         if (null != param.getPolicyName() && !param.getPolicyName().isEmpty() &&
                 !schedulePolicy.getLabel().equalsIgnoreCase(param.getPolicyName())) {
@@ -203,7 +212,11 @@ public class SchedulePolicyService extends TaggedResource {
             schedulePolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency());
             if (isValidSnapshotExpire) {
                 schedulePolicy.setSnapshotExpireType(param.getSnapshotExpire().getExpireType());
-                schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
+                if (!param.getSnapshotExpire().getExpireType().equalsIgnoreCase(SnapshotExpireType.never.toString())) {
+                    schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
+                } else {
+                    schedulePolicy.setSnapshotExpireTime(null);
+                }
             }
             _dbClient.updateObject(schedulePolicy);
             _log.info("Schedule policy {} updated successfully", schedulePolicy.getPolicyName());
@@ -226,6 +239,14 @@ public class SchedulePolicyService extends TaggedResource {
         ArgValidator.checkFieldUriType(policyId, SchedulePolicy.class, "policyId");
         SchedulePolicy schedulePolicy = getPolicyById(policyId, true);
         ArgValidator.checkReference(SchedulePolicy.class, policyId, checkForDelete(schedulePolicy));
+
+        // Check policy is associated with FS before delete
+        StringSet resources = schedulePolicy.getAssignedResources();
+        if (resources != null && !resources.isEmpty()) {
+            _log.error("Unable to delete schedule policy {} as it is already associated with resources",
+                    schedulePolicy.getPolicyName());
+            throw APIException.badRequests.unableToDeleteSchedulePolicy(schedulePolicy.getPolicyName());
+        }
         _dbClient.markForDeletion(schedulePolicy);
         _log.info("Schedule policy {} deleted successfully", schedulePolicy.getPolicyName());
         return Response.ok().build();
@@ -299,6 +320,12 @@ public class SchedulePolicyService extends TaggedResource {
                 case "days":
                     schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
                     schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
+                    if (schedulePolicy.getScheduleDayOfWeek() != null) {
+                        schedulePolicy.setScheduleDayOfWeek(null);
+                    }
+                    if (schedulePolicy.getScheduleDayOfMonth() != null) {
+                        schedulePolicy.setScheduleDayOfMonth(null);
+                    }
                     break;
                 case "weeks":
                     schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
@@ -316,12 +343,18 @@ public class SchedulePolicyService extends TaggedResource {
                         return false;
                     }
                     schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
+                    if (schedulePolicy.getScheduleDayOfMonth() != null) {
+                        schedulePolicy.setScheduleDayOfMonth(null);
+                    }
                     break;
                 case "months":
                     if (schedule.getScheduleDayOfMonth() > 0 && schedule.getScheduleDayOfMonth() <= 31) {
                         schedulePolicy.setScheduleDayOfMonth((long) schedule.getScheduleDayOfMonth());
                         schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
                         schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
+                        if (schedulePolicy.getScheduleDayOfWeek() != null) {
+                            schedulePolicy.setScheduleDayOfWeek(null);
+                        }
                     } else {
                         errorMsg.append("required parameter schedule_day_of_month is missing or value: " + schedule.getScheduleDayOfMonth()
                                 + " is invalid");
@@ -361,6 +394,8 @@ public class SchedulePolicyService extends TaggedResource {
             case "months":
                 seconds = expireValue * 30 * 24 * 3600;
                 break;
+            case "never":
+                return true;
             default:
                 return false;
         }

@@ -75,7 +75,10 @@ public class GeoServiceClient extends BaseServiceClient {
     public static final String INTERVDC_IPSEC_KEY_ROTATION_URI = INTERVDC_IPSEC_SERVICE + "/key";
     public static final String INTERVDC_IPSEC_PROPERTIES_URI = INTERVDC_IPSEC_SERVICE + "/properties";
 
-    public static final int MAX_RETRIES = 12;
+    public static int MAX_RETRIES = 12;
+    public static void setMaxRetries(int maxRetries) {
+        MAX_RETRIES = maxRetries;
+    }
 
     public final static String VDCOP_LOCK_NAME = "vdcOpLock";
     // An add VDC operation can easily take up to 15 minutes. Use 30 minutes as timeout

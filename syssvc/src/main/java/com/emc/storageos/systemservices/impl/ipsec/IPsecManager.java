@@ -129,6 +129,10 @@ public class IPsecManager {
      * @return
      */
     public String changeIpsecStatus(String status) {
+        return changeIpsecStatus(status, true);
+    }
+
+    public String changeIpsecStatus(String status, boolean bChangeStatusForOtherVdcs) {
         if (status != null && (status.equalsIgnoreCase(STATUS_ENABLED) || status.equalsIgnoreCase(STATUS_DISABLED))) {
             String oldState = ipsecConfig.getIpsecStatus();
             if (status.equalsIgnoreCase(oldState)) {
@@ -138,7 +142,7 @@ public class IPsecManager {
             log.info("changing Ipsec State from " + oldState + " to " + status);
 
             // in GEO env, sending request to other vdcs
-            if (drUtil.isMultivdc()) {
+            if (bChangeStatusForOtherVdcs && drUtil.isMultivdc()) {
                 List<String> vdcIds = drUtil.getOtherVdcIds();
                 String vdcConfigVersion = loadVdcConfigVersionFromZK();
                 for (String peerVdcId : vdcIds) {

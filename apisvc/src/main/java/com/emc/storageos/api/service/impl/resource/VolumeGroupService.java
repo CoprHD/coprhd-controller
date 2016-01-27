@@ -421,8 +421,8 @@ public class VolumeGroupService extends TaskResourceService {
                 if (msg != null && !msg.isEmpty()) {
                     throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
                 }
-                isChanged = true;
             }
+            isChanged = true;
         }
 
         if (isChanged) {

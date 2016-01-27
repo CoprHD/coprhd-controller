@@ -366,6 +366,9 @@ public class MobilityGroups extends ViprResourceController {
                         VolumeGroupUpdateParam param = new VolumeGroupUpdateParam();
                         Set<String> parentResults = getParents(parents);
                         parentResults.remove(id);
+                        if (parentResults.isEmpty()) {
+                            parentResults.add("null");
+                        }
                         param.setParents(parentResults);
                         getViprClient().application().updateApplication(add, param);
                     }

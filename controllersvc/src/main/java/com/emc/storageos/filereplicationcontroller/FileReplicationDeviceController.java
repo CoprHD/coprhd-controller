@@ -5,6 +5,7 @@
 package com.emc.storageos.filereplicationcontroller;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Arrays;
@@ -21,22 +22,29 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorCancelTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorDetachTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorRollbackCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileCreateTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileStopTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.RemoteFileMirrorOperation;
-
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
-
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.DbClient;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
+import static com.google.common.collect.Collections2.transform;
 import static java.util.Arrays.asList;
 
 /**
@@ -150,17 +158,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return null;
     }
 
-    @Override
-    public void performNativeContinuousCopies(URI storage, URI sourceFileShare,
-            List<URI> mirrorURIs, String opType, String opId)
-            throws ControllerException {
-    }
-
-    @Override
-    public void performRemoteContinuousCopies(URI storage, URI copyId,
-            String opType, String opId) throws ControllerException {
-        
-    }
+    
     
     /**
      * Create Replication Session Step
@@ -410,7 +408,88 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return true;
     }
 
-    
+    @Override
+    public void performNativeContinuousCopies(URI storage, URI sourceFileShare,
+            List<URI> mirrorURIs, String opType, String opId) throws ControllerException {
+    }
+
+    @Override
+    public void performRemoteContinuousCopies(URI storage, URI copyId, 
+                        String opType, String opId) throws ControllerException {
+        
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);
+        
+        FileShare fileShare = dbClient.queryObject(FileShare.class, copyId);
+        List<String> targetfileUris = new ArrayList<String>();
+        List<URI> combined = new ArrayList<URI>();
+        if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(fileShare.getPersonality())) {
+            targetfileUris.addAll(fileShare.getMirrorfsTargets());
+
+            combined.add(fileShare.getId());
+            combined.addAll(transform(fileShare.getMirrorfsTargets(), FCTN_STRING_TO_URI));
+        }
+        TaskCompleter completer = null;
+        try {
+            if (opType.equalsIgnoreCase("failover")) {
+                
+                for (String target : targetfileUris) {
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    completer = new MirrorFileFailoverTaskCompleter(FileShare.class, fileShare.getId(), opId);
+                    StorageSystem systemTarget = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
+                    getRemoteMirrorDevice(systemTarget).doFailoverLink(systemTarget, targetFileShare, completer);
+                }
+
+            } else if (opType.equalsIgnoreCase("pause")) {
+                completer = new MirrorFilePauseTaskCompleter(FileShare.class, combined, opId);
+                for (String target : targetfileUris) {
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    getRemoteMirrorDevice(system).doSuspendLink(system, targetFileShare, completer);
+                }
+
+                
+            } else if (opType.equalsIgnoreCase("failback")) {
+                for (String target : targetfileUris) {
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    completer = new MirrorFileFailoverTaskCompleter(fileShare.getId(), targetFileShare.getId(), opId);
+                    StorageSystem systemTarget = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
+                    getRemoteMirrorDevice(system).doFailbackLink(system, targetFileShare, completer);
+                }
+               
+            } else if (opType.equalsIgnoreCase("resume")) {
+                completer = new MirrorFileResumeTaskCompleter(FileShare.class, combined, opId);
+                for (String target : targetfileUris) {
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    getRemoteMirrorDevice(system).doResumeLink(system, targetFileShare, completer);
+                }
+
+                
+            } else if (opType.equalsIgnoreCase("start")) {
+                for (String target : targetfileUris) {
+                    
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    completer = new MirrorFileStartTaskCompleter(FileShare.class, fileShare.getId(), opId);                    
+                    
+                    getRemoteMirrorDevice(system).doStartMirrorLink(system, targetFileShare, completer);
+                }
+            } else if (opType.equalsIgnoreCase("sync")) {
+               
+            } else if (opType.equalsIgnoreCase("stop")) {
+                    for (String target : targetfileUris) {
+                    
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    completer = new MirrorFileStopTaskCompleter(fileShare.getId(), targetFileShare.getId(), opId);                    
+                    getRemoteMirrorDevice(system).doStopMirrorLink(system, targetFileShare, completer);
+                }
+            } 
+            
+        } catch (Exception e) {
+            log.error("Failed operation {}", opType, e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(dbClient, error);
+            }
+        }
+    }
     
     /**
      * Convenience method to build a Map of URI's to their respective fileshares based on a List of

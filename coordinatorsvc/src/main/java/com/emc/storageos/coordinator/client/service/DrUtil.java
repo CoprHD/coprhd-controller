@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteInfo.ActionScope;
@@ -469,12 +470,22 @@ public class DrUtil {
     }
 
     /**
-     * Will remove both /config/disasterRecoverySites/${vdc_shortid}/${uuid} and /sites/${uuid} nodes.
+     * Will remove 3 ZNodes:
+     *     1. /config/disasterRecoverySites/${vdc_shortid}/${uuid} node
+     *     2. /sites/${uuid} node
+     *     3. /config/upgradetargetpropertyoverride/${uuid} node
      * @param site
      */
     public void removeSite(Site site) {
         coordinator.removeServiceConfiguration(site.toConfiguration());
+
         coordinator.deletePath(getSitePath(site.getUuid()));
+
+        ConfigurationImpl sitePropsCfg = new ConfigurationImpl();
+        sitePropsCfg.setId(site.getUuid());
+        sitePropsCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+        coordinator.removeServiceConfiguration(sitePropsCfg);
+
         log.info("Removed site {} configuration from ZK", site.getUuid());
     }
 

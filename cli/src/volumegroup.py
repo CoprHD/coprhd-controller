@@ -457,6 +457,23 @@ class VolumeGroup(object):
         else:
             return o   
 
+    # Blocks the operation until the task is complete/error out/timeout
+    def check_for_sync(self, result, sync):
+        if(sync):
+            if(len(result["resource"]) > 0):
+                resource = result["resource"]
+                return (
+                    common.block_until_complete("volume", resource["id"],
+                                                result["id"], self.__ipAddr,
+                                                self.__port)
+                )
+            else:
+                raise SOSError(
+                    SOSError.SOS_FAILURE_ERR,
+                    "error: task list is empty, no task response found")
+        else:
+            return result
+
 
 
 #SHOW resource parser
@@ -953,9 +970,11 @@ def clone_parser(subcommand_parsers, common_parser):
 
 
 def volume_group_clone(args):
-    
     obj = VolumeGroup(args.ip, args.port)
-    if(args.volumes and len(args.volumes) > 1 and args.sync):
+    if(not args.tenant):
+        args.tenant = ""
+        
+    if(args.volumes and len(args.volumes.split(',')) > 1 and args.sync):
         raise SOSError(
             SOSError.CMD_LINE_ERR,
             'error: Synchronous operation is not allowed as ' +

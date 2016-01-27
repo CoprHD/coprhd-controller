@@ -6008,10 +6008,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         for (Map.Entry<URI, AddRemoveVolumes> entry : addRemoveVolumesMap.entrySet()) {
             URI storageUri = entry.getKey();
             List<URI> removeVolumesForStorageSystem = entry.getValue().removeVolumes;
-            
+            List<URI> addVolumes = entry.getValue().addVolumes;
+            URI cguri = null;
+            if (addVolumes != null && !addVolumes.isEmpty()) {
+                Volume vol = _dbClient.queryObject(Volume.class, addVolumes.get(0));
+                cguri = vol.getConsistencyGroup();
+            }
             ApplicationAddVolumeList addVolsForOneStorageSystem = new ApplicationAddVolumeList();
             addVolsForOneStorageSystem.setVolumes(entry.getValue().addVolumes);
-            addVolsForOneStorageSystem.setConsistencyGroup(addVolList == null ? null : addVolList.getConsistencyGroup());
+            addVolsForOneStorageSystem.setConsistencyGroup(addVolList == null ? null : cguri);
             addVolsForOneStorageSystem.setReplicationGroupName(addVolList == null ? null : addVolList.getReplicationGroupName());
             
             waitFor = addStepsForUpdateApplicationSingleStorage(workflow, completer, storageUri, addVolsForOneStorageSystem, removeVolumesForStorageSystem, 
@@ -6070,7 +6075,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                        String.format("Remove volumes from consistency group %s", cguri.toString()),
                        null,storage, storageSystem.getSystemType(),
                        this.getClass(),
-                       removeFromConsistencyGroupMethod(storageUri, cguri, removeVols),
+                       removeFromConsistencyGroupMethod(storageUri, cguri, removeVols, false),
                        addToConsistencyGroupMethod(storage, cguri, null, removeVols), null);
            }
        }
@@ -6078,6 +6083,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
        if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
            _log.info("Creating workflows for adding volumes to CG and application");
            addVolumesList = addVolList.getVolumes();
+           String rgName = addVolList.getReplicationGroupName();
            URI voluri = addVolumesList.get(0);
            Volume vol = _dbClient.queryObject(Volume.class, voluri);
            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
@@ -6087,13 +6093,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
 
            // check if cg is created, if not create it
-           if (!cg.created()) {
+           if (!cg.created(rgName, storageSystem.getId())) {
                _log.info("Consistency group not created. Creating it");
                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                        String.format("Creating consistency group %s", cg.getLabel()),
                        waitFor, storage, storageSystem.getSystemType(),
                        this.getClass(),
-                       createConsistencyGroupMethod(storage, cguri),
+                       createConsistencyGroupMethod(storage, cguri, rgName),
                        rollbackMethodNullMethod(), null);
            }
 
@@ -6101,7 +6107,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                    String.format("Adding volumes to consistency group %s", cguri),
                    waitFor, storage, storageSystem.getSystemType(),
                    this.getClass(),
-                   addToConsistencyGroupMethod(storage, cguri, addVolList.getReplicationGroupName(), addVolumesList),
+                   addToConsistencyGroupMethod(storage, cguri, rgName, addVolumesList),
                    rollbackMethodNullMethod(), null);
 
            // call ReplicaDeviceController

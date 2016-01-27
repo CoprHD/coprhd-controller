@@ -33,8 +33,8 @@ public class JobContext
 
     public JobContext(DbClient dbClient, CIMConnectionFactory cimConnectionFactory,
             VPlexApiFactory vplexApiFactory, HDSApiFactory hdsApiFactory, CinderApiFactory cinderApiFactory,
-            VNXeApiClientFactory vnxeApiClientFactory, IsilonApiFactory isilonApiFactory, SmisCommandHelper helper, 
-            XIVSmisCommandHelper xivHelper) {
+            VNXeApiClientFactory vnxeApiClientFactory, SmisCommandHelper helper, 
+            XIVSmisCommandHelper xivHelper, IsilonApiFactory isilonApiFactory) {
         _dbClient = dbClient;
         _cimConnectionFactory = cimConnectionFactory;
         _vplexApiFactory = vplexApiFactory;

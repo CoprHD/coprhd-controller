@@ -1278,6 +1278,7 @@
 		<property name="cimConnectionFactory" ref="CIMConnectionFactory" />
 		<property name="vplexApiFactory" ref="vplexapifactory"/>
 		<property name="hdsApiFactory" ref="hdsApiFactory"/>
+		<property name="isilonApiFactory" ref="isilonapifactory" />
         <property name="cinderApiFactory" ref="cinderapifactory"/>
 		<property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
 		<property name="workflowService" ref="workflowService" />

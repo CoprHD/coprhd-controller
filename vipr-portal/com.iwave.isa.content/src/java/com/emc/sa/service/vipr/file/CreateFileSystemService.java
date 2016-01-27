@@ -50,6 +50,6 @@ public class CreateFileSystemService extends ViPRService {
         int tempSoftLimit=(softLimit!=null)?softLimit:0;
         int tempAdvisoryLimit=(advisoryLimit!=null)?advisoryLimit:0; 
         int tempGracePeriod=(gracePeriod!=null)?gracePeriod:0;
-        FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb, tempSoftLimit, tempAdvisoryLimit, tempGracePeriod);
+        FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb, tempAdvisoryLimit, tempSoftLimit, tempGracePeriod);
     }
 }

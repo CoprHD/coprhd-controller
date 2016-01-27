@@ -32,7 +32,7 @@ public class CreateFileSystemQuotaDirectory extends WaitForTask<QuotaDirectoryRe
         this(fileSystemId, name, oplock, securityStyle, size,0,0,0);
     }
     
-    public CreateFileSystemQuotaDirectory(URI fileSystemId, String name, Boolean oplock, String securityStyle, String size, int advisoryLimit, int softLimit, int gracePeriod) {
+    public CreateFileSystemQuotaDirectory(URI fileSystemId, String name, Boolean oplock, String securityStyle, String size, int softLimit, int advisoryLimit, int gracePeriod) {
         this.fileSystemId = fileSystemId;
         this.name = name;
         this.oplock = oplock;

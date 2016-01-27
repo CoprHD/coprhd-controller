@@ -330,8 +330,8 @@ public class FileStorageUtils {
         return task.getResourceId();
     }
 
-    public static URI createFileSystemQuotaDirectory(URI fileSystemId, String name, Boolean oplock, String securityStyle, String size) {
-        Task<QuotaDirectoryRestRep> task = execute(new CreateFileSystemQuotaDirectory(fileSystemId, name, oplock, securityStyle, size));
+    public static URI createFileSystemQuotaDirectory(URI fileSystemId, String name, Boolean oplock, String securityStyle, String size, int softLimit , int advisoryLimit, int gracePeriod) {
+        Task<QuotaDirectoryRestRep> task = execute(new CreateFileSystemQuotaDirectory(fileSystemId, name, oplock, securityStyle, size,softLimit, advisoryLimit, gracePeriod));
         addAffectedResource(task);
         return task.getResourceId();
     }

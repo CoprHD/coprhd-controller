@@ -617,9 +617,9 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         // Remove the reference of the snapshot from the snapshot list.
                         if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()) != null) {
                             String key = SupportedVolumeInformation.SNAPSHOTS.toString();
-                            StringSet volInfo = volume.getVolumeInformation().get(key);
-                            volInfo.removeAll(rpVolumeSnapMap.get(rpVolumeGUID));
-                            volume.getVolumeInformation().get(key).replace(volInfo);
+                            for (String rpSnap : rpVolumeSnapMap.get(rpVolumeGUID)) {
+                                volume.getVolumeInformation().get(key).remove(rpSnap);
+                            }
                             
                             // If it's the last snapshot, remove the whole key.
                             if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).isEmpty()) {

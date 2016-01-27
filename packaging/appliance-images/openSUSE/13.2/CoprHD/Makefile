@@ -90,7 +90,7 @@ createREPO: | downdloadRPM downdloadTGZ
 	if [ -f $(SOURCE_RPM) ]; then \
 		cp -fr $(SOURCE_RPM) $(WORKSPACE)/zypper/repo/; \
 	fi
-	make -f $(WORKSPACE)/../configure-network/Makefile
+	make --directory=$(WORKSPACE)/../configure-network
 	cp -f $(WORKSPACE)/../configure-network/RPMS/noarch/* $(WORKSPACE)/zypper/repo/
 	find $(WORKSPACE)/zypper/pkg -iname \*.rpm -exec cp -f {} $(WORKSPACE)/zypper/repo/ \;
 	createrepo $(WORKSPACE)/zypper/repo

@@ -70,7 +70,7 @@ createREPO: | downloadRPM
 	$(call targetLog,+)
 	rm -fr $(WORKSPACE)/zypper/repo
 	mkdir -p $(WORKSPACE)/zypper/repo
-	make -f $(WORKSPACE)/../configure-network/Makefile
+	make --directory=$(WORKSPACE)/../configure-network
 	cp -f $(WORKSPACE)/../configure-network/RPMS/noarch/* $(WORKSPACE)/zypper/repo/
 	find $(WORKSPACE)/zypper/pkg -iname \*.rpm -exec cp -f {} $(WORKSPACE)/zypper/repo/ \;
 	createrepo $(WORKSPACE)/zypper/repo

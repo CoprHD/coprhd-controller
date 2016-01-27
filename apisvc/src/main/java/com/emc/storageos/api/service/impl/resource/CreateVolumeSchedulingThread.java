@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.SRDFScheduler;
 import com.emc.storageos.api.service.impl.placement.Scheduler;
+import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolBucket;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -81,15 +82,21 @@ class CreateVolumeSchedulingThread implements Runnable {
         	Map<Integer, VirtualPool> vPoolBucketsByOrder = new HashMap<Integer, VirtualPool>();
         	vPoolBucketsByOrder.put(0, vpool);
         	
-        	this.blockService._placementManager.groupMasterVirtualPoolIntoChildBuckets(vpool, 1, vPoolBucketsByOrder);
+        
+        	
+        	Map<Integer, VirtualPoolBucket> vPoolBucketsByConfigBuckets = new HashMap<Integer, VirtualPoolBucket>();
         	
         	
-        	for (int i = 0; i< vPoolBucketsByOrder.size(); i++) {
-        		Set<Entry<Integer, VirtualPool>> bucketIterator1 = vPoolBucketsByOrder.entrySet();
-        		Entry<Integer, VirtualPool>  entryBucket= (Entry<Integer, VirtualPool>) bucketIterator1.toArray()[i];
-        		VirtualPool vPoolChild = entryBucket.getValue();
+        	this.blockService._placementManager.groupMasterVirtualPoolIntoBuckets(vpool,0, vPoolBucketsByConfigBuckets);
+        	
+        	
+        	for (int i = 1; i<= vPoolBucketsByConfigBuckets.size(); i++) {
+        		VirtualPoolBucket bucket = vPoolBucketsByConfigBuckets.get(i);
+        	
+        		VirtualPool vPoolChild = bucket.getvPool();
+        		String vPoolType = bucket.getVpoolType();
         		Volume volume = null;
-        		if (i ==0) {
+        		if (i ==1) {
         		
         		//fill in the cascaded capabilities
             	this.blockService._placementManager.buildCascadedCapabilities(vPoolChild, capabilities,project);
@@ -106,10 +113,10 @@ class CreateVolumeSchedulingThread implements Runnable {
                 
         		} else {
         			//do change vpool
-        			Scheduler scheduler = this.blockService._placementManager.getBlockServiceImpl(vPoolChild);
+        			Scheduler scheduler = this.blockService._placementManager.getBlockServiceImpl(vPoolChild, vPoolType);
         		    //Build Capabilities if necessary
         			List childRecommendations = scheduler.scheduleStorageForCosChangeUnprotected(volume, vPoolChild, 
-        					SRDFScheduler.getTargetVirtualArraysForVirtualPool(project, vPoolChild, this.blockService._dbClient,
+        					scheduler.getTargetVirtualArraysForVirtualPool(project, vPoolChild, this.blockService._dbClient,
         		    		this.blockService._permissionsHelper), null);
         			 
         			  _log.info("Child Recommendations : ",Joiner.on("@@@@#####").join(childRecommendations));

@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolBucket;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -28,6 +29,10 @@ public class PlacementManager {
     // Enumeration specifying the valid scheduler keys.
     public enum SchedulerType {
         block, rp, srdf, vplex, rpvplex
+    }
+    
+    public enum Schedulers {
+        srdf,vplex,block
     }
 
     private DbClient dbClient;
@@ -76,6 +81,24 @@ public class PlacementManager {
 
         return scheduler;
     }
+    
+    public Scheduler getBlockServiceImpl(VirtualPool vpool, String type) {
+
+        // Select an implementation of the right scheduler
+        Scheduler scheduler;
+        if ("rp".equalsIgnoreCase(type)) {
+            scheduler = storageSchedulers.get("rp");
+        } else if ("vplex".equalsIgnoreCase(type)) {
+            scheduler = storageSchedulers.get("vplex");
+        } else if ("srdf".equalsIgnoreCase(type)) {
+            scheduler = storageSchedulers.get("srdf");
+        } else {
+            scheduler = storageSchedulers.get("block");
+        }
+
+        return scheduler;
+    }
+
 
     /**
      * Determines if any of the RP targets has HA (VPlex local/distributed)
@@ -121,12 +144,18 @@ public class PlacementManager {
      * @throws CloneNotSupportedException 
      */
     public void groupMasterVirtualPoolIntoChildBuckets(VirtualPool masterVirtualPool, int order, Map<Integer,VirtualPool> vPoolBucketsByOrder ) throws CloneNotSupportedException {
+    	//Virtual Pool with both VPlex & SRDF configured on the same site.
+    	if (VirtualPool.vPoolSpecifiesHighAvailability(masterVirtualPool) && VirtualPool.vPoolSpecifiesSRDF(masterVirtualPool)) {
+    		vPoolBucketsByOrder.put(++order, (VirtualPool)masterVirtualPool.clone());
+    	}
     	
     	if (VirtualPool.vPoolSpecifiesHighAvailability(masterVirtualPool)) {
     		VirtualPool haVPool = VirtualPool.getHAVPool(masterVirtualPool, dbClient);
     		//use Clone of the virtual Pool, because we might be changing assigned pools
+    		if (null != haVPool) {
     		vPoolBucketsByOrder.put(++order, (VirtualPool)haVPool.clone());
     		groupMasterVirtualPoolIntoChildBuckets(haVPool, order,vPoolBucketsByOrder);
+    		}
     	}
     	
     	if (VirtualPool.vPoolSpecifiesSRDF(masterVirtualPool)) {
@@ -143,6 +172,69 @@ public class PlacementManager {
     	}
 		
     	
+    }
+    
+   
+    
+    public void groupMasterVirtualPoolIntoBuckets(VirtualPool masterVirtualPool, int order,
+            Map<Integer, VirtualPoolBucket> vPoolBucketsByOrder) throws CloneNotSupportedException {
+        // Virtual Pool with both VPlex & SRDF configured on the same site.
+        if (VirtualPool.vPoolSpecifiesHighAvailability(masterVirtualPool)
+                && VirtualPool.vPoolSpecifiesSRDF(masterVirtualPool)) {
+            vPoolBucketsByOrder.put(++order, new VirtualPoolBucket(SchedulerType.vplex.name(), masterVirtualPool));
+            vPoolBucketsByOrder.put(++order, new VirtualPoolBucket(SchedulerType.srdf.name(), masterVirtualPool));
+
+            VirtualPool haVPool = VirtualPool.getHAVPool(masterVirtualPool, dbClient);
+            // use Clone of the virtual Pool, because we might be changing
+            // assigned pools
+            if (null != haVPool) {
+
+                groupMasterVirtualPoolIntoBuckets(haVPool, order, vPoolBucketsByOrder);
+            }
+
+            Map<URI, VpoolRemoteCopyProtectionSettings> srdfSettings = VirtualPool.getRemoteProtectionSettings(
+                    masterVirtualPool, dbClient);
+            for (Entry<URI, VpoolRemoteCopyProtectionSettings> srdfSetting : srdfSettings.entrySet()) {
+                VpoolRemoteCopyProtectionSettings srdfSettingDetail = srdfSetting.getValue();
+                URI vPoolUri = srdfSettingDetail.getVirtualPool();
+                if (null != vPoolUri) {
+                    VirtualPool srdfTgtVpool = dbClient.queryObject(VirtualPool.class, vPoolUri);
+                    groupMasterVirtualPoolIntoBuckets(srdfTgtVpool, order, vPoolBucketsByOrder);
+
+                }
+            }
+
+        }
+
+        else if (VirtualPool.vPoolSpecifiesHighAvailability(masterVirtualPool)) {
+            vPoolBucketsByOrder.put(++order, new VirtualPoolBucket(SchedulerType.vplex.name(), masterVirtualPool));
+            VirtualPool haVPool = VirtualPool.getHAVPool(masterVirtualPool, dbClient);
+            // use Clone of the virtual Pool, because we might be changing
+            // assigned pools
+            if (null != haVPool) {
+
+                groupMasterVirtualPoolIntoBuckets(haVPool, order, vPoolBucketsByOrder);
+            }
+        }
+
+        else if (VirtualPool.vPoolSpecifiesSRDF(masterVirtualPool)) {
+            vPoolBucketsByOrder.put(++order, new VirtualPoolBucket(SchedulerType.srdf.name(), masterVirtualPool));
+
+            Map<URI, VpoolRemoteCopyProtectionSettings> srdfSettings = VirtualPool.getRemoteProtectionSettings(
+                    masterVirtualPool, dbClient);
+            for (Entry<URI, VpoolRemoteCopyProtectionSettings> srdfSetting : srdfSettings.entrySet()) {
+                VpoolRemoteCopyProtectionSettings srdfSettingDetail = srdfSetting.getValue();
+                URI vPoolUri = srdfSettingDetail.getVirtualPool();
+                if (null != vPoolUri) {
+                    VirtualPool srdfTgtVpool = dbClient.queryObject(VirtualPool.class, vPoolUri);
+                    groupMasterVirtualPoolIntoBuckets(srdfTgtVpool, order, vPoolBucketsByOrder);
+
+                }
+            }
+        } else {
+            vPoolBucketsByOrder.put(++order, new VirtualPoolBucket(SchedulerType.block.name(), masterVirtualPool));
+        }
+
     }
     
     public List<StoragePool> getStoragePoolsBasedOnRecommendations(VirtualPool vPool, List<Recommendation> recommendations) {
@@ -194,7 +286,7 @@ public class PlacementManager {
     	//SRDF Child- Attributes.Remote_Copy- Protection Settings
     	if (null != VirtualPool.getRemoteProtectionSettings(vPool, dbClient)) {
     		capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_COPY_SETTINGS, VirtualPool.getRemoteProtectionSettings(vPool, dbClient));
-    		capabilities.put(Attributes.project.toString(), project.getId());
+    		capabilities.put(Attributes.project.toString(), project.getId().toString());
     	}
     	if (null != VirtualPool.getHAVPool(vPool, dbClient)) {
     		//TODO

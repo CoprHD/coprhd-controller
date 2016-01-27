@@ -140,7 +140,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         return getBlockScheduler().scheduleStorageForCosChangeUnprotected(
                 volume,
                 cos,
-                SRDFScheduler.getTargetVirtualArraysForVirtualPool(project, cos, _dbClient,
+                getBlockScheduler().getTargetVirtualArraysForVirtualPool(project, cos, _dbClient,
                         _permissionsHelper),
                 cosChangeParam);
     }
@@ -228,7 +228,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
                     Map<URI, VpoolRemoteCopyProtectionSettings> settingMap = VirtualPool
                             .getRemoteProtectionSettings(vpool, _dbClient);
-                    for (VirtualArray protectionVirtualArray : SRDFScheduler
+                    for (VirtualArray protectionVirtualArray : getBlockScheduler()
                             .getTargetVirtualArraysForVirtualPool(project, vpool, _dbClient,
                                     _permissionsHelper)) {
                         VpoolRemoteCopyProtectionSettings settings = settingMap

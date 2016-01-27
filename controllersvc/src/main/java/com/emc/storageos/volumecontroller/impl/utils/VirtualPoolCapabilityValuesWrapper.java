@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 
 /**
  * Wrapper for VirtualPoolParams HashMap
@@ -330,6 +331,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     
     public String getFileRpCopyMode() {
         Object value = _vpoolCapabilities.get(FILE_RP_COPY_MODE);
+        return value != null ? (String) value : null;
+    }
+    
+    public String getProject() {
+        Object value = _vpoolCapabilities.get(Attributes.project.toString());
         return value != null ? (String) value : null;
     }
 

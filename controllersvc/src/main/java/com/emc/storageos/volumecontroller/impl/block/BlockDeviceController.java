@@ -4176,6 +4176,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
                 // call ReplicaDeviceController
                 waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, consistencyGroup, addVolumesList, task);
+                
             }
 
             if (removeVolumesList != null && !removeVolumesList.isEmpty()) {

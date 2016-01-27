@@ -66,7 +66,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
 		Project project = null;
 		if (null != attributeMap.get(Attributes.project.toString())) {
 
-			projectURI = (URI) attributeMap.get(Attributes.project.toString());
+			projectURI = URI.create(String.valueOf( attributeMap.get(Attributes.project.toString())));
 			project = _objectCache.getDbClient().queryObject(Project.class,
 					projectURI);
 		}

@@ -21,9 +21,11 @@ import java.util.Map;
 import java.util.Set;
 
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.AbstractBlockServiceApiImpl;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -469,6 +471,7 @@ public class StorageScheduler implements Scheduler {
         provMapBuilder.putAttributeInMap(Attributes.unique_policy_names.toString(), vpool.getUniquePolicyNames());
         provMapBuilder.putAttributeInMap(AttributeMatcher.PLACEMENT_MATCHERS, true);
         provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.drive_type.name(), vpool.getDriveType());
+        provMapBuilder.putAttributeInMap(Attributes.project.toString(), capabilities.getProject());
         StringSetMap arrayInfo = vpool.getArrayInfo();
         if (null != arrayInfo) {
             Set<String> raidLevels = arrayInfo.get(VirtualPoolCapabilityValuesWrapper.RAID_LEVEL);
@@ -1424,6 +1427,13 @@ public class StorageScheduler implements Scheduler {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+    @Override
+    public List<VirtualArray> getTargetVirtualArraysForVirtualPool(Project project, VirtualPool vpool,
+            DbClient dbClient, PermissionsHelper permissionHelper) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
 	
 	

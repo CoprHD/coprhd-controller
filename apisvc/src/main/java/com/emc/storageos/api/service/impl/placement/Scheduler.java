@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.placement;
 
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -21,4 +23,8 @@ public interface Scheduler {
     public List<Recommendation> scheduleStorageForCosChangeUnprotected(final Volume volume,
             final VirtualPool vpool, final List<VirtualArray> targetVarrays,
             final VirtualPoolChangeParam param);
+    
+    public List<VirtualArray> getTargetVirtualArraysForVirtualPool(final Project project,
+            final VirtualPool vpool, final DbClient dbClient,
+            final PermissionsHelper permissionHelper);
 }

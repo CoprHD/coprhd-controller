@@ -1112,4 +1112,11 @@ public class VPlexScheduler implements Scheduler {
 		return null;
 	}
 
+    @Override
+    public List<VirtualArray> getTargetVirtualArraysForVirtualPool(Project project, VirtualPool vpool,
+            DbClient dbClient, PermissionsHelper permissionHelper) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }

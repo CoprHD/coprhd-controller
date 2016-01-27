@@ -45,6 +45,7 @@
         <ref bean="storageSystemMatcher" />
         <ref bean="vmaxFASTInitialTierSelectionMatcher"/>
         <ref bean="poolPreferenceBasedOnDriveMathcer"/>
+        <ref bean="remoteMirrorProtectionMatcher"/>
         <ref bean="srdfMetroMatcher"/>
         <ref bean="fileReplicationMatcher" />
         <ref bean="copyModeMatcher" />

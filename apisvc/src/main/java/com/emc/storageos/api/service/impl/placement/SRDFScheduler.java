@@ -137,7 +137,7 @@ public class SRDFScheduler implements Scheduler {
      * @throws java.net.URISyntaxException
      * @throws com.emc.storageos.db.exceptions.DatabaseException
      */
-    static public List<VirtualArray> getTargetVirtualArraysForVirtualPool(final Project project,
+     public List<VirtualArray> getTargetVirtualArraysForVirtualPool(final Project project,
             final VirtualPool vpool, final DbClient dbClient,
             final PermissionsHelper permissionHelper) {
         List<VirtualArray> targetVirtualArrays = new ArrayList<VirtualArray>();

@@ -251,8 +251,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
                 Map<URI, VpoolRemoteCopyProtectionSettings> settingMap = VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient);
                 VpoolRemoteCopyProtectionSettings protectionSettings = null;
-                List<VirtualArray> virtualArrayTargets = FileMirrorSchedular.getTargetVirtualArraysForVirtualPool(project, vpool,
-                        _dbClient, getPermissionsHelper());
+                //Removed hack
+                List<VirtualArray> virtualArrayTargets = null;
 
                 // Source file system!!
                 preparedFileSystems.add(sourceFileShare);

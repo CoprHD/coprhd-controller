@@ -776,7 +776,7 @@ public class BlockFullCopyManager {
                     StringSet fullCopyIds = sourceVolume.getFullCopies();
                     if (fullCopyIds.contains(volumeURI.toString())) {
                         fullCopyIds.remove(volumeURI.toString());
-                        dbClient.persistObject(sourceVolume);
+                        dbClient.updateObject(sourceVolume);
                     }
                 }
             }

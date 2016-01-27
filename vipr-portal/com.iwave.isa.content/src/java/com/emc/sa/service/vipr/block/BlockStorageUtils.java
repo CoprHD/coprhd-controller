@@ -625,7 +625,9 @@ public class BlockStorageUtils {
                 deactivateSnapshot(blockResourceId, type);
             }
         }
-        detachFullCopies(fullCopies);
+        if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
+            detachFullCopies(fullCopies);
+        }
         deactivateVolumes(volumes, type);
     }
 

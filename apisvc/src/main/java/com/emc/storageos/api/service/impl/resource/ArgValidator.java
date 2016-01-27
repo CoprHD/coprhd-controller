@@ -528,14 +528,29 @@ public class ArgValidator {
      * @param fieldName
      *            the name of the field where the value originated
      */
+    public static void checkFieldMaximum(final long value, final long maximum, final String units, final String displayUnits,
+            final String fieldName) {
+        if (value > maximum) {
+            throw APIException.badRequests.invalidParameterAboveMaximum(fieldName, SizeUtil.translateSize(value, displayUnits),
+                    SizeUtil.translateSize(maximum, displayUnits), " " + displayUnits);
+        }
+    }
+
+    /**
+     * Validates that a named field is of maximum or lesser value.
+     * 
+     * @param value
+     *            the suppled number to check
+     * @param maximum
+     *            the maximum acceptable value
+     * @param units
+     *            the units that the value represents, used for error message presentation
+     * @param fieldName
+     *            the name of the field where the value originated
+     */
     public static void checkFieldMaximum(final long value, final long maximum, final String units, final String fieldName) {
         if (value > maximum) {
-            if (!("".equals(units))) {
-                String displayUnits = new String(SizeUtil.findUnit(value - maximum, units));
-                throw APIException.badRequests.invalidParameterAboveMaximum(fieldName, SizeUtil.translateSize(value, displayUnits),
-                        SizeUtil.translateSize(maximum, displayUnits), " " + displayUnits);
-            } else
-                throw APIException.badRequests.invalidParameterAboveMaximum(fieldName, value, maximum, units);
+            throw APIException.badRequests.invalidParameterAboveMaximum(fieldName, value, maximum, (" " + units));
         }
     }
 

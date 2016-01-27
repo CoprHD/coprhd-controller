@@ -707,7 +707,7 @@ public class BlockService extends TaskResourceService {
 
         // CQECC00604134
         ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
-
+    
         // Get and validate the project.
         Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
         ArgValidator.checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));

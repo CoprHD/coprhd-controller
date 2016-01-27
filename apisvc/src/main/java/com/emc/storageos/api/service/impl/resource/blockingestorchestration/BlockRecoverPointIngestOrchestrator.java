@@ -561,8 +561,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             Integer numPaths = em.getZoningMap().size();
             _logger.info("Creating Export Group with label {}", em.getMaskName());
             // No existing group has the mask, let's create one.
+            //TODO: Bharath - setting the isJournal to false - double check to see if this can be inferred
             exportGroup = RPHelper.createRPExportGroup(volume.getInternalSiteName(), virtualArray, project, protectionSystem,
-                    storageSystem, numPaths);
+                    storageSystem, numPaths, false);
         }
 
         volumeContext.setExportGroup(exportGroup);

@@ -419,7 +419,8 @@ public abstract class DataObject implements Serializable {
         NO_PUBLIC_ACCESS(2),        // 0x04
         SUPPORTS_FORCE(3),          // 0x08
         RECOVERPOINT(4),            // 0x10
-        DELETION_IN_PROGRESS(5);    // 0x20
+        DELETION_IN_PROGRESS(5),    // 0x20
+        RECOVERPOINT_JOURNAL(6);
 
         private final long mask;
 

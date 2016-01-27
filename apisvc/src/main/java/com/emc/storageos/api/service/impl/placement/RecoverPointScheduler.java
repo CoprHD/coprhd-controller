@@ -1890,27 +1890,35 @@ public class RecoverPointScheduler implements Scheduler {
     /**
      * Based on the current volume request's virtual pool, determine the protection settings and use them to determine
      * the protection virtual arrays and the associated protection virtual pool. Pass the protection virtual array
-     * along with the existing target volume to determine if the storage pools align
+     * along with the existing target/target-journal volume to determine if the storage pools align
      *
-     * @param targetVolume - existing target volume
+     * @param volume - existing volume
      * @param vpool - virtual pool being used in the current volume request
-     * @return true or false depending whether the existing target volume's storage pool is available to the current virtual pool of the
+     * @return true or false depending whether the existing volume's storage pool is available to the current virtual pool of the
      *         request
      */
-    private boolean verifyTargetStoragePoolAvailability(Volume targetVolume, VirtualPool vpool) {
-        if (vpool.getProtectionVarraySettings() != null && !vpool.getProtectionVarraySettings().isEmpty()) {
-            String settingsURI = vpool.getProtectionVarraySettings().get(targetVolume.getVirtualArray().toString());
-            VpoolProtectionVarraySettings settings = dbClient.queryObject(VpoolProtectionVarraySettings.class, URI.create(settingsURI));
-            // If there was no vpool specified with the protection settings, use the base vpool for the new volume request
-            URI protectionVpoolId = vpool.getId();
-            if (settings.getVirtualPool() != null) {
-                protectionVpoolId = settings.getVirtualPool();
-            }
-            VirtualPool protectionVpool = dbClient.queryObject(VirtualPool.class, protectionVpoolId);
-            if (verifyStoragePoolAvailability(protectionVpool, targetVolume.getPool())) {
+    private boolean verifyTargetStoragePoolAvailability(Volume volume, VirtualPool vpool) {
+    	
+    	if(volume.checkPersonality(Volume.PersonalityTypes.METADATA.name())) {
+    		VirtualPool journalVpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+            if (verifyStoragePoolAvailability(journalVpool, volume.getPool())) {
                 return true;
             }
-        }
+    	} else {
+	        if (vpool.getProtectionVarraySettings() != null && !vpool.getProtectionVarraySettings().isEmpty()) {
+	            String settingsURI = vpool.getProtectionVarraySettings().get(volume.getVirtualArray().toString());
+	            VpoolProtectionVarraySettings settings = dbClient.queryObject(VpoolProtectionVarraySettings.class, URI.create(settingsURI));
+	            // If there was no vpool specified with the protection settings, use the base vpool for the new volume request
+	            URI protectionVpoolId = vpool.getId();
+	            if (settings.getVirtualPool() != null) {
+	                protectionVpoolId = settings.getVirtualPool();
+	            }
+	            VirtualPool protectionVpool = dbClient.queryObject(VirtualPool.class, protectionVpoolId);
+	            if (verifyStoragePoolAvailability(protectionVpool, volume.getPool())) {
+	                return true;
+	            }
+	        }
+    	}
         return false;
     }
 

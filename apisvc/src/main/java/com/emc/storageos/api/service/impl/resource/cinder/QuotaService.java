@@ -29,9 +29,12 @@ import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
+import com.emc.storageos.cinder.CinderConstants;
+import com.emc.storageos.cinder.model.CinderQuotaClassDetails;
 import com.emc.storageos.cinder.model.CinderQuotaDetails;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.QuotaClassOfCinder;
 import com.emc.storageos.db.client.model.QuotaOfCinder;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -66,6 +69,10 @@ public class QuotaService extends TaskResourceService {
 
     private CinderHelpers getCinderHelper() {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
+    }
+    
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
     }
 
     /**
@@ -178,17 +185,26 @@ public class QuotaService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{target_tenant_id}/defaults")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public Response getDeafultQuotaDetails(
+    public Response getQuotaDefaults(
             @PathParam("target_tenant_id") String openstack_target_tenant_id, @Context HttpHeaders header) {
 
-        // ToDo
-        // Implement system Defaults like VCPUs, RM, Fixed IP's etc.
-        CinderQuotaDetails respCinderDefaultQuota = new CinderQuotaDetails();
-
-        return getQuotaDetailFormat(header, respCinderDefaultQuota);
-
+    	_log.info("In getQuotaDefaults");
+    	CinderQuotaDetails respCinderQuota = new CinderQuotaDetails();
+    	
+    	HashMap<String, String>  defaultQuotaMap = getQuotaHelper().loadDefaultsMap();
+    	_log.info("defaultQuotaMap is {}", defaultQuotaMap.toString());
+    	
+		Map<String, String> vpoolsMap = new HashMap<String, String>();
+		List<URI> vpools = _dbClient.queryByType(VirtualPool.class, true);
+		
+		defaultQuotaMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(defaultQuotaMap , openstack_target_tenant_id);
+		respCinderQuota.quota_set.putAll(defaultQuotaMap); 
+		    	
+    	_log.info("respCinderQuota is {}", respCinderQuota.quota_set.toString());
+    	return getQuotaDetailFormat(header, respCinderQuota);    	
     }
-
+    
+    
     /**
      * Update a quota
      * 
@@ -344,7 +360,10 @@ public class QuotaService extends TaskResourceService {
         return getQuotaDetailFormat(header, quotaUpdates);
 
     }
-
+    
+    
+       
+   
     // internal function
     /**
      *Depending on mediatype either xml/json Quota details response is returned 
@@ -356,6 +375,23 @@ public class QuotaService extends TaskResourceService {
                     header, false);
         } else if (CinderApiUtils.getMediaType(header).equals("json")) {
             return CinderApiUtils.getCinderResponse(respCinderQuota, header, false);
+        } else {
+            return Response.status(415).entity("Unsupported Media Type")
+                    .build();
+        }
+    }
+    
+   
+    /**
+     *Depending on mediatype either xml/json Quota class details response is returned 
+     */
+    private Response getQuotaClassDetailFormat(HttpHeaders header, CinderQuotaClassDetails respCinderClassQuota) {
+        if (CinderApiUtils.getMediaType(header).equals("xml")) {
+            return CinderApiUtils.getCinderResponse(CinderApiUtils
+                    .convertMapToXML(respCinderClassQuota.quota_class_set, "quota_set"),
+                    header, false);
+        } else if (CinderApiUtils.getMediaType(header).equals("json")) {
+            return CinderApiUtils.getCinderResponse(respCinderClassQuota, header, false);
         } else {
             return Response.status(415).entity("Unsupported Media Type")
                     .build();

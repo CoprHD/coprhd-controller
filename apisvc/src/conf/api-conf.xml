@@ -468,6 +468,9 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.cinder.QuotaService">
                     <property name="dbClient" ref="dbclient"/>
                 </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.QuotaClassService">
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.cinder.MiscService">
                     <property name="dbClient" ref="dbclient"/>
                 </bean>

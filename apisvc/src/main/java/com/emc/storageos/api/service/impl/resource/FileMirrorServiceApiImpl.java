@@ -124,7 +124,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         for (FileShare filesystem : filesystems) {
             FileDescriptor.Type fileType = FileDescriptor.Type.FILE_MIRROR_SOURCE;
 
-            if (filesystem.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())) {
+            if (filesystem.getPersonality() != null &&
+                    filesystem.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())) {
                 fileType = FileDescriptor.Type.FILE_MIRROR_TARGET;
             }
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper(cosCapabilities);

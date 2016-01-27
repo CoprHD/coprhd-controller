@@ -251,6 +251,16 @@ public class DisasterRecovery extends ViprResourceController {
         return DisasterRecoveryUtils.isActiveSite();
     }
 
+    public static boolean isRetrySite(String uuid) {
+        SiteErrorResponse error = DisasterRecoveryUtils.getSiteError(uuid);
+        if(!error.getOperation().equals(SiteState.STANDBY_PAUSING.name())
+                && !error.getOperation().equals(SiteState.STANDBY_RESUMING.name())
+                && !error.getOperation().equals(SiteState.STANDBY_FAILING_OVER.name()){
+            return false;
+        }
+        return true;
+    }
+
     public static String getLocalSiteName() {
         return DisasterRecoveryUtils.getLocalSiteName();
     }
@@ -271,6 +281,10 @@ public class DisasterRecovery extends ViprResourceController {
                 if (disasterSiteError.getCreationTime() != null) {
                     DateTime creationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
                     renderArgs.put("creationTime", creationTime);
+                }
+                if (disasterSiteError.getOperation() != null) {
+                    String operation = disasterSiteError.getOperation();
+                    renderArgs.put("operation", operation);
                 }
                 render(isError, uuid, disasterSiteError);
             }

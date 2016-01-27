@@ -1096,8 +1096,8 @@ public abstract class VdcOpHandler {
     }
     
     protected void populateStandbySiteErrorIfNecessary(Site site, InternalServerErrorException e) {
-        SiteError error = new SiteError(e);
-        
+        SiteError error = new SiteError(e,site.getState().name());
+
         log.info("Set error state for site: {}", site.getUuid());
         coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
 

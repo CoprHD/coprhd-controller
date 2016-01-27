@@ -26,14 +26,17 @@ public class SiteError implements CoordinatorSerializable{
     private long creationTime = 0;
     private ServiceCode serviceCode;
     private String errorMessage;
+    private String operation;
     
     public SiteError() {
     }
     
-    public SiteError(InternalServerErrorException exception) {
+    public SiteError(InternalServerErrorException exception, String operation) {
         this.serviceCode = exception.getServiceCode();
         this.errorMessage = exception.getMessage();
         this.creationTime = (new Date()).getTime();
+        this.operation = operation;
+
     }
 
     @Override
@@ -45,6 +48,7 @@ public class SiteError implements CoordinatorSerializable{
             builder.append(serviceCode.toString());
             builder.append(ENCODING_SEPARATOR);
             builder.append(errorMessage);
+            builder.append(operation);
         }
         return builder.toString();
     }
@@ -59,6 +63,7 @@ public class SiteError implements CoordinatorSerializable{
         if (strings.length > 1) {
             siteError.serviceCode = ServiceCode.valueOf(strings[1]);
             siteError.errorMessage = strings[2];
+            siteError.operation = strings[3];
         }
         return siteError;
     }
@@ -75,6 +80,10 @@ public class SiteError implements CoordinatorSerializable{
         return errorMessage;
     }
 
+    public String getOperation() {
+        return operation;
+    }
+
     @Override
     public CoordinatorClassInfo getCoordinatorClassInfo() {
         return new CoordinatorClassInfo(CONFIG_ID, CONFIG_KIND, "siteError");
@@ -89,6 +98,8 @@ public class SiteError implements CoordinatorSerializable{
         builder.append(serviceCode);
         builder.append(", errorMessage=");
         builder.append(errorMessage);
+        builder.append(", operation=");
+        builder.append(operation);
         builder.append("]");
         return builder.toString();
     }
@@ -99,6 +110,7 @@ public class SiteError implements CoordinatorSerializable{
         response.setServiceCode(serviceCode.ordinal());
         response.setServiceCodeName(serviceCode.name());
         response.setErrorMessage(this.errorMessage);
+        response.setOperation(this.operation);
         return response;
     }
     
@@ -106,5 +118,6 @@ public class SiteError implements CoordinatorSerializable{
         this.creationTime = 0;
         this.serviceCode = null;
         this.errorMessage = null;
+        this.operation = null;
     }
 }

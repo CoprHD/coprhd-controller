@@ -78,6 +78,8 @@ public class IsilonApi {
     private static final URI URI_TARGET_REPLICATION_POLICIES = URI.create("platform/1/sync/target/policies/");
     private static final URI URI_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/reports?policy_name=");
     private static final URI URI_TARGET_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/target/reports?policy_name=");
+    private static final URI URI_SNAPSHOTIQ_LICENSE_INFO = URI.create("/platform/1/snapshot/license");
+    private static final URI URI_SNAPSHOT_SCHEDULES = URI.create("/platform/1/snapshot/schedules");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -85,6 +87,7 @@ public class IsilonApi {
 
     public enum IsilonLicenseType {
         SMARTQUOTA,
+        SNAPSHOT
     }
 
     private static final Map<IsilonLicenseType, URI> licenseMap;
@@ -92,6 +95,7 @@ public class IsilonApi {
     static {
         Map<IsilonLicenseType, URI> result = new HashMap<IsilonLicenseType, URI>();
         result.put(IsilonLicenseType.SMARTQUOTA, URI_SMARTQUOTA_LICENSE_INFO);
+        result.put(IsilonLicenseType.SMARTQUOTA, URI_SNAPSHOTIQ_LICENSE_INFO);
         licenseMap = Collections.unmodifiableMap(result);
     }
 
@@ -540,6 +544,119 @@ public class IsilonApi {
     }
 
     /**
+     * Create snapshot Schedule implementation
+     * 
+     * @param url url to post the create to
+     * @param key reference string used in error reporting, representing the
+     *            object type
+     * @param obj Object to post for the create
+     * @return String identifier returns from the server
+     * @throws IsilonException
+     */
+    private <T> String createSnapshotSchedule(URI url, String key, T obj) throws IsilonException {
+
+        ClientResponse resp = null;
+        try {
+            String body = new Gson().toJson(obj);
+            String id = null;
+            resp = _client.post(url, body);
+            if (resp.hasEntity()) {
+                JSONObject jObj = resp.getEntity(JSONObject.class);
+                sLogger.debug("Create Snapshot Scedule {} : Output from Server : ", key, jObj.toString());
+
+                if (jObj.has("id")) {
+                    id = jObj.getString("id");
+                } else {
+                    throw IsilonException.exceptions.createSnapshotScheduleError(key, jObj.toString());
+                }
+            } else {
+                // no entity
+                throw IsilonException.exceptions.createSnapshotScheduleError(key, String.valueOf(resp.getStatus()));
+            }
+            return id;
+        } catch (IsilonException ie) {
+            throw ie;
+        } catch (Exception e) {
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.createResourceFailedOnIsilonArray(key, response, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+    }
+
+    /**
+     * delete the snapshot schedule
+     * 
+     * @param url url to delete
+     * @param id identifier to be deleted
+     * @param key reference string representing the object type being deleted
+     * @throws IsilonException
+     */
+    private void deleteSnapshotSchedule(URI url) throws IsilonException {
+        ClientResponse resp = null;
+        try {
+            resp = _client.delete(url);
+            // error 404 means Snapshot Schedule can not be found, assuming it already deleted.
+            if (resp.getStatus() != 200 && resp.getStatus() != 204 && resp.getStatus() != 404) {
+                processErrorResponse("delete", "URL =" + url, resp.getStatus(),
+                        resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);
+
+            }
+        } catch (IsilonException ie) {
+            throw ie;
+        } catch (Exception e) {
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.deletePolicyFailedOnIsilonArray(url.toString(), response, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+    }
+
+    /* snapshot schedule */
+    /**
+     * Create snapshot schedule
+     * 
+     * @param name String label to be used for the snapshot schedule
+     * @param path directory path to snapshot
+     * @param schedule frequency at which snapshot is taken
+     * @param pattern naming pattern for the snapshot
+     * @param duration expiration of snapshot
+     * @return String identifier for the snapshot schedule created
+     * @throws IsilonException
+     */
+    public String createSnapshotSchedule(String name, String path, String schedule, String pattern, Integer duration)
+            throws IsilonException {
+        return createSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedule", new IsilonSnapshotSchedule(name, path,
+                schedule, pattern,
+                duration));
+    }
+
+    /**
+     * Modify snapshot schedule
+     * 
+     * @param id Identifier for the snapshot schedule to be modified
+     * @param s schedules object with the modified values
+     * @throws IsilonException
+     */
+    public void modifySnapshotSchedule(String id, IsilonSnapshotSchedule s) throws IsilonException {
+        modify(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), id, "schedule", s);
+    }
+
+    /**
+     * Delete a snapshot schedule
+     * 
+     * @param id Identifier of the snapshot to delete
+     * @throws IsilonException
+     */
+    public void deleteSnapshotSchedule(String id) throws IsilonException {
+        deleteSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES + "/" + id));
+    }
+
+    /**
      * Generic get resource
      * 
      * @param url
@@ -912,7 +1029,7 @@ public class IsilonApi {
         if (thresholds != null && thresholds.length > 0) {
             quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", false, false, thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
-            // cluster size.
+                                      // cluster size.
         } else {
             quota = new IsilonSmartQuota(path);
         }
@@ -948,7 +1065,7 @@ public class IsilonApi {
             quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", bThresholdsIncludeOverhead, bIncludeSnapshots,
                     thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
-            // cluster size.
+                                      // cluster size.
         } else {
             quota = new IsilonSmartQuota(path, bThresholdsIncludeOverhead, bIncludeSnapshots);
         }
@@ -1741,15 +1858,15 @@ public class IsilonApi {
             resp = _client.get(_baseUrl.resolve(URI_SYNCIQ_SERVICE_STATUS));
             JSONObject jsonResp = resp.getEntity(JSONObject.class);
             if (jsonResp.has("settings") && jsonResp.getJSONObject("settings") != null) {
-            	if (jsonResp.getJSONObject("settings").has("service")) {
-            		 String syncService = jsonResp.getJSONObject("settings").getString("service");
-                     if (syncService != null && !syncService.isEmpty()) {
-                     	sLogger.info("IsilonApi - SyncIQ service status {} ", syncService);
-                     	if("on".equalsIgnoreCase(syncService)) {
-                     		isSyncIqEnabled = true;
-                     	}
-                     }
-            	}
+                if (jsonResp.getJSONObject("settings").has("service")) {
+                    String syncService = jsonResp.getJSONObject("settings").getString("service");
+                    if (syncService != null && !syncService.isEmpty()) {
+                        sLogger.info("IsilonApi - SyncIQ service status {} ", syncService);
+                        if ("on".equalsIgnoreCase(syncService)) {
+                            isSyncIqEnabled = true;
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
@@ -1770,12 +1887,12 @@ public class IsilonApi {
      */
 
     public String getReplicationLicenseInfo() throws IsilonException, JSONException {
-    	String licenseStatus = "Unknown";
+        String licenseStatus = "Unknown";
         ClientResponse clientResp = _client.get(_baseUrl.resolve(URI_REPLICATION_LICENSE_INFO));
         JSONObject jsonResp = clientResp.getEntity(JSONObject.class);
         if (jsonResp.has("status")) {
-        	licenseStatus = jsonResp.get("status").toString();
-        	return licenseStatus;
+            licenseStatus = jsonResp.get("status").toString();
+            return licenseStatus;
         }
         return licenseStatus;
     }
@@ -1918,4 +2035,34 @@ public class IsilonApi {
         }
         return licenseStatus;
     }
+    
+    /**
+     * Checks to see if the SnapshotIQ service is enabled on the isilon device
+     * 
+     * @return licenseStatus Status of SnapshotIQ license
+     * @throws IsilonException
+     * @throws JSONException
+     */
+    public String snapshotIQLicenseInfo() throws IsilonException, JSONException {
+        ClientResponse resp = null;
+        String licenseStatus = "Unknown";
+
+        try {
+            // Verify whether SnapshotIQ service is enabled on ISILON array or not
+            resp = _client.get(_baseUrl.resolve(URI_SNAPSHOTIQ_LICENSE_INFO));
+            JSONObject jsonResp = resp.getEntity(JSONObject.class);
+            if (jsonResp.has("status")) {
+                licenseStatus = jsonResp.get("status").toString();
+            }
+        } catch (Exception e) {
+            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+        sLogger.info("Isilon snapshotIQ license status is  {}", licenseStatus);
+        return licenseStatus;
+    }
+
 }

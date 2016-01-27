@@ -77,6 +77,7 @@ public abstract class AttributeMatcher {
         file_replication_type,
         file_replication_copy_mode,
         file_replication,
+        schedule_snapshots,
         min_datacenters,
         quota,
         source_storage_system,

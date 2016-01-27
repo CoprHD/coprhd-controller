@@ -5,7 +5,7 @@
 package com.emc.sa.service.vipr.block.tasks;
 
 import java.net.URI;
-import java.util.List;
+import java.util.Set;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.block.MigrationParam;
@@ -14,12 +14,12 @@ import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 
 public class MigrateBlockVolumes extends WaitForTasks<VolumeRestRep> {
-    private final List<URI> volumeIds;
+    private final Set<URI> volumeIds;
     private final URI sourceStorageSystem;
     private final URI targetVirtualPoolId;
     private final URI targetStorageSystem;
 
-    public MigrateBlockVolumes(List<URI> volumeIds, URI sourceStorageSystem, URI targetVirtualPoolId, URI targetStorageSystem) {
+    public MigrateBlockVolumes(Set<URI> volumeIds, URI sourceStorageSystem, URI targetVirtualPoolId, URI targetStorageSystem) {
         this.volumeIds = volumeIds;
         this.sourceStorageSystem = sourceStorageSystem;
         this.targetVirtualPoolId = targetVirtualPoolId;

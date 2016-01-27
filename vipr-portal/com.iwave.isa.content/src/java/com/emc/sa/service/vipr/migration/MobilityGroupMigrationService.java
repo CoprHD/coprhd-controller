@@ -2,6 +2,7 @@ package com.emc.sa.service.vipr.migration;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
@@ -9,6 +10,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroup;
+import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupChildren;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupClusters;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupHosts;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumes;
@@ -20,10 +22,12 @@ import com.emc.sa.service.vipr.block.tasks.RemoveVolumesFromMobilityGroup;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @Service("MobilityGroupMigration")
 public class MobilityGroupMigrationService extends ViPRService {
@@ -113,16 +117,19 @@ public class MobilityGroupMigrationService extends ViPRService {
         return volumes;
     }
 
-    private List<URI> getVolumes() {
+    private Set<URI> getVolumes() {
         if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
-            return execute(new GetMobilityGroupVolumes(mobilityGroupId));
+            return execute(new GetMobilityGroupVolumes(Lists.newArrayList(mobilityGroupId)));
         } else if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
             List<NamedRelatedResourceRep> hosts = execute(new GetMobilityGroupHosts(mobilityGroupId));
             return execute(new GetMobilityGroupVolumesByHost(mobilityGroup, hosts));
         } else if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
             List<NamedRelatedResourceRep> clusters = execute(new GetMobilityGroupClusters(mobilityGroupId));
             return execute(new GetMobilityGroupVolumesByCluster(mobilityGroup, clusters));
+        } else if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.APPLICATIONS.name())) {
+            NamedVolumeGroupsList children = execute(new GetMobilityGroupChildren(mobilityGroupId));
+            return execute(new GetMobilityGroupVolumes(children));
         }
-        return Lists.newArrayList();
+        return Sets.newHashSet();
     }
 }

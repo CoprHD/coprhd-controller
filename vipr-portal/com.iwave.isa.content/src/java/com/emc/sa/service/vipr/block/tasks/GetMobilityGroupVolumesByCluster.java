@@ -17,10 +17,9 @@ import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class GetMobilityGroupVolumesByCluster extends ViPRExecutionTask<List<URI>> {
+public class GetMobilityGroupVolumesByCluster extends ViPRExecutionTask<Set<URI>> {
     private final VolumeGroupRestRep mobilityGroup;
     private final List<NamedRelatedResourceRep> clusters;
 
@@ -31,8 +30,8 @@ public class GetMobilityGroupVolumesByCluster extends ViPRExecutionTask<List<URI
     }
 
     @Override
-    public List<URI> executeTask() throws Exception {
-        List<URI> mobilityGroupVolumes = Lists.newArrayList();
+    public Set<URI> executeTask() throws Exception {
+        Set<URI> mobilityGroupVolumes = Sets.newHashSet();
         Set<URI> volumes = getHostExportedVolumes();
 
         for (URI volume : volumes) {

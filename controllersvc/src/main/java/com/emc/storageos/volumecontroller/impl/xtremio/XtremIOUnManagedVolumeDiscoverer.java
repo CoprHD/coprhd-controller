@@ -42,7 +42,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExp
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
@@ -512,7 +511,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
             List<Initiator> matchedFCInitiators = new ArrayList<Initiator>();
             List<Initiator> hostInitiators = hostInitiatorsMap.get(hostname);
             Set<String> hostIGs = hostIGNamesMap.get(hostname);
-
+            Map<String, List<String>> rpVolumeSnapMap = new HashMap<String, List<String>>();
+            Map<String, UnManagedVolume> rpVolumeMap = new HashMap<String, UnManagedVolume>();
             boolean isRpBackendMask = false;
             if (ExportUtils.checkIfInitiatorsForRP(hostInitiators)) {
                 log.info("host {} contains RP initiators, "
@@ -581,24 +581,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                 if (parentNativeGuidSet != null && !parentNativeGuidSet.isEmpty()) {
                                     // Find the volume associated with that native GUID
                                     String parentNativeGuid = parentNativeGuidSet.iterator().next();
-                                    List<UnManagedVolume> volumes = CustomQueryUtility.getUnManagedVolumeByNativeGuid(dbClient,
-                                            parentNativeGuid);
-
-                                    if (volumes != null && !volumes.isEmpty()) {
-                                        UnManagedVolume volume = volumes.get(0);
-                                        // Remove the reference of the snapshot from the snapshot list.
-                                        volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString())
-                                                .remove(hostUnManagedVol.getNativeGuid());
-
-                                        // If it's the last snapshot, remove the whole key.
-                                        if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).isEmpty()) {
-                                            volume.getVolumeInformation().remove(SupportedVolumeInformation.SNAPSHOTS.toString());
-                                            // TODO: Also check for mirrors, if XIO has that sort of thing, before shutting off HAS_REPLICAS
-                                            volume.putVolumeCharacterstics(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
-                                        }
-
-                                        dbClient.updateObject(volume);
+                                    List<String> rpSnaps = rpVolumeSnapMap.get(parentNativeGuid);
+                                    if (rpSnaps == null) {
+                                        rpSnaps = new ArrayList<String>();
+                                        rpVolumeSnapMap.put(parentNativeGuid, rpSnaps);
                                     }
+                                    rpSnaps.add(hostUnManagedVol.getNativeGuid());
                                 }
 
                                 dbClient.markForDeletion(hostUnManagedVol);
@@ -608,12 +596,28 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                 hostUnManagedVol.putVolumeCharacterstics(
                                         SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
                                         TRUE);
+                                rpVolumeMap.put(hostUnManagedVol.getNativeGuid(), hostUnManagedVol);
                             }
                         }
 
                         if (hostUnManagedVol != null) {
                             mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                             unManagedExportVolumesToUpdate.add(hostUnManagedVol);
+                        }
+                    }
+
+                    // update the RP volumes with snap to remove the rp snaps and update the HAS_REPLICAS if required
+                    for (String rpVolumeGUID : rpVolumeSnapMap.keySet()) {
+                        UnManagedVolume volume = rpVolumeMap.get(rpVolumeGUID);
+                        // Remove the reference of the snapshot from the snapshot list.
+                        volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString())
+                                .removeAll(rpVolumeSnapMap.get(rpVolumeGUID));
+
+                        // If it's the last snapshot, remove the whole key.
+                        if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).isEmpty()) {
+                            volume.getVolumeInformation().remove(SupportedVolumeInformation.SNAPSHOTS.toString());
+                            // TODO: Also check for mirrors, if XIO has that sort of thing, before shutting off HAS_REPLICAS
+                            volume.putVolumeCharacterstics(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
                         }
                     }
                 }

@@ -315,47 +315,41 @@ public class BackupOps {
     }
 
     public void checkBackup(File backupFolder) throws Exception {
-        FilenameFilter filter = new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(BackupConstants.COMPRESS_SUFFIX) || name.endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
-            }
-        };
+        File[] backupFiles = getBackupFiles(backupFolder);
 
-        File[] backupFiles = backupFolder.listFiles(filter);
+        if (backupFiles == null) {
+            String errMsg = String.format("The %s contains no backup files", backupFolder.getAbsolutePath());
+            throw new RuntimeException(errMsg);
+        }
+
         File infoPropertyFile = null;
         boolean isGeo = false;
         boolean found_db_file=false;
         boolean found_geodb_file=false;
-
-        if (backupFiles == null) {
-            String errMsg = String.format("The %s contains no backup files");
-            throw new RuntimeException(errMsg);
-        }
+        String fullFileName = null;
 
         for (File file : backupFiles) {
-            if (file.getAbsolutePath().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+            fullFileName = file.getAbsolutePath();
+
+            if (fullFileName.endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
                 // it's a property info file
                 infoPropertyFile = file;
                 continue;
             }
 
-            if (isGeoBackup(file.getName())) {
+            String filename = file.getName();
+
+            if (isGeoBackup(filename)) {
                 isGeo = true;
             }
 
-            String filename = file.getName();
             if (filename.contains("_db_")) {
                 found_db_file = true;
             }else if (filename.contains("_geodb_")) {
                 found_geodb_file = true;
             }
 
-            if (!checkMD5(file)) {
-                String errMsg = String.format("MD5 of %s does not match its md5 file", file.getAbsolutePath());
-                log.info(errMsg);
-                throw new RuntimeException(errMsg);
-            }
+            checkMD5(file);
         }
 
         log.info("found db {} geodb {}", found_db_file, found_geodb_file);
@@ -377,6 +371,17 @@ public class BackupOps {
         checkBackup(infoPropertyFile, isGeo);
     }
 
+    private File[] getBackupFiles(File backupFolder) {
+        FilenameFilter filter = new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(BackupConstants.COMPRESS_SUFFIX) || name.endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
+            }
+        };
+
+        return backupFolder.listFiles(filter);
+    }
+
     private void checkBackup(File propertyInfoFile, boolean isGeo) throws Exception {
         RestoreManager manager = new RestoreManager();
         CoordinatorClientImpl client = (CoordinatorClientImpl) coordinatorClient;
@@ -392,6 +397,10 @@ public class BackupOps {
         manager.checkBackupInfo(propertyInfoFile, isGeo);
     }
 
+    /* We support 3-nodes-to-5-nodes restore, so
+     * there can be no data on vipr4 and vipr5, but there should
+     * have data on vipr1, vipr2 and vipr3.
+     */
     public boolean shouldHaveBackupData() {
         String myNodeId = getCurrentNodeId();
         log.info("myNodeId={}", myNodeId);
@@ -546,9 +555,8 @@ public class BackupOps {
      * MD5  FILE-SIZE  FILE
      *
      * @param file the file to be checked
-     * @return true the MD5 is matched
      */
-    public boolean checkMD5(File file) {
+    private void checkMD5(File file) {
         log.info("To check {}", file.getAbsolutePath());
 
         try {
@@ -559,29 +567,31 @@ public class BackupOps {
             File md5File = new File(md5Filename);
 
             if (!md5File.exists()) {
-                log.info("The MD5 file {} not exist", md5File);
-                return false;
+                String errMsg = String.format("The MD5 file %s not exist", md5Filename);
+                throw new RuntimeException(errMsg);
             }
 
             List<String> lines = Files.readLines(md5File, Charset.defaultCharset());
             if (lines.size() != 1) {
-                log.error("Invalid md5 file {}: more than 1 line", md5Filename);
-                return false;
+                String errMsg = String.format("Invalid md5 file %s: more than 1 line", md5Filename);
+                throw new RuntimeException(errMsg);
             }
 
             String[] tokens = lines.get(0).split("\\s");
 
             if (tokens.length != 3) {
-                log.error("Invalid md5 file {} : only 3 fields allowed in a line", md5Filename);
-                return false;
+                String errMsg = String.format("Invalid md5 file %s : only 3 fields allowed in a line", md5Filename);
+                throw new RuntimeException(errMsg);
             }
 
-            return generatedMD5.equals(tokens[0]);
-        }catch (IOException e) {
-            log.error("Failed to check md5 e=",e);
+            if (!generatedMD5.equals(tokens[0])) {
+                String errMsg = String.format("%s: MD5 doesn't match ", md5Filename);
+                throw new RuntimeException(errMsg);
+            }
+        } catch (IOException e) {
+            String errMsg = String.format("Failed to check MD5 of %s: %s ", file.getAbsolutePath(), e.getMessage());
+            throw new RuntimeException(errMsg);
         }
-
-        return false;
     }
 
     public boolean isGeoBackup(String backupFileName) {

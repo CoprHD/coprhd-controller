@@ -3425,21 +3425,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 if (systemURI == null) {
                     systemURI = removeVol.getStorageController();
                 }
-
-                // get the backing volumes
-                StringSet backingVolumes = removeVol.getAssociatedVolumes();
-                if (backingVolumes == null || backingVolumes.isEmpty()) {
-                    throw APIException.badRequests.volumeGroupCantBeUpdated(removeVol.getLabel(), "the VPLEX virtual volume does not have any backing volumes");
-                }
-                
-                for (String backingVolId : backingVolumes) {
-                    URI backingVolUri = URI.create(backingVolId);
-                    Volume backingVol = _dbClient.queryObject(Volume.class, backingVolUri);
-                    if (backingVol == null || backingVol.getInactive()) {
-                        String error = String.format("the backing volume %s for the VPLEX virtual volume has been deleted", backingVolId);
-                        throw APIException.badRequests.volumeGroupCantBeUpdated(removeVol.getLabel(), error);
-                    }
-                }
                 removeVolIds.add(removeVol.getId());
             }
         }

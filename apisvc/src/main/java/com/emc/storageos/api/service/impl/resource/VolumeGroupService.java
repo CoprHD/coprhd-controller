@@ -13,6 +13,7 @@ import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Facto
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -1449,34 +1450,69 @@ public class VolumeGroupService extends TaskResourceService {
             
             // Check to make sure the replication group name is not used in a CG that is not part of an application
             // or part of another application
+            // Check to make sure to be added volumes are in the same CG if the backend volumes are in the same backend array
+            // All volumes in the same replication group should belong to the same CG.
             if (param.getAddVolumesList().getReplicationGroupName() != null) {
                 String replicationGroupName = param.getAddVolumesList().getReplicationGroupName();
                 List<Volume> volumesInReplicationGroup = CustomQueryUtility.queryActiveResourcesByConstraint(
                         dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByReplicationGroupInstance(replicationGroupName));
-
-                if (volumesInReplicationGroup != null && !volumesInReplicationGroup.isEmpty()) {
-                    for (Volume volumeInRepGrp : volumesInReplicationGroup) {
-                        
-                        Volume volToCheck = volumeInRepGrp;
-                        
-                        // if this is a vplex backing volume, get the parent virtual voume
-                        if (VPlexUtil.isVplexBackendVolume(volumeInRepGrp, dbClient)) {
-                            List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
-                                            getVolumesByAssociatedId(volumeInRepGrp.getId().toString()));
-                            if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
-                                // we expect just one parent virtual volume for each backing volume
-                                volToCheck = vplexVolumes.get(0);
+                List<URI>toAddVolumes = param.getAddVolumesList().getVolumes();
+                // Get the backend volumes not in replication group and sort them in storage system and CG
+                Map<URI, URI> backendVolSystemCGMap = new HashMap<URI, URI>();
+                for (URI volUri : toAddVolumes) {
+                    Volume volToAdd = dbClient.queryObject(Volume.class, volUri);
+                    URI cgURI = volToAdd.getConsistencyGroup();
+                    StringSet backendVols = volToAdd.getAssociatedVolumes();
+                    if (backendVols != null && !backendVols.isEmpty()) {
+                        for (String backendUri : backendVols) {
+                            Volume backendVol = dbClient.queryObject(Volume.class, URI.create(backendUri));
+                            if (backendVol != null && NullColumnValueGetter.isNullValue(backendVol.getReplicationGroupInstance())) {
+                                URI storage = backendVol.getStorageController();
+                                URI sortCG = backendVolSystemCGMap.get(storage);
+                                if (sortCG != null && !cgURI.equals(sortCG)) {
+                                    // there are at least two volumes backend volumes are from the same storage system, 
+                                    // but their CGs are different, throw error
+                                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volToAdd.getLabel(),
+                                            "the volumes in the request are from different consistency group, they could not be added into the same replication group.");
+                                } else if (sortCG == null) {
+                                    backendVolSystemCGMap.put(storage, cgURI);
+                                }
                             }
                         }
+                    }
+                }
+                if (volumesInReplicationGroup != null && !volumesInReplicationGroup.isEmpty()) {
+                    for (Volume volumeInRepGrp : volumesInReplicationGroup) {
+                        URI storage = volumeInRepGrp.getStorageController();
+                        URI addingCG = backendVolSystemCGMap.get(storage);
+                        if (addingCG != null) {
+                            URI existingVolCG = volumeInRepGrp.getConsistencyGroup();
+                            if (!addingCG.equals(existingVolCG)) {
+                                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
+                                        String.format("the replication group %s is existing, but the volumes in the request are from different consistency group", replicationGroupName));
+                            }
+                        
+                            Volume volToCheck = volumeInRepGrp;
                             
-                        // check to see if the volume is part of another application or not part of an application
-                        VolumeGroup grp = volToCheck.getApplication(dbClient);
-                        if (grp == null) {
-                            throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
-                                    String.format("a volume, %s is part of the volume group %s but is not part of any application", volToCheck.getLabel(), replicationGroupName));
-                        } else if (!grp.getId().equals(volumeGroup.getId())) {
-                            throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
-                                    String.format("a volume, %s is part of the volume group %s and is part of another application: %s", volToCheck.getLabel(), replicationGroupName, grp.getLabel()));
+                            // if this is a vplex backing volume, get the parent virtual voume
+                            if (VPlexUtil.isVplexBackendVolume(volumeInRepGrp, dbClient)) {
+                                List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
+                                                getVolumesByAssociatedId(volumeInRepGrp.getId().toString()));
+                                if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
+                                    // we expect just one parent virtual volume for each backing volume
+                                    volToCheck = vplexVolumes.get(0);
+                                }
+                            }
+                                
+                            // check to see if the volume is part of another application or not part of an application
+                            VolumeGroup grp = volToCheck.getApplication(dbClient);
+                            if (grp == null) {
+                                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
+                                        String.format("a volume, %s is part of the volume group %s but is not part of any application", volToCheck.getLabel(), replicationGroupName));
+                            } else if (!grp.getId().equals(volumeGroup.getId())) {
+                                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
+                                        String.format("a volume, %s is part of the volume group %s and is part of another application: %s", volToCheck.getLabel(), replicationGroupName, grp.getLabel()));
+                            }
                         }
                     }
                 }

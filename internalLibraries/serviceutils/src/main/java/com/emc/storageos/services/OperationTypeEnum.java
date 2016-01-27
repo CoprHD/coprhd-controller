@@ -139,6 +139,9 @@ public enum OperationTypeEnum {
     DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed", "FileSystem snapshot share deleted"),
     RESTORE_FILE_SNAPSHOT("FileSystemRestored", "FileSystemRestoreFailed", "FileSystem restored"),
 
+    CREATE_FILE_MIRROR("FileSystemMirrorCreated", "FileSystemMirrorCreateFailed", "FileSystemMirror Create"),
+    DELETE_FILE_MIRROR("FileSystemMirrorDeleted", "FileSystemMirrorDeleteFailed", "FileSystemMirror Delete"),
+    
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
     UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),
@@ -423,6 +426,8 @@ public enum OperationTypeEnum {
             "Re-link targets to BlockSnapshotSession"),
     UNLINK_SNAPSHOT_SESSION_TARGET("UnlinkBlockSnapshotSessionTargets", "UnlinkBlockSnapshotSessionTargetsFailed",
             "Unlink targets from BlockSnapshotSession"),
+    UPDATE_BUCKET_ACL("UPDATE BUCKET ACL", "", "operation to update bucket ACL"),
+    DELETE_BUCKET_ACL("DELETE BUCKET ACL", "", "operation to delete bucket ACL"),
 
     /* Disaster Recovery Operations */
     ADD_STANDBY("ADD STANDBY", "", "operation to initiate adding a new standby to ensemble"),

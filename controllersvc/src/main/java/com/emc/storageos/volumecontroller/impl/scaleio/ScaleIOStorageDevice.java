@@ -521,7 +521,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName, String newReplicationGroupName, Boolean markInactive, TaskCompleter taskCompleter)
+    public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("Going to delete BlockConsistency Group {}", consistencyGroup);
         BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);

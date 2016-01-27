@@ -161,6 +161,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     @Override
     protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
+        // Call super first.
+        super.cleanupForViPROnlyDelete(volumeDescriptors);
+
         // Clean up the relationship between volumes that are full
         // copies and and their source volumes.
         BlockFullCopyManager.cleanUpFullCopyAssociations(volumeDescriptors, _dbClient);
@@ -476,7 +479,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                         "not all volumes in consistency group are in the add volume list");
             }
 
-            if (ControllerUtils.isVnxVolume(firstVolume, _dbClient) && !ControllerUtils.isInVNXVirtualRG(firstVolume, _dbClient)) {
+            if (ControllerUtils.isVnxVolume(firstVolume, _dbClient) && !ControllerUtils.isNotInRealVNXRG(firstVolume, _dbClient)) {
                 // VNX CG cannot have snapshots, user has to remove the snapshots first in order to add the CG to an application
                 URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
                 _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(cgUri), cgSnapshotsResults);

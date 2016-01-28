@@ -23,23 +23,14 @@
     },
     
     imageToAccess:{
-    	type: "assetType.vipr.imageToAccess",
-    	required: "false",
-        lockable: true
+      type: "assetType.vipr.imageToAccess",
+      required: "false",
+      lockable: true
     }, 
     
     pointInTime:{
-      type:"table",
-      items:{
-        imageDate:{
-          type:"failoverDate",
-          required: "false"
-        },
-        imageTime:{
-          type:"failoverTime",
-          required: "false"
-        }
-      }
+      type:"dateTime",
+      required: "false"
     }    
     
   }

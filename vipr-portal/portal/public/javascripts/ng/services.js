@@ -133,6 +133,9 @@ angular.module("services", []).directive({
 	                    	addBlankOptionIfRequired(item);
 	                    }
                 	}
+                } else if (item.type == 'dateTime') {
+                    type = ['<date-picker>','<time-picker>'];
+                    tagAttrs = [{'ng-model' : "failoverDate"}, {'ng-model' : "failoverTime"}];
                 } else {
                     item.error = " ";
                     type = "<p class='help-inline'>" + translate('serviceField.unsupportedType',item.type) + "</p>";
@@ -150,7 +153,18 @@ angular.module("services", []).directive({
                     "error": item.error
                 };
                 var container = angular.element(attrs.controlOnly ? "<table-field-column>" : "<control-group>")
-                                       .attr(containerAttr).append(tag);
+                                       .attr(containerAttr);
+                                       
+                if ($.isArray(type)) {                 
+                    for (var i = 0; i < type.length; i++) {
+                        var tag = angular.element(type[i]).attr(tagAttrs[i]);                                       
+                        container.append(tag);
+                    }
+                } else {
+                    var tag = angular.element(type).attr(tagAttrs);                                       
+                    container.append(tag);
+                }                                       
+                                       
                 element.append($compile(container)(scope));
             }
         }

@@ -11,7 +11,6 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroup;
-import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupChildren;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupClusters;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupHosts;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumes;
@@ -24,7 +23,6 @@ import com.emc.sa.service.vipr.compute.ComputeUtils;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
-import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -156,9 +154,6 @@ public class MobilityGroupMigrationService extends ViPRService {
         } else if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
             List<NamedRelatedResourceRep> clusters = execute(new GetMobilityGroupClusters(mobilityGroupId));
             return execute(new GetMobilityGroupVolumesByCluster(mobilityGroup, clusters));
-        } else if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.APPLICATIONS.name())) {
-            NamedVolumeGroupsList children = execute(new GetMobilityGroupChildren(mobilityGroupId));
-            return execute(new GetMobilityGroupVolumes(children));
         }
         return Sets.newHashSet();
     }

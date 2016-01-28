@@ -8,7 +8,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,6 @@ import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 public class DbObjectMapper {
     private static final Logger _log = LoggerFactory.getLogger(DbObjectMapper.class);
@@ -278,13 +276,7 @@ public class DbObjectMapper {
         mapDataObjectFields(from, rep);
         rep.setDescription(from.getDescription());
         rep.setRoles(from.getRoles());
-        if (from.getParents() != null) {
-            Set<RelatedResourceRep> parents = Sets.newHashSet();
-            for (String parent : from.getParents()) {
-                parents.add(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, URI.create(parent)));
-            }
-            rep.setParents(parents);
-        }
+        rep.setParent(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, from.getParent()));
         rep.setSourceStorageSystem(from.getSourceStorageSystem());
         rep.setSourceVirtualPool(from.getSourceVirtualPool());
         rep.setMigrationGroupBy(from.getMigrationGroupBy());

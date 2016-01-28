@@ -116,15 +116,6 @@ $(document).ready(function() {
         #{Form.selectManyControlGroup field:field, options: clusters /}
       #{/field}
     #{/if}
-    #{if mobilityGroupForm?.migrationGroupBy.equalsIgnoreCase('Applications')}
-      #{field 'mobilityGroupForm.applications'}
-          %{
-            field.cssClass = 'span0'
-            field.required = false
-          }%
-        #{Form.selectManyControlGroup field:field, options: applications /}
-      #{/field}
-    #{/if}
     #{if mobilityGroupForm?.migrationGroupBy.equalsIgnoreCase('Volumes')}
       #{field 'mobilityGroupForm.volumes'}
           %{

@@ -9,7 +9,6 @@ import static controllers.Common.flashException;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -35,11 +34,8 @@ import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
-import com.emc.storageos.model.application.VolumeGroupUpdateParam;
-import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
-import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.filters.VplexVolumeFilter;
 import com.emc.vipr.client.exceptions.ViPRException;
 import com.google.common.collect.Lists;
@@ -59,7 +55,7 @@ public class MobilityGroups extends ViprResourceController {
     protected static final String UNKNOWN = "MobilityGroups.unknown";
     protected static final Set<String> ROLE = new HashSet(Arrays.asList(new String[] { "MOBILITY" }));
     protected static final String[] GROUP_BY = { VolumeGroup.MigrationGroupBy.VOLUMES.name(), VolumeGroup.MigrationGroupBy.HOSTS.name(),
-            VolumeGroup.MigrationGroupBy.CLUSTERS.name(), VolumeGroup.MigrationGroupBy.APPLICATIONS.name() };
+            VolumeGroup.MigrationGroupBy.CLUSTERS.name() };
     protected static final String[] MIGRATION_TYPE = { VolumeGroup.MigrationType.VPLEX.name() };
 
     public static void list() {
@@ -132,20 +128,6 @@ public class MobilityGroups extends ViprResourceController {
                 // TODO only show clusters connected to virtual pool
                 List<URI> clusterIds = getViprClient().clusters().listBulkIds();
                 renderArgs.put("clusters", getViprClient().clusters().getByIds(clusterIds));
-            } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.APPLICATIONS.name())) {
-                renderArgs.put("applications", getViprClient().application().getApplications(new ResourceFilter<VolumeGroupRestRep>() {
-
-                    @Override
-                    public boolean acceptId(URI id) {
-                        return true;
-                    }
-
-                    @Override
-                    public boolean accept(VolumeGroupRestRep item) {
-                        return item.getRoles() != null && item.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.name());
-                    }
-
-                }));
             }
 
             // Promise<List<VirtualArrayRestRep>> virtualArrays = new VirtualArraysCall().asPromise();
@@ -243,8 +225,6 @@ public class MobilityGroups extends ViprResourceController {
 
         public List<URI> clusters;
 
-        public List<URI> applications;
-
         public MobilityGroupForm(VolumeGroupRestRep applicationForm) {
             this.id = applicationForm.getId().toString();
             this.name = applicationForm.getName();
@@ -273,16 +253,6 @@ public class MobilityGroups extends ViprResourceController {
             if (migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
                 for (NamedRelatedResourceRep cluster : getViprClient().application().getClusters(applicationForm.getId())) {
                     clusters.add(cluster.getId());
-                }
-            }
-            this.applications = Lists.newArrayList();
-            if (migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.APPLICATIONS.name())) {
-                NamedVolumeGroupsList applicationRefs =
-                        getViprClient().application().getChildrenVolumeGroups(applicationForm.getId());
-                if (applicationRefs != null) {
-                    for (RelatedResourceRep application : applicationRefs.getVolumeGroups()) {
-                        applications.add(application.getId());
-                    }
                 }
             }
         }
@@ -333,46 +303,8 @@ public class MobilityGroups extends ViprResourceController {
                     removeClusters = computeDiff(clusters, allClustes, false);
                 }
 
-                List<URI> addApplications = null;
-                List<URI> removeApplications = null;
-                if (this.migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.APPLICATIONS.name())) {
-                    NamedVolumeGroupsList apps = getViprClient().application().getChildrenVolumeGroups(URI.create(id));
-                    addApplications = computeDiff(applications, apps != null ? apps.getVolumeGroups()
-                            : new ArrayList<RelatedResourceRep>(), true);
-                    removeApplications = computeDiff(applications, apps != null ? apps.getVolumeGroups()
-                            : new ArrayList<RelatedResourceRep>(),
-                            false);
-                }
-
                 MobilityGroupSupportUtil.updateMobilityGroup(name, description, id, addVolumes, removeVolumes, addHosts, removeHosts,
                         addClusters, removeClusters);
-
-                //
-
-                if (addApplications != null) {
-                    for (URI add : addApplications) {
-                        Set<RelatedResourceRep> parents = getViprClient().application().getApplication(add).getParents();
-                        VolumeGroupUpdateParam param = new VolumeGroupUpdateParam();
-                        Set<String> parentResults = getParents(parents);
-                        parentResults.add(id);
-                        param.setParents(parentResults);
-                        getViprClient().application().updateApplication(add, param);
-                    }
-                }
-
-                if (removeApplications != null) {
-                    for (URI add : removeApplications) {
-                        Set<RelatedResourceRep> parents = getViprClient().application().getApplication(add).getParents();
-                        VolumeGroupUpdateParam param = new VolumeGroupUpdateParam();
-                        Set<String> parentResults = getParents(parents);
-                        parentResults.remove(id);
-                        if (parentResults.isEmpty()) {
-                            parentResults.add("null");
-                        }
-                        param.setParents(parentResults);
-                        getViprClient().application().updateApplication(add, param);
-                    }
-                }
             }
 
         }

@@ -195,13 +195,9 @@ public class VolumeGroupService extends TaskResourceService {
         volumeGroup.addRoles(param.getRoles());
 
         // add parent if specified
-        if (param.getParents() != null) {
-            for (String parent : param.getParents()) {
-                String msg = setParent(volumeGroup, parent);
-                if (msg != null && !msg.isEmpty()) {
-                    throw APIException.badRequests.volumeGroupCantBeCreated(volumeGroup.getLabel(), msg);
-                }
-            }
+        String msg = setParent(volumeGroup, param.getParent());
+        if (msg != null && !msg.isEmpty()) {
+            throw APIException.badRequests.volumeGroupCantBeCreated(volumeGroup.getLabel(), msg);
         }
 
         // TODO make sure properties (migration type, etc) are set when creating mobility group
@@ -413,14 +409,11 @@ public class VolumeGroupService extends TaskResourceService {
             isChanged = true;
         }
 
-        Set<String> parents = param.getParents();
-        if (parents != null) {
-            volumeGroup.clearParents();
-            for (String parent : parents) {
-                String msg = setParent(volumeGroup, parent);
-                if (msg != null && !msg.isEmpty()) {
-                    throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
-                }
+        String parent = param.getParent();
+        if (parent != null && !parent.isEmpty()) {
+            String msg = setParent(volumeGroup, parent);
+            if (msg != null && !msg.isEmpty()) {
+                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
             }
             isChanged = true;
         }
@@ -1824,10 +1817,10 @@ public class VolumeGroupService extends TaskResourceService {
                 if (parentVG == null || parentVG.getInactive()) {
                     errorMsg = "The parent volume group does not exist";
                 } else {
-                    volumeGroup.addParent(parentId);
+                    volumeGroup.setParent(parentId);
                 }
             } else if (NullColumnValueGetter.isNullValue(parent)) {
-                volumeGroup.addParent(NullColumnValueGetter.getNullURI());
+                volumeGroup.setParent(NullColumnValueGetter.getNullURI());
             } else {
                 List<VolumeGroup> parentVg = CustomQueryUtility
                         .queryActiveResourcesByConstraint(_dbClient, VolumeGroup.class,
@@ -1835,7 +1828,7 @@ public class VolumeGroupService extends TaskResourceService {
                 if (parentVg == null || parentVg.isEmpty()) {
                     errorMsg = "The parent volume group does not exist";
                 } else {
-                    volumeGroup.addParent(parentVg.iterator().next().getId());
+                    volumeGroup.setParent(parentVg.iterator().next().getId());
                 }
             }
         }

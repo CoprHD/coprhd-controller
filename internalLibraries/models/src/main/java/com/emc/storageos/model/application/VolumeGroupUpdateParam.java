@@ -7,7 +7,6 @@ package com.emc.storageos.model.application;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,7 +27,7 @@ public class VolumeGroupUpdateParam {
     private List<URI> addClustersList;
     private List<URI> removeClustersList;
 
-    private Set<String> parents;
+    private String parent;
 
     public static class VolumeGroupVolumeList {
         private List<URI> volumes;
@@ -232,17 +231,17 @@ public class VolumeGroupUpdateParam {
     }
 
     /**
-     * @return the parents
+     * @return the parent
      */
     @XmlElement
-    public Set<String> getParents() {
-        return parents;
+    public String getParent() {
+        return parent;
     }
 
     /**
-     * @param parents the parents to add
+     * @param parent the parent to add
      */
-    public void setParents(Set<String> parents) {
-        this.parents = parents;
+    public void setParents(String parent) {
+        this.parent = parent;
     }
 }

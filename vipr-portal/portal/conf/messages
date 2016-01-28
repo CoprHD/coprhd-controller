@@ -4329,7 +4329,6 @@ mobilityGroupForm.migrationGroupBy=Group By
 mobilityGroupForm.sourceStorageSystem=Source Storage System
 mobilityGroupForm.sourceVirtualPool=Source Virtual Pool
 mobilityGroupForm.volumes=Volumes
-mobilityGroupForm.applications=Applications
 mobilityGroupForm.hosts=Hosts
 mobilityGroupForm.clusters=Clusters
 mobilityGroup.name=Name

@@ -7,7 +7,6 @@ package com.emc.vipr.client.core;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DELETE_APP_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_CHILDREN_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_CLUSTERS_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_HOSTS_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_VOLUMES_APP_URL;
@@ -25,7 +24,6 @@ import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
-import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeGroupFullCopyCreateParam;
 import com.emc.storageos.model.host.HostList;
@@ -63,10 +61,6 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
 
     public VolumeGroupList getApplications() {
         return client.get(VolumeGroupList.class, APP_SUPPORT_CREATE_APP_URL, "");
-    }
-
-    public NamedVolumeGroupsList getChildrenVolumeGroups(URI id) {
-        return client.get(NamedVolumeGroupsList.class, APP_SUPPORT_GET_CHILDREN_APP_URL, id);
     }
 
     public List<VolumeGroupRestRep> getApplications(ResourceFilter<VolumeGroupRestRep> filter) {

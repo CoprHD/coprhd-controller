@@ -92,7 +92,6 @@ public class MobilityGroupSupportUtil {
         if (removeClusters != null && !removeClusters.isEmpty()) {
             update.setRemoveClustersList(removeClusters);
         }
-        // update.setParents(new HashSet<String>());
 
         return BourneUtil.getViprClient().application().updateApplication(uri(id), update);
     }

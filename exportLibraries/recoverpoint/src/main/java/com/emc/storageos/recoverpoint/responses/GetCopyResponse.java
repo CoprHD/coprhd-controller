@@ -16,6 +16,7 @@ public class GetCopyResponse implements Serializable {
     private String accessState; // LOGGED_ACCESS, NO_ACCESS, etc
     private boolean enabled;
     private String accessedImage;
+    private boolean active;
     private GetCopyRole role;
 
     // Every copy has three identifiers, and you need all three to be unique across all CG's copies
@@ -134,6 +135,14 @@ public class GetCopyResponse implements Serializable {
 
     public void setRole(GetCopyRole role) {
         this.role = role;
+    }
+    
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     @Override

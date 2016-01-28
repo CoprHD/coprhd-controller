@@ -454,7 +454,7 @@ public class RecoverPointClient {
                 ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
                 ConsistencyGroupState state = functionalAPI.getGroupState(cg);
 
-                logger.info("Processing CG found on RecoverPoint system: " + settings.getName());
+                logger.info("WTF!!!!! Processing CG found on RecoverPoint system: " + settings.getName());
 
                 // First storage attributes about the top-level CG
                 GetCGsResponse cgResp = new GetCGsResponse();
@@ -525,6 +525,7 @@ public class RecoverPointClient {
                         copy.setAccessState(copyState.getStorageAccessState().toString());
                         copy.setAccessedImage(copyState.getAccessedImage() != null ? copyState.getAccessedImage().getDescription() : null);
                         copy.setEnabled(copyState.isEnabled());
+                        copy.setActive(copyState.isActive());
                         
                         logger.info("BBB - Copy Name: " + copy.getName() + ", Copy State: " + copyState.isActive());
                     }
@@ -534,14 +535,15 @@ public class RecoverPointClient {
                     copy.setClusterId(copySettings.getCopyUID().getGlobalCopyUID().getClusterUID().getId());
                     copy.setCopyId(copySettings.getCopyUID().getGlobalCopyUID().getCopyUID());
 
-                    if (ConsistencyGroupCopyRole.ACTIVE.equals(copySettings.getRoleInfo().getRole())) {
+                    if (ConsistencyGroupCopyRole.ACTIVE.equals(copySettings.getRoleInfo().getRole())
+                            || ConsistencyGroupCopyRole.TEMPORARY_ACTIVE.equals(copySettings.getRoleInfo().getRole())) {
                         productionCopiesUID.add(copyID);
                         copy.setProduction(true);
-                        copy.setRole(GetCopyResponse.GetCopyRole.ACTIVE_PRODUCTION);                        
-                    } else if (ConsistencyGroupCopyRole.TEMPORARY_ACTIVE.equals(copySettings.getRoleInfo().getRole())) {
-                        productionCopiesUID.add(copyID);
-                        copy.setProduction(true);
-                        copy.setRole(GetCopyResponse.GetCopyRole.STANDBY_PRODUCTION);
+                        if (copy.isActive()) {
+                            copy.setRole(GetCopyResponse.GetCopyRole.ACTIVE_PRODUCTION);
+                        } else {
+                            copy.setRole(GetCopyResponse.GetCopyRole.STANDBY_PRODUCTION);
+                        }
                     } else if (ConsistencyGroupCopyRole.REPLICA.equals(copySettings.getRoleInfo().getRole())) {
                         copy.setProduction(false);
                         copy.setRole(GetCopyResponse.GetCopyRole.TARGET);                        

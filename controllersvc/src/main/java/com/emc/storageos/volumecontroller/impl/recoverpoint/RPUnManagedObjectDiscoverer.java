@@ -355,6 +355,8 @@ public class RPUnManagedObjectDiscoverer {
                     rpCopyRole.add(rpCopyRoleMap.get(volume.getRpCopyName()));
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_ROLE.toString(),
                             rpCopyRole);
+                    log.info("BBB unManagedVolume {} CopyRole {} ",
+                            unManagedVolume.getId(), rpCopyRole.iterator().next());
 
                     StringSet rsetName = new StringSet();
                     rsetName.add(rset.getName());
@@ -383,15 +385,20 @@ public class RPUnManagedObjectDiscoverer {
 
                 // We now have all the source volumes identified for this RSet, so we can determine if
                 // this unmanaged protection set should be flagged for MetroPoint.
+                log.info("BBB sourceVolumeCount {} ",
+                        sourceVolumeCount);
                 if (sourceVolumeCount > 1) {
                     String metroPoint = unManagedProtectionSet.getCGCharacteristics().get(UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name());
                     // If the MetroPoint flag hasn't been set or has been set to false
                     // we can set it to true now.
+                    log.info("BBB metroPoint {} ",
+                            metroPoint);
                     if (metroPoint == null 
                             || metroPoint.isEmpty()
-                            || !Boolean.parseBoolean(metroPoint)) {                    
+                            || !Boolean.parseBoolean(metroPoint)) {           
+                        log.info("BBB IS_MP TRUE ");
                         unManagedProtectionSet.getCGCharacteristics().put(
-                                UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name(),Boolean.TRUE.toString());
+                                UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name(), Boolean.TRUE.toString());
                     }
                 }
                                 

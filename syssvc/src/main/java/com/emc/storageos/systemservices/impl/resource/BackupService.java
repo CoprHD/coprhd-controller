@@ -501,7 +501,7 @@ public class BackupService {
             setBackupFileSize(backupName);
             notifyOtherNodes(backupName);
 
-            auditBackup(OperationTypeEnum.PULL_BACKUP, AuditLogManager.AUDITOP_END, null, backupName);
+            auditBackup(OperationTypeEnum.PULL_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, backupName);
             log.info("done");
         }
         return Response.status(202).build();
@@ -590,7 +590,7 @@ public class BackupService {
         log.info("To cancel the current download");
         backupOps.cancelDownload();
 
-        auditBackup(OperationTypeEnum.PULL_BACKUP_CANCEL, AuditLogManager.AUDITOP_END, null, null);
+        auditBackup(OperationTypeEnum.PULL_BACKUP_CANCEL, AuditLogManager.AUDITLOG_SUCCESS, null);
         log.info("done");
         return Response.status(202).build();
     }

@@ -40,6 +40,7 @@ var standbyresumeUrl = #{jsAction @resume(':uuid') /}
 var standbytestUrl = #{jsAction @test(':uuid') /}
 var standbyfailoverUrl = #{jsAction @switchover(':uuid') /}
 var standbyretryUrl = #{jsAction @retry(':uuid') /}
+var isRetrySite = #{jsAction @isRetrySite(':uuid')/};
 
 angular.module('tags').directive({
 	actions: function() {
@@ -70,7 +71,7 @@ angular.module('tags').directive({
              }
 
              if(scope.row.status.toUpperCase() == "STANDBY_ERROR"){
-             	if(controllers.infra.DisasterRecovery.isRetrySite){
+             	if(isRetrySite({'uuid': scope.row.id})){
 					scope.isRetrySite = true;
 				}
              }

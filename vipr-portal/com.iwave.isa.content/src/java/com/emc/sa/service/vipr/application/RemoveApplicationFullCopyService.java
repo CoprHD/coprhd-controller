@@ -5,17 +5,19 @@
 package com.emc.sa.service.vipr.application;
 
 import java.net.URI;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
-import com.emc.vipr.client.Tasks;
 
 @Service("RemoveApplicationFullCopy")
 public class RemoveApplicationFullCopyService extends ViPRService {
@@ -30,8 +32,13 @@ public class RemoveApplicationFullCopyService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        Tasks<? extends DataObjectRestRep> tasks = execute(new RemoveApplicationFullCopy(applicationId, volumeId, name));
-        addAffectedResources(tasks);
+        NamedVolumesList allFullCopies = getClient().application().getFullCopiesByApplication(applicationId);
+        Set<URI> fullCopyIds = new HashSet<URI>();
+        for (NamedRelatedResourceRep fullCopy : allFullCopies.getVolumes()) {
+            fullCopyIds.add(fullCopy.getId());
+        }
+        
+        BlockStorageUtils.removeBlockResources(fullCopyIds, VolumeDeleteTypeEnum.FULL);
     }
     
     @Override

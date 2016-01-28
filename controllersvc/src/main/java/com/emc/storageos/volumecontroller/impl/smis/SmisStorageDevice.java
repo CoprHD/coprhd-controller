@@ -1697,10 +1697,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
         ServiceError serviceError = null;
         URI systemURI = storage.getId();
-        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+        BlockConsistencyGroup consistencyGroup = null;
 
         try {
-            if (consistencyGroup == null || consistencyGroup.getInactive()) {
+            if (consistencyGroupId != null) {
+                // cg id will be null when deleting replication groups created for CG full copy volumes
+                consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+            }
+            if (replicationGroupName == null && (consistencyGroup == null || consistencyGroup.getInactive())) {
                 _log.info(String.format("%s is inactive or deleted", consistencyGroupId));
                 return;
             }
@@ -1727,7 +1731,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
 
             // Check if the CG exists. No need to check VNX if it is not in a real RG
-            if (!(storage.deviceIsType(Type.vnxblock) && !consistencyGroup.getArrayConsistency())) {
+            if (!(storage.deviceIsType(Type.vnxblock) && (consistencyGroup == null || !consistencyGroup.getArrayConsistency()))) {
                 CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
                 CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
                 CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
@@ -1746,7 +1750,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
 
-            if (keepRGName) {
+            if (keepRGName || consistencyGroup == null) {
                 return;
             }
 

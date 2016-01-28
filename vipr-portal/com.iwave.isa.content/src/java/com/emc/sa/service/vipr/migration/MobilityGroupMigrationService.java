@@ -28,7 +28,6 @@ import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
-import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.emc.vipr.client.exceptions.TimeoutException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -68,15 +67,9 @@ public class MobilityGroupMigrationService extends ViPRService {
 
         List<Task<VolumeRestRep>> tasks = new ArrayList<>();
 
-        for (URI volume : getVolumes()) {
-            try {
-                Task<VolumeRestRep> migrationTask = execute(new MigrateBlockVolumes(volume, mobilityGroup.getSourceStorageSystem(),
-                        targetVirtualPool, targetStorageSystem));
-                tasks.add(migrationTask);
-            } catch (ServiceErrorException ex) {
-                ExecutionUtils.currentContext().logError(ex.getDetailedMessage());
-            }
-        }
+        Tasks<VolumeRestRep> migrationTasks = execute(new MigrateBlockVolumes(getVolumes(), mobilityGroup.getSourceStorageSystem(),
+                targetVirtualPool, targetStorageSystem));
+        tasks.addAll(migrationTasks.getTasks());
 
         if (tasks.isEmpty()) {
             ExecutionUtils.fail("failTask.mobilityGroupMigration.noVolumesMigrated", new Object[] {}, new Object[] {});

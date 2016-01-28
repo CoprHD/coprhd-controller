@@ -394,6 +394,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     if (backendCG != null && backendCG.getArrayConsistency()) {
 	    	            volume.setReplicationGroupInstance(consistencyGroup.getLabel());
                     }
+                    
+                    if (consistencyGroup != null) {
+                        volume.setConsistencyGroup(consistencyGroup.getId());
+                    }
                     volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                     _dbClient.persistObject(volume);
 
@@ -1170,6 +1174,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // migration of the volumes, then the volumes passed must be all
             // the volumes in the CG and only the volumes in the CG.
             Volume changeVPoolVolume = volumes.get(0);
+            URI cguri = changeVPoolVolume.getConsistencyGroup();
+            cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
             VirtualPool currentVPool = _dbClient.queryObject(VirtualPool.class, changeVPoolVolume.getVirtualPool());
             VirtualPoolChangeOperationEnum vpoolChange = VirtualPoolChangeAnalyzer
                     .getSupportedVPlexVolumeVirtualPoolChangeOperation(changeVPoolVolume, currentVPool, vpool,
@@ -3676,6 +3682,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         boolean result = true;
         String replicationGroup = null;
         int count = 0;
+        URI storageUri = null;
         for (Volume volume : volumes) {
             URI cgURI = volume.getConsistencyGroup();
             if (NullColumnValueGetter.isNullURI(cgURI)) {
@@ -3687,15 +3694,21 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 result = false;
                 break;
             }
+            URI storage = volume.getStorageController();
             String rpName = srcVol.getReplicationGroupInstance();
             if (count == 0) {
                 replicationGroup = rpName;
+                storageUri = storage;
             }
             if (replicationGroup == null || replicationGroup.isEmpty()) {
                 result =false;
                 break;
             }
             if (rpName == null || !replicationGroup.equals(rpName)) {
+                result = false;
+                break;
+            }
+            if (!storageUri.equals(storage)) {
                 result = false;
                 break;
             }

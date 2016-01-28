@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -37,9 +38,9 @@ public class ApplicationTaskCompleter extends TaskCompleter{
     private static final Logger log = LoggerFactory.getLogger(ApplicationTaskCompleter.class);
     private List<URI> addVolumes;
     private List<URI> removeVolumes;
-    private List<URI> consistencyGroups;
+    private Collection<URI> consistencyGroups;
     
-    public ApplicationTaskCompleter(URI volumeGroupId, List<URI> addVolumes, List<URI>removeVols, List<URI> consistencyGroups, String opId) {
+    public ApplicationTaskCompleter(URI volumeGroupId, List<URI> addVolumes, List<URI>removeVols, Collection<URI> consistencyGroups, String opId) {
         super(VolumeGroup.class, volumeGroupId, opId);
         this.addVolumes = addVolumes;
         this.removeVolumes = removeVols;

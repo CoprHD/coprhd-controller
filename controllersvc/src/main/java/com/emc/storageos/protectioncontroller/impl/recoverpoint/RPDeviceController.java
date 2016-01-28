@@ -5956,13 +5956,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 List<URI> allAddTargetVolumes = new ArrayList<URI>();
                 for (URI volUri : allAddVolumes) {
                     Volume vol = _dbClient.queryObject(Volume.class, volUri);
-                    // set CG's arrayConsistency to false so that it won't create real replication group for VNX
                     URI cguri = vol.getConsistencyGroup();
-                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
-                    if (cg.getArrayConsistency()) {
-                        cg.setArrayConsistency(false);
-                        _dbClient.updateObject(cg);
-                    }
                     impactedCGs.add(cguri);
                     if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                         allAddSourceVolumes.add(volUri);

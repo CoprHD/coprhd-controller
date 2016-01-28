@@ -675,7 +675,6 @@
         <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
         <property name="vplexApiLockManager" ref="vplexlockmgr" />
 	    <property name="blockStorageScheduler" ref="blockscheduler"/>
-	    <property name="replicaDeviceController" ref="replicaDeviceController" />
 	    <property name="coordinator" ref="coordinator"/>
 	    <property name="consistencyGroupManagers">
             <map>

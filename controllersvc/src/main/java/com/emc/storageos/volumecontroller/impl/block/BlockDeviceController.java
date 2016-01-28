@@ -5957,8 +5957,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
     
     /**
-     * add step for update application
-     *  adds volumes to replication groups on multiple storage systems
+     * add step for update application, using by VPLEX and RP to 
+     * add/remove block volumes to/from replication groups on multiple storage systems
      * @param workflow
      * @param completer
      * @param addVolList
@@ -6043,7 +6043,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private String addStepsForUpdateApplicationSingleStorage(Workflow workflow, TaskCompleter completer, URI storage, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList,
             String waitForStep, String opId) throws ControllerException {
 
-       List<URI> cgs = new ArrayList<URI>();
        List<URI> addVolumesList = new ArrayList<URI>();
        
        String waitFor = waitForStep;
@@ -6060,7 +6059,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                vols.add(voluri);
                removeVolsMap.put(cguri, vols);
            }
-           cgs.addAll(removeVolsMap.keySet());
            for (Map.Entry<URI, List<URI>> entry : removeVolsMap.entrySet()) {
                URI cguri = entry.getKey();
                List<URI> removeVols = entry.getValue();
@@ -6077,6 +6075,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                        this.getClass(),
                        removeFromConsistencyGroupMethod(storageUri, cguri, removeVols, false),
                        addToConsistencyGroupMethod(storage, cguri, null, removeVols), null);
+               
+               // remove replication group if the CG will become empty
+               String groupName = vol.getReplicationGroupInstance();
+               if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, groupName, removeVols, storageUri)) {
+                   waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                           String.format("Deleting replication group for consistency group %s", cguri),
+                           waitFor, storage, storageSystem.getSystemType(),
+                           this.getClass(),
+                           deleteConsistencyGroupMethod(storage, cguri, groupName, null, false),
+                           rollbackMethodNullMethod(), null);
+               }
            }
        }
        
@@ -6087,14 +6096,20 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
            URI voluri = addVolumesList.get(0);
            Volume vol = _dbClient.queryObject(Volume.class, voluri);
            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
-
-           URI cguri = addVolList.getConsistencyGroup();
-           cgs.add(cguri);
+           URI cguri = vol.getConsistencyGroup();
+           if (NullColumnValueGetter.isNullURI(cguri)) { 
+               cguri = addVolList.getConsistencyGroup();
+           }
            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
 
            // check if cg is created, if not create it
            if (!cg.created(rgName, storageSystem.getId())) {
                _log.info("Consistency group not created. Creating it");
+               if (storageSystem.deviceIsType(Type.vnxblock)) {
+                   // set arrayConsistency to false, so that no replication group will be created on array
+                   cg.setArrayConsistency(false);
+                   _dbClient.updateObject(cg);
+               }
                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                        String.format("Creating consistency group %s", cg.getLabel()),
                        waitFor, storage, storageSystem.getSystemType(),
@@ -6113,7 +6128,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
            // call ReplicaDeviceController
            waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, cguri, addVolumesList, opId);
        }
-       completer.getConsistencyGroupIds().addAll(cgs);
 
        return waitFor;
     }

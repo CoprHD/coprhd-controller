@@ -394,6 +394,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     if (backendCG != null && backendCG.getArrayConsistency()) {
 	    	            volume.setReplicationGroupInstance(consistencyGroup.getLabel());
                     }
+                    
+                    if (consistencyGroup != null) {
+                        volume.setConsistencyGroup(consistencyGroup.getId());
+                    }
                     volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                     _dbClient.persistObject(volume);
 

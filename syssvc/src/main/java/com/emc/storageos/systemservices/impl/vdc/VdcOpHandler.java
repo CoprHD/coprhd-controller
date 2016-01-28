@@ -6,9 +6,7 @@
 package com.emc.storageos.systemservices.impl.vdc;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
@@ -32,7 +30,6 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
-import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Waiter;
@@ -67,7 +64,6 @@ public abstract class VdcOpHandler {
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
     private static final String LOCK_DEGRADE_STANDBY="drDegradeStandbyLock";
     private static final String LOCK_REJOIN_STANDBY="drRejoinStandbyLock";
-    private static final String LOCK_ADD_STANDBY="drAddStandbyLock";
 
     public static final String NTPSERVERS = "network_ntpservers";
 
@@ -185,6 +181,7 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             reconfigVdc();
+            changeSiteState(SiteState.STANDBY_ADDING, SiteState.STANDBY_SYNCING);
         }
     }
 
@@ -470,6 +467,7 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
+            changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
         }
     }
 
@@ -1103,6 +1101,15 @@ public abstract class VdcOpHandler {
 
         site.setState(SiteState.STANDBY_ERROR);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+    }
+    
+    protected void changeSiteState(SiteState from, SiteState to) {
+        List<Site> toBeChangedSites = drUtil.listSitesInState(from);
+        for (Site toBeChangedSite : toBeChangedSites) {
+            toBeChangedSite.setState(to);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(toBeChangedSite.toConfiguration());
+            log.info(String.format("Change standby site %s state from %s to %s", toBeChangedSite.getSiteShortId(), from, to));
+        }
     }
     
     /**

@@ -88,7 +88,9 @@ public class PropertyManager extends AbstractManager {
 
     @Override
     protected void innerRun() {
-        final String svcId = coordinator.getMySvcId();
+        // need to distinguish persistent locks acquired from UpgradeManager/VdcManager/PropertyManager
+        // otherwise they might release locks acquired by others when they start
+        final String svcId = String.format("%s,property", coordinator.getMySvcId());
 
         addPropertyInfoListener();
 
@@ -104,7 +106,7 @@ public class PropertyManager extends AbstractManager {
             // Step0: check if we have the property lock
             boolean hasLock;
             try {
-                hasLock = coordinator.hasPersistentLock(svcId, propertyLockId);
+                hasLock = hasRebootLock(svcId);
             } catch (Exception e) {
                 log.info("Step1: Failed to verify if the current node has the property lock ", e);
                 retrySleep();
@@ -113,7 +115,7 @@ public class PropertyManager extends AbstractManager {
 
             if (hasLock) {
                 try {
-                    coordinator.releasePersistentLock(svcId, propertyLockId);
+                    releaseRebootLock(svcId);
                     log.info("Step0: Released property lock for node: {}", svcId);
                     wakeupOtherNodes();
                 } catch (InvalidLockOwnerException e) {
@@ -294,22 +296,15 @@ public class PropertyManager extends AbstractManager {
      * @throws Exception
      */
     private void updateProperties(String svcId) throws Exception {
-        if (targetPropInfo.TARGET_PROPERTY.equals(targetPropInfo.OLD_TARGET_PROPERTY)) {
-            coordinator.removeTargetInfo(targetPropInfo, true);
-        }
         PropertyInfoExt diffProperties = new PropertyInfoExt(targetPropInfo.getDiffProperties(localTargetPropInfo));
         PropertyInfoExt override_properties = new PropertyInfoExt(localRepository.getOverrideProperties().getAllProperties());
         log.info("Step3a: Updating User Changed properties file: {}", override_properties);
         PropertyInfoExt updatedUserChangedProps = combineProps(override_properties, diffProperties);
         if (diffProperties.hasRebootProperty()) {
-            if (!getPropertyLock(svcId)) {
+            if (!getRebootLock(svcId)) {
                 retrySleep();
             } else if (!isQuorumMaintained()) {
-                try {
-                    coordinator.releasePersistentLock(svcId, propertyLockId);
-                } catch (Exception e) {
-                    log.error("Failed to release the property lock:", e);
-                }
+                releaseRebootLock(svcId);
                 retrySleep();
             } else {
                 log.info("Step3a: Reboot property found.");
@@ -376,34 +371,4 @@ public class PropertyManager extends AbstractManager {
             }
         }
     }
-
-    /**
-     * Try to acquire the property lock, like upgrade lock, this also requires rolling reboot
-     * so upgrade lock should be acquired at the same time
-     * 
-     * @param svcId
-     * @return
-     */
-    private boolean getPropertyLock(String svcId) {
-        if (!coordinator.getPersistentLock(svcId, propertyLockId)) {
-            log.info("Acquiring property lock failed. Retrying...");
-            return false;
-        }
-
-        if (!coordinator.getPersistentLock(svcId, upgradeLockId)) {
-            log.info("Acquiring upgrade lock failed. Retrying...");
-            return false;
-        }
-
-        // release the upgrade lock
-        try {
-            coordinator.releasePersistentLock(svcId, upgradeLockId);
-        } catch (Exception e) {
-            log.error("Failed to release the upgrade lock:", e);
-        }
-        log.info("Successfully acquired the property lock.");
-        return true;
-    }
-
-    
 }

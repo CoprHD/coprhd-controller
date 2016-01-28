@@ -112,6 +112,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         REMOTE_VOLUME_TYPE("volumeType", "volumeType"),
         ACCESS("Access", "Access"),
         STATUS_DESCRIPTIONS("StatusDescriptions", "StatusDescriptions"),
+        UNMANAGED_CONSISTENCY_GROUP_URI("UnManagedConsistencyGroupURI", "UnManagedConsistencyGroupURI"),
         VPLEX_LOCALITY("vplexLocality", "vplexLocality"),
         VPLEX_SUPPORTING_DEVICE_NAME("vplexSupportingDeviceName", "vplexSupportingDeviceName"),
         VPLEX_CONSISTENCY_GROUP_NAME("vplexConsistencyGroup", "vplexConsistencyGroup"),

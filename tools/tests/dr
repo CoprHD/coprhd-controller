@@ -47,6 +47,12 @@ def dr_get_standby(args):
     if args.property:
     	print standby[args.property]
 
+def dr_get_standby_details(args):
+    bourne.connect(args.ip)
+    standby=bourne.dr_get_standby_details(args.uuid)
+    if args.property:
+    	print standby[args.property]
+
 def dr_delete_standby(args):
     bourne.connect(args.ip)
     bourne.dr_delete_standby(args.uuid)
@@ -100,7 +106,7 @@ def dr_check_standby(args):
     bourne.connect(args.ip)
     # check if API exception is thrown on standby for POST 
     uri="/tenants/%s/projects" % bourne.tenant_getid()
-    errcode=1013
+    errcode=3002
     message="Disallowed operation on standby site. Please redirect your request to active site %s." % args.activeSiteVip
     bourne.api_check_error("POST", uri, 403, errcode, message)
     print "PASS. Successfully catch API exception for POST %s" % uri
@@ -143,6 +149,11 @@ drliststandby.add_argument('name', nargs='?',        help = 'return uuid of stan
 drgetstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 drgetstandby.add_argument('uuid',    		 	help = 'uuid of standby site')
 drgetstandby.add_argument('property', nargs='?',	help = 'return property of standby site')
+
+# get dr standby details
+drgetstandbydetails = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drgetstandbydetails.add_argument('uuid',    		 	help = 'uuid of standby site')
+drgetstandbydetails.add_argument('property', nargs='?',	help = 'return property of standby site')
 
 # delete dr standby
 drdeletestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -210,6 +221,9 @@ elif (cmd == "list"):
 elif (cmd == "get"):
     args = drgetstandby.parse_args()
     dr_get_standby(args)
+elif (cmd == "getdetails"):
+    args = drgetstandbydetails.parse_args()
+    dr_get_standby_details(args)
 elif (cmd == "delete"):
     args = drdeletestandby.parse_args()
     dr_delete_standby(args)

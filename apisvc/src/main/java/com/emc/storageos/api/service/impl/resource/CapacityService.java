@@ -68,7 +68,7 @@ public class CapacityService extends ResourceService {
                             "resourceType",
                             resourceType.toString()));
             if (dataResourcesURI.isEmpty()) {
-                _log.error("Failed to find capacity of type {} in the database, recompute", resourceType);
+                _log.warn("Failed to find capacity of type {} in the database, recompute", resourceType);
                 throw new Exception("Failed to find capacity in the database");
             }
             PropertyListDataObject resource = _dbClient.queryObject(PropertyListDataObject.class, dataResourcesURI.get(0));

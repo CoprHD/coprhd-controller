@@ -43,7 +43,7 @@ public class LicenseInfoListExt implements CoordinatorSerializable {
     // helper function for updating license info for a specific license type
     public void updateLicense(LicenseInfoExt licenseInfo) {
         for (int i = 0; i < _licenseList.size(); i++) {
-            if (_licenseList.get(i).getLicenseType().compareTo(licenseInfo.getLicenseType()) == 0) {
+            if (_licenseList.get(i).getModelId().compareTo(licenseInfo.getModelId()) == 0) {
                 _licenseList.set(i, licenseInfo);
             }
         }

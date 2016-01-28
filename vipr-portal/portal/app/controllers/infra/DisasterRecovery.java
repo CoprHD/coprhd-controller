@@ -72,7 +72,8 @@ public class DisasterRecovery extends ViprResourceController {
 
     public static void list() {
         DisasterRecoveryDataTable dataTable = createDisasterRecoveryDataTable();
-        render(dataTable);
+        boolean showPauseButton = false;
+        render(dataTable, showPauseButton);
     }
 
     @FlashException("list")
@@ -83,7 +84,7 @@ public class DisasterRecovery extends ViprResourceController {
         for (String uuid : uuids) {
             if (!DisasterRecoveryUtils.hasStandbySite(uuid)) {
                 flash.error(MessagesUtils.get(UNKNOWN, uuid));
-                list();
+                pauseResume();
             }
 
         }
@@ -92,19 +93,28 @@ public class DisasterRecovery extends ViprResourceController {
         param.getIds().addAll(uuids);
         DisasterRecoveryUtils.pauseStandby(param);
         flash.success(MessagesUtils.get(PAUSED_SUCCESS));
-        list();
+        pauseResume();
     }
 
     @FlashException("list")
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_ADMIN"),
             @Restrict("RESTRICTED_SYSTEM_ADMIN") })
-    public static void resume(String id) {
+    public static void resume(String id, boolean showPauseButton) {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
             SiteRestRep siteresume = DisasterRecoveryUtils.resumeStandby(id);
             flash.success(MessagesUtils.get(RESUMED_SUCCESS, siteresume.getName()));
         }
-        list();
+        if (showPauseButton) {
+            pauseResume();
+        } else {
+            list();
+        }
+    }
+
+    public static void pauseResume() {
+        DisasterRecoveryDataTable dataTable = createDisasterRecoveryDataTable();
+        render(dataTable);
     }
 
     @FlashException("list")

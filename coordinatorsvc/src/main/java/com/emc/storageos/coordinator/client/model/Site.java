@@ -281,7 +281,7 @@ public class Site {
             this.vip = config.getConfig(KEY_VIP);
             String networkHealthStr = config.getConfig(KEY_NETWORK_HEALTH);
             if (networkHealthStr != null && !networkHealthStr.isEmpty()) {
-                this.networkHealth = Enum.valueOf(NetworkHealth.class, networkHealthStr);
+                this.networkHealth = Enum.valueOf(NetworkHealth.class, networkHealthStr.toUpperCase());
             }
             this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);

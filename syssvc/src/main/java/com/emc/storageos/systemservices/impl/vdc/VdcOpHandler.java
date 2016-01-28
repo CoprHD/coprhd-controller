@@ -5,19 +5,6 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
@@ -32,7 +19,6 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
-import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Waiter;
@@ -42,6 +28,16 @@ import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.net.URI;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Operation handler for vdc config change. A vdc config change may represent 
@@ -1028,6 +1024,7 @@ public abstract class VdcOpHandler {
                     RESUME_BARRIER_TIMEOUT, site.getNodeCount(), false);
             barrier.enter();
             try {
+                localRepository.restart(Constants.GEODBSVC_NAME);
                 localRepository.restart(Constants.DBSVC_NAME);
             } finally {
                 barrier.leave();

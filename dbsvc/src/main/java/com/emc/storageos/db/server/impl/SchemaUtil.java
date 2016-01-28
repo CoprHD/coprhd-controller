@@ -773,84 +773,6 @@ public class SchemaUtil {
     }
 
     /**
-     * Check if node ip or vip is changed. VirtualDataCenter object should be updated
-     * to reflect this change.
-     */
-    private void checkIPChanged() {
-        Site site = drUtil.getLocalSite();
-        Map<String, String> ipv4Addrs = site.getHostIPv4AddressMap();
-        Map<String, String> ipv6Addrs = site.getHostIPv6AddressMap();
-
-        CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
-        Map<String, DualInetAddress> controlNodes = nodeMap.getControllerNodeIPLookupMap();
-
-        String nodeId;
-        int nodeIndex = 0;
-        boolean changed = false;
-
-        // check node ip
-        for (Map.Entry<String, DualInetAddress> cnode : controlNodes.entrySet()) {
-            nodeIndex++;
-            nodeId = VDC_NODE_PREFIX + nodeIndex;
-            DualInetAddress addr = cnode.getValue();
-
-            String inet4Addr = ipv4Addrs.get(nodeId);
-            if (addr.hasInet4()) {
-                String newInet4Addr = addr.getInet4();
-                if (!newInet4Addr.equals(inet4Addr)) {
-                    changed = true;
-                    ipv4Addrs.put(nodeId, newInet4Addr);
-                    _log.info(String.format("Node %s inet4 address changed from %s to %s", nodeId, inet4Addr, newInet4Addr));
-                }
-            } else if (inet4Addr != null) {
-                changed = true;
-                ipv4Addrs.remove(nodeId);
-                _log.info(String.format("Node %s previous inet4 address %s removed", nodeId, inet4Addr));
-            }
-
-            String inet6Addr = ipv6Addrs.get(nodeId);
-            if (addr.hasInet6()) {
-                String newInet6Addr = addr.getInet6();
-                if (!newInet6Addr.equals(inet6Addr)) {
-                    changed = true;
-                    ipv6Addrs.put(nodeId, newInet6Addr);
-                    _log.info(String.format("Node %s inet6 address changed from %s to %s", nodeId, inet6Addr, newInet6Addr));
-                }
-            } else if (inet6Addr != null) {
-                changed = true;
-                ipv6Addrs.remove(nodeId);
-                _log.info(String.format("Node %s previous inet6 address %s removed", nodeId, inet6Addr));
-            }
-        }
-
-        // check node count
-        if (_vdcHosts != null && _vdcHosts.size() != site.getNodeCount()) {
-            if (_vdcHosts.size() < site.getNodeCount()) {
-                for (nodeIndex = _vdcHosts.size() + 1; nodeIndex <= site.getNodeCount(); nodeIndex++) {
-                    nodeId = VDC_NODE_PREFIX + nodeIndex;
-                    ipv4Addrs.remove(nodeId);
-                    ipv6Addrs.remove(nodeId);
-                }
-            }
-            changed = true;
-            site.setNodeCount(_vdcHosts.size());
-            _log.info("Vdc host count changed from {} to {}", site.getNodeCount(), _vdcHosts.size());
-        }
-
-        // Check VIP
-        if (_vdcEndpoint != null && !_vdcEndpoint.equals(site.getVip())) {
-            changed = true;
-            site.setVip(_vdcEndpoint);
-            _log.info("Vdc vip changed to {}", _vdcEndpoint);
-        }
-
-        if (changed) {
-            _coordinator.persistServiceConfiguration(site.toConfiguration());
-            _log.info("vdc ip change detected, updated vdc resource ok");
-        }
-    }
-
-    /**
      * Insert default root tenant
      */
     private void insertDefaultRootTenant(DbClient dbClient) {
@@ -893,7 +815,6 @@ public class SchemaUtil {
         }
         VirtualDataCenter localVdc = queryLocalVdc(dbClient);
         if (localVdc != null) {
-            checkIPChanged();
             return;
         }
 

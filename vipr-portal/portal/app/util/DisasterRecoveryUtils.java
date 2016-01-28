@@ -91,6 +91,21 @@ public class DisasterRecoveryUtils {
         return false;
     }
 
+    public static boolean hasAnyStandbySite() {
+        List<SiteRestRep> sites = DisasterRecoveryUtils.getSiteDetails();
+        return sites.size() > 1;
+    }
+
+    public static boolean hasPausedSite() {
+        List<SiteRestRep> sites = DisasterRecoveryUtils.getSiteDetails();
+        for (SiteRestRep site : sites) {
+            if (SiteState.STANDBY_PAUSED.toString().equals(site.getState())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static ClientResponse doSwitchover(String id) {
         return getViprClient().site().doSwitchover(id);
     }

@@ -66,6 +66,12 @@
 								#{if site.state == "ACTIVE_DEGRADED"}
 									<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png"><span> &{'renderFunctions.disasterRecovery.status.standby.failbackDegraded'}</span>
 								#{/if}
+								#{if site.state == "STANDBY_DEGRADING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.standby.degrading'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_DEGRADED"}
+									<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png"><span> &{'renderFunctions.disasterRecovery.status.standby.degraded'}</span>
+								#{/if}
 								#{if site.state == "STANDBY_ERROR"}
 									<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png"><span> &{'renderFunctions.disasterRecovery.status.standby.error'}</span>
 								#{/if}

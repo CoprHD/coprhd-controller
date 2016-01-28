@@ -5281,9 +5281,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     // call ReplicaDeviceController
                     waitFor = _replicaDeviceController.addStepsForRemovingVolumesFromCG(workflow, waitFor, cguri, removeVols, opId);
                     // Remove the volumes from the consistency group
-                    workflow.createStep(REMOVE_VOLUMES_FROM_CG_STEP_GROUP,
+                    waitFor = workflow.createStep(REMOVE_VOLUMES_FROM_CG_STEP_GROUP,
                             String.format("Remove volumes from consistency group %s", cguri.toString()),
-                            null,storage, storageSystem.getSystemType(),
+                            waitFor,storage, storageSystem.getSystemType(),
                             this.getClass(),
                             removeFromConsistencyGroupMethod(storageUri, cguri, removeVols, false),
                             addToConsistencyGroupMethod(storage, cguri, null, removeVols), null);

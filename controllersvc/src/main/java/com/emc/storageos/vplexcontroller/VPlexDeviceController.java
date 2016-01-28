@@ -10872,9 +10872,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // call ReplicaDeviceController
                     waitFor = _replicaDeviceController.addStepsForRemovingVolumesFromCG(workflow, waitFor, cguri, removeVols, opId);
                     // Remove the volumes from the replication group
-                    workflow.createStep(REMOVE_VOLUMES_FROM_CG_STEP,
+                    waitFor = workflow.createStep(REMOVE_VOLUMES_FROM_CG_STEP,
                             String.format("Remove volumes from replication group %s", vol.getReplicationGroupInstance()),
-                            null,storageUri, storageSystem.getSystemType(), BlockDeviceController.class, 
+                            waitFor,storageUri, storageSystem.getSystemType(), BlockDeviceController.class, 
                             removeVolumeFromCGMethod(storageUri, cguri, removeVols),
                             addVolumeToCGMethod(storageUri, cguri, vol.getReplicationGroupInstance(), removeVols), null);
                     
@@ -10992,7 +10992,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     
     private Workflow.Method removeVolumeFromCGMethod(URI storageUri, URI cguri, List<URI> removeVols) {
-        return new Workflow.Method(REMOVE_FROM_CONSISTENCY_GROUP_METHOD_NAME, storageUri, cguri, removeVols);
+        return new Workflow.Method(REMOVE_FROM_CONSISTENCY_GROUP_METHOD_NAME, storageUri, cguri, removeVols, false);
     }
     
     private Workflow.Method addVolumeToCGMethod(URI storageUri, URI cguri, String replicationGroupName, List<URI> addVols) {

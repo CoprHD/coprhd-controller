@@ -22,12 +22,14 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
@@ -481,7 +483,21 @@ public class VdcManager extends AbstractManager {
                 DrOperationStatus operation = new DrOperationStatus(config);
                 String siteId = operation.getSiteUuid();
                 SiteState interState = operation.getSiteState();
-                Site site = drUtil.getSiteFromLocalVdc(operation.getSiteUuid());
+                Site site = null;
+                try {
+                    site = drUtil.getSiteFromLocalVdc(siteId);
+                } catch (RetryableCoordinatorException e) {
+                    // It's expected that site id is not found if we're removing this site because it has been removed
+                    // Under this situation, just record audit log and clear DR operation status
+                    if (interState.equals(SiteState.STANDBY_REMOVING) &&e.getServiceCode() == ServiceCode.COORDINATOR_SITE_NOT_FOUND) {
+                        this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, getOperationType(interState), System.currentTimeMillis(),
+                                AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, siteId);
+                        coordinator.getCoordinatorClient().removeServiceConfiguration(config);
+                        log.info("DR operation status has been cleared: {}", operation);
+                        continue;
+                    }
+                    throw e;
+                }
                 SiteState currentState = site.getState();
                 if (currentState.equals(SiteState.STANDBY_ERROR)) {
                     // Failed

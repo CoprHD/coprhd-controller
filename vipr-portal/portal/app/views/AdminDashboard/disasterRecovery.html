@@ -71,13 +71,13 @@
 								#{/if}
 							</td>
 							<td>
-								#{if site.networkHealth == "Good"}
+								#{if site.networkHealth == "GOOD"}
 								<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png" alt="Good">
 								#{/if}
-								#{if site.networkHealth == "Slow"}
+								#{if site.networkHealth == "SLOW"}
 								<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png" alt="Slow">
 								#{/if}
-								#{if site.networkHealth == "Broken"}
+								#{if site.networkHealth == "BROKEN"}
 								<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png" alt="Broken">
 								#{/if}
 							</td>

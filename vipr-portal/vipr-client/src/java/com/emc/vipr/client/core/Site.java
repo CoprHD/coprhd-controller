@@ -16,7 +16,6 @@ import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
-import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
@@ -78,7 +77,7 @@ public class Site {
     }
 
     public SiteErrorResponse getSiteError(String uuid) {
-        return client.post(SiteErrorResponse.class, PathConstants.SITE_URL + "/" + uuid + "/error");
+        return client.get(SiteErrorResponse.class, PathConstants.SITE_URL + "/" + uuid + "/error");
     }
 
     public SiteDetailRestRep getSiteDetails(String uuid) {

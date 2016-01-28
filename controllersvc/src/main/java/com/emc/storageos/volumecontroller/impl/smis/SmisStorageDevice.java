@@ -1350,14 +1350,16 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             // In case of clone, 'replicationgroupinstance' property contains the Replication Group name.
             if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                 groupName = volume.getReplicationGroupInstance();
-                BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
-                        volume.getConsistencyGroup());
-                if (storage.deviceIsType(Type.vnxblock) && !consistencyGroup.getArrayConsistency()) {
-                    // nothing need to be done on array side
-                    _log.info("No array operation needed for VNX replication group {}", groupName);
-                    volume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
-                    _dbClient.updateObject(volume);
-                    return;
+                if (storage.deviceIsType(Type.vnxblock) && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                    BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
+                            volume.getConsistencyGroup());
+                    if (!consistencyGroup.getArrayConsistency()) {
+                        // nothing need to be done on array side
+                        _log.info("No array operation needed for VNX replication group {}", groupName);
+                        volume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+                        _dbClient.updateObject(volume);
+                        return;
+                    }
                 }
             } else {
                 groupName = _helper.getSourceConsistencyGroupName(volume);

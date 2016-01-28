@@ -60,6 +60,7 @@ VirtualNasService
 ProjectService
 TenantsService
 TenantService
+SchedulePolicyService
 
 =Config Services
 CustomConfigService

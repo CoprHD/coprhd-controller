@@ -119,6 +119,10 @@ public enum ResourceOperationTypeEnum {
 
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "tag a filesystem"),
     DELETE_FILE_SNAPSHOT("DELETE FILESYSTEM SNAPSHOT", "delete filesystem snapshot"),
+    ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("ASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",
+            "assign snapshot schedule policy to a filesystem"),
+    UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("UNASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",
+            "unassign snapshot schedule policy to a filesystem"),
     UNEXPORT_FILE_SYSTEM("UNEXPORT FILESYSTEM", "unexport filesystem operation"),
     DELETE_FILE_SYSTEM_SHARE("DELETE FILESHARE", "delete fileshare"),
     EXPORT_FILE_SNAPSHOT("EXPORT FILESYSTEM SNAPSHOT", "export fileshare snapshot"),
@@ -293,6 +297,7 @@ public enum ResourceOperationTypeEnum {
     REMOVE_VDC("REMOVE VDC", "remove a VDC from ViPR"),
     DISCONNECT_VDC("DISCONNECT VDC", "temporarily disconnect a VDC from ViPR"),
     RECONNECT_VDC("RECONNECT VDC", "reconnect a VDC to ViPR"),
+    REBUILD_SET_TRANSFER_SPEED("REBUILD_SET_TRANSFER_SPEED", "Rebuild Set Transfer Speed"),
     UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED("UPGRADE VPLEX LOCAL TO DISTRIBUTED", "Upgrade a VPLEX local volume to distributed"),
     WAIT_ON_VPLEX_VOLUME_REBUILD("WAIT ON VPLEX VOLUME REBUILD", "Wait on VPLEX volume rebuild"),
     ADD_ALIAS("ADD ALIAS", "add one or more aliases"),

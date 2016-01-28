@@ -109,11 +109,19 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                 if (cgObj != null 
                         && cgObj.created(storage.getId())
-                        && !vol.checkForRp() && !Volume.checkForVplexBackEndVolume(dbClient, vol)) {
+                        && !vol.checkForRp()) {
                     // Only set this flag to true if the CG reference is valid
                     // and it is already created on the storage system.
-                    // Also, exclude RP volumes and vplex volumes.
+                    // Also, exclude RP volumes.
                     isCG = true;
+                    
+                    /**
+                     * If Vplex backed volume does not have replicationGroupInstance value, should not add the volume into backend cg
+                     */
+                    if(Volume.checkForVplexBackEndVolume(dbClient, vol)
+                    	&&NullColumnValueGetter.isNullValue(vol.getReplicationGroupInstance())){
+                    	isCG = false;
+                    }
                 } 
             }
             

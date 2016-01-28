@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1721,6 +1722,24 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         VolumeGroupRestRep application = client.application().getApplication(applicationId);
         return createStringOptions(application.getReplicationGroupNames());
+    }
+
+    @Asset("fullCopyName")
+    @AssetDependencies("application")
+    public List<AssetOption> getApplicationFullCopyNames(AssetOptionsContext ctx, URI applicationId) {
+        final ViPRCoreClient client = api(ctx);
+        NamedVolumesList volList = client.application().getFullCopiesByApplication(applicationId);
+        Set<String> fullCopyNames = new HashSet<String>();
+        if (volList != null && volList.getVolumes() != null && !volList.getVolumes().isEmpty()) {
+            for (NamedRelatedResourceRep volId : volList.getVolumes()) {
+                VolumeRestRep vol = client.blockVolumes().get(volId.getId());
+                if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null &&
+                        vol.getProtection().getFullCopyRep().getFullCopySetName() != null) {
+                    fullCopyNames.add(vol.getProtection().getFullCopyRep().getFullCopySetName());
+                }
+            }
+        }
+        return createStringOptions(fullCopyNames);
     }
 
     class VirtualPoolFilter extends DefaultResourceFilter<VolumeRestRep> {

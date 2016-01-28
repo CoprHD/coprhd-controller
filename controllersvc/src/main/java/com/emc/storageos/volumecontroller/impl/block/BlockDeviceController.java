@@ -6083,7 +6083,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                            String.format("Deleting replication group for consistency group %s", cguri),
                            waitFor, storage, storageSystem.getSystemType(),
                            this.getClass(),
-                           deleteConsistencyGroupMethod(storage, cguri, groupName, null, false),
+                           deleteConsistencyGroupMethod(storage, cguri, groupName, false, false),
                            rollbackMethodNullMethod(), null);
                }
            }

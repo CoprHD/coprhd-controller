@@ -500,6 +500,57 @@ angular.module("portalApp").controller({
     		$scope.formAccessControlList = accessList.toString();
     	}, true);
     },
+    BucketAclCtrl: function($scope, $http, $window, translate) {
+    	
+    	$scope.add = {type:'user', name:'', domain:'', permission:'read'};
+    	
+    	$scope.typeOpt = [{id:'user', name:translate('bucket.acl.user')},
+    	                 {id:'group', name:translate('bucket.acl.group')},
+    	                 {id:'customgroup', name:translate('bucket.acl.customgroup')}];
+    	
+    	
+    	$scope.permOpt = [{id:'read', name:translate('resources.bucket.acl.read')}, 
+    	                  {id:'write', name:translate('resources.bucket.acl.write')}, 
+    	                  {id:'execute', name:translate('resources.bucket.acl.execute')},
+    	                  {id:'full_control', name:translate('resources.bucket.acl.full_control')},
+						  {id:'delete', name:translate('resources.bucket.acl.delete')},
+						  {id:'none', name:translate('resources.bucket.acl.none')},
+						  {id:'privileged_write', name:translate('resources.bucket.acl.privileged_write')},
+						  {id:'read_acl', name:translate('resources.bucket.acl.read_acl')},
+						  {id:'write_acl', name:translate('resources.bucket.acl.write_acl')}];
+    	
+    	var setData = function(data) {
+    		$scope.acl = data;
+    	}
+    	
+    	var resetModal = function() {
+    		$scope.acl = {};
+    	}
+    	
+    	$scope.populateModal = function() {
+    		    resetModal();
+    			$scope.acl.accesscontrols = [];
+        		$scope.acl.accesscontrols.push(angular.copy($scope.add));
+        		$scope.$apply();
+
+    	}
+
+    	$scope.deleteACE = function(idx) { $scope.acl.accesscontrols.splice(idx, 1); }
+    	$scope.addACE = function() { $scope.acl.accesscontrols.push(angular.copy($scope.add)); }
+    	
+    	$scope.$watch('acl', function(newVal) {
+    		var accessList = [];
+    		angular.forEach($scope.acl.accesscontrols, function(obj) {
+    			if (obj.name != '') {
+    				var val = obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission;
+    				val =val.split(",").join("|")
+    				accessList.push(val);
+    			}
+    		});
+    		
+    		$scope.formAccessControlList = accessList.toString();
+    	}, true);
+    },
     FileQuotaCtrl: function($scope, $http, $filter, translate) {
         $scope.securityOptions = [{id:"unix", name:translate('resources.filesystem.quota.security.unix')}, 
                                   {id:"ntfs", name:translate('resources.filesystem.quota.security.ntfs')},

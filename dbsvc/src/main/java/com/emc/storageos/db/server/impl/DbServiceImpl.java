@@ -61,8 +61,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
  */
 public class DbServiceImpl implements DbService {
     private static final Logger _log = LoggerFactory.getLogger(DbServiceImpl.class);
-    private static final String DB_SCHEMA_LOCK = "dbschema";
-    private static final String GEODB_SCHEMA_LOCK = "geodbschema";
+
     private static final String DB_NO_ENCRYPT_FLAG_FILE = "/data/db/no_db_encryption";
     private static final String DB_INITIALIZED_FLAG_FILE = "/var/run/storageos/dbsvc_initialized";
     private static final Integer INIT_LOCAL_DB_NUM_TOKENS = 256;
@@ -216,7 +215,7 @@ public class DbServiceImpl implements DbService {
      * @return
      */
     private String getSchemaLockName() {
-        return isGeoDbsvc() ? GEODB_SCHEMA_LOCK : DB_SCHEMA_LOCK;
+        return isGeoDbsvc() ? DbConfigConstants.GEODB_SCHEMA_LOCK : DbConfigConstants.DB_SCHEMA_LOCK;
     }
 
     public String getConfigValue(String key) {
@@ -601,6 +600,8 @@ public class DbServiceImpl implements DbService {
         InterProcessLock lock = null;
         Configuration config = null;
 
+        StartupMode mode = null;
+
         try {
             // we use this lock to discourage more than one node bootstrapping / joining at the same time
             // Cassandra can handle this but it's generally not recommended to make changes to schema concurrently
@@ -613,7 +614,7 @@ public class DbServiceImpl implements DbService {
 
             // The num_tokens in ZK is what we previously running at, which could be different from in current .yaml
             checkNumTokens(config);
-            StartupMode mode = checkStartupMode(config);
+            mode = checkStartupMode(config);
             _log.info("Current startup mode is {}", mode);
 
             // Check if service is allowed to get started by querying db offline info to avoid bringing back stale data.
@@ -644,6 +645,9 @@ public class DbServiceImpl implements DbService {
             cassandraInitialized = true;
             mode.onPostStart();
         } catch (Exception e) {
+            if (mode != null && mode.type == StartupMode.StartupModeType.HIBERNATE_MODE) {
+                printRecoveryWorkAround(e);
+            }
             _log.error("e=", e);
             throw new IllegalStateException(e);
         } finally {
@@ -1007,5 +1011,17 @@ public class DbServiceImpl implements DbService {
             _log.error("Fail to drain:", e);
         }
 
+    }
+
+    /**
+     * Output more clear message in the log when a node down during node recovery introduced by CASSANDRA-2434 in cassandra 2.1.
+    */
+    private void printRecoveryWorkAround(Exception e) {
+        if (e.getMessage().startsWith("A node required to move the data consistently is down (")) {
+            String sourceIp = e.getMessage().split("\\(")[1].split("\\)")[0];
+            _log.error("{} of node {} is unavailable during node recovery, please double check the node status.",
+                    isGeoDbsvc() ? "geodbsvc" : "dbsvc",sourceIp);
+            _log.error("Node recovery will fail in 30 minutes if {} not back to normal state.", sourceIp);
+        }
     }
 }

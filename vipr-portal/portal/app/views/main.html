@@ -45,7 +45,7 @@
         </li>
 
         <li class="dropdown">
-          <a href="#" class="dropdown-toggle" data-toggle="dropdown">#{icon 'user'/} ${currentUser?.commonName} <b class="caret"></b></a>
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">#{icon 'user'/} ${currentUser?.tenantName} -  ${currentUser?.commonName} <b class="caret"></b></a>
           <ul class="dropdown-menu">
           	#{if isActiveSite }
             	#{nav.item 'preferences', href:@Preferences.update()/}
@@ -127,6 +127,10 @@
             #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
               #{nav.item 'vcenters', href: @compute.VCenters.list()/}
             #{/deadbolt.restrict}
+            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
+            #{nav.separator/}
+              #{nav.item 'app', href: @arrays.ApplicationSupport.list()/}
+            #{/deadbolt.restrict}
           #{/license.ifController}
           #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
             #{nav.separator/}
@@ -186,7 +190,9 @@
   #{if isActiveSite }   
   #{license.ifController}
     #{nav.menu 'storage', icon:'vipricon-resources'}
-      #{nav.menuSection 'nav.storage'}   
+      #{nav.menuSection 'nav.storage'}
+      	#{nav.item 'block.app', href:@resources.BlockApplications.blockApplications()/}
+      	#{nav.separator/}
         #{nav.item 'block.volumes', href: @resources.BlockVolumes.volumes()/}
         #{nav.item 'block.snapshots', href: @resources.BlockSnapshots.snapshots()/}
         #{nav.item 'block.exportgroups', href: @resources.BlockExportGroups.exportGroups()/}

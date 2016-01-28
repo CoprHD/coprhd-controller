@@ -23,6 +23,13 @@ public class ProjectProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(api(ctx).projects().getByTenant(ctx.getTenant()));
     }
 
+    @Asset("projectFilter")
+    public List<AssetOption> getProjectFilters(AssetOptionsContext ctx) {
+        List<AssetOption> options = createBaseResourceOptions(api(ctx).projects().getByTenant(ctx.getTenant()));
+        options.add(0, new AssetOption("All", "All"));
+        return options;
+    }
+
     @Asset("objectBucketProject")
     public List<AssetOption> getObjectBucketProjects(AssetOptionsContext ctx) {
         List<AssetOption> options = createBaseResourceOptions(api(ctx).projects().getByTenant(ctx.getTenant()));

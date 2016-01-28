@@ -73,8 +73,6 @@ public interface ServiceParams {
 
     public String INGEST_VOLUMES = "ingestVolumes";
 
-    public String TARGET_STORAGE_SYSTEM = "targetStorageSystem";
-
     public String APPLICATION = "application";
     public String REPLICATION_GROUP = "replicationGroup";
     public String NEW_REPLICATION_GROUP = "newReplicationGroup";

@@ -10,6 +10,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.block.tasks.ChangeBlockVolumeVirtualPoolNoWait;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroup;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupClusters;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupHosts;
@@ -17,7 +18,6 @@ import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByCluster;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByHost;
 import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumesByHostOrCluster;
-import com.emc.sa.service.vipr.block.tasks.MigrateBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.RemoveVolumeFromMobilityGroup;
 import com.emc.sa.service.vipr.compute.ComputeUtils;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -38,9 +38,6 @@ public class MobilityGroupMigrationService extends ViPRService {
 
     @Param(ServiceParams.TARGET_VIRTUAL_POOL)
     private URI targetVirtualPool;
-
-    @Param(ServiceParams.TARGET_STORAGE_SYSTEM)
-    private URI targetStorageSystem;
 
     @Param(value = ServiceParams.INGEST_VOLUMES, required = false)
     private Boolean ingestVolumes;
@@ -65,8 +62,8 @@ public class MobilityGroupMigrationService extends ViPRService {
 
         List<Task<VolumeRestRep>> tasks = new ArrayList<>();
 
-        Tasks<VolumeRestRep> migrationTasks = execute(new MigrateBlockVolumes(getVolumes(), mobilityGroup.getSourceStorageSystem(),
-                targetVirtualPool, targetStorageSystem));
+        Tasks<VolumeRestRep> migrationTasks = execute(new ChangeBlockVolumeVirtualPoolNoWait(getVolumes(), targetVirtualPool));
+
         tasks.addAll(migrationTasks.getTasks());
 
         if (tasks.isEmpty()) {

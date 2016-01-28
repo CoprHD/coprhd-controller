@@ -137,9 +137,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                     BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
                     driverVolume.setConsistencyGroup(cg.getLabel());
-                    consistencyGroups.add(volume.getConsistencyGroup());
                 }
-                // Todo complete attribute setting.
 
                 driverVolumes.add(driverVolume);
                 driverVolumeToVolumeMap.put(driverVolume, volume);
@@ -148,10 +146,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             DriverTask task = driver.createVolumes(driverVolumes, null);
             // TODO: this is short cut for now, assuming synchronous driver implementation
             // We will implement support for async case later.
-            if (task.getStatus() == DriverTask.TaskStatus.READY) {
-                updateConsistencyGroupsWithStorageSystem(consistencyGroups, storageSystem);
-                updateVolumesWithDriverVolumeInfo(dbClient, driverVolumeToVolumeMap);
+            if (task.getStatus() == DriverTask.TaskStatus.READY || task.getStatus() == DriverTask.TaskStatus.PARTIALLY_FAILED ) {
+
+                updateVolumesWithDriverVolumeInfo(dbClient, driverVolumeToVolumeMap, consistencyGroups);
                 dbClient.updateObject(driverVolumeToVolumeMap.values());
+                updateConsistencyGroupsWithStorageSystem(consistencyGroups, storageSystem);
                 String msg = String.format("doCreateVolumes -- Created volumes: %s .", task.getMessage());
                 _log.info(msg);
                 taskCompleter.ready(dbClient);
@@ -446,20 +445,27 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
 
 
-    private void updateVolumesWithDriverVolumeInfo(DbClient dbClient, Map<StorageVolume, Volume> driverVolumesMap)
+    private void updateVolumesWithDriverVolumeInfo(DbClient dbClient, Map<StorageVolume, Volume> driverVolumesMap, Set<URI> consistencyGroups)
                   throws IOException {
         for (Map.Entry driverVolumeToVolume : driverVolumesMap.entrySet()) {
             StorageVolume driverVolume = (StorageVolume)driverVolumeToVolume.getKey();
             Volume volume = (Volume)driverVolumeToVolume.getValue();
-            volume.setNativeId(driverVolume.getNativeId());
-            volume.setDeviceLabel(driverVolume.getDeviceLabel());
-            volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
+            if (driverVolume.getNativeId() != null && driverVolume.getNativeId().length() > 0) {
+                volume.setNativeId(driverVolume.getNativeId());
+                volume.setDeviceLabel(driverVolume.getDeviceLabel());
+                volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
 
-            if (driverVolume.getWwn() != null) {
-                volume.setWWN(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
+                if (driverVolume.getWwn() != null) {
+                    volume.setWWN(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
+                }
+                volume.setProvisionedCapacity(driverVolume.getProvisionedCapacity());
+                volume.setAllocatedCapacity(driverVolume.getAllocatedCapacity());
+                if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                    consistencyGroups.add(volume.getConsistencyGroup());
+                }
+            } else {
+                volume.setInactive(true);
             }
-            volume.setProvisionedCapacity(driverVolume.getProvisionedCapacity());
-            volume.setAllocatedCapacity(driverVolume.getAllocatedCapacity());
         }
     }
 

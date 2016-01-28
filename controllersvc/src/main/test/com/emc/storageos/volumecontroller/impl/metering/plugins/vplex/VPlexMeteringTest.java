@@ -23,6 +23,12 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.CustomConfigResolver;
+import com.emc.storageos.customconfigcontroller.CustomConfigTypeProvider;
+import com.emc.storageos.customconfigcontroller.DataSource;
+import com.emc.storageos.customconfigcontroller.exceptions.CustomConfigControllerException;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbAggregatorItf;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -36,6 +42,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -43,6 +50,7 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.ListVPlexPerpetualCSVFileNames;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.ReadAndParseVPlexPerpetualCSVFile;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileCollector;
@@ -146,7 +154,7 @@ public class VPlexMeteringTest {
         if (alreadyPrinted) {
             return;
         }
-        Pattern pattern = Pattern.compile("([\\w+\\-\\.]+)\\s+([\\w+\\-]*+)\\s*\\(([\\w+/]+)\\)");
+        Pattern pattern = Pattern.compile("([\\w+\\-\\.]+)\\s+([\\w+\\-]*+)\\s*\\(([\\w+/%]+)\\)");
         Matcher matcher = pattern.matcher(metric);
         if (matcher.matches()) {
             String name = matcher.group(1);
@@ -155,14 +163,12 @@ public class VPlexMeteringTest {
             if (Strings.isNullOrEmpty(qualifier)) {
                 qualifier = "N/A";
             }
-            out("metric = {}, name = {} qualifier = {} units = {}", metric, name, qualifier, units);
+            out("metric = {}, name = {} qualifier = {} units = {} --> {}", metric, name, qualifier, units, value);
         }
     }
 
     @Test
     public void testVPlexPerpetualCSVFileCollector() throws InstantiationException, IllegalAccessException {
-        VPlexPerpetualCSVFileCollector collector = new VPlexPerpetualCSVFileCollector();
-
         MockDbClient mockDbClient = new MockDbClient();
 
         StorageSystem storageSystem = mockStorageSystem("vplex-1", "000123ABC000XYZ");
@@ -194,7 +200,20 @@ public class VPlexMeteringTest {
 
         Map<String, Object> context = new HashMap<>();
         context.put(Constants.dbClient, mockDbClient);
+
+        VPlexPerpetualCSVFileCollector collector = new VPlexPerpetualCSVFileCollector();
+        PortMetricsProcessor portMetricsProcessor = mockPortMetricsProcessor(mockDbClient);
+        collector.setPortMetricsProcessor(portMetricsProcessor);
         collector.collect(accessProfile, context);
+    }
+
+    private PortMetricsProcessor mockPortMetricsProcessor(MockDbClient mockDbClient) {
+        CustomConfigHandler customConfigHandler = new MockCustomConfigHandler();
+        customConfigHandler.setDbClient(mockDbClient);
+        PortMetricsProcessor portMetricsProcessor = new PortMetricsProcessor();
+        portMetricsProcessor.setDbClient(mockDbClient);
+        portMetricsProcessor.setCustomConfigHandler(customConfigHandler);
+        return portMetricsProcessor;
     }
 
     private StorageHADomain mockVPlexAdapter(StorageSystem storageSystem, String name, String serialNumber)
@@ -214,6 +233,7 @@ public class VPlexMeteringTest {
         StorageSystem storageSystem = mockObject(StorageSystem.class, name);
         storageSystem.setSerialNumber(serialNumber);
         storageSystem.setNativeGuid(String.format("VPLEX+%s", serialNumber));
+        storageSystem.setSystemType(DiscoveredDataObject.Type.vplex.name());
         return storageSystem;
     }
 
@@ -596,6 +616,56 @@ public class VPlexMeteringTest {
         @Override
         public boolean hasUsefulData() {
             return false;
+        }
+    }
+
+    static private class MockCustomConfigHandler extends CustomConfigHandler {
+        private Map<String, String> MOCK_CONFIG_DB = new HashMap<>();
+
+        public MockCustomConfigHandler() {
+            MOCK_CONFIG_DB.put(CustomConfigConstants.PORT_ALLOCATION_DAYS_TO_AVERAGE_UTILIZATION, "1");
+            MOCK_CONFIG_DB.put(CustomConfigConstants.PORT_ALLOCATION_EMA_FACTOR, "0.6");
+        }
+
+        @Override
+        public void setConfigResolvers(Map<String, CustomConfigResolver> configResolvers) {
+
+        }
+
+        @Override
+        public void setConfigTypeProvider(CustomConfigTypeProvider configTypeProvider) {
+
+        }
+
+        @Override
+        public String getCustomConfigValue(String configName, StringMap scope) throws CustomConfigControllerException {
+            return "";
+        }
+
+        @Override
+        public String getComputedCustomConfigValue(String name, StringMap scope, DataSource dataSource)
+                throws CustomConfigControllerException {
+            return "";
+        }
+
+        @Override
+        public String getComputedCustomConfigValue(String name, String scope, DataSource sources) throws CustomConfigControllerException {
+            return MOCK_CONFIG_DB.get(name);
+        }
+
+        @Override
+        public String resolve(String name, String scope, DataSource dataSource) throws CustomConfigControllerException {
+            return "";
+        }
+
+        @Override
+        public void validate(String name, StringMap scope, String value, boolean isCheckDuplicate) {
+
+        }
+
+        @Override
+        public String getCustomConfigPreviewValue(String name, String value, StringMap scope, Map<String, String> variables) {
+            return "";
         }
     }
 }

@@ -224,8 +224,10 @@ public abstract class ResourceService {
     }
 
     /**
-     * Looks up controller dependency for given hardware
-     * 
+     * Looks up controller dependency for given hardware type.
+     * If cannot locate controller for defined hardware type, lookup controller for
+     * EXTERNALDEVICE.
+     *
      * @param clazz controller interface
      * @param hw hardware name
      * @param <T>

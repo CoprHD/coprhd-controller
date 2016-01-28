@@ -85,12 +85,14 @@ public class ExternalDeviceCommunicationInterface extends
 
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile) throws BaseCollectionException {
-
+       // todo: driver interface is tbd.
+        _log.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+        _log.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
 
     @Override
     public void scan(AccessProfile accessProfile) throws BaseCollectionException {
-
+        // todo: need to define driver api and implement support for scan.
     }
 
     @Override
@@ -169,7 +171,8 @@ public class ExternalDeviceCommunicationInterface extends
 
         com.emc.storageos.db.client.model.StorageSystem storageSystem =
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
-        // TODO: temporary to identify storage system by name when managed by provider.
+        // TODO: temporary label is used to identify storage system by name when multiple systems are managed by provider at
+        // the provided endpoint.
         driverStorageSystem.setSystemName(storageSystem.getLabel());
 
         try {
@@ -177,10 +180,8 @@ public class ExternalDeviceCommunicationInterface extends
                     accessProfile.getSystemId(), driverStorageSystem.getSystemName());
             DriverTask task = driver.discoverStorageSystem(driverStorageSystems);
 
-            // check task status and monitor until completion.
-            // TODO: this is short cut for now, assuming synchronous driver implementation
-            // We will implement support for async case later.
             // process discovery results.
+            // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY)  {
                 // discovery completed
                 storageSystem.setIsDriverManaged(true);
@@ -218,8 +219,6 @@ public class ExternalDeviceCommunicationInterface extends
                             null, errorMsg, null, null);
                 }
             } else {
-                // failed
-                // TODO support async
                 storageSystem.setReachableStatus(false);
                 String errorMsg = String.format("Failed to discover storage system %s of type %s",
                        accessProfile.getSystemId(), accessProfile.getSystemType());
@@ -261,8 +260,7 @@ public class ExternalDeviceCommunicationInterface extends
             _log.info("discoverPools for storage system {} - start", storageSystemId);
 
             DriverTask task = driver.discoverStoragePools(driverStorageSystem, driverStoragePools);
-            // Support only sync discovery at this moment.
-            // TODO support async
+            // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // discovery completed
                 for (StoragePool storagePool : driverStoragePools) {
@@ -321,8 +319,6 @@ public class ExternalDeviceCommunicationInterface extends
                 allPools.addAll(newPools);
                 allPools.addAll(existingPools);
             } else {
-                // driver task is not ready
-                // TODO support async
                 String errorMsg = String.format("Failed to discover storage pools for system %s of type %s",
                         accessProfile.getSystemId(), accessProfile.getSystemType());
                 throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
@@ -363,12 +359,9 @@ public class ExternalDeviceCommunicationInterface extends
 
             List<StoragePort> driverStoragePorts = new ArrayList<>();
             DriverTask task = driver.discoverStoragePorts(driverStorageSystem, driverStoragePorts);
-            // Support only sync discovery at this moment.
-            // TODO support async
+            // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
-                // discovery completed
-
-                for (StoragePort driverPort : driverStoragePorts) {
+                 for (StoragePort driverPort : driverStoragePorts) {
                     com.emc.storageos.db.client.model.StoragePort storagePort = null;
                     String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                             storageSystem, driverPort.getNativeId(),
@@ -408,9 +401,9 @@ public class ExternalDeviceCommunicationInterface extends
                             Network portNetwork = getNetworkForStoragePort(driverPort);
                             storagePort.setNetwork(portNetwork.getId());
                             // Add endpoint to the network.
-                            // TODO we move this to process for all ports (existing port got a network or changed network cases)
-                            // TODO and should we check if existing port was in other network and delete the endpoint from the old network?
-                            portNetwork.addEndpoints(new ArrayList<String>(Arrays.asList(driverPort.getPortNetworkId())), true);
+                            // Process this for all ports (existing port got a network or changed network cases)
+                            // TODO: should we check if existing port was in other network and delete the endpoint from the old network?
+                            portNetwork.addEndpoints(new ArrayList<>(Arrays.asList(driverPort.getPortNetworkId())), true);
                             networksToUpdate.add(portNetwork);
                         }
                         storagePort.setTcpPortNumber(driverPort.getTcpPortNumber());
@@ -437,8 +430,6 @@ public class ExternalDeviceCommunicationInterface extends
                 storagePorts.put(NEW, newStoragePorts);
                 storagePorts.put(EXISTING, existingStoragePorts);
             } else {
-                // driver task is not ready
-                // TODO support async
                 String errorMsg = String.format("Failed to discover storage ports for system %s of type %s",
                         accessProfile.getSystemId(), accessProfile.getSystemType());
                 throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,

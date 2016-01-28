@@ -41,5 +41,9 @@ public interface ExternalDeviceErrors {
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_ADD_VOLUME_TO_EXPORT_MASK_ERROR)
     public ServiceError addVolumesToExportMaskFailed(String method, String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_VOLUME_FROM_EXPORT_MASK_ERROR)
+    public ServiceError deleteVolumesFromExportMaskFailed(String method, String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_EXPORT_MASK_ERROR)
+    public ServiceError deleteExportMaskFailed(String method, String errorMsg);
 }

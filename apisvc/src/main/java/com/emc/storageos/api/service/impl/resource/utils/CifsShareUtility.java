@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -713,8 +712,8 @@ public class CifsShareUtility {
 
         StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageType);
 
-        if (storageSystemType.equals(DiscoveredDataObject.Type.vnxe) || storageSystemType.equals(DiscoveredDataObject.Type.vnxfile)
-                || storageSystemType.equals(DiscoveredDataObject.Type.datadomain)) {
+        if (storageSystemType.equals(StorageSystem.Type.vnxe) || storageSystemType.equals(StorageSystem.Type.vnxfile)
+                || storageSystemType.equals(StorageSystem.Type.datadomain)) {
                 throw APIException.badRequests.operationNotSupportedForSystemType(
                         operation, storageType);
         }

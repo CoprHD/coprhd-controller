@@ -16,7 +16,6 @@ import java.util.Set;
 import java.util.ArrayList;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.util.SumPrimitiveFieldAggregator;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBuilder;
@@ -356,7 +355,7 @@ public class CapacityUtils {
         ArgValidator.checkEntity(storageSystem, storageSystemUri, false);
 
         StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageSystem.getSystemType());
-        if (storageSystemType.equals(DiscoveredDataObject.Type.isilon) || storageSystemType.equals(DiscoveredDataObject.Type.vnxfile)) {
+        if (storageSystemType.equals(StorageSystem.Type.isilon) || storageSystemType.equals(StorageSystem.Type.vnxfile)) {
             return true;
         } else {
             return false;

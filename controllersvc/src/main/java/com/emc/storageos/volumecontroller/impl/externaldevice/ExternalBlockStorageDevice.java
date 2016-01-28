@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -55,7 +55,9 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Strings;
 
-
+/**
+ * BlockStorageDevice implementation for device drivers.
+ */
 public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     private Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
@@ -111,11 +113,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
 
 
-
-        /**
-         *  {@inheritDoc}
-         *
-         */
     @Override
     public void doCreateVolumes(StorageSystem storageSystem, StoragePool storagePool,
                                 String opId, List<Volume> volumes,
@@ -144,8 +141,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             }
 
             DriverTask task = driver.createVolumes(driverVolumes, null);
-            // TODO: this is short cut for now, assuming synchronous driver implementation
-            // We will implement support for async case later.
+            // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY || task.getStatus() == DriverTask.TaskStatus.PARTIALLY_FAILED ) {
 
                 updateVolumesWithDriverVolumeInfo(dbClient, driverVolumeToVolumeMap, consistencyGroups);
@@ -155,8 +151,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 _log.info(msg);
                 taskCompleter.ready(dbClient);
             } else {
-                // failed
-                // TODO support async
                 // Set volumes to inactive state
                 for (Volume volume : volumes) {
                     volume.setInactive(true);
@@ -174,10 +168,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
-    /**
-     *  {@inheritDoc}
-     *
-     */
     @Override
     public void doExpandVolume(StorageSystem storageSystem, StoragePool storagePool,
                                Volume volume, Long size, TaskCompleter taskCompleter)
@@ -303,8 +293,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         // call driver
         BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
         DriverTask task = driver.createConsistencyGroup(driverCG);
-        // TODO: this is short cut for now, assuming synchronous driver implementation
-        // We will implement support for async case later.
+        // todo: need to implement support for async case.
         if (task.getStatus() == DriverTask.TaskStatus.READY) {
             cg.setNativeId(driverCG.getNativeId());
             dbClient.updateObject(cg);
@@ -338,8 +327,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
 
         DriverTask task = driver.deleteConsistencyGroup(driverCG);
-        // TODO: this is short cut for now, assuming synchronous driver implementation
-        // We will implement support for async case later.
+        // todo: need to implement support for async case.
         consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageSystem.getId()), consistencyGroup.getLabel());
         if (task.getStatus() == DriverTask.TaskStatus.READY) {
             if (markInactive) {
@@ -368,10 +356,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} doExportGroupCreate END ...", storage.getSerialNumber());
     }
 
-    /**
-     *  {@inheritDoc}
-     *
-     */
     @Override
     public void doExportAddVolume(StorageSystem storage, ExportMask exportMask,
                                   URI volume, Integer lun, TaskCompleter taskCompleter)
@@ -384,10 +368,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
     }
 
-    /**
-     *  {@inheritDoc}
-     *
-     */
+
     @Override
     public void doExportAddVolumes(StorageSystem storage,
                                    ExportMask exportMask, Map<URI, Integer> volumes,
@@ -493,10 +474,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         // call driver
         BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
         DriverTask task = driver.createVolumeSnapshot(driverSnapshots, null);
-        // TODO: this is short cut for now, assuming synchronous driver implementation
-        // We will implement support for async case later.
+        // todo: need to implement support for async case.
         if (task.getStatus() == DriverTask.TaskStatus.READY) {
-            // update snaphosts
+            // update snapshots
             for (VolumeSnapshot driverSnapshot : driverSnapshotToSnapshotMap.keySet()) {
                 BlockSnapshot snapshot = driverSnapshotToSnapshotMap.get(driverSnapshot);
                 snapshot.setNativeId(driverSnapshot.getNativeId());
@@ -521,8 +501,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     private void createGroupSnapshots(StorageSystem storageSystem, List<BlockSnapshot> snapshots, Boolean createInactive, Boolean readOnly,
                                        TaskCompleter taskCompleter) {
-      //  throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-
         _log.info("Creating snapshot of consistency group .....");
         List<VolumeSnapshot> driverSnapshots = new ArrayList<>();
         Map<VolumeSnapshot, BlockSnapshot> driverSnapshotToSnapshotMap = new HashMap<>();
@@ -554,8 +532,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         // call driver
         BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
         DriverTask task = driver.createConsistencyGroupSnapshot(driverCG, driverSnapshots, null);
-        // TODO: this is short cut for now, assuming synchronous driver implementation
-        // We will implement support for async case later.
+        // todo: need to implement support for async case.
         if (task.getStatus() == DriverTask.TaskStatus.READY) {
             // update snaphosts
             for (VolumeSnapshot driverSnapshot : driverSnapshotToSnapshotMap.keySet()) {
@@ -585,7 +562,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                                       TaskCompleter taskCompleter) {
         BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
         if (blockSnapshot != null && !blockSnapshot.getInactive() &&
-                // If the blockSnapshot.nativeId is not filled in then the
+                // If the blockSnapshot.nativeId is not filled in than the
                 // snapshot create may have failed somehow, so we'll allow
                 // this case to be marked as success, so that the inactive
                 // state against the BlockSnapshot object can be set.
@@ -602,8 +579,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // call driver
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
             DriverTask task = driver.deleteVolumeSnapshot(driverSnapshots);
-            // TODO: this is short cut for now, assuming synchronous driver implementation
-            // We will implement support for async case later.
+            // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // update snapshots
                 blockSnapshot.setInactive(true);
@@ -646,8 +622,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         // call driver
         BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
         DriverTask task = driver.deleteConsistencyGroupSnapshot(driverSnapshots);
-        // TODO: this is short cut for now, assuming synchronous driver implementation
-        // We will implement support for async case later.
+        // todo: need to implement support for async case.
         if (task.getStatus() == DriverTask.TaskStatus.READY) {
             // update snapshots
             for (BlockSnapshot blockSnapshot : groupSnapshots) {
@@ -676,7 +651,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             consistencyGroup.addSystemConsistencyGroup(storageSystem.getId().toString(), consistencyGroup.getLabel());
             updateCGs.add(consistencyGroup);
         }
-        dbClient.updateAndReindexObject(updateCGs);
+        dbClient.updateObject(updateCGs);
     }
 
     @Override

@@ -6,6 +6,9 @@ import com.emc.storageos.volumecontroller.ControllerLockingService;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Implementation of lock manager service for device drivers.
+ */
 public class LockManagerImpl implements LockManager {
 
     private static LockManagerImpl lockManager;

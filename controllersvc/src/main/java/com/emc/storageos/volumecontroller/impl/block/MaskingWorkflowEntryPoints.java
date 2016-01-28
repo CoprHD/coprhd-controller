@@ -174,7 +174,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
             context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
             WorkflowService.getInstance().storeStepData(token, context);
         } catch (ClassCastException e) {
-            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", e);
+            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", token, e);
         }
         _log.info("Rolling back operations: " + context);
         doExportGroupDelete(storageURI, exportGroupURI, exportMaskURI, taskCompleter, token);
@@ -287,7 +287,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
             ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
             WorkflowService.getInstance().storeStepData(token, context);
         } catch (ClassCastException e) {
-            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", e);
+            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", token, e);
         }
         doExportGroupRemoveVolumes(storageURI, exportGroupURI, exportMaskURI, list,
                 taskCompleter, token);
@@ -492,7 +492,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
             ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
             WorkflowService.getInstance().storeStepData(token, context);
         } catch (ClassCastException e) {
-            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", e);
+            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", token, e);
         }
         doExportGroupRemoveInitiators(storageURI, exportGroupURI, exportMaskURI,
                 initiatorURIs, true, taskCompleter, token);

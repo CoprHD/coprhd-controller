@@ -17,6 +17,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+/**
+ * Implementation of persistant registry for device drivers
+ */
 public class RegistryImpl implements Registry {
 
     private static Registry registry;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.externaldevice;
@@ -49,6 +49,9 @@ import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.WorkflowService;
 
+/**
+ * Export operations for storage systems managed by drivers
+ */
 public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     private static Logger log = LoggerFactory.getLogger(ExternalDeviceExportOperations.class);
@@ -56,17 +59,18 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     private DbClient dbClient;
 
     // Need this reference to get driver for device type.
-    private ExternalBlockStorageDevice _externalDevice;
-    private BlockStorageScheduler _blockScheduler;
+    private ExternalBlockStorageDevice externalDevice;
+    private BlockStorageScheduler blockScheduler;
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
     public void setExternalDevice(ExternalBlockStorageDevice externalDevice) {
-        this._externalDevice = externalDevice;
+        this.externalDevice = externalDevice;
     }
     public void setBlockScheduler(BlockStorageScheduler blockScheduler) {
-        this._blockScheduler = blockScheduler;
+        this.blockScheduler = blockScheduler;
     }
+
     @Override
     public void createExportMask(StorageSystem storage, URI exportMaskUri, VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
                                  List<com.emc.storageos.db.client.model.Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -77,7 +81,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         log.info("createExportMask: volume-HLU pairs: {}", volumeURIHLUs);
 
         try {
-            BlockStorageDriver driver = _externalDevice.getDriver(storage.getSystemType());
+            BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
             // Load export group from context
@@ -107,22 +111,22 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             Map<String, com.emc.storageos.db.client.model.StoragePort> nativeIdToAvailablePortMap = new HashMap<>();
             preparePorts(storage, exportMaskUri, targetURIList, recommendedPorts, availablePorts, nativeIdToAvailablePortMap);
 
-            ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+            ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(
                     volumeUris, exportGroup.getNumPaths(), storage.getId(), exportGroupUri);
             StorageCapabilities capabilities = new StorageCapabilities();
             // Prepare num paths to send to driver
             prepareCapabilities(pathParams, capabilities);
             MutableBoolean usedRecommendedPorts = new MutableBoolean(true);
+
             // Ready to call driver
             DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, driverVolumeToHLUMap,
                     recommendedPorts, availablePorts, capabilities, usedRecommendedPorts,
                     selectedPorts);
 
-            // TODO: this is short cut for now, assuming synchronous driver implementation
-            // TODO: Support for async case TBD.
+            // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // If driver used recommended ports, we are done.
-                // Otherwise, if driver did not used recommended ports, we have to get ports selected by driver
+                // Otherwise, if driver did not use recommended ports, we have to get ports selected by driver
                 // and use them in export mask and zones.
                 // We will verify driver selected ports against available ports list.
                 String msg = String.format("createExportMask -- Created export: %s . Used recommended ports: %s .",
@@ -132,7 +136,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                     // process driver selected ports
                     if (validateSelectedPorts(availablePorts, selectedPorts, pathParams)) {
                         List<com.emc.storageos.db.client.model.StoragePort> selectedPortsForMask = new ArrayList<>();
-                        //List<com.emc.storageos.db.client.model.StoragePort> maskStoragePorts = ExportUtils.getStoragePorts(exportMask, dbClient);
+
                         for (StoragePort driverPort : selectedPorts) {
                             com.emc.storageos.db.client.model.StoragePort port = nativeIdToAvailablePortMap.get(driverPort.getNativeId());
                             selectedPortsForMask.add(port);
@@ -166,8 +170,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                     taskCompleter.ready(dbClient);
                 }
             } else {
-                // failed
-                // TODO support async
                 String errorMsg = String.format("createExportMask -- Failed to create export: %s .", task.getMessage());
                 log.error(errorMsg);
                 ServiceError serviceError = ExternalDeviceException.errors.createExportMaskFailed("createExportMask", errorMsg);
@@ -192,7 +194,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         log.info("{} deleteExportMask START...", storage.getSerialNumber());
         log.info("Export mask id: {}", exportMaskUri);
         try {
-            BlockStorageDriver driver = _externalDevice.getDriver(storage.getSystemType());
+            BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
             StringSet maskInitiatorUris = exportMask.getInitiators();
@@ -203,7 +205,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             log.info("Export mask existing initiators: {} ", initiatorUris);
 
             StringMap volumes = exportMask.getVolumes();
-            log.info("Export mask existing volumes: {} ", volumes!=null ? volumes.keySet() : null);
+            log.info("Export mask existing volumes: {} ", volumes != null ? volumes.keySet() : null);
 
             // Prepare volumes.
             List<StorageVolume> driverVolumes = new ArrayList<>();
@@ -216,25 +218,22 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
             // Ready to call driver
             DriverTask task = driver.unexportVolumesFromInitiators(driverInitiators, driverVolumes);
-            // TODO: this is short cut for now, assuming synchronous driver implementation
-            // TODO: Support for async case TBD.
+            // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 String msg = String.format("Deleted export mask: %s.", task.getMessage());
                 log.info(msg);
                 taskCompleter.ready(dbClient);
             } else {
-                // failed
-                // TODO support async
                 String errorMsg = String.format("Failed to delete export mask: %s .", task.getMessage());
                 log.error(errorMsg);
-                ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("deleteExportMask", errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.deleteExportMaskFailed("deleteExportMask", errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception ex) {
-            log.error("Problem in removeVolume: ", ex);
+            log.error("Problem in deleteExportMask: ", ex);
             String errorMsg = String.format("Failed to remove volumes from export mask: %s .", ex.getMessage());
             log.error(errorMsg);
-            ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("deleteExportMask", errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.deleteExportMaskFailed("deleteExportMask", errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }
         log.info("{} deleteExportMask END...", storage.getSerialNumber());
@@ -242,12 +241,14 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     @Override
     public void addInitiator(StorageSystem storage, URI exportMask, List<com.emc.storageos.db.client.model.Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
-
+        // todo: implement
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public void removeInitiator(StorageSystem storage, URI exportMask, List<com.emc.storageos.db.client.model.Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
-
+        // todo: implement
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
@@ -258,7 +259,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         log.info("New volumes to add: volume-HLU pairs: {}", volumeURIHLUs);
 
         try {
-            BlockStorageDriver driver = _externalDevice.getDriver(storage.getSystemType());
+            BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
             StringSet maskInitiators = exportMask.getInitiators();
@@ -310,7 +311,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             // Only ports in the mask are available for driver call.
             availablePorts = recommendedPorts;
 
-            ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+            ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(
                     volumeUris, exportGroup.getNumPaths(), storage.getId(), exportGroupUri);
             StorageCapabilities capabilities = new StorageCapabilities();
             // Prepare num paths to send to driver
@@ -321,12 +322,11 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                     recommendedPorts, availablePorts, capabilities, usedRecommendedPorts,
                     selectedPorts);
 
-            // TODO: this is short cut for now, assuming synchronous driver implementation
-            // TODO: Support for async case TBD.
+            // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // If driver used recommended ports (the same ports as already in the mask), we are done.
                 // Otherwise, we return error. The case when driver uses different ports than those which are already in
-                // in the mask, are not supported for add volumes.
+                // the mask, are not supported for add volumes.
                 // We will verify driver selected ports against recommended ports list.
                 String msg = String.format("Created export: %s . Used recommended ports: %s .",
                         task.getMessage(), usedRecommendedPorts);
@@ -350,8 +350,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                     taskCompleter.ready(dbClient);
                 }
             } else {
-                // failed
-                // TODO support async
                 String errorMsg = String.format("Failed to add volumes to export mask: %s .", task.getMessage());
                 log.error(errorMsg);
                 ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolume", errorMsg);
@@ -377,7 +375,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         log.info("Volumes to remove: {}", volumeUris);
 
         try {
-            BlockStorageDriver driver = _externalDevice.getDriver(storage.getSystemType());
+            BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
             StringSet maskInitiators = exportMask.getInitiators();
@@ -399,25 +397,22 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
             // Ready to call driver
             DriverTask task = driver.unexportVolumesFromInitiators(driverInitiators, driverVolumes);
-            // TODO: this is short cut for now, assuming synchronous driver implementation
-            // TODO: Support for async case TBD.
+            // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 String msg = String.format("Removed volumes from export: %s.", task.getMessage());
                 log.info(msg);
                 taskCompleter.ready(dbClient);
             } else {
-                // failed
-                // TODO support async
                 String errorMsg = String.format("Failed to remove volumes from export mask: %s .", task.getMessage());
                 log.error(errorMsg);
-                ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("removeVolume", errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.deleteVolumesFromExportMaskFailed("removeVolume", errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception ex) {
             log.error("Problem in removeVolume: ", ex);
             String errorMsg = String.format("Failed to remove volumes from export mask: %s .", ex.getMessage());
             log.error(errorMsg);
-            ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("removeVolume", errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.deleteVolumesFromExportMaskFailed("removeVolume", errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }
         log.info("{} removeVolume END...", storage.getSerialNumber());
@@ -433,12 +428,13 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+        // No common masking concept for driver managed systems. Return export mask as is.
         return mask;
     }
 
     @Override
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback, TaskCompleter taskCompleter) throws Exception {
-
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
@@ -458,7 +454,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             Integer decimalHLU;
             if (volumeURIHLU.getHLU().equals(ExportGroup.LUN_UNASSIGNED_STR))
             { // cannot parse "ffffffff" with Integer.parseInt(volumeURIHLU.getHLU(), 16),
-              // got "NumberFormatException". Looks as Java error.
+              // got "NumberFormatException". Looks as Java error ???
                 decimalHLU = ExportGroup.LUN_UNASSIGNED;
             } else {
                 decimalHLU = Integer.parseInt(volumeURIHLU.getHLU(), 16);
@@ -585,7 +581,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         }
 
         // Update zoning map based on provided storage ports
-        _blockScheduler.updateZoningMap(exportMask, exportGroup.getVirtualArray(), exportGroup.getId());
+        blockScheduler.updateZoningMap(exportMask, exportGroup.getVirtualArray(), exportGroup.getId());
 
     }
 

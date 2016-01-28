@@ -224,7 +224,7 @@ public class RestoreManager {
             log.debug("Found backup file: {}", backupFile.getName());
         }
 
-        if (matched != BackupType.values().length - 1) {
+        if (!onlyRestoreSiteId && matched != BackupType.values().length - 1) {
             throw new IllegalArgumentException(errorMessage);
         }
 

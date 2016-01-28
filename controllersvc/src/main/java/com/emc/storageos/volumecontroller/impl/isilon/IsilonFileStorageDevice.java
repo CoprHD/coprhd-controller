@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -298,6 +299,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
          * Delete the directory associated with the file share.
          */
         isi.deleteDir(args.getFsMountPath(), true);
+
+        /**
+         * Delete the Schedule Policy for the file system
+         */
+        isiDeleteSnapshotSchedules(isi, args);
     }
 
     /**
@@ -319,6 +325,26 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 args.addSnapshot(snap);
                 isiDeleteSnapshot(isi, args);
             }
+        }
+    }
+
+    /**
+     * Deleting snapshots: - deletes snapshots of a file system
+     * 
+     * @param isi
+     *            IsilonApi object
+     * @param args
+     *            FileDeviceInputOutput
+     * @throws IsilonException
+     */
+    private void isiDeleteSnapshotSchedules(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
+
+        StringSet policies = args.getFs().getFilePolicies();
+
+        for (String policy : policies) {
+            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, URI.create(policy));
+            String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
+            isi.deleteSnapshotSchedule(snapshotScheduleName);
         }
     }
 

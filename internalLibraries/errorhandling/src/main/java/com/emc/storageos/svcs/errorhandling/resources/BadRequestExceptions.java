@@ -2824,6 +2824,9 @@ public interface BadRequestExceptions {
     public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException assoicatedPolicyTenantMismach(URI fp, URI fs);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotFindAssoicatedPolicy(URI fp);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

@@ -13,7 +13,7 @@
   #{if showPauseButton}
 	#{DataTable.buttonBar}
       #{Form.button name:'disasterRecovery.pauseButton', icon:'pause', submit:'pauseForm', data:['enabled':'selected']/}
-      #{DataTable.formAction @pause(), id:'pauseForm', table:'disasterRecovery'/}
+      #{DataTable.formAction @pause(), id:'pauseForm', table:'disasterRecovery', confirm:messages.get('disasterRecovery.confirm.pause')/}
 	#{/DataTable.buttonBar}
   #{/if}
   #{else}

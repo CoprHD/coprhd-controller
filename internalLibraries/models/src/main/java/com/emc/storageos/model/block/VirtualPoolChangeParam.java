@@ -23,6 +23,7 @@ public class VirtualPoolChangeParam {
     private URI virtualPool;
     private BlockVirtualPoolProtectionParam protection;
     private URI consistencyGroup;
+    private String transferSpeed; 
 
     public VirtualPoolChangeParam() {
     }
@@ -63,6 +64,18 @@ public class VirtualPoolChangeParam {
         this.protection = protection;
     }
 
+    /**
+     * Parameter for Transfer Speed. Optional parameter for virtual volume migration
+     * from VPLEX Local to Distributed.
+     */
+    @XmlElement(required = false, name = "transfer_speed")
+    public String getTransferSpeedParam() {
+    	return transferSpeed; 
+    }
+    
+    public void setTransferSpeedParam(String transferspeed) {
+    	this.transferSpeed = transferspeed; 
+    }
     /**
      * The ViPR consistency group to associate the volume with for
      * the creation of the RecoverPoint consistency group.

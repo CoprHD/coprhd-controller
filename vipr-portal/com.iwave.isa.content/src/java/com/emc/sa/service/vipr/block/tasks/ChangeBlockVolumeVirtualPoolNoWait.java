@@ -10,6 +10,7 @@ import java.util.Collection;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
+import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
 
@@ -28,6 +29,10 @@ public class ChangeBlockVolumeVirtualPoolNoWait extends ViPRExecutionTask<Tasks<
         VolumeVirtualPoolChangeParam input = new VolumeVirtualPoolChangeParam();
         input.setVolumes(Lists.newArrayList(this.volumeIds));
         input.setVirtualPool(targetVirtualPoolId);
-        return getClient().blockVolumes().changeVirtualPool(input);
+        Tasks<VolumeRestRep> tasks = getClient().blockVolumes().changeVirtualPool(input);
+        for (Task<VolumeRestRep> task : tasks.getTasks()) {
+            addOrderIdTag(task.getTaskResource().getId());
+        }
+        return tasks;
     }
 }

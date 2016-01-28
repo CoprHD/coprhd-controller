@@ -721,15 +721,8 @@ public class VdcManager extends AbstractManager {
     private boolean ipsecSyncedLocally() throws Exception {
         localVdcPropInfo = localRepository.getVdcPropertyInfo();
         targetVdcPropInfo = loadVdcConfig();
-        String localVersion = localVdcPropInfo.getProperty(Constants.VDC_CONFIG_VERSION);
-        String targetVersion = targetVdcPropInfo.getProperty(Constants.VDC_CONFIG_VERSION);
-        log.info("Target vdc version is {}, local vdc version is {}", targetVersion, localVersion);
 
-        if (localVersion == null || targetVersion == null) {
-            return false;
-        }
-
-        return targetVersion.equals(localVersion);
+        return !vdcPropertiesChanged();
     }
 
     private void rollingRestartDbSvc() {

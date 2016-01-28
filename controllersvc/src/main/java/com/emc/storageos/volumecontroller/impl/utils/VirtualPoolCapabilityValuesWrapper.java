@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.StorageSystem;
+
 /**
  * Wrapper for VirtualPoolParams HashMap
  * 
@@ -37,14 +40,16 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String RP_COPY_TYPE = "rp_copy_type";
     public static final String RP_MAX_SNAPS = "rp_max_snaps";
     public static final String QUOTA = "quota";
-    
-    public static final String FILE_RP_RPO_VALUE = "fileRpRpoValue";
-    public static final String FILE_RP_RPO_TYPE  = "fileRpRpoType";
-    public static final String FILE_RP_COPY_MODE = "fileRpCopyMode";
 
+    public static final String FILE_RP_RPO_VALUE = "fileRpRpoValue";
+    public static final String FILE_RP_RPO_TYPE = "fileRpRpoType";
+    public static final String FILE_RP_COPY_MODE = "fileRpCopyMode";
 
     public static final String FILE_REPLICATION_SOURCE = "file_replication_source";
     public static final String FILE_REPLICATION_TARGET = "file_replication_target";
+    public static final String FILE_SYSTEM_VPOOL_CHANGE = "file_system_vpool_change";
+    public static final String VPOOL_CHANGE_SOURCE_FS = "vpool_change_source_fs";
+    public static final String VPOOL_CHANGE_SOURCE_STORAGE = "vpool_change_source_storage";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -162,7 +167,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(QUOTA)) {
             _vpoolCapabilities.put(QUOTA, capabilities.getQuota());
         }
-        
+
         if (capabilities.contains(FILE_RP_RPO_TYPE)) {
             _vpoolCapabilities.put(FILE_RP_RPO_TYPE, capabilities.getRpRpoType());
         }
@@ -170,11 +175,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(FILE_RP_RPO_TYPE)) {
             _vpoolCapabilities.put(FILE_RP_RPO_TYPE, capabilities.getRpCopyMode());
         }
-        
+
         if (capabilities.contains(FILE_RP_COPY_MODE)) {
             _vpoolCapabilities.put(FILE_RP_COPY_MODE, capabilities.getRpCopyMode());
         }
-
 
     }
 
@@ -305,7 +309,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(QUOTA);
         return value != null ? (String) value : null;
     }
-    
+
     public Long getFileRpRpoValue() {
         Object value = _vpoolCapabilities.get(FILE_RP_RPO_VALUE);
         return value != null ? (Long) value : 0L;
@@ -315,10 +319,25 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(FILE_RP_RPO_TYPE);
         return value != null ? (String) value : null;
     }
-    
+
     public String getFileRpCopyMode() {
         Object value = _vpoolCapabilities.get(FILE_RP_COPY_MODE);
         return value != null ? (String) value : null;
+    }
+
+    public boolean getFileSystemVPoolChange() {
+        Object value = _vpoolCapabilities.get(FILE_SYSTEM_VPOOL_CHANGE);
+        return value != null ? (Boolean) value : false;
+    }
+
+    public FileShare getSourceFileSystemVPoolChange() {
+        Object value = _vpoolCapabilities.get(VPOOL_CHANGE_SOURCE_FS);
+        return value != null ? (FileShare) value : null;
+    }
+
+    public StorageSystem getSourceStorageDeviceVPoolChange() {
+        Object value = _vpoolCapabilities.get(VPOOL_CHANGE_SOURCE_STORAGE);
+        return value != null ? (StorageSystem) value : null;
     }
 
 }

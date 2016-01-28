@@ -145,6 +145,36 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
     }
 
+    @Override
+    public TaskResourceRep changeFileSystemVirtualPool(FileShare fs, Project project,
+            VirtualPool vpool, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        List<FileShare> fileList = null;
+        List<FileShare> fileShares = new ArrayList<FileShare>();
+
+        // Prepare the FileShares
+        fileList = prepareTargetFileSystems(fs, task, taskList, project, varray, vpool, recommendations, vpoolCapabilities, false);
+        fileShares.addAll(fileList);
+
+        // prepare the file descriptors
+        final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);
+        final FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        try {
+            // Execute the change vpool of fileshare!!!
+            controller.changeFileSystemVirtualPool(fs, fileDescriptors, task);
+        } catch (InternalException e) {
+            _log.error("Controller error when changing filesystem vpool", e);
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            _log.error("Controller error when changing filesystem vpool", e);
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
+            throw e;
+        }
+        return taskList.getTaskList().get(0);
+    }
+
     private boolean isParentInactiveForTarget(FileShare fileShare) {
         NamedURI parent = fileShare.getParentFileShare();
         if (NullColumnValueGetter.isNullNamedURI(parent)) {
@@ -256,6 +286,77 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
                 // Source file system!!
                 preparedFileSystems.add(sourceFileShare);
+
+                for (VirtualArray targetVArray : virtualArrayTargets) {
+                    protectionSettings = settingMap.get(targetVArray.getId());
+                    if (protectionSettings.getVirtualPool() != null) {
+                        targetVpool = _dbClient.queryObject(VirtualPool.class, protectionSettings.getVirtualPool());
+                    }
+
+                    fileLabelBuilder = new StringBuilder(sourceFileShare.toString()).append("-target-" + targetVArray.getLabel());
+                    targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
+                            project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
+
+                    // Set target file recommendations to target file system!!!
+                    setFileMirrorRecommendation(recommendation, targetVpool, targetVArray, true, false, targetFileShare);
+
+                    // Update the source and target relationship!!
+                    setMirrorFileShareAttributes(sourceFileShare, targetFileShare);
+                    preparedFileSystems.add(targetFileShare);
+                }
+            }
+        }
+        return preparedFileSystems;
+    }
+
+    /**
+     * Prepare the source and target filesystems
+     * 
+     * @param param
+     * @param task
+     * @param taskList
+     * @param project
+     * @param varray
+     * @param vpool
+     * @param recommendations
+     * @param cosCapabilities
+     * @param createInactive
+     * @return
+     */
+    public List<FileShare> prepareTargetFileSystems(FileShare sourceFileShare, String task, TaskList taskList,
+            Project project, TenantOrg tenantOrg, DataObject.Flag[] flags, VirtualArray varray, VirtualPool vpool,
+            List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
+
+        List<FileShare> preparedFileSystems = new ArrayList<>();
+        Iterator<Recommendation> recommendationsIter = recommendations.iterator();
+        while (recommendationsIter.hasNext()) {
+            FileMirrorRecommendation recommendation = (FileMirrorRecommendation) recommendationsIter.next();
+            // If id is already set in recommendation, do not prepare the fileSystem (fileSystem already exists)
+            if (recommendation.getId() != null) {
+                continue;
+            }
+
+            FileShare targetFileShare = null;
+            StringBuilder fileLabelBuilder = null;
+            VirtualPool targetVpool = vpool;
+
+            if (vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name())) {
+                fileLabelBuilder = new StringBuilder(sourceFileShare.getLabel()).append("-target-" + varray.getLabel());
+
+                targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
+                        project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
+                // Set target file recommendations to target file system!!!
+                setFileMirrorRecommendation(recommendation, vpool, varray, true, false, targetFileShare);
+
+                // Update the source and target relationship!!
+                setMirrorFileShareAttributes(sourceFileShare, targetFileShare);
+                preparedFileSystems.add(targetFileShare);
+
+            } else {
+                Map<URI, VpoolRemoteCopyProtectionSettings> settingMap = VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient);
+                VpoolRemoteCopyProtectionSettings protectionSettings = null;
+                List<VirtualArray> virtualArrayTargets = FileMirrorSchedular.getTargetVirtualArraysForVirtualPool(project, vpool,
+                        _dbClient, getPermissionsHelper());
 
                 for (VirtualArray targetVArray : virtualArrayTargets) {
                     protectionSettings = settingMap.get(targetVArray.getId());

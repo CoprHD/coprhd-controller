@@ -44,6 +44,7 @@ import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CifsShareUtility;
 import com.emc.storageos.api.service.impl.resource.utils.ExportVerificationUtility;
 import com.emc.storageos.api.service.impl.resource.utils.NfsACLUtility;
+import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
@@ -112,6 +113,7 @@ import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemSnapshotParam;
+import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
 import com.emc.storageos.model.file.QuotaDirectoryList;
@@ -139,6 +141,7 @@ import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
+import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 @Path("/file/filesystems")
@@ -2276,6 +2279,120 @@ public class FileService extends TaskResourceService {
         return toTask(fs, task, op);
     }
 
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/vpool-change")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep changeFileSystemVirtualPool(@PathParam("id") URI id, FileSystemVirtualPoolChangeParam param)
+            throws InternalException, APIException {
+
+        _log.info("Request to change VirtualPool for filesystem {}", id);
+
+        // Validate the FS id.
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+        String task = UUID.randomUUID().toString();
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        TaskList taskList = new TaskList();
+
+        // Make sure that we don't have some pending
+        // operation against the file system!!!
+        checkForPendingTasks(Arrays.asList(fs.getTenant().getURI()), Arrays.asList(fs));
+
+        // target vPool
+        VirtualPool newVpool = null;
+
+        // Get the project.
+        URI projectURI = fs.getProject().getURI();
+        Project project = _permissionsHelper.getObjectById(projectURI,
+                Project.class);
+        ArgValidator.checkEntity(project, projectURI, false);
+        _log.info("Found filesystem project {}", projectURI);
+
+        // Verify the user is authorized for the volume's project.
+        // BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
+        _log.info("User is authorized for volume's project");
+
+        // Get the VirtualPool for the request and verify that the
+        // project's tenant has access to the VirtualPool.
+        newVpool = getVirtualPoolForRequest(project, param.getVirtualPool(),
+                _dbClient, _permissionsHelper);
+        _log.info("Found new VirtualPool {}", newVpool.getId());
+
+        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        // Verify the vPool change is supported!!!
+        if (!VirtualPoolChangeAnalyzer.isSupportedFileReplicationChange(currentVpool, newVpool, notSuppReasonBuff)) {
+            _log.error("Virtual Pool change is not supported due to {}", notSuppReasonBuff.toString());
+            throw APIException.badRequests.invalidVirtualPoolForVirtualPoolChange(
+                    newVpool.getLabel(), notSuppReasonBuff.toString());
+        }
+
+        // Get the virtual array!!!
+        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());
+
+        // Total provisioned capacity to check for vPool quota.
+        long totalProvisionedCapacity = fs.getCapacity();
+        // verify target vPool quota
+        if (!CapacityUtils.validateVirtualPoolQuota(_dbClient, newVpool,
+                totalProvisionedCapacity)) {
+            throw APIException.badRequests.insufficientQuotaForVirtualPool(
+                    newVpool.getLabel(), "filesystem");
+        }
+
+        // New operation
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL);
+        op.setDescription("Change vpool operation");
+        op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task, op);
+
+        TaskResourceRep fileSystemTask = toTask(fs, task, op);
+        taskList.getTaskList().add(fileSystemTask);
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+
+        // prepare vpool capability values
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(newVpool.getSupportedProvisioningType())) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+        }
+        // Set the source file system details
+        // source fs details used in finding recommendations for target fs!!
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_VPOOL_CHANGE, Boolean.TRUE);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_CHANGE_SOURCE_FS, fs);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_CHANGE_SOURCE_STORAGE, device);
+
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+
+        try {
+            // Call out placementManager to get the recommendation for placement.
+            List recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(
+                    varray, project, newVpool, capabilities);
+
+            // Verify the source virtual pool recommendations meets source fs storage!!!
+            fileServiceApi.changeFileSystemVirtualPool(fs, project,
+                    newVpool, taskList, task, recommendations, capabilities);
+        } catch (InternalException e) {
+            if (_log.isErrorEnabled()) {
+                _log.error("Delete error", e);
+            }
+
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
+            op = fs.getOpStatus().get(task);
+            op.error(e);
+            fileShare.getOpStatus().updateTaskStatus(task, op);
+            _dbClient.updateObject(fs);
+            throw e;
+        }
+        auditOp(OperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL, true, AuditLogManager.AUDITOP_BEGIN,
+                fs.getLabel(), currentVpool.getLabel(), newVpool.getLabel(),
+                project == null ? null : project.getId().toString());
+
+        return taskList.getTaskList().get(0);
+    }
+
     private void copyPropertiesToSave(FileExportRule orig, ExportRule dest, FileShare fs) {
 
         dest.setFsID(fs.getId());
@@ -2569,4 +2686,44 @@ public class FileService extends TaskResourceService {
 
     }
 
+    /**
+     * Gets and verifies the VirtualPool passed in the request.
+     * 
+     * @param project A reference to the project.
+     * @param cosURI The URI of the VirtualPool.
+     * @param dbClient Reference to a database client.
+     * @param permissionsHelper Reference to a permissions helper.
+     * 
+     * @return A reference to the VirtualPool.
+     */
+    public static VirtualPool getVirtualPoolForRequest(Project project, URI cosURI, DbClient dbClient,
+            PermissionsHelper permissionsHelper) {
+        ArgValidator.checkUri(cosURI);
+        VirtualPool cos = dbClient.queryObject(VirtualPool.class, cosURI);
+        ArgValidator.checkEntity(cos, cosURI, false);
+        if (!VirtualPool.Type.file.name().equals(cos.getType())) {
+            throw APIException.badRequests.virtualPoolNotForFileBlockStorage(VirtualPool.Type.file.name());
+        }
+
+        permissionsHelper.checkTenantHasAccessToVirtualPool(project.getTenantOrg().getURI(), cos);
+        return cos;
+    }
+
+    /**
+     * Gets and verifies the VirtualPool passed in the request.
+     * 
+     * @param project A reference to the project.
+     * @param cosURI The URI of the VirtualPool.
+     * @param dbClient Reference to a database client.
+     * @param permissionsHelper Reference to a permissions helper.
+     * 
+     * @return A reference to the VirtualPool.
+     */
+    private boolean verifyFileReplicationRecommnedations(FileShare fs, List<Recommendation> recommendations, VirtualPool newvPool) {
+        for (Recommendation rec : recommendations) {
+            if(rec.)
+
+        }
+        return false;
+    }
 }

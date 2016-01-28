@@ -4,25 +4,25 @@
  */
 package com.emc.storageos.fileorchestrationcontroller;
 
+import java.io.Serializable;
 import java.net.URI;
 import java.util.List;
-import java.io.Serializable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
-import com.emc.storageos.Controller;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
-
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -38,6 +38,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     static final String CREATE_FILESYSTEMS_WF_NAME = "CREATE_FILESYSTEMS_WORKFLOW";
     static final String DELETE_FILESYSTEMS_WF_NAME = "DELETE_FILESYSTEMS_WORKFLOW";
+    static final String CHANGE_FILESYSTEMS_VPOOL_WF_NAME = "CHANGE_FILESYSTEMS_VPOOL_WORKFLOW";
 
     /*
      * (non-Javadoc)
@@ -87,6 +88,63 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             s_logger.error("Could not create filesystems: " + fsUris, ex);
             releaseWorkflowLocks(workflow);
             String opName = ResourceOperationTypeEnum.CREATE_FILE_SYSTEM.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+                    fsUris.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController#changeFileSystemVirtualPool(java.util.List,
+     * java.lang.String)
+     */
+
+    /**
+     * Create target filesystems for replicaion vpool
+     * (FileShare, FileMirroring). This method is responsible for creating
+     * a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystems
+     * 
+     * @param filesystems
+     * @param taskId
+     * @throws ControllerException
+     */
+    @Override
+    public void changeFileSystemVirtualPool(FileShare fs, List<FileDescriptor> fileDescriptors,
+            String taskId) throws ControllerException {
+
+        // Generate the Workflow.
+        Workflow workflow = null;
+        List<URI> fsUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
+
+        FileCreateWorkflowCompleter completer = new FileCreateWorkflowCompleter(fsUris, taskId, fileDescriptors);
+        try {
+            // Generate the Workflow.
+            workflow = _workflowService.getNewWorkflow(this,
+                    CHANGE_FILESYSTEMS_VPOOL_WF_NAME, false, taskId);
+            String waitFor = null;    // the wait for key returned by previous call
+
+            s_logger.info("Generating steps for change vpool of filesystem");
+            // First, call the FileDeviceController to add its methods.
+            // To create target file systems!!
+            waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
+                    fileDescriptors, taskId);
+            // second, call create replication link or pair
+            waitFor = _fileReplicationDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
+                    fileDescriptors, taskId);
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Change filesystems vpool successful for: " + fs.getLabel();
+            Object[] callbackArgs = new Object[] { fsUris };
+            workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not change the filesystem vpool: " + fs.getId(), ex);
+            releaseWorkflowLocks(workflow);
+            String opName = ResourceOperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL.getName();
             ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
                     fsUris.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);

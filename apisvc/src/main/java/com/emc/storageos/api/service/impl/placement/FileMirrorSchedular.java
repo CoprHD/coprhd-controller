@@ -19,8 +19,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation.Target;
+import com.emc.storageos.api.service.impl.placement.FileRecommendation.FileType;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -80,7 +83,6 @@ public class FileMirrorSchedular implements Scheduler {
         List<FileRecommendation> recommendations = null;
         if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())) {
             recommendations = getRemoteMirrorRecommendationsForResources(varray, project, vpool, capabilities);
-
         } else {
             recommendations = getLocalMirrorRecommendationsForResources(varray, project, vpool, capabilities);
         }
@@ -107,9 +109,19 @@ public class FileMirrorSchedular implements Scheduler {
         // Get the source file system recommendations!!!
         capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_SOURCE);
 
-        // Get the recommendation for source!!!
-        List<FileRecommendation> sourceFileRecommendations =
-                _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
+        List<FileRecommendation> sourceFileRecommendations = new ArrayList<FileRecommendation>();
+        // For vPool change get the recommendations from source file system!!!
+        if (capabilities.getFileSystemVPoolChange()) {
+            // Get the source file system and storage system
+            // which was set at in FileService
+            // to construct the source recommendations!!
+            FileShare sourceFs = capabilities.getSourceFileSystemVPoolChange();
+            StorageSystem storageSystem = capabilities.getSourceStorageDeviceVPoolChange();
+            sourceFileRecommendations.add(getSourceRecommendationParameters(sourceFs, storageSystem));
+        } else {
+            // Get the recommendation for source from vpool!!!
+            sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
+        }
         // Process the each recommendations for targets
         for (FileRecommendation sourceFileRecommendation : sourceFileRecommendations) {
 
@@ -154,6 +166,88 @@ public class FileMirrorSchedular implements Scheduler {
         return fileMirrorRecommendations;
     }
 
+    /**
+     * get list Recommendation for Local Mirror
+     * 
+     * @param vArray
+     * @param project
+     * @param vPool
+     * @param capabilities
+     * @return
+     */
+    public List getMirrorRecommendationsForVPoolChange(VirtualArray vArray, Project project, VirtualPool vPool,
+            VirtualPoolCapabilityValuesWrapper capabilities) {
+
+        List<FileRecommendation> targetFileRecommendations = null;
+        List<FileMirrorRecommendation> fileMirrorRecommendations = new ArrayList<FileMirrorRecommendation>();
+
+        FileShare sourceFs = capabilities.getSourceFileSystemVPoolChange();
+        StorageSystem system = capabilities.getSourceStorageDeviceVPoolChange();
+        // Construct the source recommendations from source file system!!!
+        FileMirrorRecommendation fileMirrorRecommendation = getSourceRecommendationParameters(sourceFs);
+
+        // attribute map of target storagesystem and varray
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
+
+        if (vPool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())) {
+            Set<String> storageSystemSet = new HashSet<String>();
+            storageSystemSet.add(system.getId().toString());
+            attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+
+            Set<String> virtualArraySet = new HashSet<String>();
+            virtualArraySet.add(vArray.getId().toString());
+            attributeMap.put(AttributeMatcher.Attributes.varrays.name(), virtualArraySet);
+            // Get target recommendations -step2
+            targetFileRecommendations = _fileScheduler.placeFileShare(vArray, vPool, capabilities, project, attributeMap);
+
+            String copyMode = vPool.getFileReplicationCopyMode();
+            if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
+                // prepare the target recommendation
+                FileRecommendation targetRecommendation = targetFileRecommendations.get(0);
+                prepareTargetFileRecommendation(copyMode,
+                        vArray, targetRecommendation, fileMirrorRecommendation);
+
+                fileMirrorRecommendations.add(fileMirrorRecommendation);
+            }
+        } else if (vPool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())) {
+            Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings =
+                    VirtualPool.getFileRemoteProtectionSettings(vPool, _dbClient);
+
+            String srcSystemType = system.getSystemType();
+            Set<String> systemTypes = new StringSet();
+            systemTypes.add(srcSystemType);
+
+            if (remoteCopySettings != null && !remoteCopySettings.isEmpty()) {
+                for (Entry<URI, VpoolRemoteCopyProtectionSettings> copy : remoteCopySettings.entrySet()) {
+                    // Process each target !!!
+                    VpoolRemoteCopyProtectionSettings targetCopy = copy.getValue();
+                    VirtualPool targetPool = _dbClient.queryObject(VirtualPool.class, targetCopy.getVirtualPool());
+                    VirtualArray targetArray = _dbClient.queryObject(VirtualArray.class, targetCopy.getVirtualArray());
+
+                    attributeMap.put(Attributes.system_type.toString(), systemTypes);
+                    attributeMap.put(Attributes.remote_copy_mode.toString(), targetCopy.getCopyMode());
+                    attributeMap.put(Attributes.source_storage_system.name(), system.getId().toString());
+
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY,
+                            VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET);
+                    // Get target recommendations!!!
+                    targetFileRecommendations = _fileScheduler.placeFileShare(targetArray, targetPool, capabilities, project, attributeMap);
+
+                    String copyMode = vPool.getFileReplicationCopyMode();
+                    if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
+                        // prepare the target recommendation
+                        FileRecommendation targetRecommendation = targetFileRecommendations.get(0);
+                        prepareTargetFileRecommendation(copyMode,
+                                vArray, targetRecommendation, fileMirrorRecommendation);
+
+                        fileMirrorRecommendations.add(fileMirrorRecommendation);
+                    }
+                }
+            }
+        }
+        return fileMirrorRecommendations;
+    }
+
     /* local mirror related functions */
     /**
      * get list Recommendation for Local Mirror
@@ -171,9 +265,20 @@ public class FileMirrorSchedular implements Scheduler {
         List<FileRecommendation> targetFileRecommendations = null;
         List<FileMirrorRecommendation> fileMirrorRecommendations = new ArrayList<FileMirrorRecommendation>();
 
-        // get the recommendation for source -step1
-        List<FileRecommendation> sourceFileRecommendations =
-                _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
+        List<FileRecommendation> sourceFileRecommendations = new ArrayList<FileRecommendation>();
+        // For vPool change get the recommendations from source file system!!!
+        if (capabilities.getFileSystemVPoolChange()) {
+            // Get the source file system and storage system
+            // which was set at in FileService
+            // to construct the source recommendations!!
+            FileShare sourceFs = capabilities.getSourceFileSystemVPoolChange();
+            StorageSystem storageSystem = capabilities.getSourceStorageDeviceVPoolChange();
+            sourceFileRecommendations.add(getSourceRecommendationParameters(sourceFs, storageSystem));
+        } else {
+            // Get the recommendation for source from vpool!!!
+            sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
+        }
+
         // process the each recommendations for targets
         for (FileRecommendation sourceFileRecommendation : sourceFileRecommendations) {
             // set the source file recommendation
@@ -255,5 +360,25 @@ public class FileMirrorSchedular implements Scheduler {
             }
         }
         return targetVirtualArrays;
+    }
+
+    private FileRecommendation getSourceRecommendationParameters(FileShare sourceFs, StorageSystem storageSystem) {
+
+        FileRecommendation fileRecommendation = new FileRecommendation();
+        fileRecommendation.setSourceStorageSystem(sourceFs.getStorageDevice());
+        fileRecommendation.setFileType(FileType.FILE_SYSTEM_CHANGE_VPOOL);
+        fileRecommendation.setVirtualArray(sourceFs.getVirtualArray());
+        fileRecommendation.setDeviceType(storageSystem.getSystemType());
+        // set vnas Server
+        if (sourceFs.getVirtualNAS() != null) {
+            fileRecommendation.setvNAS(sourceFs.getVirtualNAS());
+        }
+        // set the storageports
+        if (sourceFs.getStoragePort() != null) {
+            List<URI> ports = new ArrayList<URI>();
+            ports.add(sourceFs.getStoragePort());
+            fileRecommendation.setStoragePorts(ports);
+        }
+        return fileRecommendation;
     }
 }

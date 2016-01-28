@@ -118,6 +118,7 @@ public enum OperationTypeEnum {
     EXPAND_FILE_SYSTEM("FileSystemExpanded", "FileSystemExpandFailed", "FileSystem expanded"),
     RELEASE_FILE_SYSTEM("FileSystemReleased", "", "FileSystem released"),
     UNDO_RELEASE_FILE_SYSTEM("FileSystemReleaseUndone", "", "FileSystem release undone"),
+    CHANGE_FILE_SYSTEM_VPOOL("ChangeFileSystemVpool", "ChangeFileSystemVpoolFailed", "FileSystem vpool Changed"),
 
     CREATE_FILE_SYSTEM_SHARE("FileSystemShared", "FileSystemShareFailed", "FileSystem shared"),
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "", "operation to tag a filesystem"),
@@ -143,7 +144,7 @@ public enum OperationTypeEnum {
 
     CREATE_FILE_MIRROR("FileSystemMirrorCreated", "FileSystemMirrorCreateFailed", "FileSystemMirror Create"),
     DELETE_FILE_MIRROR("FileSystemMirrorDeleted", "FileSystemMirrorDeleteFailed", "FileSystemMirror Delete"),
-    
+
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
     UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),
@@ -409,7 +410,7 @@ public enum OperationTypeEnum {
             "operation to update and verify a compute image server."),
     DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
     CREATE_VOLUME_GROUP("CREATE VOLUME GROUP", "", "operation to create volume group"),
-    DELETE_VOLUME_GROUP("DELETE VOLUME GROUP", "", "operation to delete volume group"), 
+    DELETE_VOLUME_GROUP("DELETE VOLUME GROUP", "", "operation to delete volume group"),
     UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "", "operation to update volume group"),
 
     CREATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyCreated", "VolumeGroupFullCopyCreateFailed", "VolumeGroupFullCopy Created"),

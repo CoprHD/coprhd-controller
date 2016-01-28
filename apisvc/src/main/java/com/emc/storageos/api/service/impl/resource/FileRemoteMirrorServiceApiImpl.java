@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -65,6 +66,15 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
     public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType, boolean forceDelete, String task)
             throws InternalException {
         super.deleteFileSystems(systemURI, fileSystemURIs, deletionType, forceDelete, task);
+    }
+
+    @Override
+    public TaskResourceRep changeFileSystemVirtualPool(FileShare fs, Project project,
+            VirtualPool vpool, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        return getFileMirrorServiceApiImpl().changeFileSystemVirtualPool(fs, project, vpool, taskList,
+                task, recommendations, vpoolCapabilities);
+
     }
 
     @Override

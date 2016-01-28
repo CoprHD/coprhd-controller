@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.api.service.impl.placement;
 
+import java.util.List;
+import java.util.Map;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -11,13 +14,10 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-import java.util.List;
-import java.util.Map;
-
 /**
  * 
  * this call specific implementation of Scheduler based on Vpool capability(default, local, remote)
- *
+ * 
  */
 public class FilePlacementManager {
     private DbClient dbClient;
@@ -46,7 +46,7 @@ public class FilePlacementManager {
 
     /**
      * Returns the scheduler responsible for scheduling resources
-     *
+     * 
      * @param vpool Virtual Pool
      * @return storage scheduler
      */
@@ -55,7 +55,7 @@ public class FilePlacementManager {
         // Select an implementation of the right scheduler
         Scheduler scheduler;
         if (vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name()) ||
-                vpool.getFileReplicationType().equals(FileReplicationType.REMOTE.name()) || 
+                vpool.getFileReplicationType().equals(FileReplicationType.REMOTE.name()) ||
                 VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
             scheduler = storageSchedulers.get("mirrorfile");
         } else {

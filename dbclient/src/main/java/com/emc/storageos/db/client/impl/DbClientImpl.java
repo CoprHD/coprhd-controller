@@ -143,7 +143,7 @@ public class DbClientImpl implements DbClient {
     private String _geoVersion;
     private DrUtil drUtil;
     // whether to retry once with LOCAL_QUORUM for write failure 
-    private boolean retryFailedWriteWithLocalQuorum = false; 
+    protected boolean retryFailedWriteWithLocalQuorum = false; 
     
     public String getGeoVersion() {
         if (this._geoVersion == null) {

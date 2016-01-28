@@ -379,12 +379,6 @@ public class SchemaUtil {
     public void rebuildDataOnStandby() {
         Site currentSite = drUtil.getLocalSite();
 
-        if (currentSite.getState().equals(SiteState.STANDBY_ADDING) ||
-            currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
-            currentSite.setState(SiteState.STANDBY_SYNCING);
-            _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-        }
-
         if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
             dbRebuildRunnable.run();
         }

@@ -1,5 +1,4 @@
 /*
- * Copyright 2015 EMC Corporation
  * Copyright 2016 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,18 +14,30 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.keystone;
 
-public class KeystoneConstants {
+package com.emc.storageos.keystone.restapi.model.response;
 
-    public static String KEYSTONE = "keystone";
-    public static String AUTH_TOKEN = "X-Auth-Token";
+/**
+ * Keystone API Tenant response class.
+ */
+public class TenantResponse {
 
-    public static String BASE_URI_V2 = "/v2.0/";
-    public static String URI_TOKENS = BASE_URI_V2 + "tokens";
-    public static String URI_ENDPOINTS = BASE_URI_V2 + "endpoints";
-    public static String URI_TENANTS = BASE_URI_V2 + "tenants";
-    public static String URI_SERVICES = BASE_URI_V2 + "OS-KSADM/services";
-    public static String VALIDATE_TOKEN = URI_TOKENS + "/%1$s";
+    private TenantV2 tenants[];
+    private String tenants_links[];
 
+    public TenantV2[] getTenants() {
+        return tenants;
+    }
+
+    public void setTenants(TenantV2[] tenants) {
+        this.tenants = tenants;
+    }
+
+    public String[] getTenants_links() {
+        return tenants_links;
+    }
+
+    public void setTenants_links(String[] tenants_links) {
+        this.tenants_links = tenants_links;
+    }
 }

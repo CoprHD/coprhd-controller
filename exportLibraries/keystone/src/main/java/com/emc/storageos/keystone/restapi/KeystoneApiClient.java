@@ -1,12 +1,19 @@
-/**
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+/*
+ * Copyright 2015 EMC Corporation
+ * Copyright 2016 Intel Corporation
  *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.storageos.keystone.restapi;
 
@@ -14,6 +21,8 @@ import java.net.URI;
 
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.keystone.restapi.model.request.CreateEndpointRequest;
+import com.emc.storageos.keystone.restapi.model.response.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +30,6 @@ import com.emc.storageos.keystone.KeystoneConstants;
 import com.emc.storageos.keystone.restapi.errorhandling.KeystoneApiException;
 import com.emc.storageos.keystone.restapi.model.request.AuthTokenRequest;
 import com.emc.storageos.keystone.restapi.model.request.PassWordCredentials;
-import com.emc.storageos.keystone.restapi.model.response.AuthTokenResponse;
 import com.emc.storageos.services.restutil.StandardRestClient;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -95,6 +103,200 @@ public class KeystoneApiClient extends StandardRestClient {
 
         _authToken = responseBody.getAccess().getToken().getId();
 
+    }
+
+    /**
+     * Retrieves Keystone endpoints from the Keystone API.
+     *
+     * @return EndpointResponse object filled with Keystone endpoints data.
+     */
+    public EndpointResponse getKeystoneEndpoints() throws KeystoneApiException{
+
+        log.info("START - getKeystoneEndpoints");
+
+        // Authenticate user if there is no token available.
+        if(_authToken == null){
+            authenticate_keystone();
+        }
+
+        // Send a request to Keystone API.
+        URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_ENDPOINTS));
+        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON).header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
+
+        // Throw an exception when response code is other than OK
+        if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
+            throw KeystoneApiException.exceptions.endpointRequestFailure(response.getClientResponseStatus().name());
+        }
+
+        // Parse response to Java object.
+        EndpointResponse endpointResponse;
+        log.debug("Parsing endpoint request results to Java object");
+        try {
+            endpointResponse = getResponseObject(EndpointResponse.class, response);
+        } catch (Exception e) {
+            log.error("Failed to parse the endpoint validation response");
+            throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
+        }
+
+        log.info("END - getKeystoneEndpoints");
+        return endpointResponse;
+    }
+
+    /**
+     * Retrieves Keystone services from the Keystone API.
+     *
+     * @return ServiceResponse object filled with Keystone services data.
+     */
+    public ServiceResponse getKeystoneServices() throws KeystoneApiException{
+
+        log.info("START - getKeystoneServices");
+
+        // Authenticate user if there is no token available.
+        if(_authToken == null){
+            authenticate_keystone();
+        }
+
+        // Send a request to Keystone API.
+        URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_SERVICES));
+        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON).header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
+
+        // Throw an exception when response code is other than OK.
+        if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
+            throw KeystoneApiException.exceptions.serviceRequestFailure(response.getClientResponseStatus().name());
+        }
+
+        // Parse response to Java object.
+        ServiceResponse serviceResponse;
+        log.debug("Parsing service request results to Java object");
+        try {
+            serviceResponse = getResponseObject(ServiceResponse.class, response);
+        } catch (Exception e) {
+            log.error("Failed to parse the service validation response");
+            throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
+        }
+
+        log.info("END - getKeystoneServices");
+        return serviceResponse;
+    }
+
+    /**
+     * Deletes Keystone endpoint with given ID.
+     *
+     * @param endpointId Keystone endpoint ID to delete.
+     */
+    public void deleteKeystoneEndpoint(String endpointId){
+
+        log.info("START - deleteKeystoneEndpoint");
+
+        // Authenticate user if there is no token available.
+        if(_authToken == null){
+            authenticate_keystone();
+        }
+
+        // Create correct delete URI.
+        String uri = KeystoneConstants.URI_ENDPOINTS + "/" + endpointId;
+        URI requestURI = _base.resolve(URI.create(uri));
+        // Send a delete request to Keystone API.
+        ClientResponse response = _client.resource(requestURI).header(KeystoneConstants.AUTH_TOKEN, _authToken).delete(ClientResponse.class);
+
+        // Throw an exception when response code is other than NO_CONTENT.
+        if (response.getClientResponseStatus() != ClientResponse.Status.NO_CONTENT) {
+            throw KeystoneApiException.exceptions.endpointRequestFailure(response.getClientResponseStatus().name());
+        }
+
+        log.info("END - deleteKeystoneEndpoint");
+    }
+
+    /**
+     * Creates a new Keystone endpoint.
+     *
+     * @param endpoint A new endpoint to create filled with information.
+     * @return CreateResponse object with created Keystone endpoint.
+     */
+    public CreateResponse createKeystoneEndpoint(EndpointV2 endpoint){
+
+        log.info("START - createKeystoneEndpoint");
+
+        // Authenticate user if there is no token available.
+        if(_authToken == null){
+            authenticate_keystone();
+        }
+
+        // Construct the Java pojo request object
+        CreateEndpointRequest endpointRequest = new CreateEndpointRequest();
+        endpointRequest.setEndpoint(endpoint);
+
+        String body = "";
+        try {
+            // Convert java pojo to json request body
+            body = getJsonForEntity(endpointRequest);
+        } catch (Exception e) {
+            throw KeystoneApiException.exceptions.requestJsonPayloadParseFailure(endpointRequest.toString());
+        }
+
+        // Create a new URI for endpoint creation.
+        String uri = KeystoneConstants.URI_ENDPOINTS;
+        URI requestURI = _base.resolve(URI.create(uri));
+        log.info("json: {}, uri: {}", body, requestURI);
+        // Send a create request to Keystone API.
+        ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+                                        .header(KeystoneConstants.AUTH_TOKEN, _authToken).post(ClientResponse.class, body);
+
+        // Throw an exception when response code is other than OK or CREATED.
+        if (response.getClientResponseStatus() != ClientResponse.Status.OK
+                && response.getClientResponseStatus() != ClientResponse.Status.CREATED) {
+            throw KeystoneApiException.exceptions.endpointRequestFailure(response.getClientResponseStatus().name());
+        }
+
+        // Parse response to Java object.
+        CreateResponse createResponse;
+        log.debug("Parsing service request results to Java object");
+        try {
+            createResponse = getResponseObject(CreateResponse.class, response);
+        } catch (Exception e) {
+            log.error("Failed to parse the endpoint validation response");
+            throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
+        }
+
+        log.info("END - createKeystoneEndpoint");
+        return createResponse;
+    }
+
+    /**
+     * Retrieves Keystone tenants from the Keystone API.
+     *
+     * @return TenantResponse object filled with Keystone tenants data.
+     */
+    public TenantResponse getKeystoneTenants() throws KeystoneApiException{
+
+        log.info("START - getKeystoneTenants");
+
+        // Authenticate user if there is no token available.
+        if(_authToken == null){
+            authenticate_keystone();
+        }
+
+        // Send a request to Keystone API.
+        URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_TENANTS));
+        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON).header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
+
+        // Throw an exception when response code is other than OK.
+        if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
+            throw KeystoneApiException.exceptions.tenantRequestFailure(response.getClientResponseStatus().name());
+        }
+
+        // Parse response to Java object.
+        TenantResponse tenantResponse;
+        log.debug("Parsing service request results to Java object");
+        try {
+            tenantResponse = getResponseObject(TenantResponse.class, response);
+        } catch (Exception e) {
+            log.error("Failed to parse the tenant validation response");
+            throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
+        }
+
+        log.info("END - getKeystoneTenants");
+        return tenantResponse;
     }
 
     private AuthTokenResponse getAuthTokenResponce(ClientResponse response) {

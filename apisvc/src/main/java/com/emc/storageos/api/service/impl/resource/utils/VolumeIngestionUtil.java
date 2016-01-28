@@ -1078,7 +1078,7 @@ public class VolumeIngestionUtil {
      * @param _dbClient the ViPR database client
      * @return a BlockConsistencyGroup URI, or null if none could be found or created
      */
-    public static URI getVplexConsistencyGroup(UnManagedVolume unManagedVolume, VirtualPool vpool,
+    public static BlockConsistencyGroup getVplexConsistencyGroup(UnManagedVolume unManagedVolume, VirtualPool vpool,
             URI projectUri, URI tenantUri, URI varrayUri, DbClient _dbClient) {
 
         String cgName = PropertySetterUtil.extractValueFromStringSet(
@@ -1106,7 +1106,7 @@ public class VolumeIngestionUtil {
 
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
                         unManagedVolume.getStorageSystemUri());
-                URI potentialUnclaimedCg = null;
+                BlockConsistencyGroup potentialUnclaimedCg = null;
                 if (!groups.isEmpty()) {
                     for (BlockConsistencyGroup cg : groups) {
                         // first check that the tenant and project are a match
@@ -1120,11 +1120,11 @@ public class VolumeIngestionUtil {
                                         virtualArrayUri.equals(varrayUri)) {
                                     _logger.info("Found a matching BlockConsistencyGroup {} "
                                             + "for virtual volume {}.", cgName, unManagedVolume.getLabel());
-                                    return cg.getId();
+                                    return cg;
                                 }
                             }
                             if (null == storageControllerUri && null == virtualArrayUri) {
-                                potentialUnclaimedCg = cg.getId();
+                                potentialUnclaimedCg = cg;
                             }
                         }
                     }
@@ -1158,7 +1158,7 @@ public class VolumeIngestionUtil {
                 _dbClient.createObject(cg);
 
                 _logger.info("Created new BlockConsistencyGroup {} with id {}", cgName, cg.getId());
-                return cg.getId();
+                return cg;
             }
         }
 
@@ -1175,74 +1175,24 @@ public class VolumeIngestionUtil {
      * @param dbClient
      * @return
      */
-    public static URI getBlockObjectConsistencyGroup(UnManagedVolume unManagedVolume, VirtualPool vpool,
-            URI projectUri, URI tenantUri, URI varrayUri, DbClient dbClient) {
-        String cgName = null;
+    public static BlockConsistencyGroup getBlockObjectConsistencyGroup(String volumeNativeGuid, UnManagedVolume unManagedVolume,
+            VirtualPool vpool,
+            URI projectUri, URI tenantUri, URI varrayUri, List<UnManagedConsistencyGroup> umcgsToUpdate, DbClient dbClient) {
+        // @TODO get umcg from the request context.
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroup(unManagedVolume, dbClient);
-        boolean isVplexCGFound = false;
-        StorageSystem storageSystem = null;
 
         // Check if the CG has last volume to ingest. If yes, create the CG else return null.
         if (!isLastUnManagedVolumeToIngest(umcg, unManagedVolume)) {
             _logger.info("Ignoring the CG creation as there are other volumes: {} to ingest.", umcg.getUnManagedVolumesMap());
+            if (null != umcg.getUnManagedVolumesMap() && !umcg.getUnManagedVolumesMap().isEmpty()) {
+                umcg.getUnManagedVolumesMap().remove(unManagedVolume.getNativeGuid());
+            }
+            umcg.getManagedVolumesMap().put(volumeNativeGuid, unManagedVolume.getNativeGuid());
+            umcgsToUpdate.add(umcg);
             return null;
         }
-
-        // Check if the UnManagedVolume is backend volume of a VPLEX or RP.
-        if (unManagedVolume.getVolumeInformation().containsKey(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString())) {
-            // query the VPLEX UnManagedVolume
-            StringSet vplexParentNativeGUIDSet = unManagedVolume.getVolumeInformation().get(
-                    SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString());
-            List<URI> vplexUnManagedVolumeUris = getUnManagedVolumeUris(vplexParentNativeGUIDSet, dbClient);
-            // Check if they are ingested.
-            if (null == vplexUnManagedVolumeUris || vplexUnManagedVolumeUris.isEmpty()) {
-                List<URI> ingestedVolumeUris = getVolumeUris(vplexParentNativeGUIDSet, dbClient);
-                if (null == ingestedVolumeUris || ingestedVolumeUris.isEmpty()) {
-                    _logger.warn("VPLEX virtual volume is either not discovered or ingested for unmanaged volume {}",
-                            unManagedVolume.getNativeGuid());
-                    return null;
-                }
-                List<Volume> ingestedVplexVolumes = dbClient.queryObject(Volume.class, ingestedVolumeUris);
-                if (null != ingestedVplexVolumes && !ingestedVplexVolumes.isEmpty()) {
-                    for (Volume ingestedVplexVolume : ingestedVplexVolumes) {
-                        // update LOCAL type in consitencyGroup
-                        BlockConsistencyGroup vplexCG = dbClient.queryObject(BlockConsistencyGroup.class,
-                                ingestedVplexVolume.getConsistencyGroup());
-                        storageSystem = dbClient.queryObject(StorageSystem.class,
-                                ingestedVplexVolume.getStorageController());
-                        if (validateCGProjectDetails(vplexCG, storageSystem, projectUri, tenantUri, varrayUri,
-                                ingestedVplexVolume.getLabel(),
-                                vplexCG.getLabel(), dbClient)) {
-                            return vplexCG.getId();
-                        }
-                        _logger.warn("VPLEX virtual volume CG doesn't match with the project/tenant to be ingested {}",
-                                unManagedVolume.getNativeGuid());
-                        return null;
-                    }
-                }
-            }
-            List<UnManagedVolume> vplexUnManagedVolumes = dbClient.queryObject(UnManagedVolume.class, vplexUnManagedVolumeUris);
-            if (null != vplexUnManagedVolumes && !vplexUnManagedVolumes.isEmpty()) {
-                for (UnManagedVolume vplexUnManagedVolume : vplexUnManagedVolumes) {
-                    if (vplexUnManagedVolume.getVolumeInformation().containsKey(
-                            SupportedVolumeInformation.VPLEX_CONSISTENCY_GROUP_NAME.toString())) {
-                        isVplexCGFound = true;
-                        storageSystem = dbClient.queryObject(StorageSystem.class,
-                                vplexUnManagedVolume.getStorageSystemUri());
-                        cgName = PropertySetterUtil.extractValueFromStringSet(
-                                SupportedVolumeInformation.VPLEX_CONSISTENCY_GROUP_NAME.toString(),
-                                vplexUnManagedVolume.getVolumeInformation());
-                        break;
-                    }
-                }
-            }
-
-        } else {
-            // Volumes without VPLEX, RP
-            cgName = umcg.getLabel();
-            storageSystem = dbClient.queryObject(StorageSystem.class,
-                    unManagedVolume.getStorageSystemUri());
-        }
+        String cgName = umcg.getLabel();
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, unManagedVolume.getStorageSystemUri());
 
         if (null == umcg || null == umcg.getLabel()) {
             _logger.warn("UnManaged volume {} CG doesn't have label. Hence skipping",
@@ -1251,7 +1201,7 @@ public class VolumeIngestionUtil {
         }
 
         if (cgName != null) {
-            _logger.info("UnManagedVolume {} is added to consistency group {}",
+            _logger.info("UnManagedVolume {} is getting added to consistency group {}",
                     unManagedVolume.getLabel(), cgName);
 
             if (!vpool.getMultivolumeConsistency()) {
@@ -1269,17 +1219,17 @@ public class VolumeIngestionUtil {
                                                 BlockConsistencyGroup.class, "label",
                                                 cgName));
 
-                URI potentialUnclaimedCg = null;
+                BlockConsistencyGroup potentialUnclaimedCg = null;
                 if (!groups.isEmpty()) {
                     for (BlockConsistencyGroup cg : groups) {
                         if (validateCGProjectDetails(cg, storageSystem, projectUri, tenantUri, varrayUri, unManagedVolume.getLabel(),
                                 cgName, dbClient)) {
-                            return cg.getId();
+                            return cg;
                         }
                         URI storageControllerUri = cg.getStorageController();
                         URI virtualArrayUri = cg.getVirtualArray();
                         if (null == storageControllerUri && null == virtualArrayUri) {
-                            potentialUnclaimedCg = cg.getId();
+                            potentialUnclaimedCg = cg;
                         }
                     }
                 }
@@ -1292,27 +1242,24 @@ public class VolumeIngestionUtil {
                     return potentialUnclaimedCg;
                 }
 
-                if (!isVplexCGFound) {
-                    _logger.info("Did not find an existing Consistency Group named {} that is associated "
-                            + "already with the requested device and Virtual Array. "
-                            + "ViPR will create a new one.", cgName);
-                    // create a new consistency group
-                    BlockConsistencyGroup cg = new BlockConsistencyGroup();
-                    cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
-                    cg.setLabel(cgName);
-                    cg.setProject(new NamedURI(projectUri, cgName));
-                    cg.setTenant(new NamedURI(tenantUri, cgName));
-                    cg.addConsistencyGroupTypes(Types.LOCAL.name());
-                    cg.addSystemConsistencyGroup(storageSystem.getId().toString(), cgName);
-                    cg.setStorageController(storageSystem.getId());
-                    cg.setVirtualArray(varrayUri);
+                _logger.info("Did not find an existing Consistency Group named {} that is associated "
+                        + "already with the requested device and Virtual Array. "
+                        + "ViPR will create a new one.", cgName);
+                // create a new consistency group
+                BlockConsistencyGroup cg = new BlockConsistencyGroup();
+                cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
+                cg.setLabel(cgName);
+                cg.setProject(new NamedURI(projectUri, cgName));
+                cg.setTenant(new NamedURI(tenantUri, cgName));
+                cg.addConsistencyGroupTypes(Types.LOCAL.name());
+                cg.addSystemConsistencyGroup(storageSystem.getId().toString(), cgName);
+                cg.setStorageController(storageSystem.getId());
+                cg.setVirtualArray(varrayUri);
 
-                    dbClient.createObject(cg);
-                    umcg.setInactive(true);
-                    dbClient.updateObject(umcg);
-                    _logger.info("Created new BlockConsistencyGroup {} with id {}", cgName, cg.getId());
-                    return cg.getId();
-                }
+                dbClient.createObject(cg);
+                _logger.info("Created new BlockConsistencyGroup {} with id {}", cgName, cg.getId());
+                return cg;
+
             }
         }
 

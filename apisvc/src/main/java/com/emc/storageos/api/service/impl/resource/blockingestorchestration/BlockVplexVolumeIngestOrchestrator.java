@@ -30,8 +30,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -45,6 +47,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -64,9 +67,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     // best practice two paths from each VPLEX director for paths in a backend export group
     private static final int DEFAULT_BACKEND_NUMPATHS = 4;
-
-    // maps storage system URIs to StorageSystem objects
-    private final Map<String, StorageSystem> _systemMap = new HashMap<String, StorageSystem>();
 
     // the tenants service, used to generate the Project for the backend volumes
     private TenantsService _tenantsService;
@@ -707,20 +707,26 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     @Override
-    protected URI getConsistencyGroupUri(UnManagedVolume unManagedVolume, VirtualPool vPool, URI project, URI tenant,
-            URI virtualArray, DbClient dbClient) {
+    protected Map<String, BlockObject> getCurrentProcessingVolumes(IngestionRequestContext requestContext) {
+        List<String> backendVolumesNativeGuids = ((VplexBackendIngestionContext) requestContext).getBackendVolumeGuids();
+        return null;
+    }
+
+    @Override
+    protected BlockConsistencyGroup getConsistencyGroup(String volumeNativeGuid, UnManagedVolume unManagedVolume, VirtualPool vPool,
+            URI project, URI tenant,
+            URI virtualArray, List<UnManagedConsistencyGroup> umcgsToUpdate, DbClient dbClient) {
         return VolumeIngestionUtil.getVplexConsistencyGroup(unManagedVolume, vPool, project, tenant, virtualArray, dbClient);
     }
 
     @Override
-    protected void updateCGPropertiesInVolume(URI consistencyGroupUri, BlockObject volume, StorageSystem system,
-            UnManagedVolume unManagedVolume) {
-        if (consistencyGroupUri != null) {
+    protected void updateCGPropertiesInVolume(BlockConsistencyGroup cg, BlockObject volume, StorageSystem system,
+            UnManagedVolume unManagedVolume, Map<String, BlockObject> objectsToBeCreatedMap, List<UnManagedConsistencyGroup> umcgsToUpdate,
+            Map<String, List<DataObject>> objectsToUpdate) {
 
+        if (null != cg) {
             String cgName = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.VPLEX_CONSISTENCY_GROUP_NAME.toString(), unManagedVolume.getVolumeInformation());
-
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupUri);
 
             // Add a system consistency group mapping for the varray the cluster is connected to
             try {
@@ -744,7 +750,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         if (cgCluster != null) {
                             cg.addSystemConsistencyGroup(system.getId().toString(),
                                     BlockConsistencyGroupUtils.buildClusterCgName(cgCluster, cgName));
-                            _dbClient.updateAndReindexObject(cg);
+                            _dbClient.updateObject(cg);
                         } else {
                             throw new Exception(
                                     "could not determine VPLEX cluster name for consistency group virtual array "
@@ -767,8 +773,54 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 throw IngestionException.exceptions.generalVolumeException(unManagedVolume.getLabel(), message);
             }
 
-            volume.setConsistencyGroup(consistencyGroupUri);
+            volume.setConsistencyGroup(cg.getId());
+            // update VPLEX backend volumes.
+            updateVplexBackendVolumes(cg, unManagedVolume, objectsToBeCreatedMap, objectsToUpdate);
         }
+    }
+
+    /**
+     * Update the VPLEX Backend volumes with its CG information.
+     * This routine also updates the VPLEX consistencyGroup with the backend system information.
+     * 
+     * @param cg
+     * @param unManagedVolume
+     * @param objectsToBeCreatedMap
+     * @param objectsToUpdate
+     */
+    private void updateVplexBackendVolumes(BlockConsistencyGroup cg, UnManagedVolume unManagedVolume,
+            Map<String, BlockObject> objectsToBeCreatedMap, Map<String, List<DataObject>> objectsToUpdate) {
+        if (unManagedVolume.getVolumeInformation().containsKey(SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString())) {
+            List<DataObject> blockObjectsToUpdate = new ArrayList<DataObject>();
+            // Query the VPLEX UnManagedVolume
+            StringSet vplexBackendVolumeIds = unManagedVolume.getVolumeInformation().get(
+                    SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString());
+            if (null != vplexBackendVolumeIds && !vplexBackendVolumeIds.isEmpty()) {
+                for (String backendVolumeNativeId : vplexBackendVolumeIds) {
+                    // @TODO is it really important to check backend CG.
+                    BlockObject blockObject = objectsToBeCreatedMap.get(backendVolumeNativeId);
+                    if (null == blockObject) {
+                        blockObject = VolumeIngestionUtil.getBlockObject(backendVolumeNativeId, _dbClient);
+                        // if the backend volume is still not ingested then skip.
+                        if (null == blockObject) {
+                            continue;
+                        }
+                    }
+                    blockObject.setConsistencyGroup(cg.getId());
+                    blockObjectsToUpdate.add(blockObject);
+                    if (!cg.getSystemConsistencyGroups().containsKey(blockObject.getStorageController())) {
+                        // @TODO should use the VPLEX cg label here or the backend cg label.
+                        cg.addSystemConsistencyGroup(blockObject.getStorageController().toString(), cg.getLabel());
+                        cg.getTypes().add(Types.LOCAL.toString());
+                        blockObjectsToUpdate.add(cg);
+                    }
+                }
+                if (!blockObjectsToUpdate.isEmpty()) {
+                    objectsToUpdate.put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
+                }
+            }
+        }
+
     }
 
     @Override
@@ -801,9 +853,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     protected void checkUnManagedVolumeAddedToCG(UnManagedVolume unManagedVolume, VirtualArray virtualArray, TenantOrg tenant,
             Project project, VirtualPool vPool) {
         if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
-            URI consistencyGroupUri = VolumeIngestionUtil.getVplexConsistencyGroup(unManagedVolume, vPool, project.getId(),
+            BlockConsistencyGroup consistencyGroup = VolumeIngestionUtil.getVplexConsistencyGroup(unManagedVolume, vPool, project.getId(),
                     tenant.getId(), virtualArray.getId(), _dbClient);
-            if (null == consistencyGroupUri) {
+            if (null == consistencyGroup) {
                 _logger.warn("A Consistency Group for the VPLEX volume could not be determined. Skipping Ingestion.");
                 throw IngestionException.exceptions.unmanagedVolumeVplexConsistencyGroupCouldNotBeIdentified(unManagedVolume.getLabel());
             }

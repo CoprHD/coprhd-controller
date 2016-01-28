@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -17,8 +18,10 @@ import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -55,7 +58,8 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         if (null == mirrorObj) {
             mirrorObj = createBlockMirror(mirrorNativeGuid, requestContext.getStorageSystem(), unManagedVolume,
                     requestContext.getVpool(), requestContext.getVarray(), requestContext.getProject(), requestContext.getTenant().getId(),
-                    requestContext.getObjectsToBeCreatedMap(), requestContext.getUnManagedCGsToUpdate());
+                    requestContext.getObjectsToBeCreatedMap(), requestContext.getUnManagedCGsToUpdate(),
+                    requestContext.getObjectsToBeUpdatedMap());
         }
         // Run this always when the volume is NO_PUBLIC_ACCESS
         if (markUnManagedVolumeInactive(requestContext, mirrorObj)) {
@@ -71,8 +75,6 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
                     unManagedVolume.getNativeGuid());
             mirrorObj.addInternalFlags(INTERNAL_VOLUME_FLAGS);
         }
-        // update UnManaged CG to update ingested volumes
-        updateUnManagedCGWithVolumesIngested(unManagedVolume, _dbClient);
         return clazz.cast(mirrorObj);
     }
 
@@ -124,7 +126,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
      */
     private BlockMirror createBlockMirror(String nativeGuid, StorageSystem system, UnManagedVolume unManagedVolume,
             VirtualPool vPool, VirtualArray vArray, Project project, URI tenantURI, Map<String, BlockObject> objectsToBeCreatedMap,
-            List<UnManagedConsistencyGroup> umcgsToUpdate) {
+            List<UnManagedConsistencyGroup> umcgsToUpdate, Map<String, List<DataObject>> objectsToUpdate) {
         BlockMirror mirror = new BlockMirror();
         mirror.setId(URIUtil.createId(BlockMirror.class));
         mirror.setInactive(false);
@@ -141,10 +143,10 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         String syncType = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.SYNC_TYPE.toString(), unManagedVolume.getVolumeInformation());
         mirror.setSyncType(syncType);
-        URI cgUri = getConsistencyGroupUri(unManagedVolume, vPool, project.getId(), tenantURI, vArray.getId(), _dbClient);
-        if (null != cgUri) {
-            updateCGPropertiesInVolume(cgUri, mirror, system, unManagedVolume);
-            updateConsistencyGroupForRemainingVolumes(cgUri, unManagedVolume, objectsToBeCreatedMap, umcgsToUpdate, _dbClient);
+        BlockConsistencyGroup cg = getConsistencyGroup(nativeGuid, unManagedVolume, vPool, project.getId(), tenantURI, vArray.getId(),
+                umcgsToUpdate, _dbClient);
+        if (null != cg) {
+            updateCGPropertiesInVolume(cg, mirror, system, unManagedVolume, objectsToBeCreatedMap, umcgsToUpdate, objectsToUpdate);
         }
         String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, system, vPool);
         validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
@@ -152,5 +154,39 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
             updateTierPolicyProperties(autoTierPolicyId, mirror);
         }
         return mirror;
+    }
+
+    @Override
+    protected void updateCGPropertiesInVolume(BlockConsistencyGroup consistencyGroup, BlockObject blockObj,
+            StorageSystem system, UnManagedVolume unManagedVolume, Map<String, BlockObject> objectsToBeCreatedMap,
+            List<UnManagedConsistencyGroup> umcgsToUpdate, Map<String, List<DataObject>> objectsToUpdate) {
+        List<DataObject> blockObjectsToUpdate = new ArrayList<DataObject>();
+        UnManagedConsistencyGroup umcg = VolumeIngestionUtil.getUnManagedConsistencyGroup(unManagedVolume, _dbClient);
+        if (null != consistencyGroup && null != umcg.getManagedVolumesMap() && !umcg.getManagedVolumesMap().isEmpty()) {
+            for (String volumeNativeGuid : umcg.getManagedVolumesMap().keySet()) {
+                BlockObject blockObject = objectsToBeCreatedMap.get(volumeNativeGuid);
+                if (blockObject == null) {
+                    // check if the volume has already been ingested
+                    String ingestedVolumeURI = umcg.getManagedVolumesMap().get(volumeNativeGuid);
+                    blockObject = BlockObject.fetch(_dbClient, URI.create(ingestedVolumeURI));
+                    if (null == blockObject) {
+                        logger.warn("Unable to locate volume {} which is part of a consistency group ingestion operation",
+                                volumeNativeGuid);
+                        continue;
+                    }
+                    logger.info("Volume {} was ingested as part of previous ingestion operation.", blockObject.getLabel());
+                    blockObject.setConsistencyGroup(consistencyGroup.getId());
+                } else {
+                    logger.info("Adding ingested volume {} to consistency group {}", blockObject.getLabel(), consistencyGroup.getLabel());
+                    blockObject.setConsistencyGroup(consistencyGroup.getId());
+                }
+                blockObjectsToUpdate.add(blockObject);
+            }
+            if (blockObjectsToUpdate.size() == umcg.getManagedVolumesMap().keySet().size()) {
+                umcg.setInactive(true);
+                umcgsToUpdate.add(umcg);
+            }
+            objectsToUpdate.put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
+        }
     }
 }

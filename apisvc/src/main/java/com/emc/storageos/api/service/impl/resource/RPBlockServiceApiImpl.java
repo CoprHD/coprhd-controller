@@ -1164,9 +1164,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 desc = new VolumeDescriptor(volumeType, volume.getStorageController(), volume.getId(), volume.getPool(),
                         null, capabilities, volume.getCapacity());
                 
-                if (volume.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
-                	_log.info(String.format("Volume %s - will be exported to Host/Cluster: %s", volume.getLabel(), computeResource.toString()));
-                	desc.setComputeResource(computeResource);
+                if (volume.checkPersonality(Volume.PersonalityTypes.SOURCE.name()) && computeResource != null) {
+                    _log.info(String.format("Volume %s - will be exported to Host/Cluster: %s", volume.getLabel(), computeResource.toString()));
+                    desc.setComputeResource(computeResource);
                 }
                 descriptors.add(desc);
             }

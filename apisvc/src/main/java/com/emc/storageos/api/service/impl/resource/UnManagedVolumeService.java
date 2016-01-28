@@ -381,11 +381,8 @@ public class UnManagedVolumeService extends TaskResourceService {
 
             // record the events after they have been persisted
             for (BlockObject volume : requestContext.getObjectsToBeCreatedMap().values()) {
-                // need to skip recording volume operations for vplex backend volumes
-                if (!VolumeIngestionUtil.isVplexBackendVolume(volume, _dbClient)) {
-                    recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
-                            Status.ready, volume.getId());
-                }
+                recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
+                        Status.ready, volume.getId());
             }
         } catch (InternalException e) {
             throw e;
@@ -674,11 +671,8 @@ public class UnManagedVolumeService extends TaskResourceService {
             
             // record the events after they have been persisted
             for (BlockObject volume : requestContext.getObjectsIngestedByExportProcessing()) {
-                // need to skip recording volume operations for vplex backend volumes
-                if (!VolumeIngestionUtil.isVplexBackendVolume(volume, _dbClient)) {
-                    recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
-                            Status.ready, volume.getId());
-                }
+                recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
+                        Status.ready, volume.getId());
             }
         } catch (InternalException e) {
             _logger.debug("InternalException occurred due to: {}", e);

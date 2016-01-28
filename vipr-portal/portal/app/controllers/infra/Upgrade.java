@@ -16,7 +16,6 @@ import controllers.Common;
 import controllers.Maintenance;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
-import models.datatable.DisasterRecoveryDataTable;
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Util;
@@ -73,10 +72,8 @@ public class Upgrade extends Controller {
             }
         }
 
-        DisasterRecoveryDataTable dataTable = new DisasterRecoveryDataTable();
-
         render(clusterInfo, clusterState, newVersions, repositoryVersions, isStable, isWorking, isDownloading, downloadStatus,
-                checkProgress, isDbCheckStatus, dataTable);
+                checkProgress, isDbCheckStatus);
     }
 
     /*

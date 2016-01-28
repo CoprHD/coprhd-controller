@@ -5932,11 +5932,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         TaskCompleter completer = null;
         
         try {
-            
+            Set<URI> impactedCGs = new HashSet<URI>();
             List<URI> allRemoveVolumes = new ArrayList<URI>();
             if (removeVolumesURI != null && !removeVolumesURI.isEmpty()) {
                 // get source and target volumes to be removed from the application
                 allRemoveVolumes.addAll(RPHelper.getReplicationSetVolumes(removeVolumesURI, _dbClient));
+                for (URI removeUri : removeVolumesURI) {
+                    Volume removeVol = _dbClient.queryObject(Volume.class, removeUri);
+                    URI cguri = removeVol.getConsistencyGroup();
+                    impactedCGs.add(cguri);
+                }
             }
             
             List<URI> allAddVolumes = new ArrayList<URI>();
@@ -5951,6 +5956,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 List<URI> allAddTargetVolumes = new ArrayList<URI>();
                 for (URI volUri : allAddVolumes) {
                     Volume vol = _dbClient.queryObject(Volume.class, volUri);
+                    // set CG's arrayConsistency to false so that it won't create real replication group for VNX
+                    URI cguri = vol.getConsistencyGroup();
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+                    if (cg.getArrayConsistency()) {
+                        cg.setArrayConsistency(false);
+                        _dbClient.updateObject(cg);
+                    }
+                    impactedCGs.add(cguri);
                     if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                         allAddSourceVolumes.add(volUri);
                     } else if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
@@ -5974,7 +5987,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             Workflow workflow = _workflowService.getNewWorkflow(this, BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false, taskId);
             
             // create the completer add the steps and execute the plan.
-            completer = new ApplicationTaskCompleter(applicationId, allAddVolumes, allRemoveVolumes, (new ArrayList<URI>()), taskId);
+            completer = new ApplicationTaskCompleter(applicationId, allAddVolumes, allRemoveVolumes, impactedCGs, taskId);
             
             // add steps for add source and remove vols
             String waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, completer, addSourceVols, removeVolumesURI, null, taskId);

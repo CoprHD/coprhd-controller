@@ -37,6 +37,7 @@ public final class DownloadExecutor implements  Runnable {
     private DownloadListener downloadListener;
     private boolean isGeo = false; // true if the backupset is from GEO env
     private volatile  boolean isCanceled = false;
+
     public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps) {
         if (cfg.uploadUrl == null) {
             try {
@@ -52,7 +53,7 @@ public final class DownloadExecutor implements  Runnable {
         this.backupOps = backupOps;
     }
 
-    public void registerListener() {
+    private void registerListener() {
         try {
             log.info("Add download listener");
             downloadListener = new DownloadListener(Thread.currentThread());
@@ -138,7 +139,7 @@ public final class DownloadExecutor implements  Runnable {
             backupOps.setDownloadOwner();
 
             BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
-            if (s.isNotSuccess()) {
+            if (s.isNotSuccess() || s.getStatus() == Status.DOWNLOAD_CANCELLED) {
                 log.info("Already failed to download {}, no need to start it on this node", remoteBackupFileName);
                 return;
             }
@@ -154,10 +155,12 @@ public final class DownloadExecutor implements  Runnable {
             s.setMessage(e.getMessage());
 
             if (isCanceled) {
+                s = Status.DOWNLOAD_CANCELLED;
                 deleteDownloadedBackup();
-            }else {
-                backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, false, false, true);
             }
+
+            backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, false, false, true);
+
             log.error("Failed to download e=", e);
         }finally {
             try {
@@ -166,7 +169,7 @@ public final class DownloadExecutor implements  Runnable {
                 log.error("Failed to remove listener e=",e);
             }
 
-            log.info("release lock={}", lock);
+            log.info("To release lock {}", BackupConstants.RESTORE_LOCK);
             backupOps.releaseLock(lock);
         }
     }

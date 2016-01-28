@@ -1019,7 +1019,10 @@ public abstract class VdcOpHandler {
 
     protected void restartDbsvcOnResumedSite() throws Exception {
         Site site = drUtil.getLocalSite();
-        if (site.getState().equals(SiteState.STANDBY_RESUMING)) {
+
+        //check both state and last state so we know this is a retry
+        if (site.getState().equals(SiteState.STANDBY_RESUMING)
+                && site.getLastState().equals(SiteState.STANDBY_RESUMING)) {
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
                     RESUME_BARRIER_TIMEOUT, site.getNodeCount(), false);
             barrier.enter();

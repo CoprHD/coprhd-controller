@@ -78,7 +78,8 @@ public enum ResourceTypeEnum {
     VIRTUAL_NAS("vnas-servers", "/vdc/vnas-servers"),
     VOLUME_GROUP("volume_group", "/volume-groups/block"),
     COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers"),
-    BLOCK_SNAPSHOT_SESSION("block_snapshot_session", "/block/snapshot-sessions");
+    BLOCK_SNAPSHOT_SESSION("block_snapshot_session", "/block/snapshot-sessions"),
+    SCHEDULE_POLICY("schedule_policy", "/schedule-policies");
 
     private final String type;
     private final String service;

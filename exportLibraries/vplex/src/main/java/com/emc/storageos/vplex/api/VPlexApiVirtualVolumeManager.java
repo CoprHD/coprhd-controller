@@ -17,6 +17,7 @@ import java.util.StringTokenizer;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.vplex.api.VPlexCacheStatusInfo.InvalidateStatus;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
@@ -34,6 +35,7 @@ public class VPlexApiVirtualVolumeManager {
 
     // A reference to the API client.
     private VPlexApiClient _vplexApiClient;
+    
 
     /**
      * Package protected constructor.
@@ -1523,6 +1525,7 @@ public class VPlexApiVirtualVolumeManager {
             if (rulesetName != null) {
                 argsMap.put(VPlexApiConstants.ARG_DASH_R, rulesetName);
             }
+                        
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Device Attach Mirror POST data is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI, postDataObject.toString());
@@ -1549,7 +1552,50 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-
+    
+    /**
+     * Execute the "rebuild set-transfer-size" command.
+     * 
+     * @param transferSize -- The transfer size that needs to be set in VPLEX
+     * @throws VPlexApiException
+     */
+    
+    public void setRebuildTransferSize(String transferSize){
+        ClientResponse response = null;
+        try {
+        	s_logger.info("Setting transfer size");
+        	URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_REBUILD_SET_TRANSFER_SIZE);
+        	s_logger.info("Rebuild Transfer size URI is {}", requestURI.toString());
+        	Map<String, String> argsMap = new HashMap<String, String>();
+        	argsMap.put(VPlexApiConstants.ARG_ALL_DEVICES, transferSize);
+    	
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
+            s_logger.info("Rebuild Set Transfer Size POST data is {}", postDataObject.toString());
+            response = _vplexApiClient.post(requestURI, postDataObject.toString());
+            String responseStr = response.getEntity(String.class);
+            s_logger.info("Rebuild Set Transfer Size response is {}", responseStr);
+            if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
+                if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
+                    s_logger.info("Rebuild Set Transfer Size command completing asynchronously");
+                    _vplexApiClient.waitForCompletion(response);
+                } else {
+                    String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                    throw VPlexApiException.exceptions.setRebuildSetTransferSpeeFailureStatus(
+                            String.valueOf(response.getStatus()), cause);
+                }
+            }
+            s_logger.info("Successfully executed rebuild set-transfer-size command");
+        } catch (VPlexApiException vae) {
+            throw vae;
+        } catch (Exception e) {
+            throw VPlexApiException.exceptions.failedSetTransferSize(e);
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+    }
+    
     /**
      * Waits for the rebuild of the passed distributed volume to complete.
      * Will wait for up to 4 hours before it stops waiting and returns a

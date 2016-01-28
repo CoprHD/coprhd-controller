@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBShareMap;
+import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
@@ -41,6 +42,7 @@ public class FileDeviceInputOutput {
     private FileObject fObj;
     private FileShare fs;
     private Snapshot snapshot;
+    private SchedulePolicy fp;
     private Project project;
     private TenantOrg tenantOrg;
     private QuotaDirectory quotaDirectory;
@@ -73,8 +75,8 @@ public class FileDeviceInputOutput {
     private List<ShareACL> shareAclsToModify = new ArrayList<>();
     private List<ShareACL> shareAclsToDelete = new ArrayList<>();
     private List<ShareACL> existingShareAcls = new ArrayList<>();
-    
-  //New additions for vNAS
+
+    // New additions for vNAS
     private VirtualNAS vNAS;
 
     // New additions for NFS ACL work
@@ -293,6 +295,15 @@ public class FileDeviceInputOutput {
      */
     public void addSnapshot(Snapshot snap) {
         this.snapshot = snap;
+    }
+
+    /**
+     * add filepolicy
+     * 
+     * @param fp FilePolicy object
+     */
+    public void addFilePolicy(SchedulePolicy fp) {
+        this.fp = fp;
     }
 
     /**
@@ -839,6 +850,10 @@ public class FileDeviceInputOutput {
         return snapshot;
     }
 
+    public SchedulePolicy getFilePolicy() {
+        return fp;
+    }
+
     public String getVPoolName() {
         return vPool.getLabel();
     }
@@ -962,13 +977,13 @@ public class FileDeviceInputOutput {
     public void setExistingShareAcls(List<ShareACL> existingShareAcls) {
         this.existingShareAcls = existingShareAcls;
     }
-    
-    public VirtualNAS getvNAS() {
-		return vNAS;
-	}
 
-	public void setvNAS(VirtualNAS vNAS) {
-		this.vNAS = vNAS;
-	}
+    public VirtualNAS getvNAS() {
+        return vNAS;
+    }
+
+    public void setvNAS(VirtualNAS vNAS) {
+        this.vNAS = vNAS;
+    }
 
 }

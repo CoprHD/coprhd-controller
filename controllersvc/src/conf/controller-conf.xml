@@ -1469,5 +1469,9 @@
     		</list>
     	</property>
     </bean>
-
+	
+	<bean id="auditLogManagerFactory" class="com.emc.storageos.security.audit.AuditLogManagerFactory">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
 </beans>

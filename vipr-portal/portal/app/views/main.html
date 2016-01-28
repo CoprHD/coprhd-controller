@@ -259,9 +259,7 @@
     #{nav.menu 'settings', icon:'vipricon-settings'}
       #{nav.menuSection 'nav.settings'} 
         #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
-        	 #{if isActiveSite }
         		#{nav.item 'properties', href: @infra.ConfigProperties.properties()/}
-        	 #{/if}
         	 #{if controllers.infra.ClusterInfo.isVMwareVapp() && isActiveSite }
             	#{nav.item 'clusterInfo', href: @infra.ClusterInfo.clusterIpInfo()/}
             #{/if}

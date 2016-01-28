@@ -139,8 +139,9 @@ public final class DownloadExecutor implements  Runnable {
             backupOps.setDownloadOwner();
 
             BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
+            log.info("current status={}", s);
             if (s.isNotSuccess() || s.getStatus() == Status.DOWNLOAD_CANCELLED) {
-                log.info("Already failed to download {}, no need to start it on this node", remoteBackupFileName);
+                log.info("Download failed or canceled to download {}, no need to start it on this node", remoteBackupFileName);
                 return;
             }
 
@@ -232,7 +233,7 @@ public final class DownloadExecutor implements  Runnable {
             try {
                 validBackup();
             }catch (Exception e) {
-                log.error("Invalid backup");
+                log.error("Invalid backup e=", e);
                 Status s = Status.DOWNLOAD_FAILED;
                 s.setMessage(e.getMessage());
                 backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, true, false, true);

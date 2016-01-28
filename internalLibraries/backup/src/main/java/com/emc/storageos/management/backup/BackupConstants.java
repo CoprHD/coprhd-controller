@@ -110,6 +110,7 @@ public interface BackupConstants {
     String REMOTE_RESTORE_KIND_PREFIX=BACKUP_RESTORE_STATUS + "/remote";
     String DOWNLOAD_OWNER_SUFFIX="/owner";
     String RESTORE_LOCK="restore";
+    String RESTORE_STATUS_UPDATE_LOCK="restore-status-update";
     String BACKUP_LOCK = "backup";
     String CURRENT_DOWNLOADING_BACKUP_NAME_KEY="name";
     String CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY="isLocal";

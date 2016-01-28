@@ -476,39 +476,60 @@ public class BackupOps {
     /**
      * Persist download status to ZK
      */
-    public synchronized void setRestoreStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long increasedSize,
+    public void setRestoreStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long increasedSize,
                                               boolean increaseCompletedNodeNumber, boolean resetCompletedNumber, boolean doLog) {
-        BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
-        if ( status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ) {
-            if (!s.getStatus().canBeCanceled()) {
-                return;
+        InterProcessLock lock = null;
+        try {
+            lock = getLock(BackupConstants.RESTORE_STATUS_UPDATE_LOCK,
+                    -1, TimeUnit.MILLISECONDS); // -1= no timeout
+
+            if (doLog) {
+                log.info("get lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
             }
+
+            BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
+
+            if ( status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ) {
+                if (!s.getStatus().canBeCanceled()) {
+                    log.info("current status {} can't be canceled", s);
+                    return;
+                }
+            }
+
+            s.setBackupName(backupName);
+
+            if (status != null) {
+                s.setStatus(status);
+            }
+
+            if (backupSize > 0) {
+                s.setBackupSize(backupSize);
+            }
+
+            if (increasedSize > 0) {
+                long newSize = s.getDownoadSize() + increasedSize;
+                s.setDownoadSize(newSize);
+            }
+
+            if (increaseCompletedNodeNumber) {
+                s.increaseNodeCompleted();
+            }
+
+            if (resetCompletedNumber) {
+                s.resetNodeCompleted();
+            }
+
+            persistBackupRestoreStatus(s, false, doLog);
+        }finally {
+            if (doLog) {
+                log.info("To release lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
+            }
+            releaseLock(lock);
         }
 
-        s.setBackupName(backupName);
-
-        if (status != null) {
-            s.setStatus(status);
+        if (doLog) {
+            log.info("Persist backup restore status to zk successfully");
         }
-
-        if (backupSize > 0) {
-            s.setBackupSize(backupSize);
-        }
-
-        if (increasedSize > 0) {
-            long newSize = s.getDownoadSize() + increasedSize;
-            s.setDownoadSize(newSize);
-        }
-
-        if (increaseCompletedNodeNumber) {
-            s.increaseNodeCompleted();
-        }
-
-        if (resetCompletedNumber) {
-            s.resetNodeCompleted();
-        }
-
-        persistBackupRestoreStatus(s, false, doLog);
     }
 
     private void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal, boolean doLog) {
@@ -528,7 +549,7 @@ public class BackupOps {
         }
 
         coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
-        log.info("Persist backup restore status to zk successfully");
+
     }
 
     public synchronized  void setGeoFlag(String backupName, boolean isLocal) {

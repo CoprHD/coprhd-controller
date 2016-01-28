@@ -149,7 +149,7 @@
 
 #{if util.DisasterRecoveryUtils.hasPausedSite()}
     <form id=resumeStandby action="@{infra.DisasterRecovery.pauseResume()}" onsubmit="return true">
-        <img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"><p style="color: red">&{'disasterRecovery.pausedSiteWarning'}</p>
+        <img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteWarning'}</span><br>
         <button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.resume'}</button>
     </form>
 #{/if}

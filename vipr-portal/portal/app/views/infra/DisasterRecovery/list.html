@@ -1,7 +1,12 @@
 #{extends 'main.html' /} 
 #{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
 
-#{DataTable.header titleKey:'disasterRecovery.title'/}
+#{if showPauseButton}
+	#{DataTable.header titleKey:'disasterRecovery.title.pauseResume'/}
+#{/if}
+#{else}
+	#{DataTable.header titleKey:'disasterRecovery.title'/}
+#{/else}
 #{DataTable.baseCrudTable id:'disasterRecovery',
 					dataTable:dataTable,
 					expandable: true}
@@ -22,10 +27,7 @@
 	<a href="@{infra.Upgrade.index()}">&{'disasterRecovery.backToUpgrade'}</a>
 #{/if}
 #{elseif util.DisasterRecoveryUtils.hasPausedSite()}
-<form id=resumeStandby action="@{infra.DisasterRecovery.pauseResume()}" onsubmit="return true">
-	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"><p style="color: red">&{'disasterRecovery.pausedSiteWarning'}</p>
-	<button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.resume'}</button>
-</form>
+	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteWarning'}</span>
 #{/elseif}
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 

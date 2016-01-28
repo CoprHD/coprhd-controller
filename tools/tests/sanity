@@ -7934,9 +7934,9 @@ restore_tests()
     backup restore "${remote_backup_file}" "false" "${password}"
 
     echo "Wait for stable"
-    sleep 30s
+    sleep 60s
 
-    for (( i=0; i<120; i++ )); do
+    for (( i=0; i<240; i++ )); do
        security login $SYSADMIN $SYSADMIN_PASSWORD
 
        if [[ $? -eq 0 ]]; then

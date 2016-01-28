@@ -486,7 +486,8 @@ public class BackupService {
     @Path("pull/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response pullBackup(@QueryParam("file") String backupName ) {
-        log.info("The backup file {} to download", backupName);
+        log.info("To pull the backup file {}", backupName);
+
         checkExternalServer();
 
         if (backupOps.isDownloadInProgress()) {
@@ -587,7 +588,6 @@ public class BackupService {
     @Path("pull/cancel")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response cancelDownloading() {
-        log.info("To cancel the current download");
         backupOps.cancelDownload();
 
         auditBackup(OperationTypeEnum.PULL_BACKUP_CANCEL, AuditLogManager.AUDITLOG_SUCCESS, null);
@@ -643,7 +643,7 @@ public class BackupService {
                 backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
                 restoreLog};
 
-        log.info("The restore command=<{}>", restoreCommand);
+        log.info("The restore command={} {} password=*** {} {}", new Object[] {restoreCommand[0], restoreCommand[1], restoreCommand[3], restoreCommand[4]});
 
         Exec.exec(120 * 1000, restoreCommand);
 

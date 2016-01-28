@@ -603,7 +603,6 @@ public class BackupOps {
         log.info("To cancel current download {}", map);
         String backupName = map.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
         boolean isLocal = Boolean.parseBoolean(map.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY));
-        log.info("backupname={}, isLocal={}", backupName, isLocal);
 
         if (backupName.isEmpty()) {
             log.info("No backup is downloading, so ignore cancel");

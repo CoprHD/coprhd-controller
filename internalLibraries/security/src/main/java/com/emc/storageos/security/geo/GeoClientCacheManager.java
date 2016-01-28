@@ -59,12 +59,6 @@ public class GeoClientCacheManager {
     }
 
     public GeoServiceClient getGeoClient(String shortVdcId) {
-        log.info("db client instance is {}", this.dbClient);
-        if (!((DbClientImpl) dbClient).isInitDone()) {
-            log.info("db client not inited. starting ...");
-            dbClient.start();
-            log.info("db client started");
-        }
         GeoServiceClient client = null;
         if (clientCache.containsKey(shortVdcId)) {
             client = clientCache.get(shortVdcId);

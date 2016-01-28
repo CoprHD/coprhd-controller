@@ -157,9 +157,6 @@ public class VdcManager extends AbstractManager {
     
     @Override
     protected void innerRun() {
-
-        log.info("======= geo client manager is {}", geoClientManager);
-
         // need to distinguish persistent locks acquired from UpgradeManager/VdcManager/PropertyManager
         // otherwise they might release locks acquired by others when they start
         final String svcId = String.format("%s,vdc", coordinator.getMySvcId());
@@ -257,11 +254,7 @@ public class VdcManager extends AbstractManager {
 
             // Step7: sleep
             log.info("Step7: sleep");
-            try {
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                log.error("", e);
-            }
+            longSleep();
         }
     }
 

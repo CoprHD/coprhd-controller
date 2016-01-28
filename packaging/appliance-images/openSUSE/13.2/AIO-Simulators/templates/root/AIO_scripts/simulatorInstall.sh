@@ -187,7 +187,7 @@ echo "Installing VPLEX"
 
 LATEST_URL=$SIMULATOR_BUILD_LOCATION"vplex-sim/vplex-simulators-1.0.0.0.41-bin.zip" 
 VERSION=${LATEST_URL##*simulators-}
-VERSION=${LATEST_URL%%-*}
+VERSION=${VERSION%%-*}
 echo "Downloading $LATEST_URL"
 wget $LATEST_URL || exit 1
 
@@ -223,7 +223,7 @@ echo "Installing XIO"
 
 LATEST_URL=$SIMULATOR_BUILD_LOCATION"xio-sim/xio-simulators-1.0.0.0.35-bin.zip" 
 VERSION=${LATEST_URL##*simulators-}
-VERSION=${LATEST_URL%%-*}
+VERSION=${VERSION%%-*}
 echo "Downloading $LATEST_URL"
 wget $LATEST_URL || exit 1
 

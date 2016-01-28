@@ -2146,21 +2146,30 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     private void fabricateSourceGroupAspects(StorageSystem storage, BlockConsistencyGroup cg,
                                              Map<String, List<BlockSnapshotSession>> sessionLabelsMap) throws WBEMException {
-        // 1) Run Harsha's method to fab SourceGroup aspect
+        /*
+         * Each key in the map represents the snapshot-session name, where a value represents a list
+         * of BlockSnapshotSession instances with this same name.
+         */
         for (Map.Entry<String, List<BlockSnapshotSession>> entry : sessionLabelsMap.entrySet()) {
             String sessionLabel = entry.getKey();
             List<BlockSnapshotSession> oldSessions = entry.getValue();
+            BlockSnapshotSession templateSession = oldSessions.get(0);
 
+            // 1) Run Harsha's method to fab SourceGroup aspect
             _log.info("Fabricating synchronization aspect for SourceGroup {}", cg.getLabel());
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             CIMArgument[] iArgs = _helper.fabricateSourceGroupSynchronizationAspectInputArguments(storage, cg, sessionLabel);
             CIMArgument[] oArgs = new CIMArgument[5];
             _helper.invokeMethod(storage, replicationSvc, "EMCRemoveSFSEntries", iArgs, oArgs);
 
-            BlockSnapshotSession templateSession = oldSessions.get(0);
-            // 2) Mark non-CG BlockSnapshotSession instances as inactive.
+            // 2) Prepare to remove non-CG BlockSnapshotSession instances
+            StringSet consolidatedLinkedTargets = new StringSet();
             for (BlockSnapshotSession oldSession : oldSessions) {
                 oldSession.setInactive(true);
+                StringSet linkedTargets = oldSession.getLinkedTargets();
+                if (linkedTargets != null && !linkedTargets.isEmpty()) {
+                    consolidatedLinkedTargets.addAll(linkedTargets);
+                }
             }
             _dbClient.updateObject(oldSessions);
 
@@ -2171,6 +2180,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             newSession.setProject(new NamedURI(templateSession.getProject().getURI(), templateSession.getProject().getName()));
             newSession.setLabel(templateSession.getSessionLabel());
             newSession.setSessionLabel(templateSession.getSessionLabel());
+            newSession.setLinkedTargets(consolidatedLinkedTargets);
             _dbClient.createObject(newSession);
 
             // Determine the session instance and update the BlockSnapshotSession

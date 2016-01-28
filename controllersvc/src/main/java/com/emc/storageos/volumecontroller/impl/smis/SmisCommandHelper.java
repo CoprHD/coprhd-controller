@@ -7116,7 +7116,7 @@ public class SmisCommandHelper implements SmisConstants {
                                                                                  String sessionLabel) {
         List<String> addSFSEntries = new ArrayList<>();
         addSFSEntries.add("AddSFSEntries");
-        String repGrpName = cg.getSystemConsistencyGroups().get(system.getId().toString()).iterator().next();
+        String repGrpName = cg.getCgNameOnStorageSystem(system.getId());
         addSFSEntries.add(formatSessionLabelForFabrication(system.getSerialNumber(), repGrpName, sessionLabel));
         return new CIMArgument[] {
                 _cimArgument.stringArray("SFSEntries", addSFSEntries.toArray(new String[addSFSEntries.size()]))

@@ -219,14 +219,16 @@ public class DisasterRecoveryService {
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_ADD_STANDBY, vdcConfigVersion);
             }
 
-            coordinator.commitTransaction();
-
             // sync site related info with to be added standby site
             long dataRevision = System.currentTimeMillis();
-            SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey(), standbyConfig.getUuid(), dataRevision, vdcConfigVersion);
+            List<Site> allStandbySites = new ArrayList<>();
+            allStandbySites.add(standbySite);
+            allStandbySites.addAll(existingSites);
+            SiteConfigParam configParam = prepareSiteConfigParam(allStandbySites, ipsecConfig.getPreSharedKey(), standbyConfig.getUuid(), dataRevision, vdcConfigVersion);
             viprCoreClient.site().syncSite(standbyConfig.getUuid(), configParam);
 
             drUtil.updateVdcTargetVersion(siteId, SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcConfigVersion, dataRevision);
+            coordinator.commitTransaction();
             auditDisasterRecoveryOps(OperationTypeEnum.ADD_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
                     standbySite.toBriefString());
             return siteMapper.map(standbySite);
@@ -249,12 +251,13 @@ public class DisasterRecoveryService {
     /**
      * Prepare all sites related info for synchronizing them from master to be added or resumed standby site
      *
+     * @param standbySites All standby sites
      * @param ipsecKey The cluster ipsec key
      * @param targetStandbyUUID The uuid of the target standby
      * @param targetStandbyDataRevision The data revision of the target standby
      * @return SiteConfigParam all the sites configuration
      */
-    private SiteConfigParam prepareSiteConfigParam(String ipsecKey, String targetStandbyUUID, long targetStandbyDataRevision, long vdcConfigVersion) {
+    private SiteConfigParam prepareSiteConfigParam(List<Site> standbySites, String ipsecKey, String targetStandbyUUID, long targetStandbyDataRevision, long vdcConfigVersion) {
         log.info("Preparing to sync sites info among to be added/resumed standby site...");
         Site active = drUtil.getActiveSite();
         SiteConfigParam configParam = new SiteConfigParam();
@@ -264,8 +267,8 @@ public class DisasterRecoveryService {
         log.info("    active site info:{}", activeSite.toString());
         configParam.setActiveSite(activeSite);
 
-        List<SiteParam> standbySites = new ArrayList<>();
-        for (Site standby : drUtil.listStandbySites()) {
+        List<SiteParam> standbySitesParam = new ArrayList<>();
+        for (Site standby : standbySites) {
             SiteParam standbyParam = new SiteParam();
             siteMapper.map(standby, standbyParam);
             SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
@@ -274,10 +277,10 @@ public class DisasterRecoveryService {
                 log.info("Set data revision for site {} to {}", standby.getUuid(), targetStandbyDataRevision);
                 standbyParam.setDataRevision(targetStandbyDataRevision);
             }
-            standbySites.add(standbyParam);
+            standbySitesParam.add(standbyParam);
             log.info("    standby site info:{}", standbyParam.toString());
         }
-        configParam.setStandbySites(standbySites);
+        configParam.setStandbySites(standbySitesParam);
         configParam.setVdcConfigVersion(vdcConfigVersion);
 
         // Need set stanby's NTP same as primary, so standby time is consistent with primary after reboot
@@ -763,7 +766,8 @@ public class DisasterRecoveryService {
 
                         // init the to-be resumed standby site
                         dataRevision = System.currentTimeMillis();
-                        SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey(), uuid, dataRevision, vdcTargetVersion);
+                        List<Site> standbySites = drUtil.listStandbySites();
+                        SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(), uuid, dataRevision, vdcTargetVersion);
                         try (InternalSiteServiceClient internalSiteServiceClient = new InternalSiteServiceClient()) {
                             internalSiteServiceClient.setCoordinatorClient(coordinator);
                             internalSiteServiceClient.setServer(site.getVip());

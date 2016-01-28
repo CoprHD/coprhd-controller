@@ -1023,13 +1023,15 @@ public abstract class VdcOpHandler {
 
     protected void restartDbsvcOnResumedSite() throws Exception {
         Site site = drUtil.getLocalSite();
-        VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
-                RESUME_BARRIER_TIMEOUT, site.getNodeCount(), false);
-        barrier.enter();
-        try {
-            localRepository.restart(Constants.DBSVC_NAME);
-        } finally {
-            barrier.leave();
+        if (site.getState().equals(SiteState.STANDBY_RESUMING)) {
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
+                    RESUME_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            barrier.enter();
+            try {
+                localRepository.restart(Constants.DBSVC_NAME);
+            } finally {
+                barrier.leave();
+            }
         }
     }
     

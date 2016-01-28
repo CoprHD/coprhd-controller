@@ -139,14 +139,14 @@ wget $LATEST_URL -O ldap-sim.zip || exit 1
 
 unzip ldap-sim.zip
 mkdir -p /data/simulators/ldap-sim/
-cp -r ldapsvc-*/* /data/simulators/ldap-sim/
+cp -r ldap-simulators-*/* /data/simulators/ldap-sim/
 rm -r ldap*
 
 cat > /data/simulators/ldap-sim/bin/run.sh <<EOF
 
 rm -rf build
 
-./ldapsvc &
+./ldap &
 DELAY=60
 while [ \$DELAY -gt 0 ]; do
     if [ -f "build/logs/ldapsvc.log" ] ; then

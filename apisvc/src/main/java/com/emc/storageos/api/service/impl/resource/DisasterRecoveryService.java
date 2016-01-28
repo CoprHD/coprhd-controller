@@ -203,7 +203,13 @@ public class DisasterRecoveryService {
 
             String vip = param.getVip();
             if (vip.contains(":")) {
-                vip = DualInetAddress.normalizeInet6Address(param.getVip().substring(1, param.getVip().length() - 1));
+                String tmpVip = null;
+                if (vip.contains("[")) {
+                    tmpVip = param.getVip().substring(1, param.getVip().length() - 1);
+                } else {
+                    tmpVip = vip;
+                }
+                vip = DualInetAddress.normalizeInet6Address(tmpVip);
             }
             standbySite.setVip(vip);
 

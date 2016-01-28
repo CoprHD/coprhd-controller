@@ -29,9 +29,20 @@
     }, 
     
     pointInTime:{
-      type:"dateTime",
-      required: "false"
-    }    
-    
+      type:"group",
+      lockable: true,
+      collapsed:true,
+      items:{
+        date:{
+          type:"date",
+          required: "false"
+        },
+        time:{
+          type:"time",
+          required: "false"
+        },
+      }
+    }
+
   }
 }

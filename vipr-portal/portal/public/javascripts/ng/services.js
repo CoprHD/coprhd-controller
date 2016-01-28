@@ -36,6 +36,16 @@ angular.module("services", []).directive({
                 }
                 item.value = $scope.defaultValues[item.name] ? $scope.defaultValues[item.name] : item.initialValue;
 
+                if (item.type == "date") {
+                	var currentTime = new Date().getTime();                
+                	$scope.date = formatDate(currentTime, "YYYY-MM-DD");
+                }
+                
+                if (item.type == "time") {
+                	var currentTime = new Date().getTime();                
+                	$scope.time = formatDate(currentTime, "HH:mm");
+                }
+
                 var getAssetOptionsIfWeHaveAllDependencies = function() {
                     var params = {};
 
@@ -133,9 +143,12 @@ angular.module("services", []).directive({
 	                    	addBlankOptionIfRequired(item);
 	                    }
                 	}
-                } else if (item.type == 'dateTime') {
-                    type = ['<date-picker>','<time-picker>'];
-                    tagAttrs = [{'ng-model' : "failoverDate"}, {'ng-model' : "failoverTime"}];
+                } else if (item.type == 'date') {
+                    type = '<date-picker>';
+                    tagAttrs = {'ng-model' : "date"};
+                } else if (item.type == 'time') {
+                	type = '<time-picker>';
+                	tagAttrs = {'ng-model' : "time"};    
                 } else {
                     item.error = " ";
                     type = "<p class='help-inline'>" + translate('serviceField.unsupportedType',item.type) + "</p>";
@@ -152,18 +165,11 @@ angular.module("services", []).directive({
                     "help-text": item.description,
                     "error": item.error
                 };
+                
+                var tag = angular.element(type).attr(tagAttrs);
+                
                 var container = angular.element(attrs.controlOnly ? "<table-field-column>" : "<control-group>")
-                                       .attr(containerAttr);
-                                       
-                if ($.isArray(type)) {                 
-                    for (var i = 0; i < type.length; i++) {
-                        var tag = angular.element(type[i]).attr(tagAttrs[i]);                                       
-                        container.append(tag);
-                    }
-                } else {
-                    var tag = angular.element(type).attr(tagAttrs);                                       
-                    container.append(tag);
-                }                                       
+                                       .attr(containerAttr).append(tag);                                    
                                        
                 element.append($compile(container)(scope));
             }

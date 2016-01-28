@@ -4,11 +4,11 @@
  */
 package com.emc.sa.service.vipr.block;
 
+import static com.emc.sa.service.ServiceParams.DATE;
 import static com.emc.sa.service.ServiceParams.FAILOVER_TARGET;
-import static com.emc.sa.service.ServiceParams.IMAGE_DATE;
-import static com.emc.sa.service.ServiceParams.IMAGE_TIME;
 import static com.emc.sa.service.ServiceParams.IMAGE_TO_ACCESS;
 import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
+import static com.emc.sa.service.ServiceParams.TIME;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
 
@@ -21,6 +21,8 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.FailoverBlockConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.FailoverBlockVolume;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -42,11 +44,11 @@ public class FailoverBlockVolumeService extends ViPRService {
     @Param(value = IMAGE_TO_ACCESS, required = false)
     protected String imageToAccess;
 
-    @Param(value = IMAGE_DATE, required = false)
-    protected String imageDate;
+    @Param(value = DATE, required = false)
+    protected String date;
 
-    @Param(value = IMAGE_TIME, required = false)
-    protected String imageTime;
+    @Param(value = TIME, required = false)
+    protected String time;
 
     private String type;
 
@@ -88,9 +90,15 @@ public class FailoverBlockVolumeService extends ViPRService {
     @Override
     public void execute() {
         Tasks<? extends DataObjectRestRep> tasks;
+
         String pointInTime = null;
-        if (imageDate != null && imageTime != null) {
-            pointInTime = imageDate + "_" + imageTime;
+
+        if (date != null) {
+            pointInTime = date;
+        }
+
+        if (time != null && pointInTime != null) {
+            pointInTime = pointInTime + "_" + time;
         }
 
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
@@ -99,7 +107,8 @@ public class FailoverBlockVolumeService extends ViPRService {
                 // This is a RP failover request so we need to pass along the copyName and pointInTime values.
                 // We only want to do this if the image selected is NOT the latest image (this is handled by
                 // the default case) but a specific snapshot or point in time.
-                if (uri(imageToAccess) != null) {
+                if (URIUtil.isValid(imageToAccess) && uri(imageToAccess) != null
+                        && URIUtil.isType(uri(imageToAccess), BlockSnapshot.class)) {
                     // If the imageToAccess is a BlockSnapshot, the user is attempting to failover to
                     // a specific RP bookmark. Get the name of that bookmark and pass it down.
                     BlockSnapshotRestRep snapshot = BlockStorageUtils.getSnapshot(uri(imageToAccess));

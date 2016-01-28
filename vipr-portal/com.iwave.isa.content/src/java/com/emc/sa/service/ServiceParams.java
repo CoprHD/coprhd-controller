@@ -54,8 +54,9 @@ public interface ServiceParams {
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";
     public String IMAGE_TO_ACCESS = "imageToAccess";
-    public String IMAGE_DATE = "imageDate";
-    public String IMAGE_TIME = "imageTime";
+    public String POINT_IN_TIME = "pointInTime";
+    public String DATE = "date";
+    public String TIME = "time";
     public String NUMBER_OF_VOLUMES = "numberOfVolumes";
     public String NUMBER_OF_HOSTS = "numberOfHosts";
     public String COUNT = "count";

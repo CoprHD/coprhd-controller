@@ -123,7 +123,10 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
         for (FileShare filesystem : filesystems) {
             FileDescriptor.Type fileType = FileDescriptor.Type.FILE_MIRROR_SOURCE;
-
+            // Source desc type for vpool change file system!!
+            if (cosCapabilities.getFileSystemVPoolChange()) {
+                fileType = FileDescriptor.Type.FILE_VPOOL_CHANGE_SOURCE;
+            }
             if (filesystem.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())) {
                 fileType = FileDescriptor.Type.FILE_MIRROR_TARGET;
             }
@@ -147,13 +150,22 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
     @Override
     public TaskResourceRep changeFileSystemVirtualPool(FileShare fs, Project project,
-            VirtualPool vpool, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
         List<FileShare> fileList = null;
         List<FileShare> fileShares = new ArrayList<FileShare>();
 
+        FileSystemParam fsParams = new FileSystemParam();
+        fsParams.setFsId(fs.getId().toString());
+        fsParams.setLabel(fs.getLabel());
+        fsParams.setVarray(fs.getVirtualArray());
+        fsParams.setVpool(fs.getVirtualPool());
+
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+
         // Prepare the FileShares
-        fileList = prepareTargetFileSystems(fs, task, taskList, project, varray, vpool, recommendations, vpoolCapabilities, false);
+        fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
+                varray, vpool, recommendations, vpoolCapabilities, false);
         fileShares.addAll(fileList);
 
         // prepare the file descriptors
@@ -249,16 +261,17 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 continue;
             }
 
-            // get the source file share
+            // Get the source file share!!
             FileShare sourceFileShare = getPrecreatedFile(taskList, param.getLabel());
+            if (!cosCapabilities.getFileSystemVPoolChange()) {
+                // Set the recommendation only for source file systems which are not meant for vpool change!!
+                _log.info(String.format("createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
+                        sourceFileShare.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
+                ValidateFileSystem(recommendation, sourceFileShare);
 
-            // Set the recommendation
-            _log.info(String.format("createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
-                    sourceFileShare.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
-            ValidateFileSystem(recommendation, sourceFileShare);
-
-            // set the source mirror recommendations
-            setFileMirrorRecommendation(recommendation, vpool, varray, false, false, sourceFileShare);
+                // set the source mirror recommendations
+                setFileMirrorRecommendation(recommendation, vpool, varray, false, false, sourceFileShare);
+            }
 
             FileShare targetFileShare = null;
             StringBuilder fileLabelBuilder = null;
@@ -310,77 +323,6 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * Prepare the source and target filesystems
-     * 
-     * @param param
-     * @param task
-     * @param taskList
-     * @param project
-     * @param varray
-     * @param vpool
-     * @param recommendations
-     * @param cosCapabilities
-     * @param createInactive
-     * @return
-     */
-    public List<FileShare> prepareTargetFileSystems(FileShare sourceFileShare, String task, TaskList taskList,
-            Project project, TenantOrg tenantOrg, DataObject.Flag[] flags, VirtualArray varray, VirtualPool vpool,
-            List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
-
-        List<FileShare> preparedFileSystems = new ArrayList<>();
-        Iterator<Recommendation> recommendationsIter = recommendations.iterator();
-        while (recommendationsIter.hasNext()) {
-            FileMirrorRecommendation recommendation = (FileMirrorRecommendation) recommendationsIter.next();
-            // If id is already set in recommendation, do not prepare the fileSystem (fileSystem already exists)
-            if (recommendation.getId() != null) {
-                continue;
-            }
-
-            FileShare targetFileShare = null;
-            StringBuilder fileLabelBuilder = null;
-            VirtualPool targetVpool = vpool;
-
-            if (vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name())) {
-                fileLabelBuilder = new StringBuilder(sourceFileShare.getLabel()).append("-target-" + varray.getLabel());
-
-                targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
-                        project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
-                // Set target file recommendations to target file system!!!
-                setFileMirrorRecommendation(recommendation, vpool, varray, true, false, targetFileShare);
-
-                // Update the source and target relationship!!
-                setMirrorFileShareAttributes(sourceFileShare, targetFileShare);
-                preparedFileSystems.add(targetFileShare);
-
-            } else {
-                Map<URI, VpoolRemoteCopyProtectionSettings> settingMap = VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient);
-                VpoolRemoteCopyProtectionSettings protectionSettings = null;
-                List<VirtualArray> virtualArrayTargets = FileMirrorSchedular.getTargetVirtualArraysForVirtualPool(project, vpool,
-                        _dbClient, getPermissionsHelper());
-
-                for (VirtualArray targetVArray : virtualArrayTargets) {
-                    protectionSettings = settingMap.get(targetVArray.getId());
-                    if (protectionSettings.getVirtualPool() != null) {
-                        targetVpool = _dbClient.queryObject(VirtualPool.class, protectionSettings.getVirtualPool());
-                    }
-
-                    fileLabelBuilder = new StringBuilder(sourceFileShare.toString()).append("-target-" + targetVArray.getLabel());
-                    targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
-                            project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
-
-                    // Set target file recommendations to target file system!!!
-                    setFileMirrorRecommendation(recommendation, targetVpool, targetVArray, true, false, targetFileShare);
-
-                    // Update the source and target relationship!!
-                    setMirrorFileShareAttributes(sourceFileShare, targetFileShare);
-                    preparedFileSystems.add(targetFileShare);
-                }
-            }
-        }
-        return preparedFileSystems;
-    }
-
-    /**
      * Set mirror object information
      * 
      * @param sourceFileShare
@@ -389,7 +331,6 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     void setMirrorFileShareAttributes(FileShare sourceFileShare, FileShare targetFileShare) {
 
         if (sourceFileShare != null) {
-
             if (sourceFileShare.getMirrorfsTargets() == null) {
                 sourceFileShare.setMirrorfsTargets(new StringSet());
             }
@@ -398,7 +339,6 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             targetFileShare.setParentFileShare(new NamedURI(sourceFileShare.getId(), sourceFileShare.getLabel()));
             _dbClient.updateObject(sourceFileShare);
             _dbClient.updateObject(targetFileShare);
-
         }
     }
 

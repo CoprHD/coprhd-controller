@@ -81,10 +81,10 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
 
     @Override
     public TaskResourceRep changeFileSystemVirtualPool(FileShare fs, Project project,
-            VirtualPool vpool, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
         try {
-            super.changeFileSystemVirtualPool(fs, project, vpool, taskList, task,
+            super.changeFileSystemVirtualPool(fs, project, vpool, varray, taskList, task,
                     recommendations, vpoolCapabilities);
         } catch (Exception e) {
             _log.error("Controller error when changing filesystem vpool", e);

@@ -87,7 +87,7 @@ public interface FileServiceApi {
      * @throws InternalException
      */
     public TaskResourceRep changeFileSystemVirtualPool(FileShare fs, Project project,
-            VirtualPool vpool, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;
 }

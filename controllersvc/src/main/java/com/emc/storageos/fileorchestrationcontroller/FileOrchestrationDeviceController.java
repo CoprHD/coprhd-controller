@@ -22,6 +22,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FileSystemVpoolChangeCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
@@ -119,7 +120,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         Workflow workflow = null;
         List<URI> fsUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
 
-        FileCreateWorkflowCompleter completer = new FileCreateWorkflowCompleter(fsUris, taskId, fileDescriptors);
+        FileSystemVpoolChangeCompleter completer = new FileSystemVpoolChangeCompleter(fsUris, taskId, fileDescriptors);
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,

@@ -59,7 +59,6 @@
 #{/if}
 
 #{elseif isStable}
-#{if isStable}
   #{if repositoryVersions?.size() >= 4}
         <div class="alert alert-warning">&{'upgrade.tooMany'}</div>
   #{/if}
@@ -106,6 +105,15 @@
     </form>
     <br/>
     #{/if}
+    #{if util.DisasterRecoveryUtils.hasAnyStandbySite()}
+        <form id=pauseStandby action="@{infra.DisasterRecovery.pauseResume()}" onsubmit="return true">
+            <div class="text"><b>&{'upgrade.pauseStandbySite'}</b>&nbsp;
+                <a id="pause_why" data-toggle="tooltip" data-html="true" data-placement="right" title="<p align='left'>&{'upgrade.whyPauseStandbySiteText'}</p>">&{'upgrade.whyPauseStandbySite'}</a>
+                <button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.pause'}</button>
+            </div>
+        </form>
+        <br/>
+    #{/if}
     <div class="text"><b>&{'upgrade.installRemove'}</b></div>
   <br/>
   #{/if}
@@ -113,7 +121,6 @@
     <legend>&{'upgrade.installedImages'}</legend>
     <br/>
   #{/else}
-#{/if}
 
 
 <table class="table table-striped">
@@ -140,8 +147,18 @@
   #{/list}
 </table>
 
+#{if util.DisasterRecoveryUtils.hasPausedSite()}
+    <form id=resumeStandby action="@{infra.DisasterRecovery.pauseResume()}" onsubmit="return true">
+        <img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"><p style="color: red">&{'disasterRecovery.pausedSiteWarning'}</p>
+        <button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.resume'}</button>
+    </form>
+#{/if}
 #{/elseif}
 <script>
+    $(document).ready(function() {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+
     startStatusChecks("${clusterState}");
 
     function confirmCancel() {

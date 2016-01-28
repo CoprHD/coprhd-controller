@@ -133,8 +133,9 @@
     var changeTargetVersion = #{jsAction @installVersion(":version", ":doPrecheck") /}
     function installImage(version) {
         if (confirm("&{'upgrade.sureYouWantToInstall'} "+version+"?")) {
-            var hasPausedSite = ${controllers.infra.Upgrade.hasPausedSite()};
-            if (hasPausedSite || confirm("&{'upgrade.sureOverrideDrPrecheck'}")) {
+            var hasStandbySite = ${util.DisasterRecoveryUtils.hasAnyStandbySite()};
+            var hasPausedSite = ${util.DisasterRecoveryUtils.hasPausedSite()};
+            if (!hasStandbySite || hasPausedSite || confirm("&{'upgrade.sureOverrideDrPrecheck'}")) {
                 $("#clusterStatus").html("<div class='alert alert-info' style='margin-top:10px'>&{'upgrade.installingImage'} "+version+"...</div>");
                 window.location.href = changeTargetVersion({"version":version, "doPrecheck":hasPausedSite});
             }

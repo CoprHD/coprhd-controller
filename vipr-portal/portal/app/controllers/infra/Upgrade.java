@@ -16,6 +16,7 @@ import controllers.Common;
 import controllers.Maintenance;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
+import models.datatable.DisasterRecoveryDataTable;
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Util;
@@ -26,7 +27,6 @@ import util.MessagesUtils;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import static util.BourneUtil.*;
@@ -73,8 +73,10 @@ public class Upgrade extends Controller {
             }
         }
 
+        DisasterRecoveryDataTable dataTable = new DisasterRecoveryDataTable();
+
         render(clusterInfo, clusterState, newVersions, repositoryVersions, isStable, isWorking, isDownloading, downloadStatus,
-                checkProgress, isDbCheckStatus);
+                checkProgress, isDbCheckStatus, dataTable);
     }
 
     /*
@@ -112,20 +114,6 @@ public class Upgrade extends Controller {
     public static void checkDbProgress() {
         DbConsistencyStatusRestRep dbState = getSysClient().upgrade().getDbCheckState();
         renderJSON(dbState);
-    }
-
-    public static boolean hasPausedSite() {
-        List<SiteRestRep> sites = DisasterRecoveryUtils.getSiteDetails();
-        if (sites.size() == 1) {
-            // if not DR configuration, no need to check paused sites
-            return true;
-        }
-        for (SiteRestRep site : sites) {
-            if (SiteState.STANDBY_PAUSED.toString().equals(site.getState())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static void installVersion(String version, boolean doPrecheck) {
@@ -207,6 +195,11 @@ public class Upgrade extends Controller {
     @Util
     private static boolean isStandbySiteDownloading() {
         for (SiteRestRep standby : DisasterRecoveryUtils.getStandbySites()) {
+            if (standby.getState().equals(SiteState.STANDBY_PAUSED.toString()) ||
+                    standby.getState().equals(SiteState.STANDBY_PAUSING.toString()) ||
+                    standby.getState().equals(SiteState.STANDBY_RESUMING.toString())) {
+                continue;
+            }
             ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo(standby.getUuid());
             if (calculateClusterState(clusterInfo, standby.getUuid()).equals(DOWNLOADING_CLUSTER_STATE)) {
                 return true;

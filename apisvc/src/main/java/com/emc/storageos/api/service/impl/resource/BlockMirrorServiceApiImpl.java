@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
+import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -658,6 +659,19 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         }
 
         return taskList;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
+        // Call super first.
+        super.cleanupForViPROnlyDelete(volumeDescriptors);
+
+        // Clean up the relationship between volumes that are full
+        // copies and and their source volumes.
+        BlockFullCopyManager.cleanUpFullCopyAssociations(volumeDescriptors, _dbClient);
     }
 
     /**

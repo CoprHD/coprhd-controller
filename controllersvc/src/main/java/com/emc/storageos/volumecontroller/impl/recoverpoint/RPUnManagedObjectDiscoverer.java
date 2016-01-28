@@ -314,10 +314,10 @@ public class RPUnManagedObjectDiscoverer {
                             // remove the unManagedVolume from the UnManagedProtectionSet's UnManagedVolume ids
                             unManagedProtectionSet.getUnManagedVolumeIds().remove(unManagedVolume.getId().toString());
                             unManagedVolumesToDelete.add(unManagedVolume);
+                            // because this volume is already managed, we can just continue to the next
+                            continue;
                         }
 
-                        // because this volume is already managed, we can just continue to the next
-                        continue;
                     }
 
                     // at this point, we have an legitimate UnManagedVolume whose RP properties should be updated

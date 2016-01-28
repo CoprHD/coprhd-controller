@@ -178,12 +178,16 @@ public class RPUnManagedObjectDiscoverer {
                 log.info("Protection Set " + nativeGuid + " does not contain any copies.  Skipping...");
                 continue;
             }
-            // clean up the existing journal and replicationsets info in the unmanaged protection set, so that updated info is populated
+            // clean up the existing journal and replication sets info in the unmanaged protection set, so that updated info is populated
             if (!newCG) {
                 cleanUpUnManagedResources(unManagedProtectionSet, unManagedVolumesToUpdateByWwn, dbClient);
             }
             Map<String, String> rpCopyAccessStateMap = new HashMap<String, String>();
+            Map<String, String> rpCopyRoleMap = new HashMap<String, String>();            
             for (GetCopyResponse copy : cg.getCopies()) {
+                // Store the copy name to role value in the map
+                rpCopyRoleMap.put(copy.getName(), copy.getRole().toString());
+                // Get the access state
                 String accessState = copy.getAccessState();
                 for (GetVolumeResponse volume : copy.getJournals()) {
                     // Find this volume in UnManagedVolumes based on wwn
@@ -245,7 +249,7 @@ public class RPUnManagedObjectDiscoverer {
                     rpCopyName.add(volume.getRpCopyName());
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_NAME.toString(),
                             rpCopyName);
-
+                                       
                     StringSet rpInternalSiteName = new StringSet();
                     rpInternalSiteName.add(volume.getInternalSiteName());
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(),
@@ -272,6 +276,9 @@ public class RPUnManagedObjectDiscoverer {
             }
 
             for (GetRSetResponse rset : cg.getRsets()) {
+                // Keep track of how many source volumes are flagged in this Rset.
+                // More than one indicates MetroPoint.
+                int sourceVolumeCount = 0;
                 for (GetVolumeResponse volume : rset.getVolumes()) {
                     // Find this volume in UnManagedVolumes based on wwn
                     UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient, storageNativeIdPrefixes);
@@ -291,6 +298,11 @@ public class RPUnManagedObjectDiscoverer {
                     if (null != managedVolume) {
                         log.info("Protection Set {} contains volume {} that is already managed",
                                 nativeGuid, volume.getWwn());
+                        
+                        if (Volume.PersonalityTypes.SOURCE.name().equals(managedVolume.getPersonality())) {
+                            sourceVolumeCount++;
+                        }
+                        
                         // make sure it's in the UnManagedProtectionSet's ManagedVolume ids
                         if (!unManagedProtectionSet.getManagedVolumeIds().contains(managedVolume.getId().toString())) {
                             unManagedProtectionSet.getManagedVolumeIds().add(managedVolume.getId().toString());
@@ -323,6 +335,7 @@ public class RPUnManagedObjectDiscoverer {
                     StringSet personality = new StringSet();
                     if (volume.isProduction()) {
                         personality.add(Volume.PersonalityTypes.SOURCE.name());
+                        sourceVolumeCount++;
                     } else {
                         personality.add(Volume.PersonalityTypes.TARGET.name());
                     }
@@ -337,6 +350,11 @@ public class RPUnManagedObjectDiscoverer {
                     rpCopyName.add(volume.getRpCopyName());
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_NAME.toString(),
                             rpCopyName);
+                    
+                    StringSet rpCopyRole = new StringSet();
+                    rpCopyRole.add(rpCopyRoleMap.get(volume.getRpCopyName()));
+                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_ROLE.toString(),
+                            rpCopyRole);
 
                     StringSet rsetName = new StringSet();
                     rsetName.add(rset.getName());
@@ -363,6 +381,20 @@ public class RPUnManagedObjectDiscoverer {
                     unManagedVolumesToUpdateByWwn.put(unManagedVolume.getWwn(), unManagedVolume);
                 }
 
+                // We now have all the source volumes identified for this RSet, so we can determine if
+                // this unmanaged protection set should be flagged for MetroPoint.
+                if (sourceVolumeCount > 1) {
+                    String metroPoint = unManagedProtectionSet.getCGCharacteristics().get(UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name());
+                    // If the MetroPoint flag hasn't been set or has been set to false
+                    // we can set it to true now.
+                    if (metroPoint == null 
+                            || metroPoint.isEmpty()
+                            || !Boolean.parseBoolean(metroPoint)) {                    
+                        unManagedProtectionSet.getCGCharacteristics().put(
+                                UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name(),Boolean.TRUE.toString());
+                    }
+                }
+                                
                 // Now that we've processed all of the sources and targets, we can mark all of the target devices in the source devices.
                 for (GetVolumeResponse volume : rset.getVolumes()) {
                     // Only process source volumes here.
@@ -375,7 +407,6 @@ public class RPUnManagedObjectDiscoverer {
 
                     // See if the unmanaged volume is in the list of volumes to update
                     // (it should be, unless the backing array has not been discovered)
-
                     UnManagedVolume unManagedVolume = null;
                     String wwn = rpWwnToNativeWwn.get(volume.getWwn());
                     if (wwn != null) {

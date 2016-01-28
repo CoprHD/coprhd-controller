@@ -156,6 +156,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         IS_READ_ONLY("isReadOnly", "isReadOnly"),
         RP_PERSONALITY("personality", "personality"),
         RP_COPY_NAME("rpCopyName", "rpCopyName"),
+        RP_COPY_ROLE("rpCopyRole", "rpCopyRole"),
         RP_RSET_NAME("rpRSetName", "rpRSetName"),
         RP_INTERNAL_SITENAME("rpInternalSiteName", "rpInternalSiteName"),
         RP_PROTECTIONSYSTEM("protectionSystem", "protectionSystem"),

@@ -409,7 +409,6 @@ public class VdcManager extends AbstractManager {
         if (opHandler == null) {
             throw new IllegalStateException(String.format("No VdcOpHandler defined for action %s" , action));
         }
-        opHandler.setAction(action);
         return opHandler;
     }
 
@@ -641,24 +640,11 @@ public class VdcManager extends AbstractManager {
 
         log.info("Db migration is done. Switch to IPSec mode");
 
-        if (isGeoConfig()) {
-            if (allVdcGetUpgradedToYoda()) {
-                postUpgradeForGeo();
-            } else {
-                partialUpgradeForGeo();
-            }
+        if (isGeoConfig() && allVdcGetUpgradedToYoda()) {
+            postUpgradeForGeo();
         } else {
             postUpgradeForSingleVdc();
         }
-    }
-
-    private void partialUpgradeForGeo() throws Exception {
-
-        // To trigger ipsec key rotation
-        VdcOpHandler opHandler = getOpHandler(SiteInfo.IPSEC_OP_DISABLE_INIT);
-        opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
-        opHandler.setTargetSiteInfo(targetSiteInfo);
-        opHandler.execute();
     }
 
     private void postUpgradeForSingleVdc() throws Exception {

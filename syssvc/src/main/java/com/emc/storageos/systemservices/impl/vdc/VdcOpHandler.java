@@ -81,7 +81,6 @@ public abstract class VdcOpHandler {
     protected PropertyInfoExt localVdcPropInfo;
     protected SiteInfo targetSiteInfo;
     protected boolean isRebootNeeded = false;
-    protected String action;
 
     public VdcOpHandler() {
     }
@@ -94,10 +93,6 @@ public abstract class VdcOpHandler {
     
     public void setRebootNeeded(boolean rebootRequired) {
         this.isRebootNeeded = rebootRequired;
-    }
-
-    public void setAction(String action) {
-        this.action = action;
     }
 
     /**
@@ -147,27 +142,10 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             InterProcessLock lock = acquireIPsecLock();
-
             try {
-                switch (this.action) {
-                    case SiteInfo.IPSEC_OP_ENABLE_INIT:
-                        initEnableAndRotateIpsec();
-                        break;
-                    case SiteInfo.IPSEC_OP_DISABLE_INIT:
-                        initDisableIpsec();
-                        break;
-                    default:
-                        throw new IllegalStateException("Unknown Action: " + action);
-                }
+                initEnableAndRotateIpsec();
             } finally {
                 releaseIPsecLock(lock);
-            }
-        }
-
-        private void initDisableIpsec() {
-            if (ipsecMgr.isEnabled()) {
-                ipsecMgr.changeIpsecStatus(IPsecManager.STATUS_DISABLED);
-                log.info("Initiated ipsec disabling.");
             }
         }
 

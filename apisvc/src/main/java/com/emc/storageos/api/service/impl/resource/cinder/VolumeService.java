@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -36,6 +37,7 @@ import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
@@ -102,6 +104,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
@@ -1012,6 +1015,8 @@ public class VolumeService extends TaskResourceService {
     {
         List recommendations = _placementManager.getRecommendationsForVolumeCreateRequest(
                 varray, project, vpool, capabilities);
+        Map<VpoolUse, List<Recommendation>> recommendationsMap = new HashMap<VpoolUse, List<Recommendation>>();
+        recommendationsMap.put(VpoolUse.ROOT, recommendations);
 
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
@@ -1028,7 +1033,7 @@ public class VolumeService extends TaskResourceService {
 
         _log.debug("Block Service API call for : Create New Volume ");
         TaskList passedTaskist = createTaskList(requestedSize, project, varray, vpool, name, task, volumeCount);
-        return api.createVolumes(volumeCreate, project, varray, vpool, recommendations, passedTaskist, task,
+        return api.createVolumes(volumeCreate, project, varray, vpool, recommendationsMap, passedTaskist, task,
                 capabilities);
     }
 

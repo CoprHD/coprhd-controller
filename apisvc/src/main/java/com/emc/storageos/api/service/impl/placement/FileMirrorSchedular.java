@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
+import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class FileMirrorSchedular implements Scheduler {
@@ -256,4 +257,13 @@ public class FileMirrorSchedular implements Scheduler {
         }
         return targetVirtualArrays;
     }
+
+    @Override
+    public Set<List<Recommendation>> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
+    
 }

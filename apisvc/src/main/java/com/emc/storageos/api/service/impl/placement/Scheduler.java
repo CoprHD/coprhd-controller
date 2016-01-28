@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 public interface Scheduler {
-    List<Recommendation> getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
+    List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
             VirtualPoolCapabilityValuesWrapper capabilities);
     
     /**

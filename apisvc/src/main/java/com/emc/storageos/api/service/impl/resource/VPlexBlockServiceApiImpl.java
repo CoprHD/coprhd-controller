@@ -3550,6 +3550,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             descriptors.add(descriptor);
         }
         return descriptors;
+    }
+    
     /**
      * {@inheritDoc}
      */

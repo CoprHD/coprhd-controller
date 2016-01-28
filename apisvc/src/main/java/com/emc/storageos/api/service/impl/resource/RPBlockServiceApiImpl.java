@@ -3548,9 +3548,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // TODO Auto-generated method stub
-    }
-
         return null;
+    }
+        
     /* (non-Javadoc)
      * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
      */

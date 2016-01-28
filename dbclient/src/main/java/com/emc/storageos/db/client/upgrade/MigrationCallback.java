@@ -5,6 +5,8 @@
 
 package com.emc.storageos.db.client.upgrade;
 
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
+
 /**
  * Migration callback interface
  */
@@ -13,7 +15,7 @@ public interface MigrationCallback {
     /**
      * actual run method
      */
-    public void process();
+    public void process() throws MigrationCallbackException;
 
     /**
      * Get name of the handler

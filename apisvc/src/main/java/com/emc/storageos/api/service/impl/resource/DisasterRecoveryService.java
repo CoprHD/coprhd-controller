@@ -219,13 +219,14 @@ public class DisasterRecoveryService {
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_ADD_STANDBY, vdcConfigVersion);
             }
 
+            coordinator.commitTransaction();
+
             // sync site related info with to be added standby site
             long dataRevision = System.currentTimeMillis();
             SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey(), standbyConfig.getUuid(), dataRevision, vdcConfigVersion);
             viprCoreClient.site().syncSite(standbyConfig.getUuid(), configParam);
 
             drUtil.updateVdcTargetVersion(siteId, SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcConfigVersion, dataRevision);
-            coordinator.commitTransaction();
             auditDisasterRecoveryOps(OperationTypeEnum.ADD_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
                     standbySite.toBriefString());
             return siteMapper.map(standbySite);

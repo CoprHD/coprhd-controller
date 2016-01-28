@@ -56,8 +56,13 @@ public class BackupDataTable extends DataTable {
                 results.add(new Backup(backup));
             }
         } else if (type == Type.REMOTE) {
-            for (String name : BackupUtils.getExternalBackups()) {
-                results.add(new Backup(name));
+            try {
+                for (String name : BackupUtils.getExternalBackups()) {
+                    results.add(new Backup(name));
+                }
+            } catch (Exception e) {
+                //should trim the error message, otherwise datatable.js#getErrorMessage will fail to parse the response
+                throw new RuntimeException(e.getMessage().trim());
             }
         }
         return results;
@@ -109,7 +114,5 @@ public class BackupDataTable extends DataTable {
             name = externalBackupName;
             status = "LOADING"; // Async to get the detail backup info
         }
-
     }
-
 }

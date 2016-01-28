@@ -19,6 +19,7 @@ usage() {
     echo "       $0 <Backup Zip File> | <Local Backup Dir>"
     echo "For example:"
     echo "       $0 /tmp/test.zip or $0 /data/backup/some-backup-dir"
+    echo "NOTE: restore on standby site is not supported."
 }
 
 validate_parameters() {
@@ -148,6 +149,14 @@ user_confirm() {
     done
 }
 
+check_standby() {
+    local is_standby=$(/etc/systool --getvdcprops | awk '/^site_is_standby=/ {print substr($0, length("site_is_standby=") + 1)}')
+    if [ "$is_standby" == "true" ]; then
+        echo "Restore on standby site is not supported."
+        exit 2
+    fi
+}
+
 if [ $# -ne 1 ]; then
     usage
     exit 2
@@ -157,6 +166,8 @@ if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
     usage
     exit 0
 fi
+
+check_standby
 
 RESTORE_DIR="/data/restore-`date +%s`"
 NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
@@ -168,11 +179,11 @@ else
     BACKUP_ZIP=$(readlink -f "$1")
 fi
 
+trap clean_up EXIT
+
 validate_parameters
 
 input_password
-
-trap clean_up EXIT
 
 comands=(upload_backup confirm_vdc_status)
 for cmd in ${comands[@]}

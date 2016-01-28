@@ -158,44 +158,42 @@ public class Backup extends Controller {
     }
 
     public static void restore(String id, Type type) {
-        if (type == Type.REMOTE) { // pull first if remote backup set
-            BackupUtils.pullBackup(id);
-            BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, false);
-            long totalSize = status.getBackupSize();
-            long downloadSize = status.getDownoadSize();
-            int checkProgress = 0;
-            if (totalSize != 0) {
-                checkProgress = downloadSize / totalSize > 100 ? 100 : (int) (downloadSize / totalSize);
-            }
-            renderArgs.put("downloadStatus", status.getStatus().name());
-            renderArgs.put("checkProgress", checkProgress);
-        }
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
+        renderArgs.put("status", status);
         renderArgs.put("id", id);
         renderArgs.put("type", type);
-        renderArgs.put("isGeo", false);
+
+        if (type == Type.REMOTE) { // pull first if remote backup set
+            BackupUtils.pullBackup(id);
+        }
+        
         render();
     }
 
     public static void cancelPullBackup(Type type) {
-        BackupUtils.cancelPullBackup();
+        if (type == Type.REMOTE) {
+            BackupUtils.cancelPullBackup();
+        }
         list(type);
     }
 
-    @FlashException(keep = true, referrer = { "restore" })
     public static void doRestore() {
-        RestoreForm restoreForm = new RestoreForm();
-        restoreForm.name = params.get("restoreForm.name");
-        restoreForm.password = params.get("restoreForm.password");
-        restoreForm.isGeoFromScratch = params.get("restoreForm.isGeoFromScratch", boolean.class);
         Type type = params.get("restoreForm.type", Type.class);
-        restoreForm.isLocal = type == Type.LOCAL;
+        boolean isLocal = type == Type.LOCAL;
+        String name = params.get("restoreForm.name");
+        RestoreForm restoreForm = new RestoreForm(name, params.get("restoreForm.password"), isLocal, params.get("restoreForm.isGeoFromScratch", boolean.class));
         restoreForm.restore();
-        list(type);
+
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(name, isLocal);
+        if (status.isNotSuccess()) {
+            list(type);
+        }
+        Maintenance.maintenance(Common.reverseRoute(Backup.class, "list", "type", type));
     }
 
     public static void getRestoreStatus(String id, Type type) {
         BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
-        renderJSON(status);
+        renderJSON(new RestoreStatus(status));
     }
 
     private static void backToReferrer() {
@@ -247,9 +245,36 @@ public class Backup extends Controller {
 
         public boolean isGeoFromScratch = false;
 
+        public RestoreForm(String name, String password, boolean isLocal, boolean isGeo) {
+            this.name = name;
+            this.password = password;
+            this.isLocal = isLocal;
+            this.isGeoFromScratch = isGeo;
+        }
+
         public void restore() throws ViPRException {
             BackupUtils.restore(name, StringUtils.trimToNull(password), isLocal, isGeoFromScratch);
         }
+    }
+
+    public static class RestoreStatus {
+        private String backupName;
+        private long backupSize;
+        private long downloadSize;
+        private BackupRestoreStatus.Status status;
+        private boolean isGeo;
+
+        private String message;
+
+        public RestoreStatus(BackupRestoreStatus origin) {
+            this.backupName = origin.getBackupName();
+            this.backupSize = origin.getBackupSize();
+            this.downloadSize = origin.getDownoadSize();
+            this.status = origin.getStatus();
+            this.isGeo = origin.isGeo();
+            this.message = origin.getStatus().getMessage();
+        }
+
     }
 
 }

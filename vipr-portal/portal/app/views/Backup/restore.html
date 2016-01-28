@@ -24,15 +24,12 @@
                 %{
                     style = "success"
                     }%
-                    #{progressBar name:"Status", percentage:checkProgress, style:style/}
+                    #{progressBar name:"Status", style:style/}
                 </td>
             </tr>
             <tr>
                 <td width="300">
-		        <span id="errorInfo" hidden="hidden">
-                &{'restore.download.error'}
-                </span>
-                <div id="checkDetailMsg" style="color:#2c95dd"></div>
+		        <span id="errorInfo"></span>
                 </td>
             </tr>
         </table>
@@ -57,31 +54,31 @@
         #{/field}
     </div>
 
-    #{if isGeo == true}
+    #{if status.isGeo()}
         <div id="checkBoxForRestoreGeo">
-            <label><input type="checkbox"> &{'restore.geo.checkbox.help'}</label>
+            <label><input type="checkbox" name="restoreForm.isGeoFromScratch"> &{'restore.geo.checkbox.help'}</label>
 
-            <div class="alert alert-danger"> &{'restore.geo.disconnect'} </div>
+            <div class="alert alert-warning"> &{'restore.geo.disconnect'} </div>
         </div>
+    #{/if}
+
+    #{if status.isNotSuccess()}
+        <div class="alert alert-danger">${status.getStatus()}</div>
     #{/if}
 
     <div class="alert alert-info"> &{'restore.prompt'} </div>
 
-    #{Form.button 'button.ok', class:'primary', icon:'ok-sign', submit:'restoreForm', id:'restoreBtn' /}
-    #{Form.button 'button.cancel', icon:'primary', href: @cancelPullBackup(type)/}
+    <div class="button-bar">
+        #{Form.button 'button.ok', class:'primary', icon:'ok-sign', type:'submit', id:'restoreBtn' /}
+        #{Form.button 'button.cancel', icon:'primary', href: @cancelPullBackup(type)/}
 #{/form}
+    </div>
 </div>
 
 <script type="text/javascript">
     var stop = false;
     $(document).ready(function () {
-        $('#restoreForm').on('keyup keypress', function(e) {
-            var code = e.keyCode || e.which;
-            if (code == 13) {
-                e.preventDefault();
-                return false;
-            }
-        });
+        disableEnter(true);
 
         type = "${type}";
         REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
@@ -91,15 +88,29 @@
         }
     });
 
+    function disableEnter(disable) {
+        $('#restoreForm').on('keyup keypress', function (e) {
+            var code = e.keyCode || e.which;
+            if (code == 13) {
+                if (disable && $("#restoreBtn").is(":disabled")) {
+                    e.preventDefault();
+                    return false;
+                } else {
+                    this.submit();
+                }
+            }
+        });
+    }
+
     function checkPullStatusUpdates() {
         var checkUpdate = window.setInterval(function () {
             if (stop) {
-                console.info("stop");
+                console.info("stop interval");
                 clearInterval(checkUpdate);
                 return;
             }
             checkPullProgressUpdate();
-        }, 1000); // Check every 1 seconds
+        }, 2000); // Check every 2 seconds
     }
 
     function checkPullProgressUpdate() {
@@ -116,19 +127,36 @@
                 }
                 var totalSize = result.backupSize;
                 var downloadSize = result.downloadSize;
-                var progress = downloadSize / totalSize > 100 ? 100 : parseInt(downloadSize / totalSize);
-                console.info("1=%s 2=%s 4=%s ", totalSize, downloadSize, description);
-                updateProgressBar("Status", progress);
+                if (totalSize != 0) {
+                    var realPercent = downloadSize / totalSize * 100;
+                }
+                var basePercent = 50;
+                var progress = 0;
+                if(realPercent >= 100) {
+                    progress = basePercent + realPercent / 10;
+                    if(progress >= 100) {
+                        progress = 99;
+                    }
+                } else if(realPercent != null){
+                    progress = realPercent;
+                    if (progress >= basePercent) {
+                        progress = basePercent;
+                    }
+                }
+
+                console.info("progress=%s \n info=%s ", progress, description);
+                updateProgressBar("Status", parseInt(progress));
 
                 if (result.status == "DOWNLOAD_SUCCESS") {
                     updateProgressBar("Status", 100);
                     $("#restoreBtn").prop("disabled", false);
+                    disableEnter(false);
                     stop = true;
                 }
                 else if (result.status == "DOWNLOAD_FAILED") {
                     updateProgressBar("Status",100);
                     updateProgressBarStyle("Status", "danger");
-                    $("#errorInfo").removeAttr('hidden');
+                    $("#errorInfo").text(result.status+': '+result.message);
                     stop = true;
                 }
             },

@@ -19,6 +19,7 @@
     <bean id="backupOps" class="com.emc.storageos.management.backup.BackupOps">
         <property name="coordinatorClient" ref="coordinator"/>
         <property name="serviceUrl" value="service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi"/>
+        <property name="drUtil" ref="drUtil" />
         <property name="ports">
             <list value-type="java.lang.Integer">
                 <value>7199</value>

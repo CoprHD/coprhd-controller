@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr | ipsec} [local|ldap] [<timeslot>] | sanzoning'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec} [local|ldap] [<timeslot>] | sanzoning | application'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -113,6 +113,23 @@ elif [ ${SS} = "dr" ]; then
             AUTH=ldap
         fi
         echo AUTH=$AUTH
+elif [ ${SS} = "backuprestore" ]; then
+        if [[ $# -ne 6 ]]; then
+            echo "Invalid backuprestore parameters."
+            echo "usage: backuprestore backup-server-uri username password"
+            exit 1
+        fi
+        
+        BACKUP_SERVER_URL=$4
+        BACKUP_SERVER_USERNAME=$5
+        BACKUP_SERVER_PASSWORD=$6
+
+        if [ -n "${BOURNE_IPV6_MODE}" ]; then
+            AUTH=ipv6
+        else
+            AUTH=ldap
+        fi
+        echo AUTH=$AUTH
 else
 
 	# By default, we're not running quick sanity
@@ -138,7 +155,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -7305,8 +7322,8 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr poweroffcluster $DR_SITE_A_IP
 
-    echo "Sleep 300 seconds to wait standby ZK switch to participant"
-    sleep 300
+    echo "Sleep 400 seconds to wait standby ZK switch to participant"
+    sleep 400
 
     echo "Wait for stable"
     BOURNE_IPADDR=$DR_SITE_C_IP
@@ -7315,7 +7332,9 @@ dr_multisite_tests()
 
     echo "Failover to promote site $DR_SITE_C_NAME as active"
     dr failover --ip $DR_SITE_C_IP $standby_site_c
-    sleep 300
+
+    echo "Sleep 800 seconds to wait failover"
+    sleep 800
 
     echo "Wait for stable"
     BOURNE_IPADDR=$DR_SITE_C_IP
@@ -7351,7 +7370,7 @@ vdc_common_setup()
 
 ipsec_setup()
 {
-    echo "No setup needed"
+    echo "No ipsec test setup needed"
 }
 
 ipsec_tests() 
@@ -7359,21 +7378,41 @@ ipsec_tests()
     echo "--- IPSEC Key Rotation ---"
     ipsec keyrotate || { echo "key rotation failed."; exit 1; }
     echo "Key Rotation done"
+    assert_ipsec_status "good"
 
+    echo "--- Test IPSEC disable ---"
+    ipsec disable || { echo "ipsec disable failed."; exit 1; }
+    echo "ipsec disabled"
+    assert_ipsec_status "disabled"
+
+    echo "--- Test IPSEC enable ---"
+    ipsec enable || { echo "ipsec enable failed."; exit 1; }
+    echo "ipsec enabled"
+    assert_ipsec_status "good"
+}
+
+assert_ipsec_status()
+{
     echo "Checking IPsec status"
+    local expect_status="${1}"
+    local ipsec_status=""
     local result=1
+
+    sleep 1
     for i in {1..5}; do
-        ./ipsec check
-        [[ $? == 0 ]] && { result=0; break; }
+        ipsec_status=$(./ipsec check)
+        [[ "${ipsec_status}" == *"${expect_status}"* ]] && { result=0; break; }
         sleep 5
     done
 
-    if [[ $result == 1 ]]; then 
-        echo "ipsec is not good"
+    if [[ ${result} == 1 ]]; then
+        echo "ipsec status is not right, expect: ${expect_status}, actually is: ${ipsec_status}"
         exit 1
     fi
-    echo "IPsec status checking is done." 
+
+    echo "IPsec status verified, which is: ${ipsec_status}"
 }
+
 
 sec_start_ldap_server()
 {
@@ -7512,7 +7551,7 @@ vdc_federation_setup()
 
 vdc_discon_reconn_test()
 {
-	echo "Disconnecting the vdc in current vipr system"
+    echo "Disconnecting the vdc in current vipr system"
     if [ "$BOURNE_SECURITY_DISABLED" != '1' -a "$AUTH" != 'local' ] ; then
         security login $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD
     fi
@@ -7542,7 +7581,14 @@ vdc_discon_reconn_test()
 
     # Restart all the services on the vdc which we disconnected, make it back online to reconnect.
     start_vdc_services $VDC_ENDPOINT_B
-    sleep 180 
+    sleep 60
+    echo "Waiting for vdc stable $VDC_ENDPOINT_B"
+    export BOURNE_IPADDR=$VDC_ENDPOINT_B
+    security login $SYSADMIN $SYSADMIN_PASSWORD
+    vdc waitforstablestate 10 600
+
+    export BOURNE_IPADDR=$VDC_ENDPOINT_A
+    security login $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD 
     vdc reconnect $VDC_ENDPOINT_B_ID
     if [ $? -ne 0 ]; then
         echo "Resconnect vdc failed."
@@ -7558,38 +7604,13 @@ vdc_discon_reconn_test()
     export BOURNE_IPADDR=$VDC_ENDPOINT_B
     security login $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD
 
-    j=0
-    success=false
-    while [ $j -lt 60 ]
-    do
-        project search $(echo $VDC_TEST_DISCONN_RECONN_PROJECT | head -c 5)
-
-        if [ $? -eq 0 ]
-        then
-            success=true
-            break
-        fi
-
-        echo "The cluster ${BOURNE_IP} is not stable yet sleep 30 seconds"
-        sleep 30
-        j=j+1
-    done
-
-    if [ $success = true ];
-    then
-        echo "Find project data after reconnecting vdc."
-    else
-        echo "Failed to find project data after reconnecting vdc."
-        exit 1
-    fi
-
     echo "Test on disconnect and reconnect vdc done"
     export BOURNE_IPADDR=$VDC_ENDPOINT_A
 }
 	
 vdc_tests()
 {
-	vdc_discon_reconn_test
+    vdc_discon_reconn_test
 
     echo "Updating the new vdc in current vipr system"
     if [ "$BOURNE_SECURITY_DISABLED" != '1' -a "$AUTH" != 'local' ] ; then
@@ -7721,100 +7742,209 @@ start_vdc_services()
     done
 }
 
-#Usage: sanity <conf path> <vip> backuprestore
-# E.g.: sanity conf/sanity.conf 137.69.169.21 backuprestore
+#Usage: sanity <conf path> <vip> backuprestore backup-server-uri username password
+# E.g.: sanity conf/sanity.conf 137.69.169.21 backuprestore ftp://X.X.X.X/foo root root-password 
 backuprestore_setup()
 {
     echo "Setup backup restore environment begin"
+    login_nd_configure_smtp_nd_add_licenses
     vip=$BOURNE_IPADDR
 
-    echo "Enable root ssh permit"
+    echo "Enable root ssh permit and configure backup server"
     syssvc $CONFIG_FILE "$vip" set_prop system_permit_root_ssh yes
-    echo "Enable root ssh permit done"
+
+    syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_username "${BACKUP_SERVER_USERNAME}"
+    syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_password "${BACKUP_SERVER_PASSWORD}"
+    syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_url "${BACKUP_SERVER_URL}"
+
+    echo "Done url=${BACKUP_EXTERNAL_LOCATION_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD}"
 }
 
 backuprestore_tests()
 {
     backupname='sanity'
+    backupname2='abc'
     filepath='/tmp/sanity.zip'
+    remote_backup_file=""
 
-    backup_tests "${backupname}" "${filepath}"
+    backup_tests "${backupname}" "${backupname2}" "${filepath}"
     restore_tests "${filepath}"
 }
 
 backup_tests()
 {
-    backupname=$1
-    filepath=$2
+    local backupname=$1
+    local backupname2=$2
+    local filepath=$3
 
     echo "Creating backup(${backupname})"
     backup create "${backupname}"
-    if [ $? == 0 ]; then
-        echo "Create backup successful"
-    else
-        echo "Create backup failed"
+
+    if [ $? -ne 0 ]; then
+        echo "Create backup ${backupname} failed"
         exit 1
     fi
 
-    echo "Creating backup(${backupname}-tmp)"
-    backup create "${backupname}-tmp"
-    if [ $? == 0 ]; then
-        echo "Create backup successful"
-    else
-        echo "Create backup failed"
+    echo "Create backup ${backupname} successful"
+
+    echo "Creating another backup(${backupname2})"
+    backup create "${backupname2}"
+
+    if [ $? -ne 0 ]; then
+        echo "Create backup ${backupname2} failed"
         exit 1
     fi
 
-    echo "Listing backup(${backupname})"
-    found=`backup list "${backupname}"`
+    echo "Create backup ${backupname2} successful"
+
+    echo "Listing local backup(${backupname})"
+    local found=$(backup list "${backupname}")
     echo "found=$found"
-    if [ "$found"x == "${backupname}"x ]; then
-        echo "List backup successful"
-    else
+
+    if [ "$found"x != "${backupname}"x ]; then
         echo "List backup failed"
         exit 1
     fi
 
-    echo "Deleting backup(${backupname}-tmp)"
-    backup delete "${backupname}-tmp"
-    if [ $? == 0 ]; then
-        echo "Delete backup successful"
-    else
+    echo "List local backup ${backupname} successful"
+
+    echo "Uploading backup(${backupname}) to ${BACKUP_EXTERNAL_LOCATION_URL}"
+    backup upload "${backupname}"
+
+    if [ $? != 0 ]; then
+        echo "Upload backup ${backupname} failed"
+        exit 1
+    fi
+
+    echo "Wait for upload ${backupname} to complete"
+
+    for(( i=0; i<60; i++ )); do
+       status=$(backup query-upload "${backupname}")
+       echo "status=${status}"
+
+       if [[ "${status}" == "DONE" || "${status}" == "FAILED" ]] ; then
+           break;
+       fi
+
+       sleep 10s
+    done
+
+    echo "status=${status}"
+    if [[ "${status}" != "DONE" ]]; then
+        echo "upload backup ${backupname} failed"
+        exit 1
+    fi
+
+    echo "Listing external backup(${backupname} from ${BACKUP_EXTERNAL_LOCATION_URL})"
+
+    found=""
+    for(( i=0; i<60; i++ )); do
+       found=$(backup list-external "${backupname}")
+       echo "found=${found}"
+
+       if [[ "${found}" != "" ]]; then
+           break;
+       fi
+       sleep 10s
+    done
+
+    if [[ "${found}" == "" ]]; then
+       echo "Failed to find backup ${backupname} on ${BACKUP_EXTERNAL_LOCATION_URL}"
+       exit 1
+    fi
+
+    echo "Pull backup(${found} from ${BACKUP_EXTERNAL_LOCATION_URL})"
+    backup pull "${found}"
+
+    if [[ $? -ne 0 ]]; then
+        echo "pull backup failed"
+        exit 1
+    fi
+
+    echo "Start to query pull status"
+    local status=""
+
+    for (( i=0; i<60; i++ )); do
+       status=$(backup query-pull "${found}" "false")
+       echo "status=${status}"
+
+       if [[ "${status}" == "DOWNLOAD_SUCCESS" ]]; then
+           break;
+       fi
+
+       sleep 10s
+    done
+
+    if [[ "${status}" != "DOWNLOAD_SUCCESS" ]]; then
+       echo "Failed to pull backup ${found}"
+       exit 1
+    fi
+
+    remote_backup_file="${found}"
+
+    echo "Deleting backup(${backupname2})"
+    backup delete "${backupname2}"
+
+    if [[ $? -ne 0 ]]; then
         echo "Delete backup failed"
         exit 1
     fi
 
-    echo "Listing backup(${backupname}-tmp)"
-    found=`backup list "${backupname}-tmp"`
+    echo "Delete backup ${backupname2} successful"
+
+    echo "Listing backup(${backupname2})"
+
+    found=`backup list "${backupname2}"`
     echo "found=$found"
-    if [ "$found"x == "${backupname}-tmp"x ]; then
+
+    if [[ "$found"x == "${backupname2}"x ]]; then
         echo "Backup(${backupname}-tmp) should not exist"
         exit 1
     fi
 
     echo "Downloading backup(${backupname}) to ${filepath}"
+
     backup download "${backupname}" "${filepath}"
-    if [[ $? == 0 && -f ${filepath} ]]; then
-        echo "Download backup successful"
-    else
+
+    if [[ $? -ne 0 ||  ! -f ${filepath} ]]; then
         echo "Download backup failed"
         exit 1
     fi
 
+    echo "Download backup successful"
+
     echo "Deleting backup(${backupname})"
+
     backup delete "${backupname}"
-    if [ $? == 0 ]; then
-        echo "Delete backup successful"
-    else
+
+    if [[ $? -ne 0 ]]; then
         echo "Delete backup failed"
         exit 1
     fi
+
+    echo "Delete backup successful"
 }
 
 restore_tests()
 {
-    filepath=$1
+    filepath="$1"
     password=$SYSADMIN_PASSWORD
+
+    echo "Restore from pulled backup ${remote_backup_file} password=${password}"
+    backup restore "${remote_backup_file}" "false" "${password}"
+
+    echo "Wait for stable"
+    sleep 30s
+
+    for (( i=0; i<120; i++ )); do
+       security login $SYSADMIN $SYSADMIN_PASSWORD
+
+       if [[ $? -eq 0 ]]; then
+            break;
+       fi
+       echo "login failed retry later"
+       sleep 10s
+    done
 
     echo "Uploading backup file ${filepath} to $BOURNE_IPADDR"
     SCP $BOURNE_IPADDR ${filepath} ${filepath}
@@ -7822,7 +7952,7 @@ restore_tests()
     echo "Restoring backup file ${filepath} on $BOURNE_IPADDR"    
     result=`SSH $BOURNE_IPADDR "echo -e 'yes\n$password' | /opt/storageos/bin/restore '${filepath}'" | grep 'Restore'`
     echo "$result"
-    if [ "$result"x != "Restore successful!"x ]; then
+    if [[ "$result"x != "Restore successful!"x ]]; then
         echo "Please check /opt/storageos/logs/bkutils.log for details"
         exit 1
     fi
@@ -7980,7 +8110,7 @@ _success() {
 #executes a command that is expected to fail
 fail(){
     cmd=$*
-    echo $cmd
+    echo === $cmd
     trap - ERR
     $cmd 2>&1
     status=$?
@@ -7998,7 +8128,7 @@ fail(){
 
 trap _failure ERR INT
 set -E
-if [ "$3" != "vdc" ] && [ "$3" != "dr" ]; then
+if [ "$3" != "vdc" ] && [ "$3" != "dr" ] && [ "$3" != "backuprestore" ]; then
     common_setup	
 fi
 
@@ -8027,6 +8157,143 @@ output_conf(){
     echo "user=$WS_UID" >> "$file"
     echo "secretkey=$WS_SECRET" >> "$file"
     echo "bucket=${WS_SETUP_BUCKETS# }" >> "$file"
+}
+
+application_setup()
+{
+    echo "**** Executing volume group setup"
+    vmaxblock_setup
+    vnxblock_setup
+    consistencygroup_block_cos_setup
+}
+
+application_crud_test()
+{
+    echo "**** Executing volume group crud test"
+    appname=sanityapp-${RANDOM}
+
+    # test and verify create volume group
+    run volumegroup create ${appname} descrip COPY
+    run volumegroup show ${appname}
+    run volumegroup verify ${appname} description descrip
+    #run volume group ${appname} roles COPY
+
+    # test and verify list volume group
+    run volumegroup list
+
+    # test and verify volume group update
+    newappname=${appname}new
+    run volumegroup update ${appname} ${newappname} newdescription
+    run volumegroup show ${newappname}
+    run volumegroup verify ${newappname} description newdescription
+
+    # test and verify volume group delete
+    run volumegroup delete ${newappname}
+    fail volumegroup show ${newappname}
+}
+
+application_createvols()
+{
+    #unique=12044
+    unique=${RANDOM}
+    basename=vgsanity-${unique}
+    VG_CGNAME1=cg1${unique}
+    VG_CGNAME2=cg2${unique}
+    VG_COPYVG1=${basename}-copyvg1
+    VG_COPYVG2=${basename}-copyvg2
+    VG_MOBIVG1=${basename}-mobivg1
+
+    run blockconsistencygroup create ${PROJECT} ${VG_CGNAME1}
+    a=`blockconsistencygroup show ${VG_CGNAME1} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
+    b=${a:1}
+    VG_CGID1=${b%'"'*}
+    echo cgid1 is ${VG_CGID1}
+
+    run blockconsistencygroup create ${PROJECT} ${VG_CGNAME2}
+    c=`blockconsistencygroup show ${VG_CGNAME2} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
+    d=${c:1}
+    VG_CGID2=${d%'"'*}
+    echo cgid2 is ${VG_CGID2}
+
+    run volume create ${basename}-cg $PROJECT $NH $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME1} --count 3
+    VG_CGVOL1="${basename}-cg-1"
+    VG_CGVOL2="${basename}-cg-2"
+    VG_CGVOL3="${basename}-cg-3"
+    VG_CGVOLID1=`volume list ${PROJECT} | grep ${VG_CGVOL1} | awk '{print $7}'`
+    VG_CGVOLID2=`volume list ${PROJECT} | grep ${VG_CGVOL2} | awk '{print $7}'`
+    VG_CGVOLID3=`volume list ${PROJECT} | grep ${VG_CGVOL3} | awk '{print $7}'`
+    echo cgvolid1 is ${VG_CGVOLID1}
+    echo cgvolid2 is ${VG_CGVOLID2}
+    echo cgvolid3 is ${VG_CGVOLID3}
+
+    run volume create ${basename} $PROJECT $NH $VG_VPOOL $BLK_SIZE --thinVolume true --count 3
+    VG_VOL1="${basename}-1"
+    VG_VOL2="${basename}-2"
+    VG_VOL3="${basename}-3"
+    VG_VOLID1=`volume list ${PROJECT} | grep ${VG_VOL1} | awk '{print $7}'`
+    VG_VOLID2=`volume list ${PROJECT} | grep ${VG_VOL2} | awk '{print $7}'`
+    VG_VOLID3=`volume list ${PROJECT} | grep ${VG_VOL3} | awk '{print $7}'`
+    echo volid1 is ${VG_VOLID1}
+    echo volid2 is ${VG_VOLID2}
+    echo volid3 is ${VG_VOLID3}
+
+    run volumegroup create ${VG_COPYVG1} copy1 COPY
+    run volumegroup create ${VG_COPYVG2} copy2 COPY
+    run volumegroup create ${VG_MOBIVG1} mobility MOBILITY
+}
+
+application_deleteall()
+{
+    run volume delete $PROJECT/$VG_CGVOL1 --wait
+    run volume delete $PROJECT/$VG_CGVOL2 --wait
+    run volume delete $PROJECT/$VG_CGVOL3 --wait
+    run volume delete $PROJECT/$VG_VOL1 --wait
+    run volume delete $PROJECT/$VG_VOL2 --wait
+    run volume delete $PROJECT/$VG_VOL3 --wait
+    run blockconsistencygroup delete ${VG_CGNAME1}
+    run blockconsistencygroup delete ${VG_CGNAME2}
+    run volumegroup delete ${VG_COPYVG1}
+    run volumegroup delete ${VG_COPYVG2}
+    run volumegroup delete ${VG_MOBIVG1}
+}
+
+# adds and removes volumes from a COPY volume group
+application_volume_tests()
+{
+    # add 3 volumes from same CG to application
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CGVOLID1},${VG_CGVOLID2},${VG_CGVOLID3}
+
+    # add one volume not in a CG to the same CG
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_VOLID1} ${VG_CGID1}
+
+    # add 1 volume not in a CG to a different CG
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_VOLID2} ${VG_CGID2}
+
+    # add the saem volume to a mobility group
+    run volumegroup add-volumes ${VG_MOBIVG1} ${VG_VOLID2}
+
+    # remove
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_VOLID2}
+    run volumegroup remove-volumes ${VG_MOBIVG1} ${VG_VOLID2}
+
+    # add 1 volume not in a CG to a different copy vg
+    run volumegroup add-volumes ${VG_COPYVG2} ${VG_VOLID2} ${VG_CGID2}
+
+    #remove from one copy group then add to another
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CGVOLID1}
+    run volumegroup add-volumes ${VG_COPYVG2} ${VG_CGVOLID1} ${VG_CGID2}
+    
+}
+
+application_tests()
+{
+    echo "**** Executing volume group tests"
+    VG_VPOOL_CG=$VMAX_COS_GROUP
+    VG_VPOOL=$COS_VMAXBLOCK_THIN
+    application_crud_test
+    application_createvols
+    application_volume_tests
+    application_deleteall
 }
 
 vplexsnap_setup()

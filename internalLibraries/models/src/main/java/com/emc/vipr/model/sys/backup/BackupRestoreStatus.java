@@ -86,7 +86,7 @@ public class BackupRestoreStatus {
         RESTORE_SUCCESS (false, false ,false, "Restore success");
 
         private boolean cancellable = false;
-        private boolean removeDownloadedFiles= false;
+        private boolean removeDownloadedFiles = false;
         private boolean removeListener = false;
         private String message = "";
 
@@ -116,6 +116,16 @@ public class BackupRestoreStatus {
         public String getMessage () {
             return message;
         }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append(name())
+                   .append(": ")
+                   .append(getMessage());
+
+            return builder.toString();
+        }
     }
 
     @XmlElement(name = "download_size")
@@ -134,6 +144,10 @@ public class BackupRestoreStatus {
 
     public void setDownoadSize(long size) {
         downloadSize = size;
+    }
+
+    public boolean isNotSuccess() {
+        return status == Status.DOWNLOAD_FAILED || status == Status.RESTORE_FAILED;
     }
 
     //convert to Map to persist to ZK
@@ -183,18 +197,18 @@ public class BackupRestoreStatus {
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append("BackupName:");
-        sb.append(getBackupName());
-        sb.append(", backupSize:");
-        sb.append(getBackupSize());
-        sb.append(", downloadSize:");
-        sb.append(getDownoadSize());
-        sb.append(", nodeCompleted:");
-        sb.append(getNodeCompleted());
-        sb.append(", isGeo:");
-        sb.append(isGeo());
-        sb.append(", status:");
-        sb.append(getStatus());
+        sb.append("BackupName:")
+          .append(getBackupName())
+          .append(", backupSize:")
+          .append(getBackupSize())
+          .append(", downloadSize:")
+          .append(getDownoadSize())
+          .append(", nodeCompleted:")
+          .append(getNodeCompleted())
+          .append(", isGeo:")
+          .append(isGeo())
+          .append(", status:")
+          .append(getStatus());
 
         return sb.toString();
     }

@@ -6,7 +6,6 @@ package com.emc.storageos.systemservices.impl.resource;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;
@@ -488,23 +487,23 @@ public class BackupService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response pullBackup(@QueryParam("file") String backupName ) {
         log.info("The backup file {} to download", backupName);
-        List<String> descParams = getDescParams(backupName);
-        auditBackup(OperationTypeEnum.DOWNLOAD_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, descParams.toArray());
-
         checkExternalServer();
 
-        if (hasDownloadingInProgress()) {
+        if (backupOps.isDownloadInProgress()) {
             Map<String, String> currentBackupInfo = backupOps.getCurrentBackupInfo();
-            String errmsg = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY)+ " is downloading";
-            throw SyssvcException.syssvcExceptions.pullBackupFailed(backupName, errmsg);
+            String curBackupName = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
+            if (!backupName.equals(curBackupName)) {
+                String errmsg = curBackupName + " is downloading";
+                throw SyssvcException.syssvcExceptions.pullBackupFailed(backupName, errmsg);
+            }
+            log.info("The backup {} is downloading, no need to trigger again", backupName);
+        }else {
+            setBackupFileSize(backupName);
+            notifyOtherNodes(backupName);
+
+            auditBackup(OperationTypeEnum.PULL_BACKUP, AuditLogManager.AUDITOP_END, null, backupName);
+            log.info("done");
         }
-
-        setBackupFileSize(backupName);
-
-        notifyOtherNodes(backupName);
-
-        auditBackup(OperationTypeEnum.DOWNLOAD_BACKUP, AuditLogManager.AUDITOP_END, null, descParams.toArray());
-        log.info("done");
         return Response.status(202).build();
     }
 
@@ -513,19 +512,6 @@ public class BackupService {
         if (cfg.uploadUrl == null) {
             throw SyssvcException.syssvcExceptions.externalBackupServerError("The server is not set");
         }
-    }
-
-    private boolean hasDownloadingInProgress() {
-        Map<String,String> info = backupOps.getCurrentBackupInfo();
-        log.info("The current downloading backup info ={}", info);
-
-        if (info.isEmpty()) {
-            return false;
-        }
-
-        String backupName = info.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
-
-        return !backupName.isEmpty();
     }
 
     private void setBackupFileSize(@QueryParam("file") String backupName) {
@@ -543,25 +529,49 @@ public class BackupService {
             throw new RuntimeException(e);
         }
 
-        BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName, false);
-        status.setBackupName(backupName);
-        status.setBackupSize(size);
-        status.setStatus(BackupRestoreStatus.Status.DOWNLOADING);
-        status.resetNodeCompleted();
-        log.info("Set backup file size status={}", status);
-        backupOps.persistBackupRestoreStatus(status, false);
+        backupOps.setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, size, 0, false, true, true);
     }
 
     private void notifyOtherNodes(String backupName) {
         URI pushUri = SysClientFactory.URI_NODE_BACKUPS_PULL;
 
-        List<Service> sysSvcs = backupOps.getAllSysSvc();
-        for (Service svc : sysSvcs) {
-            URI endpoint = svc.getEndpoint();
-            log.info("Notify {} hostname={}", endpoint, svc.getNodeName());
+        URI endpoint = null;
+        try {
+            Map<String, URI > nodes = backupOps.getNodesInfo();
+            log.info("nodes to notify {}", nodes);
+            for (URI addr : nodes.values()) {
+                endpoint = addr;
+                log.info("Notify {}", addr);
+                SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
+                sysClient.post(pushUri, null, backupName);
+            }
+        }catch (Exception e) {
+            String errMsg = String.format("Failed to send %s to %s", pushUri, endpoint);
+            log.error(errMsg);
+            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.DOWNLOAD_FAILED;
+            s.setMessage(errMsg);
+            backupOps.setRestoreStatus(backupName, s, 0, 0, false, false, true);
+            throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
+        }
+    }
 
+    private void redirectRestoreRequest(String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
+        URI restoreURL =
+           URI.create(String.format(SysClientFactory.URI_NODE_BACKUPS_RESTORE_TEMPLATE, backupName, isLocal, password, isGeoFromScratch));
+
+        URI endpoint = null;
+        try {
+            endpoint = backupOps.getFirstNodeURI();
+            log.info("redirect restore URI {} to {}", restoreURL, endpoint);
             SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
-            sysClient.post(pushUri, null, backupName);
+            sysClient.post(restoreURL, null, null);
+        }catch (Exception e) {
+            String errMsg = String.format("Failed to send %s to %s", restoreURL, endpoint);
+            log.error(errMsg);
+            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
+            s.setMessage(errMsg);
+            backupOps.setRestoreStatus(backupName, s, 0, 0, false, false, true);
+            throw SysClientException.syssvcExceptions.restoreFailed(backupName, errMsg);
         }
     }
 
@@ -578,12 +588,66 @@ public class BackupService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response cancelDownloading() {
         log.info("To cancel the current download");
+        backupOps.cancelDownload();
 
-        if (downloadTask != null) {
-            log.info("To stop current download task");
-            downloadTask.cancelDownload();
+        auditBackup(OperationTypeEnum.PULL_BACKUP_CANCEL, AuditLogManager.AUDITOP_END, null, null);
+        log.info("done");
+        return Response.status(202).build();
+    }
+
+    @POST
+    @Path("internal/restore/")
+    public Response internalRestore(@QueryParam("backupname") String backupName,
+                                  @QueryParam("isLocal") boolean isLocal,
+                                  @QueryParam("password") String password,
+                                  @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
+        log.info("Receive internal restore request");
+        return doRestore(backupName, isLocal, password, isGeoFromScratch);
+    }
+
+    private Response doRestore(@QueryParam("backupname") String backupName, @QueryParam("isLocal") boolean isLocal, @QueryParam("password") String password, @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
+        log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
+                new Object[] {backupName, isLocal, password, isGeoFromScratch});
+        auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, backupName);
+
+        if (!backupOps.isActiveSite()) {
+            setRestoreFailed(backupName, "The current site is not an active site");
+            //no return here
         }
 
+        if (!backupOps.isClusterStable()) {
+            setRestoreFailed(backupName, "The cluster is not stable");
+            //no return here
+        }
+
+        File backupDir= getBackupDir(backupName, isLocal);
+
+        String myNodeId = backupOps.getCurrentNodeId();
+
+        try {
+            backupOps.checkBackup(backupDir);
+        }catch (Exception e) {
+            if (backupOps.shouldHaveBackupData()) {
+                String errMsg = String.format("Invalid backup the node %s: %s", myNodeId, e.getMessage());
+                setRestoreFailed(backupName, errMsg);
+                auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
+                //no return here
+            }
+
+            log.info("The current node doesn't have valid backup data {} so redirect to virp1", backupDir.getAbsolutePath());
+            redirectRestoreRequest(backupName, isLocal, password, isGeoFromScratch);
+            return Response.status(202).build();
+        }
+
+        String[] restoreCommand=new String[]{restoreCmd,
+                backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
+                restoreLog};
+
+        log.info("The restore command=<{}>", restoreCommand);
+
+        Exec.exec(120 * 1000, restoreCommand);
+
+        auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_END, null, backupName);
         log.info("done");
         return Response.status(202).build();
     }
@@ -606,23 +670,15 @@ public class BackupService {
                                   @QueryParam("isLocal") boolean isLocal,
                                   @QueryParam("password") String password,
                                   @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
-        log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
-                new Object[] {backupName, isLocal, password, isGeoFromScratch});
-        List<String> descParams = getDescParams(backupName);
-        auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, descParams.toArray());
+        log.info("Receive restore request");
+        return doRestore(backupName, isLocal, password, isGeoFromScratch);
+    }
 
-        File backupDir= getBackupDir(backupName, isLocal);
-
-        String[] restoreCommand=new String[]{restoreCmd,
-                backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
-                restoreLog};
-        log.info("The restore command={}", restoreCommand);
-
-        Exec.exec(120 * 1000, restoreCommand);
-
-        auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogMarnager.AUDITOP_END, null, descParams.toArray());
-        log.info("done");
-        return Response.status(202).build();
+    private Response setRestoreFailed(String backupName, String msg) {
+        BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
+        s.setMessage(msg);
+        backupOps.setRestoreStatus(backupName, s, 0, 0, false, false, true);
+        throw SyssvcException.syssvcExceptions.restoreFailed(backupName, msg);
     }
 
     /**
@@ -648,11 +704,7 @@ public class BackupService {
         }
 
         File backupDir = isLocal ? new File(backupOps.getBackupDir(), backupName) : new File(BackupConstants.RESTORE_DIR, backupName);
-        if (backupDir.exists()) {
-            return backupDir;
-        }
-        
-        throw APIException.badRequests.invalidParameter("backupname", backupName);
+        return backupDir;
     }
 
     /**

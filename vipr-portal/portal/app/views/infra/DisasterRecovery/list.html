@@ -212,20 +212,20 @@ function networkHealthIcon(o, val) {
         return "";
     }
     var labels = {
-        'Good': 'label-success',
-        'Slow': 'label-warning',
-        'Broken': 'label-danger'
+        'GOOD': 'label-success',
+        'SLOW': 'label-warning',
+        'BROKEN': 'label-danger'
     }
     var icons = {
-        'Good': 'glyphicon glyphicon-ok',
-        'Slow': 'glyphicon glyphicon-warning-sign',
-        'Broken':  'glyphicon glyphicon-remove'
+        'GOOD': 'glyphicon glyphicon-ok',
+        'SLOW': 'glyphicon glyphicon-warning-sign',
+        'BROKEN':  'glyphicon glyphicon-remove'
     }
 
 	var messages = {
-            'Good': Messages.get("renderFunctions.disasterRecovery.networkHealth.good"),
-            'Slow': Messages.get("renderFunctions.disasterRecovery.networkHealth.slow"),
-            'Broken': Messages.get("renderFunctions.disasterRecovery.networkHealth.broken")
+            'GOOD': Messages.get("renderFunctions.disasterRecovery.networkHealth.good"),
+            'SLOW': Messages.get("renderFunctions.disasterRecovery.networkHealth.slow"),
+            'BROKEN': Messages.get("renderFunctions.disasterRecovery.networkHealth.broken")
 	};
 
     var label = defaultValue(labels[o.aData.networkHealth], 'label-default');

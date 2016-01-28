@@ -20,12 +20,15 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 /**
  * Class implements ResourceFilterFactory to add permissions filter where needed
  */
 public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFactory {
+    private static final List<String> FORBIDDEN_PATHS = Arrays.asList("backupset", "control/cluster/recovery");
     private BasePermissionsHelper _permissionsHelper;
 
     @Autowired(required = false)
@@ -139,18 +142,22 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
             if (!isStandby) {
                 return request;
             }
-
-            Site activeSite = drUtil.getActiveSite();
             String path = request.getPath();
-
-            // disable backup related operations on standby site
-            if (path.startsWith("backupset")) {
-                throw APIException.forbidden.disallowOperationOnDrStandby(activeSite.getVip());
+            if (isPathForbidden(path)) {
+                throw APIException.forbidden.disallowOperationOnDrStandby(drUtil.getActiveSite().getVip());
             }
-
             return request;
         }
-        
+
+        private boolean isPathForbidden(String path) {
+            for (String forbid : FORBIDDEN_PATHS) {
+                if (path.startsWith(forbid)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         @Override
         public ContainerRequestFilter getRequestFilter() {
             return this;

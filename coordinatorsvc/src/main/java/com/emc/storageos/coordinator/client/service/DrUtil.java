@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteInfo.ActionScope;
@@ -33,6 +34,7 @@ import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -459,9 +461,31 @@ public class DrUtil {
         }
         return null;
     }
-    
-    public void removeSiteConfiguration(Site site) {
+
+    private String getSitePath(String siteId) {
+        StringBuilder builder = new StringBuilder(ZkPath.SITES.toString());
+        builder.append("/");
+        builder.append(siteId);
+        return builder.toString();
+    }
+
+    /**
+     * Will remove 3 ZNodes:
+     *     1. /config/disasterRecoverySites/${vdc_shortid}/${uuid} node
+     *     2. /sites/${uuid} node
+     *     3. /config/upgradetargetpropertyoverride/${uuid} node
+     * @param site
+     */
+    public void removeSite(Site site) {
         coordinator.removeServiceConfiguration(site.toConfiguration());
+
+        coordinator.deletePath(getSitePath(site.getUuid()));
+
+        ConfigurationImpl sitePropsCfg = new ConfigurationImpl();
+        sitePropsCfg.setId(site.getUuid());
+        sitePropsCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+        coordinator.removeServiceConfiguration(sitePropsCfg);
+
         log.info("Removed site {} configuration from ZK", site.getUuid());
     }
 

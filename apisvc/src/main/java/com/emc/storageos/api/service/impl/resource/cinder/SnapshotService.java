@@ -216,7 +216,6 @@ public class SnapshotService extends TaskResourceService {
         String snapshotType = TechnologyType.NATIVE.toString();
         Boolean createInactive = Boolean.FALSE;
 
-        //RG BlockServiceApi api = BlockService.getBlockServiceImpl("default");
         BlockServiceApi api = getBlockServiceImpl(pool, _dbClient);
 
         List<Volume> volumesToSnap = new ArrayList<Volume>();
@@ -376,7 +375,7 @@ public class SnapshotService extends TaskResourceService {
                 throw APIException.badRequests.parameterIsNotValid(volume
                         .getVirtualPool().toString());
             }
-            //BlockServiceApi api = BlockService.getBlockServiceImpl("default");
+
             BlockServiceApi api = getBlockServiceImpl(pool, _dbClient);
 
             List<Volume> volumesToSnap = new ArrayList<Volume>();
@@ -1005,7 +1004,7 @@ public class SnapshotService extends TaskResourceService {
     }
 
     /**
-     * Returns the bean responsible for servicing the request
+     * Returns the storagetype for block service Implementation
      * 
      * @param vpool Virtual Pool
      * @return block service implementation object

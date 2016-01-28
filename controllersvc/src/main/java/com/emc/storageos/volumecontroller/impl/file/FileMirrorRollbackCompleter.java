@@ -17,7 +17,6 @@ public class FileMirrorRollbackCompleter extends FileWorkflowCompleter{
 
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded serviceCoded) {
-        // TODO Auto-generated method stub
         List<FileShare> sourceFileShareList = dbClient.queryObject(FileShare.class, getIds());
         if(sourceFileShareList != null && !sourceFileShareList.isEmpty()) {
             List<FileShare> fileSharesToUpdate = new ArrayList<FileShare>();

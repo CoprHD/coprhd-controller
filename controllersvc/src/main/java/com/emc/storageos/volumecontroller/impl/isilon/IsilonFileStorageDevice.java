@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +32,8 @@ import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
+import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
+import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -2717,15 +2720,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private String getIsilonScheduleString(SchedulePolicy schedule) {
         StringBuilder builder = new StringBuilder();
 
-        switch (schedule.getScheduleFrequency().toLowerCase()) {
+        ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(schedule.getScheduleFrequency().toUpperCase());
+        switch (scheduleFreq) {
 
-            case "days":
+            case DAYS:
                 builder.append("every ");
                 builder.append(schedule.getScheduleRepeat());
                 builder.append(" days at ");
                 builder.append(schedule.getScheduleTime());
                 break;
-            case "weeks":
+            case WEEKS:
                 builder.append("every ");
                 builder.append(schedule.getScheduleRepeat());
                 builder.append(" weeks on ");
@@ -2733,7 +2737,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 builder.append(" at ");
                 builder.append(schedule.getScheduleTime());
                 break;
-            case "months":
+            case MONTHS:
                 builder.append("the ");
                 builder.append(schedule.getScheduleDayOfMonth());
                 builder.append(" every ");
@@ -2753,23 +2757,22 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private Integer getSnapshotExpireValue(SchedulePolicy expireParam) {
         Long seconds = 0L;
         if (expireParam != null) {
-            String expireType = expireParam.getSnapshotExpireType().toLowerCase();
             Long expireValue = expireParam.getSnapshotExpireTime();
-
+            SnapshotExpireType expireType = SnapshotExpireType.valueOf(expireParam.getSnapshotExpireType().toUpperCase());
             switch (expireType) {
-                case "hours":
-                    seconds = expireValue * 3600;
+                case HOURS:
+                    seconds = TimeUnit.HOURS.toSeconds(expireValue);
                     break;
-                case "days":
-                    seconds = expireValue * 24 * 3600;
+                case DAYS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue);
                     break;
-                case "weeks":
-                    seconds = expireValue * 7 * 24 * 3600;
+                case WEEKS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue * 7);
                     break;
-                case "months":
-                    seconds = expireValue * 30 * 24 * 3600;
+                case MONTHS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue * 30);
                     break;
-                case "never":
+                case NEVER:
                     return null;
                 default:
                     _log.error("Not a valid expire type: " + expireType);

@@ -129,7 +129,6 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
             throw new MarshallingExcetion("JSON Mapping Error", e);
         } catch (IOException e) {
             throw new MarshallingExcetion("JSON streaming failed: ", e);
-            // throw new MarshallingExcetion("JSON streaming failed: "+auditlog.getAuditLogId(), e);
         }
     }
 

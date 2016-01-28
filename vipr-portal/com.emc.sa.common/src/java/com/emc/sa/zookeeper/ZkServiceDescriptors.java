@@ -34,6 +34,7 @@ import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 public class ZkServiceDescriptors extends AbstractServiceDescriptors {
     private static Logger LOG = Logger.getLogger(ZkServiceDescriptors.class);
 
+    private static final int MAX_SERVICE_NODES = 200;
     private static String ZK_SERVICE_DEFINITION_PATH = "/portal/servicedefinitions";
     private CoordinatorClient coordinatorClient;
     private DistributedDataManager dataManager;
@@ -42,7 +43,7 @@ public class ZkServiceDescriptors extends AbstractServiceDescriptors {
     public void start() {
         try {
             coordinatorClient.start();
-            dataManager = coordinatorClient.createDistributedDataManager(ZK_SERVICE_DEFINITION_PATH);
+            dataManager = coordinatorClient.createDistributedDataManager(ZK_SERVICE_DEFINITION_PATH, MAX_SERVICE_NODES);
         } catch (IOException e) {
             LOG.error(e);
             throw new RuntimeException("Error Starting ServiceDescriptors", e);

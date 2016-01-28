@@ -386,6 +386,9 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException srdfAsyncStepCreationfailed(String groupName);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException rdfGroupInViprDBNotInSyncWithArray(String groupName);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException srdfAsyncStepDeletionfailed(String groupName);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
@@ -432,6 +435,9 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException unexpectedCondition(String message);
+    
+    @DeclareServiceCode(ServiceCode.WORKFLOW_TERMINATED_DR_FAILOVER)
+    public DeviceControllerException terminatedForControllerFailover();
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException createBlockSnapshotSessionFailed(final Throwable cause);

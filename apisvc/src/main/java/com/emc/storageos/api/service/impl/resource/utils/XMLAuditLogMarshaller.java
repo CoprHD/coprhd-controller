@@ -86,25 +86,21 @@ public class XMLAuditLogMarshaller implements AuditLogMarshaller {
             if (auditlog == null) {
                 _logger.warn("null auditlog dropped");
                 return false;
-            } else {
-                Marshaller marshaller = getMarshaller();
-
-                if (marshaller == null) {
-                    _logger.error("Unable to create XML marshaller");
-                    return false;
-                } else {
-                    AuditLogUtils.resetDesc(auditlog, resb);
-
-                    if (AuditLogUtils.isKeywordContained(auditlog,keyword)) {
-                        StringWriter sw = new StringWriter();
-                        marshaller.marshal(auditlog, sw);
-                        ow.write(sw.toString());
-                        return true;
-                    }
-                    _logger.debug("{} filter out by description keyword {}", auditlog.getDescription(), keyword);
-                    return false;
-                }
             }
+            Marshaller marshaller = getMarshaller();
+            if (marshaller == null) {
+                _logger.error("Unable to create XML marshaller");
+                return false;
+            }
+            AuditLogUtils.resetDesc(auditlog, resb);
+            if (AuditLogUtils.isKeywordContained(auditlog,keyword)) {
+                StringWriter sw = new StringWriter();
+                marshaller.marshal(auditlog, sw);
+                ow.write(sw.toString());
+                return true;
+            }
+            _logger.debug("{} filter out by description keyword {}", auditlog.getDescription(), keyword);
+            return false;
         } catch (JAXBException e) {
             throw new MarshallingExcetion("XML Marshalling Error", e);
         } catch (IOException e) {

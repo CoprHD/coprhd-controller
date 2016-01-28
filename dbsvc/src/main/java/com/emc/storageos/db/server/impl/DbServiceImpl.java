@@ -120,6 +120,10 @@ public class DbServiceImpl implements DbService {
         _coordinator = coordinator;
     }
 
+    public CoordinatorClient getCoordinator() {
+        return _coordinator;
+    }
+
     /**
      * Set DB schema utility
      * 
@@ -364,6 +368,7 @@ public class DbServiceImpl implements DbService {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(Constants.GLOBAL_ID);
             cfg.setKind(configKind);
+            cfg.setConfig(Constants.SCHEMA_VERSION, this._serviceInfo.getVersion());
 
             // persist configuration
             _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), cfg);
@@ -588,6 +593,7 @@ public class DbServiceImpl implements DbService {
         if (backCompatPreYoda) {
             _log.info("Pre-yoda back compatible flag detected. Initialize local keystore/truststore for Cassandra native encryption");
             initKeystoreAndTruststore();
+            _schemaUtil.setBackCompatPreYoda(true);
         }
         System.setProperty("cassandra.config", _config);
         System.setProperty("cassandra.config.loader", CassandraConfigLoader.class.getName());

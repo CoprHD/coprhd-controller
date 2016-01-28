@@ -548,7 +548,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public List<String> getErrorMessagesForVolume(String nativeGuid) {
-        // for VPLEX, we want to return the error messages List for the 
+        // for VPLEX, we want to return the error messages List for the
         // main UnManagedVolume, whose status would be returned to the user
         return getErrorMessages();
     }
@@ -826,6 +826,24 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
                 }
             }
         }
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.lang.
+     * String)
+     */
+    @Override
+    public BlockObject findCreatedBlockObject(String nativeGuid) {
+
+        BlockObject blockObject = getObjectsToBeCreatedMap().get(nativeGuid);
+        if (blockObject == null) {
+            blockObject = _parentRequestContext.getObjectsToBeCreatedMap().get(nativeGuid);
+        }
+
+        return blockObject;
     }
 
     /**

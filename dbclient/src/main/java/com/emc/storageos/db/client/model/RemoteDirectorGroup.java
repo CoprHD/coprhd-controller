@@ -77,7 +77,8 @@ public class RemoteDirectorGroup extends DiscoveredDataObject {
         ASYNCHRONOUS("3"),
         UNKNOWN("0"),
         ADAPTIVECOPY("32768"),
-        ALL("-1,32769,32770");
+        ACTIVE("32770"),
+        ALL("-1,32769");
 
         private String modeIdentifier;
 

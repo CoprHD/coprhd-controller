@@ -31,28 +31,6 @@ import com.emc.storageos.security.authorization.Role;
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ObjectNamespaceService extends TaggedResource {
 
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public ObjectNamespaceRestRep getStoragePool(@PathParam("id") URI id) {
-
-        ArgValidator.checkFieldUriType(id, ObjectNamespace.class, "id");
-        //ObjectNamespace objNamespace = queryResource(id);
-        ArgValidator.checkUri(id);
-        ObjectNamespace objNamespace = _dbClient.queryObject(ObjectNamespace.class, id);
-        ArgValidator.checkEntity(objNamespace, id, isIdEmbeddedInURL(id));
-
-        ObjectNamespaceRestRep restRep = toObjectNamespaceRestRep(objNamespace, _dbClient, _coordinator);
-        return restRep;
-    }
-
-    private ObjectNamespaceRestRep toObjectNamespaceRestRep(ObjectNamespace ecsNamespace, DbClient dbClient,
-            CoordinatorClient coordinator) {
-
-        return map(ecsNamespace);
-    }
-
     /**
      * Get IDs of all object storage namespaces
      * @return
@@ -74,7 +52,33 @@ public class ObjectNamespaceService extends TaggedResource {
         return objNamespaceList;
     }
 
-        
+    /**
+     * Get details of the object storage namespace specified
+     * @param id
+     * @return
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ObjectNamespaceRestRep getObjectNamespace(@PathParam("id") URI id) {
+
+        ArgValidator.checkFieldUriType(id, ObjectNamespace.class, "id");
+        ArgValidator.checkUri(id);
+        ObjectNamespace objNamespace = _dbClient.queryObject(ObjectNamespace.class, id);
+        ArgValidator.checkEntity(objNamespace, id, isIdEmbeddedInURL(id));
+
+        ObjectNamespaceRestRep restRep = toObjectNamespaceRestRep(objNamespace, _dbClient, _coordinator);
+        return restRep;
+    }
+
+    private ObjectNamespaceRestRep toObjectNamespaceRestRep(ObjectNamespace objNamespace, DbClient dbClient,
+            CoordinatorClient coordinator) {
+
+        return map(objNamespace);
+    }
+
+      
     @Override
     protected DataObject queryResource(URI id) {
         // TODO Auto-generated method stub

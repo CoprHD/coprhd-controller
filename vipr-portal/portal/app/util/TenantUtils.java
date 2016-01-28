@@ -4,6 +4,7 @@
  */
 package util;
 
+import com.emc.storageos.model.object.ObjectNamespaceList;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
 import com.emc.storageos.model.tenant.TenantCreateParam;
@@ -13,6 +14,7 @@ import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 
 import controllers.security.Security;
+
 import org.apache.commons.lang.StringUtils;
 
 import java.net.URI;
@@ -86,7 +88,8 @@ public class TenantUtils {
     }
     
     /*public static List<StringOption> getAllNamespace() {
-        return getViprClient().tenants().getAllNamespace();
+        ObjectNamespaceList objNamespaceList = getViprClient().names().getNamespaces();
+        
     }*/
 
     public static boolean isRootTenant(URI tenantId) {

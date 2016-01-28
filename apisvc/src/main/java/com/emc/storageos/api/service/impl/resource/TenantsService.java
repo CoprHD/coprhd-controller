@@ -1216,7 +1216,7 @@ public class TenantsService extends TaggedResource {
 
         // Validate Schedule policy parameters
         boolean isValidSchedule = SchedulePolicyService.validateSchedulePolicyParam(param.getPolicySchedule(), schedulePolicy, errorMsg);
-        if (errorMsg != null && errorMsg.length() > 0) {
+        if (!isValidSchedule && errorMsg != null && errorMsg.length() > 0) {
             _log.error("Failed to create schedule policy due to {} ", errorMsg.toString());
             throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());
         }

@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.SchedulePolicy.SchedulePolicyType;
 import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.file.ScheduleSnapshotExpireParam;
 import com.emc.storageos.model.schedulepolicy.PolicyParam;
@@ -180,7 +181,7 @@ public class SchedulePolicyService extends TaggedResource {
         // Validate Schedule policy parameters
         StringBuilder errorMsg = new StringBuilder();
         boolean isValidSchedule = validateSchedulePolicyParam(param.getPolicySchedule(), schedulePolicy, errorMsg);
-        if (errorMsg != null && errorMsg.length() > 0) {
+        if (!isValidSchedule && errorMsg != null && errorMsg.length() > 0) {
             _log.error("Failed to update schedule policy due to {} ", errorMsg.toString());
             throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());
         }
@@ -283,6 +284,7 @@ public class SchedulePolicyService extends TaggedResource {
             if (!ArgValidator.isValidEnum(schedule.getScheduleFrequency(), ScheduleFrequency.class)) {
                 errorMsg.append("Schedule frequency: " + schedule.getScheduleFrequency()
                         + " is invalid. Valid schedule frequencies are days, weeks and months");
+                return false;
             }
 
             // validating schedule repeat period
@@ -322,11 +324,11 @@ public class SchedulePolicyService extends TaggedResource {
                 case DAYS:
                     schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
                     schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
-                    if (schedulePolicy.getScheduleDayOfWeek() != null) {
-                        schedulePolicy.setScheduleDayOfWeek(null);
+                    if (schedulePolicy.getScheduleDayOfWeek() != null && !schedulePolicy.getScheduleDayOfWeek().isEmpty()) {
+                        schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                     }
                     if (schedulePolicy.getScheduleDayOfMonth() != null) {
-                        schedulePolicy.setScheduleDayOfMonth(null);
+                        schedulePolicy.setScheduleDayOfMonth(0L);
                     }
                     break;
                 case WEEKS:
@@ -346,7 +348,7 @@ public class SchedulePolicyService extends TaggedResource {
                     }
                     schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
                     if (schedulePolicy.getScheduleDayOfMonth() != null) {
-                        schedulePolicy.setScheduleDayOfMonth(null);
+                        schedulePolicy.setScheduleDayOfMonth(0L);
                     }
                     break;
                 case MONTHS:
@@ -355,7 +357,7 @@ public class SchedulePolicyService extends TaggedResource {
                         schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
                         schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
                         if (schedulePolicy.getScheduleDayOfWeek() != null) {
-                            schedulePolicy.setScheduleDayOfWeek(null);
+                            schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                         }
                     } else {
                         errorMsg.append("required parameter schedule_day_of_month is missing or value: " + schedule.getScheduleDayOfMonth()

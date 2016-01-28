@@ -477,10 +477,7 @@ public class BackupOps {
      * Persist download status to ZK
      */
     public synchronized void setRestoreStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long increasedSize,
-                                              boolean increaseCompletedNodeNumber, boolean resetCompletedNumber) {
-        log.info("Set download status backupName={} status={} backupSize={} increasedSize={} increaseCompletedNodeNumber={}",
-                new Object[]{backupName, status, backupSize, increasedSize, increaseCompletedNodeNumber});
-
+                                              boolean increaseCompletedNodeNumber, boolean resetCompletedNumber, boolean doLog) {
         BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
         if ( status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ) {
             if (!s.getStatus().canBeCanceled()) {
@@ -511,11 +508,14 @@ public class BackupOps {
             s.resetNodeCompleted();
         }
 
-        persistBackupRestoreStatus(s, false);
+        persistBackupRestoreStatus(s, false, doLog);
     }
 
-    private void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal) {
-        log.info("Persist backup restore status {}", status);
+    private void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal, boolean doLog) {
+        if (doLog) {
+            log.info("Persist backup restore status {}", status);
+        }
+
         Map<String, String> allItems = status.toMap();
 
         ConfigurationImpl config = new ConfigurationImpl();
@@ -618,7 +618,7 @@ public class BackupOps {
         }
 
         if (!isLocal) {
-            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, 0, 0, false, false);
+            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, 0, 0, false, false, true);
             log.info("Persist the cancel flag into ZK");
         }
     }

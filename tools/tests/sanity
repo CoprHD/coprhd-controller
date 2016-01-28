@@ -7936,7 +7936,7 @@ restore_tests()
     echo "Wait for stable"
     sleep 30s
 
-    for (( i=0; i<60; i++ )); do
+    for (( i=0; i<120; i++ )); do
        security login $SYSADMIN $SYSADMIN_PASSWORD
 
        if [[ $? -eq 0 ]]; then

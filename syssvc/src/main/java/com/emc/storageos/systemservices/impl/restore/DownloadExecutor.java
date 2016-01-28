@@ -87,17 +87,17 @@ public final class DownloadExecutor implements  Runnable {
 
         private void onRestoreStatusChange() {
             BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
-            log.info("New restore status={}", status);
             Status s = status.getStatus();
 
+            if (s == Status.DOWNLOADING) {
+                return; // downloaded size is changed
+            }
+
+            log.info("New restore status={}", status);
             if (s == Status.DOWNLOAD_CANCELLED) {
                 log.info("Stop downloading thread");
                 isCanceled = true;
                 downloadingThread.interrupt();
-            }
-
-            if (s.removeDownloadFiles()) {
-                deleteDownloadedBackup();
             }
 
             if (s.removeListener()) {
@@ -123,9 +123,9 @@ public final class DownloadExecutor implements  Runnable {
         }
     }
 
-    public void updateDownloadSize(long size) {
+    private void updateDownloadSize(long size) {
         log.info("Increase download size ={}", size);
-        backupOps.setRestoreStatus(remoteBackupFileName, null, 0, size, false, false);
+        backupOps.setRestoreStatus(remoteBackupFileName, null, 0, size, false, false, false);
     }
 
     @Override
@@ -147,12 +147,6 @@ public final class DownloadExecutor implements  Runnable {
             download();
         }catch (InterruptedException e) {
             log.info("The downloading thread has been interrupted");
-            BackupRestoreStatus restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
-            Status s = restoreStatus.getStatus();
-            if (s.canBeCanceled()) {
-                log.info("The downloading has been canceled");
-                backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_CANCELLED, 0, 0, false, false);
-            }
         }catch (Exception e) {
             log.info("isCanceled={}", isCanceled);
 
@@ -160,20 +154,20 @@ public final class DownloadExecutor implements  Runnable {
             s.setMessage(e.getMessage());
 
             if (isCanceled) {
-                s = Status.DOWNLOAD_CANCELLED;
                 deleteDownloadedBackup();
+            }else {
+                backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, false, false, true);
             }
-
-            backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, false, false);
             log.error("Failed to download e=", e);
         }finally {
             try {
                 backupOps.deleteDownloadOwner();
-                log.info("release lock={}", lock);
-                backupOps.releaseLock(lock);
             }catch (Exception e) {
                 log.error("Failed to remove listener e=",e);
             }
+
+            log.info("release lock={}", lock);
+            backupOps.releaseLock(lock);
         }
     }
 
@@ -238,7 +232,7 @@ public final class DownloadExecutor implements  Runnable {
                 log.error("Invalid backup");
                 Status s = Status.DOWNLOAD_FAILED;
                 s.setMessage(e.getMessage());
-                backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, true, false);
+                backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, true, false, true);
                 return;
             }
         }
@@ -251,7 +245,7 @@ public final class DownloadExecutor implements  Runnable {
             }
         }
 
-        backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, true, false);
+        backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, true, false, true);
 
         if (s == Status.DOWNLOAD_SUCCESS || s == Status.DOWNLOAD_CANCELLED || s == Status.DOWNLOAD_FAILED ) {
             backupOps.clearCurrentBackupInfo();
@@ -303,7 +297,7 @@ public final class DownloadExecutor implements  Runnable {
             log.error("Failed to download {} from server e=", backupFileName, e);
             BackupRestoreStatus.Status s = BackupRestoreStatus.Status.DOWNLOAD_FAILED;
             s.setMessage(e.getMessage());
-            backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, false, false);
+            backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, false, false, true);
             throw e;
         }
 

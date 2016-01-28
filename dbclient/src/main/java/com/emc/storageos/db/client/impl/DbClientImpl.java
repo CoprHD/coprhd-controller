@@ -141,7 +141,8 @@ public class DbClientImpl implements DbClient {
 
     private boolean initDone = false;
     private String _geoVersion;
-    protected DrUtil drUtil;
+    private DrUtil drUtil;
+    
     // whether to retry once with LOCAL_QUORUM for write failure 
     protected boolean retryFailedWriteWithLocalQuorum = false; 
     

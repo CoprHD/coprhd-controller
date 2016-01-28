@@ -10,6 +10,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -209,9 +210,9 @@ public class SchedulePolicyService extends TaggedResource {
             schedulePolicy.setPolicyType(param.getPolicyType());
             schedulePolicy.setLabel(param.getPolicyName());
             schedulePolicy.setPolicyName(param.getPolicyName());
-            schedulePolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency());
+            schedulePolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency().toLowerCase());
             if (isValidSnapshotExpire) {
-                schedulePolicy.setSnapshotExpireType(param.getSnapshotExpire().getExpireType());
+                schedulePolicy.setSnapshotExpireType(param.getSnapshotExpire().getExpireType().toLowerCase());
                 if (!param.getSnapshotExpire().getExpireType().equalsIgnoreCase(SnapshotExpireType.NEVER.toString())) {
                     schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
                 } else {
@@ -315,9 +316,10 @@ public class SchedulePolicyService extends TaggedResource {
                 return false;
             }
 
-            switch (schedule.getScheduleFrequency().toLowerCase()) {
+            ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(schedule.getScheduleFrequency().toUpperCase());
+            switch (scheduleFreq) {
 
-                case "days":
+                case DAYS:
                     schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
                     schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
                     if (schedulePolicy.getScheduleDayOfWeek() != null) {
@@ -327,13 +329,13 @@ public class SchedulePolicyService extends TaggedResource {
                         schedulePolicy.setScheduleDayOfMonth(null);
                     }
                     break;
-                case "weeks":
+                case WEEKS:
                     schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
                     if (schedule.getScheduleDayOfWeek() != null && !schedule.getScheduleDayOfWeek().isEmpty()) {
                         List<String> weeks = Arrays.asList("monday", "tuesday", "wednesday", "thursday", "friday",
                                 "saturday", "sunday");
                         if (weeks.contains(schedule.getScheduleDayOfWeek().toLowerCase())) {
-                            schedulePolicy.setScheduleDayOfWeek(schedule.getScheduleDayOfWeek());
+                            schedulePolicy.setScheduleDayOfWeek(schedule.getScheduleDayOfWeek().toLowerCase());
                         } else {
                             errorMsg.append("Schedule day of week: " + schedule.getScheduleDayOfWeek() + " is invalid");
                             return false;
@@ -347,7 +349,7 @@ public class SchedulePolicyService extends TaggedResource {
                         schedulePolicy.setScheduleDayOfMonth(null);
                     }
                     break;
-                case "months":
+                case MONTHS:
                     if (schedule.getScheduleDayOfMonth() > 0 && schedule.getScheduleDayOfMonth() <= 31) {
                         schedulePolicy.setScheduleDayOfMonth((long) schedule.getScheduleDayOfMonth());
                         schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
@@ -376,24 +378,23 @@ public class SchedulePolicyService extends TaggedResource {
      */
     public static boolean validateSnapshotExpireParam(ScheduleSnapshotExpireParam expireParam) {
 
-        String expireType = expireParam.getExpireType();
-        SnapshotExpireType expireTy = SnapshotExpireType.valueOf(expireType);
         long seconds = 0;
         long minPeriod = 7200;
         long maxPeriod = 10 * 365 * 24 * 3600;
         int expireValue = expireParam.getExpireValue();
-        switch (expireTy) {
+        SnapshotExpireType expireType = SnapshotExpireType.valueOf(expireParam.getExpireType().toUpperCase());
+        switch (expireType) {
             case HOURS:
-                seconds = expireValue * 3600;
+                seconds = TimeUnit.HOURS.toSeconds(expireValue);
                 break;
             case DAYS:
-                seconds = expireValue * 24 * 3600;
+                seconds = TimeUnit.DAYS.toSeconds(expireValue);
                 break;
             case WEEKS:
-                seconds = expireValue * 7 * 24 * 3600;
+                seconds = TimeUnit.DAYS.toSeconds(expireValue * 7);
                 break;
             case MONTHS:
-                seconds = expireValue * 30 * 24 * 3600;
+                seconds = TimeUnit.DAYS.toSeconds(expireValue * 30);
                 break;
             case NEVER:
                 return true;

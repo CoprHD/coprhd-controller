@@ -1248,9 +1248,9 @@ public class TenantsService extends TaggedResource {
             schedulePolicy.setPolicyType(param.getPolicyType());
             schedulePolicy.setLabel(param.getPolicyName());
             schedulePolicy.setPolicyName(param.getPolicyName());
-            schedulePolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency());
+            schedulePolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency().toLowerCase());
             if (isValidSnapshotExpire) {
-                schedulePolicy.setSnapshotExpireType(param.getSnapshotExpire().getExpireType());
+                schedulePolicy.setSnapshotExpireType(param.getSnapshotExpire().getExpireType().toLowerCase());
                 if (!param.getSnapshotExpire().getExpireType().equalsIgnoreCase(SnapshotExpireType.NEVER.toString())) {
                     schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
                 } else {

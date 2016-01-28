@@ -54,39 +54,11 @@ public class SchedulePolicy extends DiscoveredDataObject {
     }
 
     public static enum ScheduleFrequency {
-        days, weeks, months
+        DAYS, WEEKS, MONTHS
     }
 
     public static enum SnapshotExpireType {
-        HOURS("hours"),
-        DAYS("days"),
-        WEEKS("weeks"),
-        MONTHS("months"),
-        NEVER("never"),
-        UNKNOWN("N/A");
-
-        private final String snapshotExpireType;
-
-        private SnapshotExpireType(String state) {
-            snapshotExpireType = state;
-        }
-
-        public String getSnapshotExpireType() {
-            return snapshotExpireType;
-        }
-
-        /*
-         * private static SnapshotExpireType[] copyValues = values();
-         * 
-         * public static String getSnapshotExpireType(String name) {
-         * for (SnapshotExpireType type : copyValues) {
-         * if (name.equalsIgnoreCase(type.getSnapshotExpireType())) {
-         * return type.name();
-         * }
-         * }
-         * return UNKNOWN.toString();
-         * }
-         */
+        HOURS, DAYS, WEEKS, MONTHS, NEVER
     }
 
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)

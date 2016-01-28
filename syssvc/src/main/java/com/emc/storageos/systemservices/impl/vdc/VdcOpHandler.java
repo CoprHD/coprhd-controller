@@ -181,7 +181,16 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             reconfigVdc();
-            changeLocalSiteState(SiteState.STANDBY_ADDING, SiteState.STANDBY_SYNCING);
+            changeNewSiteState(SiteState.STANDBY_SYNCING);
+        }
+        
+        private void changeNewSiteState(SiteState to) {
+            List<Site> newSites = drUtil.listSitesInState(SiteState.STANDBY_ADDING);
+            for(Site newSite : newSites) {
+                log.info("Change standby site {} state to {}", new Object[]{newSite.getSiteShortId(), to});
+                newSite.setState(to);
+                coordinator.getCoordinatorClient().persistServiceConfiguration(newSite.toConfiguration());
+            }
         }
     }
 
@@ -468,6 +477,15 @@ public abstract class VdcOpHandler {
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
             changeLocalSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
+        }
+        
+        private void changeLocalSiteState(SiteState from, SiteState to) {
+            Site localSite = drUtil.getLocalSite();
+            if (from.equals(localSite.getState())) {
+                log.info("Change standby site {} state from {} to {}", new Object[]{localSite.getSiteShortId(), from, to});
+                localSite.setState(to);
+                coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+            }
         }
     }
 
@@ -1102,16 +1120,7 @@ public abstract class VdcOpHandler {
         site.setState(SiteState.STANDBY_ERROR);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
     }
-    
-    protected void changeLocalSiteState(SiteState from, SiteState to) {
-        Site localSite = drUtil.getLocalSite();
-        if (from.equals(localSite.getState())) {
-            log.info("Change standby site {} state from {} to {}", new Object[]{localSite.getSiteShortId(), from, to});
-            localSite.setState(to);
-            coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
-        }
-    }
-    
+
     /**
      * Util class to make sure no one node applies configuration until all nodes get synced to local bootfs.
      */

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2012-2016 EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.file.tasks;
 
 import java.net.URI;
@@ -14,9 +18,10 @@ public class PauseFileContinuousCopy extends WaitForTasks<FileShareRestRep> {
     private URI continuousCopyId;
     private String type;
 
-    public PauseFileContinuousCopy(URI fileId, URI continuousCopyId) {
+    public PauseFileContinuousCopy(URI fileId, URI continuousCopyId, String type) {
         this.continuousCopyId = continuousCopyId;
         this.fileId = fileId;
+        this.type = type;
         provideDetailArgs(fileId, continuousCopyId);
     }
 

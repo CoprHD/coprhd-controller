@@ -533,8 +533,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the configuration of the new continuous copies.
      * @return tasks for monitoring the progress of the operation(s).
      */
-    public Task<FileShareRestRep> startFileContinuousCopies(URI id, FileReplicationParam input) {
-        return postTask(input, getContinuousCopiesUrl() + "/start", id);
+    public Tasks<FileShareRestRep> startFileContinuousCopies(URI id, FileReplicationParam input) {
+        TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/start", id);
+        return new Tasks<FileShareRestRep>(client, tasks.getTaskList(), FileShareRestRep.class);
     }
     
     /**
@@ -548,7 +549,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the copy configurations.
      * @return tasks for monitoring the progress of the operation.
      */
-    public Tasks<FileShareRestRep> deactivateFileContinuousCopies(URI id, CopiesParam input) {
+    public Tasks<FileShareRestRep> deactivateFileContinuousCopies(URI id, FileReplicationParam input) {
         return postTasks(input, getContinuousCopiesUrl() + "/deactivate", id);
     }
     

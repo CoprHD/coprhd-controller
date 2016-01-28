@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2012-2016 EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.FILE_COPIES;
@@ -21,7 +25,6 @@ public class RemoveFileContinuousCopyService extends ViPRService {
     
     @Override
     public void execute() throws Exception {
-        // TODO Auto-generated method stub
         FileStorageUtils.removeContinuousCopiesForFile(uri(fileId), fileCopies);
     }
 }

@@ -80,6 +80,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class FileStorageUtils {
+    
+    public static final String COPY_NATIVE = "native";
 
     public static FileShareRestRep getFileSystem(URI fileSystemId) {
         return execute(new GetFileSystem(fileSystemId));
@@ -321,9 +323,9 @@ public class FileStorageUtils {
         return null;
     }
     
-    public static Task<FileShareRestRep> createFileContinuousCopy(URI fileId, String name) {
-        Task<FileShareRestRep> copies = execute(new CreateFileContinuousCopy(fileId, name));
-        addAffectedResource(copies);
+    public static Tasks<FileShareRestRep> createFileContinuousCopy(URI fileId, String name) {
+        Tasks<FileShareRestRep> copies = execute(new CreateFileContinuousCopy(fileId, name, COPY_NATIVE));
+        addAffectedResources(copies);
         return copies;
     }
     
@@ -335,14 +337,14 @@ public class FileStorageUtils {
     }
     
     private static void removeFileContinuousCopy(URI fileId, URI continuousCopyId) {
-        execute(new PauseFileContinuousCopy(fileId, continuousCopyId));
-        Tasks<FileShareRestRep> tasks = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId));
+        execute(new PauseFileContinuousCopy(fileId, continuousCopyId, COPY_NATIVE));
+        Tasks<FileShareRestRep> tasks = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId, COPY_NATIVE));
         addAffectedResources(tasks);
     }
     
     
     public static void failoverFileSystem(URI fileId, URI targetId) {
-        execute(new PauseFileContinuousCopy(fileId, targetId));
+        execute(new PauseFileContinuousCopy(fileId, targetId, COPY_NATIVE));
         Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId));
         addAffectedResources(tasks);
     }

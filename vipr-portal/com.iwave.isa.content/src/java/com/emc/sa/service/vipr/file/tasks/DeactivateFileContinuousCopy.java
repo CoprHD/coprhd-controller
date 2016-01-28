@@ -1,10 +1,14 @@
+/*
+ * Copyright (c) 2012-2016 EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.file.tasks;
 
 import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
-import com.emc.storageos.model.block.CopiesParam;
-import com.emc.storageos.model.block.Copy;
+import com.emc.storageos.model.file.Copy;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.vipr.client.Tasks;
 
@@ -12,19 +16,24 @@ public class DeactivateFileContinuousCopy extends WaitForTasks<FileShareRestRep>
     
     private URI fileId;
     private URI continuousCopyId;
+    private String type;
 
-    public DeactivateFileContinuousCopy(URI fileId, URI continuousCopyId) {
+    public DeactivateFileContinuousCopy(URI fileId, URI continuousCopyId, String type) {
         this.fileId = fileId;
         this.continuousCopyId = continuousCopyId;
-        provideDetailArgs(fileId, continuousCopyId);
+        this.type = type;
+        provideDetailArgs(fileId, continuousCopyId, type);
     }
 
     @Override
     protected Tasks<FileShareRestRep> doExecute() throws Exception {
         Copy copy = new Copy();
         copy.setCopyID(continuousCopyId);
-        CopiesParam param = new CopiesParam();
+        copy.setType(type);
+        
+        FileReplicationParam param = new FileReplicationParam();
         param.getCopies().add(copy);
+        
         return getClient().fileSystems().deactivateFileContinuousCopies(fileId, param);
     }
 }

@@ -184,4 +184,8 @@ public interface FileController extends StorageController {
     public void deleteNFSAcls(URI storage, URI fs, String subDir, String opId) throws InternalException;
     
     public void rollBackCreateFileShares(URI systemURI, List<URI> fileURIs, String opId)throws InternalException;
+
+    public void assignFileSystemSnapshotPolicy(URI storage, URI fs, URI policy, String opId) throws InternalException;
+
+    public void unassignFileSystemSnapshotPolicy(URI storage, URI fs, URI policy, String opId) throws InternalException;
 }

@@ -75,7 +75,7 @@ public class GeoServiceClient extends BaseServiceClient {
     public static final String INTERVDC_IPSEC_KEY_ROTATION_URI = INTERVDC_IPSEC_SERVICE + "/key";
     public static final String INTERVDC_IPSEC_PROPERTIES_URI = INTERVDC_IPSEC_SERVICE + "/properties";
 
-    public static int MAX_RETRIES = 12;
+    private static int MAX_RETRIES = 12;
     public static void setMaxRetries(int maxRetries) {
         MAX_RETRIES = maxRetries;
     }

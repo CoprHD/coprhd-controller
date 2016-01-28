@@ -93,8 +93,7 @@ public class ObjectNamespaceService extends TaggedResource {
 
     @Override
     protected ResourceTypeEnum getResourceType() {
-        // TODO Auto-generated method stub
-        return null;
+        return ResourceTypeEnum.OBJECT_NAMESPACE;
     }
 
 }

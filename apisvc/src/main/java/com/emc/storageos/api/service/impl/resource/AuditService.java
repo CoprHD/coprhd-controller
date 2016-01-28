@@ -93,7 +93,7 @@ public class AuditService extends ResourceService {
      */
     @GET
     @Path("/logs")
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
     @CheckPermission(roles = { Role.SYSTEM_AUDITOR })
     public Response getAuditLogs(
             @QueryParam("time_bucket") final String timeBucket,
@@ -111,7 +111,8 @@ public class AuditService extends ResourceService {
         if (mTypes != null) {
             for (MediaType media : mTypes) {
                 if (media.equals(MediaType.APPLICATION_JSON_TYPE)
-                        || media.equals(MediaType.APPLICATION_XML_TYPE)) {
+                        || media.equals(MediaType.APPLICATION_XML_TYPE)
+                        || media.equals(MediaType.TEXT_PLAIN)) {
                     mType = media;
                     break;
                 }

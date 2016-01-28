@@ -72,6 +72,7 @@ import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
+import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -103,6 +104,8 @@ import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParam;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
+import com.emc.storageos.model.file.FilePolicyList;
+import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -2642,7 +2645,7 @@ public class FileService extends TaskResourceService {
 
     /**
      * Returns the bean responsible for servicing the request
-     *
+     * 
      * @param fileshahre
      * @param dbClient db client
      * @return file service implementation object
@@ -2654,7 +2657,7 @@ public class FileService extends TaskResourceService {
 
     /**
      * Returns the bean responsible for servicing the request
-     *
+     * 
      * @param vpool Virtual Pool
      * @param dbClient db client
      * @return file service implementation object
@@ -2663,9 +2666,9 @@ public class FileService extends TaskResourceService {
         // Mutually exclusive logic that selects an implementation of the file service
 
         if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
-            if( vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())){
+            if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())) {
                 return getFileServiceApis("localmirror");
-            } else if(vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())){
+            } else if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())) {
                 return getFileServiceApis("remotemirror");
             }
         }
@@ -2673,4 +2676,206 @@ public class FileService extends TaskResourceService {
 
         return getFileServiceApis("default");
     }
+
+    /**
+     * 
+     * Assign existing file system to file policy.
+     * 
+     * @param id the URN of a ViPR fileSystem
+     * @param filePolicyUri the URN of a Policy
+     * @brief Update file system with Policy detail
+     * @return Task resource representation
+     * @throws InternalException
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/assign-file-policy/{filePolicyUri}")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep assignFilePolicy(@PathParam("id") URI id,
+            @PathParam("filePolicyUri") URI filePolicyUri) throws InternalException {
+
+        // log input received.
+        _log.info("Assigning file policy {} to file system {}", filePolicyUri, id);
+        String task = UUID.randomUUID().toString();
+        // Validate the FS id.
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+        ArgValidator.checkFieldUriType(filePolicyUri, SchedulePolicy.class, "filePolicyUri");
+        ArgValidator.checkUri(filePolicyUri);
+        SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
+        ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
+
+        // Check for VirtualPool support snapshot or not
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+
+        if (!vpool.getScheduleSnapshots()) {
+            // Throw an error
+            throw APIException.methodNotAllowed.notSupportedWithReason("Snapshot schedule is not supported by vpool: " + vpool.getLabel());
+        }
+
+        if (fs.getFilePolicies().contains(filePolicyUri.toString())) {
+            throw APIException.badRequests.duplicatePolicyAssociation(filePolicyUri);
+        }
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        FileController controller = getController(FileController.class, device.getSystemType());
+
+        String path = fs.getMountPath();
+        _log.info("Mount path found {} ", path);
+
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE);
+        op.setDescription("Filesystem assign policy");
+
+        try {
+
+            _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, fp });
+
+            controller.assignFileSystemSnapshotPolicy(device.getId(), fs.getId(), fp.getId(), task);
+
+            auditOp(OperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
+                    fs.getId().toString(), device.getId().toString(), fp.getId());
+
+        } catch (BadRequestException e) {
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+
+        return toTask(fs, task, op);
+
+    }
+
+    /**
+     * 
+     * Unassign existing file system to file policy.
+     * 
+     * @param id the URN of a ViPR fileSystem
+     * @param filePolicyUri the URN of a Policy
+     * @brief Update file system with Policy detail
+     * @return Task resource representation
+     * @throws InternalException
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/unassign-file-policy/{filePolicyUri}")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep unAssignFilePolicy(@PathParam("id") URI id,
+            @PathParam("filePolicyUri") URI filePolicyUri) throws InternalException {
+
+        // log input received.
+        _log.info("Unassign Policy on File System : request received for {}  with {}", id, filePolicyUri);
+        String task = UUID.randomUUID().toString();
+        // Validate the FS id.
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+        ArgValidator.checkFieldUriType(filePolicyUri, SchedulePolicy.class, "filePolicyUri");
+        ArgValidator.checkUri(filePolicyUri);
+        SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
+        ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
+        // verify the schedule policy is associated with file system or not.
+        if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
+            throw APIException.badRequests.cannotFindAssoicatedPolicy(filePolicyUri);
+        }
+
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        FileController controller = getController(FileController.class, device.getSystemType());
+
+        String path = fs.getMountPath();
+        _log.info("Mount path found {} ", path);
+
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE);
+        op.setDescription("Filesystem unassign policy");
+
+        try {
+
+            _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, fp });
+
+            controller.unassignFileSystemSnapshotPolicy(device.getId(), fs.getId(), fp.getId(), task);
+
+            auditOp(OperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
+                    fs.getId().toString(), device.getId().toString(), fp.getId());
+
+        } catch (BadRequestException e) {
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Error Unassigning Filesystem policy {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Error Unassigning Filesystem policy {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+
+        return toTask(fs, task, op);
+
+    }
+
+    /**
+     * Get Policy for file system
+     * 
+     * @param id the URN of a ViPR File system
+     * @brief Show file system
+     * @return File system Policy details
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/file-policies")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public FilePolicyList getFileSystemPolicy(@PathParam("id") URI id) {
+        FilePolicyList fpList = new FilePolicyList();
+        List<FilePolicyRestRep> fpRestList = new ArrayList<FilePolicyRestRep>();
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+
+        StringSet fpolicies = fs.getFilePolicies();
+        for (String fpolicy : fpolicies) {
+            FilePolicyRestRep fpRest = new FilePolicyRestRep();
+            URI fpURI = URI.create(fpolicy);
+            if (fpURI != null) {
+                SchedulePolicy fp = _permissionsHelper.getObjectById(fpURI, SchedulePolicy.class);
+                if (fp != null) {
+                    ArgValidator.checkEntityNotNull(fp, fpURI, isIdEmbeddedInURL(fpURI));
+                    getFilePolicyRestRep(fpRest, fp, fs);
+                }
+            }
+            fpRestList.add(fpRest);
+
+        }
+        fpList.setFilePolicies(fpRestList);
+        return fpList;
+    }
+
+    /**
+     * Create FilePolicyRestRep object from the SchedulePolicy object
+     * 
+     * @param fpRest FilePolicyRestRep object
+     * @param fp SchedulePolicy object
+     * @param fs FileShare object
+     */
+    private void getFilePolicyRestRep(FilePolicyRestRep fpRest, SchedulePolicy fp, FileShare fs) {
+        String snapshotScheduleName = fp.getPolicyName() + "_" + fs.getName();
+        String pattern = snapshotScheduleName + "_YYYY-MM-DD_HH-MM";
+        fpRest.setPolicyId(fp.getId());
+        fpRest.setPolicyName(fp.getPolicyName());
+        fpRest.setScheduleDayOfMonth(fp.getScheduleDayOfMonth());
+        fpRest.setScheduleDayOfWeek(fp.getScheduleDayOfWeek());
+        fpRest.setScheduleFrequency(fp.getScheduleFrequency());
+        fpRest.setScheduleRepeat(fp.getScheduleRepeat());
+        fpRest.setScheduleTime(fp.getScheduleTime());
+        fpRest.setSnapshotExpireTime(fp.getSnapshotExpireTime());
+        fpRest.setSnapshotExpireType(fp.getSnapshotExpireType());
+        fpRest.setSnapshotPattern(pattern);
+
+    }
+
 }

@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
+import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualNAS;
@@ -953,7 +954,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 return BiosCommandResult.createErrorResult(serviceError);
             }
 
-            Long newCapacity = args.getNewFSCapacity(); // new capacity
+            Long newCapacity = args.getNewFSCapacity();   // new capacity
             isiExpandFS(isi, quotaId, newCapacity);
             _log.info("IsilonFileStorageDevice doExpandFS {} - complete", args.getFsId());
             return BiosCommandResult.createSuccessfulResult();
@@ -2186,10 +2187,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     /**
      * Set the clients to isilon export based on type
      * 
-     * @param type
-     *            one of "rw", "root" or "ro"
-     * @param hosts
-     *            the clients to be set
+     * @param type one of "rw", "root" or "ro"
+     * @param hosts the clients to be set
      * @param isilonExport
      */
     private void setClientsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {
@@ -2754,4 +2753,108 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             throws DeviceControllerException {
         mirrorOperations.deleteMirrorFileShare(storage, mirror, taskCompleter);
     }
+    @Override
+    public BiosCommandResult assignFilePolicy(StorageSystem storage, FileDeviceInputOutput args) {
+        // for isilon we need to create a new policy for each individual file system
+
+        SchedulePolicy fp = args.getFilePolicy();
+        String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
+        String pattern = snapshotScheduleName + "_%Y-%m-%d_%H-%M";
+        String Schedulevalue = getIsilonScheduleString(fp);
+        Integer expireValue = getSnapshotExpireValue(fp);
+        _log.info("File Policy  name : {}", snapshotScheduleName);
+        IsilonApi isi = getIsilonDevice(storage);
+        try {
+            isi.createSnapshotSchedule(snapshotScheduleName, args.getFileSystemPath(), Schedulevalue, pattern, expireValue);
+
+        } catch (IsilonException e) {
+            _log.error("assign file policy failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+        return BiosCommandResult.createSuccessfulResult();
+    }
+
+    @Override
+    public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+
+        SchedulePolicy fp = args.getFilePolicy();
+        String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
+        IsilonApi isi = getIsilonDevice(storageObj);
+        try {
+            isi.deleteSnapshotSchedule(snapshotScheduleName);
+        } catch (IsilonException e) {
+            _log.error("unassign file policy failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+        return BiosCommandResult.createSuccessfulResult();
+
+    }
+
+    private String getIsilonScheduleString(SchedulePolicy schedule) {
+        StringBuilder builder = new StringBuilder();
+
+        switch (schedule.getScheduleFrequency().toLowerCase()) {
+
+            case "days":
+                builder.append("every ");
+                builder.append(schedule.getScheduleRepeat());
+                builder.append(" days at ");
+                builder.append(schedule.getScheduleTime());
+                break;
+            case "weeks":
+                builder.append("every ");
+                builder.append(schedule.getScheduleRepeat());
+                builder.append(" weeks on ");
+                builder.append(schedule.getScheduleDayOfWeek());
+                builder.append(" at ");
+                builder.append(schedule.getScheduleTime());
+                break;
+            case "months":
+                builder.append("the ");
+                builder.append(schedule.getScheduleDayOfMonth());
+                builder.append(" every ");
+                builder.append(schedule.getScheduleRepeat());
+                builder.append(" month at ");
+                builder.append(schedule.getScheduleTime());
+                break;
+            default:
+                _log.error("Not a valid schedule frequency: " + schedule.getScheduleFrequency().toLowerCase());
+                return null;
+
+        }
+        return builder.toString();
+
+    }
+
+    private Integer getSnapshotExpireValue(SchedulePolicy expireParam) {
+        Long seconds = 0L;
+        if (expireParam != null) {
+            String expireType = expireParam.getSnapshotExpireType().toLowerCase();
+            Long expireValue = expireParam.getSnapshotExpireTime();
+
+            switch (expireType) {
+                case "hours":
+                    seconds = expireValue * 3600;
+                    break;
+                case "days":
+                    seconds = expireValue * 24 * 3600;
+                    break;
+                case "weeks":
+                    seconds = expireValue * 7 * 24 * 3600;
+                    break;
+                case "months":
+                    seconds = expireValue * 30 * 24 * 3600;
+                    break;
+                case "never":
+                    return null;
+                default:
+                    _log.error("Not a valid expire type: " + expireType);
+                    return null;
+
+            }
+        }
+        return seconds.intValue();
+
+    }
+
 }

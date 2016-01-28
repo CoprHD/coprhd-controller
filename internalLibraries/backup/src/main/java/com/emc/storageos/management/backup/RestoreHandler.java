@@ -32,6 +32,7 @@ public class RestoreHandler {
     private File viprDataDir;
     private List<String> extraCleanDirs = new ArrayList<>();
     private File backupArchive;
+    private boolean onlyRestoreSiteId;
 
     public RestoreHandler(String rootDir, String viprDataDir) {
         Preconditions.checkArgument(rootDir != null && viprDataDir != null,
@@ -41,6 +42,10 @@ public class RestoreHandler {
     }
 
     RestoreHandler() {
+    }
+
+    public void setOnlyRestoreSiteId(boolean onlyRestoreSiteId) {
+        this.onlyRestoreSiteId = onlyRestoreSiteId;
     }
 
     /**
@@ -122,15 +127,16 @@ public class RestoreHandler {
         final File tmpDir = new File(viprDataDir.getParentFile(), backupName);
         log.debug("Temporary backup folder: {}", tmpDir.getAbsolutePath());
         try {
+            String backupType = backupName.split(BackupConstants.BACKUP_NAME_DELIMITER)[1];
+            if (BackupType.zk.name().equalsIgnoreCase(backupType)) {
+                replaceSiteIdFile();
+            }
+            if (onlyRestoreSiteId) {
+                return;
+            }
             ZipUtil.unpack(backupArchive, viprDataDir.getParentFile());
             tmpDir.renameTo(viprDataDir);
             chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
-            String backupType = backupName.split(BackupConstants.BACKUP_NAME_DELIMITER)[1];
-            if (BackupType.zk.name().equalsIgnoreCase(backupType)) {
-                log.info("Replacing site id file ...");
-                File unpackedSiteIdFile = new File(viprDataDir, BackupConstants.SITE_ID_FILE_NAME);
-                FileUtils.moveFileToDirectory(unpackedSiteIdFile, rootDir, false);
-            }
         } finally {
             if (tmpDir.exists()) {
                 FileUtils.deleteQuietly(tmpDir);
@@ -138,6 +144,11 @@ public class RestoreHandler {
         }
     }
 
+    private void replaceSiteIdFile() throws IOException {
+        log.info("Replacing site id file ...");
+        File unpackedSiteIdFile = new File(viprDataDir, BackupConstants.SITE_ID_FILE_NAME);
+        FileUtils.moveFileToDirectory(unpackedSiteIdFile, rootDir, false);
+    }
     /**
      * Checks reinit flag for (geo)db to pull data from remote vdc/nodes
      * 

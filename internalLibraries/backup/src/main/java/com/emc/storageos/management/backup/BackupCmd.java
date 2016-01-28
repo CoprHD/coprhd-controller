@@ -45,7 +45,8 @@ public class BackupCmd {
         quota("Get backup quota info, unit:GB\n"),
         force("Execute operation on quorum nodes"),
         purge("Purge the existing ViPR data with arg\n" +
-                "[ismultivdc], yes or no(default)");
+                "[ismultivdc], yes or no(default)"),
+        onlysiteid("This option is used with restore to restore site id only\n");
 
         private String description;
 
@@ -73,6 +74,7 @@ public class BackupCmd {
                 .withLongOpt(CommandType.restore.name())
                 .create("r");
         options.addOption(restoreOption);
+        options.addOption("osi", CommandType.onlysiteid.name(), false, CommandType.onlysiteid.getDescription());
         options.addOption("q", CommandType.quota.name(), false, CommandType.quota.getDescription());
         options.addOption("f", CommandType.force.name(), false, CommandType.force.getDescription());
         Option purgeOption = OptionBuilder.hasOptionalArg()
@@ -239,6 +241,9 @@ public class BackupCmd {
             System.out.println("Invalid number of restore args.");
             new HelpFormatter().printHelp(TOOL_NAME, options);
             System.exit(-1);
+        }
+        if (cli.hasOption(CommandType.onlysiteid.name())) {
+            restoreManager.setOnlyRestoreSiteId(true);
         }
 
         String restoreSrcDir = restoreArgs[0];

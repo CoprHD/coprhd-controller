@@ -36,10 +36,15 @@ public class RestoreManager {
     private String ipAddress4;
     private String ipAddress6;
     private Boolean enableChangeVersion;
+    private boolean onlyRestoreSiteId;
 
     private enum Validation {
         passed,
         failed
+    }
+
+    public void setOnlyRestoreSiteId(boolean onlyRestoreSiteId) {
+        this.onlyRestoreSiteId = onlyRestoreSiteId;
     }
 
     public void setDbRestoreHandler(RestoreHandler dbRestoreHandler) {
@@ -110,6 +115,13 @@ public class RestoreManager {
         try {
             validateBackupFolder(backupPath, snapshotName);
             purge(false);
+
+            if (onlyRestoreSiteId) {
+                zkRestoreHandler.setOnlyRestoreSiteId(true);
+                zkRestoreHandler.replace();
+                log.info("Site id has been restored on local successfully");
+                return;
+            }
 
             dbRestoreHandler.replace();
             log.info(String.format(OUTPUT_FORMAT,

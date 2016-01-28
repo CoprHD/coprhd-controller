@@ -160,7 +160,7 @@ restore_data() {
         if [ $? == 0 ]; then
             restore_node "${viprNode}"
         else
-            purge_node "${viprNode}"
+            restore_node "${viprNode}" "onlysiteid"
         fi
         if [ $? != 0 ]; then
             echo -n "failed on ${viprNode}.."
@@ -171,17 +171,6 @@ restore_data() {
     echo "done"
 }
 
-purge_node() {
-    local viprNode=${1}
-    if [ "$IS_CONNECTED_VDC" == "true" ]; then
-        initdb="yes"
-    else
-        initdb="no"
-    fi
-    local command="/opt/storageos/bin/bkutils -p $initdb"
-    ssh_execute "$viprNode" "$command"
-}
-
 restore_node() {
     local viprNode=${1}
     cd $RESTORE_DIR
@@ -189,6 +178,9 @@ restore_node() {
     local command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag"
     if [ "$GEO_RESTORE_FROM_SCRATCH" == "true" ]; then
         command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag -f"
+    fi
+    if [ "${2}" == "onlysiteid" ]; then
+        command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag -osi"
     fi
     ssh_execute "$viprNode" "$command"
 }

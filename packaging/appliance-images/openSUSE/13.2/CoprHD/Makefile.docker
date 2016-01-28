@@ -13,8 +13,10 @@ DEVKIT_BUILD=9
 DEVKIT_IMAGE=coprhddevkit:2.5.0.0.$(DEVKIT_BUILD)
 DEVKIT_LOCAL=CoprHDDevKit.x86_64-2.5.0.0.$(DEVKIT_BUILD).tbz
 DEVKIT_ADDRS=https://build.coprhd.org/jenkins/userContent/DevKits/2.5.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
-DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR)/..:/workspace" -v "/disks:/disks" $(DEVKIT_IMAGE)
-PRODUCT_FOLDER=CoprHD
+DEVKIT_JAVA=update-alternatives --set java /usr/lib64/jvm/jre-1.8.0-openjdk/bin/java; update-alternatives --set javac /usr/lib64/jvm/java-1.8.0-openjdk/bin/javac; java -version;
+DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR):/workspace" -v "/disks:/disks" $(DEVKIT_IMAGE)
+PRODUCT_FOLDER=packaging/appliance-images/openSUSE/13.2/CoprHD
+
 .DEFAULT: appliance
 .PHONY: appliance
 
@@ -22,10 +24,10 @@ appliance:
 	docker history "$(DEVKIT_IMAGE)" &> /dev/null || wget --continue "$(DEVKIT_ADDRS)"
 	[ ! -f "$(DEVKIT_LOCAL)" ] || cat "$(DEVKIT_LOCAL)" | docker import - $(DEVKIT_IMAGE)
 	[ ! -f "$(DEVKIT_LOCAL)" ] || rm "$(DEVKIT_LOCAL)"
-	$(DOCKER_RUN) make -f $(PRODUCT_FOLDER)/Makefile $@ $(MAKEFLAGS)
+	$(DOCKER_RUN) bash -c "$(DEVKIT_JAVA) make -f $(PRODUCT_FOLDER)/Makefile $@ $(MAKEFLAGS)"
 
 %::
 	docker history "$(DEVKIT_IMAGE)" &> /dev/null || wget --continue "$(DEVKIT_ADDRS)"
 	[ ! -f "$(DEVKIT_LOCAL)" ] || cat "$(DEVKIT_LOCAL)" | docker import - $(DEVKIT_IMAGE)
 	[ ! -f "$(DEVKIT_LOCAL)" ] || rm "$(DEVKIT_LOCAL)"
-	$(DOCKER_RUN) make -f $(PRODUCT_FOLDER)/Makefile $@ $(MAKEFLAGS)
+	$(DOCKER_RUN) bash -c "$(DEVKIT_JAVA) make -f $(PRODUCT_FOLDER)/Makefile $@ $(MAKEFLAGS)"

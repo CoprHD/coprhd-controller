@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import javax.xml.bind.DataBindingException;
 
@@ -4562,7 +4561,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 _log.info(String.format("Adding step to delete the replication group %s", rpName));
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                        String.format("Deleting replication group for consistency group %s", cgURI),
+                        String.format("Deleting replication group  %s", rpName),
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
                         deleteConsistencyGroupMethod(storage, cgURI, rpName, false, false),

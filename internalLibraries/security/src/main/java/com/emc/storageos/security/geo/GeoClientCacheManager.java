@@ -9,7 +9,6 @@ import java.net.URI;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Properties;
 
-import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.security.helpers.ServiceClientRetryFilter;
 
 import org.slf4j.Logger;

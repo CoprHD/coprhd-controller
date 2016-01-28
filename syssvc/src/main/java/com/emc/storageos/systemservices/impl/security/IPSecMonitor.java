@@ -33,7 +33,7 @@ public class IPSecMonitor implements Runnable {
 
     public ScheduledExecutorService scheduledExecutorService;
     private static ApplicationContext appCtx;
-
+    
     private DbClient dbClient;
 
     public void start() {

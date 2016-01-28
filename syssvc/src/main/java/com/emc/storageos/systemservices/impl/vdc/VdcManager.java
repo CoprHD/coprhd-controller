@@ -553,8 +553,9 @@ public class VdcManager extends AbstractManager {
         for(Site site : drUtil.listSites()) {
             SiteError error = getSiteError(site);
             if (error != null) {
+                log.info("set site {} state to STANDBY_ERROR, set lastState to {}",site.getName(),site.getState());
                 coordinatorClient.setTargetInfo(site.getUuid(), error);
-                site.setLastOperation(site.getState());
+                site.setLastState(site.getState());
                 site.setState(SiteState.STANDBY_ERROR);
                 coordinatorClient.persistServiceConfiguration(site.toConfiguration());
             }

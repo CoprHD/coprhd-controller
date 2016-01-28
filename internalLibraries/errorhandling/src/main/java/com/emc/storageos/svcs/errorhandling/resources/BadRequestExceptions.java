@@ -2455,7 +2455,7 @@ public interface BadRequestExceptions {
     public BadRequestException operationOnlyAllowedOnErrorSite(final String siteId, final String siteState);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException operationRetryOnlyAllowedOnLastOperation(final String siteId, final String siteState);
+    public BadRequestException operationRetryOnlyAllowedOnLastState(final String siteId, final String siteState);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnActiveSite();

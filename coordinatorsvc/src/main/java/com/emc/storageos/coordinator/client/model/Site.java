@@ -24,7 +24,7 @@ public class Site {
     private static final String KEY_SITE_SHORTID = "siteShortId";
     private static final String KEY_CREATIONTIME = "creationTime";
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
-    private static final String KEY_LASTOPERATION = "lastOperation";
+    private static final String KEY_LASTSTATE = "lastState";
     private static final String KEY_SITE_STATE = "state";
     private static final String KEY_PING = "networkLatencyInMs";
     private static final String KEY_NETWORK_HEALTH = "networkHealth";
@@ -50,7 +50,7 @@ public class Site {
     private double networkLatencyInMs;
     private String networkHealth;
     private SiteState state = SiteState.ACTIVE;
-    private SiteState lastOperation;
+    private SiteState lastState;
     private int nodeCount;
     
     static {
@@ -70,12 +70,12 @@ public class Site {
         }
     }
 
-    public SiteState getLastOperation() {
-        return lastOperation;
+    public SiteState getLastState() {
+        return lastState;
     }
 
-    public void setLastOperation(SiteState lastOperation) {
-        this.lastOperation = lastOperation;
+    public void setLastState(SiteState lastState) {
+        this.lastState = lastState;
     }
     
     public String getUuid() {
@@ -241,8 +241,8 @@ public class Site {
             config.setConfig(KEY_NETWORK_HEALTH, networkHealth);
         }
 
-        if (lastOperation != null) {
-            config.setConfig(KEY_LASTOPERATION, String.valueOf(lastOperation));
+        if (lastState != null) {
+            config.setConfig(KEY_LASTSTATE, String.valueOf(lastState));
         }
 
         if (state != null) {
@@ -284,9 +284,9 @@ public class Site {
                 this.lastStateUpdateTime = Long.valueOf(s);
             }
 
-            s = config.getConfig(KEY_LASTOPERATION);
+            s = config.getConfig(KEY_LASTSTATE);
             if (s != null) {
-                lastOperation = SiteState.valueOf(config.getConfig(KEY_LASTOPERATION));
+                lastState = SiteState.valueOf(config.getConfig(KEY_LASTSTATE));
             }
 
             s = config.getConfig(KEY_PING);

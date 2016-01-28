@@ -836,12 +836,6 @@ public class DisasterRecoveryService {
     public SiteRestRep retryOperation(@PathParam("uuid") String uuid) {
         log.info("Begin to get site error by uuid {}", uuid);
         Site standby;
-
-        StorageOSUser user = (StorageOSUser) sc.getUserPrincipal();
-        if(user.getRoles().contains("")) {
-
-        }
-
         try {
             standby = drUtil.getSiteFromLocalVdc(uuid);
         } catch (CoordinatorException e) {
@@ -850,27 +844,22 @@ public class DisasterRecoveryService {
         }
 
         InterProcessLock lock = drUtil.getDROperationLock();
-
-
         if (!standby.getState().equals(SiteState.STANDBY_ERROR)) {
             log.error("site {} is in state {}, should be STANDBY_ERROR", uuid, standby.getState());
             throw APIException.badRequests.operationOnlyAllowedOnErrorSite(standby.getName(), standby.getState().toString());
         }
-
-        if (!standby.getLastOperation().equals(SiteState.STANDBY_PAUSING)
-                && !standby.getLastOperation().equals(SiteState.STANDBY_RESUMING)
-                && !standby.getLastOperation().equals(SiteState.STANDBY_FAILING_OVER)) {
-            log.error("site {} lastOperation was {}, retry is only supported for Pause, Resume and Failover", uuid, standby.getLastOperation());
-            throw APIException.badRequests.operationRetryOnlyAllowedOnLastOperation(standby.getName(), standby.getLastOperation().toString());
+        if (!standby.getLastState().equals(SiteState.STANDBY_PAUSING)
+                && !standby.getLastState().equals(SiteState.STANDBY_RESUMING)
+                && !standby.getLastState().equals(SiteState.STANDBY_FAILING_OVER)) {
+            log.error("site {} lastState was {}, retry is only supported for Pause, Resume and Failover", uuid, standby.getLastState());
+            throw APIException.badRequests.operationRetryOnlyAllowedOnLastState(standby.getName(), standby.getLastState().toString());
         }
 
         try {
 
             coordinator.startTransaction();
-
-            standby.setState(standby.getLastOperation());
+            standby.setState(standby.getLastState());
             coordinator.persistServiceConfiguration(standby.toConfiguration());
-
             log.info("Notify all sites for reconfig");
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
 
@@ -883,9 +872,7 @@ public class DisasterRecoveryService {
             }
 
             coordinator.commitTransaction();
-
             return siteMapper.map(standby);
-
         } catch (Exception e) {
             log.error("Error retrying site operation for site {}", uuid, e);
             coordinator.discardTransaction();

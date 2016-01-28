@@ -700,7 +700,7 @@ public class DisasterRecoveryServiceTest {
         assertEquals(null, siteError.getOperation());
 
         standbySite2.setState(SiteState.STANDBY_ERROR);
-        standbySite2.setLastOperation(SiteState.STANDBY_ADDING);
+        standbySite2.setLastState(SiteState.STANDBY_ADDING);
 
         SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(20),SiteState.STANDBY_PAUSING.name());
         doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);

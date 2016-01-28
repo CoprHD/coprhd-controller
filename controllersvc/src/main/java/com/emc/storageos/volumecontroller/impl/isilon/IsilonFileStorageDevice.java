@@ -71,7 +71,6 @@ import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobFailover;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobStart;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
-import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateFileSystemJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 /**
@@ -2257,8 +2256,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @param policyName
      * @return
      */
-    public BiosCommandResult doStartReplicationPolicy(StorageSystem system, String policyName, 
-                                                        TaskCompleter taskCompleter) {
+    public BiosCommandResult doStartReplicationPolicy(StorageSystem system, String policyName,
+            TaskCompleter taskCompleter) {
         try {
 
             IsilonApi isi = getIsilonDevice(system);
@@ -2280,33 +2279,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     || !policyState.equals(JobState.resumed)) {
                 IsilonSyncJob job = new IsilonSyncJob();
                 job.setId(policyName);
-
                 isi.modifyReplicationJob(job);
-                
                 policy = isi.getReplicationPolicy(policyName);
-                if(policy.getLastJobState().equals(JobState.running)) {
-                    policy = isi.getReplicationPolicy(policyName);
-                    IsilonSyncJobStart isiSyncJobStart = 
-                            new IsilonSyncJobStart(policyName, system.getId(), taskCompleter, policyName);
-                    try {
-                        ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobStart));
-                        return BiosCommandResult.createPendingResult();
-                    } catch (Exception ex) {
-                        _log.error("Create file system got the exception", ex);
-                        ServiceError error = DeviceControllerErrors.isilon.jobFailed("StartMirrorSession");
-                        if (taskCompleter != null) {
-                            taskCompleter.error(_dbClient, error);
-                        }
-                        return BiosCommandResult.createErrorResult(error);
+
+                IsilonSyncJobStart isiSyncJobStart = new IsilonSyncJobStart(policyName, system.getId(), taskCompleter, policyName);
+                try {
+                    ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobStart));
+                    return BiosCommandResult.createPendingResult();
+                } catch (Exception ex) {
+                    _log.error("Start Replication Job Failed ", ex);
+                    ServiceError error = DeviceControllerErrors.isilon.jobFailed("Start Replication Job Failed as:" + ex.getMessage());
+                    if (taskCompleter != null) {
+                        taskCompleter.error(_dbClient, error);
                     }
-                }
-                if (policy.getLastJobState().equals(JobState.finished)) {
-                    _log.info("IsilonFileStorageDevice doStartReplicationPolicy - {}  - complete", policyName);
-                    return BiosCommandResult.createSuccessfulResult();
-                } else {
-                    String errorMessage = isiGetReportErrMsg(isi.getReplicationPolicyReports(policyName).getList());
-                    _log.error(errorMessage);
-                    ServiceError error = DeviceControllerErrors.isilon.jobFailed("doStartReplicationPolicy failed  as : " + errorMessage);
                     return BiosCommandResult.createErrorResult(error);
                 }
             } else {
@@ -2339,7 +2324,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.error("Replication Policy - {} can't be PAUSED because policy's last job is in {} state", policyName,
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed("doResumeReplicationPolicy as : Replication Policy Job can't be PAUSED because policy's last job is NOT in RUNNING state");
+                        .jobFailed(
+                                "doResumeReplicationPolicy as : Replication Policy Job can't be PAUSED because policy's last job is NOT in RUNNING state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -2363,7 +2349,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.error("Replication Policy - {} can't be RESUMED because policy's last job is in {} state", policyName,
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed("doResumeReplicationPolicy as : Replication Policy Job can't be RESUMED because policy's last job is NOT in PAUSED state");
+                        .jobFailed(
+                                "doResumeReplicationPolicy as : Replication Policy Job can't be RESUMED because policy's last job is NOT in PAUSED state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -2386,7 +2373,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.error("Replication Policy - {} can't be CANCEL because policy's last job is in {} state", policyName,
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed("doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
+                        .jobFailed(
+                                "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -2470,33 +2458,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             isi.modifyReplicationJob(job);
 
-            IsilonSyncTargetPolicy targetPolicy = isi.getTargetReplicationPolicy(policyName);
-            if (targetPolicy.getLastJobState().equals(JobState.running)
-                    && targetPolicy.getFoFbState().equals(FOFB_STATES.enabling_writes)) {
-                // wait till job is finished
-                IsilonSyncJobFailover isiSyncJobFailover = 
-                        new IsilonSyncJobFailover(policyName, system.getId(), taskCompleter, policyName);
-                try {
-                    ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobFailover));
-                    return BiosCommandResult.createPendingResult();
-                } catch (Exception ex) {
-                    _log.error("Create file system got the exception", ex);
-                    ServiceError error = DeviceControllerErrors.isilon.jobFailed("StartMirrorSession");
-                    if (taskCompleter != null) {
-                        taskCompleter.error(_dbClient, error);
-                    }
-                    return BiosCommandResult.createErrorResult(error);
+            IsilonSyncJobFailover isiSyncJobFailover = new IsilonSyncJobFailover(policyName, system.getId(), taskCompleter, policyName);
+            try {
+                ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobFailover));
+                return BiosCommandResult.createPendingResult();
+            } catch (Exception ex) {
+                _log.error("Failover to Secondary Cluster Failed", ex);
+                ServiceError error = DeviceControllerErrors.isilon.jobFailed("Failover to Secondary Cluster Failed as :" + ex.getMessage());
+                if (taskCompleter != null) {
+                    taskCompleter.error(_dbClient, error);
                 }
-            }
-            if (targetPolicy.getLastJobState().equals(JobState.finished)
-                    && targetPolicy.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
-                _log.info("Failover to cluster -{}  done successfully ", system.getIpAddress());
-                return BiosCommandResult.createSuccessfulResult();
-
-            } else {
-                String errorMessage = isiGetReportErrMsg(isi.getTargetReplicationPolicyReports(policyName).getList());
-                _log.error(errorMessage);
-                ServiceError error = DeviceControllerErrors.isilon.jobFailed("doFailover failed  as : " + errorMessage);
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -2504,7 +2475,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    public BiosCommandResult doFailBack(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName, TaskCompleter taskCompleter) {
+    public BiosCommandResult doFailBack(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
+            TaskCompleter taskCompleter) {
 
         String mirrorPolicyName = policyName.concat("_mirror");
         BiosCommandResult result;
@@ -2683,7 +2655,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             cmdResult = doStartReplicationPolicy(system, policyName, completer);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
-            } else if (cmdResult.getCommandPending()){
+            } else if (cmdResult.getCommandPending()) {
                 completer.statusPending(_dbClient, cmdResult.getMessage());
             } else {
                 completer.error(_dbClient, cmdResult.getServiceCoded());
@@ -2741,7 +2713,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             cmdResult = this.doFailover(systemTarget, policyName, completer);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
-            } else if (cmdResult.getCommandPending()){
+            } else if (cmdResult.getCommandPending()) {
                 completer.statusPending(_dbClient, cmdResult.getMessage());
             } else {
                 completer.error(_dbClient, cmdResult.getServiceCoded());

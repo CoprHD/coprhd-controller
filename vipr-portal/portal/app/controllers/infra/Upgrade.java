@@ -195,9 +195,9 @@ public class Upgrade extends Controller {
     @Util
     private static boolean isStandbySiteDownloading() {
         for (SiteRestRep standby : DisasterRecoveryUtils.getStandbySites()) {
-            if (standby.getState().equals(SiteState.STANDBY_PAUSED.toString()) ||
-                    standby.getState().equals(SiteState.STANDBY_PAUSING.toString()) ||
-                    standby.getState().equals(SiteState.STANDBY_RESUMING.toString())) {
+            if (SiteState.STANDBY_PAUSED.toString().equals(standby.getState()) ||
+                    SiteState.STANDBY_PAUSING.toString().equals(standby.getState()) ||
+                    SiteState.STANDBY_RESUMING.toString().equals(standby.getState())) {
                 continue;
             }
             ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo(standby.getUuid());

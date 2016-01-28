@@ -2741,6 +2741,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             cmdResult = this.doFailover(systemTarget, policyName, completer);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
+            } else if (cmdResult.getCommandPending()){
+                completer.statusPending(_dbClient, cmdResult.getMessage());
             } else {
                 completer.error(_dbClient, cmdResult.getServiceCoded());
             }

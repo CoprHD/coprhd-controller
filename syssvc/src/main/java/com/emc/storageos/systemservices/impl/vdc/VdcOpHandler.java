@@ -181,7 +181,7 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             reconfigVdc();
-            changeSiteState(SiteState.STANDBY_ADDING, SiteState.STANDBY_SYNCING);
+            changeLocalSiteState(SiteState.STANDBY_ADDING, SiteState.STANDBY_SYNCING);
         }
     }
 
@@ -467,7 +467,7 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
-            changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
+            changeLocalSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
         }
     }
 
@@ -1103,12 +1103,12 @@ public abstract class VdcOpHandler {
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
     }
     
-    protected void changeSiteState(SiteState from, SiteState to) {
-        List<Site> toBeChangedSites = drUtil.listSitesInState(from);
-        for (Site toBeChangedSite : toBeChangedSites) {
-            toBeChangedSite.setState(to);
-            coordinator.getCoordinatorClient().persistServiceConfiguration(toBeChangedSite.toConfiguration());
-            log.info(String.format("Change standby site %s state from %s to %s", toBeChangedSite.getSiteShortId(), from, to));
+    protected void changeLocalSiteState(SiteState from, SiteState to) {
+        Site localSite = drUtil.getLocalSite();
+        if (from.equals(localSite.getState())) {
+            log.info("Change standby site {} state from {} to {}", new Object[]{localSite.getSiteShortId(), from, to});
+            localSite.setState(to);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
         }
     }
     

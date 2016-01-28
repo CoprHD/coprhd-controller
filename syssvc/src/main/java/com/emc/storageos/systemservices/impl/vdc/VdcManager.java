@@ -721,7 +721,10 @@ public class VdcManager extends AbstractManager {
     private boolean ipsecSyncedLocally() throws Exception {
         localVdcPropInfo = localRepository.getVdcPropertyInfo();
         targetVdcPropInfo = loadVdcConfig();
-
+        String localEnabled = localVdcPropInfo.getProperty(IPsecConfig.IPSEC_STATUS);
+        if (localEnabled == null || localEnabled.equals(IPsecManager.STATUS_DISABLED) ) {
+            return false;
+        }
         return !vdcPropertiesChanged();
     }
 

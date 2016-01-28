@@ -89,6 +89,12 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
     }
+    
+    @Override    
+    public void stopMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer)throws DeviceControllerException{
+        
+    }
+    
 
     @Override
     public void deleteMirrorFileShare(StorageSystem storage, URI mirror,

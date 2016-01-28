@@ -51,6 +51,8 @@ public class QualityOfServiceMigrationTest extends DbSimpleMigrationTestBase{
     private static final String V_POOL_PROTOCOL = "iSCSI";
     private static final String V_POOL_DRIVE_TYPE = "Solid State Drive";
     private static final String V_POOL_SYSTEM_TYPE = "NONE";
+    private static final String TARGET_VERSION = "2.5";
+    private static final String SOURCE_VERSION = "2.4";
     private static final Boolean V_POOL_MULTI_VOLUME_CONSISTENCY = false;
     private static final Boolean V_POOL_EXPENDABLE = true;
     private static final Integer V_POOL_MIN_SAN_PATHS = 1;
@@ -76,12 +78,12 @@ public class QualityOfServiceMigrationTest extends DbSimpleMigrationTestBase{
 
     @Override
     protected String getSourceVersion() {
-        return "2.4";
+        return SOURCE_VERSION;
     }
 
     @Override
     protected String getTargetVersion() {
-        return "2.5";
+        return TARGET_VERSION;
     }
 
     @Override

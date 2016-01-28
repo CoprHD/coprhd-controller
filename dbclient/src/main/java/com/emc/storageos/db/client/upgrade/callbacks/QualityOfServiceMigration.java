@@ -45,7 +45,7 @@ public class QualityOfServiceMigration extends BaseCustomMigrationCallback{
 
     @Override
     public void process() {
-        _log.info("START - QualityOfServiceMigration callback");
+        _log.debug("START - QualityOfServiceMigration callback");
 
         DbClient _dbClient = getDbClient();
 
@@ -65,7 +65,7 @@ public class QualityOfServiceMigration extends BaseCustomMigrationCallback{
             _dbClient.createObject(qosSpecifications);
         }
 
-        _log.info("END - QualityOfServiceMigration callback");
+        _log.debug("END - QualityOfServiceMigration callback");
     }
 
     /**

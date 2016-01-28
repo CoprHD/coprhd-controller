@@ -390,9 +390,7 @@ public class QosService extends TaskResourceService {
 
         qosSpecification.setSpecs(specs);
 
-        // Create new QoS in the DB
         dbClient.createObject(qosSpecification);
-        //recordOperation(OperationTypeEnum.CREATE_QOS, QOS_CREATED_DESCRIPTION, qosSpecification);
 
         return qosSpecification;
     }

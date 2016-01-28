@@ -54,11 +54,11 @@ public class SchedulePolicy extends DiscoveredDataObject {
     }
 
     public static enum ScheduleFrequency {
-        days, weeks, months
+        DAYS, WEEKS, MONTHS
     }
 
     public static enum SnapshotExpireType {
-        hours, days, weeks, months, never
+        HOURS, DAYS, WEEKS, MONTHS, NEVER
     }
 
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)

@@ -33,6 +33,7 @@ import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.CinderAvailZonesResp;
 import com.emc.storageos.cinder.model.CinderAvailabiltyZone;
 import com.emc.storageos.cinder.model.CinderExtension;
@@ -85,6 +86,10 @@ public class MiscService extends TaskResourceService {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
     }
 
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
+    }
+    
     /**
      * Get Limits
      * 
@@ -104,8 +109,11 @@ public class MiscService extends TaskResourceService {
         if (project == null) {
             throw APIException.badRequests.projectWithTagNonexistent(openstack_tenant_id);
         }
+        
+        HashMap<String, String> defaultQuotaMap = getQuotaHelper().loadDefaultsMap();
+        
         int totalSizeUsed = 0;
-        int maxQuota = (int) QuotaService.DEFAULT_PROJECT_TOTALGB_QUOTA;
+        int maxQuota = Long.valueOf(defaultQuotaMap.get(CinderConstants.ResourceQuotaDefaults.GIGABYTES.getResource())).intValue();
         int maxTotalVolumes = 0;
         int maxTotalSnapshots = 0;
         int totalVolumesUsed = 0;
@@ -116,13 +124,13 @@ public class MiscService extends TaskResourceService {
         }
 
         UsageStats objUsageStats = new UsageStats();
-        objUsageStats = getCinderHelper().getStorageStats(null, project.getId());
+        objUsageStats = getQuotaHelper().getStorageStats(null, project.getId());
 
         totalVolumesUsed = (int) objUsageStats.volumes;
         totalSnapshotsUsed = (int) objUsageStats.snapshots;
         totalSizeUsed = (int) objUsageStats.spaceUsed;
 
-        QuotaOfCinder projQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
+        QuotaOfCinder projQuota = getQuotaHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
         if (projQuota != null) {
             maxTotalVolumes = projQuota.getVolumesLimit().intValue();
             maxTotalSnapshots = (int) projQuota.getSnapshotsLimit().intValue();
@@ -131,12 +139,12 @@ public class MiscService extends TaskResourceService {
             QuotaOfCinder quotaObj = new QuotaOfCinder();
             quotaObj.setId(URI.create(UUID.randomUUID().toString()));
             quotaObj.setProject(project.getId());
-            quotaObj.setVolumesLimit(QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA);
-            quotaObj.setSnapshotsLimit(QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA);
+            quotaObj.setVolumesLimit(Long.valueOf(defaultQuotaMap.get(CinderConstants.ResourceQuotaDefaults.VOLUMES.getResource())));
+            quotaObj.setSnapshotsLimit(Long.valueOf(defaultQuotaMap.get(CinderConstants.ResourceQuotaDefaults.SNAPSHOTS.getResource())));
             quotaObj.setTotalQuota((long) maxQuota);
             _dbClient.createObject(quotaObj);
-            maxTotalSnapshots = (int) QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA;
-            maxTotalVolumes = (int) QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA;
+            maxTotalSnapshots = quotaObj.getSnapshotsLimit().intValue();
+            maxTotalVolumes = quotaObj.getVolumesLimit().intValue();
         }
 
         Map<String, Integer> absoluteDetailsMap = new HashMap<String, Integer>();

@@ -30,10 +30,11 @@ public class QuotaOfCinder extends DataObject {
     private URI vpool;
     private Long   snapLimit;
     private Long   totalGB;
-    private Long   volumeLimit;
+    private Long   volumeLimit;    
     //private Boolean _quotaEnabled;
 
-    @Name("volumeLimit")
+    
+	@Name("volumeLimit")
     public Long getVolumesLimit() {
     	return (null == volumeLimit) ? 0L : volumeLimit;
 	}

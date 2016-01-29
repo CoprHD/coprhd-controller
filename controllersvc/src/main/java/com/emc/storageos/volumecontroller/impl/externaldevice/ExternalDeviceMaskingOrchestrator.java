@@ -40,13 +40,10 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
     private BlockStorageDevice device = null;
 
     @Override
-    public BlockStorageDevice getDevice()
+    public synchronized BlockStorageDevice getDevice()
     {
-        synchronized (device)
-        {
-            if (device == null) {
-                device = (BlockStorageDevice) ControllerServiceImpl.getBean(StorageDriverManager.EXTERNAL_STORAGE_DEVICE);
-            }
+        if (device == null) {
+            device = (BlockStorageDevice) ControllerServiceImpl.getBean(StorageDriverManager.EXTERNAL_STORAGE_DEVICE);
         }
         return device;
     }

@@ -521,4 +521,21 @@ public class ArgValidator {
     public static void checkNotNull(final Object value, final String message) {
         checkArgument(value != null, message);
     }
+
+    /**
+     * Check the provided String value is a valid type of enum or not
+     * 
+     * @param value String need to be checked
+     * @param enumClass the enum class for which it need to be checked.
+     * @return true/false
+     */
+    public static <T extends Enum<T>> boolean isValidEnum(String value, Class<T> enumClass) {
+        for (T e : enumClass.getEnumConstants()) {
+            if (e.name().equalsIgnoreCase(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

@@ -55,12 +55,6 @@ import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
  */
 public class VplexVolumeIngestionContext extends VplexBackendIngestionContext implements VolumeIngestionContext, IngestionRequestContext {
 
-    private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
-    private Map<String, BlockObject> _objectsToBeCreatedMap;
-    private List<UnManagedConsistencyGroup> unManagedCGsToUpdate;
-    private Map<String, List<DataObject>> _objectsToBeUpdatedMap;
-    private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
-
     private IngestionRequestContext _parentRequestContext;
     private VolumeIngestionContext _currentBackendVolumeIngestionContext;
     private Iterator<UnManagedVolume> _backendVolumeUrisToProcessIterator;
@@ -73,7 +67,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     private boolean _exportGroupCreated = false;
     private ExportGroup _exportGroup;
     private List<Initiator> _deviceInitiators;
-    private List<BlockObject> _objectsIngestedByExportProcessing;
 
     /**
      * Constructor.
@@ -467,18 +460,14 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public List<UnManagedVolume> getUnManagedVolumesToBeDeleted() {
-        if (null == _unManagedVolumesToBeDeleted) {
-            _unManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
+        return _parentRequestContext.getUnManagedVolumesToBeDeleted();
         }
 
-        return _unManagedVolumesToBeDeleted;
-    }
 
     /*
      * (non-Javadoc)
      * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getTaskStatusMap()
-     */
     @Override
     public Map<String, StringBuffer> getTaskStatusMap() {
         return _parentRequestContext.getTaskStatusMap();
@@ -493,12 +482,9 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public Map<String, VolumeIngestionContext> getProcessedUnManagedVolumeMap() {
-        if (null == _processedUnManagedVolumeMap) {
-            _processedUnManagedVolumeMap = new HashMap<String, VolumeIngestionContext>();
+        return _parentRequestContext.getProcessedUnManagedVolumeMap();
         }
 
-        return _processedUnManagedVolumeMap;
-    }
 
     /*
      * (non-Javadoc)
@@ -506,7 +492,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getProcessedUnManagedVolume
      * (java.lang.String)
-     */
     @Override
     public UnManagedVolume getProcessedUnManagedVolume(String nativeGuid) {
         VolumeIngestionContext volumeContext = getProcessedUnManagedVolumeMap().get(nativeGuid);
@@ -564,18 +549,14 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public List<BlockObject> getObjectsIngestedByExportProcessing() {
-        if (null == _objectsIngestedByExportProcessing) {
-            _objectsIngestedByExportProcessing = new ArrayList<BlockObject>();
+        return _parentRequestContext.getObjectsIngestedByExportProcessing();
         }
 
-        return _objectsIngestedByExportProcessing;
-    }
 
     /*
      * (non-Javadoc)
      * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#isExportGroupCreated()
-     */
     @Override
     public boolean isExportGroupCreated() {
         return _exportGroupCreated;
@@ -685,32 +666,24 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public Map<String, BlockObject> getObjectsToBeCreatedMap() {
-        if (null == _objectsToBeCreatedMap) {
-            _objectsToBeCreatedMap = new HashMap<String, BlockObject>();
+        return _parentRequestContext.getObjectsToBeCreatedMap();
         }
 
-        return _objectsToBeCreatedMap;
-    }
 
     /*
      * (non-Javadoc)
      * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsToBeUpdatedMap()
-     */
     @Override
     public Map<String, List<DataObject>> getObjectsToBeUpdatedMap() {
-        if (null == _objectsToBeUpdatedMap) {
-            _objectsToBeUpdatedMap = new HashMap<String, List<DataObject>>();
+        return _parentRequestContext.getObjectsToBeUpdatedMap();
         }
 
-        return _objectsToBeUpdatedMap;
-    }
 
     /**
      * Updates any internal flags on the ingested backend resources.
      * 
      * @param context the VplexBackendIngestionContext
-     */
     private void setFlags() {
         // set internal object flag on any backend volumes
         for (BlockObject o : getObjectsToBeCreatedMap().values()) {

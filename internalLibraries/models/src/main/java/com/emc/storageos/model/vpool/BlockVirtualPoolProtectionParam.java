@@ -29,7 +29,6 @@ public class BlockVirtualPoolProtectionParam extends VirtualPoolProtectionParam 
     /**
      * Returns pool parameters if protection type is 'Mirror'
      * 
-     * @valid none
      */
     @XmlElement(name = "continuous_copies", required = false)
     public VirtualPoolProtectionMirrorParam getContinuousCopies() {
@@ -43,7 +42,6 @@ public class BlockVirtualPoolProtectionParam extends VirtualPoolProtectionParam 
     /**
      * Returns pool parameters if protection type is 'Recover Point'
      * 
-     * @valid none
      */
     @XmlElement(name = "recoverpoint", required = false)
     public VirtualPoolProtectionRPParam getRecoverPoint() {
@@ -91,7 +89,6 @@ public class BlockVirtualPoolProtectionParam extends VirtualPoolProtectionParam 
     /**
      * Returns pool parameters if protection type is 'Remote Copy'
      * 
-     * @valid none
      */
     @XmlElement(name = "remote_copies", required = false)
     public VirtualPoolRemoteMirrorProtectionParam getRemoteCopies() {

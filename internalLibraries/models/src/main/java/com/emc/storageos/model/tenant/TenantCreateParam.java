@@ -28,9 +28,8 @@ public class TenantCreateParam extends TenantParam {
     }
 
     /**
-     * Name of the tenant to create
+     * Name of the tenant to create. Any free form string within length limits
      * 
-     * @valid any free form string within length limits
      */
     @XmlElement(required = true, name = "name")
     @Length(min = 2, max = 128)
@@ -45,7 +44,6 @@ public class TenantCreateParam extends TenantParam {
     /**
      * List of user mappings for this tenant
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "user_mappings")
     @XmlElement(required = true, name = "user_mapping")

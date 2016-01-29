@@ -71,7 +71,7 @@ public interface ServiceParams {
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
 
-    public String INGEST_VOLUMES = "ingestVolumes";
+    public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
 
     public String APPLICATION = "application";
     public String REPLICATION_GROUP = "replicationGroup";

@@ -2,38 +2,40 @@
   baseKey:"MobilityGroupMigration.Migration",
   serviceId:"MobilityGroupMigration",
   fields:{
-  
-    migrationType:{
-     type: "choice",
-     initialValue: "VPLEX",
-     select: "one",
-     options: {
-       "VPLEX": "VPLEX"
-     },
-     lockable: true
-    },
       
     mobilityGroup:{
       type:"assetType.vipr.mobilityGroup"
     },
     
-    ingestVolumes:{
-      type: "boolean",
-      initialValue: "false",
-      required: "false",
+    mobilityGroupMethod:{
+      type: "choice",
+      initialValue: "MIGRATE_ONLY",
+      select: "one",
+      options: {
+        "MIGRATE_ONLY": "Migrate Only",
+        "INGEST_AND_MIGRATE": "Ingest and Migrate"
+      },
+      required: "true",
       lockable: true
     },
     
     project:{
-      type: "assetType.vipr.project"
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true
+    },
+
+    virtualPool:{
+      type:"assetType.vipr.blockVirtualPool",
+      lockable: true
     },
     
     targetVirtualPool:{
       type:"assetType.vipr.migrationTargetVirtualPool"
-    },
-    
-    targetStorageSystem:{
-      type:"assetType.vipr.blockStorageSystem"
     }
   }
 }

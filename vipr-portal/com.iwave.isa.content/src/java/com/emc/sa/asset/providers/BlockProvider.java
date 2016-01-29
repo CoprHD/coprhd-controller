@@ -358,6 +358,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation);
     }
 
+    @Asset("migrationTargetVirtualPool")
+    @AssetDependencies({ "project", "blockVirtualPool" })
+    public List<AssetOption> getMigrationTargetVirtualPools(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {
+        return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name());
+    }
+
     @Asset("journalCopyName")
     @AssetDependencies("rpConsistencyGroupByProject")
     public List<AssetOption> getCopyNameByConsistencyGroup(AssetOptionsContext ctx, URI consistencyGroupId) {

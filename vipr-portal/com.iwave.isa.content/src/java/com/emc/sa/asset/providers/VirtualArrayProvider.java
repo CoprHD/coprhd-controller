@@ -25,6 +25,7 @@ import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.AssetOption;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -40,6 +41,16 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("unmanagedBlockStorageSystem")
     public List<AssetOption> getBlockVirtualArrays(AssetOptionsContext ctx, URI storageSystem) {
         return getVirtualArrayForStorageSystem(ctx, storageSystem);
+    }
+
+    @Asset("virtualArray")
+    @AssetDependencies("mobilityGroupMethod")
+    public List<AssetOption> getBlockVirtualArrays(AssetOptionsContext ctx, String mobilityGroupMethod) {
+        if (mobilityGroupMethod.equalsIgnoreCase("INGEST_AND_MIGRATE")) {
+            return createBaseResourceOptions(api(ctx).varrays().getAll());
+        } else {
+            return Lists.newArrayList();
+        }
     }
 
     @Asset("virtualArray")

@@ -10,6 +10,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.ChangeBlockVolumeVirtualPoolNoWait;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroup;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupClusters;
@@ -18,14 +19,18 @@ import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByCluster;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByHost;
 import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumesByHostOrCluster;
+import com.emc.sa.service.vipr.block.tasks.IngestExportedUnmanagedVolumes;
 import com.emc.sa.service.vipr.block.tasks.RemoveVolumeFromMobilityGroup;
 import com.emc.sa.service.vipr.compute.ComputeUtils;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.exceptions.TimeoutException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -39,11 +44,17 @@ public class MobilityGroupMigrationService extends ViPRService {
     @Param(ServiceParams.TARGET_VIRTUAL_POOL)
     private URI targetVirtualPool;
 
-    @Param(value = ServiceParams.INGEST_VOLUMES, required = false)
-    private Boolean ingestVolumes;
+    @Param(value = ServiceParams.MOBILITY_GROUP_METHOD)
+    private String mobilityGroupMethod;
 
     @Param(value = ServiceParams.PROJECT, required = false)
     private URI project;
+
+    @Param(value = ServiceParams.VIRTUAL_ARRAY, required = false)
+    private URI virtualArray;
+
+    @Param(value = ServiceParams.VIRTUAL_POOL, required = false)
+    private URI virtualPool;
 
     private VolumeGroupRestRep mobilityGroup;
 
@@ -55,7 +66,7 @@ public class MobilityGroupMigrationService extends ViPRService {
     @Override
     public void execute() throws Exception {
 
-        if (ingestVolumes != null && ingestVolumes) {
+        if (mobilityGroupMethod != null && mobilityGroupMethod.equalsIgnoreCase("INGEST_AND_MIGRATE")) {
             // TODO ingest volumes
             ingestVolumes();
         }
@@ -119,27 +130,24 @@ public class MobilityGroupMigrationService extends ViPRService {
             logInfo("ingest.exported.unmanaged.volume.service.remaining", remaining);
         }
 
-        //
-        // int succeed = execute(new IngestExportedUnmanagedVolumes(virtualPool, virtualArray, project,
-        // host == null ? null : host.getId(),
-        // cluster == null ? null : cluster.getId(),
-        // uris(volumeIds),
-        // ingestionMethod
-        // )).getTasks().size();
-        // logInfo("ingest.exported.unmanaged.volume.service.ingested", succeed);
-        // logInfo("ingest.exported.unmanaged.volume.service.skipped", volumeIds.size() - succeed);
+        for (NamedRelatedResourceRep hostOrCluster : hostsOrClusters) {
 
-    }
+            URI host = BlockStorageUtils.isHost(hostOrCluster.getId()) ? hostOrCluster.getId() : null;
+            URI cluster = BlockStorageUtils.isCluster(hostOrCluster.getId()) ? hostOrCluster.getId() : null;
 
-    private List<URI> getVolumeList(Tasks<VolumeRestRep> tasks) {
-        List<URI> volumes = Lists.newArrayList();
-        for (Task<VolumeRestRep> task : tasks.getTasks()) {
+            List<UnManagedVolumeRestRep> volumeIds = execute(new GetUnmanagedVolumesByHostOrCluster(
+                    hostOrCluster.getId()));
 
-            if (task.getResourceId() != null) {
-                volumes.add(task.getResourceId());
-            }
+            int succeed = execute(new IngestExportedUnmanagedVolumes(virtualPool, virtualArray, project,
+                    host == null ? null : host,
+                    cluster == null ? null : cluster,
+                    ResourceUtils.ids(volumeIds),
+                    VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name()
+                    )).getTasks().size();
+            logInfo("ingest.exported.unmanaged.volume.service.ingested", succeed);
+            logInfo("ingest.exported.unmanaged.volume.service.skipped", volumeIds.size() - succeed);
         }
-        return volumes;
+
     }
 
     private Set<URI> getVolumes() {

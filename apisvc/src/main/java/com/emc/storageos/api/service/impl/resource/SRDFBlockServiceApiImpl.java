@@ -625,21 +625,18 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             final String task, final VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
         List<Recommendation> volRecommendations = recommendationMap.get(VpoolUse.ROOT);
         Long size = SizeUtil.translateSize(param.getSize());
-        List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
-        List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(existingDescriptors,
-                param.getName(), size, project, varray, vpool, volRecommendations, taskList, task, capabilities);
-        
-
-        // Partition the volumeDescriptors by storage system.
         BlockOrchestrationController controller = getController(
                 BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
-        Map<URI, List<VolumeDescriptor>> descriptorMap = VolumeDescriptor.getDeviceMap(volumeDescriptors);
-        // TODO determine if this really works with multiple entries
-        for (Map.Entry<URI, List<VolumeDescriptor>> entry : descriptorMap.entrySet()) {
-            List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(entry.getValue());
+        
+        for (Recommendation volRecommendation : volRecommendations) {
+            List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
+            List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(existingDescriptors,
+                    param.getName(), size, project, varray, vpool, volRecommendations, taskList, task, capabilities);
+            List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+            
             try {
-                controller.createVolumes(entry.getValue(), task);
+                controller.createVolumes(volumeDescriptors, task);
             } catch (InternalException e) {
                 if (_log.isErrorEnabled()) {
                     _log.error("Controller error", e);
@@ -665,20 +662,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         }
                     }
                 }
-
-                // If there was a controller error creating the volumes,
-                // throw an internal server error and include the task
-                // information in the response body, which will inform
-                // the user what succeeded and what failed.
-                throw APIException.badRequests.cannotCreateSRDFVolumes(e);
             }
-            
         }
-
         return taskList;
     }
-    
-    
 
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(

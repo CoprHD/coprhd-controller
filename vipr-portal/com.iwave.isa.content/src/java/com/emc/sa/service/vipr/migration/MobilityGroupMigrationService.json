@@ -8,15 +8,7 @@
     },
     
     mobilityGroupMethod:{
-      type: "choice",
-      initialValue: "MIGRATE_ONLY",
-      select: "one",
-      options: {
-        "MIGRATE_ONLY": "Migrate Only",
-        "INGEST_AND_MIGRATE": "Ingest and Migrate"
-      },
-      required: "true",
-      lockable: true
+      type:"assetType.vipr.mobilityGroupMethod"
     },
     
     project:{

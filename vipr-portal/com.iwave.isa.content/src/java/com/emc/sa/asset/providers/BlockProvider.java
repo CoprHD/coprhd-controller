@@ -106,6 +106,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public static final String LINKED_SNAPSHOT_COPYMODE_VALUE = "copy";
     public static final String LINKED_SNAPSHOT_NOCOPYMODE_VALUE = "nocopy";
 
+    public static final String MIGRATE_ONLY_OPTION_KEY = "migrate_only";
+    public static final String INGEST_AND_MIGRATE_OPTION_KEY = "ingest_and_migrate";
+
+    private static final AssetOption MIGRATE_ONLY_OPTION = newAssetOption(MIGRATE_ONLY_OPTION_KEY, "Migrate Only");
+    private static final AssetOption INGEST_AND_MIGRATE_OPTION = newAssetOption(INGEST_AND_MIGRATE_OPTION_KEY,
+            "Ingest and Migrate");
+
     private static final AssetOption VOLUME_OPTION = newAssetOption(VOLUME_OPTION_KEY, "block.storage.type.volume");
     private static final AssetOption CONSISTENCY_GROUP_OPTION = newAssetOption(CONSISTENCY_GROUP_OPTION_KEY,
             "block.storage.type.consistencygroup");
@@ -1396,6 +1403,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups().search().byProject(project).run();
             return createBaseResourceOptions(consistencyGroups);
         }
+    }
+
+    @Asset("mobilityGroupMethod")
+    public List<AssetOption> getMobilityGroupMethods(AssetOptionsContext context) {
+        return Lists.newArrayList(MIGRATE_ONLY_OPTION, INGEST_AND_MIGRATE_OPTION);
     }
 
     @Asset("snapshotSessionBlockVolume")

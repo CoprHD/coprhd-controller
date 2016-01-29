@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -66,7 +67,7 @@ public class MobilityGroupMigrationService extends ViPRService {
     @Override
     public void execute() throws Exception {
 
-        if (mobilityGroupMethod != null && mobilityGroupMethod.equalsIgnoreCase("INGEST_AND_MIGRATE")) {
+        if (mobilityGroupMethod != null && mobilityGroupMethod.equalsIgnoreCase(BlockProvider.INGEST_AND_MIGRATE_OPTION_KEY)) {
             // TODO ingest volumes
             ingestVolumes();
         }

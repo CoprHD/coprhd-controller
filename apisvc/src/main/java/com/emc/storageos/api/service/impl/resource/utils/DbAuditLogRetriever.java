@@ -45,7 +45,7 @@ public class DbAuditLogRetriever extends AbstractDbRetriever implements AuditLog
         } else if (type.equals(MediaType.APPLICATION_JSON_TYPE)) {
             marshaller = new JSONAuditLogMarshaller();
             log.debug("Parser type: {}", type.toString());
-        } else if (type.equals(MediaType.TEXT_PLAIN)) {
+        } else if (type.equals(MediaType.APPLICATION_XML_TYPE)) {
             marshaller = new TextAuditLogMarshaller();
             log.debug("parser type: {}", type.toString());
         } else {

@@ -137,7 +137,7 @@ public class Audit {
         if ((language != null) && (language.length() > 0)) {
             builder.queryParam(LANGUAGE, language);
         }
-        return client.resource(builder.build()).type(MediaType.APPLICATION_XML).get(responseType);
+        return client.resource(builder.build()).accept(MediaType.APPLICATION_XML).get(responseType);
     }
 
     public InputStream getAsStream(Date start, Date end, String serviceType, String user, String result,

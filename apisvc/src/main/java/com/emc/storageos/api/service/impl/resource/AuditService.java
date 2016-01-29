@@ -108,17 +108,18 @@ public class AuditService extends ResourceService {
 
         MediaType mType = MediaType.APPLICATION_XML_TYPE;
         List<MediaType> mTypes = header.getAcceptableMediaTypes();
+
         if (mTypes != null) {
             for (MediaType media : mTypes) {
                 if (media.equals(MediaType.APPLICATION_JSON_TYPE)
-                        || media.equals(MediaType.APPLICATION_XML_TYPE)
-                        || media.equals(MediaType.TEXT_PLAIN)) {
+                        || media.equals(MediaType.TEXT_PLAIN_TYPE)) {
                     mType = media;
                     break;
                 }
             }
         }
-
+        _logger.info("mtype is :{}",mType);
+        
         DateTime startTime, endTime;
         if (timeBucket != null && !timeBucket.isEmpty()) {
             startTime = getDataTime(timeBucket,HOUR_BUCKET_TIME_FORMAT);

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Date;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -27,6 +28,7 @@ public class TextAuditLogMarshaller implements AuditLogMarshaller {
     private static volatile Locale locale = null;
     private static volatile ResourceBundle resb = null;
     private static final String SPACE = " ";
+    private static final String TAB = "    ";
     private static final String RETURN = "\n";
 
     @Override
@@ -48,14 +50,21 @@ public class TextAuditLogMarshaller implements AuditLogMarshaller {
             _logger.debug("{} filter out by description keyword {}", auditlog.getDescription(), keyword);
             return false;
         }
-
         try {
             BufferedWriter ow = ((BufferedWriter) writer);
-            ow.write(new DateTime(auditlog.getTimeInMillis(), DateTimeZone.UTC).toString());
+            ow.write(new Date(auditlog.getTimeInMillis()).toString());
             ow.write(SPACE);
-            ow.write(auditlog.getServiceType());
+            if (auditlog.getServiceType() == null) {
+                ow.write(TAB);
+            }else {
+                ow.write(auditlog.getServiceType());
+            }
             ow.write(SPACE);
-            ow.write(auditlog.getUserId().toString());
+            if (auditlog.getUserId() == null ){
+                ow.write(TAB);
+            }else {
+                ow.write(auditlog.getUserId().toString());
+            }
             ow.write(SPACE);
             ow.write(auditlog.getOperationalStatus());
             ow.write(SPACE);

@@ -1126,7 +1126,9 @@ public abstract class VdcOpHandler {
         log.info("set site {} state to STANDBY_ERROR, set lastState to {}",site.getName(),site.getState());
         coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
 
-        site.setLastState(site.getState());
+        if (!site.getState().equals(SiteState.STANDBY_SYNCING)) {
+            site.setLastState(site.getState());
+        }
         site.setState(SiteState.STANDBY_ERROR);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
     }
@@ -1135,6 +1137,7 @@ public abstract class VdcOpHandler {
         List<Site> newSites = drUtil.listSitesInState(from);
         for(Site newSite : newSites) {
             log.info("Change standby site {} state from {} to {}", new Object[]{newSite.getSiteShortId(), from, to});
+            newSite.setLastState(from);
             newSite.setState(to);
             coordinator.getCoordinatorClient().persistServiceConfiguration(newSite.toConfiguration());
         }

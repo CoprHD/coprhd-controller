@@ -40,13 +40,14 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.FileSystemConstants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
-import com.emc.storageos.volumecontroller.FileStorageDevice;
+import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.iwave.ext.netappc.model.CifsAccess;
 import com.iwave.ext.netappc.model.CifsAcl;
 
-public class NetAppClusterModeDevice implements FileStorageDevice {
+public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     private static final Logger _log = LoggerFactory
             .getLogger(NetAppClusterModeDevice.class);
 
@@ -1835,6 +1836,18 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netappc.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netappc.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.netappc.operationNotSupported());
     }

@@ -30,7 +30,7 @@
         <property name="siteIdFile" value="/data/zk/siteid"/>
     </bean>
 
-    <context:property-placeholder location="classpath:syssvc-info.properties" />
+    <context:property-placeholder location="classpath:syssvc-info.properties" ignore-unresolvable="true"/>
 
     <bean id="coordinator" class="com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl" init-method="start">
         <property name="zkConnection" ref="zkconn"/>

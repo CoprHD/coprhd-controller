@@ -110,8 +110,8 @@ public class SupportAuditPackageCreator {
     }
 
     public static String formatTimestamp(Calendar cal) {
-        final SimpleDateFormat TIME = new SimpleDateFormat(TIMESTAMP);
-        return cal != null ? TIME.format(cal.getTime()) : "UNKNOWN";
+        final SimpleDateFormat TIME1 = new SimpleDateFormat(TIMESTAMP);
+        return cal != null ? TIME1.format(cal.getTime()) : "UNKNOWN";
     }
 
     public CreateSupportPackageJob createJob(OutputStream out) {

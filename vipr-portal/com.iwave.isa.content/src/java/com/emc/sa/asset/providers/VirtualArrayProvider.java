@@ -44,8 +44,8 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("virtualArray")
-    @AssetDependencies("mobilityGroupMethod")
-    public List<AssetOption> getBlockVirtualArrays(AssetOptionsContext ctx, String mobilityGroupMethod) {
+    @AssetDependencies({ "mobilityGroupMethod", "project" })
+    public List<AssetOption> getBlockVirtualArrays(AssetOptionsContext ctx, String mobilityGroupMethod, URI project) {
         if (mobilityGroupMethod.equalsIgnoreCase(BlockProvider.INGEST_AND_MIGRATE_OPTION_KEY)) {
             return createBaseResourceOptions(api(ctx).varrays().getAll());
         } else {

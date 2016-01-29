@@ -95,6 +95,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
@@ -989,7 +990,8 @@ public class BlockStorageUtils {
         return map;
     }
 
-    public static boolean isVplexVolume(VolumeRestRep volume) {
-        return volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty();
+    public static boolean isVplexVolume(VolumeRestRep volume, String storageSystemType) {
+        return (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty())
+                || (storageSystemType != null && storageSystemType.equals(StorageProvider.InterfaceType.vplex.name()));
     }
 }

@@ -16,6 +16,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.google.common.collect.Sets;
 
 public class GetMobilityGroupVolumesByHost extends ViPRExecutionTask<Set<URI>> {
@@ -35,12 +36,9 @@ public class GetMobilityGroupVolumesByHost extends ViPRExecutionTask<Set<URI>> {
 
         for (URI volume : volumes) {
             VolumeRestRep vol = getClient().blockVolumes().get(volume);
-            if (BlockStorageUtils.isVplexVolume(vol)) {
-                // for (RelatedResourceRep haVolume : vol.getHaVolumes()) {
-                // if (matchesStorageSystem(haVolume)) {
+            StorageSystemRestRep storage = getClient().storageSystems().get(vol.getStorageController());
+            if (BlockStorageUtils.isVplexVolume(vol, storage.getSystemType())) {
                 mobilityGroupVolumes.add(volume);
-                // }
-                // }
             }
         }
         return mobilityGroupVolumes;

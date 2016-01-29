@@ -176,7 +176,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         try {
             // Execute the change vpool of fileshare!!!
-            controller.changeFileSystemVirtualPool(fs, fileDescriptors, task);
+            controller.changeFileSystemVirtualPool(fs.getId().toString(), fileDescriptors, task);
         } catch (InternalException e) {
             _log.error("Controller error when changing filesystem vpool", e);
             failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());

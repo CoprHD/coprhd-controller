@@ -7,7 +7,6 @@ package com.emc.storageos.fileorchestrationcontroller;
 import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
@@ -38,7 +37,7 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     }
 
     @Override
-    public void changeFileSystemVirtualPool(FileShare sourceFs,
+    public void changeFileSystemVirtualPool(String sourceFs,
             List<FileDescriptor> fileDescriptors, String taskId) throws ControllerException {
         execOrchestration("changeFileSystemVirtualPool", sourceFs, fileDescriptors, taskId);
     }

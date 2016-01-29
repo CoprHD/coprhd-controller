@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -113,7 +112,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * @throws ControllerException
      */
     @Override
-    public void changeFileSystemVirtualPool(FileShare fs, List<FileDescriptor> fileDescriptors,
+    public void changeFileSystemVirtualPool(String fs, List<FileDescriptor> fileDescriptors,
             String taskId) throws ControllerException {
 
         // Generate the Workflow.
@@ -138,12 +137,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
-            String successMessage = "Change filesystems vpool successful for: " + fs.getLabel();
+            String successMessage = "Change filesystems vpool successful for: " + fs;
             Object[] callbackArgs = new Object[] { fsUris };
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
 
         } catch (Exception ex) {
-            s_logger.error("Could not change the filesystem vpool: " + fs.getId(), ex);
+            s_logger.error("Could not change the filesystem vpool: " + fs, ex);
             releaseWorkflowLocks(workflow);
             String opName = ResourceOperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL.getName();
             ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(

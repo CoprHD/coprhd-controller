@@ -16,7 +16,7 @@ ifeq ($(BUILD_TYPE),oss)
     DEVKIT_ADDRS=https://build.coprhd.org/jenkins/userContent/DevKits/2.5.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
     DEVKIT_JAVA=update-alternatives --set java /usr/lib64/jvm/jre-1.8.0-openjdk/bin/java; update-alternatives --set javac /usr/lib64/jvm/java-1.8.0-openjdk/bin/javac; java -version;
 else
-    DEVKIT_BUILD=4
+    DEVKIT_BUILD=5
     DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.5.0.0.$(DEVKIT_BUILD)
 endif
 

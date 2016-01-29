@@ -916,6 +916,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         " ** This version of Isilon firmware is not supported ** Should be a minimum of %s", minimumSupportedVersion));
                 throw ice;
             }
+            storageSystem.setSupportSoftLimit(false);
+            storageSystem.setSupportNotificationLimit(false);
             // Check license status for smart quota and set the support attributes as true
             if (ACTIVATED.equalsIgnoreCase(isilonApi.getLicenseInfo(IsilonLicenseType.SMARTQUOTA))
                     || EVALUATION.equalsIgnoreCase(isilonApi.getLicenseInfo(IsilonLicenseType.SMARTQUOTA))) {

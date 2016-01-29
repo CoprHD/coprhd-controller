@@ -25,8 +25,6 @@ public class StorageSystemUpdateRequestParam {
     private Boolean smisUseSSL;
     private Integer maxResources;
     private Boolean isUnlimitedResourcesSet;
-    private Boolean supportsSoftLimit = false;
-    private Boolean supportsNotificationLimit = false;
 
     public StorageSystemUpdateRequestParam() {
     }
@@ -212,36 +210,6 @@ public class StorageSystemUpdateRequestParam {
 
     public void setIsUnlimitedResourcesSet(Boolean isUnlimitedResourcesSet) {
         this.isUnlimitedResourcesSet = isUnlimitedResourcesSet;
-    }
-    
-    /**
-     * Determines weather the storage system supports Soft Limit or not
-     * 
-     * @valid true
-     * @valid false
-     */
-    @XmlElement(name = "supports_soft_limit", required = false)
-    public Boolean getSupportsSoftLimit() {
-        return supportsSoftLimit;
-    }
-
-    public void setSupportsSoftLimit(Boolean supportsSoftLimit) {
-        this.supportsSoftLimit = supportsSoftLimit;
-    }
-
-    /**
-     * Determines weather the storage system supports Notification Limit or not
-     * 
-     * @valid true
-     * @valid false
-     */
-    @XmlElement(name = "supports_notification_limit", required = false)
-    public Boolean getSupportsNotificationLimit() {
-        return supportsNotificationLimit;
-    }
-
-    public void setSupportsNotificationLimit(Boolean supportsNotificationLimit) {
-        this.supportsNotificationLimit = supportsNotificationLimit;
     }
 
 }

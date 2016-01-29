@@ -836,7 +836,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Project vplexProject;
         if (vpool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_distributed.name())) {
             // Determine if the user requested a specific HA VirtualArray and an associated HA VirtualPool.
-            VirtualArray requestedHaNH = null;
+            VirtualArray requestedHaVarray = null;
             VirtualPool requestedHaVirtualPool = vpool;
             try {
                 if (vpool.getHaVarrayVpoolMap() != null && !vpool.getHaVarrayVpoolMap().isEmpty()) {
@@ -844,7 +844,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         if (haNH.equals(NullColumnValueGetter.getNullURI().toString())) {
                             continue;
                         }
-                        requestedHaNH = _dbClient.queryObject(VirtualArray.class, new URI(haNH));
+                        requestedHaVarray = _dbClient.queryObject(VirtualArray.class, new URI(haNH));
                         String haVirtualPool = vpool.getHaVarrayVpoolMap().get(haNH);
                         if (haVirtualPool.equals(NullColumnValueGetter.getNullURI().toString())) {
                             continue;
@@ -864,10 +864,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             // Get the recommendations and pick one.
             List<Recommendation> recommendations = getBlockScheduler().scheduleStorageForImport(
-                    neighborhood, vplexes, requestedHaNH, requestedHaVirtualPool, cosCapabilities);
+                    neighborhood, vplexes, requestedHaVarray, requestedHaVirtualPool, cosCapabilities);
             if (recommendations.isEmpty()) {
-                throw APIException.badRequests.noStorageFoundForVolumeMigration(requestedHaVirtualPool.getId(),
-                        requestedHaNH.getId(), importVolume.getId());
+                throw APIException.badRequests.noStorageFoundForVolumeMigration(requestedHaVirtualPool.getLabel(),
+                        requestedHaVarray.getLabel(), importVolume.getId());
             }
 
             Recommendation recommendation = recommendations.get(0);
@@ -969,14 +969,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
             Volume createVolume = null;
             // Determine if the user requested a specific HA VirtualArray and an associated HA VirtualPool.
-            VirtualArray requestedHaNH = null;
+            VirtualArray requestedHaVarray = null;
             VirtualPool requestedHaVirtualPool = vpool;
             if (vpool.getHaVarrayVpoolMap() != null && !vpool.getHaVarrayVpoolMap().isEmpty()) {
                 for (String haNH : vpool.getHaVarrayVpoolMap().keySet()) {
                     if (haNH.equals(NullColumnValueGetter.getNullURI().toString())) {
                         continue;
                     }
-                    requestedHaNH = _dbClient.queryObject(VirtualArray.class, new URI(haNH));
+                    requestedHaVarray = _dbClient.queryObject(VirtualArray.class, new URI(haNH));
                     String haVirtualPool = vpool.getHaVarrayVpoolMap().get(haNH);
                     if (haVirtualPool.equals(NullColumnValueGetter.getNullURI().toString())) {
                         continue;
@@ -988,11 +988,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             // Get the recommendations and pick one.
             List<Recommendation> recommendations = getBlockScheduler().scheduleStorageForImport(neighborhood, vplexes,
-                    requestedHaNH, requestedHaVirtualPool, cosCapabilities);
+                    requestedHaVarray, requestedHaVirtualPool, cosCapabilities);
 
             if (recommendations.isEmpty()) {
-                throw APIException.badRequests.noStorageFoundForVolumeMigration(requestedHaVirtualPool.getId(),
-                        requestedHaNH.getId(), existingVolume.getId());
+                throw APIException.badRequests.noStorageFoundForVolumeMigration(requestedHaVirtualPool.getLabel(),
+                        requestedHaVarray.getLabel(), existingVolume.getId());
             }
 
             Recommendation recommendation = recommendations.get(0);
@@ -1505,7 +1505,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         List<Recommendation> recommendations = getBlockScheduler().scheduleStorage(
                 varray, requestedVPlexSystems, null, vpool, false, null, null, cosWrapper);
         if (recommendations.isEmpty()) {
-            throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getId(), varray.getId(), sourceVolumeURI);
+            throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
         }
         s_logger.info("Got recommendation");
 
@@ -1642,7 +1642,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             recommendations = getBlockScheduler().scheduleStorage(
                     varray, requestedVPlexSystems, null, vpool, false, null, null, capabilities);
             if (recommendations.isEmpty()) {
-                throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getId(), varray.getId(), sourceVolumeURI);
+                throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
             }
             s_logger.info("Got recommendation");
         }

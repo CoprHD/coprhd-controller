@@ -52,6 +52,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
      * Converts StringSetMap of permissions into a list of assignment entries as used by the API
      * 
      * @param roleAssignments
+     * @param forZone
      * @return
      */
     public ArrayList<RoleAssignmentEntry> convertToRoleAssignments(StringSetMap roleAssignments, boolean forZone) {
@@ -269,6 +270,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
          * Project
          * 
          * @param entries
+         * @param validatePrincipals
          * @return
          */
         public StringSetMap convertFromACLEntries(List<ACLEntry> entries,

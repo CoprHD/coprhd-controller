@@ -5,8 +5,8 @@
 <dl class="dl-horizontal col-sm-8">
   <dt>&{'license.notice'}</dt>
   <dd>${lf.notice}</dd>
-  #{if util.LicenseUtils.hasCapacity(lf)}
-    <dt>&{'license.storageCapacity'}</dt>
-    <dd><div style="width:100%">#{licenseProgressBar licenseFeature: lf, storageStatsWrapper: storageStatsWrapper /}</div></dd>
-  #{/if}
+    #{if util.LicenseUtils.hasCapacity(lf)}
+      <dt>&{'license.raw.capacity'}</dt>
+      <dd><div style="width:100%">${com.emc.sa.util.SizeUtils.humanReadableByteCount(Double.parseDouble(lf.storageCapacity), true)}</div></dd>
+    #{/if}
 </dl>

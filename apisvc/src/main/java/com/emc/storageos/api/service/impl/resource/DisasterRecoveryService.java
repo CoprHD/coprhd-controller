@@ -199,18 +199,7 @@ public class DisasterRecoveryService {
             standbySite.setCreationTime((new Date()).getTime());
             standbySite.setName(param.getName());
             standbySite.setVdcShortId(drUtil.getLocalVdcShortId());
-
-            String vip = param.getVip();
-            if (vip.contains(":")) {
-                String tmpVip = null;
-                if (vip.contains("[")) {
-                    tmpVip = param.getVip().substring(1, param.getVip().length() - 1);
-                } else {
-                    tmpVip = vip;
-                }
-                vip = DualInetAddress.normalizeInet6Address(tmpVip);
-            }
-            standbySite.setVip(vip);
+            standbySite.setVip(param.getVip());
 
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
@@ -1547,10 +1536,10 @@ public class DisasterRecoveryService {
         try {
             address = InetAddress.getByName(siteVip);
         } catch (UnknownHostException e) {
-            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Could not resolve standby site virtual IP.  Please check name service.");
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Could not resolve target standby site virtual IP.  Please check name service.");
         }
-        param.setVip(address.getHostAddress());
-        log.info("Target site ip is {}", param.getVip());
+        param.setVip(DualInetAddress.normalizeInet6Address(address.getHostAddress()));
+        log.info("Target standby site ip is {}", param.getVip());
 
         for (Site site : existingSites) {
             if (site.getName().equals(siteName)) {

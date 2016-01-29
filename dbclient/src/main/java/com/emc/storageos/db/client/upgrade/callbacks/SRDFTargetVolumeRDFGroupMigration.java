@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to update the SRDF Target volumes with the source RDFGroup URI instead of target RDFGroup
@@ -40,7 +41,7 @@ public class SRDFTargetVolumeRDFGroupMigration extends BaseCustomMigrationCallba
     public static final String PLUS = "+";
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         log.info("Updating SRDF Target volume rdfGroup information.");
         DbClient dbClient = this.getDbClient();
         List<URI> volumeURIs = dbClient.queryByType(Volume.class, true);

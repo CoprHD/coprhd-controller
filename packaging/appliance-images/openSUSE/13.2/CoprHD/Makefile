@@ -7,7 +7,7 @@
 #  Setup
 ##################################################
 export DO_NOT_START := yes
-WORKSPACE := $(shell pwd)
+WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHD
 VERSION := 2.5.0.0
 JOB := 999
@@ -47,8 +47,8 @@ endef
 downdloadISO:
 	$(call targetLog,+)
 	mkdir -p $(WORKSPACE)/iso/mount
-	-[ -f $(WORKSPACE)/iso/$(ISO_FILE) ] || cp -pr /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) $(WORKSPACE)/iso/
-	wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
+	[ ! -f /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) ] || ln -fs /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) $(WORKSPACE)/iso/
+	[ -s $(WORKSPACE)/iso/$(ISO_FILE) ] || wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
 	$(call targetLog,-)
 
 downdloadRPM:
@@ -90,7 +90,7 @@ createREPO: | downdloadRPM downdloadTGZ
 	if [ -f $(SOURCE_RPM) ]; then \
 		cp -fr $(SOURCE_RPM) $(WORKSPACE)/zypper/repo/; \
 	fi
-	make -f $(WORKSPACE)/../configure-network/Makefile
+	make --directory=$(WORKSPACE)/../configure-network
 	cp -f $(WORKSPACE)/../configure-network/RPMS/noarch/* $(WORKSPACE)/zypper/repo/
 	find $(WORKSPACE)/zypper/pkg -iname \*.rpm -exec cp -f {} $(WORKSPACE)/zypper/repo/ \;
 	createrepo $(WORKSPACE)/zypper/repo

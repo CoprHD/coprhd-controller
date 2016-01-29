@@ -28,9 +28,11 @@
 		 <ref bean="haMatcher" />
 		 <ref bean="protectionMatcher" />
          <ref bean="remoteMirrorProtectionMatcher"/>
+         <ref bean="srdfMetroMatcher"/>
          <ref bean="longTermRetentionMatcher"/>
          <ref bean="hdsShadowImagePairCountMatcher"/>
          <ref bean="fileReplicationMatcher" />
+         <ref bean="fileScheduleSnapshotMatcher" />
          <ref bean="minDataCenterMatcher"/>
 	</util:list>
 	
@@ -44,7 +46,10 @@
         <ref bean="storageSystemMatcher" />
         <ref bean="vmaxFASTInitialTierSelectionMatcher"/>
         <ref bean="poolPreferenceBasedOnDriveMathcer"/>
+        <ref bean="srdfMetroMatcher"/>
         <ref bean="fileReplicationMatcher" />
+        <ref bean="copyModeMatcher" />
+        <ref bean="fileScheduleSnapshotMatcher" />
         <ref bean="bucketquotaMatcher" />
 	</util:list>
 
@@ -80,6 +85,7 @@
 	<bean id="vnxBlockFastPolicyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VNXBlockAutoTieringPolicyMatcher" />
 	<bean id="capacityMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher"/>
 	<bean id="remoteMirrorProtectionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.RemoteMirrorProtectionMatcher"/>
+	<bean id="srdfMetroMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SRDFMetroMatcher"/>
 	<bean id="activePoolMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ActivePoolMatcher" />
 	<bean id="neighborhoodsMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsMatcher" />
 	<bean id="protocolsMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ProtocolsAttrMatcher" />
@@ -96,6 +102,8 @@
     <bean id="longTermRetentionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.LongTermRetentionMatcher" />
     <bean id="hdsShadowImagePairCountMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HDSShadowImagePairCountMatcher"/>
     <bean id="fileReplicationMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileReplicationAttrMatcher" />
+    <bean id="copyModeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileCopyModeMatcher" />
+    <bean id="fileScheduleSnapshotMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileScheduleSnaphotMatcher" />
     <bean id="minDataCenterMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MinDataCenterMatcher"/>
     <bean id="bucketquotaMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.BucketQuotaMatcher"/>
 	

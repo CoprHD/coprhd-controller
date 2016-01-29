@@ -20,7 +20,8 @@ public class ScaleIOVolume {
     private String name;
     private String vtreeId;
     private String volumeType;
-    private String parentVolumeId;
+    //an ancestorVolume of a snapshot mean the source volume that the snapshot is taken from. Name must be consistent with ScaleIO Api Doc
+    private String ancestorVolumeId;
 
     public String getSizeInKb() {
         return sizeInKb;
@@ -78,11 +79,11 @@ public class ScaleIOVolume {
         return result;
     }
 
-    public String getParentVolumeId() {
-        return parentVolumeId;
+    public String getAncestorVolumeId() {
+        return ancestorVolumeId;
     }
 
-    public void setParentVolumeId(String parentVolumeId) {
-        this.parentVolumeId = parentVolumeId;
+    public void setAncestorVolumeId(String ancestorVolumeId) {
+        this.ancestorVolumeId = ancestorVolumeId;
     }
 }

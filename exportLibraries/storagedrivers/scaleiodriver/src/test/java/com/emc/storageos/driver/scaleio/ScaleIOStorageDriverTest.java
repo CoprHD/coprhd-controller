@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
@@ -45,6 +44,7 @@ public class ScaleIOStorageDriverTest {
     String POOL_ID_C = "962fef9b00000000";
     String IP_ADDRESS_A = "10.193.17.97";
     String IP_ADDRESS_B = "10.193.17.88";
+
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";
@@ -64,7 +64,11 @@ public class ScaleIOStorageDriverTest {
     public void setUp() throws Exception {
         Registry registry = new InMemoryRegistryImpl();
         driver = new ScaleIOStorageDriver();
+
+        // driver.setHandleFactory(handleFactory);
+
         // driver.setScaleIORestHandleFactory(scaleIORestHandleFactory);
+
         driver.setDriverRegistry(registry);
         // testDiscoverStorageSystem();
     }
@@ -467,7 +471,7 @@ public class ScaleIOStorageDriverTest {
 
     /**
      * Initialize one snapshot
-     * 
+     *
      * @param nativeId
      * @param parentId
      * @param storageSystemId
@@ -484,7 +488,7 @@ public class ScaleIOStorageDriverTest {
 
     /**
      * Initialized a list of snapshots whose parent volumes are from same storage system
-     * 
+     *
      * @param withInvalid
      * @return
      */
@@ -501,7 +505,7 @@ public class ScaleIOStorageDriverTest {
 
     /**
      * Initialized a list of snapshots whose parent volumes are from different storage systems
-     * 
+     *
      * @param withInvalid
      * @return
      */
@@ -519,7 +523,7 @@ public class ScaleIOStorageDriverTest {
 
     /**
      * Validate if each snapshot is assigned with a nativeId in the resulting snapshot list
-     * 
+     *
      * @param snapshots
      */
     private void checkResultSnapList(List<VolumeSnapshot> snapshots) {
@@ -534,7 +538,7 @@ public class ScaleIOStorageDriverTest {
 
     /**
      * initialize a list of snapshots that in the same consistency group
-     * 
+     *
      * @param withInvalid
      * @return
      */
@@ -547,7 +551,7 @@ public class ScaleIOStorageDriverTest {
 
     /**
      * initialize a list of snapshots that in the different consistency group
-     * 
+     *
      * @param withInvalid
      * @return
      */

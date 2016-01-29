@@ -39,6 +39,8 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.keystone.restapi.errorhandling.KeystoneApiException;
 import com.emc.storageos.keystone.restapi.model.response.*;
+import com.emc.storageos.model.tenant.TenantOrgRestRep;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,6 +106,8 @@ public class AuthnConfigurationService extends TaggedResource {
     @Autowired
     private TenantsService _tenantsService;
     @Autowired
+    private BasePermissionsHelper permissionHelper;
+    @Autowired
     private AuthSvcEndPointLocator _authSvcEndPointLocator;
     private KeystoneRestClientFactory _keystoneApiFactory;
     private static final URI _URI_RELOAD = URI.create("/internal/reload");
@@ -113,6 +117,10 @@ public class AuthnConfigurationService extends TaggedResource {
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
+    }
+
+    public void setPermissionHelper(BasePermissionsHelper permissionHelper) {
+        this.permissionHelper = permissionHelper;
     }
 
     public void setTenantsService(TenantsService _tenantsService) {
@@ -294,7 +302,6 @@ public class AuthnConfigurationService extends TaggedResource {
         // Retrieve tenant from OpenStack via Keystone API.
         TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
         TenantV2 tenant = retrieveTenant(tenantResponse, tenantName);
-
         // TODO: create a tenant and a project
 
         // Create a tenant.

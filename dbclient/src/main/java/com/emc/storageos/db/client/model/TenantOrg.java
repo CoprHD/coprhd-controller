@@ -37,9 +37,10 @@ public class TenantOrg extends DataObject {
 
     // _namespace the tenant is one to one mapped.
     private String _namespace;
-    
     // object storage system to which the namespace belongs
     private URI _namespaceStorage;
+    // namespace URI
+    private URI _namespaceURI;
 
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)
     @Name("parentTenant")
@@ -163,4 +164,13 @@ public class TenantOrg extends DataObject {
         setChanged("namespaceStorage");
     }
 
+    @Name("namespaceURI")
+    public URI getNamespaceURI() {
+        return _namespaceURI;
+    }
+
+    public void setNamespaceURI(URI namespaceURI) {
+        _namespaceURI = namespaceURI;
+        setChanged("namespaceURI");
+    }
 }

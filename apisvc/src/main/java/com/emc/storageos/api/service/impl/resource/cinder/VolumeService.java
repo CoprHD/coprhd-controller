@@ -142,6 +142,10 @@ public class VolumeService extends TaskResourceService {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
     }
 
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
+    }
+    
     /**
      * Get the summary list of all volumes for the given tenant
      * 
@@ -740,9 +744,9 @@ public class VolumeService extends TaskResourceService {
         boolean isValidVolume = false;
 
         if (pool == null)
-            objQuota = getCinderHelper().getProjectQuota(openstackTenantId, getUserFromContext());
+            objQuota = getQuotaHelper().getProjectQuota(openstackTenantId, getUserFromContext());
         else
-            objQuota = getCinderHelper().getVPoolQuota(openstackTenantId, pool, getUserFromContext());
+            objQuota = getQuotaHelper().getVPoolQuota(openstackTenantId, pool, getUserFromContext());
 
         if (objQuota == null) {
             _log.info("Unable to retrive the Quota information");
@@ -756,9 +760,9 @@ public class VolumeService extends TaskResourceService {
         UsageStats stats = null;
 
         if (pool != null)
-            stats = getCinderHelper().getStorageStats(pool.getId(), proj.getId());
+            stats = getQuotaHelper().getStorageStats(pool.getId(), proj.getId());
         else
-            stats = getCinderHelper().getStorageStats(null, proj.getId());
+            stats = getQuotaHelper().getStorageStats(null, proj.getId());
 
         totalVolumesUsed = stats.volumes;
         totalSizeUsed = stats.spaceUsed;

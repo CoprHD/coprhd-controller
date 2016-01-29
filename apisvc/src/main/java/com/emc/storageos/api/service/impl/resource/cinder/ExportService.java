@@ -110,6 +110,10 @@ public class ExportService extends VolumeService {
     public void setNameGenerator(NameGenerator nameGenerator) {
         _nameGenerator = nameGenerator;
     }
+    
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
+    }
 
     /**
      * Action could be either export or unexport volume
@@ -980,9 +984,9 @@ public class ExportService extends VolumeService {
         QuotaOfCinder objQuota = null;
 
         if (pool == null)
-            objQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
+            objQuota = getQuotaHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
         else
-            objQuota = getCinderHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
+            objQuota = getQuotaHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
 
         if (objQuota == null) {
             _log.info("Unable to retrive the Quota information");
@@ -993,9 +997,9 @@ public class ExportService extends VolumeService {
         UsageStats stats = null;
 
         if (pool != null)
-            stats = getCinderHelper().getStorageStats(pool.getId(), proj.getId());
+            stats = getQuotaHelper().getStorageStats(pool.getId(), proj.getId());
         else
-            stats = getCinderHelper().getStorageStats(null, proj.getId());
+            stats = getQuotaHelper().getStorageStats(null, proj.getId());
 
         totalSizeUsed = stats.spaceUsed;
 

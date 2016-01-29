@@ -19,8 +19,6 @@ public class MobilityGroupSupportDataTable extends DataTable {
     public MobilityGroupSupportDataTable() {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("migrationGroupBy");
-        addColumn("sourceStorageSystem");
-        addColumn("sourceVirtualPool");
         addColumn("description");
         setDefaultSort("name", "asc");
         setRowCallback("createRowLink");
@@ -39,8 +37,6 @@ public class MobilityGroupSupportDataTable extends DataTable {
         public String name;
         public String migrationGroupBy;
         public String description;
-        public String sourceStorageSystem;
-        public String sourceVirtualPool;
 
         public MobilityGroupSupport(NamedRelatedResourceRep mobilityGroup) {
             id = mobilityGroup.getId().toString();
@@ -49,8 +45,6 @@ public class MobilityGroupSupportDataTable extends DataTable {
             VolumeGroupRestRep volumeGroup = AppSupportUtil.getApplication(id);
             migrationGroupBy = volumeGroup.getMigrationGroupBy();
             description = volumeGroup.getDescription();
-            sourceStorageSystem = volumeGroup.getSourceStorageSystem().toString();
-            sourceVirtualPool = volumeGroup.getSourceVirtualPool().toString();
         }
     }
 }

@@ -21,8 +21,10 @@ import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByCluster;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByHost;
 import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumesByHostOrCluster;
+import com.emc.sa.service.vipr.block.tasks.IngestExportedUnmanagedVolumes;
 import com.emc.sa.service.vipr.block.tasks.RemoveVolumeFromMobilityGroup;
 import com.emc.sa.service.vipr.compute.ComputeUtils;
+import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
@@ -144,16 +146,16 @@ public class MobilityGroupMigrationService extends ViPRService {
                 }
             }
 
-            logInfo("planning to ingest %s volumes = %s", ingestVolumeIds.size(), ingestVolumeIds);
+            // logInfo("planning to ingest %s volumes = %s", ingestVolumeIds.size(), ingestVolumeIds);
 
-            // int succeed = execute(new IngestExportedUnmanagedVolumes(virtualPool, virtualArray, project,
-            // host == null ? null : host,
-            // cluster == null ? null : cluster,
-            // ingestVolumeIds,
-            // VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name()
-            // )).getTasks().size();
-            // logInfo("ingest.exported.unmanaged.volume.service.ingested", succeed);
-            // logInfo("ingest.exported.unmanaged.volume.service.skipped", volumeIds.size() - succeed);
+            int succeed = execute(new IngestExportedUnmanagedVolumes(virtualPool, virtualArray, project,
+                    host == null ? null : host,
+                    cluster == null ? null : cluster,
+                    ingestVolumeIds,
+                    IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString()
+                    )).getTasks().size();
+            logInfo("ingest.exported.unmanaged.volume.service.ingested", succeed);
+            logInfo("ingest.exported.unmanaged.volume.service.skipped", volumeIds.size() - succeed);
         }
 
     }

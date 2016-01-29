@@ -1086,35 +1086,6 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
         }
         
-        Boolean deviceSupportsSoftLimit = device.getSupportSoftLimit() != null ? device.getSupportSoftLimit() : false;
-        Boolean deviceSupportsNotificationLimit = device.getSupportNotificationLimit() != null ? device.getSupportNotificationLimit() : false;
-        
-        if (param.getSoftLimit() != 0 && !deviceSupportsSoftLimit) {
-            throw APIException.badRequests.unsupportedParameterForStorageSystem("softLimit");
-        }
-        
-        if (param.getNotificationLimit() != 0 && !deviceSupportsNotificationLimit) {
-            throw APIException.badRequests.unsupportedParameterForStorageSystem("notificationLimit");
-        }
-        
-        ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
-        ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
-
-        if (param.getSoftLimit() != 0L) {
-            ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
-        }
-
-        Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
-        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
-        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, expand, "filesystem");
-
-        fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
-        fs.setSoftGracePeriod(param.getSoftGrace());
-        fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
-        
-        _dbClient.updateObject(fs);
-        
         FileController controller = getController(FileController.class,
                 device.getSystemType());
 

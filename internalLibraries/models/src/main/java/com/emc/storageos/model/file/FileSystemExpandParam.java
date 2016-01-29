@@ -11,9 +11,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class FileSystemExpandParam {
 
     private String newSize;
-    private int softLimit;
-    private int softGrace;
-    private int notificationLimit;
 
     public FileSystemExpandParam() {
     }
@@ -37,30 +34,5 @@ public class FileSystemExpandParam {
     public void setNewSize(String newSize) {
         this.newSize = newSize;
     }
-
-    @XmlElement(name="soft_limit", required=false)
-    public int getSoftLimit() {
-        return softLimit;
-    }
-
-    public void setSoftLimit(int softLimit) {
-        this.softLimit = softLimit;
-    }
-
-    @XmlElement(name="soft_grace", required=false)
-    public int getSoftGrace() {
-        return softGrace;
-    }
-
-    public void setSoftGrace(int softGrace) {
-        this.softGrace = softGrace;
-    }
-    @XmlElement(name="notification_limit", required=false)
-    public int getNotificationLimit() {
-        return notificationLimit;
-    }
-
-    public void setNotificationLimit(int notificationLimit) {
-        this.notificationLimit = notificationLimit;
-    }
+    
 }

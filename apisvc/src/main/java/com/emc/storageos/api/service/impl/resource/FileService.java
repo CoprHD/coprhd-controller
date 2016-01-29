@@ -141,7 +141,6 @@ import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
-import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 @Path("/file/filesystems")
@@ -2707,23 +2706,5 @@ public class FileService extends TaskResourceService {
 
         permissionsHelper.checkTenantHasAccessToVirtualPool(project.getTenantOrg().getURI(), cos);
         return cos;
-    }
-
-    /**
-     * Gets and verifies the VirtualPool passed in the request.
-     * 
-     * @param project A reference to the project.
-     * @param cosURI The URI of the VirtualPool.
-     * @param dbClient Reference to a database client.
-     * @param permissionsHelper Reference to a permissions helper.
-     * 
-     * @return A reference to the VirtualPool.
-     */
-    private boolean verifyFileReplicationRecommnedations(FileShare fs, List<Recommendation> recommendations, VirtualPool newvPool) {
-        for (Recommendation rec : recommendations) {
-            if(rec.)
-
-        }
-        return false;
     }
 }

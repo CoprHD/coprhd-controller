@@ -848,7 +848,6 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.siteIdNotFound();
         }
 
-        InterProcessLock lock = drUtil.getDROperationLock();
         if (!standby.getState().equals(SiteState.STANDBY_ERROR)) {
             log.error("site {} is in state {}, should be STANDBY_ERROR", uuid, standby.getState());
             throw APIException.badRequests.operationOnlyAllowedOnErrorSite(standby.getName(), standby.getState().toString());
@@ -859,7 +858,8 @@ public class DisasterRecoveryService {
             log.error("site {} lastState was {}, retry is only supported for Pause, Resume and Failover", uuid, standby.getLastState());
             throw APIException.badRequests.operationRetryOnlyAllowedOnLastState(standby.getName(), standby.getLastState().toString());
         }
-
+        
+        InterProcessLock lock = drUtil.getDROperationLock();
         try {
 
             coordinator.startTransaction();

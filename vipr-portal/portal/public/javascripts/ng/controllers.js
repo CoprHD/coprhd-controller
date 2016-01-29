@@ -1202,7 +1202,7 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
             var type = button.data('type');
 
             $scope.filterDialog.type = type;
-            if (type == 'download') {
+            if (type === 'download') {
                 $scope.filterDialog.endTime = new Date().getTime();
                 $scope.filterDialog.endTime_date = getDate($scope.filterDialog.endTime);
                 $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);

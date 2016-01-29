@@ -177,6 +177,14 @@ public class Audit {
         if ((serviceType != null) && (serviceType.length() > 0)) {
             builder.queryParam(SERVICE_TYPE, serviceType);
         }
+        if ((language != null) && (language.length() > 0)) {
+            builder.queryParam(LANGUAGE, language);
+        }
+        buildUserResultKeyword(builder, user, result, keyword);
+        return builder.build();
+    }
+
+    private void buildUserResultKeyword(UriBuilder builder, String user, String result, String keyword) {
         if ((user != null) && (user.length() > 0)) {
             builder.queryParam(USER, user);
         }
@@ -186,11 +194,6 @@ public class Audit {
         if ((keyword != null) && (keyword.length() > 0)) {
             builder.queryParam(KEYWORD, keyword);
         }
-        if ((language != null) && (language.length() > 0)) {
-            builder.queryParam(LANGUAGE, language);
-        }
-
-        return builder.build();
     }
 
     private String formatDate(Date date) {

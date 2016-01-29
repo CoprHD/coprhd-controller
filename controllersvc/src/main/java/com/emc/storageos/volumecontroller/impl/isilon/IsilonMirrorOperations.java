@@ -22,20 +22,22 @@ import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonSyncJob;
+import com.emc.storageos.isilon.restapi.IsilonSyncJob.Action;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
-import com.emc.storageos.isilon.restapi.IsilonSyncJob.Action;
-import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobFailover;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobStart;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class IsilonMirrorOperations implements FileMirrorOperations {
     private static final Logger _log = LoggerFactory.getLogger(IsilonMirrorOperations.class);
@@ -61,7 +63,8 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void createMirrorFileShare(StorageSystem system, URI source, URI target, TaskCompleter completer) throws DeviceControllerException {
+    public void createMirrorFileShare(StorageSystem system, URI source, URI target, TaskCompleter completer)
+            throws DeviceControllerException {
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source);
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
 
@@ -89,18 +92,124 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
     }
-    
-    @Override    
-    public void stopMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer)throws DeviceControllerException{
-        
-    }
-    
 
     @Override
-    public void deleteMirrorFileShare(StorageSystem storage, URI mirror,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void stopMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+        BiosCommandResult cmdResult = null;
+        if (target.getParentFileShare() != null) {
+            String policyName = target.getLabel();
+            cmdResult = this.doStopReplicationPolicy(system, policyName);
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
+        }
     }
-    
+
+    @Override
+    public void startMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+        BiosCommandResult cmdResult = null;
+        if (target.getParentFileShare() != null) {
+            String policyName = target.getLabel();
+            cmdResult = doStartReplicationPolicy(system, policyName, completer);
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else if (cmdResult.getCommandPending()) {
+                completer.statusPending(_dbClient, cmdResult.getMessage());
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
+        }
+    }
+
+    @Override
+    public void pauseMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+        BiosCommandResult cmdResult = null;
+        if (target.getParentFileShare() != null) {
+            String policyName = target.getLabel();
+            cmdResult = this.doPauseReplicationPolicy(system, policyName);
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
+        }
+    }
+
+    @Override
+    public void resumeMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+        BiosCommandResult cmdResult = null;
+        if (target.getParentFileShare() != null) {
+            String policyName = target.getLabel();
+            cmdResult = this.doResumeReplicationPolicy(system, policyName);
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
+        }
+    }
+
+    @Override
+    public void cancelMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
+        String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), target.getLabel());
+        BiosCommandResult cmdResult = doCancelReplicationPolicy(system, policyName);
+        if (cmdResult.getCommandSuccess()) {
+            WorkflowStepCompleter.stepSucceded(completer.getOpId());
+        } else {
+            completer.error(_dbClient, cmdResult.getServiceCoded());
+        }
+    }
+
+    @Override
+    public void deleteMirrorFileShare(StorageSystem system, URI source, URI target, TaskCompleter completer)
+            throws DeviceControllerException {
+        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
+        String policyName = targetFileShare.getLabel();
+        BiosCommandResult cmdResult = dodeleteReplicationPolicy(system, policyName);
+        if (cmdResult.getCommandSuccess()) {
+            completer.ready(_dbClient);
+            WorkflowStepCompleter.stepSucceded(completer.getOpId());
+        } else {
+            completer.error(_dbClient, cmdResult.getServiceCoded());
+        }
+    }
+
+    @Override
+    public void failoverMirrorFileShare(StorageSystem systemTarget, FileShare target, TaskCompleter completer)
+            throws DeviceControllerException {
+        BiosCommandResult cmdResult = null;
+        if (target.getParentFileShare() != null) {
+            String policyName = target.getLabel();
+            cmdResult = this.doFailover(systemTarget, policyName, completer);
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else if (cmdResult.getCommandPending()) {
+                completer.statusPending(_dbClient, cmdResult.getMessage());
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
+        }
+    }
+
+    @Override
+    public void
+            resyncMirrorFileShare(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer) {
+        BiosCommandResult cmdResult = null;
+        if (target.getParentFileShare() != null) {
+
+            String policyName = target.getLabel();
+            cmdResult = doFailBack(primarySystem, secondarySystem, policyName, completer);
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
+        }
+    }
+
     /**
      * Get isilon device represented by the StorageDevice
      * 
@@ -126,7 +235,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         return isilonAPI;
 
     }
-    
+
     /**
      * Get isilon device represented by the StorageDevice
      * 
@@ -140,7 +249,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         return sshDmApi;
     }
 
- // mirror related operation
+    // mirror related operation
     /**
      * Call to Isilon Device to Create Replication Session
      * 
@@ -253,7 +362,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
                         .jobFailed(
-                                "doResumeReplicationPolicy as : Replication Policy Job can't be PAUSED because policy's last job is NOT in RUNNING state");
+                        "doResumeReplicationPolicy as : Replication Policy Job can't be PAUSED because policy's last job is NOT in RUNNING state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -278,7 +387,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
                         .jobFailed(
-                                "doResumeReplicationPolicy as : Replication Policy Job can't be RESUMED because policy's last job is NOT in PAUSED state");
+                        "doResumeReplicationPolicy as : Replication Policy Job can't be RESUMED because policy's last job is NOT in PAUSED state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -302,7 +411,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
                         .jobFailed(
-                                "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
+                        "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -520,6 +629,4 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         return builder.toString();
     }
 
-    
-    
 }

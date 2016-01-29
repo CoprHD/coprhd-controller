@@ -6,14 +6,14 @@ package com.emc.storageos.volumecontroller.impl.file;
 
 import java.net.URI;
 
-import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 
 public interface FileMirrorOperations {
     /**
-     * Create a local mirror for a filesystem
+     * Create a mirror for a filesystem
      * 
      * @param storage - URI of storage controller.
      * @param mirror
@@ -21,11 +21,21 @@ public interface FileMirrorOperations {
      * @param taskCompleter
      * @throws DeviceControllerException
      */
-    void createMirrorFileShare(StorageSystem system, URI source, URI target, TaskCompleter completer)
+    void createMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException;
 
-    
-    void stopMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer)throws DeviceControllerException;
+    void stopMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
+
+    void startMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
+
+    void pauseMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
+
+    void resumeMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
+
+    void failoverMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
+
+    void resyncMirrorFileShareLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer);
+
     /**
      * Delete Mirror of a filesystem
      * 
@@ -34,8 +44,10 @@ public interface FileMirrorOperations {
      * @param taskCompleter
      * @throws DeviceControllerException
      */
-    void deleteMirrorFileShare(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException;
+    void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer) throws DeviceControllerException;
 
-    //add management operation (pause, resume, failover, failback)
+    void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
+
+    // add management operation (pause, resume, failover, failback)
 
 }

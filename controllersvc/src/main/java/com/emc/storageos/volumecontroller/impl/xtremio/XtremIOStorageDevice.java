@@ -706,34 +706,50 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} doRemoveFromConsistencyGroup START ...", storage.getSerialNumber());
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
+        String groupName = null;
         try {
-            // Check if the consistency group exists
-            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
-            if (!client.isVersion2()) {
-                _log.info("Nothing to remove from consistency group {}", consistencyGroup.getLabel());
-                taskCompleter.ready(dbClient);
-                return;
-            }
-            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-            XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroup.getLabel(), clusterName);
-            if (cg == null) {
-                _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
-                taskCompleter.error(dbClient, DeviceControllerException.exceptions
-                        .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
-                return;
-            }
-
-            List<BlockObject> updatedBlockObjects = new ArrayList<BlockObject>();
-            for (URI uri : blockObjects) {
-                BlockObject blockObject = BlockObject.fetch(dbClient, uri);
-                if (blockObject != null) {
-                    client.removeVolumeFromConsistencyGroup(blockObject.getLabel(), consistencyGroup.getLabel(), clusterName);
-                    blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                    updatedBlockObjects.add(blockObject);
+            // get the group name from one of the block objects; we expect all of them to be the same group
+            Iterator<URI> itr = blockObjects.iterator();
+            while (itr.hasNext()) {
+                BlockObject blockObject = BlockObject.fetch(dbClient, itr.next());
+                if (blockObject != null && !blockObject.getInactive()
+                        && !NullColumnValueGetter.isNullValue(blockObject.getReplicationGroupInstance())) {
+                    groupName = blockObject.getReplicationGroupInstance();
+                    break;
                 }
             }
-            dbClient.updateAndReindexObject(updatedBlockObjects);
+
+            // Check if the replication group exists
+            if (groupName != null) {
+                // Check if the consistency group exists
+                XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+                if (!client.isVersion2()) {
+                    _log.info("Nothing to remove from consistency group {}", consistencyGroup.getLabel());
+                    taskCompleter.ready(dbClient);
+                    return;
+                }
+
+                String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+                XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, groupName, clusterName);
+                if (cg == null) {
+                    _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
+                    taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                            .consistencyGroupNotFound(groupName,
+                                    consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
+                    return;
+                }
+                for (URI uri : blockObjects) {
+                    BlockObject blockObject = BlockObject.fetch(dbClient, uri);
+                    if (blockObject != null) {
+                        client.removeVolumeFromConsistencyGroup(blockObject.getLabel(),
+                                blockObject.getReplicationGroupInstance(), clusterName);
+                        blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                        blockObject.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+                        dbClient.updateObject(blockObject);
+                    }
+                }
+            }
+
             taskCompleter.ready(dbClient);
             _log.info("{} doRemoveFromConsistencyGroup END ...", storage.getSerialNumber());
         } catch (Exception e) {

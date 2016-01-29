@@ -97,21 +97,6 @@ function installNginx
   rm -fr /tmp/nginx
 }
 
-function installDockerStorage
-{
-  if [ ! -f /var/lib/docker-storage.btrfs ]; then
-    service docker stop
-    rm -fr /var/lib/docker
-    mkdir -p /var/lib/docker
-    qemu-img create /var/lib/docker-storage.btrfs 30g
-    mkfs.btrfs /var/lib/docker-storage.btrfs
-    mount /var/lib/docker-storage.btrfs /var/lib/docker
-    grep --quiet "^/var/lib/docker-storage.btrfs" /etc/fstab || echo "/var/lib/docker-storage.btrfs /var/lib/docker btrfs defaults 0 0" >> /etc/fstab
-    sed -i s/"DOCKER_OPTS=\"\""/"DOCKER_OPTS=\"-s btrfs\""/g /etc/sysconfig/docker
-    service docker start
-  fi
-}
-
 function installStorageOS
 {
   getent group storageos || groupadd -g 444 storageos

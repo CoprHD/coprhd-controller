@@ -105,7 +105,6 @@ devkit:
 	bash $(WORKSPACE)/configure.sh installStorageOS
 	bash $(WORKSPACE)/configure.sh installNetworkConfigurationFile
 	bash $(WORKSPACE)/configure.sh installXorg
-	bash $(WORKSPACE)/configure.sh installDockerStorage
 	$(call targetLog,-)
 
 $(VMDK): | downloadISO createREPO

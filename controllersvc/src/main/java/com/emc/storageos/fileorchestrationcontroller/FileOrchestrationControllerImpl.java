@@ -40,7 +40,7 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     @Override
     public void changeFileSystemVirtualPool(FileShare sourceFs,
             List<FileDescriptor> fileDescriptors, String taskId) throws ControllerException {
-        execOrchestration("changeFileSystemVirtualPool", fileDescriptors, taskId);
+        execOrchestration("changeFileSystemVirtualPool", sourceFs, fileDescriptors, taskId);
     }
 
     // getter and setter methods

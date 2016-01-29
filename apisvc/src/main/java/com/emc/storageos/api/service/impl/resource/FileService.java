@@ -2363,7 +2363,7 @@ public class FileService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_CHANGE_SOURCE_FS, fs);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_CHANGE_SOURCE_STORAGE, device);
 
-        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        FileServiceApi fileServiceApi = getFileServiceImpl(newVpool, _dbClient);
 
         try {
             // Call out placementManager to get the recommendation for placement.

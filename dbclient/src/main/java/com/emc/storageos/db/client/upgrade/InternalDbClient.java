@@ -77,7 +77,7 @@ public class InternalDbClient extends DbClientImpl {
                     removeList.get(row.getKey()).add(column);
                 }
             }
-            RowMutator mutator = new RowMutator(ks);
+            RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
             _indexCleaner.removeOldIndex(mutator, doType, removeList, indexCf);
             batch = getNextBatch(recIt);
         }
@@ -259,7 +259,7 @@ public class InternalDbClient extends DbClientImpl {
                     // persist the object into geo db, similar to createObject(objects)
                     // only that we need to specify the keyspace explicitly here
                     // also we shouldn't overwrite the creation time
-                    RowMutator mutator = new RowMutator(geoContext.getKeyspace());
+                    RowMutator mutator = new RowMutator(geoContext.getKeyspace(), retryFailedWriteWithLocalQuorum);
                     doType.serialize(mutator, obj);
                     mutator.executeRecordFirst();
                 } catch (final InstantiationException e) {
@@ -343,7 +343,7 @@ public class InternalDbClient extends DbClientImpl {
                     }
 
                     if (objects.size() == DEFAULT_PAGE_SIZE) {
-                        RowMutator mutator = new RowMutator(ks);
+                        RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
                         _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
                         persistObject(objects);
                         objects.clear();
@@ -369,7 +369,7 @@ public class InternalDbClient extends DbClientImpl {
             }
 
             if (!objects.isEmpty()) {
-                RowMutator mutator = new RowMutator(ks);
+                RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
                 _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
                 persistObject(objects);
             }

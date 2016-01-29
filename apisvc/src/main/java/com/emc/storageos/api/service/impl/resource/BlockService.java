@@ -43,6 +43,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.util.UriUtils;
 
 import com.emc.storageos.api.mapper.functions.MapVolume;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -724,6 +725,27 @@ public class BlockService extends TaskResourceService {
         // Get and validate the VirtualPool.
         VirtualPool vpool = getVirtualPoolForVolumeCreateRequest(project, param);
 
+        // PoC -- Support for volume creation after DR (swap)
+        // Conditions are as follows:
+        // 1. Volume request contains a consistency group that has existing volumes.
+        // 2. The vpool requested is either a source RP/SRDF vpool OR a target vpool to another RP/SRDF vpool.
+        // 3. The varray requested is the same varray as an existing SOURCE (used to be TARGET) volume in the CG
+        //
+        // When these conditions are met:
+        // 1. Swap the request from the target vpool to the source vpool (if applicable)
+        //    A. Change the param object, change local variables
+        VirtualPool sourceVpool = findSourceVirtualPool(param);
+        param.setVpool(sourceVpool.getId());
+        VirtualArray sourceVarray = findSourceVirtualArray(param);
+        param.setVarray(sourceVarray.getId());
+        
+        boolean swapped = false;
+        if (!URIUtil.identical(sourceVpool.getId(), vpool.getId())) {
+            swapped = true;
+            vpool = sourceVpool;
+            varray = sourceVarray;
+        }
+        
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         // Get the count indicating the number of volumes to create. If not
         // passed
@@ -851,10 +873,18 @@ public class BlockService extends TaskResourceService {
                     Volume existingSourceVolume = null;
                     for (Volume cgVolume : activeCGVolumes) {
                         if (cgVolume.getPersonality() != null &&
-                                cgVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                                cgVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString()) &&
+                                !swapped) {
                             existingSourceVolume = cgVolume;
                             break;
                         }
+
+                        if (cgVolume.getPersonality() != null &&
+                                cgVolume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString()) &&
+                                swapped) {
+                            existingSourceVolume = cgVolume;
+                            break;
+                        }                        
                     }
 
                     if (existingSourceVolume != null) {
@@ -964,6 +994,65 @@ public class BlockService extends TaskResourceService {
         return taskList;
     }
 
+    private VirtualArray findSourceVirtualArray(VolumeCreate param) {
+        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, param.getVarray());
+
+        Volume targetVolume = findSwappedTargetVolume(param);
+        if (targetVolume != null) {
+            // We found a target volume in the CG that is assigned to the source varray, meaning it was once a SOURCE.
+            // (There is an exception to this rule, when you use the same vpool for source and target)
+            return _dbClient.queryObject(VirtualArray.class, targetVolume.getVirtualArray());
+        }
+
+        return varray;
+    }
+
+    private VirtualPool findSourceVirtualPool(VolumeCreate param) {
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, param.getVpool());
+
+        Volume targetVolume = findSwappedTargetVolume(param);
+        if (targetVolume != null) {
+            // We found a target volume in the CG that is assigned to the source varray, meaning it was once a SOURCE.
+            // (There is an exception to this rule, when you use the same vpool for source and target)
+            return _dbClient.queryObject(VirtualPool.class, targetVolume.getVirtualPool());
+        }
+
+        return vpool;
+    }
+
+    // TODO: Mark volumes as "original production" during creation and ingestion.  It'll go a long way with this sort of stuff.
+    // There may be several target varray/vpools associated with one source.  If we don't know which one is associated with the
+    // original request, we can't make a good swapped volume creation in multisite (>2) environments.
+    private Volume findSwappedTargetVolume(VolumeCreate param) {
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, param.getVpool());
+        if (param.getConsistencyGroup() == null) {
+            return null;
+        }
+
+        // Find volumes that are associated with this consistency group
+        // Find all volumes assigned to the group
+        final URIQueryResultList cgVolumesResults = new URIQueryResultList();
+        _dbClient.queryByConstraint(getVolumesByConsistencyGroup(param.getConsistencyGroup()), cgVolumesResults);
+
+        // If no volumes, just return the consistency group
+        if (!cgVolumesResults.iterator().hasNext()) {
+            return null;
+        }
+
+        while (cgVolumesResults.iterator().hasNext()) {
+            final URI volumeId = cgVolumesResults.iterator().next();
+            Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+            if (volume.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.toString())) {
+                // If this is a TARGET volume, check to see if it's using a vpool with RP protection on it.
+                VirtualPool targetVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+                if (targetVpool.getProtectionVarraySettings() != null) {
+                    return volume;
+                }
+            }
+        }
+        return null;
+    }
+    
     /**
      * returns the types (RP, VPLEX, SRDF or LOCAL) that will be created based on the vpool
      * @param vpool

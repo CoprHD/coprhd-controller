@@ -1983,6 +1983,7 @@ public class RecoverPointScheduler implements Scheduler {
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
 
         // Find the first existing source volume
+        // Need to return ORIGINAL source volumes, not the current ones.
         List<Volume> sourceVolumes = rpHelper.getCgVolumes(capabilities.getBlockConsistencyGroup(),
                 Volume.PersonalityTypes.SOURCE.toString());
 

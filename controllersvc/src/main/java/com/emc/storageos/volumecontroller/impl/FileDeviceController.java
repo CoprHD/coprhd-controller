@@ -1586,6 +1586,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             URI qtreeURI = quotaDir.getId();
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
+            quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
+            quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
+            quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
             FileDeviceInputOutput args = new FileDeviceInputOutput();
 
             // Set up args

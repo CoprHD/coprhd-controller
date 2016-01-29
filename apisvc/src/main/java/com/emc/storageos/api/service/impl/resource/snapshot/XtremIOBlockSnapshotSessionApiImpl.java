@@ -99,12 +99,4 @@ public class XtremIOBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSess
     public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project) {
         throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj) {
-        throw APIException.methodNotAllowed.notSupportedForXtremIO();
-    }
 }

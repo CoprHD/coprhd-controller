@@ -178,9 +178,9 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
+    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId, String deleteType) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
-        snapSessionImpl.deleteSnapshotSession(snapSession, snapSessionSourceObj, taskId);
+        snapSessionImpl.deleteSnapshotSession(snapSession, snapSessionSourceObj, taskId, deleteType);
     }
 
     /**

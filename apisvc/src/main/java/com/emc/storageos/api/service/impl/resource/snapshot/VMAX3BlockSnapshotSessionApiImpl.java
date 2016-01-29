@@ -17,10 +17,12 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
 
@@ -200,10 +202,21 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
-        // Invoke the BlockDeviceController to delete the snapshot session.
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
-        BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.deleteSnapshotSession(storageSystem.getId(), snapSession.getId(), taskId);
+    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId, String deleteType) {
+        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
+            // Update the task status for the session.
+            Operation op = snapSession.getOpStatus().get(taskId);
+            op.ready("Snapshot session succesfully deleted from ViPR");
+            snapSession.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.updateObject(snapSession);
+
+            // Mark the snapshot session for deletion.
+            _dbClient.markForDeletion(snapSession);
+        } else {
+            // Invoke the BlockDeviceController to delete the snapshot session.
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
+            BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
+            controller.deleteSnapshotSession(storageSystem.getId(), snapSession.getId(), taskId);
+        }
     }
 }

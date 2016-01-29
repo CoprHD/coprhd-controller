@@ -51,6 +51,7 @@ import com.emc.sa.service.vipr.block.tasks.CreateMultipleBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.CreateSnapshotFullCopy;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockExport;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshotSession;
 import com.emc.sa.service.vipr.block.tasks.DeactivateContinuousCopy;
 import com.emc.sa.service.vipr.block.tasks.DeactivateVolume;
 import com.emc.sa.service.vipr.block.tasks.DeactivateVolumes;
@@ -64,6 +65,7 @@ import com.emc.sa.service.vipr.block.tasks.FindExportsContainingHost;
 import com.emc.sa.service.vipr.block.tasks.FindVirtualArrayInitiators;
 import com.emc.sa.service.vipr.block.tasks.GetActiveContinuousCopiesForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveFullCopiesForVolume;
+import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotSessionsForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotsForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetBlockConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
@@ -102,6 +104,7 @@ import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
@@ -454,6 +457,13 @@ public class BlockStorageUtils {
         return ResourceUtils.ids(execute(new GetActiveSnapshotsForVolume(volumeId)));
     }
 
+    public static List<URI> getActiveSnapshotSessions(URI volumeId) {
+        if (ResourceType.isType(BLOCK_SNAPSHOT, volumeId)) {
+            return Collections.emptyList();
+        }
+        return ResourceUtils.ids(execute(new GetActiveSnapshotSessionsForVolume(volumeId)));
+    }
+
     public static void removeSnapshotsForVolume(URI volumeId, VolumeDeleteTypeEnum type) {
         List<URI> snapshotIds = getActiveSnapshots(volumeId);
         // For ViPR-only delete of exported snapshots, we don't want to
@@ -473,6 +483,22 @@ public class BlockStorageUtils {
 
     public static void removeSnapshot(URI snapshotId, VolumeDeleteTypeEnum type) {
         Tasks<BlockSnapshotRestRep> task = execute(new DeactivateBlockSnapshot(snapshotId, type));
+        addAffectedResources(task);
+    }
+
+    public static void removeSnapshotSessionsForVolume(URI volumeId, VolumeDeleteTypeEnum type) {
+        List<URI> snapshotSessionIds = getActiveSnapshotSessions(volumeId);
+        removeSnapshotSessions(snapshotSessionIds, type);
+    }
+
+    public static void removeSnapshotSessions(Collection<URI> snapshotSessionIds, VolumeDeleteTypeEnum type) {
+        for (URI snapshotSessionId : snapshotSessionIds) {
+            removeSnapshotSession(snapshotSessionId, type);
+        }
+    }
+
+    public static void removeSnapshotSession(URI snapshotSessionId, VolumeDeleteTypeEnum type) {
+        Tasks<BlockSnapshotSessionRestRep> task = execute(new DeactivateBlockSnapshotSession(snapshotSessionId, type));
         addAffectedResources(task);
     }
 
@@ -591,6 +617,7 @@ public class BlockStorageUtils {
         for (URI volumeId : allBlockResources) {
             if (canRemoveReplicas(volumeId)) {
                 removeSnapshotsForVolume(volumeId, type);
+                removeSnapshotSessionsForVolume(volumeId, type);
                 removeContinuousCopiesForVolume(volumeId, type);
                 removeFullCopiesForVolume(volumeId, blockResourceIds, type);
             }

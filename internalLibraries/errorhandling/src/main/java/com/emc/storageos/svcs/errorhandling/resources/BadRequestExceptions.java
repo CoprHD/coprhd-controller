@@ -316,6 +316,12 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidScheduleSnapshotExpireValue(int expireValue, int minValue, int maxValue);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToUpdateSchedulePolicy(final String policyName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToDeleteSchedulePolicy(final String policyName);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidAutoTieringPolicy();
 
@@ -1371,6 +1377,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException unsupportedSystemType(final String systemType);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException unsupportedParameterForStorageSystem(final String propertyName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException updateVirtualPoolOnlyAllowedToChange();
@@ -2798,19 +2807,19 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidPermissionForBucketACL(String permission);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException userGroupAndCustomGroupInACLFound(String user, String group, String customgroup);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException missingUserOrGroupOrCustomGroupInACE(String opName);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException multipleACLsWithUserOrGroupOrCustomGroupFound(String opType, String userOrGroup);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException bucketACLNotFoundFound(String opType, String acl);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException bucketACLAlreadyExists(String opType, String acl);
 
@@ -2818,10 +2827,11 @@ public interface BadRequestExceptions {
     public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException assoicatedPolicyTenantMismach(URI fp, URI fs);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotFindAssoicatedPolicy(URI fp);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicatePolicyAssociation(URI fp);
 }
-
-

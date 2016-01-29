@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2012-2014 EMC Corporation
- * All Rights Reserved
+ * Copyright 2012-2014 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.services;
@@ -8,6 +21,7 @@ package com.emc.storageos.services;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.ws.rs.DELETE;
 import javax.xml.bind.annotation.XmlElement;
 
 public enum OperationTypeEnum {
@@ -37,6 +51,10 @@ public enum OperationTypeEnum {
     REASSIGN_VPOOL_ACL("VpoolUpdated", "", "operation to overwrite VirtualPool acls"),
     MODIFY_VPOOL_ACL("VpoolUpdated", "", "operation to modify VirtualPool acls"),
     ASSIGN_VPOOL_TAG("ASSIGN VPOOL TAG", "", "operation to assign a tag to a VirtualPool"),
+
+    CREATE_QOS("QosCreated", "", "Quality of Service Created"),
+    UPDATE_QOS("QosUpdated", "", "Quality of Service Updated"),
+    DELETE_QOS("QosDeleted", "", "Quality os Service Deleted"),
 
     CREATE_BLOCK_VOLUME("VolumeCreated", "VolumeCreateFailed", "Volume Create"),
     DELETE_BLOCK_VOLUME("VolumeDeleted", "VolumeDeleteFailed", "Volume Delete"),

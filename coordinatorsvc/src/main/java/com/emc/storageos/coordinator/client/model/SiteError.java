@@ -48,6 +48,7 @@ public class SiteError implements CoordinatorSerializable{
             builder.append(serviceCode.toString());
             builder.append(ENCODING_SEPARATOR);
             builder.append(errorMessage);
+            builder.append(ENCODING_SEPARATOR);
             builder.append(operation);
         }
         return builder.toString();

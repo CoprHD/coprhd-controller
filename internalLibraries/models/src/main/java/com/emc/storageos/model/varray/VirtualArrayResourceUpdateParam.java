@@ -22,7 +22,6 @@ public class VirtualArrayResourceUpdateParam {
     /**
      * The list of virtual arrays to be added to or removed from the resource.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray_assignment_changes")
     public VirtualArrayAssignmentChanges getVarrayChanges() {

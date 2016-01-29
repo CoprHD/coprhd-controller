@@ -14,9 +14,10 @@ ifeq ($(BUILD_TYPE),oss)
     DEVKIT_IMAGE=coprhddevkit:2.5.0.0.$(DEVKIT_BUILD)
     DEVKIT_LOCAL=CoprHDDevKit.x86_64-2.5.0.0.$(DEVKIT_BUILD).tbz
     DEVKIT_ADDRS=https://build.coprhd.org/jenkins/userContent/DevKits/2.5.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
+    DEVKIT_JAVA=update-alternatives --set java /usr/lib64/jvm/jre-1.8.0-openjdk/bin/java; update-alternatives --set javac /usr/lib64/jvm/java-1.8.0-openjdk/bin/javac; java -version;
 else
-    DEVKIT_BUILD=1
-    DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.4.1.0.$(DEVKIT_BUILD)
+    DEVKIT_BUILD=4
+    DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.5.0.0.$(DEVKIT_BUILD)
 endif
 
 DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR):/workspace" -v "$(CURDIR)/.gradle:/root/.gradle" $(DEVKIT_IMAGE)
@@ -25,4 +26,4 @@ DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR):/
 	( ! ( [ "$(BUILD_TYPE)" = "oss" ] && ! docker history "$(DEVKIT_IMAGE)" &> /dev/null ) ) || wget --continue "$(DEVKIT_ADDRS)"
 	[ ! -f "$(DEVKIT_LOCAL)" ] || cat "$(DEVKIT_LOCAL)" | docker import - $(DEVKIT_IMAGE)
 	[ ! -f "$(DEVKIT_LOCAL)" ] || rm "$(DEVKIT_LOCAL)"
-	$(DOCKER_RUN) make -f Makefile $@ $(MAKEFLAGS)
+	$(DOCKER_RUN) bash -c "$(DEVKIT_JAVA) make -f Makefile $@ $(MAKEFLAGS)"

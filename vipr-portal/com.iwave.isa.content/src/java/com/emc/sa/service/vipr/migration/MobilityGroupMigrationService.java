@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.emc.sa.asset.providers.BlockProvider;
+import com.emc.sa.asset.providers.VirtualDataCenterProvider;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -20,7 +21,6 @@ import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByCluster;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByHost;
 import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumesByHostOrCluster;
-import com.emc.sa.service.vipr.block.tasks.IngestExportedUnmanagedVolumes;
 import com.emc.sa.service.vipr.block.tasks.RemoveVolumeFromMobilityGroup;
 import com.emc.sa.service.vipr.compute.ComputeUtils;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -28,10 +28,8 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
-import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
-import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.exceptions.TimeoutException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -139,14 +137,23 @@ public class MobilityGroupMigrationService extends ViPRService {
             List<UnManagedVolumeRestRep> volumeIds = execute(new GetUnmanagedVolumesByHostOrCluster(
                     hostOrCluster.getId()));
 
-            int succeed = execute(new IngestExportedUnmanagedVolumes(virtualPool, virtualArray, project,
-                    host == null ? null : host,
-                    cluster == null ? null : cluster,
-                    ResourceUtils.ids(volumeIds),
-                    VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name()
-                    )).getTasks().size();
-            logInfo("ingest.exported.unmanaged.volume.service.ingested", succeed);
-            logInfo("ingest.exported.unmanaged.volume.service.skipped", volumeIds.size() - succeed);
+            List<URI> ingestVolumeIds = Lists.newArrayList();
+            for (UnManagedVolumeRestRep unmanaged : volumeIds) {
+                if (VirtualDataCenterProvider.matchesVpool(unmanaged, virtualPool)) {
+                    ingestVolumeIds.add(unmanaged.getId());
+                }
+            }
+
+            logInfo("planning to ingest %s volumes = %s", ingestVolumeIds.size(), ingestVolumeIds);
+
+            // int succeed = execute(new IngestExportedUnmanagedVolumes(virtualPool, virtualArray, project,
+            // host == null ? null : host,
+            // cluster == null ? null : cluster,
+            // ingestVolumeIds,
+            // VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name()
+            // )).getTasks().size();
+            // logInfo("ingest.exported.unmanaged.volume.service.ingested", succeed);
+            // logInfo("ingest.exported.unmanaged.volume.service.skipped", volumeIds.size() - succeed);
         }
 
     }

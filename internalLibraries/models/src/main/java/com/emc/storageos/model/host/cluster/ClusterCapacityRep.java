@@ -16,7 +16,6 @@ public class ClusterCapacityRep {
     /**
      * get total provisioned capacity.
      * 
-     * @valid None
      * @return return total provisioned capacity.
      */
     @XmlElement(name = "totalProvisioned_gb")
@@ -31,7 +30,6 @@ public class ClusterCapacityRep {
     /**
      * gets the total free capacity.
      * 
-     * @valid None
      * @return returns the total free capacity.
      */
     @XmlElement(name = "totalFree_gb")

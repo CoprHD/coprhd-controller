@@ -1,0 +1,8 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.app'] /}
+
+#{DataTable.header titleKey:'Application.list.title'/}
+#{DataTable.crudTable id:'application', 
+                      dataTable:dataTable,
+                      deleteConfirm:messages.get('Application.deleteConfirm')}
+#{/DataTable.crudTable}

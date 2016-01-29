@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to initialize the consistency group for RecoverPoint
@@ -29,7 +30,7 @@ public class RpBlockSnapshotConsistencyGroupMigration extends BaseCustomMigratio
     private static final Logger log = LoggerFactory.getLogger(RpBlockSnapshotConsistencyGroupMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         updateRecoverPointBlockSnapshots();
     }
 

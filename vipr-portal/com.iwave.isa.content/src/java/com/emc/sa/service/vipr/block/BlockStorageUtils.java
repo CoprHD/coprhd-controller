@@ -279,7 +279,7 @@ public class BlockStorageUtils {
         }
         return volumeIds;
     }
-    
+
     public static List<URI> createVolumes(URI projectId, URI virtualArrayId, URI virtualPoolId,
             String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId) {
         String volumeSize = gbToVolumeSize(sizeInGb);
@@ -470,7 +470,7 @@ public class BlockStorageUtils {
         Tasks<BlockSnapshotRestRep> task = execute(new DeactivateBlockSnapshot(snapshotId));
         addAffectedResources(task);
     }
-    
+
     public static void resynchronizeBlockSnapshots(Collection<URI> fullCopyIds) {
         for (URI fullCopyId : fullCopyIds) {
             resynchronizeBlockSnaptshot(fullCopyId);
@@ -570,7 +570,12 @@ public class BlockStorageUtils {
             allBlockResources.addAll(getSrdfTargetVolumes(volume));
         }
 
-        removeBlockResourcesFromExports(allBlockResources);
+        // For ViPR only delete of exported volumes, we don't want to
+        // unexport the volumes.
+        if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
+            removeBlockResourcesFromExports(allBlockResources);
+        }
+
         for (URI volumeId : allBlockResources) {
             if (canRemoveReplicas(volumeId)) {
                 removeSnapshotsForVolume(volumeId);
@@ -786,7 +791,7 @@ public class BlockStorageUtils {
 
     /**
      * Finds the exports (itl) for the given initiators.
-     *
+     * 
      * @param exports
      *            the list of all exports (itl)
      * @param initiators
@@ -885,6 +890,7 @@ public class BlockStorageUtils {
     public interface Params {
         @Override
         public String toString();
+
         public Map<String, Object> getParams();
     }
 
@@ -918,7 +924,7 @@ public class BlockStorageUtils {
             return map;
         }
     }
-    
+
     /**
      * Stores the host and HLU values for volume create for host services.
      */
@@ -943,7 +949,7 @@ public class BlockStorageUtils {
             return map;
         }
     }
-    
+
     /**
      * Stores the name, size, and count of volumes for multi-volume create services.
      */
@@ -971,7 +977,7 @@ public class BlockStorageUtils {
 
     /**
      * Helper method for creating a list of all the params for the createBlockVolumesHelper.
-     *
+     * 
      * @param table volume table
      * @param params for volume creation
      * @return map of all params

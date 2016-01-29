@@ -102,6 +102,7 @@ public class VPlexApiConstants {
     public static final URI URI_DISTRIBUTED_DEVICE_COMP = URI.create("/distributed-device-components/");
     public static final URI URI_COMPONENTS = URI.create("/components/");
     public static final URI URI_DEVICE_ATTACH_MIRROR = URI.create("/vplex/device+attach-mirror");
+    public static final URI URI_REBUILD_SET_TRANSFER_SIZE = URI.create("/vplex/rebuild+set-transfer-size");
     public static final URI URI_EXPAND_VIRTUAL_VOLUME = URI.create("/vplex/virtual-volume+expand");
     public static final URI URI_CREATE_CG = URI.create("/vplex/consistency-group+create");
     public static final URI URI_ADD_VOLUMES_TO_CG = URI.create("/vplex/consistency-group+add-virtual-volumes");
@@ -170,6 +171,7 @@ public class VPlexApiConstants {
     public static final String ARG_APPC = "--appc";
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";
     public static final String ARG_TRANSFER_SIZE = "--transfer-size";
+    public static final String ARG_ALL_DEVICES = "/clusters/*/devices/*";
 
     // Constants related to claimed storage volumes.
     public static final String VOLUME_NAME_PREFIX = "V";

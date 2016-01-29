@@ -102,6 +102,8 @@ public class AuthnConfigurationService extends TaggedResource {
     private static final String HTTP = "http://";
 
     @Autowired
+    private TenantsService _tenantsService;
+    @Autowired
     private AuthSvcEndPointLocator _authSvcEndPointLocator;
     private KeystoneRestClientFactory _keystoneApiFactory;
     private static final URI _URI_RELOAD = URI.create("/internal/reload");
@@ -111,6 +113,10 @@ public class AuthnConfigurationService extends TaggedResource {
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
+    }
+
+    public void setTenantsService(TenantsService _tenantsService) {
+        this._tenantsService = _tenantsService;
     }
 
     public void setKeystoneFactory(KeystoneRestClientFactory factory) {
@@ -290,6 +296,11 @@ public class AuthnConfigurationService extends TaggedResource {
         TenantV2 tenant = retrieveTenant(tenantResponse, tenantName);
 
         // TODO: create a tenant and a project
+
+        // Create a tenant.
+        _tenantsService.createSubTenant();
+        // Create a project.
+        _tenantsService.createProject();
 
         _log.info("END - register CoprHD in Keystone");
     }

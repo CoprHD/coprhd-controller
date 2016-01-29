@@ -6059,14 +6059,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * add step for update application, using by VPLEX and RP to 
      * add/remove block volumes to/from replication groups on multiple storage systems
      * @param workflow
-     * @param completer
      * @param addVolList
      * @param removeVolumesURI
      * @param waitForStep
      * @param taskId
      * @return
      */
-    public String addStepsForUpdateApplication(Workflow workflow, TaskCompleter completer, ApplicationAddVolumeList addVolList, List<URI> removeVolumesURI, 
+    public String addStepsForUpdateApplication(Workflow workflow, ApplicationAddVolumeList addVolList, List<URI> removeVolumesURI, 
             String waitForStep, String taskId) {
         
         // split up volumes by storage system and add steps for each storage system
@@ -6118,7 +6117,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             addVolsForOneStorageSystem.setConsistencyGroup(addVolList == null ? null : cguri);
             addVolsForOneStorageSystem.setReplicationGroupName(addVolList == null ? null : addVolList.getReplicationGroupName());
             
-            waitFor = addStepsForUpdateApplicationSingleStorage(workflow, completer, storageUri, addVolsForOneStorageSystem, removeVolumesForStorageSystem, 
+            waitFor = addStepsForUpdateApplicationSingleStorage(workflow, storageUri, addVolsForOneStorageSystem, removeVolumesForStorageSystem, 
                     waitFor, taskId);
                 
         }
@@ -6130,7 +6129,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * add step for update application
      *  adds volumes to replication groups on a single storage systems
      * @param workflow
-     * @param completer
      * @param storage
      * @param addVolList
      * @param removeVolumeList
@@ -6139,7 +6137,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @return
      * @throws ControllerException
      */
-    private String addStepsForUpdateApplicationSingleStorage(Workflow workflow, TaskCompleter completer, URI storage, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList,
+    private String addStepsForUpdateApplicationSingleStorage(Workflow workflow, URI storage, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList,
             String waitForStep, String opId) throws ControllerException {
 
        List<URI> addVolumesList = new ArrayList<URI>();
@@ -6229,6 +6227,56 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
        }
 
        return waitFor;
+    }
+    
+    /**
+     * 
+     * @param workflow
+     * @param completer
+     * @param vnxVolumeList VNX volumes to convert replication group
+     * @param waitForStep
+     * @param opId
+     * @return the step string
+     * @throws ControllerException
+     */
+    public String addStepsForConvertVNXReplicationGroup(Workflow workflow, List<Volume> vnxVolumeList,
+            String waitForStep, String opId) throws ControllerException {
+        String waitFor = waitForStep;
+        
+        // Sort the volumes by replication group
+        Map<String, List<URI>> allVolumeMap = new HashMap<String, List<URI>>();
+        for (Volume volume : vnxVolumeList) {
+            String key = volume.getStorageController().toString() + volume.getReplicationGroupInstance().toString();
+            List<URI> vols = allVolumeMap.get(key);
+            if (vols == null) {
+                vols = new ArrayList<URI>();
+                allVolumeMap.put(key, vols);
+            }
+            vols.add(volume.getId());
+        }
+        for (List<URI>volumes : allVolumeMap.values()) {
+            Volume firstVol = _dbClient.queryObject(Volume.class, volumes.get(0));
+            URI storage = firstVol.getStorageController();
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            URI cguri = firstVol.getConsistencyGroup();
+            String rgName = firstVol.getReplicationGroupInstance();
+            // remove volumes from array replication group, and delete the group, but keep volumes reference
+            waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                    String.format("Removing volumes from consistency group %s", rgName),
+                    waitFor, storage, storageSystem.getSystemType(),
+                    this.getClass(),
+                    removeFromConsistencyGroupMethod(storage, cguri, volumes, true),
+                    rollbackMethodNullMethod(), null);
+
+            // remove replication group
+            waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                    String.format("Deleting replication group %s", rgName),
+                    waitFor, storage, storageSystem.getSystemType(),
+                    this.getClass(),
+                    deleteConsistencyGroupMethod(storage, cguri, rgName, true, false),
+                    rollbackMethodNullMethod(), null);
+        }
+        return waitFor;
     }
     
 }

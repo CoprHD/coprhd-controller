@@ -5984,10 +5984,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             completer = new ApplicationTaskCompleter(applicationId, allAddVolumes, allRemoveVolumes, impactedCGs, taskId);
             
             // add steps for add source and remove vols
-            String waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, completer, addSourceVols, removeVolumesURI, null, taskId);
+            String waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addSourceVols, removeVolumesURI, null, taskId);
             
             // add steps for add target vols
-            _blockDeviceController.addStepsForUpdateApplication(workflow, completer, addTargetVols, null, waitFor, taskId);
+            _blockDeviceController.addStepsForUpdateApplication(workflow, addTargetVols, null, waitFor, taskId);
             
             _log.info("Executing workflow plan {}", BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);
             String successMessage = String.format("Update application successful for %s", application.getLabel());

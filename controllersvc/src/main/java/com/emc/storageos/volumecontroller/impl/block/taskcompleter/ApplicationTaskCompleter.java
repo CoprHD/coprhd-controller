@@ -36,9 +36,9 @@ public class ApplicationTaskCompleter extends TaskCompleter{
 
     private static final long serialVersionUID = -9188670003331949130L;
     private static final Logger log = LoggerFactory.getLogger(ApplicationTaskCompleter.class);
-    private List<URI> addVolumes;
-    private List<URI> removeVolumes;
-    private Collection<URI> consistencyGroups;
+    protected List<URI> addVolumes;
+    protected List<URI> removeVolumes;
+    protected Collection<URI> consistencyGroups;
     
     public ApplicationTaskCompleter(URI volumeGroupId, List<URI> addVolumes, List<URI>removeVols, Collection<URI> consistencyGroups, String opId) {
         super(VolumeGroup.class, volumeGroupId, opId);
@@ -98,7 +98,7 @@ public class ApplicationTaskCompleter extends TaskCompleter{
      * @param voluri The volumes that will be updated
      * @param dbClient
      */
-    private void removeApplicationFromVolume(URI voluri, DbClient dbClient) {
+    protected void removeApplicationFromVolume(URI voluri, DbClient dbClient) {
         Volume volume = dbClient.queryObject(Volume.class, voluri);
         String appId = getId().toString();
         StringSet appIds = volume.getVolumeGroupIds();
@@ -141,7 +141,7 @@ public class ApplicationTaskCompleter extends TaskCompleter{
      * @param voluri The volumes that will be updated
      * @param dbClient
      */
-    private void addApplicationToVolume(Volume volume, DbClient dbClient) {
+    protected void addApplicationToVolume(Volume volume, DbClient dbClient) {
 
         StringSet applications = volume.getVolumeGroupIds();
         if (applications == null) {
@@ -162,4 +162,6 @@ public class ApplicationTaskCompleter extends TaskCompleter{
             }
         }
     }
+    
+    
 }

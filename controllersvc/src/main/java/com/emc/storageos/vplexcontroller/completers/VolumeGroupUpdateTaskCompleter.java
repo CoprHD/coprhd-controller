@@ -5,6 +5,7 @@
 package com.emc.storageos.vplexcontroller.completers;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -15,23 +16,19 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ApplicationTaskCompleter;
 
-public class VolumeGroupUpdateTaskCompleter extends TaskCompleter {
+public class VolumeGroupUpdateTaskCompleter extends ApplicationTaskCompleter {
 
     private static final long serialVersionUID = 8574883265512570806L;
     private static final Logger log = LoggerFactory.getLogger(VolumeGroupUpdateTaskCompleter.class);
-    private List<URI> addVolumes;
-    private List<URI> removeVolumes;
     
-    public VolumeGroupUpdateTaskCompleter(URI volumeGroupId, List<URI> addVolumes, List<URI>removeVols, String opId) {
-        super(VolumeGroup.class, volumeGroupId, opId);
-        this.addVolumes = addVolumes;
-        this.removeVolumes = removeVols;
+    public VolumeGroupUpdateTaskCompleter(URI volumeGroupId, List<URI> addVolumes, List<URI>removeVols, 
+                                          Collection<URI>cgs, String opId) {
+        super(volumeGroupId, addVolumes, removeVols, cgs, opId);
     }
     
     @Override
@@ -42,13 +39,14 @@ public class VolumeGroupUpdateTaskCompleter extends TaskCompleter {
         updateWorkflowStatus(status, coded);
         if (addVolumes != null) {
             for (URI voluri : addVolumes) {
+                Volume volume = dbClient.queryObject(Volume.class, voluri);
                 switch (status) {
                     case error:
                         setErrorOnDataObject(dbClient, Volume.class, voluri, coded);
                         break;
                     default:
                         setReadyOnDataObject(dbClient, Volume.class, voluri);
-                        addVolumeGroupToVolume(voluri, dbClient);
+                        addApplicationToVolume(volume, dbClient);
                 }
             }
         }
@@ -61,6 +59,18 @@ public class VolumeGroupUpdateTaskCompleter extends TaskCompleter {
                     default:
                         setReadyOnDataObject(dbClient, Volume.class, voluri);
                         removeVolumeGroupFromVolume(voluri, dbClient);
+                }
+            }
+        }
+        if (consistencyGroups != null && !consistencyGroups.isEmpty()) {
+            for (URI cguri : consistencyGroups) {
+                switch (status) {
+                    case error:
+                        setErrorOnDataObject(dbClient, BlockConsistencyGroup.class, cguri, coded);
+                        break;
+                    default:
+                        setReadyOnDataObject(dbClient, BlockConsistencyGroup.class, cguri);
+                        updateConsistencyGroup(cguri, dbClient);
                 }
             }
         }
@@ -97,32 +107,19 @@ public class VolumeGroupUpdateTaskCompleter extends TaskCompleter {
         }
     }
     
-    
     /**
-     * Add the application to the volume applicationIds attribute
-     * @param voluri The volumes that will be updated
+     * Update arrayConsistency attribute
+     * @param cguri The consistency group that will be updated
      * @param dbClient
      */
-    private void addVolumeGroupToVolume(URI voluri, DbClient dbClient) {
-        Volume volume = dbClient.queryObject(Volume.class, voluri);
-        StringSet volumeGroups = volume.getVolumeGroupIds();
-        if (volumeGroups == null) {
-            volumeGroups = new StringSet();
-        }
-        volumeGroups.add(getId().toString());
-        volume.setVolumeGroupIds(volumeGroups);
-        dbClient.updateObject(volume);
-        // Once one of volume in a VPLEX CG is added to an application, the CG's arrayConsistency
-        // should turn to false
-        URI cguri = volume.getConsistencyGroup();
-        if (NullColumnValueGetter.isNullURI(cguri)) {
-        	return;
-        }
+    private void updateConsistencyGroup(URI cguri, DbClient dbClient) {
         BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cguri);
-        if (cg.getArrayConsistency()) {
-        	log.info("Updated consistency group arrayConsistency");
-        	cg.setArrayConsistency(false);
-        	dbClient.updateObject(cg);
+        if (cg != null && !cg.getInactive()) {
+            if (cg.getArrayConsistency()) {
+                log.info("Updated consistency group arrayConsistency");
+                cg.setArrayConsistency(false);
+                dbClient.updateObject(cg);
+            }
         }
     }
 

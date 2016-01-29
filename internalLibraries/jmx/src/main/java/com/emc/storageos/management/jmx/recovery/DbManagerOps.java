@@ -140,6 +140,10 @@ public class DbManagerOps implements AutoCloseable {
         return this.mbean.getLastSucceededRepairStatus(forCurrentNodesOnly);
     }
 
+    public void resetRepairState() {
+        mbean.resetRepairState();
+    }
+    
     public boolean adjustNumTokens() throws InterruptedException {
         return this.mbean.adjustNumTokens();
     }
@@ -158,11 +162,6 @@ public class DbManagerOps implements AutoCloseable {
                 log.warn("Remove node({}) from cassandra ring failed", nodeId, e);
             }
         }
-    }
-
-    public boolean isDataCenterUnreachable(String dcName) {
-        log.info("Checking Cassandra nodes availability for {}", dcName);
-        return mbean.isDataCenterUnreachable(dcName);
     }
 
     public void removeDataCenter(String dcName) {

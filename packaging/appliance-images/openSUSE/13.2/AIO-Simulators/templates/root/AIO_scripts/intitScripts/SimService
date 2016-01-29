@@ -1,0 +1,518 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          CheckIP
+# Required-Start:    boot.ovfenv $named
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:
+# Description:       makes all first time changes related to new deploy IP
+### END INIT INFO
+
+FIRSTBOOT="/var/log/firstboot.log"
+ECOM80disable="/var/log/ECOM80enable"
+
+
+#Don't change these
+SIMULATORS=/data/simulators
+CISCO_BASHRC=$SIMULATORS/cisco-sim/bashrc
+RP_CONFIG=$SIMULATORS/rp-sim/rp_config.properties
+VPLEX_CONFIG=$SIMULATORS/vplex-sim/vplex_config.properties
+XIO_CONFIG=$SIMULATORS/xio/xio_config.properties
+VPLEX2_CONFIG=$SIMULATORS/vplex-sim_2/vplex_config.properties
+XIO2_CONFIG=$SIMULATORS/xio_2/xio_config.properties
+WIN_CONFIG=$SIMULATORS/win-sim/config/simulator.xml
+HDS_CONFIG_1=$SIMULATORS/hds-sim/data/original/StorageArray.ARRAY.R700.100101.json
+HDS_CONFIG_2=$SIMULATORS/hds-sim/data/original/StorageArray.ARRAY.HM700.200201.json
+HDS_SERVER_CONFIG=$SIMULATORS/hds-sim/conf/serverConfig.groovy
+ECOM80_CONFIG=$SIMULATORS/ecom80/providers/OSLSProvider.conf
+ECOM462_CONFIG=$SIMULATORS/ecom462/providers/OSLSProvider.conf
+LDAP_CONFIG=$SIMULATORS/ldap-sim/bin/default.payload
+
+interface="$(/sbin/ifconfig -a | grep Ethernet | awk '{print $1}' | head -1)"
+
+ip="$(/sbin/ifconfig | grep -A 1 $interface'\s' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
+#ip2="$(/sbin/ifconfig | grep -A 1 $interface':0' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
+
+#sed -i "s/700/598/" $SIMULATORS/ecom80/conf/Port_settings.xml
+#sed -i "s/598/700/" $SIMULATORS/ecom462/conf/Port_settings.xml
+
+#if [ -f $ECOM80disable ];then
+#fi
+
+hostname="$(host $ip| cut -d ' ' -f 5 |cut -d '.' -f 1)"
+
+
+start(){
+	if [ ! -f $FIRSTBOOT ];then
+		#echo "Updating Simulator Config IPs to $ip and to $ip2"
+		#EDIT CONFIGURATIONS
+
+		#ECOM
+		#/usr/sbin/iptables --flush
+		#/usr/sbin/iptables -A INPUT -d $ip -i eth0 -p tcp -m tcp --dport 7000:7009 -j DROP
+		#if [ "$ip2" != "" ];then
+		#	/usr/sbin/iptables -A INPUT -d $ip2 -i eth0 -p tcp -m tcp --dport 5980:5989 -j DROP
+		#fi
+
+		#WINDOWS
+		sed -i 's|<provider ip'.*'='.*' u|<provider ip="'$ip'" u|' $WIN_CONFIG 
+	
+		#RP	
+		#sed -i "s/^RP_SIMULATOR_IP=.*/RP_SIMULATOR_IP=$ip/" $RP_CONFIG
+		#sed -i "s/^LISTENER_HOST=.*/LISTENER_HOST=$ip/" $RP_CONFIG
+		sed -i "s/\(^\|#\)*SMIProviderIP.*=.*:/SMIProviderIP=$ip:/" $RP_CONFIG
+    
+        #ECOM
+        sed -i "s/700/598/" $SIMULATORS/ecom462/conf/Port_settings.xml
+        sed -i "s/\(^\|#\)*ADD_V2_SYMM=.*/ADD_V2_SYMM=no/" $ECOM462_CONFIG
+        sed -i "s/^#VERSION.*=.*//" $ECOM462_CONFIG
+        sed -i "s/\(^\|#\)*VERSION.*=.*/VERSION=462/" $ECOM462_CONFIG
+
+        sed -i "s/598/700/" $SIMULATORS/ecom80/conf/Port_settings.xml
+        sed -i "s/\(^\|#\)*ADD_V2_SYMM.*=.*/ADD_V2_SYMM=yes/" $ECOM80_CONFIG
+        sed -i "s/^#VERSION.*=.*//" $ECOM80_CONFIG
+        sed -i "s/\(^\|#\)*VERSION.*=.*/VERSION=80/" $ECOM80_CONFIG
+
+
+    		
+    	#VPLEX
+    	#sed -i "s/\(^\|#\)*VplexSimulatorIP=.*/VplexSimulatorIP=$ip/" $VPLEX_CONFIG
+    	sed -i "s/\(^\|#\)*RP_SERVERs.*=.*:/RP_SERVERs=$ip:/" $VPLEX_CONFIG
+    	sed -i "s/\(^\|#\)*SMIProviderIP.*=.*/SMIProviderIP=$ip:5989,$ip:7009/" $VPLEX_CONFIG
+        sed -i "s/\(^\|#\)*VPLEX_HTTPS_PORT.*=.*/VPLEX_HTTPS_PORT=443/" $VPLEX_CONFIG
+        sed -i "s/\(^\|#\)*VPLEX_HTTP_PORT.*=.*/VPLEX_HTTP_PORT=8050/" $VPLEX_CONFIG
+        sed -i "s/\(^\|#\)*cluster1.*=.*/cluster1=FNM00130900300/" $VPLEX_CONFIG
+        sed -i "s/\(^\|#\)*cluster2.*=.*/cluster2=FNM00130900301/" $VPLEX_CONFIG
+        sed -i "s/\(^\|#\)*Cluster1_Wwn_Prefix.*=.*/Cluster1_Wwn_Prefix=6/" $VPLEX_CONFIG
+        sed -i "s/\(^\|#\)*Cluster2_Wwn_Prefix.*=.*/Cluster2_Wwn_Prefix=7/" $VPLEX_CONFIG
+        sed -i "s/\(^\|#\)*clusters.*=.*/clusters=2/" $VPLEX_CONFIG
+
+    	#if [ "$ip2" != "" ]; then
+        #               sed -i "s/\(^\|#\)*\(SMIProviderIP=.*\)/\1$ip2:7009,/" $VPLEX_CONFIG
+        #      fi
+    	sed -i "s/\(^\|#\)*XtremeIOIPs.*=.*:/XtremeIOIPs=$ip:/" $VPLEX_CONFIG
+    		
+    	#VPLEX2
+        #        sed -i "s/\(^\|#\)*VplexSimulatorIP=.*/VplexSimulatorIP=$ip/" $VPLEX2_CONFIG
+        sed -i "s/\(^\|#\)*RP_SERVERs.*=.*:/RP_SERVERs=$ip:/" $VPLEX2_CONFIG
+        sed -i "s/\(^\|#\)*SMIProviderIP.*=.*/SMIProviderIP=$ip:5989,$ip:7009/" $VPLEX2_CONFIG
+        sed -i "s/\(^\|#\)*VPLEX_HTTPS_PORT.*=.*/VPLEX_HTTPS_PORT=444/" $VPLEX2_CONFIG
+        sed -i "s/\(^\|#\)*VPLEX_HTTP_PORT.*=.*/VPLEX_HTTP_PORT=8060/" $VPLEX2_CONFIG
+        sed -i "s/\(^\|#\)*cluster1.*=.*/cluster1=FNM00130900500/" $VPLEX2_CONFIG
+        sed -i "s/\(^\|#\)*cluster2.*=.*/cluster2=FNM00130900501/" $VPLEX2_CONFIG
+        sed -i "s/\(^\|#\)*Cluster1_Wwn_Prefix.*=.*/Cluster1_Wwn_Prefix=4/" $VPLEX2_CONFIG
+        sed -i "s/\(^\|#\)*Cluster2_Wwn_Prefix.*=.*/Cluster2_Wwn_Prefix=5/" $VPLEX2_CONFIG
+        sed -i "s/\(^\|#\)*clusters.*=.*/clusters=2/" $VPLEX2_CONFIG
+
+    	#if [ "$ip2" != "" ]; then
+         #       	sed -i "s/\(^\|#\)*\(SMIProviderIP=.*\)/\1$ip2:7009,/" $VPLEX2_CONFIG
+       	#	fi
+         #       sed -i "s/\(^\|#\)*XtremeIOIPs=.*:/XtremeIOIPs=$ip:/" $VPLEX2_CONFIG
+        sed -i "s/\(^\|#\)*XtremeIOIPs.*=.*:/XtremeIOIPs=$ip:/" $VPLEX2_CONFIG
+
+    	#XIO 
+    	sed -i "s/\(^\|#\)*HOST.*=.*/HOST=$ip/" $XIO_CONFIG
+        sed -i "s/\(^\|#\)*HTTPS_PORT.*=.*/HTTPS_PORT=4430/" $XIO_CONFIG
+        sed -i "s/\(^\|#\)*HTTP_PORT.*=.*/HTTP_PORT=8020/" $XIO_CONFIG
+        sed -i "s/\(^\|#\)*TARGET_PREFIX.*=.*/TARGET_PREFIX=24/" $XIO_CONFIG
+
+
+    	#XIO2
+        sed -i "s/\(^\|#\)*HOST.*=.*/HOST=$ip/" $XIO2_CONFIG
+        sed -i "s/\(^\|#\)*HTTPS_PORT.*=.*/HTTPS_PORT=4431/" $XIO2_CONFIG
+        sed -i "s/\(^\|#\)*HTTP_PORT.*=.*/HTTP_PORT=8021/" $XIO2_CONFIG
+        sed -i "s/\(^\|#\)*TARGET_PREFIX.*=.*/TARGET_PREFIX=25/" $XIO2_CONFIG
+
+    	
+    	#CISCO
+    	cp $CISCO_BASHRC /root/.bashrc
+
+    	#HDS
+    	sed -i "s/\(\"name\"\: \"\(HUS VM\|VSP\)@\).*/\1$ip\",/" $HDS_CONFIG_1
+    	sed -i "s/\(\"description\"\: \"\(VSP\|HUS VM\) .* at \).*/\1$ip\",/" $HDS_CONFIG_1
+    	sed -i "s/\(\"name\"\: \"\(HUS VM\|VSP\)@\).*/\1$ip\",/" $HDS_CONFIG_2
+    	sed -i "s/\(\"description\"\: \"\(VSP\|HUS VM\) .* at \).*/\1$ip\",/" $HDS_CONFIG_2
+        
+        sed -i "s/\(fromUri(.*service\")\.port\)(.*)/\1(2002).build()/" $HDS_SERVER_CONFIG
+        sed -i "s/\(fromUri(.*cimom\")\.port\)(.*)/\1(5999).build()/" $HDS_SERVER_CONFIG
+
+
+    		#create tracking file to know if booted before
+    		#touch $FIRSTBOOT
+    		#echo "Firstboot setup complete" >> $FIRSTBOOT
+	fi
+	#Set hostname
+	hostname $hostname
+	
+	#setup cisco service
+	source /root/.bashrc
+	
+}
+
+#default-ecom(){
+ #   case "$1" in
+  #      v2-v3)
+   #         echo "Setting ECOM803 as default (Primary IP)"
+    #        rm -f $ECOM80disable
+     #       ;;
+      #  v2-vnx)
+       #     echo "Setting ECOM462 as default (Primary IP)"
+        #    touch $ECOM80disable
+         #           echo "Setting ECOM462 as default (Primary IP)" >> $ECOM80disable
+          #  ;;
+        #*)
+         #   echo "default-ecom can only be set to v2-v3 or v2-vnx"
+          #  exit 1
+           # exit 1
+#    esac
+#}
+
+#firstboot(){
+#	case "$1" in
+#		on)
+#			echo "enabling firstboot configurations"
+#			rm -f $FIRSTBOOT
+#			;;
+#		off)
+#			echo "disabling firstboot configurations"
+#			touch $FIRSTBOOT
+ #               	echo "Firstboot setup complete" >> $FIRSTBOOT
+#			;;
+#		*)
+#			echo "firstboot can only be set to on or off"
+#			exit 1
+#			exit 1
+#	esac
+#}
+
+diag(){
+	echo "Running Simulator Diagnostics..."
+	checkservices	
+	# checkaddresses
+}
+
+checkservices(){
+result=0
+echo -n "Checking simulator services..."
+service ECOM80 status |grep 'running' &> /dev/null
+	if [ $? != 0 ]; then
+   		echo -e "\nECOM80 service not running"
+		service ECOM80 start
+		result=1
+	fi
+service ECOM462 status |grep 'running' &> /dev/null
+        if [ $? != 0 ]; then
+                echo -e "\nECOM462 service not running"
+                service ECOM462 start
+                result=1
+        fi
+service RP status |grep 'simulator already running' &> /dev/null
+        if [ $? != 0 ]; then
+                echo -e "\nRP service not running"
+                service RP start
+                result=1
+        fi
+service WIN status |grep 'simulator already running' &> /dev/null
+        if [ $? != 0 ]; then
+                echo -e "\nWIN service not running"
+                service WIN start
+                result=1
+        fi
+service VPLEX status |grep 'simulator already running' &> /dev/null
+        if [ $? != 0 ]; then
+                echo -e "\nVPLEX service not running"
+                service VPLEX start
+                result=1
+        fi
+service VPLEX2 status |grep 'simulator already running' &> /dev/null
+        if [ $? != 0 ]; then
+                echo -e "\nVPLEX2 service not running"
+                service VPLEX2 start
+                result=1
+        fi
+
+service XIO status |grep 'simulator already running' &> /dev/null
+        if [ $? != 0 ]; then
+                echo -e "\nXIO service not running"
+                service XIO start
+                result=1
+        fi
+service XIO2 status |grep 'simulator already running' &> /dev/null
+        if [ $? != 0 ]; then
+                echo -e "\nXIO2 service not running"
+                service XIO2 start
+                result=1
+        fi
+service CiscoMgmt status |grep 'server already running' &> /dev/null
+        if [ $? != 0 ]; then
+                echo -e "\nCiscoMgmt service not running"
+                service CiscoMgmt start
+                result=1
+        fi
+service HDS status |grep 'simulator already running' &> /dev/null
+        if [ $? != 0 ]; then
+                echo -e "\nHDS service not running"
+                service HDS start
+                result=1
+        fi
+service LDAP status |grep 'running' &> /dev/null
+        if [ $? != 0 ]; then
+                echo -e "\nLDAP service not running"
+                service LDAP start
+                result=1
+        fi
+if [ $result == 0 ]; then
+	echo "OK"
+else
+   	echo "FIX ATTEMPTED"
+fi
+
+}
+
+# checkaddresses(){
+# result=0
+# echo -n "Checking simulator addresses..."
+
+# #ECOM80
+# /usr/sbin/iptables-save | grep "$ip.*7000\:7009"&> /dev/null
+# 	if [ $? != 0 ]; then
+#                 echo -e "\nECOM80 simulator is not configured correctly, reconfiguring"
+# 		configureECOM80
+#                 service ECOM80 stop
+#                 service ECOM80 start
+#                 result=1
+#         fi
+
+# #ECOM462
+# /usr/sbin/iptables-save | grep "$ip2.*5980\:5989"&> /dev/null
+#         if [ $? != 0 ]; then
+#                 echo -e "\nECOM462 simulator is not configured correctly, reconfiguring"
+# 		configureECOM462
+#                 service ECOM462 stop
+#                 service ECOM462 start
+#                 result=1
+#         fi
+
+# #WINDOWS	
+# grep 'provider ip="'$ip'"' $WIN_CONFIG &> /dev/null
+# 	if [ $? != 0 ]; then
+#                 echo -e "\nWindows simulator is not configured correctly, reconfiguring"
+#                 sed -i 's|<provider ip='.*' u|<provider ip="'$ip'" u|' $WIN_CONFIG
+# 		service WIN stop
+# 		service WIN start
+# 		result=1
+#         fi
+
+# #RP
+# grep 'RP_SIMULATOR_IP='$ip'\|LISTENER_HOST='$ip'\|SMIProviderIP='$ip'' $RP_CONFIG &> /dev/null
+#         if [ $? != 0 ]; then
+#                 echo -e "\nRP simulator is not configured correctly, reconfiguring"
+#         	configureRp
+# 		result=1
+# 	fi
+
+# #VPLEX
+# grep 'VplexSimulatorIP='$ip'\|RP_SERVERs'$ip'\|SMIProviderIP='$ip':5989\|'$ip2':7009\|XtremeIOIPs='$ip'' $VPLEX_CONFIG &> /dev/null        
+# 	if [ $? != 0 ]; then
+#                 echo -e "\nVPLEX simulator is not configured correctly, reconfiguring"
+#                 configureVplex
+# 		result=1
+#         fi
+
+# #VPLEX2
+# grep 'VplexSimulatorIP='$ip'\|RP_SERVERs'$ip'\|SMIProviderIP='$ip':5989\|'$ip2':7009\|XtremeIOIPs='$ip'' $VPLEX2_CONFIG &> /dev/null
+#         if [ $? != 0 ]; then
+#                 echo -e "\nVPLEX2 simulator is not configured correctly, reconfiguring"
+#                 configureVplex2
+#                 result=1
+#         fi
+		
+# #XIO
+# grep 'HOST='$ip'' $XIO_CONFIG &> /dev/null        
+# 	if [ $? != 0 ]; then
+#                 echo -e "\nXIO simulator is not configured correctly, reconfiguring"
+#                 configureXio
+# 		result=1
+#         fi
+
+# #XIO2
+# grep 'HOST='$ip'' $XIO2_CONFIG &> /dev/null
+#         if [ $? != 0 ]; then
+#                 echo -e "\nXIO2 simulator is not configured correctly, reconfiguring"
+#                 configureXio2
+#                 result=1
+#         fi
+
+# #LDAP
+# # grep 'HOST='$ip'' $LDAP_CONFIG &> /dev/null
+# #         if [ $? != 0 ]; then
+# #                 echo -e "\nXIO2 simulator is not configured correctly, reconfiguring"
+# #                 configureXio2
+# #                 result=1
+# #         fi
+
+# #HDS
+# grep '@'$ip'' $HDS_CONFIG_1 &> /dev/null
+# CONFIG_COUNT=$?
+# grep 'at '$ip'' $HDS_CONFIG_1 &> /dev/null         
+# CONFIG_COUNT=$((CONFIG_COUNT+ $?))
+# grep '@'$ip'' $HDS_CONFIG_2 &> /dev/null
+# CONFIG_COUNT=$((CONFIG_COUNT+$?))
+# grep 'at '$ip'' $HDS_CONFIG_2 &> /dev/null         
+# CONFIG_COUNT=$((CONFIG_COUNT+$?))
+# 	if [ $CONFIG_COUNT != 0 ]; then
+#         echo -e "\nHDS simulator is not configured correctly, reconfiguring"
+#         configureHds
+# 		result=1
+#         fi
+
+# if [ $result == 0 ]; then
+#         echo "OK"
+# else
+#         echo "FIX ATTEMPTED"
+# fi
+# }
+
+#configureECOM80(){
+#	/usr/sbin/iptables -D INPUT $(/usr/sbin/iptables -L INPUT -n --line-numbers | grep $ip | cut -c 1)
+#	/usr/sbin/iptables -A INPUT -d $ip -i eth0 -p tcp -m tcp --dport 7000:7009 -j DROP
+#        service ECOM80 stop
+#        service ECOM80 start
+#	service iptables stop
+#}
+
+#configureECOM462(){
+#        /usr/sbin/iptables -D INPUT $(/usr/sbin/iptables -L INPUT -n --line-numbers | grep $ip2 | cut -c 1)
+#        /usr/sbin/iptables -A INPUT -d $ip2 -i eth0 -p tcp -m tcp --dport 5980:5989 -j DROP
+#        service ECOM462 stop
+#        service ECOM462 start
+#        service iptables stop
+#}
+
+#configureRp(){
+#	sed -i "s/^RP_SIMULATOR_IP=.*/RP_SIMULATOR_IP=$ip/" $RP_CONFIG
+#	sed -i "s/^LISTENER_HOST=.*/LISTENER_HOST=$ip/" $RP_CONFIG
+#	sed -i "s/^SMIProviderIP=.*:/SMIProviderIP=$ip:/" $RP_CONFIG
+#	service RP stop
+#	service RP start
+#}
+
+#configureVplex(){
+#	sed -i "s/^VplexSimulatorIP=.*/VplexSimulatorIP=$ip/" $VPLEX_CONFIG
+#	sed -i "s/^RP_SERVERs=.*:/RP_SERVERs=$ip:/" $VPLEX_CONFIG
+#	sed -i "s/^SMIProviderIP=.*/SMIProviderIP=$ip:5989,/" $VPLEX_CONFIG
+#	 if [ "$ip2" != "" ]; then
+ #                sed -i "s/^\(SMIProviderIP=.*\)/\1$ip2:7009,/" $VPLEX_CONFIG
+#      fi
+#	sed -i "s/^XtremeIOIPs=.*:/XtremeIOIPs=$ip:/" $VPLEX_CONFIG
+#	service VPLEX stop
+#	service VPLEX start
+#}
+
+#configureVplex2(){
+#        sed -i "s/^VplexSimulatorIP=.*/VplexSimulatorIP=$ip/" $VPLEX2_CONFIG
+#        sed -i "s/^RP_SERVERs=.*:/RP_SERVERs$ip:/" $VPLEX2_CONFIG
+#        sed -i "s/^SMIProviderIP=.*/SMIProviderIP=$ip:5989,/" $VPLEX2_CONFIG
+# 	if [ "$ip2" != "" ]; then
+# 		 sed -i "s/^\(SMIProviderIP=.*\)/\1$ip2:7009,/" $VPLEX2_CONFIG
+# 	fi
+#         sed -i "s/^XtremeIOIPs=.*:/XtremeIOIPs=$ip:/" $VPLEX2_CONFIG
+#         service VPLEX2 stop
+#         service VPLEX2 start
+# }
+
+# # configureXio(){
+# 	sed -i "s/^HOST=.*/HOST=$ip/" $XIO_CONFIG
+# 	service XIO stop
+# 	service XIO start
+# }
+
+# configureXio2(){
+#         sed -i "s/^HOST=.*/HOST=$ip/" $XIO2_CONFIG
+#         service XIO2 stop
+#         service XIO2 start
+# }
+
+# configureHds(){
+# 	sed -i "s/\(@\)[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*/\1$ip/" $HDS_CONFIG_1
+# 	sed -i "s/\(at \)[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*/\1$ip/" $HDS_CONFIG_1
+# 	sed -i "s/\(@\)[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*/\1$ip/" $HDS_CONFIG_2
+# 	sed -i "s/\(at \)[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*/\1$ip/" $HDS_CONFIG_2
+# 	service HDS stop
+# 	service HDS start
+# }
+
+status(){
+service ECOM80 status
+service ECOM462 status
+service RP status
+service WIN status
+service VPLEX status
+service VPLEX2 status
+service XIO status
+service XIO2 status
+service CiscoMgmt status
+service HDS status
+service LDAP status
+
+}
+
+restart(){
+echo "restarting all simulator services"
+
+service ECOM80 stop
+service ECOM462 stop
+service RP stop
+service WIN stop
+service VPLEX stop
+service VPLEX2 stop
+service XIO stop
+service XIO2 stop
+service CiscoMgmt stop
+service HDS stop
+service LDAP stop
+
+
+service ECOM80 start
+service ECOM462 start
+service RP start
+service WIN start
+service VPLEX start
+service VPLEX2 start
+service XIO start
+service XIO2 start
+service CiscoMgmt start
+service HDS start
+service LDAP start
+
+
+}
+
+case "$1" in
+  start)
+        start
+        ;;
+  # firstboot)
+	# firstboot $2
+	# ;;
+ #  default-ecom)
+ #    default-ecom $2
+ #    ;;
+ #  diag)
+	# diag
+	# ;;
+  simstatus)
+	status
+	;;
+  simrestart)
+	restart
+	;;
+  status|stop)
+    exit 0
+    ;;
+    *)
+        echo $"Service is used to perform sim configurations/diagnostics {start|firstboot|diag|simstatus|simrestart}"
+        exit 1
+        exit 1
+esac

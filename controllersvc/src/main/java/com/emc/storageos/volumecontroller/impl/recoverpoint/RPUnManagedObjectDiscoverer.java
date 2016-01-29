@@ -183,10 +183,10 @@ public class RPUnManagedObjectDiscoverer {
                 cleanUpUnManagedResources(unManagedProtectionSet, unManagedVolumesToUpdateByWwn, dbClient);
             }
             Map<String, String> rpCopyAccessStateMap = new HashMap<String, String>();
-            Map<String, String> rpCopyRoleMap = new HashMap<String, String>();            
+            Map<String, String> rpCopyNameToRoleMap = new HashMap<String, String>();            
             for (GetCopyResponse copy : cg.getCopies()) {
                 // Store the copy name to role value in the map
-                rpCopyRoleMap.put(copy.getName(), copy.getRole().toString());
+                rpCopyNameToRoleMap.put(copy.getName(), copy.getRole().toString());
                 // Get the access state
                 String accessState = copy.getAccessState();
                 for (GetVolumeResponse volume : copy.getJournals()) {
@@ -275,10 +275,7 @@ public class RPUnManagedObjectDiscoverer {
                 continue;
             }
 
-            for (GetRSetResponse rset : cg.getRsets()) {
-                // Keep track of how many source volumes are flagged in this Rset.
-                // More than one indicates MetroPoint.
-                int sourceVolumeCount = 0;
+            for (GetRSetResponse rset : cg.getRsets()) {                
                 for (GetVolumeResponse volume : rset.getVolumes()) {
                     // Find this volume in UnManagedVolumes based on wwn
                     UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient, storageNativeIdPrefixes);
@@ -297,12 +294,7 @@ public class RPUnManagedObjectDiscoverer {
 
                     if (null != managedVolume) {
                         log.info("Protection Set {} contains volume {} that is already managed",
-                                nativeGuid, volume.getWwn());
-                        
-                        if (Volume.PersonalityTypes.SOURCE.name().equals(managedVolume.getPersonality())) {
-                            sourceVolumeCount++;
-                        }
-                        
+                                nativeGuid, volume.getWwn());                        
                         // make sure it's in the UnManagedProtectionSet's ManagedVolume ids
                         if (!unManagedProtectionSet.getManagedVolumeIds().contains(managedVolume.getId().toString())) {
                             unManagedProtectionSet.getManagedVolumeIds().add(managedVolume.getId().toString());
@@ -317,7 +309,6 @@ public class RPUnManagedObjectDiscoverer {
                             // because this volume is already managed, we can just continue to the next
                             continue;
                         }
-
                     }
 
                     // at this point, we have an legitimate UnManagedVolume whose RP properties should be updated
@@ -332,41 +323,66 @@ public class RPUnManagedObjectDiscoverer {
                     // Is this volume SOURCE, TARGET, or JOURNAL?
                     // What's the RP Copy Name of this volume? (what copy does it belong to?)
                     // What Replication Set does this volume belong to? (so we can associate sources to targets.)
-                    StringSet personality = new StringSet();
+                    StringSet personality = new StringSet();                    
                     if (volume.isProduction()) {
-                        personality.add(Volume.PersonalityTypes.SOURCE.name());
-                        sourceVolumeCount++;
+                        personality.add(Volume.PersonalityTypes.SOURCE.name());                     
                     } else {
                         personality.add(Volume.PersonalityTypes.TARGET.name());
                     }
+                    
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PERSONALITY.toString(),
                             personality);
-
+                    
+                    StringSet rpCopyRole = new StringSet();
+                    rpCopyRole.add(rpCopyNameToRoleMap.get(volume.getRpCopyName()));
+                    
+                    StringSet rpCopyName = new StringSet();
+                    rpCopyName.add(volume.getRpCopyName());
+                    
+                    StringSet rpInternalSiteName = new StringSet();
+                    rpInternalSiteName.add(volume.getInternalSiteName());
+                    
+                    if (volume.isProductionStandby()) {
+                        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_STANDBY_COPY_ROLE.toString(),
+                                rpCopyRole);
+                                                
+                        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_STANDBY_COPY_NAME.toString(),
+                                rpCopyName);                         
+                        
+                        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_STANDBY_INTERNAL_SITENAME.toString(),
+                                rpInternalSiteName);
+                        
+                        // If this volume is flagged as production standby it indicates that this RP CG is 
+                        // MetroPoint. Set the IS_MP flag on UnManagedProtectionSet to TRUE. This only needs
+                        // to be done once.
+                        String metroPoint = unManagedProtectionSet.getCGCharacteristics().get(
+                                                UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name());                        
+                        if (metroPoint == null 
+                                || metroPoint.isEmpty()
+                                || !Boolean.parseBoolean(metroPoint)) {
+                            // Set the flag to true if it hasn't already been set
+                            unManagedProtectionSet.getCGCharacteristics().put(
+                                    UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name(), Boolean.TRUE.toString());
+                        }                        
+                    } else {
+                        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_ROLE.toString(),
+                                rpCopyRole);
+                        
+                        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_NAME.toString(),
+                                rpCopyName); 
+                        
+                        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(),
+                                rpInternalSiteName);
+                    }
+                                                                                                    
                     StringSet rpAccessState = new StringSet();
                     rpAccessState.add(rpCopyAccessStateMap.get(volume.getRpCopyName()));
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_ACCESS_STATE.toString(), rpAccessState);
-
-                    StringSet rpCopyName = new StringSet();
-                    rpCopyName.add(volume.getRpCopyName());
-                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_NAME.toString(),
-                            rpCopyName);
-                    
-                    StringSet rpCopyRole = new StringSet();
-                    rpCopyRole.add(rpCopyRoleMap.get(volume.getRpCopyName()));
-                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_ROLE.toString(),
-                            rpCopyRole);
-                    log.info("BBB unManagedVolume {} CopyRole {} ",
-                            unManagedVolume.getId(), rpCopyRole.iterator().next());
-
+                                                        
                     StringSet rsetName = new StringSet();
                     rsetName.add(rset.getName());
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_RSET_NAME.toString(),
-                            rsetName);
-
-                    StringSet rpInternalSiteName = new StringSet();
-                    rpInternalSiteName.add(volume.getInternalSiteName());
-                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(),
-                            rpInternalSiteName);
+                            rsetName);                    
 
                     StringSet rpProtectionSystemId = new StringSet();
                     rpProtectionSystemId.add(protectionSystem.getId().toString());
@@ -382,26 +398,7 @@ public class RPUnManagedObjectDiscoverer {
 
                     unManagedVolumesToUpdateByWwn.put(unManagedVolume.getWwn(), unManagedVolume);
                 }
-
-                // We now have all the source volumes identified for this RSet, so we can determine if
-                // this unmanaged protection set should be flagged for MetroPoint.
-                log.info("BBB sourceVolumeCount {} ",
-                        sourceVolumeCount);
-                if (sourceVolumeCount > 1) {
-                    String metroPoint = unManagedProtectionSet.getCGCharacteristics().get(UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name());
-                    // If the MetroPoint flag hasn't been set or has been set to false
-                    // we can set it to true now.
-                    log.info("BBB metroPoint {} ",
-                            metroPoint);
-                    if (metroPoint == null 
-                            || metroPoint.isEmpty()
-                            || !Boolean.parseBoolean(metroPoint)) {           
-                        log.info("BBB IS_MP TRUE ");
-                        unManagedProtectionSet.getCGCharacteristics().put(
-                                UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name(), Boolean.TRUE.toString());
-                    }
-                }
-                                
+               
                 // Now that we've processed all of the sources and targets, we can mark all of the target devices in the source devices.
                 for (GetVolumeResponse volume : rset.getVolumes()) {
                     // Only process source volumes here.
@@ -599,10 +596,19 @@ public class RPUnManagedObjectDiscoverer {
                         remove = true;
                     }
                 }
-
-                // If this an RP source, the vpool must be an RP vpool
-                if (vpool.getProtectionVarraySettings() == null && Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality)) {
-                    remove = true;
+                
+                if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality)) {                    
+                    if (!VirtualPool.vPoolSpecifiesProtection(vpool) ) {
+                        // If this an RP source, the vpool must be an RP vpool
+                        remove = true;
+                    } else if (unManagedVolume.getVolumeInformation().containsKey(
+                                SupportedVolumeInformation.RP_STANDBY_COPY_ROLE.toString())
+                                && !VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
+                        // Since this is a Source volume with the presence of the STANDBY_COPY role 
+                        // it indicates that this volume is MetroPoint, if we get here, this is vpool
+                        // must be filtered out.
+                        remove = true;
+                    }
                 }
 
                 if (remove) {

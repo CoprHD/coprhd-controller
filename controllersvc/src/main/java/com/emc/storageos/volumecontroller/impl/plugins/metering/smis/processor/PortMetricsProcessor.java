@@ -224,8 +224,8 @@ public class PortMetricsProcessor {
         }
         Long iopsDelta = iops - iopsValue;
         Long portSpeed = port.getPortSpeed();
-        if (portSpeed == 0) {
-            _log.error("Port speed is zero- assuming 8 GBit: " + port.getNativeGuid());
+        if (portSpeed == null || portSpeed == 0) {
+            _log.error("Port speed is zero or null- assuming 8 GBit: " + port.getNativeGuid());
             portSpeed = 8L;
         }
         // portSpeed is in Gbit/sec. Compute kbytes/sec.

@@ -358,7 +358,10 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
                     stat.kbytes += Double.valueOf(lastSample.get(metricKey)).longValue();
                 } else if (metricKey.contains(FE_PORT_WRITE)) {
                     stat.kbytes += Double.valueOf(lastSample.get(metricKey)).longValue();
-                } else if (metricKey.equals(HEADER_KEY_TIME_UTC)) {
+                }
+                // The sampleTime is not associated with a particular port, so we will
+                // check if the stat.sampleTime is not set yet and then set it once.
+                if (stat.sampleTime == null || stat.sampleTime == 0) {
                     stat.sampleTime = Long.valueOf(lastSample.get(HEADER_KEY_TIME_UTC));
                 }
             }

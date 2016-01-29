@@ -605,8 +605,8 @@ class VirtualPool(object):
                 vpool_protection_snapshots_param[
                     'max_native_snapshots'] = max_snapshots
                 file_vpool_protection_param[
-                    'snapshots'] = vpool_protection_snapshots_param  
-            if(snapshotsched):
+                    'snapshots'] = vpool_protection_snapshots_param
+            if(snapshotsched is not None):
                 file_vpool_protection_param['schedule_snapshots'] = snapshotsched
             if(fr_policy is not None):
                 file_vpool_protection_param[
@@ -869,7 +869,7 @@ class VirtualPool(object):
 
         if(max_mirrors or max_snapshots or srdfadd or srdfremove or
            rp_policy or add_rp or remove_rp or 
-           fr_policy or fr_addcopies or fr_removecopies):
+           fr_policy or fr_addcopies or fr_removecopies or snapshotsched):
             vpool_protection_param = dict()
             if (max_snapshots):
                 # base class attribute
@@ -879,7 +879,7 @@ class VirtualPool(object):
                 vpool_protection_param['snapshots'] = \
                     vpool_protection_snapshot_params
 
-            if (snapshotsched):
+            if (snapshotsched is not None):
                 vpool_protection_param['schedule_snapshots'] = \
                     snapshotsched
             if(max_mirrors):

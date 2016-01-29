@@ -827,29 +827,7 @@ public class BlockService extends TaskResourceService {
             // check if CG's storage system is associated to the requested virtual array
             validateCGValidWithVirtualArray(consistencyGroup, varray);
 
-            if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
-                requestedTypes.add(Types.RP.name());
-            }
-
-            // Note that for ingested VPLEX CGs or CGs created in releases
-            // prior to 2.2, there will be no corresponding native
-            // consistency group. We don't necessarily want to fail
-            // volume creations in these CGs, so we don't require the
-            // LOCAL type.
-            if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-                requestedTypes.add(Types.VPLEX.name());
-            }
-
-            if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
-                requestedTypes.add(Types.SRDF.name());
-            }
-
-            if (!VirtualPool.vPoolSpecifiesProtection(vpool)
-                    && !VirtualPool.vPoolSpecifiesHighAvailability(vpool)
-                    && !VirtualPool.vPoolSpecifiesSRDF(vpool)
-                    && vpool.getMultivolumeConsistency()) {
-                requestedTypes.add(Types.LOCAL.name());
-            }
+            requestedTypes = getRequestedTypes(vpool);
 
             // Validate the CG type. We want to make sure the volume create request is appropriate
             // the CG's previously requested types.
@@ -984,6 +962,42 @@ public class BlockService extends TaskResourceService {
 
         _log.info("Kicked off thread to perform placement and scheduling.  Returning " + taskList.getTaskList().size() + " tasks");
         return taskList;
+    }
+
+    /**
+     * returns the types (RP, VPLEX, SRDF or LOCAL) that will be created based on the vpool
+     * @param vpool
+     * @param requestedTypes
+     */
+    private ArrayList<String> getRequestedTypes(VirtualPool vpool) {
+        
+        ArrayList<String> requestedTypes = new ArrayList<String>();
+        
+        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
+            requestedTypes.add(Types.RP.name());
+        }
+
+        // Note that for ingested VPLEX CGs or CGs created in releases
+        // prior to 2.2, there will be no corresponding native
+        // consistency group. We don't necessarily want to fail
+        // volume creations in these CGs, so we don't require the
+        // LOCAL type.
+        if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+            requestedTypes.add(Types.VPLEX.name());
+        }
+
+        if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
+            requestedTypes.add(Types.SRDF.name());
+        }
+
+        if (!VirtualPool.vPoolSpecifiesProtection(vpool)
+                && !VirtualPool.vPoolSpecifiesHighAvailability(vpool)
+                && !VirtualPool.vPoolSpecifiesSRDF(vpool)
+                && vpool.getMultivolumeConsistency()) {
+            requestedTypes.add(Types.LOCAL.name());
+        }
+        
+        return requestedTypes;
     }
 
     /**
@@ -3291,6 +3305,15 @@ public class BlockService extends TaskResourceService {
             }
 
             taskList.getTaskList().add(volumeTask);
+        }
+        
+        // if this vpool request change has a consistency group, set it's requested types
+        if (param.getConsistencyGroup() != null) {
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, param.getConsistencyGroup());
+            if (cg != null && !cg.getInactive()) {
+                cg.getRequestedTypes().addAll(getRequestedTypes(vPool));
+                _dbClient.updateObject(cg);
+            }
         }
 
         // Get the required block service API implementation to

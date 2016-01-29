@@ -41,6 +41,7 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_OWNER = "/object/bucket/{0}/owner.json";
     private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json?namespace={1}";
     private static final String URI_BUCKET_INFO = "/object/bucket/{0}/info.json?namespace={1}";
+    private static final String URI_UPDATE_BUCKET_ACL = "/object/bucket/{0}/acl.json";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -370,6 +371,37 @@ public class ECSApi {
             closeResponse(clientResp);
 
         }
+    }
+    
+    /**
+     * Updates the bucket ACL
+     * 
+     * @param bucketName
+     * @param payload
+     * @throws ECSException
+     */
+    public void updateBucketACL(String bucketName, String payload) throws ECSException {
+
+        _log.debug("ECSApi:updateBucketACL Update bucket ACL initiated for : {}", bucketName);
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_UPDATE_BUCKET_ACL, bucketName);
+        try {
+            clientResp = put(path, payload);
+            if (null == clientResp) {
+                throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, getResponseDetails(clientResp));
+            }
+        } catch (Exception e) {
+            _log.error("Error occured while ACL update for bucket : {}", bucketName, e);
+            throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, e.getMessage());
+        } finally {
+            if (clientResp != null) {
+                closeResponse(clientResp);
+            }
+
+        }
+
     }
 
     /**

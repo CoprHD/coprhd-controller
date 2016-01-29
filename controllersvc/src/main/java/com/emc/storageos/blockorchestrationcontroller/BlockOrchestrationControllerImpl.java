@@ -38,10 +38,10 @@ public class BlockOrchestrationControllerImpl implements BlockOrchestrationContr
 
     @Override
     public void restoreVolume(URI storage, URI pool, URI volume,
-            URI snapshot, String taskId) throws ControllerException {
-        execOrchestration("restoreVolume", storage, pool, volume, snapshot, taskId);
+            URI snapshot, String syncDirection, String taskId) throws ControllerException {
+        execOrchestration("restoreVolume", storage, pool, volume, snapshot, syncDirection, taskId);
     }
-    
+
     @Override
     public void changeVirtualPool(List<VolumeDescriptor> volumes, String taskId)
             throws ControllerException {

@@ -27,6 +27,10 @@ public class FileSystemsDataTable extends DataTable {
         addColumn("varray");
         addColumn("vpool");
         addColumn("protocols");
+        addColumn("status").setSearchable(false).setRenderFunction("render.uploadProgress");
+//        addColumn("status").setSearchable(false).setRenderFunction(
+//                "render.uploadProgress");
+        
         sortAll();
         setDefaultSort("name", "asc");
         setRowCallback("createRowLink");

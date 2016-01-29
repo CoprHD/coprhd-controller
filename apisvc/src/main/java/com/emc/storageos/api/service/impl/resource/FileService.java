@@ -1407,6 +1407,11 @@ public class FileService extends TaskResourceService {
         FileShare fs = queryResource(id);
         if (!param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
+            if (!fs.getFilePolicies().isEmpty()) {
+
+                throw APIException.badRequests
+                        .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
+            }
         }
         List<URI> fileShareURIs = new ArrayList<URI>();
         fileShareURIs.add(id);
@@ -2399,7 +2404,10 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkUri(filePolicyUri);
         SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
-
+        // verify the file system tenant is same as policy tenant
+        if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+            throw APIException.badRequests.assoicatedPolicyTenantMismach(filePolicyUri, id);
+        }
         // Check for VirtualPool support snapshot or not
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
 
@@ -2474,6 +2482,10 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkUri(filePolicyUri);
         SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
+        // verify the file system tenant is same as policy tenant
+        if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+            throw APIException.badRequests.assoicatedPolicyTenantMismach(filePolicyUri, id);
+        }
         // verify the schedule policy is associated with file system or not.
         if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssoicatedPolicy(filePolicyUri);

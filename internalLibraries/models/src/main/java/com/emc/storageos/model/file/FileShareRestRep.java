@@ -5,13 +5,18 @@
 
 package com.emc.storageos.model.file;
 
-import javax.xml.bind.annotation.*;
-
-import com.emc.storageos.model.RelatedResourceRep;
-import org.codehaus.jackson.annotate.JsonProperty;
-
 import java.util.LinkedHashSet;
 import java.util.Set;
+
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
+
+import org.codehaus.jackson.annotate.JsonProperty;
+
+import com.emc.storageos.model.RelatedResourceRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "filesystem")
@@ -23,6 +28,7 @@ public class FileShareRestRep extends FileObjectRestRep {
     private Long softLimit;
     private Integer softGrace;
     private Long notificationLimit;
+    private Boolean softLimitExceeded;
     private RelatedResourceRep vpool;
     private RelatedResourceRep varray;
     private Set<String> protocols;
@@ -76,7 +82,7 @@ public class FileShareRestRep extends FileObjectRestRep {
         this.usedCapacity = usedCapacity;
     }
 
-    @XmlElement(name="soft_limit", required=false)
+    @XmlElement(name = "soft_limit", required = false)
     public Long getSoftLimit() {
         return softLimit;
     }
@@ -85,7 +91,7 @@ public class FileShareRestRep extends FileObjectRestRep {
         this.softLimit = softLimit;
     }
 
-    @XmlElement(name="soft_grace", required=false)
+    @XmlElement(name = "soft_grace", required = false)
     public Integer getSoftGrace() {
         return softGrace;
     }
@@ -93,13 +99,23 @@ public class FileShareRestRep extends FileObjectRestRep {
     public void setSoftGrace(Integer softGrace) {
         this.softGrace = softGrace;
     }
-    @XmlElement(name="notification_limit", required=false)
+
+    @XmlElement(name = "notification_limit", required = false)
     public Long getNotificationLimit() {
         return notificationLimit;
     }
 
     public void setNotificationLimit(Long notificationLimit) {
         this.notificationLimit = notificationLimit;
+    }
+
+    @XmlElement(name = "soft_limit_exceeded", required = false)
+    public Boolean getSoftLimitExceeded() {
+        return softLimitExceeded;
+    }
+
+    public void setSoftLimitExceeded(Boolean softLimitExceeded) {
+        this.softLimitExceeded = softLimitExceeded;
     }
 
     /**
@@ -177,7 +193,8 @@ public class FileShareRestRep extends FileObjectRestRep {
     @XmlElementWrapper(name = "protocols")
     /**
      * Set of valid protocols.
-     * @valid CIFS = Common Interface File System 
+     * 
+     * @valid CIFS = Common Interface File System
      * @valid NFS = Network File System
      */
     @XmlElement(name = "protocol")
@@ -253,13 +270,12 @@ public class FileShareRestRep extends FileObjectRestRep {
     }
 
     @XmlElement(name = "virtual_nas")
-	public RelatedResourceRep getVirtualNAS() {
-		return virtualNAS;
-	}
+    public RelatedResourceRep getVirtualNAS() {
+        return virtualNAS;
+    }
 
-	public void setVirtualNAS(RelatedResourceRep virtualNAS) {
-		this.virtualNAS = virtualNAS;
-	}
-    
-    
+    public void setVirtualNAS(RelatedResourceRep virtualNAS) {
+        this.virtualNAS = virtualNAS;
+    }
+
 }

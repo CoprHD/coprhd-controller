@@ -98,7 +98,7 @@ public class TenantUtils {
             URI uri = namedRes.getId();
             ObjectNamespaceRestRep objNs = getViprClient().objectNamespace().getObjectNamespace(uri);
             if (objNs != null && objNs.getMapped() == false) {
-                //These namespaces to be added to list
+                //only unmapped namespaces to be added to list
                 namespaceOptions.add(new StringOption(objNs.getNativeId(), objNs.getNsName()));
             }
         }

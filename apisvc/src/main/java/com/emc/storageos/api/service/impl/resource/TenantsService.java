@@ -304,8 +304,7 @@ public class TenantsService extends TaggedResource {
             tenant.setDescription(param.getDescription());
         }
         
-        if (param.getNamespace() != null && !param.getNamespace().isEmpty() /*&&
-                param.getNamespaceStorage() != null*/) {
+        if (param.getNamespace() != null && !param.getNamespace().isEmpty()) {
             checkForDuplicateNamespace(param.getNamespace());
 
             if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
@@ -315,14 +314,12 @@ public class TenantsService extends TaggedResource {
                 }
             }
             tenant.setNamespace(param.getNamespace());
-            //tenant.setNamespaceStorage(param.getNamespaceStorage());
             //Update tenant info in respective namespace CF
             List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
             Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
                 ObjectNamespace namesp = nsItr.next();
-                if (namesp.getNativeId().equalsIgnoreCase(param.getNamespace()) /*&&
-                        namesp.getStorageDevice().equals(param.getNamespaceStorage())*/ ) {
+                if (namesp.getNativeId().equalsIgnoreCase(param.getNamespace())) {
                     namesp.setTenant(tenant.getId());
                     namesp.setMapped(true);
                     _dbClient.updateObject(namesp);
@@ -336,13 +333,11 @@ public class TenantsService extends TaggedResource {
             Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
                 ObjectNamespace namesp = nsItr.next();
-                if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace()) /*&&
-                        namesp.getStorageDevice().equals(tenant.getNamespaceStorage())*/ ) {
+                if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace())) {
                     namesp.setTenant(URI.create(INVALID_OBJECT_NAMESPACE));//updateobject resets only non-null fields
                     namesp.setMapped(false);
                     _dbClient.updateObject(namesp);
                     tenant.setNamespace(INVALID_OBJECT_NAMESPACE);
-                    //tenant.setNamespaceStorage(URI.create(INVALID_OBJECT_NAMESPACE));
                     break;
                 }
             }
@@ -442,17 +437,15 @@ public class TenantsService extends TaggedResource {
         subtenant.setParentTenant(new NamedURI(parent.getId(), param.getLabel()));
         subtenant.setLabel(param.getLabel());
         subtenant.setDescription(param.getDescription());
-        if (param.getNamespace() != null /*&& param.getNamespaceStorage() != null*/) {
+        if (param.getNamespace() != null) {
             checkForDuplicateNamespace(param.getNamespace());
             subtenant.setNamespace(param.getNamespace());
-            //subtenant.setNamespaceStorage(param.getNamespaceStorage());
             //Update tenant info in respective namespace CF
             List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
             Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
                 ObjectNamespace namesp = nsItr.next();
-                if (namesp.getNativeId().equalsIgnoreCase(subtenant.getNamespace()) /*&&
-                        namesp.getStorageDevice().equals(param.getNamespaceStorage())*/ ) {
+                if (namesp.getNativeId().equalsIgnoreCase(subtenant.getNamespace())) {
                     namesp.setTenant(subtenant.getId());
                     namesp.setMapped(true);
                     _dbClient.updateObject(namesp);

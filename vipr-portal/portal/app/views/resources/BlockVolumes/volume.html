@@ -153,7 +153,7 @@ function accessStatus(){
       #{expandPanel titleKey:'resources.volume.snapshots', url: @volumeSnapshots(volume.id) /}
       #{expandPanel titleKey:'resources.volume.fullcopies', url: @volumeFullCopies(volume.id) /}
       #{expandPanel titleKey:'resources.volume.continuouscopies', url: @volumeContinuousCopies(volume.id) /}
-      *{#{expandPanel titleKey:'resources.volume.migrations', url: @volumeMigrations(volume.id) /}}*
+      #{expandPanel titleKey:'resources.volume.migrations', url: @volumeMigrations(volume.id) /}
     #{/ifnot}
     
     <br/>

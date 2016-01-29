@@ -77,7 +77,7 @@ public abstract class VdcOpHandler {
     protected PropertyInfoExt localVdcPropInfo;
     protected SiteInfo targetSiteInfo;
     protected boolean isRebootNeeded = false;
-    
+
     public VdcOpHandler() {
     }
     
@@ -124,7 +124,7 @@ public abstract class VdcOpHandler {
     /**
      * Transit Cassandra native encryption to IPsec
      */
-    public static class IPSecEnableHandler extends VdcOpHandler {
+    public static class IPSecConfigHandler extends VdcOpHandler {
         private static String IPSEC_LOCK = "ipsec_enable_lock";
 
         @Autowired
@@ -132,22 +132,28 @@ public abstract class VdcOpHandler {
         @Autowired
         IPsecConfig ipsecConfig;
 
-        public IPSecEnableHandler() {
+        public IPSecConfigHandler() {
         }
         
         @Override
         public void execute() throws Exception {
             InterProcessLock lock = acquireIPsecLock();
             try {
-                if (ipsecKeyExisted()) {
-                    log.info("Real IPsec key already existed, No need to rotate.");
-                    return;
-                }
-                String version = ipsecMgr.rotateKey();
-                log.info("Kicked off IPsec key rotation. The version is {}", version);
+                initEnableAndRotateIpsec();
             } finally {
                 releaseIPsecLock(lock);
             }
+        }
+
+        private void initEnableAndRotateIpsec() throws Exception {
+           if (ipsecKeyExisted()) {
+                log.info("Real IPsec key already existed, No need to rotate.");
+                return;
+            }
+
+            ipsecMgr.verifyClusterIsStable();
+            String version = ipsecMgr.rotateKey(true);
+            log.info("Initiated IPsec key enabling and rotation. The version is {}", version);
         }
 
         private InterProcessLock acquireIPsecLock() throws Exception {

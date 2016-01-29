@@ -64,7 +64,9 @@ public class SiteError implements CoordinatorSerializable{
         if (strings.length > 1) {
             siteError.serviceCode = ServiceCode.valueOf(strings[1]);
             siteError.errorMessage = strings[2];
-            siteError.operation = strings[3];
+            if (strings.length > 2) {
+                siteError.operation = strings[3];
+            }
         }
         return siteError;
     }
@@ -108,8 +110,8 @@ public class SiteError implements CoordinatorSerializable{
     public SiteErrorResponse toResponse() {
         SiteErrorResponse response = new SiteErrorResponse();
         response.setCreationTime(this.creationTime);
-        response.setServiceCode(serviceCode.ordinal());
-        response.setServiceCodeName(serviceCode.name());
+        response.setServiceCode(this.serviceCode.ordinal());
+        response.setServiceCodeName(this.serviceCode.name());
         response.setErrorMessage(this.errorMessage);
         response.setOperation(this.operation);
         return response;

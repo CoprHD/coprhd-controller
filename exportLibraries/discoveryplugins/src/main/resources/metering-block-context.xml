@@ -1192,7 +1192,7 @@
 
     <bean id="vplexPerpetualCSVFileCollector"
           class="com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileCollector">
-        <property name="portMetricsProcessor" value="portMetricsProcessor"/>
+        <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
     </bean>
 
     <bean id="vplex"

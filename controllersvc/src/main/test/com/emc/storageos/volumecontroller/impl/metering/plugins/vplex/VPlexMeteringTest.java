@@ -75,6 +75,9 @@ public class VPlexMeteringTest {
     private final static String[] DIRECTORS = EnvConfig.get(SANITY, VPLEX_DIRECTORS).split(",");
     private final static int PORT_PER_DIRECTOR = Integer.valueOf(EnvConfig.get(SANITY, VPLEX_PORTS_PER_DIRECTOR));
 
+    private static boolean alreadyPrinted = false;
+    private static boolean outputToLog = Boolean.valueOf(EnvConfig.get(SANITY, "output_to_log"));
+
     private static Logger log = LoggerFactory.getLogger(VPlexMeteringTest.class);
 
     @Test
@@ -114,8 +117,6 @@ public class VPlexMeteringTest {
             fileData.close();
         }
     }
-
-    static boolean alreadyPrinted = false;
 
     @Test
     public void testReadAndParseMetrics() {
@@ -264,16 +265,19 @@ public class VPlexMeteringTest {
     }
 
     private void out(String format, Object... args) {
-        // log.info(format, args);
-        String modFormat = format.replaceAll("\\{\\}", "%s");
-        System.out.println(String.format(modFormat, args));
+        if (outputToLog) {
+            log.info(format, args);
+        } else {
+            String modFormat = format.replaceAll("\\{\\}", "%s");
+            System.out.println(String.format(modFormat, args));
+        }
     }
 
     /**
      * Used for mocking up DataObjects used by the collector: StorageSystem, StorageHADomain, and StoragePort.
      */
     static private class MockDbClient implements DbClient {
-        Map<URI, DataObject> MOCK_DB = new HashMap<>();
+        private Map<URI, DataObject> MOCK_DB = new HashMap<>();
 
         @Override
         public DataObject queryObject(URI id) {

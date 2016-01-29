@@ -336,26 +336,6 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
      * @param lastSample - [IN] Last data sample (the latest)
      */
     private void processPortStats(Map<String, MetricHeaderInfo> metricHeaderInfoMap, Map<String, String> lastSample) {
-
-        // Class for holding stat values for ports as we look through metricHeaderInfoMap
-        class PortStat {
-            StoragePort port;
-            Long iops;
-            Long kbytes;
-            Long sampleTime;
-
-            public PortStat(StoragePort port, long iops, long kbytes, long sampleTime) {
-                this.port = port;
-                this.iops = iops;
-                this.kbytes = kbytes;
-                this.sampleTime = sampleTime;
-            }
-
-            boolean allFilled() {
-                return port != null && iops != null && kbytes != null && sampleTime != null;
-            }
-        }
-
         Map<URI, PortStat> portStatMap = new HashMap<>();
         // Each key will reference the metric name, an optional object, and units. As we process the
         // keys, we will keep track of the values and persist them in the portStatMap for each port.
@@ -401,13 +381,34 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
      * Helper data structure class
      */
     static class MetricHeaderInfo {
-        StorageHADomain director;
-        StoragePort port;
-        String units;
-        Type type;
+        private StorageHADomain director;
+        private StoragePort port;
+        private String units;
+        private Type type;
 
         enum Type {
             PORT, DIRECTOR
         };
+    }
+
+    /**
+     * Class for holding stat values for ports as we look through metricHeaderInfoMap
+     */
+    static class PortStat {
+        private StoragePort port;
+        private Long iops;
+        private Long kbytes;
+        private Long sampleTime;
+
+        public PortStat(StoragePort port, long iops, long kbytes, long sampleTime) {
+            this.port = port;
+            this.iops = iops;
+            this.kbytes = kbytes;
+            this.sampleTime = sampleTime;
+        }
+
+        boolean allFilled() {
+            return port != null && iops != null && kbytes != null && sampleTime != null;
+        }
     }
 }

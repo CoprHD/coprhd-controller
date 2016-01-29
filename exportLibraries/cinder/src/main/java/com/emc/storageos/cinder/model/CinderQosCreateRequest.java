@@ -1,5 +1,4 @@
 /*
- * Copyright 2015 EMC Corporation
  * Copyright 2016 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,25 +17,34 @@
 
 package com.emc.storageos.cinder.model;
 
-import com.emc.storageos.model.RestLinkRep;
+import com.google.gson.annotations.SerializedName;
 
-import javax.xml.bind.annotation.XmlElement;
+import java.util.Map;
 
 /**
- * Quality of Service detailed object.
+ * Quality of Service object required for "Create QoS specification" call.
  */
-public class CinderQosDetail{
+public class CinderQosCreateRequest {
 
-    private RestLinkRep selfLink;
+    /**
+     * Json model for creating QoS request
+     * {
+     *  "qos_specs": {
+     *      "specs": {
+     *           "availability": "100",
+     *           "numberOfFailures": "0"
+     *       },
+     *       "name": "reliability-spec",
+     *  }
+     * }
+     */
 
-	@XmlElement(name = "qos_specs")
-	public CinderQos qos_spec = new CinderQos();
+    @SerializedName("qos_specs")
+    QosSpecs qosSpecs = new QosSpecs();
 
-    @XmlElement(name = "links")
-    public RestLinkRep getLink(){
-        return selfLink;
+    public class QosSpecs {
+        public String name;
+        public Map<String, String> specs;
     }
-    public void setLink(RestLinkRep link) {
-        selfLink = link;
-    }
+
 }

@@ -66,6 +66,8 @@ distutils.core.setup(
                       'vnasserver.py',
 		      'computeimageserver.py',
                       'quotadirectory.py',
-                      'ipsecmanager.py']
+                      'volumegroup.py',
+                      'ipsecmanager.py',
+                      'schedulepolicy.py']
                  )]
 )

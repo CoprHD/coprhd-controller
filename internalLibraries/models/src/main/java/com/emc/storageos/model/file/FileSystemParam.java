@@ -23,6 +23,9 @@ public class FileSystemParam {
     private URI vpool;
     private URI varray;
     private String fsId;
+    private int softLimit;
+    private int softGrace;
+    private int notificationLimit;
 
     public FileSystemParam() {
     }
@@ -103,6 +106,32 @@ public class FileSystemParam {
 
     public void setFsId(String fsId) {
         this.fsId = fsId;
+    }
+
+    @XmlElement(name="soft_limit", required=false)
+    public int getSoftLimit() {
+        return softLimit;
+    }
+
+    public void setSoftLimit(int softLimit) {
+        this.softLimit = softLimit;
+    }
+
+    @XmlElement(name="soft_grace", required=false)
+    public int getSoftGrace() {
+        return softGrace;
+    }
+
+    public void setSoftGrace(int softGrace) {
+        this.softGrace = softGrace;
+    }
+    @XmlElement(name="notification_limit", required=false)
+    public int getNotificationLimit() {
+        return notificationLimit;
+    }
+
+    public void setNotificationLimit(int notificationLimit) {
+        this.notificationLimit = notificationLimit;
     }
 
 }

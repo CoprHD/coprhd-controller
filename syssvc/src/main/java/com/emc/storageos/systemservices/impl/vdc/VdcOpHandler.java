@@ -6,9 +6,7 @@
 package com.emc.storageos.systemservices.impl.vdc;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
@@ -32,7 +30,6 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
-import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Waiter;
@@ -67,7 +64,6 @@ public abstract class VdcOpHandler {
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
     private static final String LOCK_DEGRADE_STANDBY="drDegradeStandbyLock";
     private static final String LOCK_REJOIN_STANDBY="drRejoinStandbyLock";
-    private static final String LOCK_ADD_STANDBY="drAddStandbyLock";
 
     public static final String NTPSERVERS = "network_ntpservers";
 
@@ -81,7 +77,7 @@ public abstract class VdcOpHandler {
     protected PropertyInfoExt localVdcPropInfo;
     protected SiteInfo targetSiteInfo;
     protected boolean isRebootNeeded = false;
-    
+
     public VdcOpHandler() {
     }
     
@@ -128,7 +124,7 @@ public abstract class VdcOpHandler {
     /**
      * Transit Cassandra native encryption to IPsec
      */
-    public static class IPSecEnableHandler extends VdcOpHandler {
+    public static class IPSecConfigHandler extends VdcOpHandler {
         private static String IPSEC_LOCK = "ipsec_enable_lock";
 
         @Autowired
@@ -136,22 +132,28 @@ public abstract class VdcOpHandler {
         @Autowired
         IPsecConfig ipsecConfig;
 
-        public IPSecEnableHandler() {
+        public IPSecConfigHandler() {
         }
         
         @Override
         public void execute() throws Exception {
             InterProcessLock lock = acquireIPsecLock();
             try {
-                if (ipsecKeyExisted()) {
-                    log.info("Real IPsec key already existed, No need to rotate.");
-                    return;
-                }
-                String version = ipsecMgr.rotateKey();
-                log.info("Kicked off IPsec key rotation. The version is {}", version);
+                initEnableAndRotateIpsec();
             } finally {
                 releaseIPsecLock(lock);
             }
+        }
+
+        private void initEnableAndRotateIpsec() throws Exception {
+           if (ipsecKeyExisted()) {
+                log.info("Real IPsec key already existed, No need to rotate.");
+                return;
+            }
+
+            ipsecMgr.verifyClusterIsStable();
+            String version = ipsecMgr.rotateKey(true);
+            log.info("Initiated IPsec key enabling and rotation. The version is {}", version);
         }
 
         private InterProcessLock acquireIPsecLock() throws Exception {
@@ -185,6 +187,7 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             reconfigVdc();
+            changeSiteState(SiteState.STANDBY_ADDING, SiteState.STANDBY_SYNCING);
         }
     }
 
@@ -333,7 +336,7 @@ public abstract class VdcOpHandler {
                     for (Site site : toBeRemovedSites) {
                         try {
                             removeDbNodesFromStrategyOptions(site);
-                            drUtil.removeSiteConfiguration(site);
+                            drUtil.removeSite(site);
                         } catch (Exception e) { 
                             populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
                             throw e;
@@ -470,6 +473,7 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
+            changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
         }
     }
 
@@ -854,7 +858,7 @@ public abstract class VdcOpHandler {
                 removeDbNodesFromGossip(oldActiveSite);
                 removeDbNodesFromStrategyOptions(oldActiveSite);
                 postHandlerFactory.initializeAllHandlers();
-                drUtil.removeSiteConfiguration(oldActiveSite);
+                drUtil.removeSite(oldActiveSite);
             } catch (Exception e) {
                 log.error("Failed to remove old acitve site in failover, {}", e);
                 throw e;
@@ -1103,6 +1107,15 @@ public abstract class VdcOpHandler {
 
         site.setState(SiteState.STANDBY_ERROR);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+    }
+
+    protected void changeSiteState(SiteState from, SiteState to) {
+        List<Site> newSites = drUtil.listSitesInState(from);
+        for(Site newSite : newSites) {
+            log.info("Change standby site {} state from {} to {}", new Object[]{newSite.getSiteShortId(), from, to});
+            newSite.setState(to);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(newSite.toConfiguration());
+        }
     }
     
     /**

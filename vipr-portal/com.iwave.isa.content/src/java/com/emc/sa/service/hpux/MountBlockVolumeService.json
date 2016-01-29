@@ -1,0 +1,43 @@
+{
+  baseKey:"MountBlockVolume.Block.Hpux",
+  serviceId:"Hpux-MountBlockVolume",
+  fields:{
+    host:{
+      type:"assetType.vipr.hpuxHost"
+    },
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volume: {
+      type:"assetType.vipr.unmountedBlockResource",   
+      select:"one" 
+    },
+    
+    mountPoint:{
+      type:"text",
+      validation:{
+        regEx:"/[A-Za-z0-9/_\.\-]*"
+      }
+    },
+
+    doFormat:{
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    },
+
+    hlu: {
+      type:"number",
+      lockable: true,
+      required: false,
+      initialValue: "-1",
+      validation: {
+          min:-1
+      }
+    }
+  }
+}

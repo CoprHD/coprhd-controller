@@ -509,6 +509,9 @@ public interface CoordinatorClient {
     public <T extends CoordinatorSerializable> Map<Service,
             T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception;
 
+    <T extends CoordinatorSerializable> Map<Service,
+            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter, String siteId) throws Exception;
+
     public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception;
 

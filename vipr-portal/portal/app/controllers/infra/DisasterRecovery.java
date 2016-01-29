@@ -56,6 +56,8 @@ public class DisasterRecovery extends ViprResourceController {
     protected static final String DELETED_ERROR = "disasterRecovery.delete.error";
     protected static final String UNKNOWN = "disasterRecovery.unknown";
     protected static final String UPDATE_SUCCESS = "disasterRecovery.update.success";
+    private static final List<SiteState> activeStates =
+            Arrays.asList(SiteState.ACTIVE, SiteState.ACTIVE_DEGRADED,SiteState.ACTIVE_FAILING_OVER, SiteState.ACTIVE_SWITCHING_OVER);
 
     private static void backToReferrer() {
         String referrer = Common.getReferrer();
@@ -69,7 +71,8 @@ public class DisasterRecovery extends ViprResourceController {
 
     public static void list() {
         DisasterRecoveryDataTable dataTable = createDisasterRecoveryDataTable();
-        render(dataTable);
+        boolean showPauseButton = false;
+        render(dataTable, showPauseButton);
     }
 
     @FlashException("list")
@@ -80,7 +83,7 @@ public class DisasterRecovery extends ViprResourceController {
         for (String uuid : uuids) {
             if (!DisasterRecoveryUtils.hasStandbySite(uuid)) {
                 flash.error(MessagesUtils.get(UNKNOWN, uuid));
-                list();
+                pauseResume();
             }
 
         }
@@ -89,19 +92,28 @@ public class DisasterRecovery extends ViprResourceController {
         param.getIds().addAll(uuids);
         DisasterRecoveryUtils.pauseStandby(param);
         flash.success(MessagesUtils.get(PAUSED_SUCCESS));
-        list();
+        pauseResume();
     }
 
     @FlashException("list")
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_ADMIN"),
             @Restrict("RESTRICTED_SYSTEM_ADMIN") })
-    public static void resume(String id) {
+    public static void resume(String id, boolean showPauseButton) {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
             SiteRestRep siteresume = DisasterRecoveryUtils.resumeStandby(id);
             flash.success(MessagesUtils.get(RESUMED_SUCCESS, siteresume.getName()));
         }
-        list();
+        if (showPauseButton) {
+            pauseResume();
+        } else {
+            list();
+        }
+    }
+
+    public static void pauseResume() {
+        DisasterRecoveryDataTable dataTable = createDisasterRecoveryDataTable();
+        render(dataTable);
     }
 
     public static void test(String id) {
@@ -247,44 +259,48 @@ public class DisasterRecovery extends ViprResourceController {
         renderJSON(siteRest);
     }
 
+    private static boolean isActiveSiteState(SiteState state) {
+        return activeStates.contains(state);
+    }
+
     public static void errorDetails(String id) {
         Boolean isError = false;
         String uuid = id;
-        if (DisasterRecoveryUtils.hasStandbySite(id)) {
-            SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
-            if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
-                SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
-                isError = true;
-                if (disasterSiteError.getCreationTime() != null) {
-                    DateTime creationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
-                    renderArgs.put("creationTime", creationTime);
-                }
-                render(isError, uuid, disasterSiteError);
-            }
-            else {
-                SiteDetailRestRep disasterSiteDetails = DisasterRecoveryUtils.getSiteDetails(id);
-                isError = false;
-                if (disasterSiteDetails.getCreationTime() != null) {
-                    DateTime creationTime = new DateTime(disasterSiteDetails.getCreationTime().getTime());
-                    renderArgs.put("creationTime", creationTime);
-                }
-                if (disasterSiteDetails.getPausedTime() != null) {
-                    DateTime pausedTime = new DateTime(disasterSiteDetails.getPausedTime().getTime());
-                    renderArgs.put("pausedTime", pausedTime);
-                }
-                if (disasterSiteDetails.getlastUpdateTime() != null) {
-                    DateTime lastUpdateTime = new DateTime(disasterSiteDetails.getlastUpdateTime().getTime());
-                    renderArgs.put("lastUpdateTime", lastUpdateTime);
-                }
 
-                render(isError, uuid, disasterSiteDetails);
-            }
-        }
-        else {
+        // site id doesn't exist
+        if (!DisasterRecoveryUtils.hasStandbySite(id)) {
             SiteDetailRestRep disasterSiteTime = new SiteDetailRestRep();
             uuid = "Unknown Standby site id: " + id;
             render(isError, uuid, disasterSiteTime);
         }
+
+        SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
+
+        // site is in STANDBY_ERROR state
+        if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
+            SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
+            isError = true;
+            if (disasterSiteError.getCreationTime() != null) {
+                DateTime creationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
+                renderArgs.put("creationTime", creationTime);
+            }
+            render(isError, uuid, disasterSiteError);
+        }
+
+        SiteDetailRestRep disasterSiteDetails = DisasterRecoveryUtils.getSiteDetails(id);
+        Boolean isActive = isActiveSiteState(Enum.valueOf(SiteState.class, siteRest.getState()));
+        renderArgs.put("isActive", isActive);
+
+        if (disasterSiteDetails.getPausedTime() != null) {
+            DateTime pausedTime = new DateTime(disasterSiteDetails.getPausedTime().getTime());
+            renderArgs.put("pausedTime", pausedTime);
+        }
+
+        if (disasterSiteDetails.getCreationTime() != null) {
+            DateTime creationTime = new DateTime(disasterSiteDetails.getCreationTime().getTime());
+            renderArgs.put("creationTime", creationTime);
+        }
+        render(isError, uuid, disasterSiteDetails);
     }
 
     private static void itemsJson(List<String> uuids) {

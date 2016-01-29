@@ -2059,4 +2059,39 @@ public class RPHelper {
         return exportGroup;
     }
 
+    /**
+     * Get the name of the copy associated with the varray ID and personality of the incoming volume.
+     * 
+     * @param dbClient db client
+     * @param consistencyGroup cg
+     * @param varrayId varray ID
+     * @param production is this a production volume
+     * @return String associated with the existing copy name
+     */
+    public static String getCgCopyName(DbClient dbClient, BlockConsistencyGroup consistencyGroup, URI varrayId, boolean production) {
+        List<Volume> cgVolumes = RPHelper.getCgVolumes(consistencyGroup.getId(), dbClient);
+        if (cgVolumes == null) {
+            return null;
+        }
+        
+        for (Volume cgVolume : cgVolumes) {
+            if (cgVolume.getPersonality() == null) {
+                continue;
+            }
+            
+            if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId)) {
+                continue;
+            }
+            
+            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && production) {
+                return cgVolume.getRpCopyName();
+            }
+
+            if (!cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && !production) {
+                return cgVolume.getRpCopyName();
+            }
+        }
+        return null;
+    }
+
 }

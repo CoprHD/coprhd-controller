@@ -44,8 +44,6 @@ public class VirtualArrayParam {
     /**
      * Specifies whether or not zoning is automatic for the virtual array.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "auto_san_zoning", required = false)
     @Deprecated

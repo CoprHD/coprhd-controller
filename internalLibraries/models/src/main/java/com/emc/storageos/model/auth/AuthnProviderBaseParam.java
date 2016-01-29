@@ -16,24 +16,23 @@ public abstract class AuthnProviderBaseParam {
 
     /**
      * The kind of provider. Active Directory(ad) or generic LDAPv3 (ldap)
-     * 
-     * @valid ad
-     * @valid ldap
+     * Valid values
+     * ad
+     * ldap
      */
     private String mode;
 
     /**
-     * Name of the provider
+     * Name of the provider.
+     * Valid value:
+     *  provider names unique within a virtual data center
      * 
-     * @valid any string.
-     * @valid provider names must be unique within a virtual data center
      */
     private String label;
 
     /**
      * Description of the provider
      * 
-     * @valid any string
      */
     private String description;
 
@@ -47,23 +46,18 @@ public abstract class AuthnProviderBaseParam {
      * During the operation of the system, a disabled provider will exist but
      * not be considered when authenticating principals.
      * 
-     * @valid true to disable
-     * @valid false to enable
      */
     private Boolean disable;
 
     /**
      * Distinguished Name for the bind user.
      * 
-     * @valid Example: CN=Administrator,CN=Users,DC=domain,DC=com
-     * @valid Example: domain\Administrator
      */
     private String managerDn;
 
     /**
      * Password for the manager DN "bind" user.
      * 
-     * @valid none
      */
     private String managerPassword;
 
@@ -71,26 +65,24 @@ public abstract class AuthnProviderBaseParam {
      * Search base from which the LDAP search will start when authenticating
      * users. See also: search_scope
      * 
-     * @valid Example: CN=Users,DC=domain,DC=com
      */
     private String searchBase;
 
     /**
      * Key value pair representing the search filter criteria.
+     * Valid value:
+     *  %u whole username string
+     *  %U username portion only of the string containing the domain
      * 
-     * @valid %u or %U needs to be present on the right side of the equal sign (Example: filterKey=%u).
-     * @valid %u stands for the whole username string as typed in by the user.
-     * @valid %U stands for the username portion only of the string containing the domain
-     * @valid Example: in user@company.com, %U is user. %u is user@company.com
      */
     private String searchFilter;
 
     /**
      * In conjunction with the search_base, the search_scope indicates how many
      * levels below the base the search can continue.
-     * 
-     * @valid ONELEVEL = The search will start at the search_base location and continue up to one level deep
-     * @valid SUBTREE = The search will start at the search_base location and continue through the entire tree
+     * Valid values:
+     * ONELEVEL
+     * SUBTREE
      */
     private String searchScope;
 
@@ -98,23 +90,18 @@ public abstract class AuthnProviderBaseParam {
      * Attribute for group search. This is the attribute name that will be used to represent group membership.
      * Once set during creation of the provider, the value for this parameter cannot be changed.
      * 
-     * @valid Example: "CN"
      */
     private String groupAttribute;
 
     /**
      * Maximum number of results that the LDAP server will return on a single page.
      * 
-     * @valid If provided, the value must be greater than 0
-     * @valid The value cannot be higher than the max page size configured on the LDAP server.
      */
     private Integer maxPageSize;
 
     /**
      * Whether or not to validate certificates when ldaps is used.
      * 
-     * @valid true
-     * @valid false
      */
     private Boolean validateCertificates;
 

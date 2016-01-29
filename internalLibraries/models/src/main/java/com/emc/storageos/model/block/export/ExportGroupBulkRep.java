@@ -17,7 +17,6 @@ public class ExportGroupBulkRep extends BulkRestRep {
     /**
      * List of export groups.
      * 
-     * @valid none
      */
     @XmlElement(name = "exportgroup")
     public List<ExportGroupRestRep> getExports() {

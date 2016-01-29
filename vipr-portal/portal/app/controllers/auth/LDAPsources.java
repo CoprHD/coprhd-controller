@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.AuthnProvider;
-import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 
 import models.SearchScopes;
 import models.datatable.LDAPsourcesDataTable;
@@ -400,10 +399,6 @@ public class LDAPsources extends ViprResourceController {
 
         	if (StringUtils.equals(AuthSourceType.ad.name(), mode) || StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
                 Validation.required(fieldName + ".groupAttribute", groupAttribute);
-                // Automatically Register CoprHD as block service provider for OpenStack
-                System.out.println("Register Keystone With OpenStack");
-                log.error("Register Keystone Here!!");
-
             }
             Validation.required(fieldName + ".domains", parseMultiLineInput(this.domains.get(0)));
             Validation.required(fieldName + ".serverUrls", parseMultiLineInput(this.serverUrls.get(0)));

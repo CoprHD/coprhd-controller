@@ -21,12 +21,8 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.AuthMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.net.*;
+import java.util.*;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -100,7 +96,10 @@ public class AuthnConfigurationService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(AuthnConfigurationService.class);
 
     private static String FEATURE_NAME_LDAP_GROUP_SUPPORT = "Group support for LDAP Authentication Provider";
+    private static String OPENSTACK_DEFAULT_REGION = "RegionOne";
     private static final String OPENSTACK_CINDER_NAME = "cinderv2";
+    private static final String COPRHD_PORT = ":8080/v2/%(tenant_id)s";
+    private static final String HTTP = "http://";
 
     @Autowired
     private AuthSvcEndPointLocator _authSvcEndPointLocator;
@@ -223,6 +222,7 @@ public class AuthnConfigurationService extends TaggedResource {
             populateKeystoneToken(provider, null);
             // TODO: check for checkbox value
             if(true){
+                // Register CoprHD as a Block Service Provider for OpenStack.
                 registerCoprhdInKeystone(provider);
             }
         } else {
@@ -274,28 +274,22 @@ public class AuthnConfigurationService extends TaggedResource {
         String cinderServiceId = retrieveCinderv2ServiceId(services);
         // Find endpoint to delete.
         EndpointV2 endpointToDelete = retrieveEndpointId(endpoints, cinderServiceId);
-        // Set default region.
-        String region = "RegionOne";
         // Do not execute delete call when endpoint does not exist.
         if(endpointToDelete != null){
             // Override default region name.
-            region = endpointToDelete.getRegion();
+            OPENSTACK_DEFAULT_REGION = endpointToDelete.getRegion();
             // Delete endpoint using Keystone API.
             keystoneApi.deleteKeystoneEndpoint(endpointToDelete.getId());
         }
         // Prepare new endpoint.
-        // TODO: coprhd id
-        URI coprhdUri = URI.create("ip");
-        EndpointV2 newEndpoint = prepareNewEndpoint(region, cinderServiceId, coprhdUri);
+        EndpointV2 newEndpoint = prepareNewCinderv2Endpoint(OPENSTACK_DEFAULT_REGION, cinderServiceId);
         // Create a new endpoint pointing to CoprHD using Keystone API.
-        CreateResponse createResponse = keystoneApi.createKeystoneEndpoint(newEndpoint);
-        EndpointV2 createdEndpoint = createResponse.getEndpoint();
-
+        keystoneApi.createKeystoneEndpoint(newEndpoint);
+        // Retrieve tenant from OpenStack via Keystone API.
         TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
         TenantV2 tenant = retrieveTenant(tenantResponse, tenantName);
 
         // TODO: create a tenant and a project
-
 
         _log.info("END - register CoprHD in Keystone");
     }
@@ -305,13 +299,21 @@ public class AuthnConfigurationService extends TaggedResource {
      *
      * @param region Region assigned to the endpoint.
      * @param serviceId Cinderv2 service ID.
-     * @param uri URI containing CoprHD IP.
      * @return Endpoint filled with necessary information.
      */
-    private EndpointV2 prepareNewEndpoint(String region, String serviceId, URI uri){
+    private EndpointV2 prepareNewCinderv2Endpoint(String region, String serviceId){
 
-        String openstackInfo = ":8080/v2/%(tenant_id)s";
-        String url = uri.toString() + openstackInfo;
+        String url = "";
+        String localAddress;
+        String localIP;
+        try {
+            localAddress = InetAddress.getLocalHost().toString();
+            localIP = localAddress.split("/")[1];
+            url = HTTP + localIP + COPRHD_PORT;
+        } catch (UnknownHostException | NullPointerException e) {
+            _log.error(e.getMessage());
+            e.printStackTrace();
+        }
 
         EndpointV2 endpoint = new EndpointV2();
         endpoint.setRegion(region);
@@ -326,16 +328,17 @@ public class AuthnConfigurationService extends TaggedResource {
     /**
      * Retrieves OpenStack endpoint ID related to given service ID.
      *
-     * @param serviceId Cinderv2 service ID.
+     * @param serviceId Service ID.
      * @return ID of endpoint.
      */
     private EndpointV2 retrieveEndpointId(EndpointResponse response, String serviceId){
-        // TODO: multiple endpoints for a single service
+
         for(EndpointV2 endpoint : response.getEndpoints()){
             if(endpoint.getServiceId().equals(serviceId)){
                 return endpoint;
             }
         }
+        // TODO: solve problem with multiple endpoints for a single service with different regions
         // Return null if there is no endpoints for cinderv2 service.
         return null;
     }

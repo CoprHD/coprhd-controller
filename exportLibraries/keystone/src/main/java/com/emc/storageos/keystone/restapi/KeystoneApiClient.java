@@ -112,7 +112,7 @@ public class KeystoneApiClient extends StandardRestClient {
      */
     public EndpointResponse getKeystoneEndpoints() throws KeystoneApiException{
 
-        log.info("START - getKeystoneEndpoints");
+        log.debug("START - getKeystoneEndpoints");
 
         // Authenticate user if there is no token available.
         if(_authToken == null){
@@ -138,7 +138,7 @@ public class KeystoneApiClient extends StandardRestClient {
             throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
         }
 
-        log.info("END - getKeystoneEndpoints");
+        log.debug("END - getKeystoneEndpoints");
         return endpointResponse;
     }
 
@@ -149,7 +149,7 @@ public class KeystoneApiClient extends StandardRestClient {
      */
     public ServiceResponse getKeystoneServices() throws KeystoneApiException{
 
-        log.info("START - getKeystoneServices");
+        log.debug("START - getKeystoneServices");
 
         // Authenticate user if there is no token available.
         if(_authToken == null){
@@ -175,7 +175,7 @@ public class KeystoneApiClient extends StandardRestClient {
             throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
         }
 
-        log.info("END - getKeystoneServices");
+        log.debug("END - getKeystoneServices");
         return serviceResponse;
     }
 
@@ -186,7 +186,7 @@ public class KeystoneApiClient extends StandardRestClient {
      */
     public void deleteKeystoneEndpoint(String endpointId){
 
-        log.info("START - deleteKeystoneEndpoint");
+        log.debug("START - deleteKeystoneEndpoint");
 
         // Authenticate user if there is no token available.
         if(_authToken == null){
@@ -204,7 +204,7 @@ public class KeystoneApiClient extends StandardRestClient {
             throw KeystoneApiException.exceptions.endpointRequestFailure(response.getClientResponseStatus().name());
         }
 
-        log.info("END - deleteKeystoneEndpoint");
+        log.debug("END - deleteKeystoneEndpoint");
     }
 
     /**
@@ -215,7 +215,7 @@ public class KeystoneApiClient extends StandardRestClient {
      */
     public CreateResponse createKeystoneEndpoint(EndpointV2 endpoint){
 
-        log.info("START - createKeystoneEndpoint");
+        log.debug("START - createKeystoneEndpoint");
 
         // Authenticate user if there is no token available.
         if(_authToken == null){
@@ -237,7 +237,7 @@ public class KeystoneApiClient extends StandardRestClient {
         // Create a new URI for endpoint creation.
         String uri = KeystoneConstants.URI_ENDPOINTS;
         URI requestURI = _base.resolve(URI.create(uri));
-        log.info("json: {}, uri: {}", body, requestURI);
+
         // Send a create request to Keystone API.
         ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
                                         .header(KeystoneConstants.AUTH_TOKEN, _authToken).post(ClientResponse.class, body);
@@ -258,7 +258,7 @@ public class KeystoneApiClient extends StandardRestClient {
             throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
         }
 
-        log.info("END - createKeystoneEndpoint");
+        log.debug("END - createKeystoneEndpoint");
         return createResponse;
     }
 
@@ -269,7 +269,7 @@ public class KeystoneApiClient extends StandardRestClient {
      */
     public TenantResponse getKeystoneTenants() throws KeystoneApiException{
 
-        log.info("START - getKeystoneTenants");
+        log.debug("START - getKeystoneTenants");
 
         // Authenticate user if there is no token available.
         if(_authToken == null){
@@ -295,7 +295,7 @@ public class KeystoneApiClient extends StandardRestClient {
             throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
         }
 
-        log.info("END - getKeystoneTenants");
+        log.debug("END - getKeystoneTenants");
         return tenantResponse;
     }
 

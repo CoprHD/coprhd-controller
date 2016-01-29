@@ -1410,7 +1410,7 @@ public class FileService extends TaskResourceService {
             if (!fs.getFilePolicies().isEmpty()) {
 
                 throw APIException.badRequests
-                        .resourceCannotBeDeleted("Please Remove the asigned policy. " + fs.getLabel());
+                        .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
         }
         List<URI> fileShareURIs = new ArrayList<URI>();

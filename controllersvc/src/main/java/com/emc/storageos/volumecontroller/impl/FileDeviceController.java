@@ -370,22 +370,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 if (result.isCommandSuccess()
                         && (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType))) {
 
-                    if (schedulePolicyExistsOnFS(fsObj)) {
-                        String errMsg = "delete file system from DB failed due to policy exist on file system " + fsObj.getLabel();
-                        _log.error(errMsg);
-
-                        final ServiceCoded serviceCoded = DeviceControllerException.errors.jobFailedOpMsg(
-                                OperationTypeEnum.DELETE_FILE_SYSTEM.toString(), errMsg);
-                        result = BiosCommandResult.createErrorResult(serviceCoded);
-                        fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
-                        recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, result.isCommandSuccess(), "", "",
-                                fsObj, storageObj);
-                        _dbClient.updateObject(fsObj);
-                        return;
-                    } else {
-                        doDeletePolicyReferenceFromDB(fsObj);
-                    }
-
                     if ((snapshotsExistsOnFS(fsObj) || quotaDirectoriesExistsOnFS(fsObj))) {
                         boolean fsCheck = getDevice(storageObj.getSystemType()).doCheckFSExists(storageObj, args);
 
@@ -407,6 +391,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
                             args.addQuotaDirectory(null);
                             doFSDeleteQuotaDirsFromDB(args);
+                            doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
                         }
                     }
 
@@ -2810,20 +2795,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
         }
 
-        return false;
-    }
-
-    /**
-     * 
-     * @param fs
-     * @return
-     */
-    private boolean schedulePolicyExistsOnFS(FileShare fs) {
-
-        if (fs.getFilePolicies().isEmpty()) {
-
-            return true;
-        }
         return false;
     }
 

@@ -13,17 +13,20 @@
     
     project:{
       type:"assetType.vipr.project",
-      lockable: true
+      lockable: true,
+      required:false
     },
     
     virtualArray:{
       type:"assetType.vipr.virtualArray",
-      lockable: true
+      lockable: true,
+      required:false
     },
 
     virtualPool:{
       type:"assetType.vipr.blockVirtualPool",
-      lockable: true
+      lockable: true,
+      required:false
     },
     
     targetVirtualPool:{

@@ -145,10 +145,10 @@ angular.module("services", []).directive({
                 	}
                 } else if (item.type == 'date') {
                     type = '<date-picker>';
-                    tagAttrs = {'ng-model' : "date"};
+                    tagAttrs = {'ng-model' : item.name};
                 } else if (item.type == 'time') {
                 	type = '<time-picker>';
-                	tagAttrs = {'ng-model' : "time"};    
+                	tagAttrs = {'ng-model' : item.name};    
                 } else {
                     item.error = " ";
                     type = "<p class='help-inline'>" + translate('serviceField.unsupportedType',item.type) + "</p>";

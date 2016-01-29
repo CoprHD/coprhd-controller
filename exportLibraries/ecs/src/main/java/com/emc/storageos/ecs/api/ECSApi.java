@@ -44,7 +44,7 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_OWNER = "/object/bucket/{0}/owner.json";
     private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json?namespace={1}";
     private static final String URI_BUCKET_INFO = "/object/bucket/{0}/info.json?namespace={1}";
-    private static final String URI_UPDATE_BUCKET_ACL = "/object/bucket/{0}/acl.json";
+    private static final String URI_UPDATE_BUCKET_ACL = "/object/bucket/{0}/acl.json";    
     private static final String URI_GET_NAMESPACES = "/object/namespaces.json";
     private static final String URI_GET_NAMESPACE_DETAILS = "/object/namespaces/namespace/{0}.json";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;

@@ -298,8 +298,16 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         log.info("START create clone step");
         URI storage = storageSystem.getId();
         List<URI> cloneList = new ArrayList<URI>();
+
+        // For clones of new volumes added to Application, get the clone set name and set it
+        String cloneSetName = null;
+        List<Volume> fullCopies = ControllerUtils.getFullCopiesPartOfReplicationGroup(repGroupName, _dbClient);
+        if (!fullCopies.isEmpty()) {
+            cloneSetName = fullCopies.get(0).getFullCopySetName();
+        }
+
         for (Volume volume : volumes) {
-            Volume clone = prepareClone(volume, repGroupName);
+            Volume clone = prepareClone(volume, repGroupName, cloneSetName);
             cloneList.add(clone.getId());
         }
 
@@ -346,7 +354,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return snapshot;
     }
 
-    private Volume prepareClone(Volume volume, String repGroupName) {
+    private Volume prepareClone(Volume volume, String repGroupName, String cloneSetName) {
         // create clone for the source
         Volume clone = new Volume();
         clone.setId(URIUtil.createId(Volume.class));
@@ -365,9 +373,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         clone.setReplicationGroupInstance(repGroupName);
 
         // For clones of new volumes added to Application, get the clone set name and set it
-        if (volume.getApplication(_dbClient) != null) {
-            List<Volume> fullCopies = ControllerUtils.getFullCopiesPartOfReplicationGroup(repGroupName, _dbClient);
-            String cloneSetName = (fullCopies.iterator().next()).getFullCopySetName();
+        if (cloneSetName != null) {
             clone.setFullCopySetName(cloneSetName);
         }
 

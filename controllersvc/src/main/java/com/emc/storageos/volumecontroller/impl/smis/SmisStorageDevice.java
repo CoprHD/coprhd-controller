@@ -2425,7 +2425,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                     blockObject.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
                     // unset the Set name on clones
-                    if (blockObject instanceof Volume && ((Volume) blockObject).getFullCopySetName() != null) {
+                    if (blockObject instanceof Volume && NullColumnValueGetter.isNotNullValue(((Volume) blockObject).getFullCopySetName())) {
                         ((Volume) blockObject).setFullCopySetName(NullColumnValueGetter.getNullStr());
                     }
                     objectsToUpdate.add(blockObject);

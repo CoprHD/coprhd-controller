@@ -1089,6 +1089,11 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
         }
         
+        Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, expand, "filesystem");
+        
         FileController controller = getController(FileController.class,
                 device.getSystemType());
 

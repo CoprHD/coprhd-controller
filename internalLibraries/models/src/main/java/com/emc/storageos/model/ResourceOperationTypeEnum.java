@@ -115,6 +115,10 @@ public enum ResourceOperationTypeEnum {
 
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "tag a filesystem"),
     DELETE_FILE_SNAPSHOT("DELETE FILESYSTEM SNAPSHOT", "delete filesystem snapshot"),
+    ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("ASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",
+            "assign snapshot schedule policy to a filesystem"),
+    UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("UNASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",
+            "unassign snapshot schedule policy to a filesystem"),
     UNEXPORT_FILE_SYSTEM("UNEXPORT FILESYSTEM", "unexport filesystem operation"),
     DELETE_FILE_SYSTEM_SHARE("DELETE FILESHARE", "delete fileshare"),
     EXPORT_FILE_SNAPSHOT("EXPORT FILESYSTEM SNAPSHOT", "export fileshare snapshot"),

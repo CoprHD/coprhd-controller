@@ -70,6 +70,7 @@ import warnings
 import volumegroup
 import ipsecmanager
 import snapshotsession
+import schedulepolicy
 
 warnings.filterwarnings(
     'ignore',
@@ -180,6 +181,7 @@ computeimageserver.computeimageserver_parser(module_parsers, common_parser)
 bucket.bucket_parser(module_parsers, common_parser)
 ipsecmanager.ipsec_parser(module_parsers, common_parser)
 snapshotsession.snapshotsession_parser(module_parsers, common_parser)
+schedulepolicy.schedulepolicy_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
 
 

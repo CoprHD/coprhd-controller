@@ -796,7 +796,7 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setIsUnlimitedResourcesSet(true);
                 storageArray.setMaxResources(null);
             }
-            if (isIsilon()) { //It's mandatory for and isilon to support these with smart quota
+            if (isIsilon()) { //It's mandatory for isilon to support these with smart quota
                 storageArray.setSupportsSoftLimit(true);
                 storageArray.setSupportsNotificationLimit(true);
             }
@@ -831,7 +831,7 @@ public class StorageSystems extends ViprResourceController {
             storageArray.setUserName(userName);
             storageArray.setPortNumber(portNumber);
             storageArray.setIpAddress(ipAddress);
-            if (isIsilon()){ //It's mandatory for and isilon to support these with smart quota
+            if (isIsilon()){ //It's mandatory for isilon to support these with smart quota
                 storageArray.setSupportsSoftLimit(true);
                 storageArray.setSupportsNotificationLimit(true);
             }

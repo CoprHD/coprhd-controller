@@ -168,7 +168,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
         if (schemaUtil.isGeoDbsvc()) {
             // scan and update cassandra schema
-            checkDbSchema();
+            checkGeoDbSchema();
             
             // no migration procedure for geosvc, just wait till migration is done on one of the
             // dbsvcs
@@ -694,11 +694,17 @@ public class MigrationHandlerImpl implements MigrationHandler {
         log.info("Finish dumping changes");
     }
     
-    private void checkDbSchema() {
+    private void checkGeoDbSchema() {
+        String targetVersion = service.getVersion();
+        if (!dbClient.checkGeoCompatible(targetVersion)){
+            log.info("Not all vdc are upgraded. Skip geodb schema change until all vdc are upgraded");
+            return;
+        }
+        
         log.info("Start scanning and creating new column families");
         InterProcessLock lock = null;
         try {
-            String lockName = schemaUtil.isGeoDbsvc() ? DbConfigConstants.GEODB_SCHEMA_LOCK : DbConfigConstants.DB_SCHEMA_LOCK;
+            String lockName = DbConfigConstants.GEODB_SCHEMA_LOCK ;
             // grab global lock for migration
             lock = getLock(lockName);
             schemaUtil.checkCf();

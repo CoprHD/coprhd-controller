@@ -205,13 +205,15 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
     public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId, String deleteType) {
         if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
             // Update the task status for the session.
-            Operation op = snapSession.getOpStatus().get(taskId);
+            // Note that we must get the session form the database to get the latest status map.
+            BlockSnapshotSession updatedSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSession.getId());
+            Operation op = updatedSession.getOpStatus().get(taskId);
             op.ready("Snapshot session succesfully deleted from ViPR");
-            snapSession.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(snapSession);
+            updatedSession.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.updateObject(updatedSession);
 
             // Mark the snapshot session for deletion.
-            _dbClient.markForDeletion(snapSession);
+            _dbClient.markForDeletion(updatedSession);
         } else {
             // Invoke the BlockDeviceController to delete the snapshot session.
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());

@@ -23,10 +23,10 @@ appliance:
 	docker history "$(DEVKIT_IMAGE)" &> /dev/null || wget --continue "$(DEVKIT_ADDRS)"
 	[ ! -f "$(DEVKIT_LOCAL)" ] || cat "$(DEVKIT_LOCAL)" | docker import - $(DEVKIT_IMAGE)
 	[ ! -f "$(DEVKIT_LOCAL)" ] || rm "$(DEVKIT_LOCAL)"
-	$(DOCKER_RUN) make -f Makefile $@ $(MAKEFLAGS)
+	$(DOCKER_RUN) make -f $(PRODUCT_FOLDER)/Makefile $@ $(MAKEFLAGS)
 
 %::
 	docker history "$(DEVKIT_IMAGE)" &> /dev/null || wget --continue "$(DEVKIT_ADDRS)"
 	[ ! -f "$(DEVKIT_LOCAL)" ] || cat "$(DEVKIT_LOCAL)" | docker import - $(DEVKIT_IMAGE)
 	[ ! -f "$(DEVKIT_LOCAL)" ] || rm "$(DEVKIT_LOCAL)"
-	$(DOCKER_RUN) make -f Makefile $@ $(MAKEFLAGS)
+	$(DOCKER_RUN) make -f $(PRODUCT_FOLDER)/Makefile $@ $(MAKEFLAGS)

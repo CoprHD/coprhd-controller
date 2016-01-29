@@ -38,8 +38,15 @@ public class RowMutator {
     private MutationBatch _recordMutator;
     private MutationBatch _indexMutator;
     private Keyspace keyspace;
+    private boolean retryFailedWriteWithLocalQuorum = false;
     
-    public RowMutator(Keyspace keyspace) {
+    /**
+     * Construct RowMutator instance for for index CF and object CF updates
+     * 
+     * @param keyspace - cassandra keyspace object
+     * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure 
+     */
+    public RowMutator(Keyspace keyspace, boolean retryWithLocalQuorum) {
         this.keyspace = keyspace;
         _timeUUID = TimeUUIDUtils.getUniqueTimeUUIDinMicros();
         _timeStamp = TimeUUIDUtils.getMicrosTimeFromUUID(_timeUUID);
@@ -51,6 +58,8 @@ public class RowMutator {
 
         _cfRowMap = new HashMap<String, Map<String, ColumnListMutation<CompositeColumnName>>>();
         _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<IndexColumnName>>>();
+        
+        this.retryFailedWriteWithLocalQuorum = retryWithLocalQuorum;
     }
 
     public UUID getTimeUUID() {
@@ -143,14 +152,17 @@ public class RowMutator {
             try {
                 mutator.execute();
             } catch (TimeoutException | TokenRangeOfflineException | OperationTimeoutException ex) {
+                // change consistency level and retry once with LOCAL_QUORUM
                 ConsistencyLevel currentConsistencyLevel = keyspace.getConfig().getDefaultWriteConsistencyLevel();
-                if (currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
+                if (retryFailedWriteWithLocalQuorum && currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
                     mutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                     mutator.execute();
                     log.info("Reduce write consistency level to CL_LOCAL_QUORUM");
                     ((AstyanaxConfigurationImpl)keyspace.getConfig()).setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                     _indexMutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                     _recordMutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
+                } else {
+                    throw ex;
                 }
             }
         }

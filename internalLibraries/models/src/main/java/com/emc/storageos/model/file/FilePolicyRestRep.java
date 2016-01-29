@@ -7,7 +7,7 @@ package com.emc.storageos.model.file;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.project.SchedulePolicyRestRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 
 /**
  * Schedule Policy and returned as a response to a REST request.

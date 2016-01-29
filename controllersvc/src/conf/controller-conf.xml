@@ -160,6 +160,7 @@
         <property name="blockScheduler" ref="blockscheduler"/>
         <property name="workflowService" ref="workflowService"/>
         <property name="srdfDeviceController" ref="srdfDeviceController"/>
+        <property name="replicaDeviceController" ref="replicaDeviceController" />
     </bean>
 
     <bean id="blockDeviceExportController"
@@ -581,8 +582,14 @@
     <bean id="isilonapifactory" class="com.emc.storageos.isilon.restapi.IsilonApiFactory"
           init-method="init" destroy-method="shutdown"/>
           
+    <bean id="isilonMirrorOperations" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonMirrorOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="isilonApiFactory" ref="isilonapifactory"/>
+    </bean>
+          
     <bean id="isilonDevice" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonFileStorageDevice">
         <property name="isilonApiFactory" ref="isilonapifactory"/>
+         <property name="mirrorOperations" ref="isilonMirrorOperations"/>
         <property name="customConfigHandler" ref="customConfigHandler" />
     	<property name="configinfo">
     		<util:map map-class="java.util.HashMap" key-type="java.lang.String" value-type="java.lang.String">
@@ -594,6 +601,8 @@
 	</property>  
 	<property name="dbClient" ref="dbclient"/>
     </bean>
+    
+    
 
 	<bean id="ecsapifactory" class="com.emc.storageos.ecs.api.ECSApiFactory"
 		init-method="init" destroy-method="shutdown" />
@@ -666,6 +675,7 @@
         <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
         <property name="vplexApiLockManager" ref="vplexlockmgr" />
 	    <property name="blockStorageScheduler" ref="blockscheduler"/>
+	    <property name="replicaDeviceController" ref="replicaDeviceController" />
 	    <property name="coordinator" ref="coordinator"/>
 	    <property name="consistencyGroupManagers">
             <map>
@@ -765,8 +775,30 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="eventManager" ref="recordableEventMgr"/>
         <property name="auditLogManager" ref="auditLogManager"/>
+        <property name="workflowService" ref="workflowService"/>
+    </bean>
+    
+	<bean id="fileReplicationDeviceController" class="com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController">
+        <property name="dbClient" ref="dbclient" />
+        <property name="workflowService" ref="workflowService" />
+        <property name="devices">
+            <map>
+                <entry key="isilon" value-ref="isilonDevice"/>
+            </map>
+        </property>
+        
     </bean>
 
+    <bean id="fileReplicationController" class="com.emc.storageos.filereplicationcontroller.FileReplicationControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="fileReplicationDeviceController"/>
+            </set>
+        </property>
+    </bean>
+    
     <bean id="objectDeviceController" class="com.emc.storageos.volumecontroller.impl.ObjectDeviceController">
         <property name="devices">
             <map>
@@ -872,6 +904,8 @@
                 <ref bean="blockDeviceExportController"/>
                 <ref bean="exportWorkflowEntryPoints"/>
                 <ref bean="blockOrchestrationDeviceController"/>
+                <ref bean="fileOrchestrationDeviceController"/>
+                <ref bean="fileReplicationDeviceController" />
                 <ref bean="srdfDeviceController" />
                 <ref bean="replicaDeviceController" />
                 <ref bean="snapshotWorkflowEntryPoints"/>
@@ -1369,6 +1403,31 @@
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>
+    
+    <!-- tbd fileorchestrationdevice controller exporter -->
+    <bean id="fileOrchestrationDeviceController" class="com.emc.storageos.fileorchestrationcontroller.FileOrchestrationDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="fileDeviceController" ref="fileDeviceController" />
+        <property name="fileReplicationDeviceController" ref="fileReplicationDeviceController" />
+        <property name="locker" ref="locker"/>
+    </bean>
+
+    <bean id="fileOrchestrationController" class="com.emc.storageos.fileorchestrationcontroller.FileOrchestrationControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="controller" ref="fileOrchestrationDeviceController" />
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="FileOrchestrationController"/>
+        <property name="service" ref="fileOrchestrationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+    <!-- tbd fileorchestrationdevice controller exporter ends-->
+    
 
     <bean id="dataObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
         <property name="packages">
@@ -1410,5 +1469,9 @@
     		</list>
     	</property>
     </bean>
-
+	
+	<bean id="auditLogManagerFactory" class="com.emc.storageos.security.audit.AuditLogManagerFactory">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
 </beans>

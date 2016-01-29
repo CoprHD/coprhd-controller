@@ -7,7 +7,7 @@ package com.emc.storageos.api.mapper.functions;
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.SchedulePolicy;
-import com.emc.storageos.model.project.SchedulePolicyRestRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 import com.google.common.base.Function;
 
 /**

@@ -47,15 +47,15 @@ import com.emc.storageos.vnx.xmlapi.VNXSnapshot;
 import com.emc.storageos.vnx.xmlapi.XMLApiResult;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
-import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
+import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi;
 
 /*
  * Suppressing these warnings as fix will be made in future release.
  */
 @SuppressWarnings({ "findbugs:RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", "findbugs:NP_NULL_ON_SOME_PATH" })
-public class VNXFileStorageDeviceXML implements FileStorageDevice {
+public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     private static final Logger _log = LoggerFactory.getLogger(VNXFileStorageDeviceXML.class);
 
@@ -1397,6 +1397,6 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
     @Override
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.netappc.operationNotSupported());
+                DeviceControllerErrors.vnx.operationNotSupported());
     }
 }

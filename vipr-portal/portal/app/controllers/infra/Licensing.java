@@ -52,15 +52,15 @@ public class Licensing extends Controller {
 
     public static void itemDetails(String id) {
         License license = LicenseUtils.getLicense();
-        StorageStatsWrapper storageStatsWrapper = getStats();
 
         LicenseFeature lf = null;
         for (LicenseFeature feature : license.getLicenseFeatures()) {
             if (StringUtils.equalsIgnoreCase(feature.getModelId(), id)) {
                 lf = feature;
+                break;
             }
         }
-        render(lf, storageStatsWrapper);
+        render(lf);
     }
 
     private static StorageStatsWrapper getStats() {

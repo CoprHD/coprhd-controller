@@ -18,11 +18,11 @@ import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
 
 /**
+ * This matcher is for filtering the storage pool which do not support
+ * snapshot scheduling. storage pool copy type is used to check snapshot scheduling
  * 
- * ECS does not have concept of thick or thin provisioning. However bucket has hardquota
- * mapping to ECS max quota. Storage pool free size should be more the requested quota
- * of the bucket
- *
+ * @author sauraa
+ * 
  */
 public class FileScheduleSnaphotMatcher extends AttributeMatcher {
 
@@ -35,7 +35,7 @@ public class FileScheduleSnaphotMatcher extends AttributeMatcher {
 
         Boolean schedule = (Boolean) attributeMap.get(Attributes.schedule_snapshots.toString());
         // if snapshot scheduling is not true do not filter the pool.
-        if (schedule != true) {
+        if (!schedule) {
 
             return pools;
         }
@@ -66,9 +66,7 @@ public class FileScheduleSnaphotMatcher extends AttributeMatcher {
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
-        // Since this is a defaultMatcher, it should always return true.
 
         return attributeMap != null && attributeMap.containsKey(Attributes.schedule_snapshots.toString());
-
     }
 }

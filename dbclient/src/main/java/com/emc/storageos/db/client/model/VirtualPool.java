@@ -122,7 +122,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // File Replication RPO type
     private String _frRpoType;
     // File Replication RPO type
-    private String _replicationCopyMode;
+    private String _fileReplicationCopyMode;
 
     // File Repilcation copies
     private StringMap _fileRemoteCopySettings;
@@ -137,8 +137,14 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             }
             return false;
         }
+        public static boolean validFileReplication(final String name) {
+        	if (LOCAL.name().equalsIgnoreCase(name) || REMOTE.name().equalsIgnoreCase(name)) {
+        		return true;
     }
-
+            return false;
+        }
+    }
+    
     public static enum FileReplicationRPOType {
         MINUTES("minutes"),
         HOURS("hours");
@@ -1064,6 +1070,18 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return true;
     }
+    
+    /**
+     * Returns whether or not the passed VirtualPool specifies Protection
+     * 
+     * @param virtualPool
+     *            A reference to the VirtualPool.
+     * @return true if the VirtualPool specifies RP protection, false otherwise.
+     */
+    public static boolean vPoolSpecifiesFileReplication(final VirtualPool virtualPool) {
+    	return (virtualPool.getFileReplicationType() != null  &&
+    			FileReplicationType.validFileReplication(virtualPool.getFileReplicationType()));        
+    }
 
     /**
      * Convenience method to determine if the Virtual Pool supports expansion.
@@ -1466,11 +1484,11 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("replicationCopyMode")
     public String getFileReplicationCopyMode() {
-        return _replicationCopyMode;
+        return _fileReplicationCopyMode;
     }
 
     public void setFileReplicationCopyMode(String replicationCopyMode) {
-        this._replicationCopyMode = replicationCopyMode;
+        this._fileReplicationCopyMode = replicationCopyMode;
         setChanged("replicationCopyMode");
     }
 

@@ -7,8 +7,10 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -28,12 +30,17 @@ import com.emc.storageos.api.mapper.functions.MapSchedulePolicy;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.SchedulePolicy;
+import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.SchedulePolicy.SchedulePolicyType;
 import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.project.PolicyParam;
-import com.emc.storageos.model.project.SchedulePolicyBulkRep;
-import com.emc.storageos.model.project.SchedulePolicyRestRep;
+import com.emc.storageos.model.file.ScheduleSnapshotExpireParam;
+import com.emc.storageos.model.schedulepolicy.PolicyParam;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyBulkRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyParam;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -80,9 +87,9 @@ public class SchedulePolicyService extends TaggedResource {
     }
 
     /**
-     * Get project object from id
+     * Get schedule policy object from id
      * 
-     * @param id the URN of a ViPR Project
+     * @param id the URN of a CoprHD Schedule Policy
      * @return
      */
     private SchedulePolicy getPolicyById(URI id, boolean checkInactive) {
@@ -145,12 +152,20 @@ public class SchedulePolicyService extends TaggedResource {
         // check policy
         ArgValidator.checkFieldUriType(policyId, SchedulePolicy.class, "policyId");
 
+        // Check policy is associated with FS before update
+        SchedulePolicy schedulePolicy = getPolicyById(policyId, true);
+        StringSet resources = schedulePolicy.getAssignedResources();
+        if (resources != null && !resources.isEmpty()) {
+            _log.error("Unable to update schedule policy {} as it is already associated with resources",
+                    schedulePolicy.getPolicyName());
+            throw APIException.badRequests.unableToUpdateSchedulePolicy(schedulePolicy.getPolicyName());
+        }
+
         // check schedule policy type is valid or not
         if (!ArgValidator.isValidEnum(param.getPolicyType(), SchedulePolicyType.class)) {
             throw APIException.badRequests.invalidSchedulePolicyType(param.getPolicyType());
         }
 
-        SchedulePolicy schedulePolicy = getPolicyById(policyId, true);
         _log.info("Schedule policy {} update started", schedulePolicy.getPolicyName());
         if (null != param.getPolicyName() && !param.getPolicyName().isEmpty() &&
                 !schedulePolicy.getLabel().equalsIgnoreCase(param.getPolicyName())) {
@@ -165,8 +180,8 @@ public class SchedulePolicyService extends TaggedResource {
 
         // Validate Schedule policy parameters
         StringBuilder errorMsg = new StringBuilder();
-        boolean isValidSchedule = ArgValidator.validateSchedulePolicyParam(param.getPolicySchedule(), schedulePolicy, errorMsg);
-        if (errorMsg != null && errorMsg.length() > 0) {
+        boolean isValidSchedule = validateSchedulePolicyParam(param.getPolicySchedule(), schedulePolicy, errorMsg);
+        if (!isValidSchedule && errorMsg != null && errorMsg.length() > 0) {
             _log.error("Failed to update schedule policy due to {} ", errorMsg.toString());
             throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());
         }
@@ -176,16 +191,19 @@ public class SchedulePolicyService extends TaggedResource {
         if (param.getSnapshotExpire() != null) {
             String expireType = param.getSnapshotExpire().getExpireType();
             if (!ArgValidator.isValidEnum(expireType, SnapshotExpireType.class)) {
-                _log.error("Invalid schedule snapshot expire type {}. Valid Snapshot expire types are hours, days, weeks and months",
+                _log.error(
+                        "Invalid schedule snapshot expire type {}. Valid Snapshot expire types are hours, days, weeks, months and never",
                         expireType);
                 throw APIException.badRequests.invalidScheduleSnapshotExpireType(expireType);
             }
-            isValidSnapshotExpire = ArgValidator.validateSnapshotExpireParam(param.getSnapshotExpire());
+            isValidSnapshotExpire = validateSnapshotExpireParam(param.getSnapshotExpire());
             if (!isValidSnapshotExpire) {
                 int expireTime = param.getSnapshotExpire().getExpireValue();
-                _log.error("Invalid schedule snapshot expire time {}. Try an expire time between 2 hours to 10 years",
-                        expireTime);
-                throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime);
+                int minExpireTime = 2;
+                int maxExpireTime = 10;
+                _log.error("Invalid schedule snapshot expire time {}. Try an expire time between {} hours to {} years",
+                        expireTime, minExpireTime, maxExpireTime);
+                throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime, minExpireTime, maxExpireTime);
             }
         }
 
@@ -193,10 +211,14 @@ public class SchedulePolicyService extends TaggedResource {
             schedulePolicy.setPolicyType(param.getPolicyType());
             schedulePolicy.setLabel(param.getPolicyName());
             schedulePolicy.setPolicyName(param.getPolicyName());
-            schedulePolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency());
+            schedulePolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency().toLowerCase());
             if (isValidSnapshotExpire) {
-                schedulePolicy.setSnapshotExpireType(param.getSnapshotExpire().getExpireType());
-                schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
+                schedulePolicy.setSnapshotExpireType(param.getSnapshotExpire().getExpireType().toLowerCase());
+                if (!param.getSnapshotExpire().getExpireType().equalsIgnoreCase(SnapshotExpireType.NEVER.toString())) {
+                    schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
+                } else {
+                    schedulePolicy.setSnapshotExpireTime(null);
+                }
             }
             _dbClient.updateObject(schedulePolicy);
             _log.info("Schedule policy {} updated successfully", schedulePolicy.getPolicyName());
@@ -219,6 +241,14 @@ public class SchedulePolicyService extends TaggedResource {
         ArgValidator.checkFieldUriType(policyId, SchedulePolicy.class, "policyId");
         SchedulePolicy schedulePolicy = getPolicyById(policyId, true);
         ArgValidator.checkReference(SchedulePolicy.class, policyId, checkForDelete(schedulePolicy));
+
+        // Check policy is associated with FS before delete
+        StringSet resources = schedulePolicy.getAssignedResources();
+        if (resources != null && !resources.isEmpty()) {
+            _log.error("Unable to delete schedule policy {} as it is already associated with resources",
+                    schedulePolicy.getPolicyName());
+            throw APIException.badRequests.unableToDeleteSchedulePolicy(schedulePolicy.getPolicyName());
+        }
         _dbClient.markForDeletion(schedulePolicy);
         _log.info("Schedule policy {} deleted successfully", schedulePolicy.getPolicyName());
         return Response.ok().build();
@@ -237,4 +267,146 @@ public class SchedulePolicyService extends TaggedResource {
         verifySystemAdmin();
         return queryBulkResourceReps(ids);
     }
+
+    /**
+     * validates whether the schedule policy parameters are valid or not
+     * 
+     * @param schedule - schedule policy parameters
+     * @param schedulePolicy - schedulePolicy object to set schedule values
+     * @param errorMsg - error message
+     * @return true/false
+     */
+    public static boolean validateSchedulePolicyParam(SchedulePolicyParam schedule, SchedulePolicy schedulePolicy, StringBuilder errorMsg) {
+
+        if (schedule != null) {
+
+            // check schedule frequency is valid or not
+            if (!ArgValidator.isValidEnum(schedule.getScheduleFrequency(), ScheduleFrequency.class)) {
+                errorMsg.append("Schedule frequency: " + schedule.getScheduleFrequency()
+                        + " is invalid. Valid schedule frequencies are days, weeks and months");
+                return false;
+            }
+
+            // validating schedule repeat period
+            if (schedule.getScheduleRepeat() < 1) {
+                errorMsg.append("required parameter schedule_repeat is missing or value: " + schedule.getScheduleRepeat()
+                        + " is invalid");
+                return false;
+            }
+
+            // validating schedule time
+            String period = " PM";
+            int hour, minute;
+            boolean isValid = true;
+            if (schedule.getScheduleTime().contains(":")) {
+                String splitTime[] = schedule.getScheduleTime().split(":");
+                hour = Integer.parseInt(splitTime[0]);
+                minute = Integer.parseInt(splitTime[1]);
+                if (splitTime[0].startsWith("-") || splitTime[1].startsWith("-")) {
+                    isValid = false;
+                }
+            } else {
+                hour = Integer.parseInt(schedule.getScheduleTime());
+                minute = 0;
+            }
+            if (isValid && (hour >= 0 && hour < 24) && (minute >= 0 && minute < 60)) {
+                if (hour < 12) {
+                    period = " AM";
+                }
+            } else {
+                errorMsg.append("Schedule time: " + schedule.getScheduleTime() + " is invalid");
+                return false;
+            }
+
+            ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(schedule.getScheduleFrequency().toUpperCase());
+            switch (scheduleFreq) {
+
+                case DAYS:
+                    schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
+                    schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
+                    if (schedulePolicy.getScheduleDayOfWeek() != null && !schedulePolicy.getScheduleDayOfWeek().isEmpty()) {
+                        schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
+                    }
+                    if (schedulePolicy.getScheduleDayOfMonth() != null) {
+                        schedulePolicy.setScheduleDayOfMonth(0L);
+                    }
+                    break;
+                case WEEKS:
+                    schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
+                    if (schedule.getScheduleDayOfWeek() != null && !schedule.getScheduleDayOfWeek().isEmpty()) {
+                        List<String> weeks = Arrays.asList("monday", "tuesday", "wednesday", "thursday", "friday",
+                                "saturday", "sunday");
+                        if (weeks.contains(schedule.getScheduleDayOfWeek().toLowerCase())) {
+                            schedulePolicy.setScheduleDayOfWeek(schedule.getScheduleDayOfWeek().toLowerCase());
+                        } else {
+                            errorMsg.append("Schedule day of week: " + schedule.getScheduleDayOfWeek() + " is invalid");
+                            return false;
+                        }
+                    } else {
+                        errorMsg.append("required parameter schedule_day_of_week was missing or empty");
+                        return false;
+                    }
+                    schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
+                    if (schedulePolicy.getScheduleDayOfMonth() != null) {
+                        schedulePolicy.setScheduleDayOfMonth(0L);
+                    }
+                    break;
+                case MONTHS:
+                    if (schedule.getScheduleDayOfMonth() > 0 && schedule.getScheduleDayOfMonth() <= 31) {
+                        schedulePolicy.setScheduleDayOfMonth((long) schedule.getScheduleDayOfMonth());
+                        schedulePolicy.setScheduleRepeat((long) schedule.getScheduleRepeat());
+                        schedulePolicy.setScheduleTime(schedule.getScheduleTime() + period);
+                        if (schedulePolicy.getScheduleDayOfWeek() != null) {
+                            schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
+                        }
+                    } else {
+                        errorMsg.append("required parameter schedule_day_of_month is missing or value: " + schedule.getScheduleDayOfMonth()
+                                + " is invalid");
+                        return false;
+                    }
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * validates whether the snapshot expire parameters are valid or not
+     * 
+     * @param expireParam - snapshot expire parameters
+     * @return true/false
+     */
+    public static boolean validateSnapshotExpireParam(ScheduleSnapshotExpireParam expireParam) {
+
+        long seconds = 0;
+        long minPeriod = 7200;
+        long maxPeriod = 10 * 365 * 24 * 3600;
+        int expireValue = expireParam.getExpireValue();
+        SnapshotExpireType expireType = SnapshotExpireType.valueOf(expireParam.getExpireType().toUpperCase());
+        switch (expireType) {
+            case HOURS:
+                seconds = TimeUnit.HOURS.toSeconds(expireValue);
+                break;
+            case DAYS:
+                seconds = TimeUnit.DAYS.toSeconds(expireValue);
+                break;
+            case WEEKS:
+                seconds = TimeUnit.DAYS.toSeconds(expireValue * 7);
+                break;
+            case MONTHS:
+                seconds = TimeUnit.DAYS.toSeconds(expireValue * 30);
+                break;
+            case NEVER:
+                return true;
+            default:
+                return false;
+        }
+        if (seconds >= minPeriod && seconds <= maxPeriod) {
+            return true;
+        }
+        return false;
+    }
+
 }

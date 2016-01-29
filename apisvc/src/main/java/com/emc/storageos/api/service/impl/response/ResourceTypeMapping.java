@@ -55,6 +55,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.VCENTERDATACENTER;
 import static com.emc.storageos.model.ResourceTypeEnum.VDC;
 import static com.emc.storageos.model.ResourceTypeEnum.VIRTUAL_NAS;
 import static com.emc.storageos.model.ResourceTypeEnum.VOLUME;
+import static com.emc.storageos.model.ResourceTypeEnum.VOLUME_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.VPLEX_MIRROR;
 import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
@@ -116,6 +117,7 @@ import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
@@ -186,6 +188,7 @@ public class ResourceTypeMapping {
         classMapping.put(USER_GROUP, UserGroup.class);
         classMapping.put(VIRTUAL_NAS, VirtualNAS.class);
         classMapping.put(COMPUTE_IMAGESERVER, ComputeImageServer.class);
+        classMapping.put(VOLUME_GROUP, VolumeGroup.class);
         classMapping.put(BLOCK_SNAPSHOT_SESSION, BlockSnapshotSession.class);
         classMapping.put(SCHEDULE_POLICY, SchedulePolicy.class);
 

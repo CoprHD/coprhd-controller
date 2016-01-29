@@ -8,6 +8,7 @@ import java.net.URI;
 
 import com.emc.storageos.model.tenant.TenantResponse;
 import com.emc.storageos.model.user.UserInfo;
+import com.emc.vipr.client.core.ApplicationSupport;
 import com.emc.vipr.client.core.Audit;
 import com.emc.vipr.client.core.AuthnProviders;
 import com.emc.vipr.client.core.AutoTieringPolicies;
@@ -404,5 +405,10 @@ public class ViPRCoreClient {
     
     public SchedulePolicies schedulePolicies() {
         return new SchedulePolicies(this, client);
+    }
+
+    public ApplicationSupport application() {
+        return new ApplicationSupport(client);
+
     }
 }

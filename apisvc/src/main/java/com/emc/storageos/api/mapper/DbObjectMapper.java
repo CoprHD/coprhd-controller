@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.TenantResource;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.DataObjectRestRep;
@@ -38,12 +39,13 @@ import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TypedRelatedResourceRep;
+import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.customconfig.CustomConfigRestRep;
 import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
 import com.emc.storageos.model.host.TenantResourceRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
-import com.emc.storageos.model.project.SchedulePolicyRestRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Lists;
@@ -263,6 +265,24 @@ public class DbObjectMapper {
         return to;
     }
 
+    /**
+     * Map an VolumeGroup to VolumeGroupRestRep
+     * 
+     * @param from VolumeGroup
+     * @return VolumeGroupRestRep
+     */
+    public static VolumeGroupRestRep map(VolumeGroup from) {
+        if (from == null) {
+            return null;
+        }
+        VolumeGroupRestRep rep = new VolumeGroupRestRep();
+        mapDataObjectFields(from, rep);
+        rep.setDescription(from.getDescription());
+        rep.setRoles(from.getRoles());
+        rep.setParent(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, from.getParent()));
+        return rep;
+    }
+
     public static SchedulePolicyRestRep map(SchedulePolicy from) {
         if (from == null) {
             return null;
@@ -287,6 +307,8 @@ public class DbObjectMapper {
         }
         if (from.getSnapshotExpireType() != null) {
             to.setSnapshotExpireType(from.getSnapshotExpireType());
+        }
+        if (from.getSnapshotExpireTime() != null) {
             to.setSnapshotExpireTime(from.getSnapshotExpireTime());
         }
         return to;

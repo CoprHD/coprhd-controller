@@ -94,11 +94,12 @@ public interface BlockOrchestrationInterface {
      * @return A waitFor key that can be used by subsequent controllers to wait on
      * @throws InternalException
      */
-    public String addStepsForRestoreVolume(Workflow workflow, String waitFor, URI storage, 
-            URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String taskId, BlockSnapshotRestoreCompleter completer) 
+    public String addStepsForRestoreVolume(Workflow workflow, String waitFor, URI storage,
+            URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String syncDirection, String taskId,
+            BlockSnapshotRestoreCompleter completer)
             throws InternalException;
-    
-   /**
+
+    /**
      * Adds the steps necessary for changing the virtual pool of one or more volumes of a given
      * technology (Block, RP, VPlex, etc.) to the given Workflow.
      * 

@@ -4,7 +4,9 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_MIXED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
@@ -923,6 +925,19 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * @throws Exception
      */
     private void deleteTargetGroup(StorageSystem system, String replicationGroupInstance) throws Exception {
+        /*
+         * FIXME Inconsistencies with BlockSnapshot#getReplicationGroupInstance format
+         *
+         * CoprHD-created linked targets will have this field value in the format "<system-serial>+<instance>".
+         *
+         * Ingested linked targets will have this field value in the more simple format, "<instance>"
+         */
+        if (system.getUsingSmis80()) {
+            if (!replicationGroupInstance.contains("+")) {
+                replicationGroupInstance = String.format("%s+%s", system.getSerialNumber(), replicationGroupInstance);
+            }
+        }
+
         CIMObjectPath groupPath = _cimPath.getReplicationGroupObjectPath(system, replicationGroupInstance);
         CIMArgument[] outArgs = new CIMArgument[5];
 
@@ -1348,6 +1363,17 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMObjectPath volumeGroupPath = _cimPath.getReplicationGroupPath(storage, volumeGroupName);
             CIMObjectPath snapshotGroupPath = _cimPath.getReplicationGroupPath(storage, snapshotObj.getReplicationGroupInstance());
 
+            // Check if snapshot is referenced by a BlockSnapshotSession
+            // if so, we must pass in the RelationshipName with the value of the session name.
+            // NB. a SourceGroup aspect must exist
+            List<BlockSnapshotSession> snapshotSessions = queryActiveResourcesByConstraint(_dbClient,
+                    BlockSnapshotSession.class, getLinkedTargetSnapshotSessionConstraint(snapshot));
+            String relationshipName = null;
+            if (!snapshotSessions.isEmpty()) {
+                relationshipName = snapshotSessions.get(0).getSessionLabel();
+                _log.info("Found snapshot session relationship: {}", relationshipName);
+            }
+
             CIMObjectPath groupSynchronizedPath = _cimPath.getGroupSynchronized(volumeGroupPath, snapshotGroupPath);
             CIMInstance syncInstance = _helper.checkExists(storage, groupSynchronizedPath, false, false);
             if (syncInstance == null) {
@@ -1364,7 +1390,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
                 _log.info("Creating Group synchronization between volume group and snapshot group");
                 CIMArgument[] inArgs = _helper.getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(volumeGroupPath,
-                        snapshotGroupPath, elementSynchronizations);
+                        snapshotGroupPath, elementSynchronizations, relationshipName);
                 CIMArgument[] outArgs = new CIMArgument[5];
                 _helper.invokeMethod(storage, srcRepSvcPath,
                         SmisConstants.CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS, inArgs, outArgs);

@@ -4911,11 +4911,21 @@ public class SmisCommandHelper implements SmisConstants {
 
     public CIMArgument[] getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(
             CIMObjectPath srcCG, CIMObjectPath tgtCG, Collection<CIMObjectPath> elementSynchronizations) {
+        return getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(srcCG, tgtCG,
+                elementSynchronizations, null);
+    }
+
+    public CIMArgument[] getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(
+            CIMObjectPath srcCG, CIMObjectPath tgtCG, Collection<CIMObjectPath> elementSynchronizations,
+            String relationshipName) {
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         args.add(_cimArgument.reference(CP_SOURCE_GROUP, srcCG));
         args.add(_cimArgument.reference(CP_TARGET_GROUP, tgtCG));
         args.add(_cimArgument.referenceArray(CP_ELEMENT_SYNCHRONIZATIONS,
                 elementSynchronizations.toArray(new CIMObjectPath[] {})));
+        if (relationshipName != null) {
+            args.add(_cimArgument.string(CP_RELATIONSHIP_NAME, relationshipName));
+        }
         return args.toArray(new CIMArgument[] {});
     }
 

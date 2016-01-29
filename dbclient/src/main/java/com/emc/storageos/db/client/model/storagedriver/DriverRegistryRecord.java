@@ -7,7 +7,7 @@ import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StringSetMap;
 
 /**
- * This is the Cassandra table for southbound storage driver registry.
+ * This is the Cassandra table for SB SDK storage driver registry.
  */
 @Cf("DriverRegistry")
 public class DriverRegistryRecord extends DataObject {

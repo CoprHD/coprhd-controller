@@ -389,7 +389,7 @@
         <!-- Block storage drivers -->
         <property name="drivers">
             <map>
-                <!-- E@R
+                <!--
                 <entry key="scaleiosystem" value-ref="scaleioStorageDriver"/>
                 -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
@@ -397,7 +397,7 @@
         </property>
     </bean>
     <!-- Driver class for scaleio block storage driver -->
-    <!-- E@R    <bean id="scaleioStorageDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
+    <!--     <bean id="scaleioStorageDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
         </bean>
     -->
     <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">

@@ -5,7 +5,7 @@
 
 
 
-    <!-- E@R  <bean id="scaleioDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
+    <!-- <bean id="scaleioDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
      </bean> -->
      <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
      </bean>
@@ -14,7 +14,7 @@
          <!-- Discovery storage drivers -->
          <property name="drivers">
              <map>
-                <!-- E@R  <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
+                <!-- <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
             </map>
         </property>

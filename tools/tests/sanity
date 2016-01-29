@@ -139,7 +139,7 @@ done
 
 case $SS in
 
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|scaleiosystem)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -3651,12 +3651,6 @@ driversystem_setup()
     discoveredsystem create driverManagedSystem driversystem  10.246.55.66 8080 root password
 }
 
-
-scaleiosystem_setup()
-{
-    echo "scaleiosystem setup"
-    discoveredsystem create driverManagedScaleIOSystem scaleiosystem  10.250.55.66 8080 root password
-}
 
 driversystem_tests()
 {

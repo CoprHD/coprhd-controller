@@ -15,6 +15,10 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
+/**
+ * This class contains data structures with storage system types of installed drivers.
+ */
+
 public class StorageDriverManager implements ApplicationContextAware {
 
     public static final String EXTERNAL_STORAGE_DEVICE = "externalBlockStorageDevice";

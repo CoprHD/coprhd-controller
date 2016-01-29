@@ -11,9 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
-import com.emc.storageos.db.client.model.Volume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +19,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -174,7 +173,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
     {
         // Note: We support only case when add volumes to export group does not change storage ports in
         // existing export masks where volumes are added.
-        // Based on this, we only execute masking step on device for existing masks --- no zoning change is required.
+        // Since we only execute masking step on device for existing masks --- no zoning change is required.
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                 exportGroup, storageURI);
         if (exportMasks != null && !exportMasks.isEmpty())
@@ -277,8 +276,9 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
          * specific compute resource and there can be only one mask for storage array and compute resource).
          * Add initiators to the corresponding export masks found in the mapping.
          * For initiators which do not have corresponding export mask we will create new export mask for compute resource and
-         * each storage array in the grpoup.
+         * each storage array in the group.
          *
          */
+        // Todo: tbd.
     }
 }

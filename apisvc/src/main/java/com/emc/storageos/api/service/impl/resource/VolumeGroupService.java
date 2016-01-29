@@ -251,7 +251,7 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
         VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
         NamedVolumesList result = new NamedVolumesList();
-        List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
         for (Volume volume: volumes) {
             result.getVolumes().add(toNamedRelatedResource(volume));
         }
@@ -295,7 +295,7 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
         VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
 
-        if (!getVolumeGroupVolumes(_dbClient, volumeGroup).isEmpty()) {
+        if (!ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup).isEmpty()) {
             // application could not be deleted if it has volumes
             throw APIException.badRequests.volumeGroupWithVolumesCantBeDeleted(volumeGroup.getLabel());
         }
@@ -1322,7 +1322,7 @@ public class VolumeGroupService extends TaskResourceService {
             
             Set<String> groupNames = new HashSet<String>();
             if (group.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())){
-                List<Volume> volumes = getVolumeGroupVolumes(dbClient, group);
+                List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(dbClient, group);
                 if (volumes != null && !volumes.isEmpty()) {
                     BlockServiceApi serviceAPI = getBlockService(dbClient, volumes.iterator().next());
                     groupNames.addAll(serviceAPI.getReplicationGroupNames(group));
@@ -1394,7 +1394,7 @@ public class VolumeGroupService extends TaskResourceService {
                         } else {
                             if (vg.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())) {
                                 throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                                        String.format("The volume is a member of another application: %s", vg.getLabel()));
+                                        String.format("The volume is already a member of an application: %s", vg.getLabel()));
                             }
                         }
                     }
@@ -1407,9 +1407,10 @@ public class VolumeGroupService extends TaskResourceService {
                     }
                 }
                 volumes.add(volume);
+                impactedCGs.add(volume.getConsistencyGroup());
             }
             // Check if the to-add volumes are the same volume type as existing volumes in the application
-            List<Volume> existingVols = getVolumeGroupVolumes(dbClient, volumeGroup);
+            List<Volume> existingVols = ControllerUtils.getVolumeGroupVolumes(dbClient, volumeGroup);
             if (!existingVols.isEmpty()) {
                 Volume firstVolume = existingVols.get(0);
                 URI systemUri = firstVolume.getStorageController();
@@ -1569,25 +1570,6 @@ public class VolumeGroupService extends TaskResourceService {
             return getBlockServiceImpl(volType);
         }   
         
-    }
-
-    /**
-     * Get volume group volumes
-     *
-     * @param volumeGroup
-     * @return The list of volumes in volume group
-     */
-    private static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
-        List<Volume> result = new ArrayList<Volume>();
-        final List<Volume> volumes = CustomQueryUtility
-                .queryActiveResourcesByConstraint(dbClient, Volume.class,
-                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Volume vol : volumes) {
-            if (!vol.getInactive()) {
-                result.add(vol);
-            }
-        }
-        return result;
     }
 
     /**

@@ -1497,16 +1497,9 @@ public class ControllerUtils {
      * @return The list of volumes in volume group
      */
     public static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
-        List<Volume> result = new ArrayList<Volume>();
-        final List<Volume> volumes = CustomQueryUtility
+        return CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Volume vol : volumes) {
-            if (!vol.getInactive()) {
-                result.add(vol);
-            }
-        }
-        return result;
     }
 
     /**

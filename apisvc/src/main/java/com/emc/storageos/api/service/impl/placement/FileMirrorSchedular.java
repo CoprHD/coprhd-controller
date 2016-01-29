@@ -23,11 +23,13 @@ import com.emc.storageos.api.service.impl.placement.FileRecommendation.FileType;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -112,12 +114,7 @@ public class FileMirrorSchedular implements Scheduler {
         List<FileRecommendation> sourceFileRecommendations = new ArrayList<FileRecommendation>();
         // For vPool change get the recommendations from source file system!!!
         if (capabilities.getFileSystemVPoolChange()) {
-            // Get the source file system and storage system
-            // which was set at in FileService
-            // to construct the source recommendations!!
-            FileShare sourceFs = capabilities.getSourceFileSystemVPoolChange();
-            StorageSystem storageSystem = capabilities.getSourceStorageDeviceVPoolChange();
-            sourceFileRecommendations.add(getSourceRecommendationParameters(sourceFs, storageSystem));
+            sourceFileRecommendations = getFileRecommendationsForSourceFS(vArray, vPool, capabilities);
         } else {
             // Get the recommendation for source from vpool!!!
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
@@ -186,12 +183,7 @@ public class FileMirrorSchedular implements Scheduler {
         List<FileRecommendation> sourceFileRecommendations = new ArrayList<FileRecommendation>();
         // For vPool change get the recommendations from source file system!!!
         if (capabilities.getFileSystemVPoolChange()) {
-            // Get the source file system and storage system
-            // which was set at in FileService
-            // to construct the source recommendations!!
-            FileShare sourceFs = capabilities.getSourceFileSystemVPoolChange();
-            StorageSystem storageSystem = capabilities.getSourceStorageDeviceVPoolChange();
-            sourceFileRecommendations.add(getSourceRecommendationParameters(sourceFs, storageSystem));
+            sourceFileRecommendations = getFileRecommendationsForSourceFS(vArray, vPool, capabilities);
         } else {
             // Get the recommendation for source from vpool!!!
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
@@ -299,4 +291,36 @@ public class FileMirrorSchedular implements Scheduler {
         }
         return fileRecommendation;
     }
+
+    private List<FileRecommendation> getFileRecommendationsForSourceFS(VirtualArray vArray,
+            VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
+
+        List<FileRecommendation> sourceFileRecommendations = new ArrayList<FileRecommendation>();
+
+        // Get the source file system and storage system
+        // which was set at in FileService
+        // to construct the source recommendations!!
+        FileShare sourceFs = capabilities.getSourceFileSystemVPoolChange();
+        StorageSystem storageSystem = capabilities.getSourceStorageDeviceVPoolChange();
+
+        // Get the Matched pools from target virtual pool
+        // Verify that at least a matched pools from source storage system!!!
+        List<StoragePool> candidatePools = _storageScheduler.getMatchingPools(vArray,
+                vPool, capabilities, null);
+        boolean gotMatchedPoolForSource = false;
+        for (StoragePool pool : candidatePools) {
+            if (pool.getStorageDevice().toString().equalsIgnoreCase(sourceFs.getStorageDevice().toString())) {
+                gotMatchedPoolForSource = true;
+                break;
+            }
+        }
+        if (!gotMatchedPoolForSource) {
+            _log.error("File system vpool change::No matched storage pools from source storage");
+            throw APIException.badRequests.noMatchingStoragePoolsForFileSystemVpoolChange(vArray.getId(),
+                    vPool.getId());
+        }
+        sourceFileRecommendations.add(getSourceRecommendationParameters(sourceFs, storageSystem));
+        return sourceFileRecommendations;
+    }
+
 }

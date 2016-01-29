@@ -2825,4 +2825,8 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidVirtualPoolForVirtualPoolChange(String label, String reason);
+
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noMatchingStoragePoolsForFileSystemVpoolChange(final URI varrayId,
+            final URI vPoolId);
 }

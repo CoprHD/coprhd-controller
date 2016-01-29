@@ -270,10 +270,9 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 _log.info(String.format("createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
                         sourceFileShare.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
                 ValidateFileSystem(recommendation, sourceFileShare);
-
-                // set the source mirror recommendations
-                setFileMirrorRecommendation(recommendation, vpool, varray, false, false, sourceFileShare);
             }
+            // set the source mirror recommendations
+            setFileMirrorRecommendation(recommendation, vpool, varray, false, false, sourceFileShare);
 
             FileShare targetFileShare = null;
             StringBuilder fileLabelBuilder = null;

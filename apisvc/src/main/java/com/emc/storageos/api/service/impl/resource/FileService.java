@@ -2291,6 +2291,7 @@ public class FileService extends TaskResourceService {
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
+        FileShare orgFs = queryResource(id);
         String task = UUID.randomUUID().toString();
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
         TaskList taskList = new TaskList();
@@ -2339,12 +2340,16 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.insufficientQuotaForVirtualPool(
                     newVpool.getLabel(), "filesystem");
         }
-
+        // Change the virtual pool of source file system!!
+        fs.setVirtualPool(newVpool.getId());
         // New operation
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL);
         op.setDescription("Change vpool operation");
         op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task, op);
+
+        // Update the new pool to DB!!
+        _dbClient.updateObject(fs);
 
         TaskResourceRep fileSystemTask = toTask(fs, task, op);
         taskList.getTaskList().add(fileSystemTask);
@@ -2382,6 +2387,8 @@ public class FileService extends TaskResourceService {
             op = fs.getOpStatus().get(task);
             op.error(e);
             fileShare.getOpStatus().updateTaskStatus(task, op);
+            // Revert the file system to original state!!!
+            restoreFromOriginalFs(orgFs, fs);
             _dbClient.updateObject(fs);
             throw e;
         }
@@ -2706,5 +2713,14 @@ public class FileService extends TaskResourceService {
 
         permissionsHelper.checkTenantHasAccessToVirtualPool(project.getTenantOrg().getURI(), cos);
         return cos;
+    }
+
+    private void restoreFromOriginalFs(FileShare orgFs, FileShare fs) {
+        // Vpool
+        fs.setVirtualPool(orgFs.getVirtualPool());
+        // Replication file attributes!!
+        fs.setAccessState(orgFs.getAccessState());
+        fs.setMirrorfsTargets(orgFs.getMirrorfsTargets());
+        fs.setParentFileShare(orgFs.getParentFileShare());
     }
 }

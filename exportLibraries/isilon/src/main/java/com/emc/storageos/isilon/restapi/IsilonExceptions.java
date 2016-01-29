@@ -68,6 +68,12 @@ public interface IsilonExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.ISILON_RESOURCE_ERROR)
+    public IsilonException createSnapshotScheduleError(final String key, final String response);
+
+    @DeclareServiceCode(ServiceCode.ISILON_RESOURCE_ERROR)
+    public IsilonException deletePolicyFailedOnIsilonArray(final String uri, final String response, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.ISILON_RESOURCE_ERROR)
     public IsilonException createResourceFailedOnIsilonArray(final String key, final String response,
             final Throwable cause);
 

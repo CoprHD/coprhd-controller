@@ -598,6 +598,7 @@
         <property name="bypassMigrationLock" ref="serviceRunsDuringMigration"/>
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
+        <property name="drUtil" ref="drUtil"/>
     </bean>
     
     <bean id="drPostFailoverHandlerFactory" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory">

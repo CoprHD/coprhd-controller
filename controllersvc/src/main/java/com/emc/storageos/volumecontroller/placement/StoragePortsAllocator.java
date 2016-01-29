@@ -469,21 +469,27 @@ public class StoragePortsAllocator {
                         allocatedDirectorTypes, allocatedDirectors, allocatedCpus,
                         allocatedSwitches, allocatedStoragePorts, context);
             }
+            _log.info("Previously allocated engines: " + allocatedEngines.toString());
+            _log.info("Previously allocated director types: " + allocatedDirectorTypes.toString());
+            _log.info("Previously allocated directors: " + allocatedDirectors.toString());
+            _log.info("Previously allocated cpus: " + allocatedCpus.toString());
+            _log.info("Previously allocated switches: " + allocatedSwitches.toString());
             // Set allocatedPort to null so as not to initially trigger rule17
             allocatedPort = null;
         }
-        // If we are allocating fewer paths than we have directors,
-        // then try not to overlap directors with the already allocated
-        // transport zones. We do not do this if we've already allocated ports
+        
+        // Try not to overlap directors or other hardware components with the already allocated
+        // ones. We do not do this if we've already allocated ports
         // previously, because we match with those ports instead.
-        else if (portsRequested < context._directorToStoragePortSet.size()
-                && previouslyAllocatedPorts == null) {
+        else {
             allocatedEngines.addAll(context._alreadyAllocatedEngines);
             _log.info("Already allocated engines: " + context._alreadyAllocatedEngines.toString());
             allocatedDirectorTypes.addAll(context._alreadyAllocatedDirectorTypes);
             _log.info("Already allocated director types: " + context._alreadyAllocatedDirectorTypes.toString());
             allocatedDirectors.addAll(context._alreadyAllocatedDirectors);
             _log.info("Already allocated directors: " + context._alreadyAllocatedDirectors.toString());
+            allocatedCpus.addAll(context._alreadyAllocatedCpus);
+            _log.info("Already allocated cpus: " + context._alreadyAllocatedCpus.toString());
             allocatedSwitches.addAll(context._alreadyAllocatedSwitches);
             _log.info("Already allocated switches: " + context._alreadyAllocatedSwitches.toString());
         }
@@ -517,21 +523,21 @@ public class StoragePortsAllocator {
                 break;
             }
 
+            // Invoke the rule17Filter if desired. This filter is VMAX only special case.
+            candidates = filterRule17(candidates, allocatedPort, allocatedPorts,
+                    allocatedDirectors, context);
+            
             /*
              * The following filtering steps are organized from highest priority
              * to least high priority. Each filter step removes candidates that
              * belong to an entity (engine, director, cpu, SAN switch) that have
              * already been used. Each filter will recycle again through the
              * available entities after it has already allocated Storage Ports
-             * belonging to the available entities. So for example, the first
+             * belonging to all the available entities. So for example, the first
              * filter will guarantee cycling through each of the engines, and
              * after using them all will cycle through them again (not
              * necessarily in the same order subsequent passes.)
              */
-
-            // Invoke the rule17Filter if desired.
-            candidates = filterRule17(candidates, allocatedPort, allocatedPorts,
-                    allocatedDirectors, context);
 
             // See if there are any ports that can be allocated on a different
             // type
@@ -628,8 +634,8 @@ public class StoragePortsAllocator {
 
     /**
      * Filter the set of candidates based on already used entities of some type.
-     * The currently entity types are engines, directors, and sanSwitches. The
-     * filter is only applied if the resultant set is not empty (meaning there
+     * The currently entity types are engines, directors, director types, cpus, and sanSwitches.
+     * The filter is only applied if the resultant set is not empty (meaning there
      * are still remaining ports to be selected after the filter is supplied).
      * Once a port has been selected that represents each of the available
      * entities, the allocatedEntitySet is cleared, which results in cycling
@@ -674,7 +680,7 @@ public class StoragePortsAllocator {
 
     /**
      * Given a map of String keys to Sets of StoragePorts, remove all the
-     * entries in the map whoose key matches one of the removal keys. Return a
+     * entries in the map whose key matches one of the removal keys. Return a
      * new copy of the revised map.
      * 
      * @param removalKeys

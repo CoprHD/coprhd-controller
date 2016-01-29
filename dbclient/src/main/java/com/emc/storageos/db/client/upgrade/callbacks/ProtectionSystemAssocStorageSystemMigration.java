@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to update the internal flags of Export Group
@@ -25,7 +26,7 @@ public class ProtectionSystemAssocStorageSystemMigration extends BaseCustomMigra
     private static final Logger log = LoggerFactory.getLogger(ProtectionSystemAssocStorageSystemMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         updateAssociatedStorageSystemsForPS();
     }
 

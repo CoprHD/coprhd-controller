@@ -205,12 +205,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isSiteSpecificSectionInited() throws Exception {
-        String siteConfigPath = String.format("%s/%s", ZkPath.CONFIG, Site.CONFIG_KIND);
+        String siteId = getSiteId();
+        String sitePath = getSitePrefix(siteId);
         try {
-            Stat stat = getZkConnection().curator().checkExists().forPath(siteConfigPath);
+            Stat stat = getZkConnection().curator().checkExists().forPath(sitePath);
             return stat != null;
         } catch (Exception e) {
-            log.error("Failed to access the path {}. Error {}", siteConfigPath, e);
+            log.error("Failed to access the path {}. Error {}", sitePath, e);
             throw e;
         }
     }

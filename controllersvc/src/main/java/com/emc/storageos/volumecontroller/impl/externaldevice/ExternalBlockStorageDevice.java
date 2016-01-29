@@ -172,7 +172,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     public void doExpandVolume(StorageSystem storageSystem, StoragePool storagePool,
                                Volume volume, Long size, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
     }
 
     /**

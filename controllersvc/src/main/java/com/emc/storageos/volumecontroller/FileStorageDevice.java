@@ -244,4 +244,8 @@ public interface FileStorageDevice {
             Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
     	
     
+
+    public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args);
+
+    public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args);
 }

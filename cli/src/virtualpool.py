@@ -531,7 +531,7 @@ class VirtualPool(object):
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
                      thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-                     fr_policy, fr_copies, mindatacenters):
+                     fr_policy, fr_copies, mindatacenters, snapshotsched):
 
         '''
         This is the function will create the VPOOL with given name and type.
@@ -605,13 +605,15 @@ class VirtualPool(object):
                 vpool_protection_snapshots_param[
                     'max_native_snapshots'] = max_snapshots
                 file_vpool_protection_param[
-                    'snapshots'] = vpool_protection_snapshots_param  
+                    'snapshots'] = vpool_protection_snapshots_param
+            if(snapshotsched is not None):
+                file_vpool_protection_param['schedule_snapshots'] = snapshotsched
             if(fr_policy is not None):
                 file_vpool_protection_param[
                     'replication_params'] = self.get_file_replication_params(
                                             fr_policy, fr_copies)    
             if(max_snapshots is not None or
-               fr_policy is not None):
+               fr_policy is not None or snapshotsched is not None):
                 # file vpool params
                 parms['protection'] = file_vpool_protection_param
                     
@@ -770,7 +772,7 @@ class VirtualPool(object):
             maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
             thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-            fr_policy, fr_addcopies, fr_removecopies, mindatacenters):
+            fr_policy, fr_addcopies, fr_removecopies, mindatacenters, snapshotsched):
 
         '''
         This is the function will update the VPOOL.
@@ -867,7 +869,7 @@ class VirtualPool(object):
 
         if(max_mirrors or max_snapshots or srdfadd or srdfremove or
            rp_policy or add_rp or remove_rp or 
-           fr_policy or fr_addcopies or fr_removecopies):
+           fr_policy or fr_addcopies or fr_removecopies or snapshotsched):
             vpool_protection_param = dict()
             if (max_snapshots):
                 # base class attribute
@@ -877,6 +879,9 @@ class VirtualPool(object):
                 vpool_protection_param['snapshots'] = \
                     vpool_protection_snapshot_params
 
+            if (snapshotsched is not None):
+                vpool_protection_param['schedule_snapshots'] = \
+                    snapshotsched
             if(max_mirrors):
                 vpool_protection_mirror_params = dict()
                 vpool_protection_mirror_params[
@@ -1233,6 +1238,11 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<PathsPerInitiator>',
                                dest='pathsperinitiator',
                                type=int)
+    create_parser.add_argument(
+        '-snapshotschedule', '-snapsched',
+        help='Whether or not to support snapshot schedule',
+        dest='snapshotsched',
+        choices=VirtualPool.BOOL_TYPE_LIST)
     create_parser.add_argument('-srdf',
                                help='VMAX SRDF protection parameters, ' +
                                'eg:varray:vpool:policy',
@@ -1287,7 +1297,8 @@ def vpool_create(args):
                                args.autoCrossConnectExport,
                                args.fr_policy,
                                args.fr_copies,
-                               args.mindatacenters)
+                               args.mindatacenters,
+                               args.snapshotsched)
     except SOSError as e:
         if (e.err_code == SOSError.VALUE_ERR):
             raise SOSError(SOSError.VALUE_ERR, "VPool " + args.name +
@@ -1497,6 +1508,11 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='fr_addcopies',
                                metavar='<fr_addcopies>',
                                nargs='+')
+    update_parser.add_argument(
+        '-snapshotschedule', '-snapsched',
+        help='Whether or not to support snapshot schedule',
+        dest='snapshotsched',
+        choices=VirtualPool.BOOL_TYPE_LIST)
     update_parser.add_argument('-fr_removecopies',
                                help='File Replication remote copies, ' +
                                'eg:varray1:vpool1 varray2:vpool2',
@@ -1574,7 +1590,8 @@ def vpool_update(args):
                              args.autoCrossConnectExport,
                              args.fr_policy, args.fr_addcopies,
                              args.fr_removecopies,
-                             args.mindatacenters)
+                             args.mindatacenters,
+                             args.snapshotsched)
         else:
             raise SOSError(SOSError.CMD_LINE_ERR,
                            "Please provide atleast one of parameters")

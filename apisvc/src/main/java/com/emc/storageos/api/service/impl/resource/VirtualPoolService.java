@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
+ * Copyright 2008-2013 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -9,15 +22,13 @@ import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.api.service.impl.resource.cinder.QosService;
+import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
+import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -226,7 +237,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
 
         ArgValidator.checkFieldValueWithExpected(!VirtualPool.ProvisioningType.NONE.name()
-                .equalsIgnoreCase(param.getProvisionType()), VPOOL_PROVISIONING_TYPE, param.getProvisionType(),
+                        .equalsIgnoreCase(param.getProvisionType()), VPOOL_PROVISIONING_TYPE, param.getProvisionType(),
                 VirtualPool.ProvisioningType.Thick, VirtualPool.ProvisioningType.Thin);
 
         if (null != param.getProtocolChanges()) {
@@ -790,6 +801,13 @@ public abstract class VirtualPoolService extends TaggedResource {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();
         }
 
+        QosSpecification qosSpecification = null;
+        // Check if Virtual Pool type equals block type
+        if(vpool.getType().equalsIgnoreCase(Type.block.name())){
+            // Get the QoS for the VirtualPool, otherwise throw exception
+            qosSpecification = QosService.getQos(vpool.getId(), _dbClient);
+        }
+
         // make sure vpool is unused by volumes/fileshares
         ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(vpool));
 
@@ -835,6 +853,11 @@ public abstract class VirtualPoolService extends TaggedResource {
                     throw APIException.badRequests.cantDeleteVPlexHaVPool(activeVPool.getLabel());
                 }
             }
+        }
+
+        if(vpool.getType().equalsIgnoreCase(Type.block.name()) && qosSpecification != null){
+            // Remove Qos associated to this Virtual Pool
+            _dbClient.removeObject(qosSpecification);
         }
 
         _dbClient.markForDeletion(vpool);

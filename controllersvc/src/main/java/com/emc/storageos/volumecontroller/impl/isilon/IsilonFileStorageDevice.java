@@ -2201,7 +2201,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
-        mirrorOperations.createMirrorFileShare(system, source, target, completer);
+        mirrorOperations.createMirrorFileShareLink(system, source, target, completer);
     }
 
     @Override
@@ -2211,37 +2211,37 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doDetachMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
-        mirrorOperations.deleteMirrorFileShare(system, source, target, completer);
+        mirrorOperations.deleteMirrorFileShareLink(system, source, target, completer);
     }
 
     @Override
     public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.startMirrorFileShare(system, target, completer);
+        mirrorOperations.startMirrorFileShareLink(system, target, completer);
     }
 
     @Override
     public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.startMirrorFileShare(system, target, completer);
+        mirrorOperations.startMirrorFileShareLink(system, target, completer);
     }
 
     @Override
     public void doSuspendLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.pauseMirrorFileShare(system, target, completer);
+        mirrorOperations.pauseMirrorFileShareLink(system, target, completer);
     }
 
     @Override
     public void doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.resumeMirrorFileShare(system, target, completer);
+        mirrorOperations.resumeMirrorFileShareLink(system, target, completer);
     }
 
     @Override
     public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer) {
-        mirrorOperations.failoverMirrorFileShare(systemTarget, target, completer);
+        mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer);
     }
 
     @Override
     public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer) {
-        mirrorOperations.resyncMirrorFileShare(primarySystem, secondarySystem, target, completer);
+        mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer);
     }
 
     @Override

@@ -63,7 +63,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void createMirrorFileShare(StorageSystem system, URI source, URI target, TaskCompleter completer)
+    public void createMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException {
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source);
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
@@ -94,7 +94,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void stopMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+    public void stopMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
@@ -108,7 +108,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void startMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+    public void startMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
@@ -124,7 +124,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void pauseMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+    public void pauseMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
@@ -138,7 +138,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void resumeMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+    public void resumeMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
@@ -152,7 +152,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void cancelMirrorFileShare(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+    public void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
         String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), target.getLabel());
         BiosCommandResult cmdResult = doCancelReplicationPolicy(system, policyName);
@@ -164,7 +164,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void deleteMirrorFileShare(StorageSystem system, URI source, URI target, TaskCompleter completer)
+    public void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException {
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
         String policyName = targetFileShare.getLabel();
@@ -178,7 +178,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void failoverMirrorFileShare(StorageSystem systemTarget, FileShare target, TaskCompleter completer)
+    public void failoverMirrorFileShareLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer)
             throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
@@ -195,8 +195,9 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void
-            resyncMirrorFileShare(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer) {
+    public
+            void
+            resyncMirrorFileShareLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer) {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
 

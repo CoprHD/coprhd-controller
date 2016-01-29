@@ -33,11 +33,11 @@
       lockable: true,
       collapsed: true,
       items:{
-        date:{
+        pitDate:{
           type:"date",
           required: "false"
         },
-        time:{
+        pitTime:{
           type:"time",
           required: "false"
         }

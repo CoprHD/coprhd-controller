@@ -55,8 +55,8 @@ public interface ServiceParams {
     public String FAILOVER_TARGET = "failoverTarget";
     public String IMAGE_TO_ACCESS = "imageToAccess";
     public String POINT_IN_TIME = "pointInTime";
-    public String DATE = "date";
-    public String TIME = "time";
+    public String PIT_DATE = "pitDate";
+    public String PIT_TIME = "pitTime";
     public String NUMBER_OF_VOLUMES = "numberOfVolumes";
     public String NUMBER_OF_HOSTS = "numberOfHosts";
     public String COUNT = "count";

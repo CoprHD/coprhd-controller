@@ -4,11 +4,11 @@
  */
 package com.emc.sa.service.vipr.block;
 
-import static com.emc.sa.service.ServiceParams.DATE;
 import static com.emc.sa.service.ServiceParams.FAILOVER_TARGET;
 import static com.emc.sa.service.ServiceParams.IMAGE_TO_ACCESS;
+import static com.emc.sa.service.ServiceParams.PIT_DATE;
+import static com.emc.sa.service.ServiceParams.PIT_TIME;
 import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
-import static com.emc.sa.service.ServiceParams.TIME;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
 
@@ -44,11 +44,11 @@ public class FailoverBlockVolumeService extends ViPRService {
     @Param(value = IMAGE_TO_ACCESS, required = false)
     protected String imageToAccess;
 
-    @Param(value = DATE, required = false)
-    protected String date;
+    @Param(value = PIT_DATE, required = false)
+    protected String pitDate;
 
-    @Param(value = TIME, required = false)
-    protected String time;
+    @Param(value = PIT_TIME, required = false)
+    protected String pitTime;
 
     private String type;
 
@@ -79,6 +79,10 @@ public class FailoverBlockVolumeService extends ViPRService {
             sourceName = cg.getName();
         }
 
+        if (BlockProvider.PIT_IMAGE_OPTION_KEY.equals(imageToAccess) && pitDate == null) {
+            ExecutionUtils.fail("failTask.FailoverBlockVolumeService.pit", new Object[] {}, new Object[] {});
+        }
+
         if (type == null) {
             ExecutionUtils.fail("failTask.FailoverBlockVolumeService", args(sourceId, targetId), args());
         }
@@ -93,12 +97,12 @@ public class FailoverBlockVolumeService extends ViPRService {
 
         String pointInTime = null;
 
-        if (date != null) {
-            pointInTime = date;
+        if (pitDate != null) {
+            pointInTime = pitDate;
         }
 
-        if (time != null && pointInTime != null) {
-            pointInTime = pointInTime + "_" + time;
+        if (pitTime != null && pointInTime != null) {
+            pointInTime = pointInTime + "_" + pitTime;
         }
 
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
@@ -113,6 +117,12 @@ public class FailoverBlockVolumeService extends ViPRService {
                     // a specific RP bookmark. Get the name of that bookmark and pass it down.
                     BlockSnapshotRestRep snapshot = BlockStorageUtils.getSnapshot(uri(imageToAccess));
                     imageToAccess = snapshot.getName();
+                }
+
+                if (BlockProvider.PIT_IMAGE_OPTION_KEY.equals(imageToAccess)) {
+                    // If the image to access is a point-in-time, null out the image access variable otherwise
+                    // the failover over logic will attempt to look for a bookmark called 'pit'.
+                    imageToAccess = null;
                 }
 
                 tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type, imageToAccess, pointInTime));

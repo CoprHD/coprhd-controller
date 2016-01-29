@@ -348,6 +348,9 @@ public class FileService extends TaskResourceService {
         fs.setName(convertedName);
         Long fsSize = SizeUtil.translateSize(param.getSize());
         fs.setCapacity(fsSize);
+        fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
+        fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
+        fs.setSoftGracePeriod(param.getSoftGrace());
         fs.setVirtualPool(param.getVpool());
         if (project != null) {
             fs.setProject(new NamedURI(project.getId(), fs.getLabel()));

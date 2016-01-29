@@ -82,10 +82,10 @@ public class ScaleIOStorageDriverTest {
 
         // Create one or more volumes of varying sizes
         Random random = new Random();
-        int numVolumes = random.nextInt(10) + 1;
+        int numVolumes = random.nextInt(5) + 1;
 
         for (int i = 0; i < numVolumes; i++) {
-            long requestedCapacity = 799999999;
+            long requestedCapacity = 800000000;
             StorageVolume newVolume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, requestedCapacity);
             storageVolumes.add(newVolume);
         }
@@ -104,13 +104,13 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals(DriverTask.TaskStatus.FAILED, task.getStatus());
         storageVolumes.clear();
 
-        // Create very large volume
-        newVolume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, (int) Math.pow(10,10));
+        /*// Create very large volume
+        newVolume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, (int) (Math.pow(2,32) - 1));
         storageVolumes.add(newVolume);
 
         task = driver.createVolumes(storageVolumes, capabilities);
         Assert.assertNotNull(task);
-        Assert.assertEquals(DriverTask.TaskStatus.FAILED, task.getStatus());
+        Assert.assertEquals(DriverTask.TaskStatus.FAILED, task.getStatus());*/
 
         // Create volume size 0
         newVolume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, 0);
@@ -464,7 +464,9 @@ public class ScaleIOStorageDriverTest {
         volume.setStorageSystemId(storageSystemId);
         volume.setStoragePoolId(storagePoolId);
         volume.setRequestedCapacity(requestedCapacity);
-        volume.setDisplayName("TestVolume" + Long.toString(requestedCapacity));
+
+        String displayName = "TestVolume:" + generateRandomString();
+        volume.setDisplayName(displayName);
 
         return volume;
     }
@@ -567,6 +569,21 @@ public class ScaleIOStorageDriverTest {
 
         snapshots.addAll(snapshotsB);
         return snapshots;
+    }
+
+    private String generateRandomString() {
+
+        String alpha = "abcdefghijklmnopqrstuvwxyz1234567890";
+        String randomString = "";
+
+        while (randomString.length() < 5) {
+            int index = (int) (Math.random() * alpha.length());
+            char letter = alpha.charAt(index);
+            randomString = randomString + letter;
+        }
+
+        return randomString;
+
     }
 
 }

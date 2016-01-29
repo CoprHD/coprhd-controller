@@ -36,6 +36,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
+
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
     private String fullyQualifiedXMLConfigName = "/scaleio-driver-prov.xml";
     private ApplicationContext context = new ClassPathXmlApplicationContext(fullyQualifiedXMLConfigName);
@@ -51,12 +52,13 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param capabilities Input argument for capabilities. Defines storage capabilities of volumes to create.
      * @return task
      */
+    @Override
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
         String taskType = "create-volume";
         String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTaskImpl task = new DriverTaskImpl(taskID);
 
-        if (volumes != null && volumes.size() > 0) {
+        if (volumes != null && !volumes.isEmpty()) {
             int successful = 0;
 
             // Assume volumes can be created for different storage systems
@@ -64,39 +66,38 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 String capacity = volume.getRequestedCapacity().toString();
 
                  try {
-                     client = this.getClientBySystemId(volume.getStorageSystemId());
+                     ScaleIORestClient restClient = this.getClientBySystemId(volume.getStorageSystemId());
 
-                     if (client != null) {
+                     if (restClient != null) {
                          ScaleIOVolume result;
 
-                         try {
-                             result = client.addVolume(volume.getStorageSystemId(), volume.getStoragePoolId(),
-                                     volume.getDisplayName(), capacity);
+                         result = restClient.addVolume(volume.getStorageSystemId(), volume.getStoragePoolId(),
+                                 volume.getDisplayName(), capacity);
 
-                             if (result != null) {
-                                 volume.setNativeId(result.getId());
-                                 long sizeInBytes = Long.parseLong(result.getSizeInKb()) * 1000;
-                                 volume.setAllocatedCapacity(sizeInBytes);
+                         if (result != null) {
+                             volume.setNativeId(result.getId());
+                             long sizeInBytes = Long.parseLong(result.getSizeInKb()) * 1024;
+                             volume.setAllocatedCapacity(sizeInBytes);
 
-                                 successful++;
-                             } else {
-                                 log.error("Exception while creating volume");
-                             }
-
-                         } catch (Exception e) {
-                             log.error("Exception while creating volume", e);
+                             successful++;
+                         } else {
+                             log.error("Exception while creating volume " + volume.getDisplayName() +
+                                     " in system " + volume.getStorageSystemId());
                          }
                      }
 
-                     } catch(Exception e) {
-                         log.error("Exception while getting client instance", e);
-                     }
+                 } catch(Exception e) {
+                     log.error("Failed to get client for storage system " + volume.getStorageSystemId() +
+                             ", client is null");
+                 }
             }
 
             this.setTaskStatus(volumes.size(), successful, task);
+            task.setMessage("Task succeeded for " + successful + " of " + volumes.size() + " volumes");
 
         } else {
             log.error("Empty volume input list");
+            task.setMessage("Task failed because volume list was empty");
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }
 
@@ -111,23 +112,25 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param newCapacity Requested capacity in GB. Type: input argument.
      * @return task
      */
+    @Override
     public DriverTask expandVolume(StorageVolume volume, long newCapacity) {
         String taskType = "expand-volume";
         String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTaskImpl task = new DriverTaskImpl(taskID);
 
         if (newCapacity > 0) {
-            ScaleIORestClient client = this.getClientBySystemId(volume.getStorageSystemId());
+            ScaleIORestClient restClient= this.getClientBySystemId(volume.getStorageSystemId());
 
-            if (client != null) {
+            if (restClient != null) {
                 ScaleIOVolume result;
 
                 try {
 
-                    result = client.modifyVolumeCapacity(volume.getNativeId(), String.valueOf(newCapacity));
+                    result = restClient.modifyVolumeCapacity(volume.getNativeId(), String.valueOf(newCapacity));
 
                     if (result != null) {
                         task.setStatus(DriverTask.TaskStatus.READY);
+                        task.setMessage("Volume " + volume.getNativeId() + " expanded to " + newCapacity + " GB");
                         return task;
                     }
 
@@ -136,14 +139,16 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 }
 
             } else {
-                log.error("Exception while getting client instance");
+                log.error("Failed to get client for storage system " + volume.getStorageSystemId() +
+                        ", client is null");
             }
 
         } else {
-            log.error("Invalid new capacity");
+            log.error("Invalid new capacity: " + newCapacity);
         }
 
         task.setStatus(DriverTask.TaskStatus.FAILED);
+        task.setMessage("Expand operation failed for volume " + volume.getNativeId());
         return task;
     }
 
@@ -153,35 +158,41 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param volumes Volumes to delete.
      * @return task
      */
+    @Override
     public DriverTask deleteVolumes(List<StorageVolume> volumes) {
         String taskType = "delete-volume";
         String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTaskImpl task = new DriverTaskImpl(taskID);
 
-        if (volumes.size() != 0) {
+        if (!volumes.isEmpty()) {
             int successful = 0;
 
             for (StorageVolume volume : volumes) {
-                ScaleIORestClient client = this.getClientBySystemId(volume.getStorageSystemId());
+                ScaleIORestClient restClient = this.getClientBySystemId(volume.getStorageSystemId());
 
-                if (client != null) {
+                if (restClient != null) {
                     try {
-                        client.removeVolume(volume.getNativeId());
+                        restClient.removeVolume(volume.getNativeId());
                         successful++;
 
                     } catch (Exception e) {
-                        log.error("Exception while deleting volume", e);
+                        log.error("Exception while deleting volume " + volume.getNativeId() +
+                                "in storage system " + volume.getStorageSystemId(), e);
                     }
 
                 } else {
-                    log.error("Exception while getting client instance");
+                    log.error("Failed to get client for storage system " + volume.getStorageSystemId() +
+                            ", client is null");
                 }
             }
 
             this.setTaskStatus(volumes.size(), successful, task);
+            task.setMessage("Task succeeded for " + successful + " of " + volumes.size() + " volumes");
+
 
         } else {
             task.setStatus(DriverTask.TaskStatus.FAILED);
+            task.setMessage("Task failed because volume list was empty");
             log.error("Empty volume input list");
         }
 
@@ -195,6 +206,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param capabilities capabilities required from snapshots. Type: Input.
      * @return task
      */
+    @Override
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
         log.info("Request to create Snapshots -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_CREATE));
@@ -250,6 +262,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param snapshot Type: Input.
      * @return task
      */
+    @Override
     public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.SNAPSHOT_RESTORE);
     }
@@ -260,6 +273,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param snapshots Type: Input.
      * @return task
      */
+    @Override
     public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
         log.info("Request to delete Snapshots -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_DELETE));
@@ -301,6 +315,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param capabilities capabilities of clones. Type: Input.
      * @return task
      */
+    @Override
     public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
         return null;
     }
@@ -311,6 +326,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param clones Type: Input/Output.
      * @return task
      */
+    @Override
     public DriverTask detachVolumeClone(List<VolumeClone> clones) {
         return null;
     }
@@ -322,6 +338,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param clone Type: Input.
      * @return task
      */
+    @Override
     public DriverTask restoreFromClone(StorageVolume volume, VolumeClone clone) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.CLONE_RESTORE);
     }
@@ -332,6 +349,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param clones clones to delete. Type: Input.
      * @return task
      */
+    @Override
     public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
         return null;
     }
@@ -343,6 +361,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param capabilities capabilities of mirrors. Type: Input.
      * @return task
      */
+    @Override
     public DriverTask createVolumeMirror(List<VolumeMirror> mirrors, StorageCapabilities capabilities) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
@@ -353,6 +372,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param mirrors mirrors to delete. Type: Input.
      * @return task
      */
+    @Override
     public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
@@ -363,6 +383,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param mirrors Type: Input/Output.
      * @return task
      */
+    @Override
     public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
@@ -373,6 +394,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param mirrors Type: Input/Output.
      * @return task
      */
+    @Override
     public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
@@ -384,6 +406,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param mirror Type: Input.
      * @return task
      */
+    @Override
     public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
@@ -395,6 +418,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param initiators Type: Input.
      * @return list of export masks
      */
+    @Override
     public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators) {
         return null;
     }
@@ -428,6 +452,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param volumes Type: Input.
      * @return task
      */
+    @Override
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
         return null;
     }
@@ -438,6 +463,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param consistencyGroup input/output
      * @return task
      */
+    @Override
     public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.CG_CREATE);
     }
@@ -448,6 +474,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param consistencyGroup Input
      * @return task
      */
+    @Override
     public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.CG_DELETE);
     }
@@ -460,6 +487,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param capabilities Capabilities of snapshots. Type: Input.
      * @return task
      */
+    @Override
     public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots,
             List<CapabilityInstance> capabilities) {
         log.info("Request to create consistency group snapshot -- Start :");
@@ -526,6 +554,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param snapshots Input.
      * @return task
      */
+    @Override
     public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
         log.info("Request to delete consistency group snapshots -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_SNAP_DELETE));
@@ -564,6 +593,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param capabilities Capabilities of clones. Type: Input.
      * @return task
      */
+    @Override
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
             List<CapabilityInstance> capabilities) {
         return null;
@@ -575,6 +605,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param clones output
      * @return task
      */
+    @Override
     public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones) {
         return null;
     }
@@ -582,6 +613,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     /**
      * Get driver registration data.
      */
+    @Override
     public RegistrationData getRegistrationData() {
         return null;
     }
@@ -776,6 +808,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      *            that last page was returned. Type: Input/Output.
      * @return task
      */
+    @Override
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {
         return null;
     }
@@ -785,6 +818,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      *
      * @return list of supported storage system types
      */
+    @Override
     public List<String> getSystemTypes() {
         return null;
     }
@@ -795,6 +829,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param taskId
      * @return
      */
+    @Override
     public DriverTask getTask(String taskId) {
         return null;
     }
@@ -809,6 +844,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      *         <p/>
      *         Example of usage: StorageVolume volume = StorageDriver.getStorageObject("vmax-12345", "volume-1234", StorageVolume.class);
      */
+    @Override
     public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
         return null;
     }

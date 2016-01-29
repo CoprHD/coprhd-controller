@@ -4,17 +4,6 @@
  */
 package com.emc.storageos.driver.scaleio.api.restapi;
 
-import java.net.URI;
-import java.util.*;
-
-import javax.ws.rs.core.MediaType;
-
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.driver.scaleio.ScaleIOException;
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.request.*;
@@ -27,6 +16,15 @@ import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.WebResource.Builder;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.api.client.filter.LoggingFilter;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.core.MediaType;
+import java.net.URI;
+import java.util.*;
 
 /**
  * This class implements methods for calling ScaleIO REST API to do operations.

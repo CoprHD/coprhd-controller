@@ -95,15 +95,7 @@ public class QuotaService extends TaskResourceService {
         if (project == null) {
             throw APIException.badRequests.projectWithTagNonexistent(openstack_target_tenant_id);
         }
-
-        long maxQuota = 0;
-        if (project.getQuotaEnabled()) {
-            maxQuota = (long) (project.getQuota().intValue());
-        }
-        else {
-            maxQuota = Long.valueOf(CinderConstants.ResourceQuotaDefaults.GIGABYTES.getLimit());
-        }
-
+        
         HashMap<String, String> defaultQuotaMap = getQuotaHelper().getCompleteDefaultConfiguration(openstack_target_tenant_id);
         
         List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);

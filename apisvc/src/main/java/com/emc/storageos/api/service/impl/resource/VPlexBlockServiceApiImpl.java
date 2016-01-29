@@ -3597,7 +3597,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         if (!virtVolBackVolMap.keySet().contains(rpvol)) {
                             Volume virtVol = _dbClient.queryObject(Volume.class, vvUri);
                             throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(virtVol.getLabel(),
-                                    "not all volumes in same replication group are in the add volume list");
+                                    "not all volumes in the same replication group are in the add volume list");
                         }
                     }
                 }

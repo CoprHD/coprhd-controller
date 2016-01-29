@@ -6230,7 +6230,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
     
     /**
-     * 
+     * To convert real VNX replication group to virtual one when adding the VNX volume to an application.
      * @param workflow
      * @param completer
      * @param vnxVolumeList VNX volumes to convert replication group

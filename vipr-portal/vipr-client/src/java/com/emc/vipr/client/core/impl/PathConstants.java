@@ -156,4 +156,8 @@ public class PathConstants {
     public static final String VIRTUAL_NAS_SERVER_BY_STORAGE_SYSTEM_URL = "/vdc/storage-systems/{storage-system-id}/vnasservers";
     public static final String VIRTUAL_NAS_SERVER_BY_VARRAY_URL = VIRTUAL_NAS_SERVER_URL + "/varray/{varray-id}";
     public static final String VIRTUAL_NAS_SERVER_BY_PROJECT_URL = "/project/{project-id}";
+    public static final String SCHEDULE_POLICIES_URL = "/schedule-policies";
+    public static final String SCHEDULE_POLICIES_BY_TENANT_URL = TENANT_URL + "/{tenantId}/schedule-policies";
+    public static final String SCHEDULE_POLICIES_BY_POLICY_URL = "/schedule-policies/{policyId}";
+    
 }

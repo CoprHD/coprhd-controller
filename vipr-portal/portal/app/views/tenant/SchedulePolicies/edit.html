@@ -1,0 +1,174 @@
+%{
+  titleKey = 'schedulepolicies.' + (schedulePolicy?.id ? 'edit' : 'create') + '.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.schedulepolicies'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+
+#{alerts/}
+
+#{form @save(), id:'schedulePolicy', class:'form form-horizontal', autocomplete:"off"}
+  #{if schedulePolicy?.id}
+    #{field 'schedulePolicy.id'}
+      <input type="hidden" name="id" value="${field.value}">
+    #{/field}  
+  #{/if}
+  #{field 'schedulePolicy.tenantId'}
+        <input type="hidden" name="tenantId" value="${field.value}"/>
+  #{/field}
+ #{field 'schedulePolicy.referrerUrl'}
+     <input type="hidden" name="${field.policyName}" value="${field.value}">
+  #{/field}
+  
+
+  
+  #{field 'schedulePolicy.policyType'}
+    #{Form.selectOneControlGroup field:field, options:policyTypeOptions, select:schedulePolicy.policyType, cssClass:'span3' /}
+  #{/field}
+  
+    #{field 'schedulePolicy.policyName'}
+      %{
+        field.cssClass = 'initialFocus';
+        field.required = true
+        field.fieldKey = 'schedulePolicy.policyName'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    <!-- - -->
+    #{field 'schedulePolicy.scheduleTime'}
+    #{Form.controlGroup field:field, width:4}
+      %{ typeField = field }%
+      
+      <div class="row col-gap-sm">
+        <div class="col-xs-3">
+          #{field 'schedulePolicy.scheduleHour'}
+              %{
+              field.options = hours 
+               
+            }%
+           #{Form.selectOne field: field, select:schedulePolicy.scheduleHour /}
+          #{/field}
+        </div>
+        <div class="col-xs-3">
+          #{field 'schedulePolicy.scheduleMin'}
+            %{
+             field.options = minutes   
+            }%
+            #{Form.selectOne field: field, select:schedulePolicy.scheduleMin /}
+          #{/field}
+        </div>
+     </div>
+      
+    #{/Form.controlGroup}
+  #{/field}
+    <!--  -->
+
+  
+    #{field 'schedulePolicy.repeat'}
+      %{
+        field.cssClass = 'initialFocus';
+        field.fieldKey = 'schedulePolicy.repeat'
+      }%
+      #{Form.inputTextControlGroup field:field, width:2 /}
+    #{/field}
+    
+    
+    #{field 'schedulePolicy.frequency'}
+    #{Form.controlGroup field:field, width:4}
+      %{ typeField = field }%
+      #{Form.radio field:typeField, value: "days", label: messages.get("schedulePolicy.daily")/}
+      
+      #{Form.radio field:typeField, value: "weeks", label: messages.get("schedulePolicy.weekly")/}
+      #{field 'schedulePolicy.scheduleDayOfWeek'}
+        %{
+          field.options = daysOfWeek
+          field.valueProperty = 'key'
+          field.labelProperty = 'value'
+        }%
+        <div class="row col-gap-none">
+          <div class="col-xs-4 col-xs-offset-1">
+            <label class="control-label">&{'schedulePolicy.dayOfWeek'}:</label>
+          </div>
+          <div class="col-xs-7"> 
+            #{Form.selectOne field:field, select:schedulePolicy.scheduleDayOfWeek/}
+          </div>
+        </div>
+      #{/field}
+      
+      #{Form.radio field:typeField, value: "months", label: messages.get("schedulePolicy.monthly")/}
+      #{field 'schedulePolicy.scheduleDayOfMonth'}
+        %{
+          field.options = daysOfMonth
+          field.valueProperty = 'key'
+          field.labelProperty = 'value'
+        }%
+        <div class="row col-gap-none">
+          <div class="col-xs-4 col-xs-offset-1">
+            <label class="control-label">&{'schedulePolicy.dayOfMonth'}:</label>
+          </div>
+          <div class="col-xs-7">
+            #{Form.selectOne field:field, select:schedulePolicy.scheduleDayOfMonth/}
+          </div>
+        </div>
+      #{/field}
+    #{/Form.controlGroup}
+  #{/field}
+  
+   #{field 'schedulePolicy.expiration'}
+    #{Form.controlGroup field:field, width:4}
+      %{ typeField = field }%
+      #{Form.radio field:typeField, value: "NEVER", label: messages.get("schedulePolicy.expire.never")/}
+      <div class="row col-gap-sm">
+      <div class="col-xs-6">
+         #{Form.radio field:typeField, value: "EXPIRE_TIME", label: messages.get("schedulePolicy.expire.value")/}
+      </div>
+       <div class="col-xs-2">
+          #{field 'schedulePolicy.expireValue'}
+            
+          #{Form.inputText field: field/}
+          #{/field}
+        </div>
+        <div class="col-xs-4">
+          #{field 'schedulePolicy.expireType'}
+            %{
+              field.options = expirationTypeOptions   
+            }%
+            #{Form.selectOne field: field, select:schedulePolicy.expireType /}
+          #{/field}
+        </div>
+     </div>
+      
+    #{/Form.controlGroup}
+  #{/field}
+
+    
+
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
+#{/form}
+</div>
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+    $(document).ready(function() {
+      
+        // know where it came from so can navigate back;
+        // only set the referrerUrl if it has not been set at some earlier point 
+        // i.e. in multi-step flows take into account error-handling
+        var referrerUrl = $('input[name="schedulePolicy.referrerUrl"]').val();
+		if(!referrerUrl)
+		  referrerUrl = document.referrer;
+        
+		// navigate back only if referral URL is different than this one
+		if(referrerUrl && referrerUrl != document.URL) {
+	        $('input[name="schedulePolicy.referrerUrl"]').val(referrerUrl);
+			// navigate cancel button to referrer url
+			$('div.form-actions a.btn').attr('href', referrerUrl);
+		}
+		
+		
+    });
+   </script>
+#{/set}

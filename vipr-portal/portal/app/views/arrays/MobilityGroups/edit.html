@@ -78,26 +78,6 @@ $(document).ready(function() {
       #{Form.selectOneControlGroup field:field/}
     #{/field}
     
-    #{field 'mobilityGroupForm.sourceStorageSystem'}
-        %{
-          field.cssClass = 'span0'
-          field.required = false
-          field.disabled = true
-          field.options = sourceStorageSystems
-        }%
-      #{Form.selectOneControlGroup field:field/}
-    #{/field}
-    
-    #{field 'mobilityGroupForm.sourceVirtualPool'}
-        %{
-          field.cssClass = 'span0'
-          field.required = false
-          field.disabled = true
-          field.options = sourceVirtualPools
-        }%
-      #{Form.selectOneControlGroup field:field/}
-    #{/field}
-   
     #{if mobilityGroupForm?.migrationGroupBy.equalsIgnoreCase('Hosts')}
       #{field 'mobilityGroupForm.hosts'}
           %{

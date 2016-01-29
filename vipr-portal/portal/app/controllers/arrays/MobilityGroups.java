@@ -209,10 +209,6 @@ public class MobilityGroups extends ViprResourceController {
 
         public String description;
 
-        public URI sourceStorageSystem;
-
-        public URI sourceVirtualPool;
-
         public String migrationType;
 
         public String migrationGroupBy;
@@ -230,8 +226,6 @@ public class MobilityGroups extends ViprResourceController {
             this.name = applicationForm.getName();
             this.description = applicationForm.getDescription();
             this.roles = applicationForm.getRoles();
-            this.sourceStorageSystem = applicationForm.getSourceStorageSystem();
-            this.sourceVirtualPool = applicationForm.getSourceVirtualPool();
             this.migrationType = applicationForm.getMigrationType();
             this.migrationGroupBy = applicationForm.getMigrationGroupBy();
 
@@ -267,7 +261,7 @@ public class MobilityGroups extends ViprResourceController {
 
         public void save() throws ViPRException {
             if (isNew()) {
-                MobilityGroupSupportUtil.createMobilityGroup(name, description, ROLE, sourceStorageSystem, sourceVirtualPool,
+                MobilityGroupSupportUtil.createMobilityGroup(name, description, ROLE,
                         migrationGroupBy, migrationType);
             } else {
                 VolumeGroupRestRep oldApplication = MobilityGroupSupportUtil.getMobilityGroup(id);

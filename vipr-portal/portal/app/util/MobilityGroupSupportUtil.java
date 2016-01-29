@@ -44,14 +44,12 @@ public class MobilityGroupSupportUtil {
         return reps;
     }
 
-    public static VolumeGroupRestRep createMobilityGroup(String name, String description, Set<String> roles, URI storageSystem,
-            URI virtualPool, String migrationGroupBy, String migrationType) {
+    public static VolumeGroupRestRep createMobilityGroup(String name, String description, Set<String> roles, String migrationGroupBy,
+            String migrationType) {
         VolumeGroupCreateParam create = new VolumeGroupCreateParam();
         create.setName(name);
         create.setDescription(description);
         create.setRoles(roles);
-        create.setSourceStorageSystem(storageSystem);
-        create.setSourceVirtualPool(virtualPool);
         create.setMigrationGroupBy(migrationGroupBy);
         create.setMigrationType(migrationType);
         return BourneUtil.getViprClient().application().createApplication(create);

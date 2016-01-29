@@ -204,8 +204,6 @@ public class VolumeGroupService extends TaskResourceService {
         if (param.getRoles().contains(VolumeGroup.VolumeGroupRole.MOBILITY.name())) {
             volumeGroup.setMigrationType(param.getMigrationType());
             volumeGroup.setMigrationGroupBy(param.getMigrationGroupBy());
-            volumeGroup.setSourceStorageSystem(param.getSourceStorageSystem());
-            volumeGroup.setSourceVirtualPool(param.getSourceVirtualPool());
         }
 
         _dbClient.createObject(volumeGroup);

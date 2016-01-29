@@ -40,7 +40,7 @@ class VolumeGroup(object):
         self.__ipAddr = ipAddr
         self.__port = port
         
-    def create(self, name, description, roles, parent, sourceStorageSystem, sourceVirtualPool, migrationType, migrationGroupBy):
+    def create(self, name, description, roles, parent, migrationType, migrationGroupBy):
         '''
         Makes REST API call to create volume group
         Parameters:
@@ -55,8 +55,6 @@ class VolumeGroup(object):
         request["description"] = description
         request["roles"] = roles.split(',')
         request["parent"] = parent
-        request["sourceStorageSystem"] = sourceStorageSystem
-        request["sourceVirtualPool"] = sourceVirtualPool
         request["migrationType"] = migrationType
         request["migrationGroupBy"] = migrationGroupBy
 
@@ -340,14 +338,6 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<parent>',
                                dest='parent',
                                help='parent volume group for volume group')
-    create_parser.add_argument('-ss', '-sourceStorageSystem',
-                               metavar='<sourceStorageSystem>',
-                               dest='sourceStorageSystem',
-                               help='source storage system for mobility volume group')
-    create_parser.add_argument('-sv', '-sourceVirtualPool',
-                               metavar='<sourceVirtualPool>',
-                               dest='sourceVirtualPool',
-                               help='source virtual pool for mobility volume group')
     create_parser.add_argument('-mt', '-migrationType',
                                metavar='<migrationType>',
                                dest='migrationType',
@@ -363,7 +353,7 @@ def create_parser(subcommand_parsers, common_parser):
 def create(args):
     obj = VolumeGroup(args.ip, args.port)
     try:
-        obj.create(args.name, args.description, args.roles, args.parent, args.sourceStorageSystem, args.sourceVirtualPool, args.migrationType, args.migrationGroupBy)
+        obj.create(args.name, args.description, args.roles, args.parent, args.migrationType, args.migrationGroupBy)
     except SOSError as e:
         if (e.err_code in [SOSError.NOT_FOUND_ERR,
                             SOSError.ENTRY_ALREADY_EXISTS_ERR]):

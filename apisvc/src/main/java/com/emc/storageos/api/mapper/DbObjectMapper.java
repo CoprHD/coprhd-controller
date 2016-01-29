@@ -277,8 +277,6 @@ public class DbObjectMapper {
         rep.setDescription(from.getDescription());
         rep.setRoles(from.getRoles());
         rep.setParent(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, from.getParent()));
-        rep.setSourceStorageSystem(from.getSourceStorageSystem());
-        rep.setSourceVirtualPool(from.getSourceVirtualPool());
         rep.setMigrationGroupBy(from.getMigrationGroupBy());
         rep.setMigrationType(from.getMigrationType());
         return rep;

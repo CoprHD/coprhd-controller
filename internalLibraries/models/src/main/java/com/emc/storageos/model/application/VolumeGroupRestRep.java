@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.model.application;
 
-import java.net.URI;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -25,8 +24,6 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
     private String description;
     private Set<String> roles;
     private RelatedResourceRep parent;
-    private URI sourceStorageSystem;
-    private URI sourceVirtualPool;
     private String migrationType;
     private String migrationGroupBy;
     private Set<String> replicationGroupNames;
@@ -71,24 +68,6 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
 
     public void setParent(RelatedResourceRep parent) {
         this.parent = parent;
-    }
-
-    @XmlElement(name = "sourceStorageSystem")
-    public URI getSourceStorageSystem() {
-        return sourceStorageSystem;
-    }
-
-    public void setSourceStorageSystem(URI sourceStorageSystem) {
-        this.sourceStorageSystem = sourceStorageSystem;
-    }
-
-    @XmlElement(name = "sourceVirtualPool")
-    public URI getSourceVirtualPool() {
-        return sourceVirtualPool;
-    }
-
-    public void setSourceVirtualPool(URI sourceVirtualPool) {
-        this.sourceVirtualPool = sourceVirtualPool;
     }
 
     @XmlElement(name = "migrationType")

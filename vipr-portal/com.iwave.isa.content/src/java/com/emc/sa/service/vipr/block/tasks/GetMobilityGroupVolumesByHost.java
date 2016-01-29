@@ -13,7 +13,6 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
@@ -36,24 +35,15 @@ public class GetMobilityGroupVolumesByHost extends ViPRExecutionTask<Set<URI>> {
 
         for (URI volume : volumes) {
             VolumeRestRep vol = getClient().blockVolumes().get(volume);
-            if (matchesVirtualPool(vol) && BlockStorageUtils.isVplexVolume(vol)) {
-                for (RelatedResourceRep haVolume : vol.getHaVolumes()) {
-                    if (matchesStorageSystem(haVolume)) {
-                        mobilityGroupVolumes.add(volume);
-                    }
-                }
+            if (BlockStorageUtils.isVplexVolume(vol)) {
+                // for (RelatedResourceRep haVolume : vol.getHaVolumes()) {
+                // if (matchesStorageSystem(haVolume)) {
+                mobilityGroupVolumes.add(volume);
+                // }
+                // }
             }
         }
         return mobilityGroupVolumes;
-    }
-
-    private boolean matchesStorageSystem(RelatedResourceRep haVolume) {
-        VolumeRestRep haVol = getClient().blockVolumes().get(haVolume.getId());
-        return haVol.getStorageController().equals(mobilityGroup.getSourceStorageSystem());
-    }
-
-    private boolean matchesVirtualPool(VolumeRestRep vol) {
-        return vol.getVirtualPool().getId() != null && vol.getVirtualPool().getId().equals(mobilityGroup.getSourceVirtualPool());
     }
 
     private Set<URI> getHostExportedVolumes() {

@@ -2220,13 +2220,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+    // storagesystem, task, target, policyname
+            public
+            void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         mirrorOperations.startMirrorFileShareLink(system, target, completer);
     }
 
     @Override
     public void doSuspendLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         mirrorOperations.pauseMirrorFileShareLink(system, target, completer);
+    }
+
+    String gerneratePolicyName(StorageSystem system, FileShare fileShare) {
+        return fileShare.getLabel();
     }
 
     @Override

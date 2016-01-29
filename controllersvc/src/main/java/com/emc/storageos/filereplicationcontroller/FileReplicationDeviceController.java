@@ -43,6 +43,7 @@ import com.emc.storageos.volumecontroller.impl.file.MirrorFileStopTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.RemoteFileMirrorOperation;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
+import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
@@ -69,6 +70,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     private static final String CREATE_FILE_MIRRORS_STEP_DESC = "Create MirrorFileShare Link";
     private static final String DETACH_FILE_MIRRORS_STEP_DESC = "Detach MirrorFileShare Link";
     private static final String CANCEL_FILE_MIRRORS_STEP_DESC = "Cancel MirrorFileShare Link";
+
+    private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
 
     /**
      * Calls to remote mirror operations on devices
@@ -513,39 +516,135 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     private static final String RESYNC_MIRROR_FILESHARE_STEP = "reSyncPrepMirrorFilePairStep";
     private static final String START_MIRROR_FILESHARE_STEP = "reSyncPrepMirrorFilePairStep";
 
-    private static final String FAILOVER_MIRROR_FILESHARE_METH = "failoverMirrorFilePairMeth";
-    private static final String RESYNC_MIRROR_FILESHARE_METH = "reSyncPrepMirrorFilePairMeth";
-    private static final String START_MIRROR_FILESHARE_METH = "reSyncPrepMirrorFilePairMeth";
+    private static final String FAILOVER_MIRROR_FILESHARE_METH = "failoverMirrorFilePair";
+    private static final String RESYNC_MIRROR_FILESHARE_METH = "resyncPrepMirrorFilePair";
+    private static final String START_MIRROR_FILESHARE_METH = "startPrepMirrorFilePair";
 
     private static final String FAILOVER_FILE_MIRRORS_STEP_DESC = "failover MirrorFileShare Link";
     private static final String RESYNC_MIRROR_FILESHARE_STEP_DESC = "resync MirrorFileShare Link";
     private static final String START_MIRROR_FILESHARE_STEP_DES = "start MirrorFileShare Link";
 
-    void doFailOverMirrorSession(StorageSystem primarysystem, FileShare sourceFileShare,
+    void doFailBackMirrorSession(StorageSystem primarysystem, FileShare sourceFileShare,
             List<String> targetfileUris, String taskId) {
         // Generate the Workflow.
         Workflow workflow = workflowService.getNewWorkflow(this,
                 FAILBACK_MIRROR_FILESHARE_WF_NAME, false, taskId);
         String waitFor = null;
 
-        TaskCompleter failbackTaskCompleter = null;
-
-        // _log.info("Consistency group not created. Creating it");
-        // waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-        // String.format("Creating consistency group %s", consistencyGroup),
-        // waitFor, storage, storageSystem.getSystemType(),
-        // this.getClass(),
-        // createConsistencyGroupMethod(storage, consistencyGroup),
-        // rollbackMethodNullMethod(), null);
-
         for (String target : targetfileUris) {
             // target share
             FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
-
             // target storage system
-            StorageSystem systemTarget = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
+            StorageSystem secondarysystem = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
+            String policyName = targetFileShare.getLabel();
+
+            Workflow.Method resyncMethod = resyncPrepMirrorPairMeth(primarysystem.getId(), secondarysystem.getId(),
+                    sourceFileShare.getId(), policyName);
+            String descFailover = String.format("Creating resyncprep between source- %s and target %s", primarysystem.getLabel(),
+                    secondarysystem.getLabel());
+            // step -1
+            waitFor = workflow.createStep(
+                    RESYNC_MIRROR_FILESHARE_STEP,
+                    descFailover,
+                    waitFor, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
+                    resyncMethod,
+                    rollbackMethodNullMethod(), null);
+
+            // step -2
+            waitFor = workflow.createStep(
+                    START_MIRROR_FILESHARE_STEP,
+                    START_MIRROR_FILESHARE_STEP_DES,
+                    waitFor, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
+                    startMirrorPairMeth(secondarysystem.getId(), sourceFileShare.getId(), policyName),
+                    rollbackMethodNullMethod(), null);
+
+            // step -3
+            waitFor = workflow.createStep(
+                    FAILOVER_MIRROR_FILESHARE_STEP,
+                    FAILOVER_FILE_MIRRORS_STEP_DESC,
+                    waitFor, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
+                    faioverMirrorPairMeth(primarysystem.getId(), sourceFileShare.getId(), policyName),
+                    rollbackMethodNullMethod(), null);
+
+            // step -4
+
+            resyncMethod = resyncPrepMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(),
+                    sourceFileShare.getId(), policyName);
+            waitFor = workflow.createStep(
+                    RESYNC_MIRROR_FILESHARE_STEP,
+                    descFailover,
+                    waitFor, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
+                    resyncMethod,
+                    rollbackMethodNullMethod(), null);
 
         }
+    }
+
+    // resyncPrep
+    public static Workflow.Method
+            resyncPrepMirrorPairMeth(URI primarysystemURI, URI targetSystemURI, URI fileshareURI, String policyName) {
+        return new Workflow.Method(RESYNC_MIRROR_FILESHARE_METH, primarysystemURI, targetSystemURI, fileshareURI, policyName);
+    }
+
+    public void resyncPrepMirrorFilePair(URI primarysystemURI, URI targetSystemURI, URI fileshareURI, String policyName) {
+
+    }
+
+    // start Mirror
+    public static Workflow.Method
+            startMirrorPairMeth(URI storage, URI fsURI, String policyName) {
+        return new Workflow.Method(START_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
+    }
+
+    public void startPrepMirrorFilePair(URI storage, URI fileshareURI, String policyName) {
+
+    }
+
+    // stop mirror
+
+    // start Mirror
+    public static Workflow.Method
+            faioverMirrorPairMeth(URI storage, URI fsURI, String policyName) {
+        return new Workflow.Method(START_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
+    }
+
+    public void failoverMirrorFilePair(URI storage, URI fileshareURI, String policyName) {
+
+    }
+
+    /**
+     * Creates a rollback workflow method that does nothing, but allows rollback
+     * to continue to prior steps back up the workflow chain.
+     *
+     * @return A workflow method
+     */
+    Workflow.Method rollbackMethodNullMethod() {
+        return new Workflow.Method(ROLLBACK_METHOD_NULL);
+    }
+
+    /**
+     * A rollback workflow method that does nothing, but allows rollback
+     * to continue to prior steps back up the workflow chain. Can be and is
+     * used in workflows in other controllers that invoke operations on this
+     * block controller. If the block operation happens to fail, this no-op
+     * rollback method is invoked. It says the rollback step succeeded,
+     * which will then allow other rollback operations to execute for other
+     * workflow steps executed by the other controller.
+     *
+     * See the VPlexDeviceController restoreVolume method which creates a
+     * workflow step that invokes the BlockDeviceController restoreVolume
+     * method. The rollback method for this step is this no-op. If the
+     * BlockDeviceController restoreVolume step fails, this rollback
+     * method is invoked, which simply says the rollback for the step
+     * was successful. This in turn allows the other steps in the workflow
+     * rollback.
+     *
+     * @param stepId The id of the step being rolled back.
+     *
+     * @throws WorkflowException
+     */
+    public void rollbackMethodNull(String stepId) throws WorkflowException {
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
 }

@@ -110,17 +110,17 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     @Override
     public void startMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
-        if (target.getParentFileShare() != null) {
-            String policyName = target.getLabel();
-            cmdResult = doStartReplicationPolicy(system, policyName, completer);
-            if (cmdResult.getCommandSuccess()) {
-                completer.ready(_dbClient);
-            } else if (cmdResult.getCommandPending()) {
-                completer.statusPending(_dbClient, cmdResult.getMessage());
-            } else {
-                completer.error(_dbClient, cmdResult.getServiceCoded());
-            }
+
+        String policyName = target.getLabel();
+        cmdResult = doStartReplicationPolicy(system, policyName, completer);
+        if (cmdResult.getCommandSuccess()) {
+            completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
+        } else {
+            completer.error(_dbClient, cmdResult.getServiceCoded());
         }
+
     }
 
     @Override

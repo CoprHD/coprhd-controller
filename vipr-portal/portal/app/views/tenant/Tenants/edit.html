@@ -47,7 +47,7 @@ titleKey = 'tenants.' + (tenant?.id ? 'edit' : 'create') + '.title';
     #{/field}
 	#{field 'tenant.namespace'}
       
-        #{Form.selectOneControlGroup field:field, options:namespaceOptions, cssClass:'span3' }
+        #{Form.selectOneControlGroup field:field, options:namespaceOptions, select:namespace, cssClass:'span3' }
           %{
 			field.helpText = messages.get("${field.name}.help")
           %}

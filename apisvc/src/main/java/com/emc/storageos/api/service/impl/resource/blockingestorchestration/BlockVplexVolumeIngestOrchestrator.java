@@ -727,9 +727,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     @Override
     protected void updateBlockObjectNativeIds(BlockObject blockObject, UnManagedVolume unManagedVolume) {
-        String label = unManagedVolume.getLabel();
-        blockObject.setDeviceLabel(label);
-        blockObject.setLabel(label);
+        managedVolumeSetLabel(blockObject, unManagedVolume.getLabel());
         blockObject.setNativeId(blockObject.getNativeGuid());
     }
 

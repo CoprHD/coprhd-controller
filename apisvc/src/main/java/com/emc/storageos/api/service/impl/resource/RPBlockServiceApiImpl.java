@@ -291,7 +291,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             String newVolumeLabel = volumeName;
 
-            String srcCopyName = varray.getLabel() + SRC_COPY_SUFFIX;
+            String srcCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, varray.getId(), true);
+            if (srcCopyName == null) {
+                srcCopyName= varray.getLabel() + SRC_COPY_SUFFIX;
+            }
             String activeSourceCopyName = "";
             String standbySourceCopyName = "";
 
@@ -305,8 +308,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // Grab HA varray so we can set the standby copy name correctly
                 haVarray = _dbClient.queryObject(VirtualArray.class, VPlexUtil.getHAVarray(originalVpool));
 
-                activeSourceCopyName = varray.getLabel() + MP_ACTIVE_COPY_SUFFIX;
-                standbySourceCopyName = haVarray.getLabel() + MP_STANDBY_COPY_SUFFIX;
+                activeSourceCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, varray.getId(), true);
+                if (activeSourceCopyName == null) {
+                    activeSourceCopyName = varray.getLabel() + MP_ACTIVE_COPY_SUFFIX;
+                }
+                
+                standbySourceCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, haVarray.getId(), true);
+                if (standbySourceCopyName == null) {
+                    standbySourceCopyName = haVarray.getLabel() + MP_STANDBY_COPY_SUFFIX;
+                }
             }
 
             StringBuffer volumeInfoBuffer = new StringBuffer();
@@ -940,7 +950,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         URI storageSystemUri = rpRec.getSourceStorageSystem();
         String size = String.valueOf(rpRec.getSize());
 
-        // If the copy name was passed in as null, set it now using the varray label.
+        // If the copy name was passed in as null, see if there's an existing label first, then set it now using the varray label.
+        if (copyName == null) {
+            copyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, varray.getId(), 
+                    personalityType.toString().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) ? true : false);
+        }
+        
         copyName = ((copyName != null) ? copyName : varray.getLabel());
 
         boolean vplex = VirtualPool.vPoolSpecifiesHighAvailability(vpool);

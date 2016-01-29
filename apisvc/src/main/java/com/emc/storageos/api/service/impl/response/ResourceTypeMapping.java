@@ -60,6 +60,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.VPLEX_MIRROR;
 import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
+import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -98,6 +99,7 @@ import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.SMISProvider;
+import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -188,6 +190,7 @@ public class ResourceTypeMapping {
         classMapping.put(COMPUTE_IMAGESERVER, ComputeImageServer.class);
         classMapping.put(VOLUME_GROUP, VolumeGroup.class);
         classMapping.put(BLOCK_SNAPSHOT_SESSION, BlockSnapshotSession.class);
+        classMapping.put(SCHEDULE_POLICY, SchedulePolicy.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

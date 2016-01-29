@@ -15,6 +15,9 @@ import com.emc.storageos.model.RelatedResourceRep;
 public class QuotaDirectoryRestRep extends DataObjectRestRep {
     private RelatedResourceRep project;
     private String quotaSize;
+    private Integer softLimit;
+    private Integer softGrace;
+    private Integer notificationLimit;
     private RelatedResourceRep parentFileSystem;
     private String nativeId;
     private Boolean oplock;
@@ -63,6 +66,32 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
 
     public void setQuotaSize(String size) {
         this.quotaSize = size;
+    }
+    
+    @XmlElement(name="soft_limit", required=false)
+    public Integer getSoftLimit() {
+        return softLimit;
+    }
+
+    public void setSoftLimit(Integer softLimit) {
+        this.softLimit = softLimit;
+    }
+
+    @XmlElement(name="soft_grace", required=false)
+    public Integer getSoftGrace() {
+        return softGrace;
+    }
+
+    public void setSoftGrace(Integer softGrace) {
+        this.softGrace = softGrace;
+    }
+    @XmlElement(name="notification_limit", required=false)
+    public Integer getNotificationLimit() {
+        return notificationLimit;
+    }
+
+    public void setNotificationLimit(Integer notificationLimit) {
+        this.notificationLimit = notificationLimit;
     }
 
     /**

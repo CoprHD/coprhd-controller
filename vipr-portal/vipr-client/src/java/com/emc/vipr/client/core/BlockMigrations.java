@@ -98,6 +98,19 @@ public class BlockMigrations extends AbstractCoreBulkResources<MigrationRestRep>
     }
 
     /**
+     * Deactivates a block volume migration.
+     * <p>
+     * API Call: <tt>POST /block/migrations/{id}/deactivate</tt>
+     * 
+     * @param id
+     *            the ID of the block volume migration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<MigrationRestRep> delete(URI id) {
+        return postTask(getIdUrl() + "/deactivate", id);
+    }
+
+    /**
      * Begins resuming a block volume migration.
      * <p>
      * API Call: <tt>POST /block/migrations/{id}/resume</tt>

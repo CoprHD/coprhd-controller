@@ -3403,6 +3403,19 @@ resources.filesnapshot.share.deactivate=Task created to delete file snapshot sha
 
 resources.migrations.none=No Migrations
 resources.migration.name=Name
+resources.migrations.deleteButton=Delete
+resources.migrations.pauseButton=Pause
+resources.migrations.cancelButton=Cancel
+resources.migrations.resumeButton=Resume
+resources.migrations.deleteConfirm=Are you sure you want to delete this migration?
+resources.migrations.pauseConfirm=Are you sure you want to pause this migration?
+resources.migrations.cancelConfirm=Are you sure you want to cancel this migration?
+resources.migrations.resumeConfirm=Are you sure you want to resume this migration?
+resources.migrations.delete=Created task to delete migration.
+resources.migrations.pause=Created task to stop migration.
+resources.migrations.cancel=Created task to pause migration.
+resources.migrations.resume=Created task to resume migration.
+
 
 resources.varray=Virtual Array
 resources.vpool=Virtual Pool

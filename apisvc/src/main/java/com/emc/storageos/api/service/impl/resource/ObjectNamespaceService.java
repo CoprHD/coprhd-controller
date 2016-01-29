@@ -31,6 +31,8 @@ import com.emc.storageos.security.authorization.Role;
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ObjectNamespaceService extends TaggedResource {
 
+    private int _retry_attempts;
+    
     /**
      * Get IDs of all object storage namespaces
      * @return
@@ -95,5 +97,10 @@ public class ObjectNamespaceService extends TaggedResource {
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.OBJECT_NAMESPACE;
     }
+    
+    public void setRetryAttempts(int retries) {
+        _retry_attempts = retries;
+    }
+
 
 }

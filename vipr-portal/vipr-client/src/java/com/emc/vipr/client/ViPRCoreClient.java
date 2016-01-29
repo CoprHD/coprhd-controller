@@ -38,6 +38,7 @@ import com.emc.vipr.client.core.Monitoring;
 import com.emc.vipr.client.core.NetworkSystems;
 import com.emc.vipr.client.core.Networks;
 import com.emc.vipr.client.core.ObjectBuckets;
+import com.emc.vipr.client.core.ObjectNamespaces;
 import com.emc.vipr.client.core.ObjectVirtualPools;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
@@ -399,5 +400,9 @@ public class ViPRCoreClient {
 
     public IPsec ipsec() {
         return new IPsec(client);
+    }
+    
+    public ObjectNamespaces objectNamespace() {
+        return new ObjectNamespaces(this, client);
     }
 }

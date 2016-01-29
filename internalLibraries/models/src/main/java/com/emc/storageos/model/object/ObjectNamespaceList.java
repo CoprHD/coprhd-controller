@@ -14,7 +14,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 
 /**
  * Class represents a return type that returns the id and self link for a
- * list of ECS Namespaces.
+ * list of Object storage Namespaces.
  * Generic interface for all object storage systems exposing namespaces
  */ 
 @XmlRootElement(name = "object_namespaces")
@@ -28,7 +28,7 @@ public class ObjectNamespaceList {
         this.namespaces = namespaces;
     }
     /**
-     * List of individual ECS namespaces
+     * List of individual object namespaces
      * 
      * @valid none
      */

@@ -1,39 +1,63 @@
 #{extends 'main.html' /} 
 #{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
 
-#{DataTable.header titleKey:'disasterRecovery.title'/}
-#{DataTable.crudTable id:'disasterRecovery', 
+#{if showPauseButton}
+	#{DataTable.header titleKey:'disasterRecovery.title.pauseResume'/}
+#{/if}
+#{else}
+	#{DataTable.header titleKey:'disasterRecovery.title'/}
+#{/else}
+#{DataTable.baseCrudTable id:'disasterRecovery',
 					dataTable:dataTable,
-					expandable: true,
-					deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
-    #{Form.button name:'disasterRecovery.pauseButton', icon:'pause', submit:'pauseForm', data:['enabled':'selected']/}
-    #{DataTable.formAction @pause(), id:'pauseForm', table:'disasterRecovery'/}
-#{/DataTable.crudTable}
+					expandable: true}
+  #{if showPauseButton}
+	#{DataTable.buttonBar}
+      #{Form.button name:'disasterRecovery.pauseButton', icon:'pause', submit:'pauseForm', data:['enabled':'selected']/}
+      #{DataTable.formAction @pause(), id:'pauseForm', table:'disasterRecovery', confirm:messages.get('disasterRecovery.confirm.pause')/}
+	#{/DataTable.buttonBar}
+  #{/if}
+  #{else}
+	#{DataTable.crudButtonBar table:'disasterRecovery', deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
+	#{/DataTable.crudButtonBar}
+  #{/else}
+#{/DataTable.baseCrudTable}
 #{DataTable.expandHtml @errorDetails(':id'), table:'disasterRecovery' /}
-
+<br/>
+#{if showPauseButton}
+	<a href="@{infra.Upgrade.index()}">&{'disasterRecovery.backToUpgrade'}</a>
+#{/if}
+#{elseif util.DisasterRecoveryUtils.hasPausedSite()}
+	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteWarning'}</span>
+#{/elseif}
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
-		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
 			#{if isActiveSite }
-				<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.pause'}')){return false;}")>{{'disasterRecovery.pauseButton' | t}}</a>
+			  	#{if showPauseButton}
+					<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.pause'}')){return false;}")>{{'disasterRecovery.pauseButton' | t}}</a>
+				#{/if}
 				<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
 			#{/if}
-			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
-			#{if isActiveSite }
-				<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.SwitchoverButton' | t}}</a>
+		#{/deadbolt.restrict}
+		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+			#{if !showPauseButton}
+				<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
+				#{if isActiveSite }
+					<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.SwitchoverButton' | t}}</a>
+				#{/if}
+				#{else}
+					<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.failover'}')){return false;}")>{{'disasterRecovery.FailoverButton' | t}}</a>
+				#{/else}
 			#{/if}
-			#{else}
-				<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.failover'}')){return false;}")>{{'disasterRecovery.FailoverButton' | t}}</a>
-			#{/else}
 		#{/deadbolt.restrict}
     </div>
 </script>
 
 <script type="text/javascript">
 var standbypauseUrl = #{jsAction @pause(':uuid') /}
-var standbyresumeUrl = #{jsAction @resume(':uuid') /}
+var standbyresumeUrl = #{jsAction @resume(':uuid', showPauseButton) /}
 var standbytestUrl = #{jsAction @test(':uuid') /}
 var standbyfailoverUrl = #{jsAction @switchover(':uuid') /}
 
@@ -59,7 +83,9 @@ angular.module('tags').directive({
         	 
         	 if(scope.row.status.toUpperCase() == "STANDBY_PAUSED"){
 				scope.isResumeSite = true;
-				scope.isFailover = true;
+				#{if !isActiveSite }
+					scope.isFailover = true;
+				#{/if}
              }
         	 
         	 if(scope.row.status.toUpperCase() == "ACTIVE"){
@@ -186,20 +212,20 @@ function networkHealthIcon(o, val) {
         return "";
     }
     var labels = {
-        'Good': 'label-success',
-        'Slow': 'label-warning',
-        'Broken': 'label-danger'
+        'GOOD': 'label-success',
+        'SLOW': 'label-warning',
+        'BROKEN': 'label-danger'
     }
     var icons = {
-        'Good': 'glyphicon glyphicon-ok',
-        'Slow': 'glyphicon glyphicon-warning-sign',
-        'Broken':  'glyphicon glyphicon-remove'
+        'GOOD': 'glyphicon glyphicon-ok',
+        'SLOW': 'glyphicon glyphicon-warning-sign',
+        'BROKEN':  'glyphicon glyphicon-remove'
     }
 
 	var messages = {
-            'Good': Messages.get("renderFunctions.disasterRecovery.networkHealth.good"),
-            'Slow': Messages.get("renderFunctions.disasterRecovery.networkHealth.slow"),
-            'Broken': Messages.get("renderFunctions.disasterRecovery.networkHealth.broken")
+            'GOOD': Messages.get("renderFunctions.disasterRecovery.networkHealth.good"),
+            'SLOW': Messages.get("renderFunctions.disasterRecovery.networkHealth.slow"),
+            'BROKEN': Messages.get("renderFunctions.disasterRecovery.networkHealth.broken")
 	};
 
     var label = defaultValue(labels[o.aData.networkHealth], 'label-default');

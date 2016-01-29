@@ -20,40 +20,45 @@
 <br/>
 
 #{Form.subheader titleKey:"upgrade.downloadProgress", descriptionKey:"upgrade.downloadProgress.description"/}
-    <table class="download-progress-table">
-        #{list items:downloadStatus.entrySet(), as:'nodeEntry'}
-            <tr>
-                <td>Node ${nodeEntry.getKey()}&nbsp;</td>
-                <td width="300">
-                    %{
-                        style = "success"
-                        if (nodeEntry.getValue().isErrorStatus()) {
-                            style="danger"
-                        }
-                    }%
+    #{set i:0 /}
+    #{list items:downloadStatus.entrySet(), as:'siteEntry'}
+        <b>${siteEntry.getKey()}</b>
+        <table class="download-progress-table">
+            #{list items:siteEntry.getValue().entrySet(), as:'nodeEntry'}
+                #{set progressBarId:'site'+i+'-'+nodeEntry.getKey() /}
+                <tr>
+                    <td>Node ${nodeEntry.getKey()}&nbsp;</td>
+                    <td width="300">
+                        %{
+                            style = "success"
+                            if (nodeEntry.getValue().isErrorStatus()) {
+                                style="danger"
+                            }
+                        }%
 
-                    #{progressBar name:nodeEntry.getKey(), percentage:nodeEntry.getValue().percent, style:style/}
-                </td>
-                <td>
-                    <span id="download-status-${nodeEntry.getKey()}">
-                        #{if nodeEntry.getValue().isErrorStatus()}
-                            #{if nodeEntry.getValue().status.equals("CHECKSUMERROR")}
-                                &{'upgrade.downloadChecksumError'}
+                        #{progressBar name:progressBarId, percentage:nodeEntry.getValue().percent, style:style/}
+                    </td>
+                    <td>
+                        <span id="download-status-${progressBarId}">
+                            #{if nodeEntry.getValue().isErrorStatus()}
+                                #{if nodeEntry.getValue().status.equals("CHECKSUMERROR")}
+                                    &{'upgrade.downloadChecksumError'}
+                                #{/if}
+                                #{elseif nodeEntry.getValue().status.equals("DOWNLOADERROR")}
+                                    &{'upgrade.downloadError'}
+                                #{/elseif}
                             #{/if}
-                            #{elseif nodeEntry.getValue().status.equals("DOWNLOADERROR")}
-                                &{'upgrade.downloadError'}
-                            #{/elseif}
-                        #{/if}
-                    </span>
-                </td>
-            </tr>
-        #{/list}
-    </table>
+                        </span>
+                    </td>
+                </tr>
+            #{/list}
+        </table>
+        #{set i:i+1 /}
+    #{/list}
 </div>
 #{/if}
 
 #{elseif isStable}
-#{if isStable}
   #{if repositoryVersions?.size() >= 4}
         <div class="alert alert-warning">&{'upgrade.tooMany'}</div>
   #{/if}
@@ -70,22 +75,25 @@
    	  	}
    	  }% 
   #{if (!isRepoVersionIsInstalled || newVersions.size() > 0) }
+  #{set stepIndex:1 /}
   <legend>&{'upgrade.steps'}</legend>
   	<form id=backup action="@{Backup.create()}" onsubmit="return true">
-  	<div class="text"><b>&{'upgrade.backupDB'}</b>
+  	<div class="text"><b>${stepIndex}.&nbsp;&{'upgrade.backupDB'}</b>
 		<button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.backup'}</button>
   	</div>
   	</form>
+    #{set stepIndex:stepIndex + 1 /}
   	<br/>
   	<form id=checkDB action="@{checkDbStatus()}" onsubmit="return true">
-  	<div class="text"><b>&{'upgrade.checkDB'}</b>
+  	<div class="text"><b>${stepIndex}.&nbsp;&{'upgrade.checkDB'}</b>
 		<button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.check'}</button>
   	</div>
   	</form>
+    #{set stepIndex:stepIndex + 1 /}
   	<br/>
   	#{if newVersions.size() > 0}
   	<form class="form form-horizontal" method="GET" action="@{downloadImage()}" onsubmit="downloadImage(); return true" id="downloadImage" style="margin:0px"> 
-    <div class="text"><b>&{'upgrade.downloadNew'}</b>
+    <div class="text"><b>${stepIndex}.&nbsp;&{'upgrade.downloadNew'}</b>
       <span class="text">
         <select id="downloadImageVersion" name="version" style="margin-bottom: 0px">
           #{list items:newVersions, as:'version'}
@@ -98,16 +106,27 @@
       </span>
     </div>
     </form>
+    #{set stepIndex:stepIndex + 1 /}
     <br/>
     #{/if}
-    <div class="text"><b>&{'upgrade.installRemove'}</b></div>
+    #{if util.DisasterRecoveryUtils.hasAnyStandbySite()}
+        <form id=pauseStandby action="@{infra.DisasterRecovery.pauseResume()}" onsubmit="return true">
+            <div class="text"><b>${stepIndex}.&nbsp;&{'upgrade.pauseStandbySite'}</b>&nbsp;
+                <a id="pause_why" data-toggle="tooltip" data-html="true" data-placement="right" title="<p align='left'>&{'upgrade.whyPauseStandbySiteText'}</p>">&{'upgrade.whyPauseStandbySite'}</a>
+                <button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.pause'}</button>
+            </div>
+        </form>
+        #{set stepIndex:stepIndex + 1 /}
+        <br/>
+    #{/if}
+    <div class="text"><b>${stepIndex}.&nbsp;&{'upgrade.installRemove'}</b></div>
+    #{set stepIndex:stepIndex + 1 /}
   <br/>
   #{/if}
   #{else}
     <legend>&{'upgrade.installedImages'}</legend>
     <br/>
   #{/else}
-#{/if}
 
 
 <table class="table table-striped">
@@ -134,8 +153,18 @@
   #{/list}
 </table>
 
+#{if util.DisasterRecoveryUtils.hasPausedSite()}
+    <form id=resumeStandby action="@{infra.DisasterRecovery.pauseResume()}" onsubmit="return true">
+        <img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteWarning'}</span><br>
+        <button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.resume'}</button>
+    </form>
+#{/if}
 #{/elseif}
 <script>
+    $(document).ready(function() {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+
     startStatusChecks("${clusterState}");
 
     function confirmCancel() {
@@ -166,28 +195,37 @@
             dataType: "json",
             timeout: (30 * 1000), // 30 sec timeout
 
-            success: function(percent) {
+            success: function(siteProgress) {
                 var downloadFinished = true;
-                $.each(percent, function(nodeId, downloadStatus) {
-                    updateProgressBar(nodeId,downloadStatus.percent);
-                    if (downloadStatus.percent != 100) {
-                        downloadFinished = false;
-                    }
-
-                    if (!(downloadStatus.status == "NORMAL" || downloadStatus.status == "COMPLETED")) {
-                        updateProgressBarStyle(nodeId, "danger")
-
-                        if (downloadStatus.status == "DOWNLOADERROR") {
-                            $("#download-status-"+nodeId).text('&{'upgrade.downloadError'}');
+                var index = 0;
+                $.each(siteProgress, function(siteId, percent) {
+                    $.each(percent, function(nodeId, downloadStatus) {
+                        var progressBarId = 'site' + index + '-' + nodeId;
+                        updateProgressBar(progressBarId, downloadStatus.percent);
+                        if (downloadStatus.percent != 100) {
+                            downloadFinished = false;
                         }
-                        else if (downloadStatus.status == "CHECKSUMERROR") {
-                            $("#download-status-"+nodeId).text('&{'upgrade.downloadChecksumError'}');
+
+                        if (!(downloadStatus.status == "NORMAL" || downloadStatus.status == "COMPLETED")) {
+                            updateProgressBarStyle(progressBarId, "danger")
+
+                            if (downloadStatus.status == "DOWNLOADERROR") {
+                                $("#download-status-"+progressBarId).text('&{'upgrade.downloadError'}');
+                            }
+                            else if (downloadStatus.status == "CHECKSUMERROR") {
+                                $("#download-status-"+progressBarId).text('&{'upgrade.downloadChecksumError'}');
+                            }
                         }
+                    });
+
+                    // as soon as the active site finishes downloading, hide the cancel button
+                    if (downloadFinished && index == 0) {
+                        $("#cancelButton").hide();
                     }
+                    index = index + 1;
                 });
 
                 if (downloadFinished) {
-                    $("#cancelButton").hide();
                     setTimeout(goToIndex, 1000);
                 }
             },

@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.jsoup.helper.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -19,8 +17,7 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
  * Representation for a ViPR site, both primary and standby
  */
 public class Site {
-    private static final Logger log = LoggerFactory.getLogger(Site.class);
-
+    private static final String NO_ACTIVE_SITE_MESSAGE = "<no active site>";
     private static final String KEY_NAME = "name";
     private static final String KEY_DESCRIPTION = "description";
     private static final String KEY_VIP = "vip";
@@ -36,6 +33,14 @@ public class Site {
     private static TreeMap<String, String> treeMapSorter = new TreeMap<String, String>();
     
     public static final String CONFIG_KIND = "disasterRecoverySites";
+    
+    public static final Site DUMMY_ACTIVE_SITE;
+
+    public enum NetworkHealth {
+        GOOD,
+        SLOW,
+        BROKEN
+    }
 
     private String uuid;
     private String vdcShortId;
@@ -48,9 +53,17 @@ public class Site {
     private long creationTime;
     private long lastStateUpdateTime;
     private double networkLatencyInMs;
-    private String networkHealth;
+    private NetworkHealth networkHealth;
     private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
+    
+    static {
+        DUMMY_ACTIVE_SITE = new Site();
+        DUMMY_ACTIVE_SITE.setUuid("");
+        DUMMY_ACTIVE_SITE.setVip(NO_ACTIVE_SITE_MESSAGE);
+        DUMMY_ACTIVE_SITE.setName(NO_ACTIVE_SITE_MESSAGE);
+        DUMMY_ACTIVE_SITE.setState(SiteState.NONE);
+    }
 
     public Site() {
     }
@@ -149,11 +162,11 @@ public class Site {
         this.networkLatencyInMs = networkLatencyInMs;
     }
 
-    public String getNetworkHealth() {
+    public NetworkHealth getNetworkHealth() {
         return networkHealth;
     }
 
-    public void setNetworkHealth(String networkHealth) {
+    public void setNetworkHealth(NetworkHealth networkHealth) {
         this.networkHealth = networkHealth;
     }
 
@@ -221,7 +234,7 @@ public class Site {
             config.setConfig(KEY_PING, String.valueOf(networkLatencyInMs));
         }
         if (networkHealth != null) {
-            config.setConfig(KEY_NETWORK_HEALTH, networkHealth);
+            config.setConfig(KEY_NETWORK_HEALTH, networkHealth.toString());
         }
 
         if (state != null) {
@@ -252,7 +265,10 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
-            this.networkHealth = config.getConfig(KEY_NETWORK_HEALTH);
+            String networkHealthStr = config.getConfig(KEY_NETWORK_HEALTH);
+            if (networkHealthStr != null && !networkHealthStr.isEmpty()) {
+                this.networkHealth = Enum.valueOf(NetworkHealth.class, networkHealthStr.toUpperCase());
+            }
             this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
@@ -337,4 +353,5 @@ public class Site {
         builder.append(", uuid=").append(uuid).append("]");
         return builder.toString();
     }
+    
 }

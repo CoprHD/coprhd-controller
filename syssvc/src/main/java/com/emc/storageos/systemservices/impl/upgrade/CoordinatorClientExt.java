@@ -220,7 +220,7 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Set node info to global scope.
+     * Set node info to global scope for the local site.
      * 
      * @param info
      * @param kind
@@ -228,6 +228,11 @@ public class CoordinatorClientExt {
      */
     public void setNodeGlobalScopeInfo(final CoordinatorSerializable info, final String kind, final String id)
             throws CoordinatorClientException {
+        setNodeGlobalScopeInfo(info, null, kind, id);
+    }
+
+    public void setNodeGlobalScopeInfo(final CoordinatorSerializable info, final String siteId, final String kind,
+                                       final String id) throws CoordinatorClientException {
         if (info == null || kind == null) {
             return;
         }
@@ -238,7 +243,7 @@ public class CoordinatorClientExt {
             cfg.setKind(kind); // We can use service id as the "id" and the type of info as "kind", then we can persist certain type of info
                                // about a particular node in coordinator
             cfg.setConfig(NODE_INFO, info.encodeAsString());
-            _coordinator.persistServiceConfiguration(cfg);
+            _coordinator.persistServiceConfiguration(siteId, cfg);
         } catch (Exception e) {
             _log.error("Failed to set node global scope info", e);
             throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set node global scope info. " + e.getMessage());
@@ -246,7 +251,7 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Get node info from global scope.
+     * Get node info from local site.
      * 
      * @param clazz
      * @param kind
@@ -256,9 +261,26 @@ public class CoordinatorClientExt {
      */
     public <T extends CoordinatorSerializable> T getNodeGlobalScopeInfo(final Class<T> clazz, final String kind, final String id)
             throws Exception {
+        return getNodeGlobalScopeInfo(clazz, null, kind, id);
+    }
+
+    /**
+     * Get node info from specific site.
+     *
+     * @param clazz
+     * @param siteId
+     * @param kind
+     * @param id
+     * @param <T>
+     * @return
+     * @throws Exception
+     */
+    public <T extends CoordinatorSerializable> T getNodeGlobalScopeInfo(final Class<T> clazz, final String siteId,
+                                                                        final String kind, final String id)
+            throws Exception {
         final T info = clazz.newInstance();
 
-        final Configuration config = _coordinator.queryConfiguration(kind, id);
+        final Configuration config = _coordinator.queryConfiguration(siteId, kind, id);
         if (config != null && config.getConfig(NODE_INFO) != null) {
             final String infoStr = config.getConfig(NODE_INFO);
             _log.debug("getNodeGlobalScopelInfo({}): info={}", clazz.getName(), Strings.repr(infoStr));
@@ -557,7 +579,12 @@ public class CoordinatorClientExt {
      */
     public <T extends CoordinatorSerializable> Map<Service,
             T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception {
-        return _coordinator.getAllNodeInfos(clazz, nodeIdFilter);
+        return getAllNodeInfos(clazz, nodeIdFilter, _coordinator.getSiteId());
+    }
+
+    public <T extends CoordinatorSerializable> Map<Service,
+            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter, String siteId) throws Exception {
+        return _coordinator.getAllNodeInfos(clazz, nodeIdFilter, siteId);
     }
 
     public <T extends CoordinatorSerializable> T getNodeInfo(String node, Class<T> clazz) throws CoordinatorClientException {
@@ -581,18 +608,25 @@ public class CoordinatorClientExt {
      * @return - ClusterInfo
      */
     public ClusterInfo getClusterInfo() {
+        return getClusterInfo(_coordinator.getSiteId());
+    }
 
+    public ClusterInfo getClusterInfo(String siteIdParam) {
         try {
+            String siteId = siteIdParam == null ? _coordinator.getSiteId() : siteIdParam;
+
             // get target repository and configVersion
             final RepositoryInfo targetRepository = _coordinator.getTargetInfo(RepositoryInfo.class);
             final PropertyInfoExt targetProperty = _coordinator.getTargetInfo(PropertyInfoExt.class);
-            final PowerOffState targetPowerOffState = _coordinator.getTargetInfo(PowerOffState.class);
 
             // get control nodes' repository and configVersion info
-            final Map<Service, RepositoryInfo> controlNodesInfo = getAllNodeInfos(RepositoryInfo.class, CONTROL_NODE_SYSSVC_ID_PATTERN);
+            final Map<Service, RepositoryInfo> controlNodesInfo = getAllNodeInfos(RepositoryInfo.class,
+                    CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             final Map<Service, ConfigVersion> controlNodesConfigVersions = getAllNodeInfos(ConfigVersion.class,
-                    CONTROL_NODE_SYSSVC_ID_PATTERN);
-            final ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState();
+                    CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
+            Site site = drUtil.getSiteFromLocalVdc(siteId);
+            final ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState(siteId,
+                    site.getNodeCount());
 
             // construct cluster information by both control nodes and extra nodes.
             // cluster state is determined both by control nodes' state and extra nodes
@@ -988,8 +1022,12 @@ public class CoordinatorClientExt {
         }
     }
 
+    private List<Service> getAllServices(String siteId) throws Exception {
+        return _coordinator.locateAllServices(siteId, _svc.getName(), _svc.getVersion(), null, null);
+    }
+
     private List<Service> getAllServices() throws Exception {
-        return _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(), (String) null, null);
+        return getAllServices(_coordinator.getSiteId());
     }
 
     /**
@@ -1001,9 +1039,14 @@ public class CoordinatorClientExt {
      * @return List of NodeHandles for all nodes in the cluster
      */
     public List<String> getAllNodes() {
-        List<String> nodeIds = new ArrayList<String>();
+        return getAllNodes(_coordinator.getSiteId());
+    }
+
+    public List<String> getAllNodes(String siteIdParam) {
+        String siteId = siteIdParam == null ? _coordinator.getSiteId() : siteIdParam;
+        List<String> nodeIds = new ArrayList<>();
         try {
-            List<Service> svcs = getAllServices();
+            List<Service> svcs = getAllServices(siteId);
             for (Service svc : svcs) {
                 final String nodeId = svc.getId();
                 if (nodeId != null) {
@@ -1755,7 +1798,7 @@ public class CoordinatorClientExt {
      */
     public boolean isActiveSiteHealthy() {
         DrUtil drUtil = new DrUtil(_coordinator);
-        String activeSiteId = drUtil.getActiveSiteId();
+        String activeSiteId = drUtil.getActiveSite().getUuid();
         
         boolean isActiveSiteLeaderAlive = false;
         boolean isActiveSiteStable = false;

@@ -5,13 +5,7 @@
 
 package com.emc.storageos.coordinator.client.service.impl;
 
-import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
-import static com.emc.storageos.coordinator.client.model.Constants.DB_CONFIG;
-import static com.emc.storageos.coordinator.client.model.Constants.GLOBAL_ID;
-import static com.emc.storageos.coordinator.client.model.Constants.MIGRATION_STATUS;
-import static com.emc.storageos.coordinator.client.model.Constants.NODE_DUALINETADDR_CONFIG;
-import static com.emc.storageos.coordinator.client.model.Constants.SCHEMA_VERSION;
-import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
+import static com.emc.storageos.coordinator.client.model.Constants.*;
 import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY;
 import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY_ID;
 import static com.emc.storageos.coordinator.mapper.PropertyInfoMapper.decodeFromString;
@@ -95,6 +89,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
@@ -236,7 +231,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
-        site.setVip(vdcEndpoint);
+        String vip = vdcEndpoint;
+        if (vdcEndpoint.contains(":")) {
+            vip = DualInetAddress.normalizeInet6Address(vdcEndpoint);
+        }
+        log.info("vip ipv6 address:{}", vip);
+        site.setVip(vip);
         site.setNodeCount(getNodeCount());
 
         Map<String, DualInetAddress> controlNodes = getInetAddessLookupMap().getControllerNodeIPLookupMap();
@@ -250,9 +250,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             DualInetAddress addr = cnode.getValue();
             if (addr.hasInet4()) {
                 ipv4Addresses.put(nodeId, addr.getInet4());
+            } else {
+                ipv4Addresses.put(nodeId, PropertyConstants.IPV4_ADDR_DEFAULT);
             }
+
             if (addr.hasInet6()) {
                 ipv6Addresses.put(nodeId, addr.getInet6());
+            } else {
+                ipv6Addresses.put(nodeId, PropertyConstants.IPV6_ADDR_DEFAULT);
             }
         }
 
@@ -666,9 +671,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     
     private boolean isSiteSpecific(String kind) {
         if (kind.equals(SiteInfo.CONFIG_KIND)
-            || kind.equals(SiteError.CONFIG_KIND)
-            || kind.equals(PowerOffState.CONFIG_KIND)
-            || kind.equals(SiteMonitorResult.CONFIG_KIND)) {
+                || kind.equals(SiteError.CONFIG_KIND)
+                || kind.equals(PowerOffState.CONFIG_KIND)
+                || kind.equals(SiteMonitorResult.CONFIG_KIND)
+                || kind.equals(DOWNLOADINFO_KIND)) {
             return true;
         }
         return false;
@@ -1541,7 +1547,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return getAllNodeInfos(clazz, nodeIdFilter, _zkConnection.getSiteId());
     }
     
-    private <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
+    public <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
             Pattern nodeIdFilter, String siteId) throws Exception {
         final Map<Service, T> infos = new HashMap<Service, T>();
         List<Service> allSysSvcs = locateAllServices(siteId, sysSvcName, sysSvcVersion, (String) null, null);

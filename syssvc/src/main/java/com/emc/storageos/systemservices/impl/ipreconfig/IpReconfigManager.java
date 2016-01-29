@@ -781,9 +781,18 @@ public class IpReconfigManager implements Runnable {
             if (localIpinfo.weakEqual(site.getVip(), site.getHostIPv4AddressMap(), site.getHostIPv6AddressMap())) {
                 log.info("local site IPs are consistent with ZK, no need to update.");
                 return;
+            } else {
+                log.info("local site IPs are not consistent with ZK, updating.");
+                log.info("    local ipinfo:{}", localIpinfo.toString());
+                log.info("    zk ipinfo: vip={}", site.getVip());
+                SortedSet<String> nodeIds = new TreeSet<String>(site.getHostIPv4AddressMap().keySet());
+                for (String nodeId : nodeIds) {
+                    log.info("    {}: ipv4={}", nodeId, site.getHostIPv4AddressMap().get(nodeId));
+                    log.info("    {}: ipv6={}", nodeId, site.getHostIPv6AddressMap().get(nodeId));
+                }
             }
 
-            if (site.getVip().contains("::")) {
+            if (site.getVip().contains(":")) {
                 site.setVip(localIpinfo.getIpv6Setting().getNetworkVip6());
             } else {
                 site.setVip(localIpinfo.getIpv4Setting().getNetworkVip());

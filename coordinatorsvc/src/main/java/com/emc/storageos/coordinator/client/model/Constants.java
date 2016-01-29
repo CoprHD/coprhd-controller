@@ -19,6 +19,7 @@ public interface Constants {
 
     public static final String REMOTE_DOWNLOAD_LEADER = "remoteDownloadLeader";
     public static final String TARGET_INFO = "targetInfo";
+    String DOWNLOADINFO_KIND = "downloadinfo";
     public static final String NODE_INFO = "nodeInfo";
 
     public static final String TARGET_INFO_LOCK = "targetInfoLock";

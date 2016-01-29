@@ -1280,11 +1280,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param taskId The unique task identifier.
      */
     @Override
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String syncDirection, String taskId) {
         BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.restoreVolume(snapshot.getStorageController(), parentVolume.getPool(),
-                parentVolume.getId(), snapshot.getId(), taskId);
+                parentVolume.getId(), snapshot.getId(), syncDirection, taskId);
     }
 
     /**

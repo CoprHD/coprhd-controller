@@ -65,28 +65,29 @@ public class FileShare extends FileObject implements ProjectResource {
 
     // set when a file share is release from a project for internal object use
     private URI _originalProject;
-    
-    
+
     private URI virtualNAS;
-    
-    //mirror related attributes
-    
-    //mirror target fileshares
+
+    // mirror related attributes
+
+    // mirror target fileshares
     private StringSet _mirrorfsTargets;
-    
-    //source file share
+
+    // source file share
     private NamedURI _parentFileShare;
-    
-    //file share accesss state
+
+    // file share accesss state
     private String _accessState;
-   
-    //file share mirror status
+
+    // file share mirror status
     private String _mirrorStatus;
-    
+
     // Basic volume personality type (source, target)
     private String _personality;
 
-    
+    // policy associated with the file.
+    private StringSet filePolicies;
+
     public enum MirrorStatus {
         UNKNOWN("0"),
         FAILED_OVER("1"),
@@ -117,13 +118,12 @@ public class FileShare extends FileObject implements ProjectResource {
             return MirrorStatus.OTHER.name();
         }
     }
-    
+
     public static enum FileAccessState {
         UNKNOWN("0"),
         READABLE("1"),
         WRITEABLE("2"),
         READWRITE("3");
-
 
         private final String state;
 
@@ -140,7 +140,7 @@ public class FileShare extends FileObject implements ProjectResource {
         SOURCE, // Source fileShare
         TARGET, // Target fileShare
     }
-    
+
     @Name("mirrorfsTargets")
     public StringSet getMirrorfsTargets() {
         return _mirrorfsTargets;
@@ -149,19 +149,19 @@ public class FileShare extends FileObject implements ProjectResource {
     public void setMirrorfsTargets(StringSet mirrorfsTargets) {
         this._mirrorfsTargets = mirrorfsTargets;
         setChanged("mirrorfsTargets");
-        
+
     }
 
     @Name("parentFileShare")
     public NamedURI getParentFileShare() {
         return _parentFileShare;
     }
-    
+
     public void setParentFileShare(NamedURI parentFileShare) {
         this._parentFileShare = parentFileShare;
         setChanged("parentFileShare");
     }
-    
+
     @Name("accessState")
     public String getAccessState() {
         return _accessState;
@@ -181,21 +181,21 @@ public class FileShare extends FileObject implements ProjectResource {
         this._mirrorStatus = mirrorStatus;
         setChanged("mirrorStatus");
     }
-    
+
     @Name("personality")
     @AlternateId("AltIdIndex")
     public String getPersonality() {
         return _personality;
     }
-    
+
     public void setPersonality(String personality) {
         this._personality = personality;
         setChanged("personality");
     }
 
+    // getter and setter
 
-    //getter and setter 
-  
+    @Override
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
@@ -207,6 +207,7 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("project");
     }
 
+    @Override
     @NamedRelationIndex(cf = "NamedRelation")
     @Name("tenant")
     public NamedURI getTenant() {
@@ -380,14 +381,27 @@ public class FileShare extends FileObject implements ProjectResource {
         _originalProject = originalProject;
         setChanged("originalProject");
     }
-    
-    @Name("virtualNAS")
-	public URI getVirtualNAS() {
-		return virtualNAS;
-	}
 
-	public void setVirtualNAS(URI vituralNAS) {
-		this.virtualNAS = vituralNAS;
-		setChanged("virtualNAS");
-	}
+    @Name("virtualNAS")
+    public URI getVirtualNAS() {
+        return virtualNAS;
+    }
+
+    public void setVirtualNAS(URI vituralNAS) {
+        this.virtualNAS = vituralNAS;
+        setChanged("virtualNAS");
+    }
+
+    @Name("filePolicies")
+    public StringSet getFilePolicies() {
+        if (filePolicies == null) {
+            filePolicies = new StringSet();
+        }
+        return filePolicies;
+    }
+
+    public void setFilePolicies(StringSet filePolicies) {
+        this.filePolicies = filePolicies;
+        setChanged("filePolicies");
+    }
 }

@@ -8,6 +8,7 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -1550,15 +1551,24 @@ public class VolumeGroupService extends TaskResourceService {
                 }
             }
         }
-
+        
         private static BlockServiceApi getBlockService(DbClient dbClient, final Volume volume) {
+            if (!isNullURI(volume.getProtectionController())
+                    && volume.checkForRp()) {
+                return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
+            }
+
+            if (Volume.checkForSRDF(dbClient, volume.getId())) {
+                return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+            }
+
             URI systemUri = volume.getStorageController();
             StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
             String type = system.getSystemType();
             String volType = getVolumeType(type);
             return getBlockServiceImpl(volType);
-        }
-
+        }   
+        
     }
 
     /**

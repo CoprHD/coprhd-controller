@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -31,11 +32,13 @@ public class ApplicationTaskCompleter extends TaskCompleter{
     private static final long serialVersionUID = -9188670003331949130L;
     private static final Logger log = LoggerFactory.getLogger(ApplicationTaskCompleter.class);
     private List<URI> addVolumes;
-    private List<URI> consistencyGroups;
+    private List<URI> removeVolumes;
+    private Collection<URI> consistencyGroups;
     
-    public ApplicationTaskCompleter(URI volumeGroupId, List<URI> addVolumes, List<URI> consistencyGroups, String opId) {
+    public ApplicationTaskCompleter(URI volumeGroupId, List<URI> addVolumes, List<URI>removeVols, Collection<URI> consistencyGroups, String opId) {
         super(VolumeGroup.class, volumeGroupId, opId);
         this.addVolumes = addVolumes;
+        this.removeVolumes = removeVols;
         this.consistencyGroups = consistencyGroups;
     }
     
@@ -58,6 +61,19 @@ public class ApplicationTaskCompleter extends TaskCompleter{
             }
         }
 
+        if (removeVolumes != null) {
+            for (URI voluri : removeVolumes) {
+               switch (status) {
+                    case error:
+                        setErrorOnDataObject(dbClient, Volume.class, voluri, coded);
+                        break;
+                    default:
+                        setReadyOnDataObject(dbClient, Volume.class, voluri);
+                        removeApplicationFromVolume(voluri, dbClient);
+                }
+            }
+        }
+
         if (consistencyGroups != null && !consistencyGroups.isEmpty()) {
             for (URI cguri : consistencyGroups) {
                 switch (status) {
@@ -72,7 +88,22 @@ public class ApplicationTaskCompleter extends TaskCompleter{
         }
         log.info("END ApplicationCompleter complete");
     }
-    
+
+    /**
+     * Remove application from the volume applicationIds attribute
+     * @param voluri The volumes that will be updated
+     * @param dbClient
+     */
+    private void removeApplicationFromVolume(URI voluri, DbClient dbClient) {
+        Volume volume = dbClient.queryObject(Volume.class, voluri);
+        String appId = getId().toString();
+        StringSet appIds = volume.getVolumeGroupIds();
+        if(appIds != null) {
+            appIds.remove(appId);
+        }
+        dbClient.updateObject(volume);
+    }
+
     /**
      * Add the application to the volume applicationIds attribute
      * @param voluri The volume that will be updated

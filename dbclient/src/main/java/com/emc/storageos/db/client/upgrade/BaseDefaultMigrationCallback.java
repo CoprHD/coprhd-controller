@@ -7,6 +7,8 @@ package com.emc.storageos.db.client.upgrade;
 
 import java.lang.annotation.Annotation;
 
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
+
 /**
  * Default implementation of MigrationCallback, used by db engine to handle generic changes
  */
@@ -60,7 +62,7 @@ public class BaseDefaultMigrationCallback implements MigrationCallback {
     }
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         // no upgrade is needed
     }
 

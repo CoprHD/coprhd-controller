@@ -1492,7 +1492,6 @@ public class ControllerUtils {
 
     /**
      * Get volume group's volumes.
-     * skip internal volumes
      *
      * @param volumeGroup
      * @return The list of volumes in volume group
@@ -1503,9 +1502,7 @@ public class ControllerUtils {
                 .queryActiveResourcesByConstraint(dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
         for (Volume vol : volumes) {
-            // return only visible volumes. i.e skip backend or internal volumes
-            // TODO check with others
-            if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+            if (!vol.getInactive()) {
                 result.add(vol);
             }
         }

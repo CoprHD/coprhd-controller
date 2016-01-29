@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
+import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StatTimeSeries;
@@ -62,6 +63,7 @@ import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -239,8 +241,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             boolean operationalStatus,
             String description,
             Object... descparams) {
-        AuditLogManager auditMgr = new AuditLogManager();
-        auditMgr.setDbClient(dbClient);
+        AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
         auditMgr.recordAuditLog(null, null,
                 EVENT_SERVICE_TYPE,
                 auditType,
@@ -519,7 +520,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fs = null;
         Snapshot snapshotObj = null;
         StorageSystem storageObj = null;
-        
+
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
@@ -886,14 +887,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             SMBFileShare smbFileShare = smbShare.getSMBFileShare();
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             args.setOpId(opId);
-            
+
             if (URIUtil.isType(uri, FileShare.class)) {
                 fsObj = _dbClient.queryObject(FileShare.class, uri);
                 fileObject = fsObj;
                 args.addFSFileObject(fsObj);
                 args.setFileOperation(true);
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
-                
+
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -959,8 +960,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
-
-	@Override
+    @Override
     public void deleteShare(URI storage, URI uri, FileSMBShare smbShare, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         FileObject fileObject = null;
@@ -3110,11 +3110,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     NFSShareACL dbNfsAcl = new NFSShareACL();
                     copyToPersistNfsACL(ace, dbNfsAcl, fs, args);
                     NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args.getFileOperation());
-                    if (dbNfsAclTemp != null ) {
-                    	dbNfsAcl.setId(dbNfsAclTemp.getId());
+                    if (dbNfsAclTemp != null) {
+                        dbNfsAcl.setId(dbNfsAclTemp.getId());
                         _log.info("Modifying acl in DB: {}", dbNfsAcl);
                         _dbClient.persistObject(dbNfsAcl);
-                    } 
+                    }
                 }
             }
 
@@ -3125,12 +3125,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     NFSShareACL dbNfsAcl = new NFSShareACL();
                     copyToPersistNfsACL(ace, dbNfsAcl, fs, args);
                     NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args.getFileOperation());
-                    if ( dbNfsAclTemp != null) {
-                    	dbNfsAcl.setId(dbNfsAclTemp.getId());
+                    if (dbNfsAclTemp != null) {
+                        dbNfsAcl.setId(dbNfsAclTemp.getId());
                         dbNfsAcl.setInactive(true);
                         _log.info("Marking acl inactive in DB: {}", dbNfsAcl);
                         _dbClient.persistObject(dbNfsAcl);
-                    }                  
+                    }
                 }
             }
         }
@@ -3197,12 +3197,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (result.isCommandSuccess()) {
                 // Update Database
-            	if ( !dbNfsAclTemp.isEmpty()) {
-            		for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
+                if (!dbNfsAclTemp.isEmpty()) {
+                    for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
                         nfsShareACL.setInactive(true);
                     }
-            		 _dbClient.persistObject(dbNfsAclTemp);
-            	}
+                    _dbClient.persistObject(dbNfsAclTemp);
+                }
             }
 
             if (result.getCommandPending()) {
@@ -3306,7 +3306,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private void makeNfsAceFromDB(List<NfsACE> nfsAcls, List<NFSShareACL> dbNfsAclTemp) {
 
         for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
-        	
+
             NfsACE nfsAce = new NfsACE();
 
             String permission = nfsShareACL.getPermissions();
@@ -3318,39 +3318,40 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (domain != null && !domain.isEmpty()) {
                 nfsAce.setDomain(domain);
             }
-                   
+
             String permissionType = nfsShareACL.getPermissionType();
             nfsAce.setPermissionType(FileControllerConstants.NFS_FILE_PERMISSION_TYPE_ALLOW);
             if (permissionType != null && !permissionType.isEmpty()) {
                 nfsAce.setPermissionType(permissionType);
-            } 
-            
+            }
+
             String type = nfsShareACL.getType();
             if (type != null && !type.isEmpty()) {
                 nfsAce.setType(type);
             }
-            
+
             String user = nfsShareACL.getUser();
             if (user != null && !user.isEmpty()) {
                 nfsAce.setUser(user);
             }
-            
+
             nfsAcls.add(nfsAce);
         }
     }
 
     /**
      * Set is the vNAS entity in args only if vNASURI is not null
+     * 
      * @param vNASURI the URI of VirtualNAS
      * @param args instance of FileDeviceInputOutput
      */
     private void setVirtualNASinArgs(URI vNASURI, FileDeviceInputOutput args) {
-    	
-        if(vNASURI != null) {
+
+        if (vNASURI != null) {
             VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
             args.setvNAS(vNAS);
         }
-	}
+    }
     
     /**
      * Get the deviceType for a StorageSystem.
@@ -3509,4 +3510,146 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     	FileShare fsObj = _dbClient.queryObject(FileShare.class, fileShareURIs.get(0));
         return new Workflow.Method("delete", fsObj.getStorageDevice(), fsObj.getPool(), fsObj.getId(), forceDelete, deleteType);
     }
+    @Override
+    public void assignFileSystemSnapshotPolicy(URI storage, URI fsURI, URI policy, String opId) throws InternalException {
+
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        FileShare fs = null;
+        try {
+            fs = _dbClient.queryObject(FileShare.class, fsURI);
+            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, policy);
+
+            if (fs != null && fp != null) {
+                StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+
+                _log.info("Controller Recieved File Policy  {}", policy);
+
+                args.addFSFileObject(fs);
+                args.setFileSystemPath(fs.getPath());
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        fs.getPool());
+                args.addStoragePool(pool);
+                args.addFilePolicy(fp);
+                args.setFileOperation(true);
+                args.setOpId(opId);
+
+                // Do the Operation on device.
+                BiosCommandResult result = getDevice(storageObj.getSystemType())
+                        .assignFilePolicy(storageObj, args);
+
+                if (result.isCommandSuccess()) {
+                    // Update Database
+                    StringSet fpolicies = fs.getFilePolicies();
+                    if (fpolicies == null) {
+
+                        fpolicies = new StringSet();
+                    }
+                    fpolicies.add(fp.getId().toString());
+                    fs.setFilePolicies(fpolicies);
+                }
+
+                if (result.getCommandPending()) {
+                    return;
+                }
+                // Audit & Update the task status
+                OperationTypeEnum auditType = null;
+                auditType = OperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE;
+
+                fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+
+                // Monitoring - Event Processing
+                String eventMsg = result.isCommandSuccess() ? "" : result
+                        .getMessage();
+
+                recordFileDeviceOperation(_dbClient,
+                        auditType,
+                        result.isCommandSuccess(),
+                        eventMsg,
+                        args.getFileSystemPath(),
+                        fs, storageObj);
+
+                _dbClient.persistObject(fs);
+            } else {
+
+                throw DeviceControllerException.exceptions.invalidObjectNull();
+            }
+        } catch (Exception e) {
+            String[] params = { storage.toString(), fsURI.toString(), e.getMessage() };
+            _log.error("Unable to assign policy : storage {}, FS URI {},: Error {}", params);
+
+            updateTaskStatus(opId, fs, e);
+        }
+
+    }
+
+    @Override
+    public void unassignFileSystemSnapshotPolicy(URI storage, URI fsURI, URI policy, String opId) throws InternalException {
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        FileShare fs = null;
+        try {
+            fs = _dbClient.queryObject(FileShare.class, fsURI);
+            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, policy);
+
+            if (fs != null && fp != null) {
+                StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+
+                _log.info("Controller Recieved File Policy  {}", policy);
+
+                args.addFSFileObject(fs);
+                args.setFileSystemPath(fs.getPath());
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        fs.getPool());
+                args.addStoragePool(pool);
+                args.addFilePolicy(fp);
+                args.setFileOperation(true);
+                args.setOpId(opId);
+
+                // Do the Operation on device.
+                BiosCommandResult result = getDevice(storageObj.getSystemType())
+                        .unassignFilePolicy(storageObj, args);
+
+                if (result.isCommandSuccess()) {
+                    // Update Database
+                    StringSet fpolicies = fs.getFilePolicies();
+                    fpolicies.remove(policy.toString());
+
+                    fs.setFilePolicies(fpolicies);
+                }
+
+                if (result.getCommandPending()) {
+                    return;
+                }
+                // Audit & Update the task status
+                OperationTypeEnum auditType = null;
+                auditType = OperationTypeEnum.UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE;
+
+                fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+
+                // Monitoring - Event Processing
+                String eventMsg = result.isCommandSuccess() ? "" : result
+                        .getMessage();
+
+                recordFileDeviceOperation(_dbClient,
+                        auditType,
+                        result.isCommandSuccess(),
+                        eventMsg,
+                        args.getFileSystemPath(),
+                        fs, storageObj);
+
+                _dbClient.persistObject(fs);
+            } else {
+
+                throw DeviceControllerException.exceptions.invalidObjectNull();
+            }
+        } catch (Exception e) {
+            String[] params = { storage.toString(), fsURI.toString(), e.getMessage() };
+            _log.error("Unable to Unassign policy : storage {}, FS URI {},: Error {}", params);
+
+            updateTaskStatus(opId, fs, e);
+        }
+
+    }
+
 }

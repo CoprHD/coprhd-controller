@@ -108,6 +108,27 @@ public class RPHelper {
     }
 
     /**
+     * Get all of the volumes in this replication set for a list of volumes; the source and all of its targets.
+     * For a multi-CG protection, it only returns the targets (and source) associated with this one volume.
+     *
+     * @param volumeIds
+     * @param dbClient
+     * @return
+     */
+    public static List<URI> getReplicationSetVolumes(List<URI> volumeIds, DbClient dbClient) {
+        List<URI> volumeList = new ArrayList<URI>();
+        Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeIds);
+        while (volumes.hasNext()) {
+            Volume volume = volumes.next();
+            RPHelper helper = new RPHelper();
+            helper.setDbClient(dbClient);
+            volumeList.addAll(helper.getReplicationSetVolumes(volume));
+        }
+        return volumeList;
+        
+    }
+    
+    /**
      * Get all of the volumes in this replication set; the source and all of its targets.
      * For a multi-CG protection, it only returns the targets (and source) associated with this one volume.
      *

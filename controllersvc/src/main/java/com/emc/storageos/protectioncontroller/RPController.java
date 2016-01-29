@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 
 /**
  * RecoverPoint Controller
@@ -65,5 +66,16 @@ public interface RPController extends ProtectionController {
      * @param task task ID
      */
     public void deleteSnapshot(URI protectionDevice, URI snapshot, String task) throws InternalException;
+
+    /**
+     * adds and removes RecoverPoint protected volumes to and from applications
+     * @param systemURI
+     * @param addVolumesNotInCG
+     * @param removeVolumesURI
+     * @param applicationId
+     * @param taskId
+     */
+    public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolumesNotInCG, List<URI> removeVolumesURI, URI applicationId,
+            String taskId);
 
 }

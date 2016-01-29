@@ -3166,6 +3166,7 @@ resources.volumes.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed?  The
 resources.volumes.deactivate=Created %s tasks to delete volumes.
 resources.volume.deactivate=Created task to delete volume.
 resources.volume.snapshots=Snapshots
+resources.volume.snapshot.sessions=Snapshot Sessions
 resources.volume.continuouscopies=Continuous Copies
 resources.volume.fullcopies=Full Copies
 resources.volume.migrations=Migrations
@@ -3273,6 +3274,8 @@ resources.snapshot.syncactive.no=No
 resources.snapshot.deleteConfirm=Are you sure you want to delete this snapshot?
 resources.snapshot.notFound=Snapshot Not Found
 resources.snapshot.deactivate=Task created to deactivate snapshot with id:[%s]. Please check the task list for an updated status.
+
+resources.snapshot.session.name=Name
 
 resources.filesystems=File Systems
 resources.filesystems.error=File System Not Found

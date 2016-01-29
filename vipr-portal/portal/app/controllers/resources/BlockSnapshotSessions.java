@@ -10,12 +10,14 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 
 import controllers.Common;
+import controllers.util.FlashException;
 import models.datatable.BlockSnapshotsDataTable;
 import play.mvc.With;
 import util.BourneUtil;
@@ -66,5 +68,16 @@ public class BlockSnapshotSessions extends ResourceController {
         }
 
         render(blockSnapshotSession, volume, tasks);
+    }
+    
+    @FlashException(referrer = { "snapshotSessionDetails" })
+    public static void deleteSnapshotSession(String snapshotId) {
+        if (StringUtils.isNotBlank(snapshotId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+
+            Tasks<BlockSnapshotSessionRestRep> task = client.blockSnapshotSessions().deactivate(uri(snapshotId));
+            flash.put("info", MessagesUtils.get("resources.snapshot.deactivate", snapshotId));
+        }
+        snapshotSessionDetails(snapshotId);
     }
 }

@@ -38,9 +38,11 @@ import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -144,8 +146,7 @@ public class BlockVolumes extends ResourceController {
         if (volume.getAccessState() == null || volume.getAccessState().isEmpty()) {
             renderArgs.put("isAccessStateEmpty", "true");
         }
-       
-
+        
         Tasks<VolumeRestRep> tasksResponse = client.blockVolumes().getTasks(volume.getId());
         List<Task<VolumeRestRep>> tasks = tasksResponse.getTasks();
         renderArgs.put("tasks", tasks);
@@ -204,8 +205,19 @@ public class BlockVolumes extends ResourceController {
         List<NamedRelatedResourceRep> refs = client.blockSnapshots().listByVolume(uri(volumeId));
 
         List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByRefs(refs);
-
+        
         render(snapshots);
+    }
+    
+    public static void volumeSnapshotSessions(String volumeId) {
+
+        ViPRCoreClient client = BourneUtil.getViprClient();
+
+        List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
+        
+        List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
+
+        render(snapshotSessions);
     }
 
     public static void volumeContinuousCopies(String volumeId) {

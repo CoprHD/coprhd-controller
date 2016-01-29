@@ -18,6 +18,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -83,13 +84,14 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             StoragePool pool = validateAndReturnStoragePoolInVAarray(unManagedVolume, requestContext.getVarray());
 
             // validate quota is exceeded for storage systems and pools
-            checkSystemResourceLimitsExceeded(requestContext.getStorageSystem(), unManagedVolume, requestContext.getExhaustedStorageSystems());
+            checkSystemResourceLimitsExceeded(requestContext.getStorageSystem(), unManagedVolume,
+                    requestContext.getExhaustedStorageSystems());
             checkPoolResourceLimitsExceeded(requestContext.getStorageSystem(), pool, unManagedVolume, requestContext.getExhaustedPools());
             String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, requestContext.getStorageSystem(), requestContext.getVpool());
             validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, requestContext.getVpool());
 
-            volume = createVolume(requestContext.getStorageSystem(), volumeNativeGuid, pool, 
-                    requestContext.getVarray(), requestContext.getVpool(), unManagedVolume, 
+            volume = createVolume(requestContext.getStorageSystem(), volumeNativeGuid, pool,
+                    requestContext.getVarray(), requestContext.getVpool(), unManagedVolume,
                     requestContext.getProject(), requestContext.getTenant(), autoTierPolicyId);
         }
 
@@ -186,7 +188,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             volume.addInternalFlags(INTERNAL_VOLUME_FLAGS);
             for (BlockSnapshotSession snapSession : snapSessions) {
                 snapSession.addInternalFlags(INTERNAL_VOLUME_FLAGS);
-        }
+            }
             _dbClient.updateObject(snapSessions);
         }
 
@@ -204,5 +206,14 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         } else {
             super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
         }
+    }
+
+    @Override
+    protected URI getConsistencyGroupUri(UnManagedVolume unManagedVolume, VirtualPool vPool, URI project, URI tenant, URI virtualArray,
+            DbClient dbClient) {
+        if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
+            return VolumeIngestionUtil.getBlockObjectConsistencyGroup(unManagedVolume, vPool, project, tenant, virtualArray, dbClient);
+        }
+        return null;
     }
 }

@@ -2,7 +2,7 @@ package models.datatable;
 
 import util.datatable.DataTable;
 
-import com.emc.storageos.model.project.SchedulePolicyRestRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 
 public class ScheculePoliciesDataTable extends DataTable{
     

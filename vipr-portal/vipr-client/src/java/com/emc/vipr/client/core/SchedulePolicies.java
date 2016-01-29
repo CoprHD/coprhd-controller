@@ -7,10 +7,11 @@ import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.project.PolicyParam;
-import com.emc.storageos.model.project.SchedulePolicyBulkRep;
-import com.emc.storageos.model.project.SchedulePolicyList;
-import com.emc.storageos.model.project.SchedulePolicyRestRep;
+import com.emc.storageos.model.schedulepolicy.PolicyParam;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyBulkRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyResp;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -48,8 +49,8 @@ public class SchedulePolicies extends AbstractCoreBulkResources<SchedulePolicyRe
      * @return the newly created project.
      */
     public SchedulePolicyRestRep create(URI tenantId, PolicyParam input) {
-        SchedulePolicyRestRep element = client
-                .post(SchedulePolicyRestRep.class, input, PathConstants.SCHEDULE_POLICIES_BY_TENANT_URL, tenantId);
+        SchedulePolicyResp element = client
+                .post(SchedulePolicyResp.class, input, PathConstants.SCHEDULE_POLICIES_BY_TENANT_URL, tenantId);
         return get(element.getId());
     }
 

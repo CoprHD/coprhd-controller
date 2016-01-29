@@ -27,9 +27,9 @@ import util.StringOption;
 import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.model.file.ScheduleSnapshotExpireParam;
-import com.emc.storageos.model.project.PolicyParam;
-import com.emc.storageos.model.project.SchedulePolicyParam;
-import com.emc.storageos.model.project.SchedulePolicyRestRep;
+import com.emc.storageos.model.schedulepolicy.PolicyParam;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyParam;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 

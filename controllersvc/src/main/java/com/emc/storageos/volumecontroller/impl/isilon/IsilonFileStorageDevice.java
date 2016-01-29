@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +31,12 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
+import com.emc.storageos.db.client.model.SchedulePolicy;
+import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
+import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -297,6 +302,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
          * Delete the directory associated with the file share.
          */
         isi.deleteDir(args.getFsMountPath(), true);
+
+        /**
+         * Delete the Schedule Policy for the file system
+         */
+        isiDeleteSnapshotSchedules(isi, args);
     }
 
     /**
@@ -318,6 +328,26 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 args.addSnapshot(snap);
                 isiDeleteSnapshot(isi, args);
             }
+        }
+    }
+
+    /**
+     * Deleting snapshots: - deletes snapshots of a file system
+     * 
+     * @param isi
+     *            IsilonApi object
+     * @param args
+     *            FileDeviceInputOutput
+     * @throws IsilonException
+     */
+    private void isiDeleteSnapshotSchedules(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
+
+        StringSet policies = args.getFs().getFilePolicies();
+
+        for (String policy : policies) {
+            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, URI.create(policy));
+            String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
+            isi.deleteSnapshotSchedule(snapshotScheduleName);
         }
     }
 
@@ -890,7 +920,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // String protection = args.getFSProtectionLevel();
             // Call isilon api to set protection level
 
-
             _log.info("IsilonFileStorageDevice doCreateFS {} - complete", args.getFsId());
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
@@ -950,7 +979,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 return BiosCommandResult.createErrorResult(serviceError);
             }
 
-            Long newCapacity = args.getNewFSCapacity(); // new capacity
+            Long newCapacity = args.getNewFSCapacity();   // new capacity
             isiExpandFS(isi, quotaId, newCapacity);
             _log.info("IsilonFileStorageDevice doExpandFS {} - complete", args.getFsId());
             return BiosCommandResult.createSuccessfulResult();
@@ -2183,10 +2212,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     /**
      * Set the clients to isilon export based on type
      * 
-     * @param type
-     *            one of "rw", "root" or "ro"
-     * @param hosts
-     *            the clients to be set
+     * @param type one of "rw", "root" or "ro"
+     * @param hosts the clients to be set
      * @param isilonExport
      */
     private void setClientsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {
@@ -2601,7 +2628,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-              FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
+        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
         String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), target.getLabel());
         BiosCommandResult cmdResult = doCancelReplicationPolicy(system, policyName);
         if (cmdResult.getCommandSuccess()) {
@@ -2630,7 +2657,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        
+
     }
 
     @Override
@@ -2650,6 +2677,110 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public void doDeleteMirror(StorageSystem storage, URI mirror, Boolean createInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         mirrorOperations.deleteSingleMirrorFileShare(storage, mirror, taskCompleter);
+
+    }
+
+    @Override
+    public BiosCommandResult assignFilePolicy(StorageSystem storage, FileDeviceInputOutput args) {
+        // for isilon we need to create a new policy for each individual file system
+
+        SchedulePolicy fp = args.getFilePolicy();
+        String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
+        String pattern = snapshotScheduleName + "_%Y-%m-%d_%H-%M";
+        String Schedulevalue = getIsilonScheduleString(fp);
+        Integer expireValue = getSnapshotExpireValue(fp);
+        _log.info("File Policy  name : {}", snapshotScheduleName);
+        IsilonApi isi = getIsilonDevice(storage);
+        try {
+            isi.createSnapshotSchedule(snapshotScheduleName, args.getFileSystemPath(), Schedulevalue, pattern, expireValue);
+
+        } catch (IsilonException e) {
+            _log.error("assign file policy failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+        return BiosCommandResult.createSuccessfulResult();
+    }
+
+    @Override
+    public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+
+        SchedulePolicy fp = args.getFilePolicy();
+        String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
+        IsilonApi isi = getIsilonDevice(storageObj);
+        try {
+            isi.deleteSnapshotSchedule(snapshotScheduleName);
+        } catch (IsilonException e) {
+            _log.error("unassign file policy failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+        return BiosCommandResult.createSuccessfulResult();
+
+    }
+
+    private String getIsilonScheduleString(SchedulePolicy schedule) {
+        StringBuilder builder = new StringBuilder();
+
+        ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(schedule.getScheduleFrequency().toUpperCase());
+        switch (scheduleFreq) {
+
+            case DAYS:
+                builder.append("every ");
+                builder.append(schedule.getScheduleRepeat());
+                builder.append(" days at ");
+                builder.append(schedule.getScheduleTime());
+                break;
+            case WEEKS:
+                builder.append("every ");
+                builder.append(schedule.getScheduleRepeat());
+                builder.append(" weeks on ");
+                builder.append(schedule.getScheduleDayOfWeek());
+                builder.append(" at ");
+                builder.append(schedule.getScheduleTime());
+                break;
+            case MONTHS:
+                builder.append("the ");
+                builder.append(schedule.getScheduleDayOfMonth());
+                builder.append(" every ");
+                builder.append(schedule.getScheduleRepeat());
+                builder.append(" month at ");
+                builder.append(schedule.getScheduleTime());
+                break;
+            default:
+                _log.error("Not a valid schedule frequency: " + schedule.getScheduleFrequency().toLowerCase());
+                return null;
+
+        }
+        return builder.toString();
+
+    }
+
+    private Integer getSnapshotExpireValue(SchedulePolicy expireParam) {
+        Long seconds = 0L;
+        if (expireParam != null) {
+            Long expireValue = expireParam.getSnapshotExpireTime();
+            SnapshotExpireType expireType = SnapshotExpireType.valueOf(expireParam.getSnapshotExpireType().toUpperCase());
+            switch (expireType) {
+                case HOURS:
+                    seconds = TimeUnit.HOURS.toSeconds(expireValue);
+                    break;
+                case DAYS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue);
+                    break;
+                case WEEKS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue * 7);
+                    break;
+                case MONTHS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue * 30);
+                    break;
+                case NEVER:
+                    return null;
+                default:
+                    _log.error("Not a valid expire type: " + expireType);
+                    return null;
+
+            }
+        }
+        return seconds.intValue();
 
     }
 

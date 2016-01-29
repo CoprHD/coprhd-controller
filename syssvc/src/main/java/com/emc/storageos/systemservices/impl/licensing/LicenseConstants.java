@@ -53,50 +53,5 @@ public final class LicenseConstants {
     public static final String LICENSE_FEATRES_DELIM = "INCREMENT";
     public static final String LICENSE_EXPIRATION_DATE = "01/01/12006";
 
-    public static String getModelId(LicenseType licenseType)
-    {
-        if (licenseType.equals(LicenseType.CONTROLLER)) {
-            return VIPR_CONTROLLER;
-        } else if (licenseType.equals(LicenseType.OBJECT)) {
-            return VIPR_OBJECT;
-        } else if (licenseType.equals(LicenseType.HDFS)) {
-            return VIPR_HDFS;
-        } else if (licenseType.equals(LicenseType.OBJECTHDFS)) {
-            return VIPR_OBJECTHDFS;
-        } else if (licenseType.equals(LicenseType.UNSTRUCTURED)) {
-            return VIPR_UNSTRUCTURED;
-        } else if (licenseType.equals(LicenseType.CAS)) {
-            return VIPR_CAS;
-        } else if (licenseType.equals(LicenseType.BLOCK)) {
-            return VIPR_BLOCK;
-        } else if (licenseType.equals(LicenseType.COMMODITY)) {
-            return VIPR_COMMODITY;
-        } else if (licenseType.equals(LicenseType.ECS)) {
-            return VIPR_ECS;
-        } else {
-            return "";
-        }
-    }
-
-    public static LicenseType getLicenseType(String modelId)
-    {
-        if (modelId.compareToIgnoreCase(VIPR_CONTROLLER) == 0) {
-            return LicenseType.CONTROLLER;
-        } else if (modelId.compareToIgnoreCase(VIPR_OBJECT) == 0) {
-            return LicenseType.OBJECT;
-        } else if (modelId.compareToIgnoreCase(VIPR_HDFS) == 0) {
-            return LicenseType.HDFS;
-        } else if (modelId.compareToIgnoreCase(VIPR_UNSTRUCTURED) == 0) {
-            return LicenseType.UNSTRUCTURED;
-        } else if (modelId.compareToIgnoreCase(VIPR_CAS) == 0) {
-            return LicenseType.CAS;
-        } else if (modelId.compareToIgnoreCase(VIPR_BLOCK) == 0) {
-            return LicenseType.BLOCK;
-        } else if (modelId.compareToIgnoreCase(VIPR_COMMODITY) == 0) {
-            return LicenseType.COMMODITY;
-        } else if (modelId.compareToIgnoreCase(VIPR_ECS) == 0) {
-            return LicenseType.ECS;
-        }
-        return null;
-    }
+    public static final String LICENSE_TYPE_PROPERTYNAME = "LICENSE_TYPE";
 }

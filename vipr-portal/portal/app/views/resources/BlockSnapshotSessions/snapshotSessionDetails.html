@@ -1,8 +1,8 @@
 #{extends 'main.html' /}
-#{set navSelected: ['nav.storage', 'nav.block.snapshots'] /}
+#{set navSelected: ['nav.storage', 'nav.block.snapshotsessions'] /}
 
 #{breadcrumb.container}
-  #{breadcrumb.item @snapshotSessions()}&{'resources.snapshots'}#{/breadcrumb.item}
+  #{breadcrumb.item @snapshotSessions()}&{'resources.snapshot.sessions'}#{/breadcrumb.item}
   #{breadcrumb.item active:true}${blockSnapshotSession?.blockSnapshotSession?.name}#{/breadcrumb.item}
 #{/breadcrumb.container}
 

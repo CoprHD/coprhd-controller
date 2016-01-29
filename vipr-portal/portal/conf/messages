@@ -62,6 +62,7 @@ nav.block.volumes=Volumes
 nav.block.consistencygroups=Consistency Groups
 nav.block.exportgroups=Export Groups
 nav.block.snapshots=Block Snapshots
+nav.block.snapshotsessions=Block Snapshot Sessions
 nav.block.virtualPools=Block Virtual Pools
 nav.block.app=Applications
 nav.file=File
@@ -3283,6 +3284,7 @@ resources.snapshot.notFound=Snapshot Not Found
 resources.snapshot.deactivate=Task created to deactivate snapshot with id:[%s]. Please check the task list for an updated status.
 
 resources.snapshot.session.name=Name
+resources.snapshot.sessions=Block Snapshot Sessions
 
 resources.filesystems=File Systems
 resources.filesystems.error=File System Not Found

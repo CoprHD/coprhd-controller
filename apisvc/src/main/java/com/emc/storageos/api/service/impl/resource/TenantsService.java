@@ -94,6 +94,7 @@ import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
 import com.emc.storageos.model.schedulepolicy.PolicyParam;
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyResp;
 import com.emc.storageos.model.tenant.TenantCreateParam;
 import com.emc.storageos.model.tenant.TenantOrgBulkRep;
 import com.emc.storageos.model.tenant.TenantOrgList;
@@ -1165,6 +1166,7 @@ public class TenantsService extends TaggedResource {
     /**
      * Create schedule policy and persist into CoprHD DB.
      * 
+     * @param id the URN of a CoprHD Tenant/Subtenant
      * @param param schedule policy parameters
      * @brief Create schedule policy
      * @return No data returned in response body
@@ -1175,7 +1177,24 @@ public class TenantsService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
-    public Response createSchedulePolicy(@PathParam("id") URI id, PolicyParam param) {
+    public SchedulePolicyResp createSchedulePolicy(@PathParam("id") URI id, PolicyParam param) {
+        SchedulePolicyResp schedulePolicyResp = createPolicy(id, param);
+        auditOp(OperationTypeEnum.CREATE_SCHEDULE_POLICY, true, null, param.getPolicyName(),
+                id.toString(), schedulePolicyResp.getId().toString());
+        return schedulePolicyResp;
+    }
+
+    /**
+     * Worker method for create schedule policy. Allows external requests (REST) as well as
+     * internal requests that may not have a security context.
+     * 
+     * @param id the URN of a CoprHD Tenant/Subtenant
+     * @param param schedule policy parameters
+     * @brief Create schedule policy
+     * @return No data returned in response body
+     * @throws BadRequestException
+     */
+    public SchedulePolicyResp createPolicy(URI id, PolicyParam param) {
         TenantOrg tenant = getTenantById(id, true);
 
         // Make policy name as mandatory field
@@ -1197,7 +1216,7 @@ public class TenantsService extends TaggedResource {
 
         // Validate Schedule policy parameters
         boolean isValidSchedule = SchedulePolicyService.validateSchedulePolicyParam(param.getPolicySchedule(), schedulePolicy, errorMsg);
-        if (errorMsg != null && errorMsg.length() > 0) {
+        if (!isValidSchedule && errorMsg != null && errorMsg.length() > 0) {
             _log.error("Failed to create schedule policy due to {} ", errorMsg.toString());
             throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());
         }
@@ -1208,7 +1227,8 @@ public class TenantsService extends TaggedResource {
             // check snapshot expire type is valid or not
             String expireType = param.getSnapshotExpire().getExpireType();
             if (!ArgValidator.isValidEnum(expireType, SnapshotExpireType.class)) {
-                _log.error("Invalid schedule snapshot expire type {}. Valid Snapshot expire types are hours, days, weeks and months",
+                _log.error(
+                        "Invalid schedule snapshot expire type {}. Valid Snapshot expire types are hours, days, weeks, months and never",
                         expireType);
                 throw APIException.badRequests.invalidScheduleSnapshotExpireType(expireType);
             }
@@ -1228,10 +1248,14 @@ public class TenantsService extends TaggedResource {
             schedulePolicy.setPolicyType(param.getPolicyType());
             schedulePolicy.setLabel(param.getPolicyName());
             schedulePolicy.setPolicyName(param.getPolicyName());
-            schedulePolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency());
+            schedulePolicy.setScheduleFrequency(param.getPolicySchedule().getScheduleFrequency().toLowerCase());
             if (isValidSnapshotExpire) {
-                schedulePolicy.setSnapshotExpireType(param.getSnapshotExpire().getExpireType());
-                schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
+                schedulePolicy.setSnapshotExpireType(param.getSnapshotExpire().getExpireType().toLowerCase());
+                if (!param.getSnapshotExpire().getExpireType().equalsIgnoreCase(SnapshotExpireType.NEVER.toString())) {
+                    schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
+                } else {
+                    schedulePolicy.setSnapshotExpireTime(null);
+                }
             }
             schedulePolicy.setTenantOrg(new NamedURI(tenant.getId(), schedulePolicy.getLabel()));
             _dbClient.createObject(schedulePolicy);
@@ -1239,7 +1263,9 @@ public class TenantsService extends TaggedResource {
         }
         recordTenantEvent(OperationTypeEnum.CREATE_SCHEDULE_POLICY, tenant.getId(),
                 schedulePolicy.getId());
-        return Response.ok().build();
+
+        return new SchedulePolicyResp(schedulePolicy.getId(), toLink(ResourceTypeEnum.SCHEDULE_POLICY,
+                schedulePolicy.getId()), schedulePolicy.getLabel());
     }
 
     /**

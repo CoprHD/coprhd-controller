@@ -123,12 +123,12 @@ public class ComputeImageServers extends AbstractCoreBulkResources<ComputeImageS
 
     /**
      * Deletes the given compute image server by ID.
-     * <p>
+     * 
      * API Call: <tt>POST /compute-imageservers/{id}/deactivate</tt>
      * 
      * @param id
      *            the ID of the compute image server to delete.
-     * @return Task<ComputeImageServerRestRep> the task to delete the compute image server.
+     * 
      */
     public void deactivate(URI id) {
         doDeactivate(id);

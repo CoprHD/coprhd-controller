@@ -29,7 +29,6 @@ public class VcenterUpdateParam extends VcenterParam {
     /**
      * The IP address or host name of the vCenter.
      * 
-     * @valid none
      */
     @XmlElement(name = "ip_address")
     @Endpoint(type = Endpoint.EndpointType.HOST)

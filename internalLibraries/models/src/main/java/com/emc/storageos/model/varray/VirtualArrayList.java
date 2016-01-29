@@ -29,7 +29,6 @@ public class VirtualArrayList {
     /**
      * A virtual array.
      * 
-     * @valid none.
      * 
      * @return A virtual array.
      */

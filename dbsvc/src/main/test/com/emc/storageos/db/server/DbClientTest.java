@@ -119,6 +119,7 @@ public class DbClientTest extends DbsvcTestBase {
         VdcUtil.setDbClient(dbClient);
 
         dbClient.setBypassMigrationLock(false);
+        dbClient.setDrUtil(new DrUtil(_coordinator));
         dbClient.start();
 
         _dbClient = dbClient;

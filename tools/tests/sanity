@@ -6946,7 +6946,7 @@ dr_basic_tests()
 
     
     echo "---WAIT FOR SYNC $standby_site---"
-    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
+    dr waitforstate $standby_site STANDBY_SYNCED 30 2000
     echo "Syncing dr done"
 
     echo "---WAIT 1m FOR $standby_site TO BOOTSTRAP---"
@@ -6958,7 +6958,7 @@ dr_basic_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     
     echo "---WAIT FOR STABLE $standby_site---"
-    dr waitforstable 30 1200
+    dr waitforstable 30 2000
 
     echo "---VERIFY SITE DETAILS $standby_site---"
     state=$(dr details $standby_site clusterState|tail -1)
@@ -6996,7 +6996,7 @@ dr_basic_tests()
     sleep 30
 
     echo "---WAIT FOR PAUSE $standby_site---"
-    dr waitforstate $standby_site STANDBY_PAUSED 30 1200
+    dr waitforstate $standby_site STANDBY_PAUSED 30 2000
     echo "Pausing dr done"
 
     echo "---CREATE A NEW PROJECT ON ACTIVE---"
@@ -7009,7 +7009,7 @@ dr_basic_tests()
     dr resume $standby_site || { echo "resume dr standby site failed."; exit 1; }
 
     echo "---WAIT FOR SYNC $standby_site---"
-    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
+    dr waitforstate $standby_site STANDBY_SYNCED 30 2000
     echo "Syncing dr done"
 
     echo "---VERIFY NEW PROJECT FROM $standby_site---"
@@ -7017,7 +7017,7 @@ dr_basic_tests()
     BOURNE_IPADDR=$DR_SITE_B_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     echo "wait for $standby_site to become stable"
-    dr waitforstable 30 1200
+    dr waitforstable 30 2000
     project show ${projectid_new}
 
     # wait both active and standby to be stable, ready to do switchover
@@ -7042,8 +7042,8 @@ dr_basic_tests()
 
     # verify switchover status
     echo "---WAIT FOR SWITCHOVER FROM $active_site TO $standby_site DONE---"
-    dr waitforstate $standby_site ACTIVE 10 1200 && echo "standby has been switched into active"
-    dr waitforstate $active_site STANDBY_SYNCED 10 1200 && echo "active has been switched into standby"
+    dr waitforstate $standby_site ACTIVE 10 2000 && echo "standby has been switched into active"
+    dr waitforstate $active_site STANDBY_SYNCED 10 2000 && echo "active has been switched into standby"
 
     # by now, active site and standby site has been switched, need to switch variables accordingly
     local switch_tmp
@@ -7132,7 +7132,7 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
 
     echo "---WAIT FOR STABLE $standby_site_b---"
-    dr waitforstable 30 1200
+    dr waitforstable 30 2000
 
     echo "---VERIFY SITE DETAILS $standby_site_b---"
     state=$(dr details $standby_site_b clusterState|tail -1)
@@ -7207,7 +7207,7 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
 
     echo "---WAIT FOR STABLE $standby_site_c---"
-    dr waitforstable 30 1200
+    dr waitforstable 30 2000
 
     echo "---VERIFY SITE DETAILS $standby_site_c---"
     state=$(dr details $standby_site_c clusterState|tail -1)
@@ -7256,7 +7256,7 @@ dr_multisite_tests()
     sleep 30
 
     echo "---WAIT FOR PAUSE $standby_site_b---"
-    dr waitforstate $standby_site_b STANDBY_PAUSED 30 1200
+    dr waitforstate $standby_site_b STANDBY_PAUSED 30 2000
     echo "Pausing dr done"
 
     wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP $DR_SITE_C_IP
@@ -7269,7 +7269,7 @@ dr_multisite_tests()
     sleep 30
 
     echo "---WAIT FOR PAUSE $standby_site_c---"
-    dr waitforstate $standby_site_c STANDBY_PAUSED 30 1200
+    dr waitforstate $standby_site_c STANDBY_PAUSED 30 2000
     echo "Pausing dr done"
 
     echo "---CREATE A NEW PROJECT ON ACTIVE---"
@@ -7282,7 +7282,7 @@ dr_multisite_tests()
     dr resume $standby_site_b || { echo "resume dr standby site b failed."; exit 1; }
 
     echo "---WAIT FOR SYNC $standby_site_b---"
-    dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
+    dr waitforstate $standby_site_b STANDBY_SYNCED 30 2000
     echo "Syncing dr done"
 
     echo "---WAIT 30s TO STABILIZE---"
@@ -7292,7 +7292,7 @@ dr_multisite_tests()
     BOURNE_IPADDR=$DR_SITE_B_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     echo "wait for $standby_site_b to be stable"
-    dr waitforstable 30 1200
+    dr waitforstable 30 2000
     project show ${projectid_new}
 
     echo "---RESUME SITE $standby_site_c---"
@@ -7301,7 +7301,7 @@ dr_multisite_tests()
     dr resume $standby_site_c || { echo "resume dr standby site c failed."; exit 1; }
 
     echo "---WAIT FOR SYNC $standby_site_c---"
-    dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
+    dr waitforstate $standby_site_c STANDBY_SYNCED 30 2000
     echo "Syncing dr done"
 
     echo "---WAIT 30s TO STABILIZE---"
@@ -7311,7 +7311,7 @@ dr_multisite_tests()
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     echo "wait for $standby_site_b to be stable"
-    dr waitforstable 30 1200
+    dr waitforstable 30 2000
     project show ${projectid_new}
 
     # delete standby

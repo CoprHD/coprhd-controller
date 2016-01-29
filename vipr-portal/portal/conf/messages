@@ -2191,7 +2191,7 @@ vpool.replicationCopies=Replication Copies
 vpool.remoteVirtualArray=Virtual Array
 vpool.remoteVirtualPool=Virtual Pool
 vpool.replicationType=Replication Type
-
+vpool.scheduleSnapshots=Schedule Snapshots
 # File Replication
 replicationCopy.virtualArray=Virtual Array
 replicationCopy.virtualPool=Virtual Pool

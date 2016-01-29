@@ -89,6 +89,7 @@ import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -487,8 +488,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Record audit log if opType specified.
             if ((Operation.Status.ready == status) && (_opType != null)) {
                 // Record audit log.
-                AuditLogManager auditMgr = new AuditLogManager();
-                auditMgr.setDbClient(dbClient);
+                AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
                 auditMgr.recordAuditLog(null, null, ControllerUtils.BLOCK_EVENT_SERVICE,
                         _opType, System.currentTimeMillis(),
                         AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,

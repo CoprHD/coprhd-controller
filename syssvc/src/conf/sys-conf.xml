@@ -257,7 +257,8 @@
         		<entry key="dr_switchover" value-ref="vdcDrSwitchoverHandler"/>
         		<entry key="dr_failover" value-ref="vdcDrFailoverHandler"/>
                 <entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
-        		<entry key="ipsec_enable" value-ref="ipsecEnableHandler"/>
+        		<entry key="ipsec_enable_init" value-ref="ipsecConfigHandler"/>
+                <entry key="ipsec_disable_init" value-ref="ipsecConfigHandler"/>
         		<entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
         		<entry key="dr_failbackDegrade" value-ref="vdcDrFailbackDegradeHandler" />
                 <entry key="ip_change" value-ref="ipchangeHandler"/>
@@ -566,7 +567,7 @@
         <property name="drUtil" ref="drUtil" />
     </bean>
     
-    <bean id="ipsecEnableHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPSecEnableHandler">
+    <bean id="ipsecConfigHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPSecConfigHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>

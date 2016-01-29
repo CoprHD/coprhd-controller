@@ -27,6 +27,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Bloc
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRecoverPointIngestOrchestrator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
@@ -66,6 +67,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
@@ -736,8 +738,8 @@ public class VolumeIngestionUtil {
             throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPoolNicer(
                     spoolName, VOLUME_TEXT, unManagedVolume.getLabel());
         }
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolUri);
         if (!supportedVPoolUris.contains(vpoolUri.toString())) {
-            VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolUri);
             String vpoolName = vpool != null ? vpool.getLabel() : vpoolUri.toString();
             List<VirtualPool> supportedVpools = dbClient.queryObject(
                     VirtualPool.class, Collections2.transform(supportedVPoolUris,
@@ -754,6 +756,14 @@ public class VolumeIngestionUtil {
             }
             throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePoolNicer(
                     vpoolName, VOLUME_TEXT, unManagedVolume.getLabel(), vpoolsString);
+        }
+        // Check to ensure this isn't a non-RP protected unmanaged volume attempted to be ingested
+        // by an RP source vpool.
+        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
+            String value = unManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
+            if (FALSE.equalsIgnoreCase(value)) {
+                throw APIException.internalServerErrors.ingestNotAllowedNonRPVolume(vpool.getLabel(), unManagedVolume.getLabel());
+            }
         }
     }
 
@@ -1313,7 +1323,21 @@ public class VolumeIngestionUtil {
         Set<String> storagePortUriStr = new HashSet<String>((Collections2.transform(storagePortUris,
                 CommonTransformerFunctions.FCTN_URI_TO_STRING)));
         SetView<String> diff = Sets.difference(portsInUnManagedMask, storagePortUriStr);
-        if (!diff.isEmpty()) {
+        // Temporary relaxation of storage port restriction for XIO:
+        // With XIO we do not have the ability to remove specific (and possibly unavailable) storage ports
+        // from the LUN maps.  So a better check specifically for XIO is to ensure that we at least have one
+        // storage port in the varray.
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
+        boolean portsValid = true;
+        if (storageSystem != null) {
+            if (storageSystem.getSystemType().equalsIgnoreCase(SystemType.xtremio.toString())) {
+                portsValid = diff.size() < portsInUnManagedMask.size();
+            } else {
+                portsValid = diff.isEmpty();
+            }                    
+        }
+        
+        if (!portsValid) {
             _logger.warn("Storage Ports {} in unmanaged mask {} is not available in VArray {}", new Object[] {
                     Joiner.on(",").join(diff), mask.getMaskName(), varray });
             if (volume instanceof Volume) {
@@ -3032,8 +3056,16 @@ public class VolumeIngestionUtil {
         if (umpset.getManagedVolumeIds() != null) {
             for (String volumeID : umpset.getManagedVolumeIds()) {
                 Volume volume = dbClient.queryObject(Volume.class, URI.create(volumeID));
+
+                // Add all volumes (managed only) to the new protection set
+                if (pset.getVolumes() == null) {
+                    pset.setVolumes(new StringSet());
+                }
+
+                pset.getVolumes().add(volumeID);
+
                 if (volume == null) {
-                    _logger.error("Unable to retrieve volume : " + volume + " from database.  Ignoring in protection set ingestion.");
+                    _logger.error("Unable to retrieve volume : " + volumeID + " from database.  Ignoring in protection set ingestion.");
                     // this will be the expected case for a newly-ingested Volume (because it hasn't been saved yet,
                     // so we make sure to add the volume in RecoverPointVolumeIngestionContext.commitBackend
                     continue;
@@ -3044,12 +3076,6 @@ public class VolumeIngestionUtil {
                     pset.setProject(volume.getProject().getURI());
                 }
 
-                // Add all volumes (managed only) to the new protection set
-                if (pset.getVolumes() == null) {
-                    pset.setVolumes(new StringSet());
-                }
-
-                pset.getVolumes().add(volumeID);
             }
         }
 
@@ -3059,9 +3085,9 @@ public class VolumeIngestionUtil {
 
     /**
      * Create a block consistency group for the given protection set
-     * 
      * @param pset protection set
      * @param dbClient
+     * 
      * @return BlockConsistencyGroup
      */
     public static BlockConsistencyGroup createRPBlockConsistencyGroup(ProtectionSet pset, DbClient dbClient) {
@@ -3077,7 +3103,6 @@ public class VolumeIngestionUtil {
         cg.setTenant(project.getTenantOrg());
         cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
         _logger.info("Created new block consistency group: " + cg.getId().toString());
-
         return cg;
     }
 

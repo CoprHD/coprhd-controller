@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -240,6 +241,12 @@ public class BlockFullCopyManager {
             throws InternalException {
         s_logger.info("START create full copy for source {}", sourceURI);
 
+        // Create a unique task identifier.
+        String taskId = UUID.randomUUID().toString();
+
+        List<BlockObject> fcSourceObjList = null;
+        BlockFullCopyApi fullCopyApiImpl = null;
+        
         // Get the volume/snapshot.
         BlockObject fcSourceObj = BlockFullCopyUtils.queryFullCopyResource(sourceURI,
                 _uriInfo, true, _dbClient);
@@ -254,29 +261,67 @@ public class BlockFullCopyManager {
         // Check if the request calls for activation of the full copy
         boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE : param.getCreateInactive();
 
-        // Get the project for the full copy source object.
-        Project project = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
+        // if Volume is part of Application (COPY type VolumeGroup)
+        VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
+                ? ((Volume) fcSourceObj).getCopyTypeVolumeGroup(_dbClient) : null;
+                
+        VirtualArray varray = null;
+        if (volumeGroup != null) {
+            s_logger.info("Volume {} is part of Application, Creating full copy for all volumes in the Application.", sourceURI);
+            // get all volumes
+            List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            // group volumes by Array Group
+            Map<String, List<Volume>> arrayGroupToVolumesMap = BlockServiceUtils.groupVolumesByArrayGroup(volumes);
+            fcSourceObjList = new ArrayList<BlockObject>();
+            for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
+                List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
+                fcSourceObj = volumeList.iterator().next();
+                // Get the project for the full copy source object.
+                Project project = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
 
-        // Get and verify the virtual array.
-        VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
-                fcSourceObj.getVirtualArray(), _uriInfo, _permissionsHelper, _dbClient);
+                // verify the virtual array.
+                varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
+                        fcSourceObj.getVirtualArray(), _uriInfo, _permissionsHelper, _dbClient);
 
-        // Get the platform specific block full copy implementation.
-        BlockFullCopyApi fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fcSourceObj);
+                // Get the platform specific block full copy implementation.
+                fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fcSourceObj);
 
-        // Get the list of all block objects for which we need to
-        // create full copies. For example, when creating a full copy
-        // for a volume in a consistency group, we may create full
-        // copies for all volumes in the consistency group.
-        List<BlockObject> fcSourceObjList = fullCopyApiImpl.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
+                // Get the list of all block objects for which we need to
+                // create full copies. For example, when creating a full copy
+                // for a volume in a consistency group, we may create full
+                // copies for all volumes in the consistency group.
+                List<BlockObject> fcSourceObjListPerArrayGroup = fullCopyApiImpl.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
 
-        // Validate the full copy request.
-        validateFullCopyCreateRequest(fcSourceObjList, project, name, count, createInactive,
-                fullCopyApiImpl);
+                // Validate the full copy request.
+                validateFullCopyCreateRequest(fcSourceObjListPerArrayGroup, project, name, count, createInactive,
+                        fullCopyApiImpl);
+                
+                fcSourceObjList.addAll(fcSourceObjListPerArrayGroup);
+            }
+        } else {
 
-        // Create a unique task identifier.
-        String taskId = UUID.randomUUID().toString();
+            // Get the project for the full copy source object.
+            Project project = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
 
+            // verify the virtual array.
+            varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
+                    fcSourceObj.getVirtualArray(), _uriInfo, _permissionsHelper, _dbClient);
+
+            // Get the platform specific block full copy implementation.
+            fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fcSourceObj);
+
+            // Get the list of all block objects for which we need to
+            // create full copies. For example, when creating a full copy
+            // for a volume in a consistency group, we may create full
+            // copies for all volumes in the consistency group.
+            fcSourceObjList = fullCopyApiImpl.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
+
+            // Validate the full copy request.
+            validateFullCopyCreateRequest(fcSourceObjList, project, name, count, createInactive,
+                    fullCopyApiImpl);
+        }
+
+        // TODO volumes in Volume Group can be in different vArrays. Change create() signature?
         // Create the full copies
         TaskList taskList = fullCopyApiImpl.create(fcSourceObjList, varray, name,
                 createInactive, count, taskId);

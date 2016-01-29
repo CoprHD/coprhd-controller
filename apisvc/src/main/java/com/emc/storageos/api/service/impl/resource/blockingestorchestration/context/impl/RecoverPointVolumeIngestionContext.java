@@ -123,6 +123,15 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         // Find the UnManagedProtectionSet associated with this unmanaged volume
         UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(getUnmanagedVolume(), _dbClient);
 
+        // It is possible that the unmanaged volume was already ingested in which case the ingested block object will be part of the
+        // unmanaged protection set's managed volumes list.
+        String managedVolumeNativeGUID = getUnmanagedVolume().getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
+                VolumeIngestionUtil.VOLUME);
+        BlockObject managedVolume = VolumeIngestionUtil.getBlockObject(managedVolumeNativeGUID, _dbClient);
+        if (managedVolume != null) {
+            umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(managedVolume, _dbClient);
+        }
+
         if (umpset == null) {
             _logger.error("Unable to find unmanaged protection set associated with volume: " + getUnmanagedVolume().getId());
             // caller will throw exception

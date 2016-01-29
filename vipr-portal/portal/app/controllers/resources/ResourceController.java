@@ -47,6 +47,7 @@ public class ResourceController extends Controller {
         return projects;
     }
 
+    
     @Util
     public static String getActiveProjectId() {
         String tenantId = Models.currentAdminTenant();

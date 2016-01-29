@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2012-2014 EMC Corporation
- * All Rights Reserved
+ * Copyright 2012-2014 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.services;
@@ -8,6 +21,7 @@ package com.emc.storageos.services;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.ws.rs.DELETE;
 import javax.xml.bind.annotation.XmlElement;
 
 public enum OperationTypeEnum {
@@ -37,6 +51,10 @@ public enum OperationTypeEnum {
     REASSIGN_VPOOL_ACL("VpoolUpdated", "", "operation to overwrite VirtualPool acls"),
     MODIFY_VPOOL_ACL("VpoolUpdated", "", "operation to modify VirtualPool acls"),
     ASSIGN_VPOOL_TAG("ASSIGN VPOOL TAG", "", "operation to assign a tag to a VirtualPool"),
+
+    CREATE_QOS("QosCreated", "", "Quality of Service Created"),
+    UPDATE_QOS("QosUpdated", "", "Quality of Service Updated"),
+    DELETE_QOS("QosDeleted", "", "Quality os Service Deleted"),
 
     CREATE_BLOCK_VOLUME("VolumeCreated", "VolumeCreateFailed", "Volume Create"),
     DELETE_BLOCK_VOLUME("VolumeDeleted", "VolumeDeleteFailed", "Volume Delete"),
@@ -121,6 +139,8 @@ public enum OperationTypeEnum {
 
     CREATE_FILE_SYSTEM_SHARE("FileSystemShared", "FileSystemShareFailed", "FileSystem shared"),
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "", "operation to tag a filesystem"),
+    ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyAssign", "FileSystemPolicyAssignFailed", "FileSystem Policy Assigned"),
+    UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyUnassign", "FileSystemPolicyUnassignFailed", "FileSystem Policy Unassigned"),
     DELETE_FILE_SYSTEM_SHARE("FileSystemShareDeleted", "FileSystemShareDeleteFailed", "FileSystem share deleted"),
 
     CREATE_FILE_SYSTEM_SNAPSHOT("FileSystemSnapshotCreated", "FileSystemSnapshotCreateFailed", "FileSystem snapshot created"),
@@ -406,6 +426,13 @@ public enum OperationTypeEnum {
     UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "",
             "operation to update and verify a compute image server."),
     DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
+    CREATE_VOLUME_GROUP("CREATE VOLUME GROUP", "", "operation to create volume group"),
+    DELETE_VOLUME_GROUP("DELETE VOLUME GROUP", "", "operation to delete volume group"), 
+    UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "", "operation to update volume group"),
+
+    CREATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyCreated", "VolumeGroupFullCopyCreateFailed", "VolumeGroupFullCopy Created"),
+    DETACH_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyDetached", "VolumeGroupFullCopyDetachFailed", "VolumeGroupFullCopy Detached"),
+
     CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
     RESTORE_SNAPSHOT_SESSION("BlockSnapshotSessionRestored", "BlockSnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),
     DELETE_SNAPSHOT_SESSION("BlockSnapshotSessionDeleted", "BlockSnapshotSessionDeleteFailed", "BlockSnapshotSession Delete"),
@@ -415,6 +442,8 @@ public enum OperationTypeEnum {
             "Re-link targets to BlockSnapshotSession"),
     UNLINK_SNAPSHOT_SESSION_TARGET("UnlinkBlockSnapshotSessionTargets", "UnlinkBlockSnapshotSessionTargetsFailed",
             "Unlink targets from BlockSnapshotSession"),
+    UPDATE_BUCKET_ACL("UPDATE BUCKET ACL", "", "operation to update bucket ACL"),
+    DELETE_BUCKET_ACL("DELETE BUCKET ACL", "", "operation to delete bucket ACL"),
 
     /* Disaster Recovery Operations */
     ADD_STANDBY("ADD STANDBY", "", "operation to initiate adding a new standby to ensemble"),
@@ -427,7 +456,8 @@ public enum OperationTypeEnum {
     STANDBY_SWITCHOVER("STANDBY BECOME ACTIVE AFTER SWITCHOVER", "", "operation that marks switchover on new active site complete"),
     FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failling over to a standby site"),
     STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
-    UPDATE_SITE("UPDATE SITE", "", "operation to update site information");
+    UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
+    CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
 
     private final String _evType;
     private final String _fail_evType;

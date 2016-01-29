@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * DB Migration callback to populate storageHADomain attribute for
@@ -40,7 +41,7 @@ public class StoragePortHADomainPopulater extends BaseCustomMigrationCallback
      * @see com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback#process()
      */
     @Override
-    public void process()
+    public void process() throws MigrationCallbackException
     {
         log.info("START - StoragePortHADomainPopulater migration call back");
         DbClient dbClient = getDbClient();

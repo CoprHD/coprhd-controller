@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -40,8 +41,7 @@ public class ComputeImageCompleter extends TaskCompleter {
             throws DeviceControllerException {
         log.info("ComputeImageCompleter.complete {}", status.name());
         ComputeImage ci = dbClient.queryObject(ComputeImage.class, getId());
-        AuditLogManager auditMgr = new AuditLogManager();
-        auditMgr.setDbClient(dbClient);
+        AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
         if (status == Status.error) {
             if (opType == OperationTypeEnum.CREATE_COMPUTE_IMAGE) {
                 boolean available = false;

@@ -12,6 +12,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -65,6 +66,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -289,7 +291,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             String newVolumeLabel = volumeName;
 
-            String srcCopyName = varray.getLabel() + SRC_COPY_SUFFIX;
+            String srcCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, varray.getId(), true);
+            if (srcCopyName == null) {
+                srcCopyName= varray.getLabel() + SRC_COPY_SUFFIX;
+            }
             String activeSourceCopyName = "";
             String standbySourceCopyName = "";
 
@@ -303,8 +308,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // Grab HA varray so we can set the standby copy name correctly
                 haVarray = _dbClient.queryObject(VirtualArray.class, VPlexUtil.getHAVarray(originalVpool));
 
-                activeSourceCopyName = varray.getLabel() + MP_ACTIVE_COPY_SUFFIX;
-                standbySourceCopyName = haVarray.getLabel() + MP_STANDBY_COPY_SUFFIX;
+                activeSourceCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, varray.getId(), true);
+                if (activeSourceCopyName == null) {
+                    activeSourceCopyName = varray.getLabel() + MP_ACTIVE_COPY_SUFFIX;
+                }
+                
+                standbySourceCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, haVarray.getId(), true);
+                if (standbySourceCopyName == null) {
+                    standbySourceCopyName = haVarray.getLabel() + MP_STANDBY_COPY_SUFFIX;
+                }
             }
 
             StringBuffer volumeInfoBuffer = new StringBuffer();
@@ -938,7 +950,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         URI storageSystemUri = rpRec.getSourceStorageSystem();
         String size = String.valueOf(rpRec.getSize());
 
-        // If the copy name was passed in as null, set it now using the varray label.
+        // If the copy name was passed in as null, see if there's an existing label first, then set it now using the varray label.
+        if (copyName == null) {
+            copyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, varray.getId(), 
+                    personalityType.toString().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) ? true : false);
+        }
+        
         copyName = ((copyName != null) ? copyName : varray.getLabel());
 
         boolean vplex = VirtualPool.vPoolSpecifiesHighAvailability(vpool);
@@ -1097,7 +1114,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @throws ControllerException
      */
     private List<VolumeDescriptor> createVolumeDescriptors(RPProtectionRecommendation recommendation, List<URI> volumeURIs,
-            VirtualPoolCapabilityValuesWrapper capabilities, URI oldVpool) {
+            VirtualPoolCapabilityValuesWrapper capabilities, URI oldVpool, URI computeResource) {
 
         List<Volume> preparedVolumes = _dbClient.queryObject(Volume.class, volumeURIs);
 
@@ -1161,6 +1178,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 desc = new VolumeDescriptor(volumeType, volume.getStorageController(), volume.getId(), volume.getPool(),
                         null, capabilities, volume.getCapacity());
+                
+                if (volume.checkPersonality(Volume.PersonalityTypes.SOURCE.name()) && computeResource != null) {
+                    _log.info(String.format("Volume %s - will be exported to Host/Cluster: %s", volume.getLabel(), computeResource.toString()));
+                    desc.setComputeResource(computeResource);
+                }
                 descriptors.add(desc);
             }
         }
@@ -1676,7 +1698,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             while (recommendationsIter.hasNext()) {
                 RPProtectionRecommendation recommendation = (RPProtectionRecommendation) recommendationsIter.next();
 
-                volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities, oldVpoolId));
+                volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities, oldVpoolId, param.getComputeResource()));
                 logDescriptors(volumeDescriptors);
 
                 BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
@@ -2200,7 +2222,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 _log.info("Expand Volume requested size : {}", newSize);
                 _log.info("Expand source calculated size : {}", capacities.get(Volume.PersonalityTypes.SOURCE));
                 _log.info("Expand target calcaluted size : {}", capacities.get(Volume.PersonalityTypes.TARGET));
-                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null, null);
+                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null, null, null);
 
                 for (VolumeDescriptor volDesc : volumeDescriptors) {
                     if (volDesc.getType() == VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE) {
@@ -2225,7 +2247,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 // Step 3: Call the controller to do the expand.
                 _log.info("Expand volume request size : {}", normalizedRequestSize);
-                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null, null);
+                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null, null, null);
 
                 for (VolumeDescriptor volDesc : volumeDescriptors) {
                     volDesc.setVolumeSize(normalizedRequestSize);
@@ -2313,6 +2335,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
         }
+
 
         // If not an RP bookmark snapshot, then do what the base class does, else
         // we just need to verify the volumes and name.
@@ -2684,11 +2707,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param taskId The unique task identifier.
      */
     @Override
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String syncDirection, String taskId) {
         _log.info(String.format("Request to restore RP volume %s from snapshot %s.",
                 parentVolume.getId().toString(), snapshot.getId().toString()));
 
-        super.restoreSnapshot(snapshot, parentVolume, taskId);
+        super.restoreSnapshot(snapshot, parentVolume, syncDirection, taskId);
     }
 
     /**
@@ -3540,5 +3563,23 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.deleteVolumes(volumeDescriptors, taskId);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
+     */
+    @Override
+    public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {
+        List<String> groupNames = new ArrayList<String>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));
+        for (Volume volume : volumes) {
+            if (volume.getReplicationGroupInstance() != null) {
+                groupNames.add(volume.getReplicationGroupInstance());
+            }
+        }
+        // TODO : add target volumes if necessary
+        return groupNames;
     }
 }

@@ -122,7 +122,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext) parentRequestContext.getVolumeContext();
 
         UnManagedVolume unManagedVolume = volumeContext.getUnmanagedVolume();
-        boolean unManagedVolumeExported = volumeContext.isVolumeExported();
 
         // Validation checks on the unmanaged volume we're trying to ingest
         validateUnManagedVolumeProperties(unManagedVolume, volumeContext.getVarray(),
@@ -205,7 +204,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             UnManagedVolume unManagedVolume, Volume volume) {
         if (null == volume) {
             // We need to ingest the volume w/o the context of RP. (So, ingest a VMAX if it's VMAX, VPLEX if it's VPLEX, etc)
-
             IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume,
                     IngestStrategyFactory.DISREGARD_PROTECTION);
 
@@ -563,8 +561,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             Integer numPaths = em.getZoningMap().size();
             _logger.info("Creating Export Group with label {}", em.getMaskName());
             // No existing group has the mask, let's create one.
+            //TODO: Bharath - setting the isJournal to false - double check to see if this can be inferred
             exportGroup = RPHelper.createRPExportGroup(volume.getInternalSiteName(), virtualArray, project, protectionSystem,
-                    storageSystem, numPaths);
+                    storageSystem, numPaths, false);
         }
 
         volumeContext.setExportGroup(exportGroup);
@@ -856,9 +855,15 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 Volume volume = _dbClient.queryObject(Volume.class, volumeId);
                 if (volume == null) {
                     // Check the "just created" list in the volume context
-                    // TODO FIXME: this map uses the nativeGuid, not URI
-                    if (volumeContext.getObjectsToBeCreatedMap().get(volumeId.toString()) != null) {
-                        volume = (Volume) volumeContext.getObjectsToBeCreatedMap().get(volumeId.toString());
+                    for (BlockObject blockObject : volumeContext.getObjectsToBeCreatedMap().values()) {
+                        if (blockObject.getId().toString().equals(volumeId.toString())) {
+                            if (blockObject instanceof Volume) {
+                                volume = (Volume) blockObject;
+                                break;
+                            }
+                        }
+                    }
+                    if (volume != null) {
                         volumes.add(volume);
                     } else {
                         continue;

@@ -112,9 +112,9 @@ public class ErrorHandlingTestResource {
 
     @GET
     @Path("noPoolFound")
-    public Response noPoolFound(@QueryParam("vpool") URI cosId,
-            @QueryParam("varray") URI neighborhoodId) {
-        throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(cosId, neighborhoodId);
+    public Response noPoolFound(@QueryParam("vpool") URI vpoolId,
+            @QueryParam("varray") URI varrayId) {
+        throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpoolId.toString(), varrayId.toString());
     }
 
     @GET

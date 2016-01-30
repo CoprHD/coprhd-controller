@@ -29,7 +29,6 @@ public class VcenterDataCenterRestRep extends TenantResourceRestRep {
     /**
      * The vCenter URI where this data center exists.
      * 
-     * @valid none
      * @return the vCenter URI where this data center exists.
      */
     @XmlElement(name = "vcenter")

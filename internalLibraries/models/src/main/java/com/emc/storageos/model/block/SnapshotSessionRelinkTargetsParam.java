@@ -39,8 +39,6 @@ public class SnapshotSessionRelinkTargetsParam {
     /**
      * Gets the URIs of the linked targets to be re-linked.
      * 
-     * @valid none
-     * 
      * @return The URIs of the linked targets to be re-linked.
      */
     @XmlElementWrapper(name = "ids", required = true)

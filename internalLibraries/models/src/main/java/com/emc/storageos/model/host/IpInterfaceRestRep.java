@@ -37,7 +37,6 @@ public class IpInterfaceRestRep extends HostInterfaceRestRep {
     /**
      * The IPv4 or IPv6 address of this interface.
      * 
-     * @valid example: 10.247.12.99
      */
     @XmlElement(name = "ip_address")
     public String getIpAddress() {
@@ -80,7 +79,6 @@ public class IpInterfaceRestRep extends HostInterfaceRestRep {
     /**
      * Gets the scope id for an IPv6 interface.
      * 
-     * @valid none
      * @return the scope id for an IPv6 interface
      */
     @XmlElement(name = "scope_id")
@@ -95,7 +93,6 @@ public class IpInterfaceRestRep extends HostInterfaceRestRep {
     /**
      * Gets the name of the interface
      * 
-     * @valid none
      * @return the name of the interface
      */
     @XmlElement(name = "name")

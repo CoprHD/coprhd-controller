@@ -55,7 +55,6 @@ public class ExportCreateParam {
     @XmlElementWrapper(required = false)
     /**
      * The clusters to which the volumes will be exported.
-     * @valid none
      */
     @XmlElement(name = "cluster")
     public List<URI> getClusters() {
@@ -72,7 +71,6 @@ public class ExportCreateParam {
     @XmlElementWrapper(required = false)
     /**
      * The hosts to which the volumes will be exported.
-     * @valid none
      */
     @XmlElement(name = "host")
     public List<URI> getHosts() {
@@ -90,7 +88,6 @@ public class ExportCreateParam {
     /**
      * List of initiators to which the shared storage is made 
      * visible.
-     * @valid none
      */
     @XmlElement(name = "initiator")
     public List<URI> getInitiators() {
@@ -120,7 +117,6 @@ public class ExportCreateParam {
     /**
      * The ViPR project to which this export will belong.
      * 
-     * @valid example: a valid URI of a ViPR project
      */
     @XmlElement(required = true)
     public URI getProject() {
@@ -135,7 +131,6 @@ public class ExportCreateParam {
      * The type of export group which, in turn, shall dictate
      * how masking views or storage groups will be created.
      * 
-     * @valid none
      */
     // @EnumType(ExportGroupType.class)
     @XmlElement(required = true)
@@ -150,7 +145,6 @@ public class ExportCreateParam {
     /**
      * The virtual array where this export is to be created.
      * 
-     * @valid example: a valid URI of a varray
      */
     @XmlElement(name = "varray", required = true)
     @JsonProperty("varray")
@@ -166,7 +160,6 @@ public class ExportCreateParam {
     /**
      * List of volume or snapshot URIs that make up this export. 
      * They must belong to the same virtual array of the export.
-     * @valid none
      */
     @XmlElement(name = "volume")
     public List<VolumeParam> getVolumes() {

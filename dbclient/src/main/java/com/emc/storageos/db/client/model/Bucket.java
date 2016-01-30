@@ -43,6 +43,8 @@ public class Bucket extends DataObject implements ProjectResource {
     private String _owner;
     // native device ID as created by storage device
     private String _nativeId;
+    
+    private String comment;
 
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
@@ -201,4 +203,15 @@ public class Bucket extends DataObject implements ProjectResource {
         this.name = name;
         setChanged("name");
     }
+
+    @Name("comment")
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+        setChanged("comment");
+    }
+    
 }

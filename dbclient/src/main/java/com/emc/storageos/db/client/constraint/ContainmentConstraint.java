@@ -790,11 +790,11 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("tenantOrg");
             return new ContainmentConstraintImpl(tenantOrg, SchedulePolicy.class, field);
         }
-    }
         
         public static ContainmentConstraint getStorageDeviceObjectNamespaceConstraint(URI device) {
             DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
             ColumnField field = doType.getColumnField(STORAGE_DEVICE);
             return new ContainmentConstraintImpl(device, ObjectNamespace.class, field);
         }
+    }
 }

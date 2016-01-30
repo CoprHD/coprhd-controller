@@ -1053,7 +1053,10 @@ public class SchemaUtil {
     }
 
     public void insertVdcVersion(final DbClient dbClient) {
-
+        insertOrUpdateVdcVersion(dbClient, false);
+    }
+    
+    public void insertOrUpdateVdcVersion(final DbClient dbClient, boolean update) {
         String dbFullVersion = this._service.getVersion();
         String[] parts = StringUtils.split(dbFullVersion, DbConfigConstants.VERSION_PART_SEPERATOR);
         String version = parts[0] + "." + parts[1];
@@ -1061,13 +1064,6 @@ public class SchemaUtil {
 
         List<URI> vdcVersionIds = dbClient.queryByType(VdcVersion.class, true);
         List<VdcVersion> vdcVersions = dbClient.queryObject(VdcVersion.class, vdcVersionIds);
-        _log.info("insert Vdc db version vdcId={}, dbVersion={}", vdcId, version);
-
-        if (isVdcVersionExist(vdcVersions, vdcId, version)) {
-            _log.info("Vdc db version exists already, skip insert");
-            return;
-        }
-
         VdcVersion vdcVersion = getVdcVersion(vdcVersions, vdcId);
 
         if (vdcVersion == null) {
@@ -1077,15 +1073,17 @@ public class SchemaUtil {
             vdcVersion.setVdcId(vdcId);
             vdcVersion.setVersion(version);
             dbClient.createObject(vdcVersion);
+        } else {
+            _log.info("Skip inserting because Vdc version exists for vdc={}, dbVersion={}", vdcId, version);
         }
 
-        if (!vdcVersion.getVersion().equals(version)) {
+        if (update && !vdcVersion.getVersion().equals(version)) {
             _log.info("update Vdc db version vdc={} to dbVersion={}", vdcId, version);
             vdcVersion.setVersion(version);
             dbClient.persistObject(vdcVersion);
         }
     }
-
+    
     private static VdcVersion getVdcVersion(List<VdcVersion> vdcVersions, URI vdcId) {
         if (vdcVersions == null || !vdcVersions.iterator().hasNext()) {
             return null;
@@ -1099,19 +1097,6 @@ public class SchemaUtil {
         return null;
     }
 
-    private static boolean isVdcVersionExist(final List<VdcVersion> vdcVersions, final URI vdcId, final String version) {
-        if (vdcVersions == null || !vdcVersions.iterator().hasNext()) {
-            return false;
-        }
-        String origVersion = null;
-        for (VdcVersion vdcVersion : vdcVersions) {
-            if (vdcVersion.getVdcId().equals(vdcId)) {
-                origVersion = vdcVersion.getVersion();
-            }
-        }
-        return origVersion != null && version.equals(origVersion);
-    }
-    
     public boolean dropUnusedCfsIfExists() {
         AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         try {

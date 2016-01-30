@@ -17,6 +17,7 @@ import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,10 +60,6 @@ public class VdcManager extends AbstractManager {
     private UpgradeManager upgradeManager;
     @Autowired
     private AuditLogManager auditMgr;
-
-    @Autowired
-    GeoClientCacheManager geoClientManager;
-
     @Autowired
     DbClient dbClient;
 
@@ -244,9 +241,13 @@ public class VdcManager extends AbstractManager {
             // Step 6 : check backward compatible upgrade flag
             try {
                 if (backCompatPreYoda) {
-                    log.info("Check if pre-yoda upgrade is done");
-                    checkPreYodaUpgrade();
-                    continue;
+                    if (isGeoConfig() && !isLeadVdcForGeoUpgrade()) {
+                        log.info("Skip pre-yoda upgrade handling for non lead vdc");
+                    } else {
+                        log.info("Check if pre-yoda upgrade is done");
+                        checkPreYodaUpgrade();
+                        continue;
+                    }
                 }
             } catch (Exception ex) {
                 log.error("Step5: Failed to set back compat yoda upgrade. {}", ex);
@@ -363,10 +364,6 @@ public class VdcManager extends AbstractManager {
                 || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",");
     }
     
-    private boolean isGeoConfigChange() {
-        return isGeoConfig() && !StringUtils.equals(targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS), localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS));
-    }
-    
     /**
      * Update vdc properties and reboot the node if
      *
@@ -375,29 +372,31 @@ public class VdcManager extends AbstractManager {
      */
     private void updateVdcProperties(String svcId) throws Exception {
         String action = targetSiteInfo.getActionRequired();
-        boolean isGeoConfigChange = isGeoConfigChange();
         
-        log.info("Step3: Process vdc op handlers, action = {}", action);
+        log.info("Step5: Process vdc op handlers, action = {}", action);
         VdcOpHandler opHandler = getOpHandler(action);
         opHandler.setTargetSiteInfo(targetSiteInfo);
         opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
         opHandler.setLocalVdcPropInfo(localVdcPropInfo);
         opHandler.execute();
         
-        //Flush vdc properties includes VDC_CONFIG_VERSION to disk
+        if (opHandler.isRollingRebootNeeded()) {
+            log.info("Step5: Rolling reboot detected for vdc operation {}", action);
+            rollingReboot(svcId); // keep same behaviour as previous releases. always do rolling reboot
+        } else if (opHandler.isConcurrentRebootNeeded()) {
+            log.info("Step5: Concurent reboot for operation handler {}", action);
+            commitVdcConfigVersionToLocal();
+            reboot();
+        } else {
+            commitVdcConfigVersionToLocal();
+        }
+    }
+    
+    private void commitVdcConfigVersionToLocal() {
+        // Flush vdc properties includes VDC_CONFIG_VERSION to disk
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
         vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
         localRepository.setVdcPropertyInfo(vdcProperty);
-        
-        if (isGeoConfigChange) {
-            log.info("Step3: Geo config change detected");
-            rollingReboot(svcId); // keep same behaviour as previous releases. always do rolling reboot
-        } else {
-            if (opHandler.isRebootNeeded()) {
-                log.info("Reboot for operation handler {}", opHandler.getClass().getName());
-                reboot();
-            }
-        }
     }
     
     /**
@@ -557,7 +556,6 @@ public class VdcManager extends AbstractManager {
             SiteError error = getSiteError(site);
             if (error != null) {
                 coordinatorClient.setTargetInfo(site.getUuid(), error);
-
                 site.setState(SiteState.STANDBY_ERROR);
                 coordinatorClient.persistServiceConfiguration(site.toConfiguration());
             }
@@ -650,121 +648,62 @@ public class VdcManager extends AbstractManager {
     private void checkPreYodaUpgrade() throws Exception {
         if (!dbMigrationDone()) {
             log.info("Migration to yoda is not completed. Sleep and retry later. isMigrationDone flag = {}", coordinator.isDBMigrationDone());
-            sleep(BACK_UPGRADE_RETRY_MILLIS);
+            retrySleep();
             return;
         }
-
+        if (!drUtil.isAllSitesStable()) {
+            log.info("Current cluster is not stable. Skip and retry later");
+            retrySleep();
+            return;
+        }
+        if (isGeoConfig() && !allVdcGetUpgradedToYoda()) {
+            log.info("Sleep and wait for all vdc upgraded to yoda.");
+            retrySleep();
+            return;
+        }
+        
         log.info("Db migration is done. Switch to IPSec mode");
+        enableIpsec();
+    }
 
-        if (isGeoConfig()) {
-            if (allVdcGetUpgradedToYoda()) {
-                postUpgradeForGeo();
+    private void enableIpsec() throws Exception{
+        InterProcessLock lock = null;
+        try {
+            lock = coordinator.getCoordinatorClient().getSiteLocalLock("ipseclock");
+            lock.acquire();
+            log.info("Acquired the lock {}", "ipseclock");
+            
+            String preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
+            if (StringUtil.isBlank(preSharedKey)) {
+                log.info("No pre shared key in zk, generate a new key");
+                ipsecMgr.rotateKey(true);
             } else {
-                log.info("Sleep and wait for all vdc upgraded to yoda.");
-                retrySleep();   
+                log.info("First ipsec key found in zk. No need to regenerate it");
             }
-        } else {
-            postUpgradeForSingleVdc();
+        } finally {
+            lock.release();
         }
     }
 
-    private void postUpgradeForSingleVdc() throws Exception {
-        targetVdcPropInfo = loadVdcConfig(); // refresh local vdc config
-
-        // To trigger ipsec key rotation
-        VdcOpHandler opHandler = getOpHandler(SiteInfo.IPSEC_OP_ENABLE_INIT);
-        opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
-        opHandler.setTargetSiteInfo(targetSiteInfo);
-        opHandler.execute();
-
-        // Then do rolling reboot if ready
-        if (ipsecMgr.isKeyRotationDone()) {
-            log.info("IPsec key rotation for upgrade is done. Starting rolling reboot.");
-
-            // update backCompatPreYoda to false everywhere
-            vdcConfigUtil.setBackCompatPreYoda(false);
-            upgradeManager.setBackCompatPreYoda(false);
-            backCompatPreYoda = false;
-            targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
-            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-
-            rollingRestartDbSvc();
-        }
-    }
-
-    private void postUpgradeForGeo() throws Exception {
-        targetVdcPropInfo = loadVdcConfig(); // refresh local vdc config
-
-        if (isVdcHasMinID()) {
-            log.info("The VDC {} has min ID so initiate ipsec enabling..");
-            VdcOpHandler opHandler = getOpHandler(SiteInfo.IPSEC_OP_ENABLE_INIT);
-            opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
-            opHandler.setTargetSiteInfo(targetSiteInfo);
-            opHandler.execute();
-        }
-
-        if (ipsecSyncedLocally()) {
-            log.info("IPsec is enabled locally. Ready to disable db ssl.");
-
-            // update backCompatPreYoda to false everywhere
-            vdcConfigUtil.setBackCompatPreYoda(false);
-            upgradeManager.setBackCompatPreYoda(false);
-            backCompatPreYoda = false;
-            targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
-            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-
-            rollingRestartDbSvc();
-        }
-    }
-
-    private boolean ipsecSyncedLocally() throws Exception {
-        localVdcPropInfo = localRepository.getVdcPropertyInfo();
-        targetVdcPropInfo = loadVdcConfig();
-        String localEnabled = localVdcPropInfo.getProperty(IPsecConfig.IPSEC_STATUS);
-        if (localEnabled == null || localEnabled.equals(IPsecManager.STATUS_DISABLED) ) {
-            return false;
-        }
-        return !vdcPropertiesChanged();
-    }
-
-    private void rollingRestartDbSvc() {
-        while (doRun) {
-            log.info("Acquiring reboot lock for changes post upgrade.");
-            final String svcId = coordinator.getMySvcId();
-            if (!getRebootLock(svcId)) {
-                retrySleep();
-                continue;
-            }
-
-            if (!isQuorumMaintained()) {
-                releaseRebootLock(svcId);
-                retrySleep();
-                continue;
-            }
-
-            try {
-                log.info("Rolling restart the db and geodb");
-                restartdb();
-            } finally {
-                releaseRebootLock(svcId);
-            }
-            return;
-        }
-    }
-
-    private boolean isVdcHasMinID() {
+    /**
+     * We pick only one vdc assumes the role to rotate ipsec key in post yoda. As default the vdc with 
+     * least vdc short id is the lead
+     * 
+     * @return true if current vdc is the lead 
+     */
+    private boolean isLeadVdcForGeoUpgrade() {
         String localId = drUtil.getLocalVdcShortId();
         String strVdcIds = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
         String[] vdcIds = strVdcIds.split(",");
 
         for (String id : vdcIds) {
             if (localId.compareToIgnoreCase(id) > 0 ) {
-                log.info("The VDC ID {} is greater than {}.", localId, id);
+                log.info("Current VDC {} is greater than {}.", localId, id);
                 return false;
             }
         }
 
-        log.info("The VDC ID {} is the min one of all {}", localId, strVdcIds);
+        log.info("Current VDC {} is the lead in current geo {}", localId, strVdcIds);
         return true;
     }
 
@@ -780,12 +719,6 @@ public class VdcManager extends AbstractManager {
         log.info("If Geo DB is upgraded to Yoda: {}", toYOda);
         return toYOda;
     }
-
-    private void restartdb() {
-        localRepository.reconfig();
-        localRepository.restart("db");
-        localRepository.restart("geodb");
-    }
     
     private void rollingReboot(String svcId) {
         while (doRun) {
@@ -796,6 +729,7 @@ public class VdcManager extends AbstractManager {
                 releaseRebootLock(svcId);
                 retrySleep();
             } else {
+                commitVdcConfigVersionToLocal();
                 reboot();
             }
         }

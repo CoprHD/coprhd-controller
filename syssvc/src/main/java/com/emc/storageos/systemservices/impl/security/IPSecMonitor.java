@@ -51,6 +51,7 @@ public class IPSecMonitor implements Runnable {
                 IPSEC_CHECK_INITIAL_DELAY,
                 IPSEC_CHECK_INTERVAL,
                 TimeUnit.MINUTES);
+        GeoServiceClient.setMaxRetries(3);
         log.info("scheduled IPSecMonitor.");
     }
 

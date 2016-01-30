@@ -2596,7 +2596,11 @@ public class FileService extends TaskResourceService {
             fileServiceApi.deleteFileSystems(device.getId(), fileShareURIs,
                     param.getDeleteType(), param.getForceDelete(), deleteMirrorCopies, task);
             // Reset mirror properties of fs!!
-            fs.setMirrorfsTargets(null);
+            StringSet mirrorSet = fs.getMirrorfsTargets();
+            if (mirrorSet != null) {
+                mirrorSet.clear();
+                fs.setMirrorfsTargets(mirrorSet);
+            }
             fs.setMirrorStatus(MirrorStatus.DETACHED.name());
             _dbClient.updateObject(fs);
         } catch (InternalException e) {

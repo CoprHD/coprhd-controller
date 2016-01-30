@@ -58,7 +58,7 @@ public class FileDescriptor implements Serializable {
         FILE_EXISTING_SOURCE(4),        // existing source file
         FILE_MIRROR_SOURCE(5),          // remote mirror source
         FILE_MIRROR_TARGET(6),          // remote mirror target
-        FILE_VPOOL_CHANGE_SOURCE(7);
+        FILE_EXISTING_MIRROR_SOURCE(7);
 
         private final int order;
 

@@ -20,6 +20,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
+import com.emc.storageos.volumecontroller.impl.file.CreateMirrorFileSystemsCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileSystemVpoolChangeCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
@@ -39,6 +40,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String CREATE_FILESYSTEMS_WF_NAME = "CREATE_FILESYSTEMS_WORKFLOW";
     static final String DELETE_FILESYSTEMS_WF_NAME = "DELETE_FILESYSTEMS_WORKFLOW";
     static final String CHANGE_FILESYSTEMS_VPOOL_WF_NAME = "CHANGE_FILESYSTEMS_VPOOL_WORKFLOW";
+    static final String CREATE_MIRROR_FILESYSTEMS_WF_NAME = "CREATE_MIRROR_FILESYSTEMS_WF_NAME";
 
     /*
      * (non-Javadoc)
@@ -127,6 +129,63 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String waitFor = null;    // the wait for key returned by previous call
 
             s_logger.info("Generating steps for change vpool of filesystem");
+            // First, call the FileDeviceController to add its methods.
+            // To create target file systems!!
+            waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
+                    fileDescriptors, taskId);
+            // second, call create replication link or pair
+            waitFor = _fileReplicationDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
+                    fileDescriptors, taskId);
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Change filesystems vpool successful for: " + fs;
+            Object[] callbackArgs = new Object[] { fsUris };
+            workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not change the filesystem vpool: " + fs, ex);
+            releaseWorkflowLocks(workflow);
+            String opName = ResourceOperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+                    fsUris.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController#changeFileSystemVirtualPool(java.util.List,
+     * java.lang.String)
+     */
+
+    /**
+     * Create target filesystems for existing file systems!!
+     * (FileShare, FileMirroring). This method is responsible for creating
+     * a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystems
+     * 
+     * @param filesystems
+     * @param taskId
+     * @throws ControllerException
+     */
+    @Override
+    public void createTargetsForExistingSource(String fs, List<FileDescriptor> fileDescriptors,
+            String taskId) throws ControllerException {
+
+        // Generate the Workflow.
+        Workflow workflow = null;
+        List<URI> fsUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
+
+        CreateMirrorFileSystemsCompleter completer = new CreateMirrorFileSystemsCompleter(fsUris, taskId, fileDescriptors);
+        try {
+            // Generate the Workflow.
+            workflow = _workflowService.getNewWorkflow(this,
+                    CREATE_MIRROR_FILESYSTEMS_WF_NAME, false, taskId);
+            String waitFor = null;    // the wait for key returned by previous call
+
+            s_logger.info("Generating steps for creating mirror filesystems...");
             // First, call the FileDeviceController to add its methods.
             // To create target file systems!!
             waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor,

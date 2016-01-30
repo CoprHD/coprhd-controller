@@ -125,8 +125,9 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             FileDescriptor.Type fileType = FileDescriptor.Type.FILE_MIRROR_SOURCE;
 
             // Source desc type for vpool change file system!!
-            if (cosCapabilities.getFileSystemVPoolChange()) {
-                fileType = FileDescriptor.Type.FILE_VPOOL_CHANGE_SOURCE;
+            // Source desc type to create mirrors for existing file system!!
+            if (cosCapabilities.createMirrorExistingFileSystem()) {
+                fileType = FileDescriptor.Type.FILE_EXISTING_SOURCE;
             }
             if (filesystem.getPersonality() != null &&
                     filesystem.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())) {
@@ -183,6 +184,45 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             throw e;
         } catch (Exception e) {
             _log.error("Controller error when changing filesystem vpool", e);
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
+            throw e;
+        }
+        return taskList.getTaskList().get(0);
+    }
+
+    @Override
+    public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        List<FileShare> fileList = null;
+        List<FileShare> fileShares = new ArrayList<FileShare>();
+
+        FileSystemParam fsParams = new FileSystemParam();
+        fsParams.setFsId(fs.getId().toString());
+        fsParams.setLabel(fs.getLabel());
+        fsParams.setVarray(fs.getVirtualArray());
+        fsParams.setVpool(fs.getVirtualPool());
+
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+
+        // Prepare the FileShares
+        fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
+                varray, vpool, recommendations, vpoolCapabilities, false);
+        fileShares.addAll(fileList);
+
+        // prepare the file descriptors
+        final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);
+        final FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        try {
+            // Execute the create mirror copies of fileshare!!!
+            controller.createTargetsForExistingSource(fs.getId().toString(), fileDescriptors, task);
+        } catch (InternalException e) {
+            _log.error("Controller error when creating mirror filesystems", e);
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            _log.error("Controller error when creating mirror filesystems", e);
             failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
             throw e;
         }
@@ -265,7 +305,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
             // Get the source file share!!
             FileShare sourceFileShare = getPrecreatedFile(taskList, param.getLabel());
-            if (!cosCapabilities.getFileSystemVPoolChange()) {
+            if (!cosCapabilities.createMirrorExistingFileSystem()) {
                 // Set the recommendation only for source file systems which are not meant for vpool change!!
                 _log.info(String.format("createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
                         sourceFileShare.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));

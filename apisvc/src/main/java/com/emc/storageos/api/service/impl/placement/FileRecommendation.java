@@ -20,7 +20,7 @@ public class FileRecommendation extends Recommendation {
         FILE_SYSTEM_SOURCE,    // local mirror
         FILE_SYSTEM_COPY,      // full copy
         FILE_SYSTEM_TARGET,     // remote mirror file
-        FILE_SYSTEM_CHANGE_VPOOL // Change vpool of fs
+        FILE_SYSTEM_EXISTING_SOURCE // Change vpool and create mirror copies of fs
     };
 
     private static final long serialVersionUID = 1L;

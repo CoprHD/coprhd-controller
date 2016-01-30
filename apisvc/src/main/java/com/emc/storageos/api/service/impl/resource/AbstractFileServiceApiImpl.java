@@ -163,6 +163,13 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         throw APIException.methodNotAllowed.notSupported();
     }
 
+    @Override
+    public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+
     /**
      * get delete file share Descriptors
      * 

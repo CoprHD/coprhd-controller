@@ -113,7 +113,7 @@ public class FileMirrorSchedular implements Scheduler {
 
         List<FileRecommendation> sourceFileRecommendations = new ArrayList<FileRecommendation>();
         // For vPool change get the recommendations from source file system!!!
-        if (capabilities.getFileSystemVPoolChange()) {
+        if (capabilities.createMirrorExistingFileSystem()) {
             sourceFileRecommendations = getFileRecommendationsForSourceFS(vArray, vPool, capabilities);
         } else {
             // Get the recommendation for source from vpool!!!
@@ -182,7 +182,7 @@ public class FileMirrorSchedular implements Scheduler {
 
         List<FileRecommendation> sourceFileRecommendations = new ArrayList<FileRecommendation>();
         // For vPool change get the recommendations from source file system!!!
-        if (capabilities.getFileSystemVPoolChange()) {
+        if (capabilities.createMirrorExistingFileSystem()) {
             sourceFileRecommendations = getFileRecommendationsForSourceFS(vArray, vPool, capabilities);
         } else {
             // Get the recommendation for source from vpool!!!
@@ -276,7 +276,7 @@ public class FileMirrorSchedular implements Scheduler {
 
         FileRecommendation fileRecommendation = new FileRecommendation();
         fileRecommendation.setSourceStorageSystem(sourceFs.getStorageDevice());
-        fileRecommendation.setFileType(FileType.FILE_SYSTEM_CHANGE_VPOOL);
+        fileRecommendation.setFileType(FileType.FILE_SYSTEM_EXISTING_SOURCE);
         fileRecommendation.setVirtualArray(sourceFs.getVirtualArray());
         fileRecommendation.setDeviceType(storageSystem.getSystemType());
         // set vnas Server
@@ -300,8 +300,8 @@ public class FileMirrorSchedular implements Scheduler {
         // Get the source file system and storage system
         // which was set at in FileService
         // to construct the source recommendations!!
-        FileShare sourceFs = capabilities.getSourceFileSystemVPoolChange();
-        StorageSystem storageSystem = capabilities.getSourceStorageDeviceVPoolChange();
+        FileShare sourceFs = capabilities.getSourceFileSystem();
+        StorageSystem storageSystem = capabilities.getSourceStorageDevice();
 
         // Get the Matched pools from target virtual pool
         // Verify that at least a matched pools from source storage system!!!

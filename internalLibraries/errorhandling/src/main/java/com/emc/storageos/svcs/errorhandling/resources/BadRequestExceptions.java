@@ -2841,4 +2841,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForFileSystemVpoolChange(final URI varrayId,
             final URI vPoolId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToCreateMirrorCopies(final URI fsUri, String reason);
 }

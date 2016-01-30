@@ -49,9 +49,9 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public static final String FILE_REPLICATION_SOURCE = "file_replication_source";
     public static final String FILE_REPLICATION_TARGET = "file_replication_target";
-    public static final String FILE_SYSTEM_VPOOL_CHANGE = "file_system_vpool_change";
-    public static final String VPOOL_CHANGE_SOURCE_FS = "vpool_change_source_fs";
-    public static final String VPOOL_CHANGE_SOURCE_STORAGE = "vpool_change_source_storage";
+    public static final String FILE_SYSTEM_CREATE_MIRROR_COPY = "file_system_create_mirror_copy";
+    public static final String EXISTING_SOURCE_FILE_SYSTEM = "existing_source_file_system";
+    public static final String SOURCE_STORAGE_SYSTEM = "source_storage_system";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -165,12 +165,12 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(META_VOLUME_TYPE)) {
             _vpoolCapabilities.put(META_VOLUME_TYPE, capabilities.getMetaVolumeType());
         }
-        
-        if(capabilities.contains(SUPPORT_SOFT_LIMIT)) {
+
+        if (capabilities.contains(SUPPORT_SOFT_LIMIT)) {
             _vpoolCapabilities.put(SUPPORT_SOFT_LIMIT, capabilities.getSupportsSoftLimit());
         }
-        
-        if(capabilities.contains(SUPPORT_NOTIFICATION_LIMIT)) {
+
+        if (capabilities.contains(SUPPORT_NOTIFICATION_LIMIT)) {
             _vpoolCapabilities.put(SUPPORT_NOTIFICATION_LIMIT, capabilities.getSupportsNotificationLimit());
         }
 
@@ -314,12 +314,12 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(META_VOLUME_TYPE);
         return value != null ? (String) value : null;
     }
-    
+
     public Boolean getSupportsSoftLimit() {
         Object value = _vpoolCapabilities.get(SUPPORT_SOFT_LIMIT);
         return value != null ? (boolean) value : false;
     }
-    
+
     public Boolean getSupportsNotificationLimit() {
         Object value = _vpoolCapabilities.get(SUPPORT_NOTIFICATION_LIMIT);
         return value != null ? (boolean) value : false;
@@ -345,18 +345,18 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (String) value : null;
     }
 
-    public boolean getFileSystemVPoolChange() {
-        Object value = _vpoolCapabilities.get(FILE_SYSTEM_VPOOL_CHANGE);
+    public boolean createMirrorExistingFileSystem() {
+        Object value = _vpoolCapabilities.get(FILE_SYSTEM_CREATE_MIRROR_COPY);
         return value != null ? (Boolean) value : false;
     }
 
-    public FileShare getSourceFileSystemVPoolChange() {
-        Object value = _vpoolCapabilities.get(VPOOL_CHANGE_SOURCE_FS);
+    public FileShare getSourceFileSystem() {
+        Object value = _vpoolCapabilities.get(EXISTING_SOURCE_FILE_SYSTEM);
         return value != null ? (FileShare) value : null;
     }
 
-    public StorageSystem getSourceStorageDeviceVPoolChange() {
-        Object value = _vpoolCapabilities.get(VPOOL_CHANGE_SOURCE_STORAGE);
+    public StorageSystem getSourceStorageDevice() {
+        Object value = _vpoolCapabilities.get(SOURCE_STORAGE_SYSTEM);
         return value != null ? (StorageSystem) value : null;
     }
 

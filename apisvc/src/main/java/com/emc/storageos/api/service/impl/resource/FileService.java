@@ -63,6 +63,8 @@ import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -102,6 +104,7 @@ import com.emc.storageos.model.file.FileExportUpdateParam;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyList;
 import com.emc.storageos.model.file.FilePolicyRestRep;
+import com.emc.storageos.model.file.FileReplicationCreateParam;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -1090,12 +1093,12 @@ public class FileService extends TaskResourceService {
         if (expand < MIN_EXPAND_SIZE) {
             throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
         }
-        
+
         Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, expand, "filesystem");
-        
+
         FileController controller = getController(FileController.class,
                 device.getSystemType());
 
@@ -1680,9 +1683,9 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
         quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
         quotaDirectory.setSoftLimit(param.getSoftLimit() != 0 ? param.getSoftLimit() :
-            fs.getSoftLimit() != null ? fs.getSoftLimit().intValue() : 0);
+                fs.getSoftLimit() != null ? fs.getSoftLimit().intValue() : 0);
         quotaDirectory.setSoftGrace(param.getSoftGrace() != 0 ? param.getSoftGrace() :
-            fs.getSoftGracePeriod() != null ? fs.getSoftGracePeriod() : 0);
+                fs.getSoftGracePeriod() != null ? fs.getSoftGracePeriod() : 0);
         quotaDirectory.setNotificationLimit(param.getNotificationLimit() != 0 ? param.getNotificationLimit()
                 : fs.getNotificationLimit() != null ? fs.getNotificationLimit().intValue() : 0);
 
@@ -2399,9 +2402,9 @@ public class FileService extends TaskResourceService {
         }
         // Set the source file system details
         // source fs details used in finding recommendations for target fs!!
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_VPOOL_CHANGE, Boolean.TRUE);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_CHANGE_SOURCE_FS, fs);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_CHANGE_SOURCE_STORAGE, device);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
 
         FileServiceApi fileServiceApi = getFileServiceImpl(newVpool, _dbClient);
 
@@ -2429,6 +2432,103 @@ public class FileService extends TaskResourceService {
         }
         auditOp(OperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getLabel(), currentVpool.getLabel(), newVpool.getLabel(),
+                project == null ? null : project.getId().toString());
+
+        return taskList.getTaskList().get(0);
+    }
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/create")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep createContinuousCopies(@PathParam("id") URI id, FileReplicationCreateParam param)
+            throws InternalException, APIException {
+
+        _log.info("Request to create replication copies for filesystem {}", id);
+
+        // Validate the FS id.
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+        FileShare orgFs = queryResource(id);
+        String task = UUID.randomUUID().toString();
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        TaskList taskList = new TaskList();
+
+        // Make sure that we don't have some pending
+        // operation against the file system!!!
+        checkForPendingTasks(Arrays.asList(fs.getTenant().getURI()), Arrays.asList(fs));
+
+        // Get the project.
+        URI projectURI = fs.getProject().getURI();
+        Project project = _permissionsHelper.getObjectById(projectURI,
+                Project.class);
+        ArgValidator.checkEntity(project, projectURI, false);
+        _log.info("Found filesystem project {}", projectURI);
+
+        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+
+        // Verify the file system and its vPool are capable of doing replication!!!
+        if (!isSupportedFileReplicationCreate(fs, currentVpool, notSuppReasonBuff)) {
+            _log.error("create mirror copies is not supported for file system {} due to {}",
+                    fs.getId().toString(), notSuppReasonBuff.toString());
+            throw APIException.badRequests.unableToCreateMirrorCopies(
+                    fs.getId(), notSuppReasonBuff.toString());
+        }
+
+        // Get the virtual array!!!
+        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());
+
+        // New operation
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_MIRROR_COPIES);
+        op.setDescription("Create file system mirror operation");
+        op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task, op);
+
+        TaskResourceRep fileSystemTask = toTask(fs, task, op);
+        taskList.getTaskList().add(fileSystemTask);
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+
+        // prepare vpool capability values
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(currentVpool.getSupportedProvisioningType())) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+        }
+        // Set the source file system details
+        // source fs details used in finding recommendations for target fs!!
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
+
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+
+        try {
+            // Call out placementManager to get the recommendation for placement.
+            List recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(
+                    varray, project, currentVpool, capabilities);
+
+            // Verify the source virtual pool recommendations meets source fs storage!!!
+            fileServiceApi.createTargetsForExistingSource(fs, project,
+                    currentVpool, varray, taskList, task, recommendations, capabilities);
+        } catch (InternalException e) {
+            if (_log.isErrorEnabled()) {
+                _log.error("createContinuousCopies error ", e);
+            }
+
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
+            op = fs.getOpStatus().get(task);
+            op.error(e);
+            fileShare.getOpStatus().updateTaskStatus(task, op);
+            // Revert the file system to original state!!!
+            restoreFromOriginalFs(orgFs, fs);
+            _dbClient.updateObject(fs);
+            throw e;
+        }
+        auditOp(OperationTypeEnum.CREATE_MIRROR_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
+                fs.getLabel(), currentVpool.getLabel(), fs.getLabel(),
                 project == null ? null : project.getId().toString());
 
         return taskList.getTaskList().get(0);
@@ -2764,5 +2864,63 @@ public class FileService extends TaskResourceService {
         fs.setAccessState(orgFs.getAccessState());
         fs.setMirrorfsTargets(orgFs.getMirrorfsTargets());
         fs.setParentFileShare(orgFs.getParentFileShare());
+    }
+
+    /**
+     * Checks to see if the file replication change is supported.
+     * 
+     * @param currentVpool the source virtual pool
+     * @param newVpool the target virtual pool
+     * @param notSuppReasonBuff the not supported reason string buffer
+     * @return
+     */
+    private boolean isSupportedFileReplicationCreate(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff) {
+        _log.info(String.format("Checking isSupportedFileReplicationCreate for Fs [%s] with vpool [%s]...", fs.getLabel(),
+                currentVpool.getLabel()));
+
+        // file system virtual pool must be enabled with replication!!
+        if (!VirtualPool.vPoolSpecifiesFileReplication(currentVpool)) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("File replication is not enable in file system virtual pool %s.",
+                                    currentVpool.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // File system should not be the target file system!!
+        if (fs.getPersonality() != null &&
+                fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("File system given in request is an active Target file system %s.",
+                                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // File system should not be the active source file system!!
+        if (fs.getPersonality() != null
+                && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
+                && !MirrorStatus.DETACHED.name().equalsIgnoreCase(fs.getMirrorStatus())) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("File system given in request is an active source file system %s.",
+                                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // File system should not have any active mirror copies!!
+        if (fs.getMirrorfsTargets() != null
+                && !fs.getMirrorfsTargets().isEmpty()) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("File system given in request has active target file system %s.",
+                                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+        return true;
     }
 }

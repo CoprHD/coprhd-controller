@@ -77,6 +77,15 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
     }
 
     @Override
+    public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        return getFileMirrorServiceApiImpl().createTargetsForExistingSource(fs, project, vpool, varray, taskList,
+                task, recommendations, vpoolCapabilities);
+
+    }
+
+    @Override
     protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(
             URI systemURI, List<URI> fileShareURIs, String deletionType, boolean forceDelete) {
         List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();

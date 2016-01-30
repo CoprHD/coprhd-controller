@@ -106,7 +106,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
         List<FileDescriptor> fileDescriptors = FileDescriptor.filterByType(filesystems,
                 new FileDescriptor.Type[] { FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                        FileDescriptor.Type.FILE_MIRROR_TARGET, FileDescriptor.Type.FILE_VPOOL_CHANGE_SOURCE },
+                        FileDescriptor.Type.FILE_MIRROR_TARGET, FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE },
                 new FileDescriptor.Type[] {});
         if (fileDescriptors.isEmpty()) {
             log.info("No Create Mirror  Steps required");
@@ -174,7 +174,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
         List<FileDescriptor> sourceDescriptors =
                 FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                        FileDescriptor.Type.FILE_VPOOL_CHANGE_SOURCE);
+                        FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE);
 
         Map<URI, FileShare> uriFileShareMap = queryFileShares(fileDescriptors);
         // call to create mirror session

@@ -554,11 +554,11 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             String successMsg = String.format("Failback of %s to %s successful", sourceFileShare, targetfileUris.toString());
             workflow.executePlan(taskCompleter, successMsg);
         } catch (InternalException e) {
-            log.error("Failed to perform failback action of MirrorFileShare", e);
+            log.error("Failed to perform protection action failback of MirrorFileShare", e);
             doFailTask(FileShare.class, asList(sourceFileShare.getId()), taskId, e);
             WorkflowStepCompleter.stepFailed(taskId, e);
         } catch (Exception e) {
-            log.error("Failed to create full copy of volume", e);
+            log.error("Failed to perform protection action failback of MirrorFileShare", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             doFailTask(FileShare.class, asList(sourceFileShare.getId()), taskId, serviceError);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
@@ -577,7 +577,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         StorageSystem secondarysystem = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
         Workflow.Method resyncMethodStep1 = resyncPrepMirrorPairMeth(primarysystem.getId(), secondarysystem.getId(),
-                sourceFileShare.getId(), mirrorPolicyName);
+                sourceFileShare.getId(), policyName);
 
         String descresyncPrepStep1 = String.format("Creating resyncprep between source- %s and target %s", primarysystem.getLabel(),
                 secondarysystem.getLabel());
@@ -714,14 +714,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
      * rollback method is invoked. It says the rollback step succeeded,
      * which will then allow other rollback operations to execute for other
      * workflow steps executed by the other controller.
-     *
-     * See the VPlexDeviceController restoreVolume method which creates a
-     * workflow step that invokes the BlockDeviceController restoreVolume
-     * method. The rollback method for this step is this no-op. If the
-     * BlockDeviceController restoreVolume step fails, this rollback
-     * method is invoked, which simply says the rollback for the step
-     * was successful. This in turn allows the other steps in the workflow
-     * rollback.
      *
      * @param stepId The id of the step being rolled back.
      *

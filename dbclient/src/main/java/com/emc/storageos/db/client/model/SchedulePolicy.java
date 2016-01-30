@@ -40,22 +40,25 @@ public class SchedulePolicy extends DiscoveredDataObject {
     // Day of month when policy run
     private Long scheduleDayOfMonth;
 
-    // Snapshot expire type e.g hours, days, weeks or months
+    // Snapshot expire type e.g hours, days, weeks, months or never
     private String snapshotExpireType;
 
     // Snapshot expire at
     private Long snapshotExpireTime;
+
+    // List of resources associated with schedule policy
+    private StringSet assignedResources;
 
     public static enum SchedulePolicyType {
         snapshot
     }
 
     public static enum ScheduleFrequency {
-        days, weeks, months
+        DAYS, WEEKS, MONTHS
     }
 
     public static enum SnapshotExpireType {
-        hours, days, weeks, months
+        HOURS, DAYS, WEEKS, MONTHS, NEVER
     }
 
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)
@@ -157,6 +160,19 @@ public class SchedulePolicy extends DiscoveredDataObject {
     public void setSnapshotExpireTime(Long snapshotExpireTime) {
         this.snapshotExpireTime = snapshotExpireTime;
         setChanged("snapshotExpireTime");
+    }
+
+    @Name("assignedResources")
+    public StringSet getAssignedResources() {
+        if (assignedResources == null) {
+            assignedResources = new StringSet();
+        }
+        return assignedResources;
+    }
+
+    public void setAssignedResources(StringSet assignedResources) {
+        this.assignedResources = assignedResources;
+        setChanged("assignedResources");
     }
 
     @Override

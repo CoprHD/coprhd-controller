@@ -24,7 +24,6 @@ public class TasksList {
     /**
      * List of projects
      * 
-     * @valid none
      * @return List of NamedRelatedResourceReps that reference Tasks 
      */
     @XmlElement(name = "task")

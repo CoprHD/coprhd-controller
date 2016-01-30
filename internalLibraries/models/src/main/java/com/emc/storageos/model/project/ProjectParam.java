@@ -24,7 +24,6 @@ public class ProjectParam {
     /**
      * Name of the project
      * 
-     * @valid any string within length limits
      */
     @XmlElement(required = true)
     @Length(min = 2, max = 128)

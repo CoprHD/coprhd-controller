@@ -39,7 +39,6 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     /**
      * URI and reference link to the snapshot session source.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getParent() {
@@ -53,7 +52,6 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     /**
      * URI and reference link of the project to which the snapshot belongs.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getProject() {
@@ -68,7 +66,6 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
      * List of target volumes, i.e., BlockSnapshot instances, linked to the
      * block snapshot session.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "linked_targets")
     @XmlElement(name = "linked_target")
@@ -86,7 +83,6 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     /**
      * User specified session label.
      * 
-     * @valid none
      */
     @XmlElement(name = "session_label")
     public String getSessionLabel() {

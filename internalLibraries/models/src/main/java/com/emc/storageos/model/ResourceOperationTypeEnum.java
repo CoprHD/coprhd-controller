@@ -327,7 +327,6 @@ public enum ResourceOperationTypeEnum {
     /**
      * The name of the resource operation
      * 
-     * @valid none
      */
     @XmlElement
     public String getName() {

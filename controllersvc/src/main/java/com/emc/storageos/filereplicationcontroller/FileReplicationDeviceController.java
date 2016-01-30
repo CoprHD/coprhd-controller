@@ -639,7 +639,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     public void resyncPrepMirrorFilePair(URI primarysystemURI, URI targetSystemURI, URI fileshareURI, String policyName, String opId) {
         TaskCompleter completer = null;
         StorageSystem primarySystem = dbClient.queryObject(StorageSystem.class, primarysystemURI);
-        StorageSystem secondarySystem = dbClient.queryObject(StorageSystem.class, primarysystemURI);
+        StorageSystem secondarySystem = dbClient.queryObject(StorageSystem.class, targetSystemURI);
         FileShare targetFileShare = dbClient.queryObject(FileShare.class, fileshareURI);
 
         completer = new MirrorFileResyncTaskCompleter(FileShare.class, targetFileShare.getId(), opId);

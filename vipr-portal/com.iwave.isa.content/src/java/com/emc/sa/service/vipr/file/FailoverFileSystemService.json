@@ -7,10 +7,14 @@
       type:"assetType.vipr.project",
       lockable: true
     },
-
-    failoverTargetFile:{
-      type:"assetType.vipr.project",
+    
+    fileSystem:{
+      type:"assetType.vipr.protectedFileFilesystem",
       lockable: true
+    },
+    
+    failoverTargetFile:{
+      type:"assetType.vipr.failoverFileTarget"
     }
   }
 }

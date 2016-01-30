@@ -13,15 +13,14 @@ import com.emc.sa.service.vipr.ViPRService;
 public class FailoverFileSystemService extends ViPRService {
 
     @Param(FILESYSTEM)
-    protected URI fileId;
+    protected URI failoverSource;
     
     @Param(FAILOVER_TARGET_FILE)
-    protected URI failoverTargetFile;
+    protected URI failoverTarget;
     
     @Override
     public void execute() throws Exception {
-        // TODO Auto-generated method stub
-        FileStorageUtils.failoverFileSystem(fileId, failoverTargetFile);
+        FileStorageUtils.failoverFileSystem(failoverSource, failoverTarget);
     }
 
 }

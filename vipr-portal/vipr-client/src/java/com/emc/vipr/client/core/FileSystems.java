@@ -580,7 +580,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the input configuration.
      * @return a task for monitoring the progress of the operation.
      */
-    public Tasks<FileShareRestRep> failover(URI id, CopiesParam input) {
+    public Tasks<FileShareRestRep> failover(URI id, FileReplicationParam input) {
         return postTasks(input, getContinuousCopiesUrl() + "/failover", id);
     }
     

@@ -345,7 +345,7 @@ public class FileStorageUtils {
     
     public static void failoverFileSystem(URI fileId, URI targetId) {
         execute(new PauseFileContinuousCopy(fileId, targetId, COPY_NATIVE));
-        Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId));
+        Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, COPY_NATIVE));
         addAffectedResources(tasks);
     }
 

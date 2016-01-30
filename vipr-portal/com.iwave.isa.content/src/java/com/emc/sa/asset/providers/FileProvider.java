@@ -4,6 +4,9 @@
  */
 package com.emc.sa.asset.providers;
 
+import static com.emc.vipr.client.core.util.ResourceUtils.name;
+import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,19 +25,29 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.MachineTagUtils;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.SmbShareResponse;
+import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
+import com.emc.vipr.client.core.filters.RecoverPointPersonalityFilter;
+import com.emc.vipr.client.core.filters.ResourceFilter;
+import com.emc.vipr.client.core.filters.SRDFSourceFilter;
 import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.client.core.filters.VirtualPoolProtocolFilter;
+import com.emc.vipr.client.core.util.CachedResources;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -273,6 +286,44 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("fileWithContinuousCopies")
     public List<AssetOption> getFileContinuousCopies(AssetOptionsContext ctx, URI volume) {
         return Lists.newArrayList(); //createBaseResourceOptions(api(ctx).fileSystems().getContinuousCopies(volume));
+    }
+    
+    @Asset("protectedFileSystem")
+    @AssetDependencies({ "project" })
+    public List<AssetOption> getProtectedFileSystems(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
+        debug("getting protected file system (project=%s)", project);
+        ViPRCoreClient client = api(ctx);
+        List<FileShareRestRep> fileSystems = client.fileSystems().findByProject(project);
+        
+        // TODO: only add file system with protection
+        
+        return createFilesystemOptions(fileSystems);
+    }
+
+    @Asset("failoverTarget")
+    @AssetDependencies("protectedFileSystem")
+    public List<AssetOption> getFailoverFileTarget(AssetOptionsContext ctx, URI protectedFileSystem) {
+        if (protectedFileSystem != null) {
+            ViPRCoreClient client = api(ctx);
+
+            debug("getting failoverFileTargets (protectedFileSystem=%s)", protectedFileSystem);
+            FileShareRestRep file = client.fileSystems().get(protectedFileSystem);
+
+//            ProtectionRestRep protection = file..getProtection();
+//            if (protection != null) {
+//                // RecoverPoint protection
+//                if (protection.getRpRep() != null && protection.getRpRep().getProtectionSet() != null) {
+//                    return getRpFailoverTargets(client, volume);
+//                }
+//                // VMAX SRDF protection
+//                if (protection.getSrdfRep() != null && protection.getSrdfRep().getSRDFTargetVolumes() != null
+//                        && !protection.getSrdfRep().getSRDFTargetVolumes().isEmpty()) {
+//                    return getSrdfFailoverTargets(client, volume);
+//                }
+//            }
+        }
+
+        return Lists.newArrayList();
     }
 
     private List<SmbShareResponse> listFileShares(AssetOptionsContext ctx, URI filesystem) {

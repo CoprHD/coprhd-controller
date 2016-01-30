@@ -1171,7 +1171,7 @@ def create_parser(subcommand_parsers, common_parser):
                                choices=Snapshot.BOOLEAN_TYPE)
 
     create_parser.add_argument('-synchronous', '-sync',
-                               dest='synchronous',
+                               dest='sync',
                                help='Synchronous snapshot create',
                                action='store_true')
     create_parser.add_argument('-synctimeout','-syncto',

@@ -317,7 +317,7 @@ class ExportGroup(object):
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
                                 maxpaths, minpaths, pathsperinitiator,
                                 projectname, volumenames, snapshots=None,
-                                cg=None, blockmirror=None ):
+                                cg=None, blockmirror=None,synctimeout=0):
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
@@ -381,7 +381,7 @@ class ExportGroup(object):
         parms['volume_changes'] = volChanges
        
         o = self.send_json_request(exportgroup_uri, parms)
-        return self.check_for_sync(o, sync)
+        return self.check_for_sync(o, sync,synctimeout)
 
     '''
     Remove volume from the exportgroup, given the name of the volume
@@ -975,7 +975,7 @@ def exportgroup_add_volumes(args):
             args.sync, args.name, args.tenant,
             args.maxpaths,
             args.minpaths, args.pathsperinitiator,
-            args.project, args.volume, args.snapshot, args.consistencygroup, args.blockmirror)
+            args.project, args.volume, args.snapshot, args.consistencygroup, args.blockmirror,args.synctimeout)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_vol", "exportgroup",
                                               e.err_text, e.err_code)

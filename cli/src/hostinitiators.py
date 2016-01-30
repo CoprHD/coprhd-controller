@@ -497,7 +497,7 @@ def initiator_create(args):
             args.protocol,
             args.initiatorwwn,
             args.initiatorportwwn,
-            args.initname,args.synctime)
+            args.initname,args.synctimeout)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create",

@@ -43,7 +43,7 @@ public class Bucket extends DataObject implements ProjectResource {
     private String _owner;
     // native device ID as created by storage device
     private String _nativeId;
-    
+    // comment for the bucket created. Used by coprhd developers only.
     private String comment;
 
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)

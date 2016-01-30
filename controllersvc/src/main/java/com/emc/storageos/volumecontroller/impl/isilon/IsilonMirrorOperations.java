@@ -27,7 +27,6 @@ import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
-import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -35,6 +34,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobFailover;
+import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobResync;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobStart;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -195,7 +195,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             resyncMirrorFileShareLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target,
                     TaskCompleter completer, String policyName) {
         BiosCommandResult cmdResult = null;
-        cmdResult = doFailBack(primarySystem, secondarySystem, policyName, completer);
+        cmdResult = isiResyncPrep(primarySystem, secondarySystem, policyName, completer);
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
         } else {
@@ -505,6 +505,68 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         }
     }
 
+    public BiosCommandResult isiResyncPrep(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
+            TaskCompleter completer)
+            throws IsilonException {
+
+        IsilonSyncTargetPolicy secondaryLocalTargetPolicy;
+        IsilonApi isiPrimary = getIsilonDevice(primarySystem);
+        IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
+        IsilonSyncJob job = new IsilonSyncJob();
+        job.setId(policyName);
+        job.setAction(Action.resync_prep);
+
+        isiPrimary.modifyReplicationJob(job);
+
+        IsilonSyncJobResync isilonSyncJobResync = new IsilonSyncJobResync(policyName, secondarySystem.getId(), completer, policyName);
+
+        try {
+            ControllerServiceImpl.enqueueJob(new QueueJob(isilonSyncJobResync));
+            return BiosCommandResult.createPendingResult();
+        } catch (Exception ex) {
+            _log.error("Resync-Prep to Secondary Cluster Failed", ex);
+            ServiceError error = DeviceControllerErrors.isilon.jobFailed("Resync-Prep FAILED  as : " + ex.getMessage());
+            if (completer != null) {
+                completer.error(_dbClient, error);
+            }
+            return BiosCommandResult.createErrorResult(error);
+        }
+    }
+
+    // public BiosCommandResult isiResyncPrep(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
+    // TaskCompleter completer)
+    // throws IsilonException {
+    //
+    // IsilonSyncTargetPolicy secondaryLocalTargetPolicy;
+    // IsilonApi isiPrimary = getIsilonDevice(primarySystem);
+    // IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
+    // IsilonSyncJob job = new IsilonSyncJob();
+    // job.setId(policyName);
+    // job.setAction(Action.resync_prep);
+    //
+    // isiPrimary.modifyReplicationJob(job);
+    //
+    // IsilonSyncJobResync isilonSyncJobResync = new IsilonSyncJobResync(policyName, system.getId(), taskCompleter, policyName);
+    //
+    // secondaryLocalTargetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
+    // while (secondaryLocalTargetPolicy.getLastJobState().equals(JobState.running)
+    // && secondaryLocalTargetPolicy.getFoFbState().equals(FOFB_STATES.creating_resync_policy)) {
+    // // wait till job is finished
+    // secondaryLocalTargetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
+    // }
+    //
+    // if (secondaryLocalTargetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created)
+    // && secondaryLocalTargetPolicy.getLastJobState().equals(JobState.finished)) {
+    // _log.info("Resync-Prep on cluster {} finished successfully", primarySystem.getIpAddress());
+    // return BiosCommandResult.createSuccessfulResult();
+    // } else {
+    // String errorMessage = isiGetReportErrMsg(isiPrimary.getReplicationPolicyReports(policyName).getList());
+    // _log.error(errorMessage);
+    // ServiceError error = DeviceControllerErrors.isilon.jobFailed("Resync-Prep FAILED  as : " + errorMessage);
+    // return BiosCommandResult.createErrorResult(error);
+    // }
+    // }
+
     public BiosCommandResult doFailBack(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
             TaskCompleter taskCompleter) {
 
@@ -517,7 +579,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
              * primary cluster replication policy.
              */
 
-            result = isiResyncPrep(primarySystem, secondarySystem, policyName);
+            result = isiResyncPrep(primarySystem, secondarySystem, policyName, null);
             if (!result.isCommandSuccess()) {
                 return result;
             }
@@ -547,7 +609,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
              * cluster.
              */
 
-            result = isiResyncPrep(secondarySystem, primarySystem, mirrorPolicyName);
+            result = isiResyncPrep(secondarySystem, primarySystem, mirrorPolicyName, null);
             if (!result.isCommandSuccess()) {
                 return result;
             }
@@ -558,37 +620,6 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
 
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
-        }
-    }
-
-    public BiosCommandResult isiResyncPrep(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName)
-            throws IsilonException {
-
-        IsilonSyncTargetPolicy secondaryLocalTargetPolicy;
-        IsilonApi isiPrimary = getIsilonDevice(primarySystem);
-        IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
-        IsilonSyncJob job = new IsilonSyncJob();
-        job.setId(policyName);
-        job.setAction(Action.resync_prep);
-
-        isiPrimary.modifyReplicationJob(job);
-
-        secondaryLocalTargetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
-        while (secondaryLocalTargetPolicy.getLastJobState().equals(JobState.running)
-                && secondaryLocalTargetPolicy.getFoFbState().equals(FOFB_STATES.creating_resync_policy)) {
-            // wait till job is finished
-            secondaryLocalTargetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
-        }
-
-        if (secondaryLocalTargetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created)
-                && secondaryLocalTargetPolicy.getLastJobState().equals(JobState.finished)) {
-            _log.info("Resync-Prep on cluster {} finished successfully", primarySystem.getIpAddress());
-            return BiosCommandResult.createSuccessfulResult();
-        } else {
-            String errorMessage = isiGetReportErrMsg(isiPrimary.getReplicationPolicyReports(policyName).getList());
-            _log.error(errorMessage);
-            ServiceError error = DeviceControllerErrors.isilon.jobFailed("Resync-Prep FAILED  as : " + errorMessage);
-            return BiosCommandResult.createErrorResult(error);
         }
     }
 

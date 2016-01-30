@@ -41,7 +41,7 @@ public class MirrorFileResyncTaskCompleter extends MirrorFileTaskCompleter {
             // recordMirrorOperation(dbClient, OperationTypeEnum.START_FILE_MIRROR, status, getSourceFileShare().getId().toString());
 
         } catch (Exception e) {
-            _log.error("Failed updating status. SRDFMirrorStop {}, for task " + getOpId(), getId(), e);
+            _log.error("Failed updating status. MirrorFileStart {}, for task " + getOpId(), getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
         }

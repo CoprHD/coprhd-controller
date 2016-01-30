@@ -10,7 +10,7 @@ import java.net.URI;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
-public class IsilonSyncJobResync extends IsilonSyncIQJob {
+public class IsilonSyncJobResync extends IsilonSyncJobFailover {
 
     @Override
     public void updateStatus(JobContext jobContext) throws Exception {
@@ -20,7 +20,5 @@ public class IsilonSyncJobResync extends IsilonSyncIQJob {
     public IsilonSyncJobResync(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         super(jobId, storageSystemUri, taskCompleter, jobName);
     }
-    
-    
 
 }

@@ -50,7 +50,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
 
     @Override
     public void doStartMirrorLink(StorageSystem system, FileShare target,
-            TaskCompleter completer) {
+            TaskCompleter completer, String policyName) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
@@ -71,12 +71,13 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     }
 
     @Override
-    public void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+    public void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
-    public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer) {
+    public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer,
+            String policyName) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 

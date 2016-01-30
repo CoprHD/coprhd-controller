@@ -2215,15 +2215,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.startMirrorFileShareLink(system, target, completer);
+    public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+        if (devSpecificPolicyName == null) {
+            devSpecificPolicyName = gerneratePolicyName(system, target);
+        }
+        mirrorOperations.startMirrorFileShareLink(system, target, completer, devSpecificPolicyName);
     }
 
     @Override
-    // storagesystem, task, target, policyname
-            public
-            void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.startMirrorFileShareLink(system, target, completer);
+    public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        mirrorOperations.stopMirrorFileShareLink(system, target, completer);
     }
 
     @Override
@@ -2241,13 +2242,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer) {
-        mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer);
+    public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+        if (devSpecificPolicyName == null) {
+            devSpecificPolicyName = gerneratePolicyName(systemTarget, target);
+        }
+        mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
     }
 
     @Override
-    public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer) {
-        mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer);
+    public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer,
+            String devSpecificPolicyName) {
+        if (devSpecificPolicyName == null) {
+            devSpecificPolicyName = gerneratePolicyName(primarySystem, target);
+        }
+        mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
     }
 
     @Override

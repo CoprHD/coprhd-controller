@@ -108,10 +108,9 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void startMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+    public void startMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName)
+            throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
-
-        String policyName = target.getLabel();
         cmdResult = doStartReplicationPolicy(system, policyName, completer);
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
@@ -178,36 +177,29 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void failoverMirrorFileShareLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer)
+    public void failoverMirrorFileShareLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String policyName)
             throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
-        if (target.getParentFileShare() != null) {
-            String policyName = target.getLabel();
-            cmdResult = this.doFailover(systemTarget, policyName, completer);
-            if (cmdResult.getCommandSuccess()) {
-                completer.ready(_dbClient);
-            } else if (cmdResult.getCommandPending()) {
-                completer.statusPending(_dbClient, cmdResult.getMessage());
-            } else {
-                completer.error(_dbClient, cmdResult.getServiceCoded());
-            }
+        cmdResult = this.doFailover(systemTarget, policyName, completer);
+        if (cmdResult.getCommandSuccess()) {
+            completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
+        } else {
+            completer.error(_dbClient, cmdResult.getServiceCoded());
         }
     }
 
     @Override
-    public
-            void
-            resyncMirrorFileShareLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer) {
+    public void
+            resyncMirrorFileShareLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target,
+                    TaskCompleter completer, String policyName) {
         BiosCommandResult cmdResult = null;
-        if (target.getParentFileShare() != null) {
-
-            String policyName = target.getLabel();
-            cmdResult = doFailBack(primarySystem, secondarySystem, policyName, completer);
-            if (cmdResult.getCommandSuccess()) {
-                completer.ready(_dbClient);
-            } else {
-                completer.error(_dbClient, cmdResult.getServiceCoded());
-            }
+        cmdResult = doFailBack(primarySystem, secondarySystem, policyName, completer);
+        if (cmdResult.getCommandSuccess()) {
+            completer.ready(_dbClient);
+        } else {
+            completer.error(_dbClient, cmdResult.getServiceCoded());
         }
     }
 

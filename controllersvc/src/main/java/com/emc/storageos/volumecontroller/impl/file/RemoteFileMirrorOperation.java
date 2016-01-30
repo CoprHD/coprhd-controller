@@ -39,7 +39,7 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer);
+    void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName);
 
     /**
      * stop a replication link.
@@ -95,7 +95,7 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer);
+    void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName);
 
     /**
      * Failback replication links.
@@ -114,6 +114,7 @@ public interface RemoteFileMirrorOperation {
      * @param Target
      * @param completer
      */
-    void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer);
+    void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer,
+            String policyName);
 
 }

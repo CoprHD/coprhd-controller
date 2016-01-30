@@ -57,7 +57,6 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
@@ -97,7 +96,6 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.CopiesParam;
-import com.emc.storageos.model.block.MirrorList;
 import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
@@ -232,7 +230,6 @@ public class FileService extends TaskResourceService {
         STOP("stop", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
         PAUSE("pause", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE),
         RESUME("resume", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME),
-        CHANGE_COPY_MODE("change-copy-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE),
         UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
         private final String op;
@@ -2461,12 +2458,12 @@ public class FileService extends TaskResourceService {
     public TaskList failoverProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         Copy copy = param.getCopies().get(0);
-        if(copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())){
+        if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
             return performFileProtectionAction(param, id, ProtectionOp.FAILOVER.getRestOp());
         } else {
             throw APIException.badRequests.invalidCopyType(copy.getType());
         }
-        
+
     }
 
     /**
@@ -2495,45 +2492,45 @@ public class FileService extends TaskResourceService {
         return performFileProtectionAction(param, id, ProtectionOp.FAILBACK.getRestOp());
     }
 
-//    /**
-//     * List FileShare mirrors
-//     *
-//     *
-//     * @prereq none
-//     *
-//     * @param id the URN of a ViPR FileShare to list mirrors
-//     *
-//     * @brief List fileShare mirrors
-//     * @return FileShare mirror response containing a list of mirror identifiers
-//     */
-//    @GET
-//    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-//    @Path("/{id}/protection/continuous-copies")
-//    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-//    public MirrorList getNativeContinuousCopies(@PathParam("id") URI id) {
-//        MirrorList list = new MirrorList();
-//        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-//        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
-//
-//        StringSet sourceFileShareMirrors = sourceFileShare.getMirrorfsTargets();
-//
-//        if (sourceFileShareMirrors == null || sourceFileShareMirrors.isEmpty()) {
-//            return list;
-//        }
-//
-//        for (String uriStr : sourceFileShareMirrors) {
-//
-//            FileShare fileMirror = _dbClient.queryObject(FileShare.class, URI.create(uriStr));
-//
-//            if (fileMirror == null || fileMirror.getInactive()) {
-//                _log.warn("Stale mirror {} found for fileShare {}", uriStr, sourceFileShare.getId());
-//                continue;
-//            }
-//            list.getMirrorList().add(toNamedRelatedResource(fileMirror));
-//        }
-//
-//        return list;
-//    }
+    // /**
+    // * List FileShare mirrors
+    // *
+    // *
+    // * @prereq none
+    // *
+    // * @param id the URN of a ViPR FileShare to list mirrors
+    // *
+    // * @brief List fileShare mirrors
+    // * @return FileShare mirror response containing a list of mirror identifiers
+    // */
+    // @GET
+    // @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    // @Path("/{id}/protection/continuous-copies")
+    // @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    // public MirrorList getNativeContinuousCopies(@PathParam("id") URI id) {
+    // MirrorList list = new MirrorList();
+    // ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+    // FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
+    //
+    // StringSet sourceFileShareMirrors = sourceFileShare.getMirrorfsTargets();
+    //
+    // if (sourceFileShareMirrors == null || sourceFileShareMirrors.isEmpty()) {
+    // return list;
+    // }
+    //
+    // for (String uriStr : sourceFileShareMirrors) {
+    //
+    // FileShare fileMirror = _dbClient.queryObject(FileShare.class, URI.create(uriStr));
+    //
+    // if (fileMirror == null || fileMirror.getInactive()) {
+    // _log.warn("Stale mirror {} found for fileShare {}", uriStr, sourceFileShare.getId());
+    // continue;
+    // }
+    // list.getMirrorList().add(toNamedRelatedResource(fileMirror));
+    // }
+    //
+    // return list;
+    // }
 
     void ValidateCopiesParam(URI uriFS, CopiesParam param) {
         // Validate the source file share URI
@@ -2551,7 +2548,7 @@ public class FileService extends TaskResourceService {
         // Make sure that we don't have some pending
         // operation against the file share
         checkForPendingTasks(Arrays.asList(sourceFileShare.getTenant().getURI()), Arrays.asList(sourceFileShare));
-        
+
         Operation status = new Operation();
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
         _dbClient.createTaskOpStatus(FileShare.class, sourceFileShare.getId(), task, status);
@@ -2672,7 +2669,6 @@ public class FileService extends TaskResourceService {
                 return getFileServiceApis("remotemirror");
             }
         }
-
 
         return getFileServiceApis("default");
     }

@@ -24,7 +24,6 @@ public class FileVirtualPoolProtectionUpdateParam extends VirtualPoolProtectionP
     /**
      * The replication protection settings for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "replication_params")
     public FileVirtualPoolReplicationUpdateParam getReplicationParam() {
@@ -38,7 +37,6 @@ public class FileVirtualPoolProtectionUpdateParam extends VirtualPoolProtectionP
     /**
      * The schedule snapshot protection settings for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "schedule_snapshots")
     public Boolean getScheduleSnapshots() {

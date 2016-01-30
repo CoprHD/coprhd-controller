@@ -35,7 +35,6 @@ public class SchedulePolicyBulkRep extends BulkRestRep {
      * List of Schedule Policies. A schedule policy represents a
      * policy execute at scheduled time.
      * 
-     * @valid none
      */
     @XmlElement(name = "schedule_policy")
     public List<SchedulePolicyRestRep> getSchedulePolicies() {

@@ -40,7 +40,6 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     /**
      * GUID associated with the unmanaged file system.
      * 
-     * @valid none
      */
     @XmlElement(name = "native_guid")
     public String getNativeGuid() {
@@ -55,7 +54,6 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
      * URI for the storage system supporting the unmanaged
      * file system.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_system")
     public RelatedResourceRep getStorageSystem() {
@@ -70,7 +68,6 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
      * URI representing the storage pool supporting the unmanaged file
      * system.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_pool")
     public RelatedResourceRep getStoragePool() {
@@ -98,7 +95,6 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
      * A list of name-value pairs representing the characteristics of
      * the unmanaged file system.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "unmanaged_filesystems_characterstics")
     @XmlElement(name = "unmanaged_filesystem_characterstic")
@@ -117,7 +113,6 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
      * A list of name-value pairs containing information relevant to the
      * unmanaged file system.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "unmanaged_filesystems_info")
     @XmlElement(name = "unmanaged_filesystem_info")

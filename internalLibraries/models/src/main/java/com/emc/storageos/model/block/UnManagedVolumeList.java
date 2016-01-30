@@ -31,7 +31,6 @@ public class UnManagedVolumeList {
      * The list of unmanaged volumes which are available in a storage system.
      * Used primarily to ingest volumes into ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "unmanaged_volume")
     public List<RelatedResourceRep> getUnManagedVolumes() {
@@ -49,7 +48,6 @@ public class UnManagedVolumeList {
      * The list of unmanaged volumes with name which are available in a storage system.
      * Used primarily to ingest volumes into ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "named_unmanaged_volume")
     public List<NamedRelatedResourceRep> getNamedUnManagedVolumes() {

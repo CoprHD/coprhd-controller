@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.db.client.DbClient;
@@ -109,6 +110,7 @@ public class LazyLoadTests extends DbsvcTestBase {
         VdcUtil.setDbClient(dbClient);
 
         dbClient.setBypassMigrationLock(false);
+        dbClient.setDrUtil(new DrUtil(_coordinator));
         dbClient.start();
 
         _dbClient = dbClient;

@@ -16,12 +16,13 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class FullCopyVolumeReplicaStateMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(FullCopyVolumeReplicaStateMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         initializeVolumeFields();
     }
 

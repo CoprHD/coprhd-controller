@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class HostInterfaceLabelMigration extends BaseCustomMigrationCallback {
 
@@ -23,7 +24,7 @@ public class HostInterfaceLabelMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(HostInterfaceLabelMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         processInitiators();
         processIpInterfaces();
     }

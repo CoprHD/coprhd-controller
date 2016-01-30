@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Upgrade callback class when upgrading from 2.3 to a later
@@ -29,7 +30,7 @@ public class FullCopyVolumeDetachedStateMigration extends BaseCustomMigrationCal
     private static final Logger s_logger = LoggerFactory.getLogger(FullCopyVolumeDetachedStateMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         initializeVolumeFields();
     }
 

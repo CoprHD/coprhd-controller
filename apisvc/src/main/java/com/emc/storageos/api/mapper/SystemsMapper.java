@@ -356,6 +356,8 @@ public class SystemsMapper {
         to.setProtocols(from.getProtocols());
         to.setReachableStatus(from.getReachableStatus());
         to.setFirmwareVersion(from.getFirmwareVersion());
+        to.setSupportsSoftLimit(from.getSupportSoftLimit());
+        to.setSupportsNotificationLimit(from.getSupportNotificationLimit());
         to.setActiveProvider(toRelatedResource(ResourceTypeEnum.SMIS_PROVIDER, from.getActiveProviderURI()));
         if (from.getProviders() != null) {
             for (String provider : from.getProviders()) {

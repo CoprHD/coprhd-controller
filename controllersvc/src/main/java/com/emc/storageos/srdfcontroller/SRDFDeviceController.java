@@ -97,10 +97,14 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String DELETE_SRDF_MIRRORS_STEP_GROUP = "DELETE_SRDF_MIRRORS_STEP_GROUP";
     private static final String CREATE_SRDF_MIRRORS_STEP_DESC = "Create SRDF Link";
     private static final String REFRESH_SYSTEM_STEP_DESC = "Refresh System";
-    private static final String SUSPEND_SRDF_MIRRORS_STEP_DESC = "Suspend SRDF Link";
+    public static final String SUSPEND_SRDF_MIRRORS_STEP_GROUP = "SUSPEND_SRDF_MIRRORS_STEP_GROUP";
+    public static final String SUSPEND_SRDF_MIRRORS_STEP_DESC = "Suspend SRDF Link";
     public static final String SPLIT_SRDF_MIRRORS_STEP_DESC = "Split SRDF Link ";
     private static final String DETACH_SRDF_MIRRORS_STEP_DESC = "Detach SRDF Link";
-    private static final String RESUME_SRDF_MIRRORS_STEP_DESC = "Resume SRDF Link";
+    public static final String RESUME_SRDF_MIRRORS_STEP_GROUP = "RESUME_SRDF_MIRRORS_STEP_GROUP";
+    public static final String RESUME_SRDF_MIRRORS_STEP_DESC = "Resume SRDF Link";
+    public static final String RESTORE_SRDF_MIRRORS_STEP_GROUP = "RESTORE_SRDF_MIRRORS_STEP_GROUP";
+    public static final String RESTORE_SRDF_MIRRORS_STEP_DESC = "Restore SRDF Link";
     private static final String UPDATE_SRDF_PAIRING_STEP_GROUP = "UPDATE_SRDF_PAIRING_STEP_GROUP";
     private static final String UPDATE_SRDF_PAIRING = "updateSRDFPairingStep";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
@@ -122,6 +126,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String STEP_VOLUME_EXPAND = "EXPAND_VOLUME";
     private static final String CREATE_SRDF_RESUME_PAIR_METHOD = "resumeSyncPairStep";
     private static final String RESUME_SRDF_GROUP_METHOD = "resumeSrdfGroupStep";
+    private static final String RESTORE_METHOD = "restoreStep";
     private static final String SUSPEND_SRDF_GROUP_METHOD = "suspendSrdfGroupStep";
     private static final String CHANGE_SRDF_TO_NONSRDF_STEP_DESC = "Converting SRDF Devices to Non Srdf devices";
     private static final String CONVERT_TO_NONSRDF_DEVICES_METHOD = "convertToNonSrdfDevicesMethodStep";
@@ -713,7 +718,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         if (targetDescriptors.isEmpty()) {
             for (VolumeDescriptor volumeDescriptor : descriptors) {
-                if (VolumeDescriptor.Type.SRDF_SOURCE.equals(volumeDescriptor.getType())) {
+                if (VolumeDescriptor.Type.SRDF_SOURCE.equals(volumeDescriptor.getType())
+                        || VolumeDescriptor.Type.SRDF_EXISTING_SOURCE.equals(volumeDescriptor.getType())) {
                     Volume source = uriVolumeMap.get(volumeDescriptor.getVolumeURI());
                     return getFirstTarget(source);
                 }
@@ -1230,6 +1236,32 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(CREATE_SRDF_RESUME_PAIR_METHOD, systemURI, sourceURI, targetURI);
     }
 
+    public boolean restoreStep(final URI systemURI, final URI sourceURI,
+            final URI targetURI, final String opId) {
+        log.info("START Restore");
+        TaskCompleter completer = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem system = getStorageSystem(systemURI);
+            Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
+            completer = new SRDFLinkSyncCompleter(Arrays.asList(sourceURI, targetURI), opId);
+            getRemoteMirrorDevice().doSyncLink(system, targetVolume, completer);
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(dbClient, error);
+            }
+            WorkflowStepCompleter.stepFailed(opId, error);
+            return false;
+        }
+        return true;
+    }
+
+    public Method restoreMethod(final URI systemURI, final URI sourceURI,
+            final URI targetURI) {
+        return new Workflow.Method(RESTORE_METHOD, systemURI, sourceURI, targetURI);
+    }
+
     private Method reSyncSRDFLinkMethod(final URI systemURI, final URI sourceURI,
             final URI targetURI) {
         return new Workflow.Method(CREATE_SRDF_RESYNC_PAIR_METHOD, systemURI, sourceURI, targetURI);
@@ -1564,7 +1596,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
-    private Workflow.Method suspendSRDFLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt) {
+    public Workflow.Method suspendSRDFLinkMethod(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt) {
         return new Workflow.Method(SUSPEND_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, consExempt);
     }
 
@@ -2060,7 +2092,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     @Override
     public String addStepsForRestoreVolume(Workflow workflow, String waitFor,
             URI storage, URI pool, URI volume, URI snapshot,
-            Boolean updateOpStatus, String taskId,
+            Boolean updateOpStatus, String syncDirection, String taskId,
             BlockSnapshotRestoreCompleter completer) throws InternalException {
         // Nothing to do, no steps to add
         return waitFor;

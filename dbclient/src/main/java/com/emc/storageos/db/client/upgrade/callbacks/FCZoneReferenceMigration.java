@@ -14,12 +14,13 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class FCZoneReferenceMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(FCZoneReferenceMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         initializeField();
     }
 

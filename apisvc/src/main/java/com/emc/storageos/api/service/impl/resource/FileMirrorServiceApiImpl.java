@@ -145,9 +145,9 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
     @Override
     public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType,
-            boolean forceDelete, String task) throws InternalException {
+            boolean forceDelete, boolean deleteOnlyMirrors, String task) throws InternalException {
         _log.info("Request to delete {} FileShare(s) with Mirror Protection", fileSystemURIs.size());
-        super.deleteFileSystems(systemURI, fileSystemURIs, deletionType, forceDelete, task);
+        super.deleteFileSystems(systemURI, fileSystemURIs, deletionType, forceDelete, deleteOnlyMirrors, task);
 
     }
 
@@ -249,7 +249,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
     @Override
     protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(
-            URI systemURI, List<URI> fileShareURIs, String deletionType, boolean forceDelete) {
+            URI systemURI, List<URI> fileShareURIs, String deletionType,
+            boolean forceDelete, boolean deleteOnlyMirrors) {
         List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
         for (URI fileURI : fileShareURIs) {
             FileShare fileShare = _dbClient.queryObject(FileShare.class, fileURI);
@@ -270,7 +271,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
             FileDescriptor fileDescriptor = new FileDescriptor(descriptorType,
                     fileShare.getStorageDevice(), fileShare.getId(),
-                    fileShare.getPool(), deletionType, forceDelete);
+                    fileShare.getPool(), deletionType, forceDelete, deleteOnlyMirrors);
             fileDescriptors.add(fileDescriptor);
         }
         return fileDescriptors;

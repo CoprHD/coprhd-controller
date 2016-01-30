@@ -137,6 +137,7 @@ public enum OperationTypeEnum {
     UNDO_RELEASE_FILE_SYSTEM("FileSystemReleaseUndone", "", "FileSystem release undone"),
     CHANGE_FILE_SYSTEM_VPOOL("ChangeFileSystemVpool", "ChangeFileSystemVpoolFailed", "FileSystem vpool Changed"),
     CREATE_MIRROR_FILE_SYSTEM("CreateMirrorFileSystem", "CreateMirrorFileSystemFailed", "MirrorFileSystem Created"),
+    DELETE_MIRROR_FILE_SYSTEM("DeleteMirrorFileSystem", "DeleteMirrorFileSystemFailed", "MirrorFileSystems Deleted"),
 
     CREATE_FILE_SYSTEM_SHARE("FileSystemShared", "FileSystemShareFailed", "FileSystem shared"),
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "", "operation to tag a filesystem"),

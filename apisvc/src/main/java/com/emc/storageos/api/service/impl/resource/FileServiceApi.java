@@ -60,7 +60,7 @@ public interface FileServiceApi {
      * @throws InternalException
      */
     public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType,
-            boolean forceDelete, String task) throws InternalException;
+            boolean forceDelete, boolean deleteOnlyMirrors, String task) throws InternalException;
 
     /**
      * Check if a resource can be deactivated safely.

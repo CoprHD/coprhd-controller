@@ -145,10 +145,10 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
 
     @Override
     public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs,
-            String deletionType, boolean forceDelete, String task) throws InternalException {
+            String deletionType, boolean forceDelete, boolean deleteOnlyMirrors, String task) throws InternalException {
         // Get volume descriptor for all volumes to be deleted.
         List<FileDescriptor> fileDescriptors = getDescriptorsOfFileShareDeleted(
-                systemURI, fileSystemURIs, deletionType, forceDelete);
+                systemURI, fileSystemURIs, deletionType, forceDelete, deleteOnlyMirrors);
         // place request in queue
         FileOrchestrationController controller = getController(
                 FileOrchestrationController.class,
@@ -180,6 +180,6 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
      * @return
      */
     abstract protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
-            List<URI> fileShareURIs, String deletionType, boolean forceDelete);
+            List<URI> fileShareURIs, String deletionType, boolean forceDelete, boolean deleteOnlyMirrors);
 
 }

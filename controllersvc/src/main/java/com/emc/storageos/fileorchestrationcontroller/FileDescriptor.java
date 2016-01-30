@@ -47,6 +47,19 @@ public class FileDescriptor implements Serializable {
         this.forceDelete = forceDelete;
     }
 
+    public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
+            String deletionType, boolean forceDelete, boolean deleteTargetOnly) {
+        super();
+
+        this._type = type;
+        this._deviceURI = deviceURI;
+        this._fsURI = fsURI;
+        this._poolURI = poolURI;
+        this.deleteType = deletionType;
+        this.forceDelete = forceDelete;
+        this.deleteTargetOnly = deleteTargetOnly;
+    }
+
     public enum Type {
         /* ******************************
          * The ordering of these are important for the sortByType() method,
@@ -85,6 +98,8 @@ public class FileDescriptor implements Serializable {
     private URI _migrationId;            // Reference to the migration object for this file
     private String _suggestedNativeFsId; // user suggested native id
     private String deleteType;           // delete type either FULL or VIPR_ONLY
+
+    private boolean deleteTargetOnly;
 
     public String getDeleteType() {
         return deleteType;
@@ -166,6 +181,14 @@ public class FileDescriptor implements Serializable {
 
     public void setMigrationId(URI migrationId) {
         this._migrationId = migrationId;
+    }
+
+    public boolean isDeleteTargetOnly() {
+        return deleteTargetOnly;
+    }
+
+    public void setDeleteTargetOnly(boolean deleteTargetOnly) {
+        this.deleteTargetOnly = deleteTargetOnly;
     }
 
     /**

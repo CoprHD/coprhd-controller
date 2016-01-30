@@ -3461,13 +3461,17 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 null, null);
                     }
                 }
-                workflow.createStep(DELETE_FILESYSTEMS_STEP,
-                        String.format("Deleting fileshares:%n%s", fileshareURIs),
-                        waitFor, deviceURI, getDeviceType(deviceURI),
-                        this.getClass(),
-                        deleteFileSharesMethod(deviceURI, fileshareURIs,
-                                filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                        null, null);
+                // Dont delete the source file system for delete only targets operation!!
+                if (!filesystems.get(0).isDeleteTargetOnly()) {
+                    workflow.createStep(DELETE_FILESYSTEMS_STEP,
+                            String.format("Deleting fileshares:%n%s", fileshareURIs),
+                            waitFor, deviceURI, getDeviceType(deviceURI),
+                            this.getClass(),
+                            deleteFileSharesMethod(deviceURI, fileshareURIs,
+                                    filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
+                            null, null);
+                }
+
             }
         }
         return waitFor = DELETE_FILESYSTEMS_STEP;

@@ -1438,7 +1438,7 @@ public class FileService extends TaskResourceService {
                 fs.getId().toString(), device.getId().toString());
         try {
             fileServiceApi.deleteFileSystems(device.getId(), fileShareURIs,
-                    param.getDeleteType(), param.getForceDelete(), task);
+                    param.getDeleteType(), param.getForceDelete(), false, task);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
                 _log.error("Delete error", e);
@@ -2534,6 +2534,89 @@ public class FileService extends TaskResourceService {
         return taskList.getTaskList().get(0);
     }
 
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/deactivate")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep deactivateContinuousCopies(@PathParam("id") URI id, FileSystemDeleteParam param)
+            throws InternalException, APIException {
+
+        _log.info("Request to deactivate replication copies for filesystem {}", id);
+
+        // Validate the FS id.
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+        FileShare orgFs = queryResource(id);
+        String task = UUID.randomUUID().toString();
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        TaskList taskList = new TaskList();
+
+        // Make sure that we don't have some pending
+        // operation against the file system!!!
+        checkForPendingTasks(Arrays.asList(fs.getTenant().getURI()), Arrays.asList(fs));
+
+        // Get the project.
+        URI projectURI = fs.getProject().getURI();
+        Project project = _permissionsHelper.getObjectById(projectURI,
+                Project.class);
+        ArgValidator.checkEntity(project, projectURI, false);
+        _log.info("Found filesystem project {}", projectURI);
+
+        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+
+        // Verify the file system and its vPool are capable of doing replication!!!
+        if (!validateDeleteMirrorCopies(fs, currentVpool, notSuppReasonBuff)) {
+            _log.error("delete mirror copies is not supported for file system {} due to {}",
+                    fs.getId().toString(), notSuppReasonBuff.toString());
+            throw APIException.badRequests.unableToDeleteMirrorCopies(
+                    fs.getId(), notSuppReasonBuff.toString());
+        }
+
+        // Get the virtual array!!!
+        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());
+
+        // New operation
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.DELETE_MIRROR_FILE_SYSTEMS);
+        op.setDescription("Deactivate file system mirror operation");
+        op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task, op);
+
+        TaskResourceRep fileSystemTask = toTask(fs, task, op);
+        taskList.getTaskList().add(fileSystemTask);
+        List<URI> fileShareURIs = new ArrayList<URI>();
+        fileShareURIs.add(id);
+        boolean deleteMirrorCopies = true;
+
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+
+        try {
+            fileServiceApi.deleteFileSystems(device.getId(), fileShareURIs,
+                    param.getDeleteType(), param.getForceDelete(), deleteMirrorCopies, task);
+
+        } catch (InternalException e) {
+            if (_log.isErrorEnabled()) {
+                _log.error("deactivate continuous copies error ", e);
+            }
+
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
+            op = fs.getOpStatus().get(task);
+            op.error(e);
+            fileShare.getOpStatus().updateTaskStatus(task, op);
+            // Revert the file system to original state!!!
+            restoreFromOriginalFs(orgFs, fs);
+            _dbClient.updateObject(fs);
+            throw e;
+        }
+        auditOp(OperationTypeEnum.DELETE_MIRROR_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
+                fs.getLabel(), currentVpool.getLabel(), fs.getLabel(),
+                project == null ? null : project.getId().toString());
+
+        return taskList.getTaskList().get(0);
+    }
+
     private void copyPropertiesToSave(FileExportRule orig, ExportRule dest, FileShare fs) {
 
         dest.setFsID(fs.getId());
@@ -2917,6 +3000,65 @@ public class FileService extends TaskResourceService {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request has active target file system %s.",
+                                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Checks to see if the file replication change is supported.
+     * 
+     * @param currentVpool the source virtual pool
+     * @param newVpool the target virtual pool
+     * @param notSuppReasonBuff the not supported reason string buffer
+     * @return
+     */
+    private boolean validateDeleteMirrorCopies(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff) {
+        _log.info(String.format("Checking validateDeleteMirrorCopies for Fs [%s] ", fs.getLabel()));
+
+        // file system virtual pool must be enabled with replication!!
+        if (!VirtualPool.vPoolSpecifiesFileReplication(currentVpool)) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("File replication is not enable in file system virtual pool %s.",
+                                    currentVpool.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // File system should not be the target file system!!
+        if (fs.getPersonality() != null &&
+                fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("File system given in request is an active Target file system %s.",
+                                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // File system should not be the failover state
+        // Failover state, the mirror copy would be in production!!!
+        if (fs.getPersonality() != null
+                && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
+                && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
+                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("File system given in request is in active or failover state %s.",
+                                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // File system should not have any active mirror copies!!
+        if (fs.getMirrorfsTargets() == null
+                || fs.getMirrorfsTargets().isEmpty()) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("File system given in request has no active target file system %s.",
                                     fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;

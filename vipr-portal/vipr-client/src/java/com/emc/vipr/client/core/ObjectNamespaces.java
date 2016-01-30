@@ -12,6 +12,11 @@ import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
+/**
+ * ObjectNamespaces resources.
+ * <p>
+ * Base URL: <tt>/vdc/objectnamespaces</tt>
+ */
 public class ObjectNamespaces extends AbstractCoreBulkResources<ObjectNamespaceRestRep> implements
         TopLevelResources<ObjectNamespaceRestRep> {
 
@@ -19,14 +24,22 @@ public class ObjectNamespaces extends AbstractCoreBulkResources<ObjectNamespaceR
         super(parent, client, ObjectNamespaceRestRep.class, PathConstants.OBJECT_NAMESPACE_URL);
     }
 
-    /**
-     * 
-     */
+   /**
+    * Gets list of all object storage namespaces
+    * 
+    * @return ObjectnamespaceList
+    */
     public ObjectNamespaceList getObjectNamespaces() {
         ObjectNamespaceList response = client.get(ObjectNamespaceList.class, baseUrl);
         return response;
     }
     
+    /**
+     * gets the details of a particular object namespace
+     * 
+     * @param Id details required for
+     * @return ObjectNamespaceRestRep
+     */
     public ObjectNamespaceRestRep getObjectNamespace(URI Id) {
         ObjectNamespaceRestRep response = client.get(ObjectNamespaceRestRep.class, baseUrl+"/"+Id);
         return response;

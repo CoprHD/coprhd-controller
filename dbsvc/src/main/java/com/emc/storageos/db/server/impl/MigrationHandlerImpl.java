@@ -702,7 +702,8 @@ public class MigrationHandlerImpl implements MigrationHandler {
     
     private void checkGeoDbSchema() {
         String targetVersion = service.getVersion();
-        if (!VdcUtil.checkGeoCompatibleOfOtherVdcs(targetVersion)){
+        String currentSchemaVersion = coordinator.getCurrentDbSchemaVersion();
+        if (!targetVersion.equals(currentSchemaVersion) && !VdcUtil.checkGeoCompatibleOfOtherVdcs(targetVersion)){
             log.info("Not all vdc are upgraded. Skip geodb schema change until all vdc are upgraded");
             return;
         }

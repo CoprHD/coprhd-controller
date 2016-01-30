@@ -618,14 +618,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                  * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
                  */
                 List<URI> referencedArrays = BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, dbClient);
-                boolean cgReferenced = false;
-                for (URI storageSystemUri : referencedArrays) {
-                    StringSet cgs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemUri.toString());
-                    if (cgs != null && !cgs.isEmpty()) {
-                        cgReferenced = true;
-                        break;
-                    }
-                }
+
+                boolean cgReferenced = referencedArrays != null && !referencedArrays.isEmpty();
 
                 if (!cgReferenced) {
                     // Remove the LOCAL type

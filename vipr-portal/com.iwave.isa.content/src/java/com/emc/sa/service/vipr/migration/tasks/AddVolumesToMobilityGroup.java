@@ -21,7 +21,7 @@ public class AddVolumesToMobilityGroup extends WaitForTasks<TaskResourceRep> {
     public AddVolumesToMobilityGroup(URI mobilityGroupId, List<URI> volumeIds) {
         this.volumeIds = volumeIds;
         this.mobilityGroupId = mobilityGroupId;
-        provideDetailArgs(mobilityGroupId, volumeIds);
+        provideDetailArgs(volumeIds, mobilityGroupId);
     }
 
     @Override

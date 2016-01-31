@@ -21,7 +21,7 @@ public class RemoveVolumesFromMobilityGroup extends WaitForTasks<TaskResourceRep
     public RemoveVolumesFromMobilityGroup(URI mobilityGroupId, List<URI> volumeIds) {
         this.volumeIds = volumeIds;
         this.mobilityGroupId = mobilityGroupId;
-        provideDetailArgs(mobilityGroupId, volumeIds);
+        provideDetailArgs(volumeIds, mobilityGroupId);
     }
 
     @Override

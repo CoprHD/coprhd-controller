@@ -20,7 +20,7 @@ public class RemoveHostsFromMobilityGroup extends WaitForTasks<TaskResourceRep> 
     public RemoveHostsFromMobilityGroup(URI mobilityGroupId, List<URI> hostIds) {
         this.hostIds = hostIds;
         this.mobilityGroupId = mobilityGroupId;
-        provideDetailArgs(mobilityGroupId, hostIds);
+        provideDetailArgs(hostIds, mobilityGroupId);
     }
 
     @Override

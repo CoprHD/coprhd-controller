@@ -20,7 +20,7 @@ public class AddClustersToMobilityGroup extends WaitForTasks<TaskResourceRep> {
     public AddClustersToMobilityGroup(URI mobilityGroupId, List<URI> clusterIds) {
         this.clusterIds = clusterIds;
         this.mobilityGroupId = mobilityGroupId;
-        provideDetailArgs(mobilityGroupId, clusterIds);
+        provideDetailArgs(clusterIds, mobilityGroupId);
     }
 
     @Override

@@ -20,7 +20,7 @@ public class AddHostsToMobilityGroup extends WaitForTasks<TaskResourceRep> {
     public AddHostsToMobilityGroup(URI mobilityGroupId, List<URI> hostIds) {
         this.hostIds = hostIds;
         this.mobilityGroupId = mobilityGroupId;
-        provideDetailArgs(mobilityGroupId, hostIds);
+        provideDetailArgs(hostIds, mobilityGroupId);
     }
 
     @Override

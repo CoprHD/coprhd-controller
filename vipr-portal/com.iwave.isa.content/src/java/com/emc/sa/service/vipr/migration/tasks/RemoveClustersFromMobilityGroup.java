@@ -20,7 +20,7 @@ public class RemoveClustersFromMobilityGroup extends WaitForTasks<TaskResourceRe
     public RemoveClustersFromMobilityGroup(URI mobilityGroupId, List<URI> clusterIds) {
         this.clusterIds = clusterIds;
         this.mobilityGroupId = mobilityGroupId;
-        provideDetailArgs(mobilityGroupId, clusterIds);
+        provideDetailArgs(clusterIds, mobilityGroupId);
     }
 
     @Override

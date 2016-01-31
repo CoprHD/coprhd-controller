@@ -19,7 +19,7 @@ import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.vipr.client.Tasks;
 
-@Service("AddVolumesToApplication")
+@Service("AddResourcesToMobilityGroup")
 public class AddResourcesToMobilityGroupService extends ViPRService {
 
     @Param(ServiceParams.MOBILITY_GROUP)

@@ -2750,7 +2750,11 @@ recoverpoint_ingest_test()
     elif [ "${vpool}" = "rp${vplextag}_crr" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+	if [ "${vpool}" = "rpvplex_crr" -o "${vpool}" = "rpmp_crr" ]; then
+	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplex_ha $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+	else
+	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+	fi
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
     elif [ "${vpool}" = "rp${vplextag}_clr" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V1TGT}"
@@ -3158,6 +3162,8 @@ recoverpoint_simulator_setup()
 	rp_port_setup
     fi
 
+    date
+    storagedevice list
     run storagedevice discover_all
     run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
     run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
@@ -3200,6 +3206,9 @@ recoverpoint_simulator_setup()
 	run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
 	run cos update block rpvplex_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
 	run cos update block rpvplex_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
+	run cos update block rpvplex_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
+	run cos update block rpvplex_crr --storage $VMAX2_SIMULATOR_NATIVEGUID
+	run cos update block rpvplex_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
 	run cos update block rpmp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
 	run cos update block rpmp_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
 	run cos update block rpmp_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID

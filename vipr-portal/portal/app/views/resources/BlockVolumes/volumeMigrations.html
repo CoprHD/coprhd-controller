@@ -2,7 +2,7 @@
     <table class='table table-condensed table-striped'>
   <thead>
     <tr>
-      <th colspan="8">&{'resources.migration.name'}</th>
+      <th colspan="7">&{'resources.migration.name'}</th>
     </tr>
   </thead>
   <tbody>  
@@ -12,11 +12,6 @@
         <td>Percentage: ${migration.percentageDone}</td>
         <td>Status: ${migration.status}</td>
         <td>Start: ${migration.startTime}</td>
-        <td><a href="@{deleteMigration(migration.volume.id, migration.id)}"
-              class="btn btn-default"
-              onclick="return confirm('&{'resources.migrations.deleteConfirm'}');"
-            >&{'resources.migrations.deleteButton'}</a>
-        </td>
         <td><a href="@{pauseMigration(migration.volume.id, migration.id)}"
               class="btn btn-default"
               onclick="return confirm('&{'resources.migrations.pauseConfirm'}');"

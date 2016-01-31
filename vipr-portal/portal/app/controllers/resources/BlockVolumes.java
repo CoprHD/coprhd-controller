@@ -302,16 +302,6 @@ public class BlockVolumes extends ResourceController {
     }
 
     @FlashException(referrer = { "volume" })
-    public static void deleteMigration(String volumeId, String migrationId) {
-        if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(migrationId)) {
-            ViPRCoreClient client = BourneUtil.getViprClient();
-            client.blockMigrations().delete(uri(migrationId));
-            flash.put("info", MessagesUtils.get("resources.migrations.delete"));
-        }
-        volume(volumeId, null);
-    }
-
-    @FlashException(referrer = { "volume" })
     public static void pauseMigration(String volumeId, String migrationId) {
         if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(migrationId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();

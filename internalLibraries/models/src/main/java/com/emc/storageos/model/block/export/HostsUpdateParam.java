@@ -27,8 +27,6 @@ public class HostsUpdateParam extends UpdateParam {
     @XmlElementWrapper(required = false)
     /**
      * List of host URIs to be added to the export group.
-     * @valid example: [ urn:storageos:Host:2935a936-c821-4e0e-b69c-2d8a6d620ae5: ]
-     * @valid example: [ ]
      */
     @XmlElement(name = "host")
     public Set<URI> getAdd() {
@@ -45,8 +43,6 @@ public class HostsUpdateParam extends UpdateParam {
     @XmlElementWrapper(required = false)
     /**
      * List of host URIs to be removed from the export group.
-     * @valid example: [ urn:storageos:Host:2935a936-c821-4e0e-b69c-2d8a6d620ae5: ]
-     * @valid example: [ ]
      */
     @XmlElement(name = "host")
     public Set<URI> getRemove() {

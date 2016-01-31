@@ -68,10 +68,9 @@ public class ClusterIpInfo implements Serializable {
         }
         return (ClusterIpInfo) obj;
     }
-    /* (non-Javadoc)
-   	 * @see java.lang.Object#hashCode()
-   	 */
-    @Override
+    
+	
+	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;

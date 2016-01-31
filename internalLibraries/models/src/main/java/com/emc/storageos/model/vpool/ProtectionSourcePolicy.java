@@ -32,7 +32,6 @@ public class ProtectionSourcePolicy {
     /**
      * The journal size for a protection source.
      * 
-     * @valid none
      */
     @XmlElement(name = "journal_size", required = false)
     public String getJournalSize() {
@@ -46,7 +45,6 @@ public class ProtectionSourcePolicy {
     /**
      * The journal virtual array for a protection source/active source.
      * 
-     * @valid none
      */
     @XmlElement(name = "journal_varray", required = false)
     public URI getJournalVarray() {
@@ -60,7 +58,6 @@ public class ProtectionSourcePolicy {
     /**
      * The journal virtual pool for a protection source/active source.
      * 
-     * @valid none
      */
     @XmlElement(name = "journal_vpool", required = false)
     public URI getJournalVpool() {
@@ -74,7 +71,6 @@ public class ProtectionSourcePolicy {
     /**
      * The journal virtual array for stand-by source.
      * 
-     * @valid none
      */
     @XmlElement(name = "standby_journal_varray", required = false)
     public URI getStandbyJournalVarray() {
@@ -88,7 +84,6 @@ public class ProtectionSourcePolicy {
     /**
      * The journal virtual pool for stand-by source.
      * 
-     * @valid none
      */
     @XmlElement(name = "standby_journal_vpool", required = false)
     public URI getStandbyJournalVpool() {
@@ -101,9 +96,9 @@ public class ProtectionSourcePolicy {
 
     /**
      * The remote copy mode, sync or async
-     * 
-     * @valid ASYNCHRONOUS = RecoverPoint CG will be in Asynchronous mode (default)
-     * @valid SYNCHRONOUS = RecoverPoint CG will be in Synchronous mode
+     * Valid value:
+     *      ASYNCHRONOUS = RecoverPoint CG will be in Asynchronous mode (default)
+     *      SYNCHRONOUS = RecoverPoint CG will be in Synchronous mode
      */
     @XmlElement(name = "remote_copy_mode", required = false)
     public String getRemoteCopyMode() {
@@ -129,17 +124,17 @@ public class ProtectionSourcePolicy {
     }
 
     /**
-     * Type of RPO unit
-     * 
-     * @valid SECONDS = Seconds (time-based RPO)
-     * @valid MINUTES = Minutes (time-based RPO)
-     * @valid HOURS = Hours (time-based RPO)
-     * @valid WRITES = Number of writes (transaction-based RPO)
-     * @valid BYTES = Bytes (sized-based RPO)
-     * @valid KB = Kilobytes (sized-based RPO)
-     * @valid MB = Megabytes (sized-based RPO)
-     * @valid GB = Gigabytes (sized-based RPO)
-     * @valid TB = Terabytes (sized-based RPO)
+     * Type of RPO unit 
+     * Valid values:
+     *  SECONDS
+     *  MINUTES
+     *  HOURS
+     *  WRITES
+     *  BYTES
+     *  KB 
+     *  MB
+     *  GB
+     *  TB
      */
     @XmlElement(name = "rpo_type", required = false)
     public String getRpoType() {

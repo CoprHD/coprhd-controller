@@ -26,7 +26,6 @@ public class VirtualPoolProtectionSnapshotsParam {
     /**
      * The maximum snapshots.
      * 
-     * @valid none
      */
     @XmlElement(name = "max_native_snapshots")
     public Integer getMaxSnapshots() {

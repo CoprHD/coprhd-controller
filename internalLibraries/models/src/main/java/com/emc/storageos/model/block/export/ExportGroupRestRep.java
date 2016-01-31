@@ -35,7 +35,6 @@ public class ExportGroupRestRep extends DataObjectRestRep {
     /**
      * Name of the block export.
      * 
-     * @valid none
      */
     @XmlElement(name = "generated_name")
     public String getGeneratedName() {
@@ -49,7 +48,6 @@ public class ExportGroupRestRep extends DataObjectRestRep {
     @XmlElementWrapper
     /**
      * List of initiators in the block export.
-     * @valid none
      */
     @XmlElement(name = "initiator")
     public List<InitiatorRestRep> getInitiators() {
@@ -66,7 +64,6 @@ public class ExportGroupRestRep extends DataObjectRestRep {
     /**
      * Virtual array of the block export.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varray")
@@ -81,7 +78,6 @@ public class ExportGroupRestRep extends DataObjectRestRep {
     /**
      * Project of the block export.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getProject() {
@@ -95,7 +91,6 @@ public class ExportGroupRestRep extends DataObjectRestRep {
     /**
      * Tenant of the block export.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getTenant() {
@@ -109,7 +104,6 @@ public class ExportGroupRestRep extends DataObjectRestRep {
     @XmlElementWrapper
     /**
      * List of volumes in the block export.
-     * @valid none
      */
     @XmlElement(name = "volume")
     public List<ExportBlockParam> getVolumes() {
@@ -125,10 +119,11 @@ public class ExportGroupRestRep extends DataObjectRestRep {
 
     /**
      * Type of the block export.
+     * Valid Values:
+     * Host
+     * Cluster
+     * Initiator
      * 
-     * @valid Host
-     * @valid Cluster
-     * @valid Initiator
      */
     @XmlElement(name = "type")
     public String getType() {
@@ -142,7 +137,6 @@ public class ExportGroupRestRep extends DataObjectRestRep {
     @XmlElementWrapper
     /**
      * List of hosts in the block export.
-     * @valid none
      */
     @XmlElement(name = "host")
     public List<HostRestRep> getHosts() {
@@ -159,7 +153,6 @@ public class ExportGroupRestRep extends DataObjectRestRep {
     @XmlElementWrapper
     /**
      * List of clusters in the block export.
-     * @valid none
      */
     @XmlElement(name = "cluster")
     public List<ClusterRestRep> getClusters() {

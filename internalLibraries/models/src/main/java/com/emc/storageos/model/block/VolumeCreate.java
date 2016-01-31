@@ -56,8 +56,8 @@ public class VolumeCreate {
      * consistency group. Once the source consistency group is
      * established, the snapshot operations for any volume in
      * the group would apply to all volumes in the group.
-     * 
-     * @valid example: Currently not supported for VMAX volumes.
+     * Valid value:
+     *      currently not supported for VMAX volumes
      */
     @XmlElement(name = "consistency_group")
     public URI getConsistencyGroup() {
@@ -71,7 +71,6 @@ public class VolumeCreate {
     /**
      * Number of volumes to be created.
      * 
-     * @valid none
      */
     @XmlElement(name = "count")
     public Integer getCount() {
@@ -84,9 +83,8 @@ public class VolumeCreate {
 
     /**
      * Name with which the volume is to be created.
-     * 
-     * @valid minimum of 2 characters
-     * @valid maximum of 128 characters
+     * Valid value:
+     *      minimum 2 characters and maximum 128 characters
      */
     @XmlElement(required = true)
     @Length(min = 2, max = 128)
@@ -101,7 +99,6 @@ public class VolumeCreate {
     /**
      * The ViPR project to which the volume will belong.
      * 
-     * @valid example: a valid URI of a ViPR project
      */
     @XmlElement(required = true)
     public URI getProject() {
@@ -115,7 +112,6 @@ public class VolumeCreate {
     /**
      * Size of the volume (in GB) to be created.
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public String getSize() {
@@ -129,7 +125,6 @@ public class VolumeCreate {
     /**
      * The virtual array to which the volume will belong.
      * 
-     * @valid example: a valid URI of a varray
      */
     @XmlElement(required = true)
     public URI getVarray() {
@@ -143,7 +138,6 @@ public class VolumeCreate {
     /**
      * The virtual pool to which the volume will belong.
      * 
-     * @valid example: a valid URI of a vpool
      */
     @XmlElement(required = true)
     public URI getVpool() {

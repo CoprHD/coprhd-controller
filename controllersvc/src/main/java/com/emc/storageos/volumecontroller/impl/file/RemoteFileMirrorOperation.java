@@ -7,13 +7,12 @@ package com.emc.storageos.volumecontroller.impl.file;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 
 public interface RemoteFileMirrorOperation {
-	 /**
+    /**
      * Create and establish a replication link between the given source and target fileshare.
      *
      * @param system
@@ -40,8 +39,8 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer);
-    
+    void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName);
+
     /**
      * stop a replication link.
      *
@@ -50,8 +49,7 @@ public interface RemoteFileMirrorOperation {
      * @param completer
      */
     void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer);
-    
-    
+
     /**
      * Cancel a replication link.
      *
@@ -60,7 +58,7 @@ public interface RemoteFileMirrorOperation {
      * @param completer
      */
     void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer);
-    
+
     /**
      * Rollback replication links.
      *
@@ -71,7 +69,6 @@ public interface RemoteFileMirrorOperation {
      */
     void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer);
 
-    
     /**
      * Suspend replication links.
      *
@@ -81,7 +78,6 @@ public interface RemoteFileMirrorOperation {
      * @param completer
      */
     void doSuspendLink(StorageSystem system, FileShare target, TaskCompleter completer);
-
 
     /**
      * Resume replication links.
@@ -99,8 +95,8 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer);
-    
+    void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName);
+
     /**
      * Failback replication links.
      *
@@ -110,6 +106,15 @@ public interface RemoteFileMirrorOperation {
      */
     void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer);
 
+    /**
+     * Resync replication links
+     * 
+     * @param primarySystem
+     * @param secondarySystem
+     * @param Target
+     * @param completer
+     */
+    void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer,
+            String policyName);
 
-    
 }

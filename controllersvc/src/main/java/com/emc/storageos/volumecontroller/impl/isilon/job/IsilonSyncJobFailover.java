@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2015-2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -21,35 +21,33 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
-import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.Job.JobStatus;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
 
 public class IsilonSyncJobFailover extends Job implements Serializable {
 
     private static final Logger _logger = LoggerFactory.getLogger(IsilonSyncIQJob.class);
     private static final long ERROR_TRACKING_LIMIT = 60 * 1000; // tracking limit for transient errors. set for 2 hours
-    
-    protected String _jobName;
-    protected URI _storageSystemUri;
-    protected TaskCompleter _taskCompleter;
-    protected List<String> _jobIds = new ArrayList<String>();
-    
-    protected long _error_tracking_time = 0L;
-    protected JobStatus _status = JobStatus.IN_PROGRESS;
-    // status of job.updateStatus() execution
-    protected JobStatus _postProcessingStatus = JobStatus.SUCCESS;
-    protected Map<String, Object> _map = new HashMap<String, Object>();
 
-    public JobPollResult _pollResult = new JobPollResult();
-    public String _errorDescription = null;
-    
-    
+    private String _jobName;
+    private URI _storageSystemUri;
+    private TaskCompleter _taskCompleter;
+    private List<String> _jobIds = new ArrayList<String>();
+
+    private long _error_tracking_time = 0L;
+    private JobStatus _status = JobStatus.IN_PROGRESS;
+    // status of job.updateStatus() execution
+    private JobStatus _postProcessingStatus = JobStatus.SUCCESS;
+    private Map<String, Object> _map = new HashMap<String, Object>();
+
+    private JobPollResult _pollResult = new JobPollResult();
+    private String _errorDescription = null;
+
     public IsilonSyncJobFailover(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
@@ -62,22 +60,22 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
         String currentJob = _jobIds.get(0);
         try {
             IsilonApi isiApiClient = getIsilonRestClient(jobContext);
-            if(isiApiClient == null) {
+            if (isiApiClient == null) {
                 String errorMessage = "No Isilon REST API client found for: " + _storageSystemUri;
                 processTransientError(currentJob, trackingPeriodInMillis, errorMessage, null);
             } else {
                 _pollResult.setJobName(_jobName);
                 _pollResult.setJobId(_taskCompleter.getOpId());
-                
+
                 IsilonSyncPolicy policy = isiApiClient.getTargetReplicationPolicy(currentJob);
                 IsilonSyncPolicy.JobState policyState = policy.getLastJobState();
-                if(policyState.equals(JobState.running)) {
+                if (policyState.equals(JobState.running)) {
                     _status = JobStatus.IN_PROGRESS;
-                } else if(policyState.equals(JobState.finished)){
+                } else if (policyState.equals(JobState.finished)) {
                     _status = JobStatus.SUCCESS;
                     _pollResult.setJobPercentComplete(100);
                     _logger.info("IsilonSyncIQJob: {} succeeded", currentJob);
-                    
+
                 } else {
                     _errorDescription = isiGetReportErrMsg(isiApiClient.getTargetReplicationPolicyReports(currentJob).getList());
                     _pollResult.setJobPercentComplete(100);
@@ -85,7 +83,7 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
                     _status = JobStatus.FAILED;
                     _logger.error("IsilonSyncIQJob: {} failed; Details: {}", currentJob, _errorDescription);
                 }
-                
+
             }
         } catch (Exception e) {
             processTransientError(currentJob, trackingPeriodInMillis, e.getMessage(), e);
@@ -98,7 +96,7 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
             }
         }
         _pollResult.setJobStatus(_status);
-        
+
         return _pollResult;
     }
 
@@ -106,7 +104,7 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
     public TaskCompleter getTaskCompleter() {
         return _taskCompleter;
     }
-    
+
     public void updateStatus(JobContext jobContext) throws Exception {
         if (_status == JobStatus.SUCCESS) {
             _taskCompleter.ready(jobContext.getDbClient());
@@ -115,16 +113,16 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
             _taskCompleter.error(jobContext.getDbClient(), error);
         }
     }
-    
+
     public void setErrorStatus(String errorDescription) {
         _status = JobStatus.FATAL_ERROR;
         _errorDescription = errorDescription;
     }
-    
+
     public void setErrorTrackingTime(long trackingTime) {
         _error_tracking_time = trackingTime;
     }
-    
+
     /**
      * Get Isilon API client
      * 
@@ -133,25 +131,25 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
      */
     public IsilonApi getIsilonRestClient(JobContext jobContext) {
         StorageSystem device = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUri);
-         if(jobContext.getIsilonApiFactory() != null) {
-             IsilonApi isilonAPI;
-             URI deviceURI;
-             try {
-                 deviceURI = new URI("https", null, device.getIpAddress(), device.getPortNumber(), "/", null, null);
-             } catch (URISyntaxException ex) {
-                 throw IsilonException.exceptions.errorCreatingServerURL(device.getIpAddress(), device.getPortNumber(), ex);
-             }
-             //get rest client
-             if (device.getUsername() != null && !device.getUsername().isEmpty()) {
-                 isilonAPI = jobContext.getIsilonApiFactory().getRESTClient(deviceURI, device.getUsername(), device.getPassword());
-             } else {
-                 isilonAPI = jobContext.getIsilonApiFactory().getRESTClient(deviceURI);
-             }
-             return isilonAPI;
-         }
-         return null;
+        if (jobContext.getIsilonApiFactory() != null) {
+            IsilonApi isilonAPI;
+            URI deviceURI;
+            try {
+                deviceURI = new URI("https", null, device.getIpAddress(), device.getPortNumber(), "/", null, null);
+            } catch (URISyntaxException ex) {
+                throw IsilonException.exceptions.errorCreatingServerURL(device.getIpAddress(), device.getPortNumber(), ex);
+            }
+            // get rest client
+            if (device.getUsername() != null && !device.getUsername().isEmpty()) {
+                isilonAPI = jobContext.getIsilonApiFactory().getRESTClient(deviceURI, device.getUsername(), device.getPassword());
+            } else {
+                isilonAPI = jobContext.getIsilonApiFactory().getRESTClient(deviceURI);
+            }
+            return isilonAPI;
+        }
+        return null;
     }
-    
+
     private void processTransientError(String jobId, long trackingInterval, String errorMessage, Exception ex) {
         _status = JobStatus.ERROR;
         _errorDescription = errorMessage;
@@ -173,7 +171,7 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
                     _jobName, jobId, _status));
         }
     }
-    
+
     private String isiGetReportErrMsg(List<IsilonSyncPolicyReport> policyReports) {
         String errorMessage = "";
         for (IsilonSyncPolicyReport report : policyReports) {
@@ -186,6 +184,5 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
         }
         return errorMessage;
     }
-    
 
 }

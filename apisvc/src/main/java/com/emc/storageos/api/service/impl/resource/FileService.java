@@ -57,7 +57,6 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
@@ -232,7 +231,6 @@ public class FileService extends TaskResourceService {
         STOP("stop", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
         PAUSE("pause", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE),
         RESUME("resume", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME),
-        CHANGE_COPY_MODE("change-copy-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE),
         UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
         private final String op;
@@ -2461,12 +2459,12 @@ public class FileService extends TaskResourceService {
     public TaskList failoverProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         Copy copy = param.getCopies().get(0);
-        if(copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())){
+        if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
             return performFileProtectionAction(param, id, ProtectionOp.FAILOVER.getRestOp());
         } else {
             throw APIException.badRequests.invalidCopyType(copy.getType());
         }
-        
+
     }
 
     /**
@@ -2491,8 +2489,14 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/protection/continuous-copies/failback")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList failbackProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        return performFileProtectionAction(param, id, ProtectionOp.FAILBACK.getRestOp());
+        Copy copy = param.getCopies().get(0);
+        if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
+            return performFileProtectionAction(param, id, ProtectionOp.FAILBACK.getRestOp());
+        } else {
+            throw APIException.badRequests.invalidCopyType(copy.getType());
+        }
     }
 
     /**
@@ -2551,7 +2555,7 @@ public class FileService extends TaskResourceService {
         // Make sure that we don't have some pending
         // operation against the file share
         checkForPendingTasks(Arrays.asList(sourceFileShare.getTenant().getURI()), Arrays.asList(sourceFileShare));
-        
+
         Operation status = new Operation();
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
         _dbClient.createTaskOpStatus(FileShare.class, sourceFileShare.getId(), task, status);
@@ -2567,6 +2571,14 @@ public class FileService extends TaskResourceService {
         return toTask(sourceFileShare, task, status);
     }
 
+    /**
+     * perform file protection action
+     * 
+     * @param param
+     * @param id
+     * @param op
+     * @return
+     */
     private TaskList performFileProtectionAction(FileReplicationParam param, URI id, String op) {
         TaskResourceRep taskResp = null;
         TaskList taskList = new TaskList();
@@ -2576,13 +2588,12 @@ public class FileService extends TaskResourceService {
     }
 
     /**
-     * Verify that all the copy IDs passed for a protection type are either
-     * set to valid URIs, or none are set. A combination of the two is not allowed.
-     * When none are set the operation is performed on all copies for the specified source fileshare.
-     *
-     * @param param List of copies to verify
+     * copy exports rules
+     * 
+     * @param orig
+     * @param dest
+     * @param fs
      */
-
     private void copyPropertiesToSave(FileExportRule orig, ExportRule dest, FileShare fs) {
 
         dest.setFsID(fs.getId());
@@ -2672,7 +2683,6 @@ public class FileService extends TaskResourceService {
                 return getFileServiceApis("remotemirror");
             }
         }
-
 
         return getFileServiceApis("default");
     }

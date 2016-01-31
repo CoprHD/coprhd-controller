@@ -5,7 +5,6 @@
 
 package com.emc.storageos.model.application;
 
-import java.net.URI;
 import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -23,8 +22,6 @@ public class VolumeGroupCreateParam {
     private String description;
     private Set<String> roles;
     private String parent;
-    private URI sourceStorageSystem;
-    private URI sourceVirtualPool;
     private String migrationType;
     private String migrationGroupBy;
 
@@ -96,25 +93,7 @@ public class VolumeGroupCreateParam {
         this.parent = parent;
     }
 
-    @XmlElement(name = "sourceStorageSystem")
-    public URI getSourceStorageSystem() {
-        return sourceStorageSystem;
-    }
-
-    public void setSourceStorageSystem(URI sourceStorageSystem) {
-        this.sourceStorageSystem = sourceStorageSystem;
-    }
-
-    @XmlElement(name = "sourceVirtualPool")
-    public URI getSourceVirtualPool() {
-        return sourceVirtualPool;
-    }
-
-    public void setSourceVirtualPool(URI sourceVirtualPool) {
-        this.sourceVirtualPool = sourceVirtualPool;
-    }
-
-    @XmlElement(name = "migrationType")
+    @XmlElement(name = "migration_type")
     public String getMigrationType() {
         return migrationType;
     }
@@ -123,7 +102,7 @@ public class VolumeGroupCreateParam {
         this.migrationType = migrationType;
     }
 
-    @XmlElement(name = "migrationGroupBy")
+    @XmlElement(name = "migration_group_by")
     public String getMigrationGroupBy() {
         return migrationGroupBy;
     }

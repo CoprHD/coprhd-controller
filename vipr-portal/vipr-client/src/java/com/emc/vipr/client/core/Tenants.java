@@ -20,6 +20,7 @@ import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
+import com.emc.storageos.model.schedulepolicy.PolicyParam;
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 import com.emc.storageos.model.tenant.*;
@@ -247,6 +248,19 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
      * @return a task for monitoring the progress of the operation.
      */
     public SchedulePolicyList getSchedulePoliciesByTenant(URI id) {
-        return client.get(SchedulePolicyList.class, getIdUrl(), id);
+        return client.get(SchedulePolicyList.class, getIdUrl() + "/schedule-policies", id);
+    }
+    
+    /**
+     * Create a schedule policy for a tenant.
+     * <p>
+     * API Call: <tt>POST /tenants/{tenantId}/schedule-policies</tt>
+     * 
+     * @param id
+     *            the tenant id.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public SchedulePolicyList createSchedulePolicy(URI id, PolicyParam param) {
+        return client.post(SchedulePolicyList.class, param, getIdUrl() + "/schedule-policies", id);
     }
 }

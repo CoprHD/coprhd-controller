@@ -55,8 +55,8 @@ class VolumeGroup(object):
         request["description"] = description
         request["roles"] = roles.split(',')
         request["parent"] = parent
-        request["migrationType"] = migrationType
-        request["migrationGroupBy"] = migrationGroupBy
+        request["migration_type"] = migrationType
+        request["migration_group_by"] = migrationGroupBy
 
         body = json.dumps(request)
 

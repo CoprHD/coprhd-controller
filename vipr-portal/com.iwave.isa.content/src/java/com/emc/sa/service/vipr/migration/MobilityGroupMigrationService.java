@@ -71,7 +71,6 @@ public class MobilityGroupMigrationService extends ViPRService {
     public void execute() throws Exception {
 
         if (mobilityGroupMethod != null && mobilityGroupMethod.equalsIgnoreCase(BlockProvider.INGEST_AND_MIGRATE_OPTION_KEY)) {
-            // TODO ingest volumes
             ingestVolumes();
         }
 

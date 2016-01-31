@@ -13,6 +13,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.google.common.collect.Lists;
 
 public class ChangeBlockVolumeVirtualPoolNoWait extends ViPRExecutionTask<Tasks<VolumeRestRep>> {
@@ -36,11 +37,15 @@ public class ChangeBlockVolumeVirtualPoolNoWait extends ViPRExecutionTask<Tasks<
             VolumeVirtualPoolChangeParam input = new VolumeVirtualPoolChangeParam();
             input.setVolumes(Lists.newArrayList(volumeIds.get(vpool)));
             input.setVirtualPool(targetVirtualPoolId);
-            Tasks<VolumeRestRep> tasks = getClient().blockVolumes().changeVirtualPool(input);
-            for (Task<VolumeRestRep> task : tasks.getTasks()) {
-                addOrderIdTag(task.getTaskResource().getId());
+            try {
+                Tasks<VolumeRestRep> tasks = getClient().blockVolumes().changeVirtualPool(input);
+                for (Task<VolumeRestRep> task : tasks.getTasks()) {
+                    addOrderIdTag(task.getTaskResource().getId());
+                }
+                result.getTasks().addAll(tasks.getTasks());
+            } catch (ServiceErrorException ex) {
+                logError(ex.getMessage());
             }
-            result.getTasks().addAll(tasks.getTasks());
         }
         return result;
     }

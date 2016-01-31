@@ -29,7 +29,6 @@ public class VcenterCreateParam extends VcenterParam {
     /**
      * The IP address or host name of the vCenter.
      * 
-     * @valid none
      */
     @XmlElement(name = "ip_address", required = true)
     @Endpoint(type = Endpoint.EndpointType.HOST)

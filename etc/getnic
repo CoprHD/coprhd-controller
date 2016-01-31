@@ -23,6 +23,7 @@ export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin
 for nic in $(ls /sys/class/net | sort); do
     case ${nic} in
         lo*) continue ;;
+        docker*) continue ;;
         *) echo "${nic}"; exit 0 ;;
     esac
 done

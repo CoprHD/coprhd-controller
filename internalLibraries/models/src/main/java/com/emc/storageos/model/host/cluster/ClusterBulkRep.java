@@ -19,7 +19,6 @@ public class ClusterBulkRep extends BulkRestRep {
     /**
      * Represents a host cluster within ViPR
      * 
-     * @valid none
      */
     @XmlElement(name = "cluster")
     public List<ClusterRestRep> getClusters() {

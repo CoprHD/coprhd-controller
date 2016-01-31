@@ -29,7 +29,6 @@ public class FCZoneReferences {
      * List of FC (Fibre Channel) Zone References that keeps
      * track of which export groups and volumes are using a fibre channel zone.
      * 
-     * @valid none
      */
     @XmlElement(name = "fc_zone_reference")
     public List<FCZoneReferenceRestRep> getReferences() {

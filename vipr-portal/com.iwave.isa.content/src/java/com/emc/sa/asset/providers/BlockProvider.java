@@ -1764,8 +1764,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
                 @Override
                 public boolean accept(VolumeRestRep item) {
-                    return (item.getVolumeGroups() == null || !item.getVolumeGroups().contains(mobilityGroupId))
+                    return (item.getVolumeGroups() == null || !contains(item, mobilityGroupId))
                             && vplexFilter.accept(item);
+                }
+
+                private boolean contains(VolumeRestRep item, URI mobilityGroup) {
+                    for (RelatedResourceRep vg : item.getVolumeGroups()) {
+                        if (vg.getId().equals(mobilityGroup)) {
+                            return true;
+                        }
+                    }
+                    return false;
                 }
             });
             return createBaseResourceOptions(volumes);
@@ -1780,7 +1789,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
                 @Override
                 public boolean accept(HostRestRep item) {
-                    return item.getVolumeGroups() == null || !item.getVolumeGroups().contains(mobilityGroupId);
+                    return item.getVolumeGroups() == null || !contains(item, mobilityGroupId);
+                }
+
+                private boolean contains(HostRestRep item, URI mobilityGroup) {
+                    for (RelatedResourceRep vg : item.getVolumeGroups()) {
+                        if (vg.getId().equals(mobilityGroup)) {
+                            return true;
+                        }
+                    }
+                    return false;
                 }
 
             });
@@ -1796,7 +1814,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
                 @Override
                 public boolean accept(ClusterRestRep item) {
-                    return item.getVolumeGroups() == null || !item.getVolumeGroups().contains(mobilityGroupId);
+                    return item.getVolumeGroups() == null || !contains(item, mobilityGroupId);
+                }
+
+                private boolean contains(ClusterRestRep item, URI mobilityGroup) {
+                    for (RelatedResourceRep vg : item.getVolumeGroups()) {
+                        if (vg.getId().equals(mobilityGroup)) {
+                            return true;
+                        }
+                    }
+                    return false;
                 }
 
             });

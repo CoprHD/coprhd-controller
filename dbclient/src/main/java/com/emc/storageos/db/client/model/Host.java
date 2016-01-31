@@ -40,7 +40,6 @@ public class Host extends AbstractComputeSystem {
     private URI _computeElement;
     private Boolean discoverable;
     private String provisioningStatus;
-    // volume group that the volume belongs to
     private StringSet volumeGroupIds;
 
     /**

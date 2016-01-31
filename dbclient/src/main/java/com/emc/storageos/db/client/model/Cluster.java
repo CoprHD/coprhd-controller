@@ -20,7 +20,6 @@ public class Cluster extends AbstractTenantResource {
     private URI _project;
     private String _externalId;
     private Boolean autoExportEnabled = true;
-    // volume group that the volume belongs to
     private StringSet volumeGroupIds;
 
     /**

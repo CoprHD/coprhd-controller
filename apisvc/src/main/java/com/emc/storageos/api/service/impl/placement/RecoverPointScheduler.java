@@ -3044,7 +3044,7 @@ public class RecoverPointScheduler implements Scheduler {
         }
 
         // Sort the valid associated storage systems by visibility to the arrays already
-        _log.info(String.format("RP Placement : Following storage systems found that can are capable of protecting to %d varrays : %s",
+        _log.info(String.format("RP Placement : Following storage systems were found that are capable of protecting to %d varrays : %s",
                 protectionVarrays.size(), Joiner.on(",").join(validAssociatedStorageSystems)));
         return reorderAssociatedStorageSystems(candidateProtectionSystem, validAssociatedStorageSystems, sourceVarray);
     }

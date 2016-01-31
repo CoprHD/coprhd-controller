@@ -142,14 +142,14 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
             switch (opType) {
                 case CREATE_FILE_MIRROR:
+                case START_FILE_MIRROR:
                 case SUSPEND_FILE_MIRROR:
                 case DETACH_FILE_MIRROR:
                 case PAUSE_FILE_MIRROR:
                 case RESUME_FILE_MIRROR:
                 case FAILOVER_FILE_MIRROR:
                 case STOP_FILE_MIRROR:
-                case START_FILE_MIRROR:
-
+                case FAILBACK_FILE_MIRROR:
                     auditFile(dbClient, opType, opStatus, opStage, extParam);
                     break;
 
@@ -206,7 +206,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
                 "", dbClient, EVENT_SERVICE_TYPE, RecordType.Event.name(), EVENT_SERVICE_SOURCE);
         try {
             eventManager.recordEvents(event);
-            _logger.info("Bourne {} event recorded", evtType);
+            _logger.info("ViPR {} event recorded", evtType);
         } catch (Exception ex) {
             _logger.error(
                     "Failed to record event. Event description: {}. Error: ",

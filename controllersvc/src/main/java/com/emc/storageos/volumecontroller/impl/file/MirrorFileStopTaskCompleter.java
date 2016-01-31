@@ -48,7 +48,7 @@ public class MirrorFileStopTaskCompleter extends MirrorFileTaskCompleter {
 
     @Override
     protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
-        return this.mirrorSyncStatus = FileShare.MirrorStatus.UNKNOWN;
+        return this.mirrorSyncStatus = FileShare.MirrorStatus.DETACHED;
     }
 
 }

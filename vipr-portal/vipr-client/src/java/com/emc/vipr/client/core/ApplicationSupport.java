@@ -9,8 +9,8 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_FUL
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DELETE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_CLUSTERS_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_HOSTS_APP_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_VOLUMES_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
@@ -96,7 +96,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
     }
 
     public List<NamedRelatedResourceRep> getVolumes(URI id) {
-        NamedVolumesList response = client.get(NamedVolumesList.class, APP_SUPPORT_GET_VOLUMES_APP_URL, id);
+        NamedVolumesList response = client.get(NamedVolumesList.class, APP_SUPPORT_VOLUME_URL, id);
         return response.getVolumes();
     }
 
@@ -126,7 +126,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
      * GET /volume-groups/block/{id}/volumes
      */
     public NamedVolumesList getVolumeByApplication(URI id) {
-        return client.get(NamedVolumesList.class, APP_SUPPORT_GET_VOLUMES_APP_URL, id);
+        return client.get(NamedVolumesList.class, APP_SUPPORT_VOLUME_URL, id);
     }
 
     /**

@@ -234,52 +234,6 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
         log.info("Retrieving ViPR certificate");
 
         KeyCertificateEntry entryToReturn;
-        InterProcessLock lock = null;
-        
-        try {
-            entryToReturn = readKeyCertificateEntry();
-            if (entryToReturn == null) {
-                lock = acquireCertLock();
-                entryToReturn = readKeyCertificateEntry();
-                if (entryToReturn == null) {
-                    log.info("ViPR certificate not found");
-                    entryToReturn = generator.tryGetV1Cert();
-                    if (entryToReturn != null) {
-                        KeyStoreUtil.setSelfGeneratedCertificate(coordConfigStoringHelper,
-                                Boolean.FALSE);
-                        entryToReturn.setCreationDate(new Date());
-                        setKeyCertificatePair(entryToReturn);
-                    } else {
-                        log.info("Generating new certificate");
-                        entryToReturn = generateNewKeyCertificatePair();
-                    }
-                }
-            } 
-            if (entryToReturn != null){
-                X509Certificate cert = (X509Certificate) entryToReturn.getCertificateChain()[0];
-                if (KeyStoreUtil.isSelfGeneratedCertificate(coordConfigStoringHelper)
-                        && !generator.isCertificateIPsCorrect(cert)) {
-                    log.info("ViPR certificate is self generated and has illegal IPs. Generating a new one...");
-                    lock = acquireCertLock();
-                    if (!generator.isCertificateIPsCorrect(cert)) {
-                        entryToReturn = generateNewKeyCertificatePair();
-                    }
-                }
-                checkCertificateDateValidity(cert);
-            }
-            log.info("Retrieved ViPR certificate successfully");
-        } catch (IOException | ClassNotFoundException e) {
-            throw SecurityException.fatals.failedToReadKeyCertificateEntry(e);
-        } finally {
-            if (lock != null) {
-                coordConfigStoringHelper.releaseLock(lock);
-            }
-        }
-
-        return entryToReturn;
-    }
-
-    private InterProcessLock acquireCertLock() {
         InterProcessLock lock;
         try {
             lock = coordConfigStoringHelper.acquireLock(KEY_CERTIFICATE_PAIR_LOCK);
@@ -289,44 +243,66 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
         if (lock == null) {
             throw SecurityException.fatals.failedToGetKeyCertificate();
         }
-        return lock;
+        try {
+            entryToReturn = readKeyCertificateEntry();
+            if (entryToReturn == null) {
+                log.info("ViPR certificate not found");
+                entryToReturn = generator.tryGetV1Cert();
+                if (entryToReturn != null) {
+                    KeyStoreUtil.setSelfGeneratedCertificate(coordConfigStoringHelper,
+                            Boolean.FALSE);
+                    entryToReturn.setCreationDate(new Date());
+                    setKeyCertificatePair(entryToReturn);
+                } else {
+                    log.info("Generating new certificate");
+                    entryToReturn = generateNewKeyCertificatePair();
+                }
+            } else {
+                X509Certificate cert = (X509Certificate) entryToReturn.getCertificateChain()[0];
+                if (KeyStoreUtil.isSelfGeneratedCertificate(coordConfigStoringHelper)
+                        && !generator.isCertificateIPsCorrect(cert)) {
+                    log.info("ViPR certificate is self generated and has illegal IPs. Generating a new one...");
+                    entryToReturn = generateNewKeyCertificatePair();
+                }
+                checkCertificateDateValidity(cert);
+            }
+            log.info("Retrieved ViPR certificate successfully");
+        } catch (IOException | ClassNotFoundException e) {
+            throw SecurityException.fatals.failedToReadKeyCertificateEntry(e);
+        } finally {
+            coordConfigStoringHelper.releaseLock(lock);
+        }
+
+        return entryToReturn;
     }
-    
+
     private KeyCertificateEntry readKeyCertificateEntry() throws IOException, ClassNotFoundException{
         KeyCertificateEntry entryToReturn =
                 coordConfigStoringHelper.readConfig(coordConfigStoringHelper.getSiteId(), KEY_CERTIFICATE_PAIR_CONFIG_KIND,
                         KEY_CERTIFICATE_PAIR_ID,
                         KEY_CERTIFICATE_PAIR_KEY);
         if (entryToReturn == null) {
-            InterProcessLock lock = null;
-            try {
-                lock = acquireCertLock();
-                log.info("Certificate not found from site specific area. Try global area");
-                entryToReturn =
-                        coordConfigStoringHelper.readConfig(KEY_CERTIFICATE_PAIR_CONFIG_KIND,
-                                KEY_CERTIFICATE_PAIR_ID,
-                                KEY_CERTIFICATE_PAIR_KEY);
-                if (entryToReturn != null) {
-                    String siteId = coordConfigStoringHelper.getSiteId();
-                    log.info("Found certificate from global area. Moving to site specific area");
-                    try {
-                        
-                        coordConfigStoringHelper.createOrUpdateConfig(entryToReturn, KEY_CERTIFICATE_PAIR_LOCK,
-                            siteId, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID,
+            log.info("Certificate not found from site specific area. Try global area");
+            entryToReturn =
+                    coordConfigStoringHelper.readConfig(KEY_CERTIFICATE_PAIR_CONFIG_KIND,
+                            KEY_CERTIFICATE_PAIR_ID,
                             KEY_CERTIFICATE_PAIR_KEY);
-                        Boolean isSelfSigned = coordConfigStoringHelper.readConfig(
-                                DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_CONFIG_KIND,
-                                DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_ID,
-                                DistributedKeyStoreImpl.IS_SELF_GENERATED_KEY);
-                        KeyStoreUtil.setSelfGeneratedCertificate(coordConfigStoringHelper, isSelfSigned);
-                        coordConfigStoringHelper.removeConfig(KEY_CERTIFICATE_PAIR_LOCK, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID);
-                    } catch (Exception ex) {
-                        log.error("Failed to move key certificate pair to site specific area", ex);
-                    }
-                }
-            } finally {
-                if (lock != null) {
-                    coordConfigStoringHelper.releaseLock(lock);
+            if (entryToReturn != null) {
+                String siteId = coordConfigStoringHelper.getSiteId();
+                log.info("Found certificate from global area. Moving to site specific area");
+                try {
+                    
+                    coordConfigStoringHelper.createOrUpdateConfig(entryToReturn, KEY_CERTIFICATE_PAIR_LOCK,
+                        siteId, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID,
+                        KEY_CERTIFICATE_PAIR_KEY);
+                    Boolean isSelfSigned = coordConfigStoringHelper.readConfig(
+                            DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_CONFIG_KIND,
+                            DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_ID,
+                            DistributedKeyStoreImpl.IS_SELF_GENERATED_KEY);
+                    KeyStoreUtil.setSelfGeneratedCertificate(coordConfigStoringHelper, isSelfSigned);
+                    coordConfigStoringHelper.removeConfig(KEY_CERTIFICATE_PAIR_LOCK, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID);
+                } catch (Exception ex) {
+                    log.error("Failed to move key certificate pair to site specific area", ex);
                 }
             }
         }

@@ -2,7 +2,9 @@ package com.emc.sa.service.vipr.migration;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.emc.sa.asset.providers.BlockProvider;
@@ -34,6 +36,7 @@ import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.exceptions.TimeoutException;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 @Service("MobilityGroupMigration")
@@ -74,7 +77,7 @@ public class MobilityGroupMigrationService extends ViPRService {
 
         List<Task<VolumeRestRep>> tasks = new ArrayList<>();
 
-        Tasks<VolumeRestRep> migrationTasks = execute(new ChangeBlockVolumeVirtualPoolNoWait(getVolumes(), targetVirtualPool));
+        Tasks<VolumeRestRep> migrationTasks = execute(new ChangeBlockVolumeVirtualPoolNoWait(mapVpoolVolumes(), targetVirtualPool));
 
         tasks.addAll(migrationTasks.getTasks());
 
@@ -158,6 +161,20 @@ public class MobilityGroupMigrationService extends ViPRService {
             logInfo("ingest.exported.unmanaged.volume.service.skipped", volumeIds.size() - succeed);
         }
 
+    }
+
+    private Map<URI, Set<URI>> mapVpoolVolumes() {
+        Set<URI> volumes = getVolumes();
+        Map<URI, Set<URI>> vpoolVolumes = Maps.newHashMap();
+
+        for (URI volume : volumes) {
+            VolumeRestRep vol = getClient().blockVolumes().get(volume);
+            if (!vpoolVolumes.containsKey(vol.getVirtualPool().getId())) {
+                vpoolVolumes.put(vol.getVirtualPool().getId(), new HashSet<URI>());
+            }
+            vpoolVolumes.get(vol.getVirtualPool().getId()).add(vol.getId());
+        }
+        return vpoolVolumes;
     }
 
     private Set<URI> getVolumes() {

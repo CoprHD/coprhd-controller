@@ -33,6 +33,7 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String DR_OP_FAILBACK_DEGRADE = "dr_failbackDegrade";
     public static final String DR_OP_CHANGE_DATA_REVISION = "dr_change_data_revision";
     public static final String IP_OP_CHANGE = "ip_change";
+    public static final String GEO_OP_CONFIG_CHANGE = "geo_config_change";
     public static final String NONE = "noop";
 
     /**

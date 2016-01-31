@@ -139,8 +139,8 @@ public abstract class VdcOpHandler {
             }
             
             if (isGeoConfigChange()) {
-                log.info("Geo config change detected. set rolling reboot to true");
-                setRollingRebootNeeded(true);
+                log.info("Geo config change detected. set concurrent reboot to true");
+                setConcurrentRebootNeeded(true);
             }
             
             syncFlushVdcConfigToLocal();
@@ -148,6 +148,36 @@ public abstract class VdcOpHandler {
         }
     }
 
+    /**
+     * Geo config change - add/remove vdc 
+     */
+    public static class GeoConfigChangeOpHandler extends VdcOpHandler {
+        public GeoConfigChangeOpHandler() {
+        }
+        
+        /**
+         * Reconfig IPsec/firewall when vdc properties (key, IPs or both) get changed. 
+         * Rolling restart the cluster if it is remove-vdc
+         * 
+         * @throws Exception
+         */
+        @Override
+        public void execute() throws Exception {
+            syncFlushVdcConfigToLocal();
+            refreshIPsec();
+            refreshFirewall();
+            
+            if (isRemovingVdc()) {
+                setRollingRebootNeeded(true);
+            }
+        }
+        
+        private boolean isRemovingVdc() {
+            String newVdcIds =  targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+            String origVdcIds = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+            return newVdcIds.length() < origVdcIds.length();
+        }
+    }
     
     /**
      * Process DR config change for add-standby op on all existing sites

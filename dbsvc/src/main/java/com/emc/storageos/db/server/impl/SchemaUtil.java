@@ -489,8 +489,13 @@ public class SchemaUtil {
         }
         
         _log.debug("vdcList = {}", _vdcList);
+        // on newly added vdc - vdc short id is changed
         if (_vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
-            // the current vdc is removed
+            strategyOptions.clear();
+        }
+        
+        // on removed vdc, its strategyOption need be reset
+        if (_vdcList.size() == 1 && strategyOptions.size() > 1) {
             strategyOptions.clear();
         }
         
@@ -506,7 +511,6 @@ public class SchemaUtil {
         if (currentSite != null) {
             dcName = drUtil.getCassandraDcId(currentSite); 
         }
-        
         
         if (strategyOptions.containsKey(dcName)) {
             return false;

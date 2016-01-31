@@ -179,7 +179,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
             statusChecker.waitForMigrationDone();
             
             // Update vdc version
-            schemaUtil.insertOrUpdateVdcVersion(dbClient, true);
+            if (isDbSchemaVersionChanged()) {
+                schemaUtil.insertOrUpdateVdcVersion(dbClient, true);
+            }
             return true;
         } else {
             // We support adjusting num_tokens for dbsvc, have to wait for it to complete before continue.
@@ -700,10 +702,15 @@ public class MigrationHandlerImpl implements MigrationHandler {
         log.info("Finish dumping changes");
     }
     
-    private void checkGeoDbSchema() {
+    private boolean isDbSchemaVersionChanged() {
         String targetVersion = service.getVersion();
         String currentSchemaVersion = coordinator.getCurrentDbSchemaVersion();
-        if (!targetVersion.equals(currentSchemaVersion) && !VdcUtil.checkGeoCompatibleOfOtherVdcs(targetVersion)){
+        return !targetVersion.equals(currentSchemaVersion);
+    }
+    
+    private void checkGeoDbSchema() {
+        String targetVersion = service.getVersion();
+        if (isDbSchemaVersionChanged() && !VdcUtil.checkGeoCompatibleOfOtherVdcs(targetVersion)){
             log.info("Not all vdc are upgraded. Skip geodb schema change until all vdc are upgraded");
             return;
         }

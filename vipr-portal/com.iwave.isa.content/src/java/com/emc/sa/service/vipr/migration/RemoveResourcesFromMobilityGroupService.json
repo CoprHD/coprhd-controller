@@ -1,0 +1,15 @@
+{
+  baseKey:"RemoveResourcesFromMobilityGroup.Migration",
+  serviceId:"RemoveResourcesFromMobilityGroup",
+  fields:{
+  
+    mobilityGroup:{
+      type:"assetType.vipr.mobilityGroup"
+    },
+    
+    mobilityGroupResources:{
+      type:"assetType.vipr.removeMobilityGroupResource",
+      select: "many"
+    }
+  }
+}

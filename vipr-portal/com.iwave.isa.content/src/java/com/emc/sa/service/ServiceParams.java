@@ -37,6 +37,7 @@ public interface ServiceParams {
     public String COPY_NAME = "copyName";
 
     public String MOBILITY_GROUP = "mobilityGroup";
+    public String MOBILITY_GROUP_RESOURCES = "mobilityGroupResources";
 
     public String PROJECT = "project";
     public String VIRTUAL_ARRAY = "virtualArray";

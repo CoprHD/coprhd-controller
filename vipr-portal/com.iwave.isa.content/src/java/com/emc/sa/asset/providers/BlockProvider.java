@@ -63,6 +63,7 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
@@ -1744,6 +1745,81 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         });
         return createBaseResourceOptions(volumeGroups);
+    }
+
+    @Asset("addMobilityGroupResource")
+    @AssetDependencies("mobilityGroup")
+    public List<AssetOption> getAddMobilityGroupResources(AssetOptionsContext ctx, final URI mobilityGroupId) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupRestRep mobilityGroup = client.application().get(mobilityGroupId);
+        if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
+            // VPLEX volumes that don't have reference to this mobility group
+            List<URI> volumeIds = client.blockVolumes().listBulkIds();
+            final ResourceFilter<VolumeRestRep> vplexFilter = new VplexVolumeFilter();
+            List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, new ResourceFilter<VolumeRestRep>() {
+                @Override
+                public boolean acceptId(URI id) {
+                    return true;
+                }
+
+                @Override
+                public boolean accept(VolumeRestRep item) {
+                    return (item.getVolumeGroups() == null || !item.getVolumeGroups().contains(mobilityGroupId))
+                            && vplexFilter.accept(item);
+                }
+            });
+            return createBaseResourceOptions(volumes);
+        } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
+            List<URI> hostIds = client.hosts().listBulkIds();
+            List<HostRestRep> hosts = client.hosts().getByIds(hostIds, new ResourceFilter<HostRestRep>() {
+
+                @Override
+                public boolean acceptId(URI id) {
+                    return true;
+                }
+
+                @Override
+                public boolean accept(HostRestRep item) {
+                    return item.getVolumeGroups() == null || !item.getVolumeGroups().contains(mobilityGroupId);
+                }
+
+            });
+            return createBaseResourceOptions(hosts);
+        } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
+            List<URI> clusterIds = client.clusters().listBulkIds();
+            List<ClusterRestRep> clusters = client.clusters().getByIds(clusterIds, new ResourceFilter<ClusterRestRep>() {
+
+                @Override
+                public boolean acceptId(URI id) {
+                    return true;
+                }
+
+                @Override
+                public boolean accept(ClusterRestRep item) {
+                    return item.getVolumeGroups() == null || !item.getVolumeGroups().contains(mobilityGroupId);
+                }
+
+            });
+            return createBaseResourceOptions(clusters);
+        } else {
+            return Lists.newArrayList();
+        }
+    }
+
+    @Asset("removeMobilityGroupResource")
+    @AssetDependencies("mobilityGroup")
+    public List<AssetOption> getRemoveMobilityGroupResources(AssetOptionsContext ctx, URI mobilityGroupId) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupRestRep mobilityGroup = client.application().get(mobilityGroupId);
+        if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
+            return createNamedResourceOptions(client.application().listVolumes(mobilityGroupId));
+        } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
+            return createNamedResourceOptions(client.application().getHosts(mobilityGroupId));
+        } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
+            return createNamedResourceOptions(client.application().getClusters(mobilityGroupId));
+        } else {
+            return Lists.newArrayList();
+        }
     }
 
     @Asset("application")

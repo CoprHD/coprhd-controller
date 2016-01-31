@@ -516,6 +516,14 @@
         {
           "image": "icon_VPLEX_data_migration.png",
           "baseService": "MobilityGroupMigration"
+        },
+        {
+          "image": "icon_VPLEX_data_migration.png",
+          "baseService": "AddResourcesToMobilityGroup"
+        },
+        {
+          "image": "icon_VPLEX_data_migration.png",
+          "baseService": "RemoveResourcesFromMobilityGroup"
         }
       ]
     },

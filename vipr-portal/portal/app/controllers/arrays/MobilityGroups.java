@@ -8,9 +8,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static controllers.Common.flashException;
 import static util.BourneUtil.getViprClient;
 
-import java.net.URI;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,15 +29,10 @@ import util.StringOption;
 import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
-import com.emc.vipr.client.core.filters.VplexVolumeFilter;
 import com.emc.vipr.client.exceptions.ViPRException;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -61,21 +54,6 @@ public class MobilityGroups extends ViprResourceController {
     public static void list() {
         MobilityGroupSupportDataTable dataTable = new MobilityGroupSupportDataTable();
         render(dataTable);
-    }
-
-    public static void listVirtualPoolAttributesJson(MobilityGroupForm mobilityGroup) {
-        // List<StoragePoolInfo> items = Lists.newArrayList();
-        List<String> items = Lists.newArrayList("ABC", "DEF");
-        // if (mobilityGroup != null && mobilityGroup.sourceStorageSystem != null) {
-        // // mobilityGroup.deserialize();
-        // Map<URI, String> storageSystemNames = StorageSystemUtils.getStorageSystemNames();
-        // List<StoragePoolRestRep> pools = getMatchingStoragePools(vpool);
-        // for (StoragePoolRestRep pool : pools) {
-        // String storageSystemName = storageSystemNames.get(id(pool.getStorageSystem()));
-        // items.add(new StoragePoolInfo(pool, storageSystemName));
-        // }
-        // }
-        renderJSON(DataTablesSupport.createJSON(items, params));
     }
 
     public static void listJson() {
@@ -105,39 +83,8 @@ public class MobilityGroups extends ViprResourceController {
         VolumeGroupRestRep mobilityGroup = MobilityGroupSupportUtil.getMobilityGroup(id);
         if (mobilityGroup != null) {
             MobilityGroupForm mobilityGroupForm = new MobilityGroupForm(mobilityGroup);
-
             renderArgs.put("migrationTypes", StringOption.options(MIGRATION_TYPE));
-
-            List<StorageSystemRestRep> sourceStorageSystems = getViprClient().storageSystems().getAll();
-            renderArgs.put("sourceStorageSystems", sourceStorageSystems);
-
             renderArgs.put("migrationGroupBys", StringOption.options(GROUP_BY, false));
-
-            List<BlockVirtualPoolRestRep> sourceVirtualPools = getViprClient().blockVpools().getAll();
-            renderArgs.put("sourceVirtualPools", sourceVirtualPools);
-
-            if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
-                // TODO based on migration type, only show VPLEX volumes
-                List<URI> volumeIds = getViprClient().blockVolumes().listBulkIds();
-                renderArgs.put("volumes", getViprClient().blockVolumes().getByIds(volumeIds, new VplexVolumeFilter()));
-            } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
-                // TODO only show hosts connected to virtual pool
-                List<URI> hostIds = getViprClient().hosts().listBulkIds();
-                renderArgs.put("hosts", getViprClient().hosts().getByIds(hostIds));
-            } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
-                // TODO only show clusters connected to virtual pool
-                List<URI> clusterIds = getViprClient().clusters().listBulkIds();
-                renderArgs.put("clusters", getViprClient().clusters().getByIds(clusterIds));
-            }
-
-            // Promise<List<VirtualArrayRestRep>> virtualArrays = new VirtualArraysCall().asPromise();
-
-            // play.libs.F.Promise<List<VolumeRestRep>> sourceVolumes = new VolumesCall(mobilityGroup.getId()).asPromise();
-            // List<NamedRelatedResourceRep> sourceVolumes =
-            // getViprClient().application().getVolumes(mobilityGroup.getId());
-            // renderArgs.put("sourceVolumes", sourceVolumes);
-            // addDataObjectOptions("sourceVolumes", sourceVolumes);
-
             edit(mobilityGroupForm);
         }
         else {
@@ -215,12 +162,6 @@ public class MobilityGroups extends ViprResourceController {
 
         public Set<String> roles;
 
-        public List<URI> volumes;
-
-        public List<URI> hosts;
-
-        public List<URI> clusters;
-
         public MobilityGroupForm(VolumeGroupRestRep applicationForm) {
             this.id = applicationForm.getId().toString();
             this.name = applicationForm.getName();
@@ -228,27 +169,6 @@ public class MobilityGroups extends ViprResourceController {
             this.roles = applicationForm.getRoles();
             this.migrationType = applicationForm.getMigrationType();
             this.migrationGroupBy = applicationForm.getMigrationGroupBy();
-
-            this.volumes = Lists.newArrayList();
-            if (migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
-                for (NamedRelatedResourceRep vol : getViprClient().application().getVolumes(applicationForm.getId())) {
-                    volumes.add(vol.getId());
-                }
-            }
-
-            this.hosts = Lists.newArrayList();
-            if (migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
-                for (NamedRelatedResourceRep host : getViprClient().application().getHosts(applicationForm.getId())) {
-                    hosts.add(host.getId());
-                }
-            }
-
-            this.clusters = Lists.newArrayList();
-            if (migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
-                for (NamedRelatedResourceRep cluster : getViprClient().application().getClusters(applicationForm.getId())) {
-                    clusters.add(cluster.getId());
-                }
-            }
         }
 
         public boolean isNew() {
@@ -273,68 +193,9 @@ public class MobilityGroups extends ViprResourceController {
                 if (oldApplication.getDescription().equals(description)) {
                     this.description = "";
                 }
-                List<URI> addVolumes = null;
-                List<URI> removeVolumes = null;
-                if (this.migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
-                    List<NamedRelatedResourceRep> allVolumes = getViprClient().application().getVolumes(URI.create(id));
-                    addVolumes = computeDiff(volumes, allVolumes, true);
-                    removeVolumes = computeDiff(volumes, allVolumes, false);
-                }
 
-                List<URI> addHosts = null;
-                List<URI> removeHosts = null;
-                if (this.migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
-                    List<NamedRelatedResourceRep> allHosts = getViprClient().application().getHosts(URI.create(id));
-                    addHosts = computeDiff(hosts, allHosts, true);
-                    removeHosts = computeDiff(hosts, allHosts, false);
-                }
-
-                List<URI> addClusters = null;
-                List<URI> removeClusters = null;
-                if (this.migrationGroupBy.equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
-                    List<NamedRelatedResourceRep> allClustes = getViprClient().application().getClusters(URI.create(id));
-                    addClusters = computeDiff(clusters, allClustes, true);
-                    removeClusters = computeDiff(clusters, allClustes, false);
-                }
-
-                MobilityGroupSupportUtil.updateMobilityGroup(name, description, id, addVolumes, removeVolumes, addHosts, removeHosts,
-                        addClusters, removeClusters);
+                MobilityGroupSupportUtil.updateMobilityGroup(name, description, id);
             }
-
-        }
-
-        private Set<String> getParents(Set<RelatedResourceRep> apps) {
-            Set<String> result = Sets.newHashSet();
-            if (apps == null) {
-                return result;
-            }
-            for (RelatedResourceRep app : apps) {
-                result.add(app.getId().toString());
-            }
-            return result;
-        }
-
-        private List<URI> computeDiff(List<URI> selectedResources, Collection<? extends RelatedResourceRep> oldResources, boolean add) {
-            List<URI> result = Lists.newArrayList();
-            if (add && selectedResources != null) {
-                // TODO fix this looping...
-                List<URI> oldResourceIds = Lists.newArrayList();
-                for (RelatedResourceRep oldResource : oldResources) {
-                    oldResourceIds.add(oldResource.getId());
-                }
-                for (URI selectedResource : selectedResources) {
-                    if (!oldResourceIds.contains(selectedResource)) {
-                        result.add(selectedResource);
-                    }
-                }
-            } else {
-                for (RelatedResourceRep oldResource : oldResources) {
-                    if (selectedResources == null || !selectedResources.contains(oldResource.getId())) {
-                        result.add(oldResource.getId());
-                    }
-                }
-            }
-            return result;
         }
     }
 }

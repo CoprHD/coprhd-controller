@@ -78,34 +78,6 @@ $(document).ready(function() {
       #{Form.selectOneControlGroup field:field/}
     #{/field}
     
-    #{if mobilityGroupForm?.migrationGroupBy.equalsIgnoreCase('Hosts')}
-      #{field 'mobilityGroupForm.hosts'}
-          %{
-            field.cssClass = 'span0'
-            field.required = false
-          }%
-        #{Form.selectManyControlGroup field:field, options: hosts /}
-      #{/field}
-    #{/if}
-    #{if mobilityGroupForm?.migrationGroupBy.equalsIgnoreCase('Clusters')}
-      #{field 'mobilityGroupForm.clusters'}
-          %{
-            field.cssClass = 'span0'
-            field.required = false
-          }%
-        #{Form.selectManyControlGroup field:field, options: clusters /}
-      #{/field}
-    #{/if}
-    #{if mobilityGroupForm?.migrationGroupBy.equalsIgnoreCase('Volumes')}
-      #{field 'mobilityGroupForm.volumes'}
-          %{
-            field.cssClass = 'span0'
-            field.required = false
-          }%
-        #{Form.selectManyControlGroup field:field, options: volumes /}
-      #{/field}
-    #{/if}
-    
     #{Form.saveCancel cancelHref:@cancel() /}
   #{/form}
 </div>

@@ -16,7 +16,6 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
-import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.google.common.collect.Lists;
 
@@ -59,8 +58,7 @@ public class MobilityGroupSupportUtil {
         BourneUtil.getViprClient().application().deleteApplication(id);
     }
 
-    public static TaskList updateMobilityGroup(String name, String description, String id, List<URI> addVolumes, List<URI> removeVolumes,
-            List<URI> addHosts, List<URI> removeHosts, List<URI> addClusters, List<URI> removeClusters) {
+    public static TaskList updateMobilityGroup(String name, String description, String id) {
         VolumeGroupUpdateParam update = new VolumeGroupUpdateParam();
         if (!name.isEmpty()) {
             update.setName(name);
@@ -68,29 +66,6 @@ public class MobilityGroupSupportUtil {
         if (!description.isEmpty()) {
             update.setDescription(description);
         }
-        if (addVolumes != null && !addVolumes.isEmpty()) {
-            VolumeGroupVolumeList addVolumesList = new VolumeGroupVolumeList();
-            addVolumesList.setVolumes(addVolumes);
-            update.setAddVolumesList(addVolumesList);
-        }
-        if (removeVolumes != null && !removeVolumes.isEmpty()) {
-            VolumeGroupVolumeList removeVolumesList = new VolumeGroupVolumeList();
-            removeVolumesList.setVolumes(removeVolumes);
-            update.setRemoveVolumesList(removeVolumesList);
-        }
-        if (addHosts != null && !addHosts.isEmpty()) {
-            update.setAddHostsList(addHosts);
-        }
-        if (removeHosts != null && !removeHosts.isEmpty()) {
-            update.setRemoveHostsList(removeHosts);
-        }
-        if (addClusters != null && !addClusters.isEmpty()) {
-            update.setAddClustersList(addClusters);
-        }
-        if (removeClusters != null && !removeClusters.isEmpty()) {
-            update.setRemoveClustersList(removeClusters);
-        }
-
         return BourneUtil.getViprClient().application().updateApplication(uri(id), update);
     }
 

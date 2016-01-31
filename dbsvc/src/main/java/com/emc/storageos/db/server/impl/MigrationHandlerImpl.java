@@ -170,6 +170,8 @@ public class MigrationHandlerImpl implements MigrationHandler {
         statusChecker.waitForAllNodesMigrationInit();
 
         if (schemaUtil.isGeoDbsvc()) {
+            boolean schemaVersionChanged = isDbSchemaVersionChanged();
+
             // scan and update cassandra schema
             checkGeoDbSchema();
             
@@ -179,7 +181,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
             statusChecker.waitForMigrationDone();
             
             // Update vdc version
-            if (isDbSchemaVersionChanged()) {
+            if (schemaVersionChanged) {
                 schemaUtil.insertOrUpdateVdcVersion(dbClient, true);
             }
             return true;

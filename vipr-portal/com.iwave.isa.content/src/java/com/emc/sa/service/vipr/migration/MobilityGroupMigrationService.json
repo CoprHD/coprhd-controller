@@ -1,6 +1,9 @@
 {
   baseKey:"MobilityGroupMigration.Migration",
   serviceId:"MobilityGroupMigration",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
   fields:{
       
     mobilityGroup:{

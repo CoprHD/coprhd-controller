@@ -1,6 +1,9 @@
 {
   baseKey:"AddResourcesToMobilityGroup.Migration",
   serviceId:"AddResourcesToMobilityGroup",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
   fields:{
   
     mobilityGroup:{

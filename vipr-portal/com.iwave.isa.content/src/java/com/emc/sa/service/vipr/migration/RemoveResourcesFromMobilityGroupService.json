@@ -1,6 +1,9 @@
 {
   baseKey:"RemoveResourcesFromMobilityGroup.Migration",
   serviceId:"RemoveResourcesFromMobilityGroup",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
   fields:{
   
     mobilityGroup:{

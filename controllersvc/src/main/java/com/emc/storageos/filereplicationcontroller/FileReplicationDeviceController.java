@@ -700,7 +700,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     // failover Mirror -step
     public static Workflow.Method
             faioverMirrorPairMeth(URI storage, URI fsURI, String policyName) {
-        return new Workflow.Method(START_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
+        return new Workflow.Method(FAILOVER_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
     }
 
     /**

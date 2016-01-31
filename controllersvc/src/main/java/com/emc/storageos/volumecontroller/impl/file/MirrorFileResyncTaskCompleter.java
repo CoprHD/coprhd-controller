@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class MirrorFileResyncTaskCompleter extends MirrorFileTaskCompleter {
@@ -38,7 +39,7 @@ public class MirrorFileResyncTaskCompleter extends MirrorFileTaskCompleter {
             throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            // recordMirrorOperation(dbClient, OperationTypeEnum.START_FILE_MIRROR, status, getSourceFileShare().getId().toString());
+            recordMirrorOperation(dbClient, OperationTypeEnum.RESYNC_FILE_MIRROR, status, getSourceFileShare().getId().toString());
 
         } catch (Exception e) {
             _log.error("Failed updating status. MirrorFileStart {}, for task " + getOpId(), getId(), e);

@@ -79,12 +79,19 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
         updateFileSystemStatus(dbClient, status);
     }
 
-    protected void updateStatus(DbClient dbClient, Operation.Status status) {
+    /**
+     * Update the filesystem status
+     * 
+     * @param dbClient
+     * @param status
+     */
+    protected void updateFileSystemStatus(DbClient dbClient, Operation.Status status) {
         try {
             if (Operation.Status.ready.equals(status)) {
                 List<FileShare> fileshares = dbClient.queryObject(FileShare.class, getIds());
                 for (FileShare fs : fileshares) {
-
+                    fs.setMirrorStatus(getFileMirrorStatusForSuccess().name());
+                    fs.setAccessState(getFileShareAccessStateForSuccess(fs).name());
                     if (fs.getMirrorfsTargets() != null) {
                         List<URI> targetFsURIs = new ArrayList<URI>();
                         for (String targetId : fs.getMirrorfsTargets()) {
@@ -104,20 +111,6 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
             }
         } catch (Exception e) {
             _logger.info("Not updating fileshare mirror link status for fileshares: {}", getIds(), e);
-        }
-    }
-
-    protected void updateFileSystemStatus(DbClient dbClient, Operation.Status status) {
-        try {
-            if (Operation.Status.ready.equals(status)) {
-                List<FileShare> fileshares = dbClient.queryObject(FileShare.class, getIds());
-                for (FileShare fileshare : fileshares) {
-                }
-                dbClient.updateObject(fileshares);
-                _logger.info("Updated Mirror link status for fileshares: {}", getIds());
-            }
-        } catch (Exception e) {
-            _logger.info("Not updating file Mirror link status for fileshares: {}", getIds(), e);
         }
     }
 
@@ -150,6 +143,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
                 case FAILOVER_FILE_MIRROR:
                 case STOP_FILE_MIRROR:
                 case FAILBACK_FILE_MIRROR:
+                case RESYNC_FILE_MIRROR:
                     auditFile(dbClient, opType, opStatus, opStage, extParam);
                     break;
 

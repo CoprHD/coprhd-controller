@@ -2570,6 +2570,14 @@ public class FileService extends TaskResourceService {
         return toTask(sourceFileShare, task, status);
     }
 
+    /**
+     * perform file protection action
+     * 
+     * @param param
+     * @param id
+     * @param op
+     * @return
+     */
     private TaskList performFileProtectionAction(FileReplicationParam param, URI id, String op) {
         TaskResourceRep taskResp = null;
         TaskList taskList = new TaskList();
@@ -2579,13 +2587,12 @@ public class FileService extends TaskResourceService {
     }
 
     /**
-     * Verify that all the copy IDs passed for a protection type are either
-     * set to valid URIs, or none are set. A combination of the two is not allowed.
-     * When none are set the operation is performed on all copies for the specified source fileshare.
-     *
-     * @param param List of copies to verify
+     * copy exports rules
+     * 
+     * @param orig
+     * @param dest
+     * @param fs
      */
-
     private void copyPropertiesToSave(FileExportRule orig, ExportRule dest, FileShare fs) {
 
         dest.setFsID(fs.getId());

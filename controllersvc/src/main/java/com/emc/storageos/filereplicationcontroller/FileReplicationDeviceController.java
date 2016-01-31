@@ -472,8 +472,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     completer.setNotifyWorkflow(false);
                     getRemoteMirrorDevice(system).doStartMirrorLink(system, targetFileShare, completer, null);
                 }
-            } else if (opType.equalsIgnoreCase("sync")) {
-
             } else if (opType.equalsIgnoreCase("stop")) {
                 for (String target : targetfileUris) {
 
@@ -482,6 +480,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     completer.setNotifyWorkflow(false);
                     getRemoteMirrorDevice(system).doStopMirrorLink(system, targetFileShare, completer);
                 }
+            } else {
+                log.error("Invalid operation {}", opType);
             }
 
         } catch (Exception e) {

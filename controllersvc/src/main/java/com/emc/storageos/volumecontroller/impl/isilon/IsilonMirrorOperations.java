@@ -62,6 +62,9 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         _dbClient = dbClient;
     }
 
+    /**
+     * Create Mirror between source and target fileshare
+     */
     @Override
     public void createMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException {
@@ -340,6 +343,13 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         }
     }
 
+    /**
+     * Call to Isilon to pause the policy
+     * 
+     * @param system
+     * @param policyName
+     * @return
+     */
     public BiosCommandResult doPauseReplicationPolicy(StorageSystem system, String policyName) {
         try {
             IsilonApi isi = getIsilonDevice(system);
@@ -365,6 +375,13 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         }
     }
 
+    /**
+     * Call to device to resume policy
+     * 
+     * @param system
+     * @param policyName
+     * @return
+     */
     public BiosCommandResult doResumeReplicationPolicy(StorageSystem system, String policyName) {
         try {
             IsilonApi isi = getIsilonDevice(system);
@@ -390,6 +407,13 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         }
     }
 
+    /**
+     * Call to device to cancel policy
+     * 
+     * @param system
+     * @param policyName
+     * @return
+     */
     public BiosCommandResult doCancelReplicationPolicy(StorageSystem system, String policyName) {
         try {
             IsilonApi isi = getIsilonDevice(system);
@@ -415,6 +439,13 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
 
     }
 
+    /**
+     * Call to device to delete the policy
+     * 
+     * @param system
+     * @param policyName
+     * @return
+     */
     public BiosCommandResult dodeleteReplicationPolicy(StorageSystem system, String policyName) {
         try {
             IsilonApi isi = getIsilonDevice(system);
@@ -435,6 +466,13 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
 
     }
 
+    /**
+     * Call to device to delete policy
+     * 
+     * @param system
+     * @param policyName
+     * @return
+     */
     public BiosCommandResult doStopReplicationPolicy(StorageSystem system, String policyName) {
         try {
             IsilonApi isi = getIsilonDevice(system);
@@ -458,6 +496,14 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
 
     }
 
+    /**
+     * Call to device to my the RPO of policy
+     * 
+     * @param system
+     * @param policyName
+     * @param RPO
+     * @return
+     */
     public BiosCommandResult doModifyReplicationPolicy(StorageSystem system, String policyName, String RPO) {
         try {
             IsilonApi isi = getIsilonDevice(system);
@@ -481,6 +527,14 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         }
     }
 
+    /**
+     * Call to device to failover the policy
+     * 
+     * @param system
+     * @param policyName
+     * @param taskCompleter
+     * @return
+     */
     public BiosCommandResult doFailover(StorageSystem system, String policyName, TaskCompleter taskCompleter) {
         try {
             IsilonApi isi = getIsilonDevice(system);
@@ -507,6 +561,16 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         }
     }
 
+    /**
+     * Call to device to resync prep the policy
+     * 
+     * @param primarySystem
+     * @param secondarySystem
+     * @param policyName
+     * @param completer
+     * @return
+     * @throws IsilonException
+     */
     public BiosCommandResult isiResyncPrep(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
             TaskCompleter completer)
             throws IsilonException {
@@ -535,40 +599,15 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         }
     }
 
-    // public BiosCommandResult isiResyncPrep(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
-    // TaskCompleter completer)
-    // throws IsilonException {
-    //
-    // IsilonSyncTargetPolicy secondaryLocalTargetPolicy;
-    // IsilonApi isiPrimary = getIsilonDevice(primarySystem);
-    // IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
-    // IsilonSyncJob job = new IsilonSyncJob();
-    // job.setId(policyName);
-    // job.setAction(Action.resync_prep);
-    //
-    // isiPrimary.modifyReplicationJob(job);
-    //
-    // IsilonSyncJobResync isilonSyncJobResync = new IsilonSyncJobResync(policyName, system.getId(), taskCompleter, policyName);
-    //
-    // secondaryLocalTargetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
-    // while (secondaryLocalTargetPolicy.getLastJobState().equals(JobState.running)
-    // && secondaryLocalTargetPolicy.getFoFbState().equals(FOFB_STATES.creating_resync_policy)) {
-    // // wait till job is finished
-    // secondaryLocalTargetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
-    // }
-    //
-    // if (secondaryLocalTargetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created)
-    // && secondaryLocalTargetPolicy.getLastJobState().equals(JobState.finished)) {
-    // _log.info("Resync-Prep on cluster {} finished successfully", primarySystem.getIpAddress());
-    // return BiosCommandResult.createSuccessfulResult();
-    // } else {
-    // String errorMessage = isiGetReportErrMsg(isiPrimary.getReplicationPolicyReports(policyName).getList());
-    // _log.error(errorMessage);
-    // ServiceError error = DeviceControllerErrors.isilon.jobFailed("Resync-Prep FAILED  as : " + errorMessage);
-    // return BiosCommandResult.createErrorResult(error);
-    // }
-    // }
-
+    /**
+     * Call to device to fail back policy
+     * 
+     * @param primarySystem
+     * @param secondarySystem
+     * @param policyName
+     * @param taskCompleter
+     * @return
+     */
     public BiosCommandResult doFailBack(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
             TaskCompleter taskCompleter) {
 

@@ -36,7 +36,7 @@ public class MirrorFileStopTaskCompleter extends MirrorFileTaskCompleter {
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            recordMirrorOperation(dbClient, OperationTypeEnum.CREATE_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
+            recordMirrorOperation(dbClient, OperationTypeEnum.STOP_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
                     getTargetFileShare().getId().toString());
 
         } catch (Exception e) {

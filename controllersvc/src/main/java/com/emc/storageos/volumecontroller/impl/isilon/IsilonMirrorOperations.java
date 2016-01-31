@@ -198,6 +198,8 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         cmdResult = isiResyncPrep(primarySystem, secondarySystem, policyName, completer);
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }

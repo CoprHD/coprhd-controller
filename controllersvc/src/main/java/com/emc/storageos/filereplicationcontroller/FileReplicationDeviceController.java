@@ -443,6 +443,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 for (String target : targetfileUris) {
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
                     completer = new MirrorFileFailoverTaskCompleter(FileShare.class, fileShare.getId(), opId);
+                    completer.setNotifyWorkflow(false);
                     StorageSystem systemTarget = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
                     getRemoteMirrorDevice(systemTarget).doFailoverLink(systemTarget, targetFileShare, completer, null);
                 }
@@ -468,7 +469,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
                     completer = new MirrorFileStartTaskCompleter(FileShare.class, fileShare.getId(), opId);
-
+                    completer.setNotifyWorkflow(false);
                     getRemoteMirrorDevice(system).doStartMirrorLink(system, targetFileShare, completer, null);
                 }
             } else if (opType.equalsIgnoreCase("sync")) {
@@ -478,6 +479,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
                     completer = new MirrorFileStopTaskCompleter(fileShare.getId(), targetFileShare.getId(), opId);
+                    completer.setNotifyWorkflow(false);
                     getRemoteMirrorDevice(system).doStopMirrorLink(system, targetFileShare, completer);
                 }
             }

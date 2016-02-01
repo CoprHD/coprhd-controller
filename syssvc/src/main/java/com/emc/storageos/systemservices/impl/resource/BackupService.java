@@ -605,7 +605,7 @@ public class BackupService {
         return doRestore(backupName, isLocal, password, isGeoFromScratch);
     }
 
-    private Response doRestore(@QueryParam("backupname") String backupName, @QueryParam("isLocal") boolean isLocal, @QueryParam("password") String password, @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
+    private Response doRestore(String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
         log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
                 new Object[] {backupName, isLocal, password, isGeoFromScratch});
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, backupName);
@@ -645,7 +645,12 @@ public class BackupService {
 
         log.info("The restore command={} {} password=*** {} {}", new Object[] {restoreCommand[0], restoreCommand[1], restoreCommand[3], restoreCommand[4]});
 
-        Exec.exec(120 * 1000, restoreCommand);
+        Exec.Result result = Exec.exec(120 * 1000, restoreCommand);
+        switch (result.getExitValue()) {
+            case 1:
+                backupOps.setRestoreStatus(backupName, BackupRestoreStatus.Status.RESTORE_FAILED, 0, 0, false, false, true);
+                throw SyssvcException.syssvcExceptions.restoreFailed(backupName, "Invalid password");
+        }
 
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_END, null, backupName);
         log.info("done");

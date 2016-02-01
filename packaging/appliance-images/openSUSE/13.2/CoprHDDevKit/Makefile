@@ -84,7 +84,7 @@ destroy:
 	rm -fr $(WORKSPACE)/{iso,build,image,output,zypper}
 	$(call targetLog,-)
 
-appliance: | box
+appliance: | ovf vmx box tbz
 
 ovf: | $(OVF)
 	$(call targetLog,+)
@@ -159,13 +159,13 @@ $(VMDK): | downloadISO createREPO
 
 $(OVF): | $(VMDK)
 	$(call targetLog,+)
+	ln -fs $(NAME).x86_64-$(VERSION).$(JOB).vmdk $(OUTPUT_DIR)/disk.vmdk
 	VBoxManage createvm --name "$(NAME)-$(VERSION).$(JOB)" --basefolder $(OUTPUT_DIR) --register
 	VBoxManage modifyvm "$(NAME)-$(VERSION).$(JOB)" --memory $(RAM) --cpus 1 --acpi on --boot1 dvd --nic1 bridged --bridgeadapter1 eth0 --ostype Linux_64
 	VBoxManage storagectl "$(NAME)-$(VERSION).$(JOB)" --name "IDE Controller" --add ide
-	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(VMDK)
+	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(OUTPUT_DIR)/disk.vmdk
 	VBoxManage export "$(NAME)-$(VERSION).$(JOB)" --vsys 0 --product $(NAME) --version $(VERSION).$(JOB) --vendor $(VENDOR) --output $(OVF)
-	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)"
-	rm -fr "$${HOME}/.config/VirtualBox/$(OUTPUT_DIR)"
+	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)" --delete
 	bash $(WORKSPACE)/configure.sh updateOVF $(OVF)
 	$(call targetLog,-)
 

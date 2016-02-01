@@ -21,14 +21,11 @@
     </preferences>
     <preferences profiles="appliance">
         <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash">
-            <machine memory="__RAM__" guestOS="suse">
+            <machine memory="8192" guestOS="suse">
                 <vmdisk controller="lsilogic" id="0"/>
                 <vmnic interface="e1000" mode="bridged"/>
             </machine>
             <size unit="G">60</size>
-            <systemdisk name="system__UUID__">
-                <volume name="Swap" size="4G"/>
-            </systemdisk>
         </type>
     </preferences>
     <users group="root">
@@ -82,8 +79,6 @@
         <package name="libvpx1"/>
         <package name="systemd-logger"/>
         <package name="virtualbox"/>
-        <package name="virtualbox-guest-tools"/>
-        <package name="virtualbox-guest-kmp-default"/>
         <package name="virtualbox-host-kmp-default"/>
         <package name="xbitmaps"/>
         <!-- storageOS DevKit RPM installs -->

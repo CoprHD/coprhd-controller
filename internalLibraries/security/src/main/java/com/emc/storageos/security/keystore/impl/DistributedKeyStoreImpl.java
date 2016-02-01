@@ -317,22 +317,33 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
                             KEY_CERTIFICATE_PAIR_ID,
                             KEY_CERTIFICATE_PAIR_KEY);
             if (entryToReturn != null) {
-                String siteId = coordConfigStoringHelper.getSiteId();
-                log.info("Found certificate from global area. Moving to site specific area");
+                InterProcessLock lock = null;
                 try {
-                    
-                    coordConfigStoringHelper.createOrUpdateConfig(entryToReturn, KEY_CERTIFICATE_PAIR_LOCK,
-                        siteId, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID,
-                        KEY_CERTIFICATE_PAIR_KEY);
-                    Boolean isSelfSigned = coordConfigStoringHelper.readConfig(
-                            DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_CONFIG_KIND,
-                            DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_ID,
-                            DistributedKeyStoreImpl.IS_SELF_GENERATED_KEY);
-                    KeyStoreUtil.setSelfGeneratedCertificate(coordConfigStoringHelper, isSelfSigned);
-                    coordConfigStoringHelper.removeConfig(KEY_CERTIFICATE_PAIR_LOCK, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID);
+                    lock = acquireKeyCertificatePairLock();
+                    // re-read from global area after acquiring the lock
+                    entryToReturn =
+                            coordConfigStoringHelper.readConfig(KEY_CERTIFICATE_PAIR_CONFIG_KIND,
+                                    KEY_CERTIFICATE_PAIR_ID,
+                                    KEY_CERTIFICATE_PAIR_KEY);
+                    if (entryToReturn != null) {
+                        String siteId = coordConfigStoringHelper.getSiteId();
+                        log.info("Found certificate from global area. Moving to site specific area");
+                        coordConfigStoringHelper.createOrUpdateConfig(entryToReturn, KEY_CERTIFICATE_PAIR_LOCK,
+                            siteId, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID,
+                            KEY_CERTIFICATE_PAIR_KEY);
+                        Boolean isSelfSigned = coordConfigStoringHelper.readConfig(
+                                DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_CONFIG_KIND,
+                                DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_ID,
+                                DistributedKeyStoreImpl.IS_SELF_GENERATED_KEY);
+                        KeyStoreUtil.setSelfGeneratedCertificate(coordConfigStoringHelper, isSelfSigned);
+                        coordConfigStoringHelper.removeConfig(KEY_CERTIFICATE_PAIR_LOCK, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID);
+                    }
                 } catch (Exception ex) {
                     log.error("Failed to move key certificate pair to site specific area", ex);
+                } finally {
+                    coordConfigStoringHelper.releaseLock(lock);
                 }
+                
             }
         }
         return entryToReturn;

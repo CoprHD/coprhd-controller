@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -70,6 +71,8 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     List<BlockObject> _objectsIngestedByExportProcessing;
 
     private Map<String, BlockConsistencyGroup> _cgsToCreateMap;
+
+    private List<UnManagedConsistencyGroup> _umCGsToUpdate;
 
     /**
      * Constructor.
@@ -363,6 +366,15 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         }
 
         return _cgsToCreateMap;
+    }
+
+    @Override
+    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate() {
+        if (null == _umCGsToUpdate) {
+            _umCGsToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+        }
+
+        return _umCGsToUpdate;
     }
 
     /*

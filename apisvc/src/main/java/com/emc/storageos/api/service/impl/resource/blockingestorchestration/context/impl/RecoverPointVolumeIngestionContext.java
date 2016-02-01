@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
@@ -222,15 +223,15 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         // commit the basic IngestionRequestContext collections
         _dbClient.createObject(getObjectsIngestedByExportProcessing());
         _dbClient.createObject(getObjectsToBeCreatedMap().values());
-        
-        // remove from the parent context creation map because it was just saved here 
+
+        // remove from the parent context creation map because it was just saved here
         String volumeNativeGuid =
                 getUnmanagedVolume().getNativeGuid().replace(
                         VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
         if (_parentRequestContext.getObjectsToBeCreatedMap().containsKey(volumeNativeGuid)) {
             _parentRequestContext.getObjectsToBeCreatedMap().remove(volumeNativeGuid);
         }
-        
+
         for (List<DataObject> dos : getObjectsToBeUpdatedMap().values()) {
             _dbClient.updateObject(dos);
         }
@@ -769,6 +770,16 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
 
         return blockObject;
+    }
+
+    @Override
+    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
+        return _parentRequestContext.getCGObjectsToCreateMap();
+    }
+
+    @Override
+    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate() {
+        return _parentRequestContext.getUmCGObjectsToUpdate();
     }
 
 }

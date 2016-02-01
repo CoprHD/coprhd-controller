@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
@@ -292,7 +293,8 @@ public abstract class BlockIngestOrchestrator {
      * @throws Exception
      */
     protected Volume createVolume(StorageSystem system, String volumeNativeGuid, StoragePool pool, VirtualArray virtualArray,
-            VirtualPool vPool, UnManagedVolume unManagedVolume, Project project, TenantOrg tenant, String autoTierPolicyId)
+            VirtualPool vPool, UnManagedVolume unManagedVolume, Project project, TenantOrg tenant, String autoTierPolicyId,
+            Map<String, BlockConsistencyGroup> cgsToCreate, List<UnManagedConsistencyGroup> umcgsToUpdate)
             throws IngestionException {
         _logger.info("creating new Volume for native volume id " + volumeNativeGuid);
 
@@ -306,9 +308,11 @@ public abstract class BlockIngestOrchestrator {
                 .getVolumeInformation().get(
                         SupportedVolumeInformation.ACCESS.toString())));
 
-        URI cgUri = getConsistencyGroupUri(unManagedVolume, vPool, project.getId(), tenant.getId(), virtualArray.getId(), _dbClient);
-        if (null != cgUri) {
-            updateCGPropertiesInVolume(cgUri, volume, system, unManagedVolume);
+        BlockConsistencyGroup cg = getConsistencyGroup(unManagedVolume, volume, vPool, project.getId(), tenant.getId(),
+                virtualArray.getId(), umcgsToUpdate, _dbClient);
+        if (null != cg) {
+            cgsToCreate.put(cg.getLabel(), cg);
+            updateCGPropertiesInVolume(cg, volume, system, unManagedVolume);
         }
         if (null != autoTierPolicyId) {
             updateTierPolicyProperties(autoTierPolicyId, volume);
@@ -368,9 +372,10 @@ public abstract class BlockIngestOrchestrator {
     }
 
     /**
-     * get CG , applicable only for VPlex.
+     * Return the ConsistencyGroup in which the UnManagedVolume belongs to.
      * 
      * @param unManagedVolume
+     * @param blockObj
      * @param vPool
      * @param project
      * @param tenant
@@ -378,8 +383,8 @@ public abstract class BlockIngestOrchestrator {
      * @param dbClient
      * @return
      */
-    protected URI getConsistencyGroupUri(UnManagedVolume unManagedVolume, VirtualPool vPool, URI project, URI tenant,
-            URI virtualArray, DbClient dbClient) {
+    protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj, VirtualPool vPool,
+            URI project, URI tenant, URI virtualArray, List<UnManagedConsistencyGroup> umcgsToUpdate, DbClient dbClient) {
         return null;
     }
 
@@ -391,7 +396,7 @@ public abstract class BlockIngestOrchestrator {
      * @param system
      * @param unManagedVolume
      */
-    protected void updateCGPropertiesInVolume(URI consistencyGroupUri, Volume volume, StorageSystem system,
+    protected void updateCGPropertiesInVolume(BlockConsistencyGroup consistencyGroup, Volume volume, StorageSystem system,
             UnManagedVolume unManagedVolume) {
         // Update with default code, when CG ingestion is supported
     }

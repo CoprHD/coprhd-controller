@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -169,6 +170,13 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * @return a Map of Label Strings to BlockConistencyGroupss
      */
     public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap();
+
+    /**
+     * Returns the list of UnManagedConsistencyGroup's to update.
+     * 
+     * @return a List of UnManagedConsistencyGroup.
+     */
+    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate();
 
     /**
      * Returns a Map of a List of DataObjects updated by ingestion

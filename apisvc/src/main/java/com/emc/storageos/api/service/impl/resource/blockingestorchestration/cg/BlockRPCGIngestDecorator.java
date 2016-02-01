@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2008-2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
 import java.util.List;
@@ -8,11 +12,6 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
-
-    @Override
-    public void setNextDecorator(BlockCGIngestDecorator decorator) {
-        this.nextCGIngestDecorator = decorator;
-    }
 
     @Override
     public void decorateCG(BlockConsistencyGroup cg, UnManagedVolume umv, List<BlockObject> associatedObjects,
@@ -28,6 +27,13 @@ public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
                     throws Exception {
         // @TODO Iterate thru each blockObject and update CG systemConsistencyGroups & types.
 
+    }
+
+    @Override
+    protected List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
+            throws Exception {
+        // TODO Add logic to return the RP block objects to update in CG.
+        return null;
     }
 
 }

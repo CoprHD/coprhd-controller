@@ -563,7 +563,7 @@ class Tenant(object):
         o = common.json_decode(s)
         return o['id']
 
-    def tenant_create(self, name, key, value, domain , namespace, nsstsystem):
+    def tenant_create(self, name, key, value, domain , namespace):
         '''
         creates a tenant
         parameters:
@@ -582,13 +582,7 @@ class Tenant(object):
                     'name': name
                 }
                 parms ['namespace'] = namespace
-                nsstsystem_uri = None
-                from storagesystem import StorageSystem
-                obj = StorageSystem(self.__ipAddr, self.__port)
-                 
-                nsstsystem_uri = obj.query_by_name_and_type(nsstsystem, "ecs")
                 
-                parms ['namespace_storage_system'] = nsstsystem_uri
                 
                 keyval = dict()
 
@@ -633,7 +627,7 @@ class Tenant(object):
             
             
     # ROUTINE FOR ADD NAMESPACE
-    def add_namespace(self, name, namespace, description, nsstsystem):
+    def add_namespace(self, name, namespace, description):
         '''
         creates a tenant
         parameters:
@@ -653,14 +647,6 @@ class Tenant(object):
             parms['description'] = description
             parms['namespace'] = namespace
             
-            nsstsystem_uri = None
-            from storagesystem import StorageSystem
-            obj = StorageSystem(self.__ipAddr, self.__port)
-                 
-            nsstsystem_uri = obj.query_by_name_and_type(nsstsystem, "ecs")
-                
-            parms ['namespace_storage_system'] = nsstsystem_uri
-
             body = json.dumps(parms)
            
 
@@ -872,10 +858,6 @@ def create_parser(subcommand_parsers, common_parser):
                                help='namespace to map to tenant',
                                dest='namespace', metavar='<namespace>')
     
-    create_parser.add_argument('-namespacestoragesystem' , '-nsstsystem',
-                               help='Specify namespace storagesystem ',
-                               dest='nsstsystem', metavar='<namespacestoragesystem>')
-
     mandatory_args.add_argument('-domain',
                                 help='domain',
                                 dest='domain', metavar='<domain>',
@@ -886,16 +868,14 @@ def create_parser(subcommand_parsers, common_parser):
 
 def tenant_create(args):
     obj = Tenant(args.ip, args.port)
-    if(args.nsstsystem is not None and args.namespace is None):
-        
-        try:
-            res = obj.tenant_create(args.name, args.key, args.value, args.domain , args.namespace , args.nsstsystem)
-        except SOSError as e:
-            if (e.err_code in [SOSError.NOT_FOUND_ERR,
+    try:
+        res = obj.tenant_create(args.name, args.key, args.value, args.domain , args.namespace)
+    except SOSError as e:
+        if (e.err_code in [SOSError.NOT_FOUND_ERR,
                            SOSError.ENTRY_ALREADY_EXISTS_ERR]):
-                raise SOSError(e.err_code, "Tenant " +
+            raise SOSError(e.err_code, "Tenant " +
                            args.name + ": Create failed\n" + e.err_text)
-    else:
+        else:
             raise e
         
 

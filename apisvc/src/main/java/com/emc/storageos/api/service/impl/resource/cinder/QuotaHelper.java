@@ -435,7 +435,7 @@ public class QuotaHelper {
      */
     public HashMap<String,String> getCompleteDefaultConfiguration(String openstackTargetTenantId){
     	HashMap<String,String> qMap = loadDefaultsMapFromDb();
-    	qMap = populateVolumeTypeQuotasWhenNotDefined(qMap , openstackTargetTenantId, null);
+    	qMap = populateVolumeTypeDefaultsForQuotalass(qMap , openstackTargetTenantId, null);
     	_log.debug("getCompleteDefaultConfiguration is {}",qMap);
 		return qMap;
     }

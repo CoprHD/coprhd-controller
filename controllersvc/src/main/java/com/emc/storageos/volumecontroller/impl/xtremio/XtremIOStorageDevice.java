@@ -628,7 +628,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), cgName);
                 consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
                 client.tagObject(cgTagName, XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), cgName, clusterName);
-                if (NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
+                if (!consistencyGroup.isProtectedCG() && NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
                     consistencyGroup.setStorageController(storage.getId());
                 }
             }

@@ -3599,6 +3599,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         URI cgUri = null;
         for (URI voluri : addVolumeURIs) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
+            if (firstVolLabel == null) {
+                firstVolLabel = volume.getLabel();
+            }
             if (volume == null || volume.getInactive()) {
                 _log.info(String.format("The volume %s does not exist or has been deleted", voluri));
                 continue;
@@ -3655,6 +3658,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             op.ready();
             volume.getOpStatus().updateTaskStatus(taskId, op);
             _dbClient.updateObject(volume);
+        }
+        
+        // check if replication group name is provided when adding RP volumes not in RG to an application
+        List<URI> addVols = volumesNotInCG.getVolumes();
+        if (addVols != null && !addVols.isEmpty()) {
+            String rgName = volumeList.getReplicationGroupName();
+            if (rgName == null || rgName.isEmpty()) {
+                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel, 
+                        "replication group name is not provided");
+            }
         }
         _log.info("Added volumes in CG to the application" );
         return volumesNotInCG;

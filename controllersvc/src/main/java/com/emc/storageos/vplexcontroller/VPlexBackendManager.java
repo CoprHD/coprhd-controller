@@ -635,7 +635,7 @@ public class VPlexBackendManager {
 
     /**
      * Returns a map of port wwn to cluster id ("1" or "2") for vplex ports
-     * 
+     *
      * @param vplex StorageSystem
      * @return Map of port wwn to cluster id
      */

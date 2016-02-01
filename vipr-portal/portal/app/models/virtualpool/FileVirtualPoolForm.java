@@ -49,7 +49,7 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
     public Long replicationRpo;
     public String rpRpoType;
     
-    private Boolean scheduleSnapshots;
+    public Boolean scheduleSnapshots;
     
     
     public void deserialize() {

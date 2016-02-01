@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package controllers.tenant;
@@ -81,10 +81,10 @@ public class SchedulePolicies extends ViprResourceController {
         SchedulePolicyRestRep schedulePolicyRestRep = getViprClient().schedulePolicies().get(uri(id));
         if (schedulePolicyRestRep != null) {
             SchedulePolicyForm schedulePolicy = new SchedulePolicyForm().form(schedulePolicyRestRep);
-            renderArgs.put("filterDialog.startTime_time", "10:10");
+
             addRenderArgs();
             addDateTimeRenderArgs();
-            
+
             render(schedulePolicy);
         }
         else {
@@ -108,7 +108,7 @@ public class SchedulePolicies extends ViprResourceController {
         Map<String, String> daysOfWeek = Maps.newLinkedHashMap();
         for (int i = 1; i <= 7; i++) {
             String num = String.valueOf(i);
-            daysOfWeek.put(num, MessagesUtils.get("datetime.daysOfWeek." + num));
+            daysOfWeek.put(MessagesUtils.get("datetime.daysOfWeek." + num).toLowerCase(), MessagesUtils.get("datetime.daysOfWeek." + num));
         }
         renderArgs.put("daysOfWeek", daysOfWeek);
 
@@ -128,13 +128,13 @@ public class SchedulePolicies extends ViprResourceController {
         expirationTypeOptions.add(new StringOption("months", MessagesUtils.get("schedulePolicy.months")));
         expirationTypeOptions.add(new StringOption("years", MessagesUtils.get("schedulePolicy.years")));
         renderArgs.put("expirationTypeOptions", expirationTypeOptions);
-        
+
         String[] hoursOptions = new String[24];
         for (int i = 0; i < 24; i++) {
             String num = "";
-            if( i<10 ){
-                num = "0"+String.valueOf(i);
-            }else{
+            if (i < 10) {
+                num = "0" + String.valueOf(i);
+            } else {
                 num = String.valueOf(i);
             }
             hoursOptions[i] = num;
@@ -142,14 +142,14 @@ public class SchedulePolicies extends ViprResourceController {
         String[] minutesOptions = new String[60];
         for (int i = 0; i < 60; i++) {
             String num = "";
-            if( i<10 ){
-                num = "0"+String.valueOf(i);
-            }else{
+            if (i < 10) {
+                num = "0" + String.valueOf(i);
+            } else {
                 num = String.valueOf(i);
             }
             minutesOptions[i] = num;
         }
-       
+
         renderArgs.put("hours", StringOption.options(hoursOptions));
         renderArgs.put("minutes", StringOption.options(minutesOptions));
 
@@ -166,12 +166,15 @@ public class SchedulePolicies extends ViprResourceController {
         if (Validation.hasErrors()) {
             Common.handleError();
         }
+        schedulePolicy.id = params.get("id");
         if (schedulePolicy.isNew()) {
             schedulePolicy.tenantId = Models.currentAdminTenant();
             PolicyParam policyParam = updatePolicyParam(schedulePolicy);
             getViprClient().schedulePolicies().create(uri(schedulePolicy.tenantId), policyParam);
-        }else{
-            
+        } else {
+            SchedulePolicyRestRep schedulePolicyRestRep = getViprClient().schedulePolicies().get(uri(schedulePolicy.id));
+            PolicyParam input = updatePolicyParam(schedulePolicy);
+            getViprClient().schedulePolicies().update(schedulePolicyRestRep.getPolicyId(), input);
         }
         flash.success(MessagesUtils.get("projects.saved", schedulePolicy.policyName));
         if (StringUtils.isNotBlank(schedulePolicy.referrerUrl)) {
@@ -182,36 +185,35 @@ public class SchedulePolicies extends ViprResourceController {
         }
 
     }
-    
-    private static PolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy){
+
+    private static PolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy) {
         PolicyParam param = new PolicyParam();
         param.setPolicyName(schedulePolicy.policyName);
         param.setPolicyType(schedulePolicy.policyType);
-        
+
         SchedulePolicyParam scheduleParam = new SchedulePolicyParam();
-        scheduleParam.setScheduleTime(schedulePolicy.scheduleHour + ":" +schedulePolicy.scheduleMin);
+        scheduleParam.setScheduleTime(schedulePolicy.scheduleHour + ":" + schedulePolicy.scheduleMin);
         scheduleParam.setScheduleFrequency(schedulePolicy.frequency);
         scheduleParam.setScheduleRepeat(schedulePolicy.repeat);
-        
-        
-        if(schedulePolicy.frequency!=null && "weeks".equals(schedulePolicy.frequency)){
-            if (schedulePolicy.scheduleDayOfWeek != null){
-                scheduleParam.setScheduleDayOfWeek(schedulePolicy.scheduleDayOfWeek); 
+
+        if (schedulePolicy.frequency != null && "weeks".equals(schedulePolicy.frequency)) {
+            if (schedulePolicy.scheduleDayOfWeek != null) {
+                scheduleParam.setScheduleDayOfWeek(schedulePolicy.scheduleDayOfWeek);
             }
-           
-        } else if(schedulePolicy.frequency!=null && "months".equals(schedulePolicy.frequency)){
+
+        } else if (schedulePolicy.frequency != null && "months".equals(schedulePolicy.frequency)) {
             scheduleParam.setScheduleDayOfMonth(schedulePolicy.scheduleDayOfMonth);
         }
         param.setPolicySchedule(scheduleParam);
-        
+
         ScheduleSnapshotExpireParam expireParam = new ScheduleSnapshotExpireParam();
-       
-        
-        if(schedulePolicy.expiration != null && !"NEVER".equals(schedulePolicy.expiration)){
+
+        if (schedulePolicy.expiration != null && !"NEVER".equals(schedulePolicy.expiration)) {
             expireParam.setExpireType(schedulePolicy.expireType);
             expireParam.setExpireValue(schedulePolicy.expireValue);
+            param.setSnapshotExpire(expireParam);
         }
-        param.setSnapshotExpire(expireParam);
+
         return param;
 
     }
@@ -261,10 +263,10 @@ public class SchedulePolicies extends ViprResourceController {
 
         // Schedule Snapshot expire after
         public int expireValue;
-        
+
         public String expiration;
         public String referrerUrl;
-        
+
         public String scheduleHour;
         public String scheduleMin;
 
@@ -276,7 +278,6 @@ public class SchedulePolicies extends ViprResourceController {
             this.policyName = restRep.getPolicyName();
             this.frequency = restRep.getScheduleFrequency();
             this.scheduleTime = restRep.getScheduleTime();
-            
 
             if (restRep.getScheduleDayOfMonth() != null) {
                 this.scheduleDayOfMonth = restRep.getScheduleDayOfMonth().intValue();
@@ -285,26 +286,34 @@ public class SchedulePolicies extends ViprResourceController {
             if (restRep.getScheduleDayOfWeek() != null) {
                 this.scheduleDayOfWeek = restRep.getScheduleDayOfWeek();
             }
-            
-            this.expireType = restRep.getSnapshotExpireType();
-            
+
+            if (restRep.getSnapshotExpireType() != null) {
+                this.expireType = restRep.getSnapshotExpireType();
+            }
+
             if (restRep.getSnapshotExpireTime() != null) {
                 this.expireValue = restRep.getSnapshotExpireTime().intValue();
             }
             if (restRep.getScheduleRepeat() != null) {
-                this.repeat =restRep.getScheduleRepeat().intValue();
+                this.repeat = restRep.getScheduleRepeat().intValue();
             }
             String[] hoursMin = this.scheduleTime.split(":");
-            if(hoursMin.length > 2){
+            if (hoursMin.length > 1) {
                 this.scheduleHour = hoursMin[0];
-                this.scheduleMin = hoursMin[1];
+                String[] minWithStrings = hoursMin[1].split(" ");
+                if (minWithStrings.length > 0) {
+                    this.scheduleMin = minWithStrings[0];
+                }
+
+            }
+            if (this.expireType == null) {
+                this.expiration = "NEVER";
             }
 
             return this;
 
         }
-        
-        
+
         public boolean isNew() {
             return StringUtils.isBlank(id);
         }
@@ -312,7 +321,7 @@ public class SchedulePolicies extends ViprResourceController {
         public void validate(String formName) {
             Validation.valid(formName, this);
             Validation.required(formName + ".policyName", policyName);
-                       
+
             if (policyName == null || policyName.isEmpty()) {
                 Validation.addError(formName + ".policyName", MessagesUtils.get("schedulePolicy.policyName.error.required"));
             }

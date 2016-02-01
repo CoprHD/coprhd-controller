@@ -551,6 +551,23 @@ angular.module("portalApp").controller({
     		$scope.formAccessControlList = accessList.toString();
     	}, true);
     },
+    AssignPolicyCtrl: function($scope, $http, $window, translate) {
+    	
+    	var resetModal = function() {
+    		//$scope.tenantId
+    	}
+    	
+    	$scope.populateModal = function() {
+    		
+    		resetModal();
+    		
+    		$http.get(routes.FileSystems_getScheculePolicies()).success(function(data) {
+            	$scope.policyOptions = data;
+            });
+            
+    	    $scope.$apply();
+       }
+    },
     FileQuotaCtrl: function($scope, $http, $filter, translate) {
         $scope.securityOptions = [{id:"unix", name:translate('resources.filesystem.quota.security.unix')}, 
                                   {id:"ntfs", name:translate('resources.filesystem.quota.security.ntfs')},

@@ -3406,7 +3406,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                     FileDescriptor.Type.FILE_DATA,
-                    FileDescriptor.Type.FILE_EXISTING_SOURCE,
                     FileDescriptor.Type.FILE_MIRROR_SOURCE,
                     FileDescriptor.Type.FILE_MIRROR_TARGET);
 

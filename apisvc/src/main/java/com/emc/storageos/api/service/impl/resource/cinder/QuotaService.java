@@ -87,16 +87,16 @@ public class QuotaService extends TaskResourceService {
     @Path("/{target_tenant_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response getQuotaDetails(
-            @PathParam("target_tenant_id") String openstack_target_tenant_id, @Context HttpHeaders header) {
+            @PathParam("target_tenant_id") String openstackTargetTenantId, @Context HttpHeaders header) {
 
-        Project project = getCinderHelper().getProject(openstack_target_tenant_id.toString(),
+        Project project = getCinderHelper().getProject(openstackTargetTenantId.toString(),
                 getUserFromContext());
 
         if (project == null) {
-            throw APIException.badRequests.projectWithTagNonexistent(openstack_target_tenant_id);
+            throw APIException.badRequests.projectWithTagNonexistent(openstackTargetTenantId);
         }
         
-        HashMap<String, String> defaultQuotaMap = getQuotaHelper().getCompleteDefaultConfiguration(openstack_target_tenant_id);
+        HashMap<String, String> defaultQuotaMap = getQuotaHelper().getCompleteDefaultConfiguration(openstackTargetTenantId);
         
         List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);
         Map<String, String> vpoolsMap = new HashMap<String, String>();
@@ -177,12 +177,12 @@ public class QuotaService extends TaskResourceService {
     @Path("/{target_tenant_id}/defaults")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response getQuotaDefaults(
-            @PathParam("target_tenant_id") String openstack_target_tenant_id, @Context HttpHeaders header) {
+            @PathParam("target_tenant_id") String openstackTargetTenantId, @Context HttpHeaders header) {
 
     	_log.info("In getQuotaDefaults");
     	CinderQuotaDetails respCinderQuota = new CinderQuotaDetails();
     	
-    	HashMap<String, String>  defaultQuotaMap = getQuotaHelper().getCompleteDefaultConfiguration(openstack_target_tenant_id);
+    	HashMap<String, String>  defaultQuotaMap = getQuotaHelper().getCompleteDefaultConfiguration(openstackTargetTenantId);
     	_log.info("defaultQuotaMap is {}", defaultQuotaMap.toString());
 		
 		//defaultQuotaMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(defaultQuotaMap , openstack_target_tenant_id, null);
@@ -211,17 +211,17 @@ public class QuotaService extends TaskResourceService {
     @Path("/{target_tenant_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response updateQuota(@PathParam("tenant_id") String openstack_tenant_id,
-            @PathParam("target_tenant_id") String openstack_target_tenant_id,
+            @PathParam("target_tenant_id") String openstackTargetTenantId,
             CinderQuotaDetails quotaUpdates, @Context HttpHeaders header) {
 
         _log.info("Updating Quota");
-        Project project = getCinderHelper().getProject(openstack_target_tenant_id.toString(),
+        Project project = getCinderHelper().getProject(openstackTargetTenantId.toString(),
                 getUserFromContext());
         
-        HashMap<String, String> defaultQuotaMap = getQuotaHelper().getCompleteDefaultConfiguration(openstack_target_tenant_id);
+        HashMap<String, String> defaultQuotaMap = getQuotaHelper().getCompleteDefaultConfiguration(openstackTargetTenantId);
         
         if (project == null) {
-            throw APIException.badRequests.projectWithTagNonexistent(openstack_target_tenant_id);
+            throw APIException.badRequests.projectWithTagNonexistent(openstackTargetTenantId);
         }
 
         long maxQuota = 0L;
@@ -249,8 +249,8 @@ public class QuotaService extends TaskResourceService {
                 _log.info("vpool with the given name doesnt exist");
                 throw APIException.badRequests.parameterIsNotValid(vpoolName);
             }
-            if(!_permissionsHelper.tenantHasUsageACL(URI.create(openstack_target_tenant_id), objVpool)){
-            	_log.info("tenant {} does not have access to vpool with the given name {}",openstack_target_tenant_id, vpoolName);
+            if(!_permissionsHelper.tenantHasUsageACL(URI.create(openstackTargetTenantId), objVpool)){
+            	_log.info("tenant {} does not have access to vpool with the given name {}",openstackTargetTenantId, vpoolName);
                 throw APIException.badRequests.parameterIsNotValid(vpoolName);
             }
             _log.info("objVpool.getLabel() is {}", objVpool.getLabel());

@@ -31,7 +31,6 @@ import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.CinderQuotaClassDetails;
-import com.emc.storageos.cinder.model.CinderQuotaDetails;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaClassOfCinder;
@@ -57,7 +56,6 @@ public class QuotaClassService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(QuotaClassService.class);
     private static final String EVENT_SERVICE_TYPE = "block";
-    private CinderHelpers helper = null;
    
     private CinderHelpers getCinderHelper() {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
@@ -162,7 +160,7 @@ public class QuotaClassService extends TaskResourceService {
     @Path("/{quota_class_name}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response getQuotaClass(
-            @PathParam("quota_class_name") String quota_class_name, @PathParam("tenant_id") String tenant_id, @Context HttpHeaders header) {
+            @PathParam("quota_class_name") String quota_class_name, @PathParam("tenant_id") String tenantId, @Context HttpHeaders header) {
 
     	_log.info("In getQuotaDefaults");
     	CinderQuotaClassDetails respCinderQuota = new CinderQuotaClassDetails();
@@ -175,7 +173,7 @@ public class QuotaClassService extends TaskResourceService {
             throw APIException.badRequests.parameterIsNotValid(quota_class_name);
     	}
     				
-		defaultQuotaMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(defaultQuotaMap , tenant_id, null);
+		defaultQuotaMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(defaultQuotaMap , tenantId, null);
 		respCinderQuota.quota_class_set.putAll(defaultQuotaMap); 
 		    	
     	_log.info("respCinderQuota is {}", respCinderQuota.quota_class_set.toString());

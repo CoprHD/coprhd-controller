@@ -186,7 +186,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      * <p>
      * API Call: <tt>GET /vdc/varrays/available-attributes</tt>
      * 
-     * @param ids
+     * @param virtualArrayIds
      *            the IDs of the virtual arrays.
      * @return the list of available attributes.
      */

@@ -283,6 +283,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateFS(storageObj, args);
             if (!result.getCommandPending()) {
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            } else { // we need to add task completer
+                fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
             }
 
             if (result.isCommandSuccess()) {
@@ -1586,6 +1588,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             URI qtreeURI = quotaDir.getId();
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
+            quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
+            quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
+            quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
             FileDeviceInputOutput args = new FileDeviceInputOutput();
 
             // Set up args

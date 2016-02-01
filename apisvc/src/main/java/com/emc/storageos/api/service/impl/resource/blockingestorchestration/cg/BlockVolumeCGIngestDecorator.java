@@ -78,12 +78,13 @@ public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
         List<BlockObject> associatedObjects = new ArrayList<BlockObject>();
         StringSet backendVolumes = umv.getVolumeInformation().get(SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString());
         if (null != backendVolumes && !backendVolumes.isEmpty()) {
-            for (String backendVolumeNativeGuid : backendVolumes) {
-                BlockObject blockObject = requestContext.findCreatedBlockObject(backendVolumeNativeGuid);
+            for (String backendUmvNativeGuid : backendVolumes) {
+                String volumeNativeGuid = backendUmvNativeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+                BlockObject blockObject = requestContext.findCreatedBlockObject(volumeNativeGuid);
                 if (null == blockObject) {
-                    blockObject = VolumeIngestionUtil.getBlockObject(backendVolumeNativeGuid, dbClient);
+                    blockObject = VolumeIngestionUtil.getBlockObject(volumeNativeGuid, dbClient);
                     if (null == blockObject) {
-                        logger.warn("BlockObject {} is not yet ingested", backendVolumeNativeGuid);
+                        logger.warn("BlockObject {} is not yet ingested", volumeNativeGuid);
                         continue;
                     }
                 }

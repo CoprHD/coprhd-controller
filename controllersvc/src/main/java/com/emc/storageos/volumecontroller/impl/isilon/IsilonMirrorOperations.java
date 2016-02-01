@@ -274,6 +274,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             if (description != null && !description.isEmpty()) {
                 policy.setDescription(description);
             }
+            policy.setEnabled(false);
             String policyId = isi.createReplicationPolicy(policy);
             _log.info("IsilonFileStorageDevice doCreateReplicationPolicy {} with policyId {} - complete", name,
                     policyId);

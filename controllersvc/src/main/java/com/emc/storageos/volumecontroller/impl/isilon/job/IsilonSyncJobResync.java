@@ -47,8 +47,8 @@ public class IsilonSyncJobResync extends IsilonSyncJobFailover {
                     try {
                         isiApiClient.getReplicationPolicy(newPolicyName);
                     } catch (IsilonException isiex) {
-
-                        _logger.info("Isilon reSync still need to be updated: {} succeeded", reportErr.getState().name());
+                        _logger.info("Isilon reSync still need to be updated: {} succeeded", newPolicyName);
+                        wait(2000);
                     }
 
                 } else {

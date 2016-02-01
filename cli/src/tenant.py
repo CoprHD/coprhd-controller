@@ -38,6 +38,14 @@ class Tenant(object):
     URI_NAMESPACE_INSTANCE = URI_NAMESPACE_BASE + '/{0}'
     URI_NAMESPACE_TENANT_BASE = URI_NAMESPACE_COMMON + '/tenant'
     URI_NAMESPACE_TENANT_INSTANCE = URI_NAMESPACE_TENANT_BASE + '/{0}'
+    
+    URI_LIST_NAMESPACES = '/vdc/object-namespaces'
+    URI_NAMESPACE_SHOW = '/vdc/object-namespaces/{0}'
+    
+    #New APIs for listing namespaces associated with a storagesystem
+     
+    URI_LIST_SS = "/vdc/storage-systems/{0}/object-namespaces"
+    URI_LIST_SS_NAMESPACE = "/vdc/storage-systems/{0}/object-namespaces/{1}"
 
     PROVIDER_TENANT = "Provider Tenant"
     TENANT_ROLES = ['TENANT_ADMIN', 'PROJECT_ADMIN', 'TENANT_APPROVER']
@@ -158,15 +166,15 @@ class Tenant(object):
 
         raise SOSError(SOSError.NOT_FOUND_ERR,
                        "Namespace " + label + ": not found")
-
-    def show_namespace(self, namespace):
-        '''
-        Makes a REST API call to assign admin role
-         '''
-
+        
+        
+    def show_namespace (self , namespace):
+        
+        uri_namespace = self.get_nsid_from_name(namespace)
+        
         (s, h) = common.service_json_request(
             self.__ipAddr, common.OBJCTRL_PORT, "GET",
-            Tenant.URI_NAMESPACE_INSTANCE.format(namespace),
+            Tenant.URI_NAMESPACE_SHOW.format(uri_namespace),
             None)
 
         o = common.json_decode(s)
@@ -175,7 +183,47 @@ class Tenant(object):
             return {}
 
         return o
+        
+        
 
+    def show_by_uri_namespace(self, namespace_id):
+        '''
+        Makes a REST API call to assign admin role
+         '''
+        
+        
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, common.OBJCTRL_PORT, "GET",
+            Tenant.URI_NAMESPACE_SHOW.format(namespace_id),
+            None)
+
+        o = common.json_decode(s)
+
+        if (not o):
+            return {}
+
+        return o
+    
+    def get_nsid_from_name(self, namespace):
+        
+        '''
+        Get the Namespace id from the namespacename
+        '''
+        all_obj = self.list_namespaces()
+        new = all_obj['object_namespace']
+        if(len(new) > 0):
+           for ns in all_obj['object_namespace']:
+                if(namespace in ns['name']):
+                    return ns['id']
+                
+        raise SOSError(SOSError.NOT_FOUND_ERR,
+                       "namespace :" + namespace + ": not found")
+
+        
+        
+
+    
     def tenant_delete_namespace(self, namespace):
         '''
         Makes a REST API call to assign admin role
@@ -198,22 +246,13 @@ class Tenant(object):
 
         (s, h) = common.service_json_request(self.__ipAddr,
                                              common.OBJCTRL_PORT, "GET",
-                                             Tenant.URI_NAMESPACE_COMMON,
+                                             Tenant.URI_LIST_NAMESPACES,
                                              None)
 
         o = common.json_decode(s)
+        return o
 
-        if (not o):
-            return {}
-
-        namespaces = o['namespace']
-
-        ids = []
-        if (not isinstance(namespaces, list)):
-            namespaces = [namespaces]
-        for namespace in namespaces:
-            ids.append(namespace.get('id'))
-        return ids
+        
 
     def tenant_create_namespace(self, tenant_name, namespace, project, cos):
         '''
@@ -234,10 +273,10 @@ class Tenant(object):
                 cos_uri = None
                 project_uri = None
 
-                if(cos):
-                    from objectvpool import ObjectVpool
-                    obj = ObjectVpool(self.__ipAddr, self.__port)
-                    cos_uri = obj.objectvpool_query(cos)
+                #if(cos):
+                    #from objectvpool import ObjectVpool
+                    #obj = ObjectVpool(self.__ipAddr, self.__port)
+                    #cos_uri = obj.objectvpool_query(cos)
 
                 if(project):
                     from project import Project
@@ -391,6 +430,49 @@ class Tenant(object):
             return s
 
         return o
+    
+    # Functions for Namespace Object Listing and Namespace object show 
+    
+    def list_object_namespaces(self, nsstsystem):
+        '''
+        Makes a REST API call to retrieve details of a tenant based on its UUID
+        
+        '''
+        nsstsystem_uri = None
+        from storagesystem import StorageSystem
+        obj = StorageSystem(self.__ipAddr, self.__port)
+                 
+        nsstsystem_uri = obj.query_by_name_and_type(nsstsystem, "ecs")
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
+                                             Tenant.URI_LIST_SS.format(nsstsystem_uri),
+                                             None)
+
+        o = common.json_decode(s)
+        return o
+    
+    
+    def show_object_namespaces(self, nsstsystem , namespace):
+        '''
+        Makes a REST API call to retrieve details of a tenant based on its UUID
+        
+        '''
+        nsstsystem_uri = None
+        from storagesystem import StorageSystem
+        obj = StorageSystem(self.__ipAddr, self.__port)
+                 
+        nsstsystem_uri = obj.query_by_name_and_type(nsstsystem, "ecs")
+        uri_namespace = self.get_nsid_from_name(namespace)
+       
+        
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
+                                             Tenant.URI_LIST_SS_NAMESPACE.format(nsstsystem_uri ,uri_namespace),
+                                             None)
+
+        
+        o = common.json_decode(s)
+        return o
+
+        
 
     def tenant_get_hosts(self, label, xml=False):
         '''
@@ -481,7 +563,7 @@ class Tenant(object):
         o = common.json_decode(s)
         return o['id']
 
-    def tenant_create(self, name, key, value, domain , namespace):
+    def tenant_create(self, name, key, value, domain , namespace, nsstsystem):
         '''
         creates a tenant
         parameters:
@@ -500,6 +582,14 @@ class Tenant(object):
                     'name': name
                 }
                 parms ['namespace'] = namespace
+                nsstsystem_uri = None
+                from storagesystem import StorageSystem
+                obj = StorageSystem(self.__ipAddr, self.__port)
+                 
+                nsstsystem_uri = obj.query_by_name_and_type(nsstsystem, "ecs")
+                
+                parms ['namespace_storage_system'] = nsstsystem_uri
+                
                 keyval = dict()
 
                 if(key):
@@ -543,7 +633,7 @@ class Tenant(object):
             
             
     # ROUTINE FOR ADD NAMESPACE
-    def add_namespace(self, name, namespace, description):
+    def add_namespace(self, name, namespace, description, nsstsystem):
         '''
         creates a tenant
         parameters:
@@ -559,15 +649,20 @@ class Tenant(object):
             
 
             parms = dict()
-
-            
-            
-            
             parms['name'] = name
             parms['description'] = description
             parms['namespace'] = namespace
+            
+            nsstsystem_uri = None
+            from storagesystem import StorageSystem
+            obj = StorageSystem(self.__ipAddr, self.__port)
+                 
+            nsstsystem_uri = obj.query_by_name_and_type(nsstsystem, "ecs")
+                
+            parms ['namespace_storage_system'] = nsstsystem_uri
 
             body = json.dumps(parms)
+           
 
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port, "PUT",
@@ -776,8 +871,10 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-namespace',
                                help='namespace to map to tenant',
                                dest='namespace', metavar='<namespace>')
-
     
+    create_parser.add_argument('-namespacestoragesystem' , '-nsstsystem',
+                               help='Specify namespace storagesystem ',
+                               dest='nsstsystem', metavar='<namespacestoragesystem>')
 
     mandatory_args.add_argument('-domain',
                                 help='domain',
@@ -789,14 +886,16 @@ def create_parser(subcommand_parsers, common_parser):
 
 def tenant_create(args):
     obj = Tenant(args.ip, args.port)
-    try:
-        res = obj.tenant_create(args.name, args.key, args.value, args.domain , args.namespace)
-    except SOSError as e:
-        if (e.err_code in [SOSError.NOT_FOUND_ERR,
+    if(args.nsstsystem is not None and args.namespace is None):
+        
+        try:
+            res = obj.tenant_create(args.name, args.key, args.value, args.domain , args.namespace , args.nsstsystem)
+        except SOSError as e:
+            if (e.err_code in [SOSError.NOT_FOUND_ERR,
                            SOSError.ENTRY_ALREADY_EXISTS_ERR]):
-            raise SOSError(e.err_code, "Tenant " +
+                raise SOSError(e.err_code, "Tenant " +
                            args.name + ": Create failed\n" + e.err_text)
-        else:
+    else:
             raise e
         
 
@@ -824,6 +923,9 @@ def add_namespace_parser(subcommand_parsers, common_parser):
                                help='description field',
                                dest='description', metavar='<description>')
 
+    add_namespace_parser.add_argument('-namespacestoragesystem','-nsstsystem' ,
+                               help='Specify the Namespace Storagesystem ',
+                               dest='nsstsystem', metavar='<namespacestoragesystem>')
     
 
     
@@ -834,7 +936,7 @@ def add_namespace_parser(subcommand_parsers, common_parser):
 def add_namespace_create(args):
     obj = Tenant(args.ip, args.port)
     try:
-        res = obj.add_namespace(args.name , args.namespace ,args.description)
+        res = obj.add_namespace(args.name , args.namespace ,args.description, args.nsstsystem)
     except SOSError as e:
         if (e.err_code in [SOSError.NOT_FOUND_ERR,
                            SOSError.ENTRY_ALREADY_EXISTS_ERR]):
@@ -1649,7 +1751,7 @@ def tenant_get_namespace(args):
 def show_namespace_parser(subcommand_parsers, common_parser):
     # role  command parser
     show_namespace_parser = subcommand_parsers.add_parser(
-        'show',
+        'show-namespace',
         description='ViPR Show Namespace CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -1711,22 +1813,11 @@ def delete_namespace(args):
 def list_namespaces_parser(subcommand_parsers, common_parser):
     # role  command parser
     list_namespaces_parser = subcommand_parsers.add_parser(
-        'list',
+        'list-namespaces',
         description='ViPR List Namespaces CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
         help='list namespace')
-
-    list_namespaces_parser.add_argument('-verbose', '-v',
-                                        action='store_true',
-                                        help='List tenants with details',
-                                        dest='verbose')
-
-    list_namespaces_parser.add_argument(
-        '-long', '-l',
-        action='store_true',
-        help='List tenants with more details in tabular format',
-        dest='long')
 
     list_namespaces_parser.set_defaults(func=list_namespaces)
 
@@ -1735,32 +1826,102 @@ def list_namespaces(args):
     obj = Tenant(args.ip, args.port)
 
     try:
-        uris = obj.list_namespaces()
-
-        output = []
-
-        for uri in uris:
-            if(obj.show_namespace(uri)):
-                tmp = obj.show_namespace(uri)
-
-                objTenant = Tenant(args.ip, args.port)
-                tenantval = objTenant.tenant_show_by_uri(
-                    tmp['tenant'])
-                tmp['tenantname'] = tenantval['name']
-                output.append(tmp)
-
-        if(len(output) > 0):
-            if(args.verbose):
-                return common.format_json_object(output)
-            elif(args.long):
-                from common import TableGenerator
-                TableGenerator(output, ['id', 'tenantname']).printTable()
-            else:
-                from common import TableGenerator
-                TableGenerator(output, ['id']).printTable()
+        res = obj.list_namespaces()
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "namespaces",
+            "list",
+            e.err_text,
+            e.err_code)
+        
 
     except SOSError as e:
         raise e
+    
+    
+
+#New parser for list object namespaces 
+
+def list_object_namespaces_parser(subcommand_parsers, common_parser):
+    # role  command parser
+    list_object_namespaces_parser = subcommand_parsers.add_parser(
+        'list-object-namespaces',
+        description='ViPR List Namespaces CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='list object namespace')
+    
+    mandatory_args = list_object_namespaces_parser.add_argument_group(
+        'mandatory arguments')
+
+    
+    mandatory_args.add_argument('-nsstsystem', '-namespacestoragesystem',
+                                        metavar = '<namespacestoragesystem>',
+                                        help='Specify the name of the Namespace Storagesystem',
+                                        dest='nsstsystem')
+    list_object_namespaces_parser.set_defaults(func=list_object_namespaces)
+
+
+def list_object_namespaces(args):
+    obj = Tenant(args.ip, args.port)
+    try:
+        res = obj.list_object_namespaces(args.nsstsystem)
+
+        
+
+        return common.format_json_object(res)
+    except SOSError as e:
+        if(e.err_code == SOSError.NOT_FOUND_ERR):
+            raise SOSError(SOSError.NOT_FOUND_ERR,
+                           "Object Namespace list failed: " + e.err_text)
+        else:
+            raise e
+        
+        
+
+def show_object_namespaces_parser(subcommand_parsers, common_parser):
+    # role  command parser
+    show_object_namespaces_parser = subcommand_parsers.add_parser(
+        'show-object-namespaces',
+        description='ViPR List Namespaces CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='list object namespace')
+
+    mandatory_args = show_object_namespaces_parser.add_argument_group(
+        'mandatory arguments')
+    
+    mandatory_args.add_argument('-nsstsystem', '-namespacestoragesystem',
+                                        metavar = '<namespacestoragesystem>',
+                                        help='Specify the name of the Namespace Storagesystem',
+                                        dest='nsstsystem')
+    mandatory_args.add_argument('-namespace', 
+                                        metavar = '<namespace>',
+                                        help='Specify the name of the Namespace',
+                                        dest='namespace')
+    show_object_namespaces_parser.set_defaults(func=show_object_namespaces)
+
+
+def show_object_namespaces(args):
+    obj = Tenant(args.ip, args.port)
+    try:
+        res = obj.show_object_namespaces(args.nsstsystem, args.namespace)
+
+        
+
+        return common.format_json_object(res)
+    except SOSError as e:
+        if(e.err_code == SOSError.NOT_FOUND_ERR):
+            raise SOSError(SOSError.NOT_FOUND_ERR,
+                           "Object Namespace show failed: " + e.err_text)
+        else:
+            raise e
+
+
+
+
+
 #
 # Tenant Main parser routine
 #
@@ -1823,6 +1984,14 @@ def tenant_parser(parent_subparser, common_parser):
     get_tenant_vcenters_parser(subcommand_parsers, common_parser)
 
     update_quota_parser(subcommand_parsers, common_parser)
+    
+    
+    #show_namespace_parser(subcommand_parsers, common_parser)
+    
+    show_object_namespaces_parser(subcommand_parsers, common_parser)
+    
+    list_object_namespaces_parser(subcommand_parsers, common_parser)
 
+    #list_namespaces_parser(subcommand_parsers, common_parser)
     # remove group parser
     #remove_group_parser(subcommand_parsers, common_parser)

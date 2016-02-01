@@ -6,7 +6,6 @@
 ##################################################
 #  Setup
 ##################################################
-export DO_NOT_START := yes
 WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHDDevKit
 VERSION := 2.5.0.0
@@ -128,6 +127,7 @@ $(VMDK): | downloadISO createREPO
 	mkdir -p $(WORKSPACE)/build
 	mkdir -p $(WORKSPACE)/output
 	kiwi --verbose 3 --yes --prepare $(WORKSPACE)/templates --add-profile appliance --force-new-root --root $(IMAGE_DIR)
+	@[ -x $(IMAGE_DIR)/usr/sbin/nginx ] || ( echo "[ERROR] Failed to download/install nginx" && exit -1 )
 	kiwi --verbose 3 --yes --create $(IMAGE_DIR) --add-profile appliance --type vmx --destdir $(OUTPUT_DIR)
 	-umount $(WORKSPACE)/iso/mount
 	$(call targetLog,-)

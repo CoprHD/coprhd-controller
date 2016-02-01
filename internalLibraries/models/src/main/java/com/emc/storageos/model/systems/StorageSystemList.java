@@ -25,7 +25,6 @@ public class StorageSystemList {
     /**
      * List of storage system URLs with name
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_system")
     public List<NamedRelatedResourceRep> getStorageSystems() {

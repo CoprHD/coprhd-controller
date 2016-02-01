@@ -603,7 +603,7 @@ public class VdcManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step3: Site {} set to error due to data sync timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.dataSyncFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000),site.getState().name());
+                            drOpTimeoutMillis / 60 / 1000),site.getLastState().name());
                 }
                 break;
             case STANDBY_REMOVING:

@@ -1121,7 +1121,12 @@ public abstract class VdcOpHandler {
     }
     
     protected void populateStandbySiteErrorIfNecessary(Site site, InternalServerErrorException e) {
-        SiteError error = new SiteError(e,site.getState().name());
+
+        SiteState operation = site.getState();
+        if (SiteState.STANDBY_SYNCING.equals(site.getState())) {
+            operation = site.getLastState();
+        }
+        SiteError error = new SiteError(e,operation.name());
 
         log.info("set site {} state to STANDBY_ERROR, set lastState to {}",site.getName(),site.getState());
         coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);

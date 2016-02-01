@@ -42,6 +42,7 @@ public class FileDeleteWorkflowCompleter extends FileWorkflowCompleter {
                         fileSystem.setMirrorfsTargets(targets);
                         fileSystem.setMirrorStatus(MirrorStatus.DETACHED.name());
                         fileSystem.setPersonality(null);
+                        dbClient.updateObject(fileSystem);
                     }
                 }
                 dbClient.ready(FileShare.class, id, getOpId());

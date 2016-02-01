@@ -44,7 +44,7 @@ public class Bucket extends DataObject implements ProjectResource {
     // native device ID as created by storage device
     private String _nativeId;
     // comment for the bucket created. Used by coprhd developers only.
-    private String comment;
+    private String coprhdVersion;
 
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
@@ -204,14 +204,14 @@ public class Bucket extends DataObject implements ProjectResource {
         setChanged("name");
     }
 
-    @Name("comment")
-    public String getComment() {
-        return comment;
+    @Name("coprhdVersion")
+    public String getCoprhdVersion() {
+        return coprhdVersion;
     }
 
-    public void setComment(String comment) {
-        this.comment = comment;
-        setChanged("comment");
+    public void setCoprhdVersion(String coprhdVersion) {
+        this.coprhdVersion = coprhdVersion;
+        setChanged("coprhdVersion");
     }
     
 }

@@ -348,6 +348,9 @@ public class FileService extends TaskResourceService {
         fs.setName(convertedName);
         Long fsSize = SizeUtil.translateSize(param.getSize());
         fs.setCapacity(fsSize);
+        fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
+        fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
+        fs.setSoftGracePeriod(param.getSoftGrace());
         fs.setVirtualPool(param.getVpool());
         if (project != null) {
             fs.setProject(new NamedURI(project.getId(), fs.getLabel()));
@@ -1086,6 +1089,11 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
         }
         
+        Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, expand, "filesystem");
+        
         FileController controller = getController(FileController.class,
                 device.getSystemType());
 
@@ -1407,6 +1415,11 @@ public class FileService extends TaskResourceService {
         FileShare fs = queryResource(id);
         if (!param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
+            if (!fs.getFilePolicies().isEmpty()) {
+
+                throw APIException.badRequests
+                        .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
+            }
         }
         List<URI> fileShareURIs = new ArrayList<URI>();
         fileShareURIs.add(id);
@@ -2421,7 +2434,10 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkUri(filePolicyUri);
         SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
-
+        // verify the file system tenant is same as policy tenant
+        if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+            throw APIException.badRequests.assoicatedPolicyTenantMismach(filePolicyUri, id);
+        }
         // Check for VirtualPool support snapshot or not
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
 
@@ -2496,6 +2512,10 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkUri(filePolicyUri);
         SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
+        // verify the file system tenant is same as policy tenant
+        if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+            throw APIException.badRequests.assoicatedPolicyTenantMismach(filePolicyUri, id);
+        }
         // verify the schedule policy is associated with file system or not.
         if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssoicatedPolicy(filePolicyUri);

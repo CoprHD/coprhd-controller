@@ -51,6 +51,9 @@
         <dt class="moreDetails">&{'resources.filesystem.storageport'}:</dt>
         <dd class="moreDetails">#{spaceForNull storagePort?.name/}</dd>
         
+		<dt class="moreDetails">&{'resources.filesystem.notificationLimit'}:</dt>
+        <dd class="moreDetails">#{spaceForNull fileSystem?.notificationLimit/}</dd>
+        
         <dt class="moreDetails">&{'resources.filesystem.softLimit'}:</dt>
         <dd class="moreDetails">#{spaceForNull fileSystem?.softLimit/}
         #{if fileSystem.softLimitExceeded}
@@ -62,8 +65,7 @@
         </dd>
         <dt class="moreDetails">&{'resources.filesystem.softGrace'}:</dt>
         <dd class="moreDetails">#{spaceForNull fileSystem?.softGrace/}</dd>
-        <dt class="moreDetails">&{'resources.filesystem.notificationLimit'}:</dt>
-        <dd class="moreDetails">#{spaceForNull fileSystem?.notificationLimit/}</dd>
+
         
       #{/deadbolt.restrict}
       <dt class="moreDetails">&{'resources.filesystem.nativeid'}:</dt>

@@ -3324,10 +3324,10 @@ resources.filesystem.vpool=Virtual Pool
 resources.filesystem.protocols=Protocols
 resources.filesystem.storageport=Storage Port
 resources.filesystem.storagepool=Storage Pool
-resources.filesystem.softLimit=Soft Limit
-resources.filesystem.softGrace=Soft Grace
-resources.filesystem.notificationLimit=Notification Limit
-resources.filesystem.softLimitExeeded=Soft Limit Capacity exceeded
+resources.filesystem.softLimit=Soft Limit (%%)
+resources.filesystem.softGrace=Grace Period (Days)
+resources.filesystem.notificationLimit=Advisory Limit (%%)
+resources.filesystem.softLimitExeeded=Capacity exceeded
 
 
 resources.filesystem.storagesystem=Storage System

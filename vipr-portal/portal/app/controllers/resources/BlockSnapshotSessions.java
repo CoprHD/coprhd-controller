@@ -14,6 +14,7 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
@@ -81,6 +82,13 @@ public class BlockSnapshotSessions extends ResourceController {
         render(blockSnapshotSession, volume, tasks);
     }
     
+    public static void snapshotSessionLinkTarget(String snapshotSessionId) {
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        List<RelatedResourceRep> targets = client.blockSnapshotSessions().get(uri(snapshotSessionId)).getLinkedTarget();
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByRefs(targets);
+        render(snapshots);
+    }
+
     @FlashException(referrer = { "snapshotSessionDetails" })
     public static void deleteSnapshotSession(String snapshotId) {
         if (StringUtils.isNotBlank(snapshotId)) {

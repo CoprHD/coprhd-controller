@@ -17,24 +17,21 @@
 #{Resources.actions hide:blockSnapshotSession?.blockSnapshotSession?.inactive }
     <a href="@{deleteSnapshotSession(blockSnapshotSession.blockSnapshotSession.id)}"
       onclick="return confirm('&{'resources.snapshot.deleteConfirm'}');"
-    >&{'resources.snapshot.deleteLink'}</a><br/>
+    >&{'resources.snapshot.session.deleteLink'}</a><br/>
  #{/Resources.actions}
   <dl class="dl-horizontal pull-left">
-
-      <dt>&{'affectedResources.blockSnapshotSession.wwn'}:</dt>
-      <dd>#{spaceForNull blockSnapshotSession?.blockSnapshotSession.wwn/}</dd>
       
       <dt>&{'affectedResources.blockSnapshotSession.volume'}:</dt>
       <dd><img src="/public/img/assets/Volume.png" style="width: 32px;"/><a href="@{resources.BlockVolumes.volume(blockSnapshotSession.volume.id)}">#{spaceForNull blockSnapshotSession.volume?.name/}</a></dd>
       
-      <dt>&{'affectedResources.blockSnapshotSession.varray'}:</dt>
-      <dd><img src="/public/img/serviceCatalog/Virtual_Array.png" style="width: 32px;"/>#{spaceForNull blockSnapshotSession.neighborhood?.name/}</dd>
-    
     #{Resources.commonAttributes resource:blockSnapshotSession.blockSnapshotSession /}
   </dl>
 
   <div class="clearfix"></div>
+  
+  #{expandPanel titleKey:'resources.snapshot.session.targets', url: @snapshotSessionLinkTarget(blockSnapshotSession.blockSnapshotSession.id) /}
 
+	<div class="clearfix"></div>
   #{Resources.tasks resourceId:blockSnapshotSession.blockSnapshotSession.id /}
 #{/if}
 #{else}

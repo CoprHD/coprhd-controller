@@ -3285,6 +3285,9 @@ resources.snapshot.deactivate=Task created to deactivate snapshot with id:[%s]. 
 
 resources.snapshot.session.name=Name
 resources.snapshot.sessions=Block Snapshot Sessions
+resources.snapshot.session.deleteLink=Delete Snapshot Session
+resources.snapshot.session.targets=Linked Targets
+resources.snapshot.session.targets.none=No Linked Targets
 
 resources.filesystems=File Systems
 resources.filesystems.error=File System Not Found

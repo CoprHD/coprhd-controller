@@ -70,7 +70,7 @@ public class QuotaHelper {
      * @param vPoolName - if we want to specifically populate a specific pool, we have to pass this.
      * @return updated quotas map
      */
-    public HashMap<String, String> populateVolumeTypeDefaultsForQuotalass(HashMap<String, String> qMap, 
+    public HashMap<String, String> populateVolumeTypeDefaultsForQuotaClass(HashMap<String, String> qMap, 
     																	  String openstackTargetTenantId,
     																	  String vPoolName){    	
     	List<URI> vpools = _dbClient.queryByType(VirtualPool.class, true);
@@ -435,7 +435,7 @@ public class QuotaHelper {
      */
     public HashMap<String,String> getCompleteDefaultConfiguration(String openstackTargetTenantId){
     	HashMap<String,String> qMap = loadDefaultsMapFromDb();
-    	qMap = populateVolumeTypeDefaultsForQuotalass(qMap , openstackTargetTenantId, null);
+    	qMap = populateVolumeTypeDefaultsForQuotaClass(qMap , openstackTargetTenantId, null);
     	_log.debug("getCompleteDefaultConfiguration is {}",qMap);
 		return qMap;
     }

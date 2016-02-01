@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObjectWithACLs;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
@@ -317,7 +318,18 @@ public class TenantsService extends TaggedResource {
                 }
             }
             tenant.setNamespace(param.getNamespace());
-            // Namespace Will be retrieved from ECS in coming releases.
+            //Update tenant info in respective namespace CF
+            List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
+            Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
+            while (nsItr.hasNext()) {
+                ObjectNamespace namesp = nsItr.next();
+                if (namesp.getNativeId().equalsIgnoreCase(param.getNamespace())) {
+                    namesp.setTenant(tenant.getId());
+                    namesp.setMapped(true);
+                    _dbClient.updateObject(namesp);
+                    break;
+                }
+            }
         }
 
         if (!isUserMappingEmpty(param)) {
@@ -417,6 +429,18 @@ public class TenantsService extends TaggedResource {
         if (param.getNamespace() != null) {
             checkForDuplicateNamespace(param.getNamespace());
             subtenant.setNamespace(param.getNamespace());
+            //Update tenant info in respective namespace CF
+            List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
+            Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
+            while (nsItr.hasNext()) {
+                ObjectNamespace namesp = nsItr.next();
+                if (subtenant.getNamespace().equalsIgnoreCase(namesp.getNativeId())) {
+                    namesp.setTenant(subtenant.getId());
+                    namesp.setMapped(true);
+                    _dbClient.updateObject(namesp);
+                    break;
+                }
+            }
         }
 
         if (null == param.getUserMappings() || param.getUserMappings().isEmpty()) {

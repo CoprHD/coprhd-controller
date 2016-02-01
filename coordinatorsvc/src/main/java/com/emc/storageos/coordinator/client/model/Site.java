@@ -24,6 +24,7 @@ public class Site {
     private static final String KEY_SITE_SHORTID = "siteShortId";
     private static final String KEY_CREATIONTIME = "creationTime";
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
+    private static final String KEY_LASTSTATE = "lastState";
     private static final String KEY_SITE_STATE = "state";
     private static final String KEY_PING = "networkLatencyInMs";
     private static final String KEY_NETWORK_HEALTH = "networkHealth";
@@ -55,6 +56,7 @@ public class Site {
     private double networkLatencyInMs;
     private NetworkHealth networkHealth;
     private SiteState state = SiteState.ACTIVE;
+    private SiteState lastState;
     private int nodeCount;
     
     static {
@@ -72,6 +74,14 @@ public class Site {
         if (config != null) {
             fromConfiguration(config);
         }
+    }
+
+    public SiteState getLastState() {
+        return lastState;
+    }
+
+    public void setLastState(SiteState lastState) {
+        this.lastState = lastState;
     }
     
     public String getUuid() {
@@ -237,6 +247,10 @@ public class Site {
             config.setConfig(KEY_NETWORK_HEALTH, networkHealth.toString());
         }
 
+        if (lastState != null) {
+            config.setConfig(KEY_LASTSTATE, String.valueOf(lastState));
+        }
+
         if (state != null) {
             config.setConfig(KEY_SITE_STATE, String.valueOf(state));
         }
@@ -278,10 +292,17 @@ public class Site {
             if (s != null) {
                 this.lastStateUpdateTime = Long.valueOf(s);
             }
+
+            s = config.getConfig(KEY_LASTSTATE);
+            if (s != null) {
+                lastState = SiteState.valueOf(config.getConfig(KEY_LASTSTATE));
+            }
+
             s = config.getConfig(KEY_PING);
             if (s != null) {
                 this.networkLatencyInMs = Double.valueOf(s);
             }
+
             s = config.getConfig(KEY_SITE_STATE);
             if (s != null) {
                 state = SiteState.valueOf(config.getConfig(KEY_SITE_STATE));

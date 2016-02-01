@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,7 @@ public abstract class VdcOpHandler {
     private static final int FAILOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 15;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
+    private static final int RESUME_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 20;
     private static final int IPSEC_RESTART_DELAY = 1000 * 60; // 1 min
     // data revision time out - 5 minutes
@@ -76,20 +78,30 @@ public abstract class VdcOpHandler {
     protected PropertyInfoExt targetVdcPropInfo;
     protected PropertyInfoExt localVdcPropInfo;
     protected SiteInfo targetSiteInfo;
-    protected boolean isRebootNeeded = false;
-
+    private boolean concurrentRebootNeeded = false;
+    private boolean rollingRebootNeeded = false;
+    
     public VdcOpHandler() {
     }
     
     public abstract void execute() throws Exception;
     
-    public boolean isRebootNeeded() {
-        return isRebootNeeded;
+    public boolean isConcurrentRebootNeeded() {
+        return concurrentRebootNeeded;
     }
     
-    public void setRebootNeeded(boolean rebootRequired) {
-        this.isRebootNeeded = rebootRequired;
+    public void setConcurrentRebootNeeded(boolean rebootRequired) {
+        this.concurrentRebootNeeded = rebootRequired;
     }
+
+    public boolean isRollingRebootNeeded() {
+        return rollingRebootNeeded;
+    }
+
+    public void setRollingRebootNeeded(boolean rollingRebootRequired) {
+        this.rollingRebootNeeded = rollingRebootRequired;
+    }
+
 
     /**
      * No-op - simply do nothing
@@ -100,6 +112,10 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() {
+            if (isGeoConfigChange()) {
+                log.info("Geo config change detected. set rolling reboot to true");
+                setRollingRebootNeeded(true);
+            }
         }
     }
     
@@ -116,66 +132,54 @@ public abstract class VdcOpHandler {
          */
         @Override
         public void execute() throws Exception {
+            String backCompatPreYoda = targetVdcPropInfo.getProperty(VdcConfigUtil.BACK_COMPAT_PREYODA);
+            if (Boolean.valueOf(backCompatPreYoda)) {
+                log.info("Set back_comp_preyoda flag to true so that ipsec can start");
+                targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
+                setRollingRebootNeeded(true);
+            }
+            
+            if (isGeoConfigChange()) {
+                log.info("Geo config change detected. set concurrent reboot to true");
+                setConcurrentRebootNeeded(true);
+            }
+            
             syncFlushVdcConfigToLocal();
             refreshIPsec();
         }
     }
 
     /**
-     * Transit Cassandra native encryption to IPsec
+     * Geo config change - add/remove vdc 
      */
-    public static class IPSecConfigHandler extends VdcOpHandler {
-        private static String IPSEC_LOCK = "ipsec_enable_lock";
-
-        @Autowired
-        IPsecManager ipsecMgr;
-        @Autowired
-        IPsecConfig ipsecConfig;
-
-        public IPSecConfigHandler() {
+    public static class GeoConfigChangeOpHandler extends VdcOpHandler {
+        public GeoConfigChangeOpHandler() {
         }
         
+        /**
+         * Reconfig IPsec/firewall when vdc properties (key, IPs or both) get changed. 
+         * Rolling restart the cluster if it is remove-vdc
+         * 
+         * @throws Exception
+         */
         @Override
         public void execute() throws Exception {
-            InterProcessLock lock = acquireIPsecLock();
-            try {
-                initEnableAndRotateIpsec();
-            } finally {
-                releaseIPsecLock(lock);
+            syncFlushVdcConfigToLocal();
+            refreshIPsec();
+            refreshFirewall();
+            
+            if (isRemovingVdc()) {
+                setRollingRebootNeeded(true);
             }
         }
-
-        private void initEnableAndRotateIpsec() throws Exception {
-           if (ipsecKeyExisted()) {
-                log.info("Real IPsec key already existed, No need to rotate.");
-                return;
-            }
-
-            ipsecMgr.verifyClusterIsStable();
-            String version = ipsecMgr.rotateKey(true);
-            log.info("Initiated IPsec key enabling and rotation. The version is {}", version);
-        }
-
-        private InterProcessLock acquireIPsecLock() throws Exception {
-            InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(IPSEC_LOCK);
-            lock.acquire();
-            log.info("Acquired the lock {}", IPSEC_LOCK);
-            return lock;
-        }
-
-        private void releaseIPsecLock(InterProcessLock lock) {
-            try {
-                lock.release();
-            } catch (Exception e) {
-                log.warn("Fail to release the lock {}", IPSEC_LOCK);
-            }
-        }
-
-        private boolean ipsecKeyExisted() throws Exception {
-            return !StringUtils.isEmpty(ipsecConfig.getPreSharedKeyFromZK());
+        
+        private boolean isRemovingVdc() {
+            String newVdcIds =  targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+            String origVdcIds = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+            return newVdcIds.length() < origVdcIds.length();
         }
     }
-
+    
     /**
      * Process DR config change for add-standby op on all existing sites
      *  - flush vdc config to disk, regenerate config files and reload services for ipsec, firewall, coordinator, db
@@ -197,7 +201,7 @@ public abstract class VdcOpHandler {
      */
     public static class DrChangeDataRevisionHandler extends VdcOpHandler {
         public DrChangeDataRevisionHandler() {
-            setRebootNeeded(true);
+            setConcurrentRebootNeeded(true);
         }
 
         @Override
@@ -471,6 +475,8 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
+            //if site is in observer restart dbsvc
+            restartDbsvcOnResumedSite();
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
             changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
@@ -614,7 +620,7 @@ public abstract class VdcOpHandler {
         }
         
         @Override
-        public boolean isRebootNeeded() {
+        public boolean isConcurrentRebootNeeded() {
             return isRebootNeeded;
         }
         
@@ -811,7 +817,7 @@ public abstract class VdcOpHandler {
             Site site = drUtil.getLocalSite();
 
             if (isNewActiveSiteForFailover(site)) {
-                isRebootNeeded = true;
+                setConcurrentRebootNeeded(true);
                 coordinator.stopCoordinatorSvcMonitor();
                 reconfigVdc();
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
@@ -898,7 +904,7 @@ public abstract class VdcOpHandler {
      */
     public static class DrFailbackDegradeHandler extends VdcOpHandler {
         public DrFailbackDegradeHandler() {
-            setRebootNeeded(true);
+            setConcurrentRebootNeeded(true);
         }
         
         @Override
@@ -1021,6 +1027,24 @@ public abstract class VdcOpHandler {
             }
         }
     }
+
+    protected void restartDbsvcOnResumedSite() throws Exception {
+        Site site = drUtil.getLocalSite();
+
+        //check both state and last state so we know this is a retry
+        if (site.getState().equals(SiteState.STANDBY_RESUMING)
+                && site.getLastState().equals(SiteState.STANDBY_RESUMING)) {
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
+                    RESUME_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            barrier.enter();
+            try {
+                localRepository.restart(Constants.GEODBSVC_NAME);
+                localRepository.restart(Constants.DBSVC_NAME);
+            } finally {
+                barrier.leave();
+            }
+        }
+    }
     
     protected void reconfigVdc() throws Exception {
         reconfigVdc(true);
@@ -1100,11 +1124,19 @@ public abstract class VdcOpHandler {
     }
     
     protected void populateStandbySiteErrorIfNecessary(Site site, InternalServerErrorException e) {
-        SiteError error = new SiteError(e);
-        
-        log.info("Set error state for site: {}", site.getUuid());
+
+        SiteState operation = site.getState();
+        if (SiteState.STANDBY_SYNCING.equals(site.getState())) {
+            operation = site.getLastState();
+        }
+        SiteError error = new SiteError(e,operation.name());
+
+        log.info("set site {} state to STANDBY_ERROR, set lastState to {}",site.getName(),site.getState());
         coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
 
+        if (!site.getState().equals(SiteState.STANDBY_SYNCING)) {
+            site.setLastState(site.getState());
+        }
         site.setState(SiteState.STANDBY_ERROR);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
     }
@@ -1113,9 +1145,16 @@ public abstract class VdcOpHandler {
         List<Site> newSites = drUtil.listSitesInState(from);
         for(Site newSite : newSites) {
             log.info("Change standby site {} state from {} to {}", new Object[]{newSite.getSiteShortId(), from, to});
+            newSite.setLastState(from);
             newSite.setState(to);
             coordinator.getCoordinatorClient().persistServiceConfiguration(newSite.toConfiguration());
         }
+    }
+    
+    protected boolean isGeoConfigChange() {
+        boolean isGeo =  targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
+                    || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",");
+        return isGeo && !StringUtils.equals(targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS), localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS));
     }
     
     /**

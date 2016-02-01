@@ -27,7 +27,6 @@ public class FileSystemSnapshotParam {
     /**
      * User provided name/label for the snapshot.
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "name")
     public String getLabel() {

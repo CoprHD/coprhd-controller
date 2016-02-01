@@ -36,7 +36,6 @@ public class VirtualPoolChangeParam {
     /**
      * ID of the new virtual pool.
      * 
-     * @valid example: a valid URI
      */
     @XmlElement(required = true, name = "vpool")
     @JsonProperty("vpool")
@@ -52,7 +51,6 @@ public class VirtualPoolChangeParam {
      * Virtual Pool (Mirror or RecoverPoint) protection
      * parameters.
      * 
-     * @valid none
      */
     @XmlElement(required = false, name = "protection")
     public BlockVirtualPoolProtectionParam getProtection() {

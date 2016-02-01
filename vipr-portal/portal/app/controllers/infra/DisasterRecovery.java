@@ -51,6 +51,7 @@ public class DisasterRecovery extends ViprResourceController {
     protected static final String SWITCHOVER_SUCCESS = "disasterRecovery.switchover.success";
     protected static final String SWITCHOVER_ERROR = "disasterRecovery.switchover.error";
     protected static final String RESUMED_SUCCESS = "disasterRecovery.resume.success";
+    protected static final String RETRY_SUCCESS = "disasterRecovery.retry.success";
     protected static final String SAVED_ERROR = "disasterRecovery.save.error";
     protected static final String DELETED_SUCCESS = "disasterRecovery.delete.success";
     protected static final String DELETED_ERROR = "disasterRecovery.delete.error";
@@ -114,6 +115,18 @@ public class DisasterRecovery extends ViprResourceController {
     public static void pauseResume() {
         DisasterRecoveryDataTable dataTable = createDisasterRecoveryDataTable();
         render(dataTable);
+    }
+
+    @FlashException("list")
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_ADMIN"),
+            @Restrict("RESTRICTED_SYSTEM_ADMIN") })
+    public static void retry(String id) {
+        SiteRestRep result = DisasterRecoveryUtils.getSite(id);
+        if (result != null) {
+            SiteRestRep siteretry = DisasterRecoveryUtils.retryStandby(id);
+            flash.success(MessagesUtils.get(RETRY_SUCCESS, siteretry.getName()));
+        }
+        list();
     }
 
     public static void test(String id) {
@@ -250,6 +263,16 @@ public class DisasterRecovery extends ViprResourceController {
         return DisasterRecoveryUtils.isActiveSite();
     }
 
+    public static boolean isRetrySite(String uuid) {
+        SiteErrorResponse error = DisasterRecoveryUtils.getSiteError(uuid);
+        if(!error.getOperation().equals(SiteState.STANDBY_PAUSING.name())
+                && !error.getOperation().equals(SiteState.STANDBY_RESUMING.name())
+                && !error.getOperation().equals(SiteState.STANDBY_FAILING_OVER.name())){
+            return false;
+        }
+        return true;
+    }
+
     public static String getLocalSiteName() {
         return DisasterRecoveryUtils.getLocalSiteName();
     }
@@ -283,6 +306,10 @@ public class DisasterRecovery extends ViprResourceController {
             if (disasterSiteError.getCreationTime() != null) {
                 DateTime creationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
                 renderArgs.put("creationTime", creationTime);
+            }
+            if (disasterSiteError.getOperation() != null) {
+                String operation = disasterSiteError.getOperation();
+                renderArgs.put("operation", operation);
             }
             render(isError, uuid, disasterSiteError);
         }

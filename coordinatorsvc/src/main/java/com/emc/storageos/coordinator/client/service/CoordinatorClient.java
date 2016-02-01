@@ -696,4 +696,23 @@ public interface CoordinatorClient {
      * @return true if node exists
      */
     boolean nodeExists(String path);
+    
+    /**
+     * Start a ZK transaction for a serial of ZK updates. Currently we support 
+     * only persistServiceConfig/removeSerivceConfig calls.
+     */
+    public void startTransaction();
+    
+    /**
+     * Commit transaction. All ZK updates may succeed, or fail. No partial completion is 
+     * guranteed
+     * 
+     */
+    public void commitTransaction() throws CoordinatorException;
+    
+    /**
+     * Discard current zk transaction
+     */
+    public void discardTransaction();
+
 }

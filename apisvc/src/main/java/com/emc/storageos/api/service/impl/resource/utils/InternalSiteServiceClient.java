@@ -85,6 +85,7 @@ public class InternalSiteServiceClient extends BaseServiceClient implements Auto
                     .put(ClientResponse.class, configParam);
         } catch (UniformInterfaceException e) {
             log.warn("could not initialize target standby site. Err:{}", e);
+            throw e;
         }
         return resp;
     }

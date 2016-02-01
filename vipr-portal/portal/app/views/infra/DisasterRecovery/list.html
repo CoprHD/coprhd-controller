@@ -40,6 +40,7 @@
 				#{/if}
 				<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
 			#{/if}
+			<a class="btn btn-default btn-xs" ng-show="isRetrySite" role="button" href="{{retryUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.retry'}')){return false;}")>{{'disasterRecovery.retryButton' | t}}</a>
 		#{/deadbolt.restrict}
 		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
 			#{if !showPauseButton}
@@ -60,6 +61,8 @@ var standbypauseUrl = #{jsAction @pause(':uuid') /}
 var standbyresumeUrl = #{jsAction @resume(':uuid', showPauseButton) /}
 var standbytestUrl = #{jsAction @test(':uuid') /}
 var standbyfailoverUrl = #{jsAction @switchover(':uuid') /}
+var standbyretryUrl = #{jsAction @retry(':uuid') /}
+var isRetrySite = #{jsAction @isRetrySite(':uuid')/};
 
 angular.module('tags').directive({
 	actions: function() {
@@ -71,6 +74,7 @@ angular.module('tags').directive({
         	 scope.resumeUrl = standbyresumeUrl({'uuid': scope.row.id});
         	 scope.testUrl = standbytestUrl({'uuid': scope.row.id});
 			 scope.failoverUrl = standbyfailoverUrl({'uuid': scope.row.id});
+        	 scope.retryUrl = standbyretryUrl({'uuid': scope.row.id});
 			 scope.isPauseSite = false;
 			 scope.isResumeSite = false;
 			 scope.isTestSite = false;
@@ -86,6 +90,12 @@ angular.module('tags').directive({
 				#{if !isActiveSite }
 					scope.isFailover = true;
 				#{/if}
+             }
+
+             if(scope.row.status.toUpperCase() == "STANDBY_ERROR"){
+             	if(isRetrySite({'uuid': scope.row.id})){
+					scope.isRetrySite = true;
+				}
              }
         	 
         	 if(scope.row.status.toUpperCase() == "ACTIVE"){

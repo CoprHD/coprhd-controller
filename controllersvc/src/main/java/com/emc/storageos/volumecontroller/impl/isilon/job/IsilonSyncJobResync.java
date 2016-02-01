@@ -42,7 +42,7 @@ public class IsilonSyncJobResync extends IsilonSyncJobFailover {
                 } else if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) && policyState.equals(JobState.finished)) {
                     _status = JobStatus.SUCCESS;
                     _pollResult.setJobPercentComplete(100);
-                    _logger.info("IsilonSyncIQJob: {} succeeded", currentJob);
+                    _logger.info("IsilonSyncJobResync: {} succeeded", currentJob);
                     String newPolicyName = currentJob;
                     newPolicyName = newPolicyName.concat("_mirror");
                     try {

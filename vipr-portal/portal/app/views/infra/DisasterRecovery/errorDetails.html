@@ -9,12 +9,20 @@
   <dt>&{'disasterRecovery.error.code.name'}</dt>
   <dd>${disasterSiteError.serviceCodeName}</dd>
   <dt>&{'disasterRecovery.error.creation.time'}</dt>
-  <dd id="creationTime-${uuid}">--</dd>
-  #{if creationTime }
-  	<script>
-  		var epocCreateVal = '${creationTime}';
-   		$('#creationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateVal)));
-  	</script>
+  <dd id="errorCreationTime-${uuid}">--</dd>
+  #{if errorCreationTime }
+    <script>
+        var epocCreateVal = '${errorCreationTime}';
+        $('#errorCreationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateVal)));
+    </script>
+  #{/if}
+  <dt>&{'disasterRecovery.site.creation.time'}</dt>
+  <dd id="siteCreationTime-${uuid}">--</dd>
+  #{if siteCreationTime }
+    <script>
+        var epocCreateTime = '${siteCreationTime}';
+        $('#siteCreationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateTime)));
+    </script>
   #{/if}
   <dt>&{'disasterRecovery.error.message'}</dt>
   <dd>${disasterSiteError.errorMessage}</dd>
@@ -26,7 +34,7 @@
   <dd>${uuid}</dd>
   <dt>&{'disasterRecovery.cluster.state'}</dt>
   <dd>${disasterSiteDetails.clusterState}</dd>
-  <dt>&{'disasterRecovery.error.creation.time'}</dt>
+  <dt>&{'disasterRecovery.site.creation.time'}</dt>
   <dd id="creationTime-${uuid}">--</dd>
   #{if creationTime }
     <script>

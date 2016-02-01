@@ -939,12 +939,13 @@ disasterRecovery.confirm.pause=WARNING: Are you sure you want to Pause the Stand
 disasterRecovery.error.code=Error Code
 disasterRecovery.error.code.name=Error Code Name
 disasterRecovery.error.message=Error Message
-disasterRecovery.error.creation.time=Creation Time
+disasterRecovery.error.creation.time=Error Creation Time
 disasterRecovery.paused.time=Paused Time
 disasterRecovery.lastOperation.time=Last Synced Time
 disasterRecovery.networkLatencyInMs=Latency (ms)
 disasterRecovery.cluster.state=Cluster State
 disasterRecovery.switchover.failed.instruction=Please contact an administrator or EMC Support
+disasterRecovery.site.creation.time=Site Creation Time
 
 # About
 system.about.introspection.title=Discovery

@@ -281,8 +281,12 @@ public class DisasterRecovery extends ViprResourceController {
             SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
             isError = true;
             if (disasterSiteError.getCreationTime() != null) {
-                DateTime creationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
-                renderArgs.put("creationTime", creationTime);
+                DateTime errorCreationTime = new DateTime(disasterSiteError.getCreationTime().getTime());
+                renderArgs.put("errorCreationTime", errorCreationTime);
+            }
+            if (siteRest.getCreationTime() != null) {
+                DateTime siteCreationTime = new DateTime(siteRest.getCreationTime().getTimeInMillis());
+                renderArgs.put("siteCreationTime", siteCreationTime);
             }
             render(isError, uuid, disasterSiteError);
         }

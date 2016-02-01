@@ -146,13 +146,29 @@ public class IPsecManager {
      * @return
      */
     public String changeIpsecStatus(String status) {
+        return changeIpsecStatus(status, true);
+    }
+
+    public String changeIpsecStatus(String status, boolean bChangeStatusForOtherVdcs) {
         if (status != null && (status.equalsIgnoreCase(STATUS_ENABLED) || status.equalsIgnoreCase(STATUS_DISABLED))) {
             String oldState = ipsecConfig.getIpsecStatus();
             if (status.equalsIgnoreCase(oldState)) {
                 log.info("ipsec already in state: " + oldState + ", skip the operation.");
                 return oldState;
             }
-            log.info("change Ipsec State from " + oldState + " to " + status);
+            log.info("changing Ipsec State from " + oldState + " to " + status);
+
+            // in GEO env, sending request to other vdcs
+            if (bChangeStatusForOtherVdcs && drUtil.isMultivdc()) {
+                List<String> vdcIds = drUtil.getOtherVdcIds();
+                String vdcConfigVersion = loadVdcConfigVersionFromZK();
+                for (String peerVdcId : vdcIds) {
+                    log.info("changing ipsec status for: " + vdcIds);
+                    geoClientManager.getGeoClient(peerVdcId).changeIpsecStatus(peerVdcId,
+                            status, vdcConfigVersion);
+                }
+            }
+
             ipsecConfig.setIpsecStatus(status);
         } else {
             throw APIException.badRequests.invalidIpsecStatus();
@@ -206,6 +222,19 @@ public class IPsecManager {
      * make sure cluster is in stable status
      */
     public void verifyClusterIsStable() {
+
+        // in GEO env, check if other vdcs are stable
+        if (drUtil.isMultivdc()) {
+            List<String> vdcIds = drUtil.getOtherVdcIds();
+            for (String peerVdcId : vdcIds) {
+                if (!geoClientManager.getGeoClient(peerVdcId).isVdcStable()) {
+                    log.error(vdcIds + " is not stable");
+                    throw APIException.serviceUnavailable.clusterStateNotStable();
+                }
+            }
+        }
+
+        // check if local vdc is stable
         if (drUtil.isAllSitesStable()) {
             // cluster is stable for ipsec change
             return;

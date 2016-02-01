@@ -33,7 +33,6 @@ public class VirtualPoolChangeList {
     /**
      * The list of virtual pool change response instances.
      * 
-     * @valid none
      * 
      * @return The list of virtual pool change response instances.
      */

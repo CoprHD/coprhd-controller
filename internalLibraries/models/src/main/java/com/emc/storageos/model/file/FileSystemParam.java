@@ -55,7 +55,6 @@ public class FileSystemParam {
     /**
      * Total capacity of the file system in Bytes.
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public String getSize() {
@@ -69,7 +68,6 @@ public class FileSystemParam {
     /**
      * URI representing the virtual pool supporting the file system.
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public URI getVpool() {
@@ -83,7 +81,6 @@ public class FileSystemParam {
     /**
      * URI representing the virtual array containing the file system.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray", required = true)
     public URI getVarray() {
@@ -97,7 +94,6 @@ public class FileSystemParam {
     /**
      * User provided id for the file system
      * 
-     * @valid none
      */
     @XmlElement(name = "fs_id", required = false)
     public String getFsId() {

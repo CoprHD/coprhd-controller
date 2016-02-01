@@ -30,9 +30,8 @@ public class Audit {
      *            the date, which will be formatted as an hour time bucket.
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
-     * 
-     * @see #getLogsForHourAsStream(Date, String)
-     * @see TimeBucketUtils#forHour(Date)
+     * @see #getLogsForHourAsStream(Date,String)
+     * @see TimeBucketUtils#forHour(Date)  
      */
     public InputStream getLogsForHourAsStream(Date date) {
         return getLogsForHourAsStream(date, null);
@@ -46,9 +45,9 @@ public class Audit {
      *            the date, which will be formatted as an hour time bucket.
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
-     * 
      * @see #getLogsForTimeBucketAsStream(String)
      * @see TimeBucketUtils#forHour(Date)
+     * 
      */
     public InputStream getLogsForHourAsStream(Date date, String language) {
         String timeBucket = TimeBucketUtils.forHour(date);
@@ -63,9 +62,8 @@ public class Audit {
      *            the date, which will be formatted as a minute time bucket.
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
-     * 
-     * @see #getLogsForMinuteAsStream(Date, String)
-     * @see TimeBucketUtils#forMinute(Date)
+     * @see #getLogsForTimeBucketAsStream(String)
+     * @see TimeBucketUtils#forHour(Date) 
      */
     public InputStream getLogsForMinuteAsStream(Date date) {
         return getLogsForMinuteAsStream(date, null);
@@ -80,8 +78,6 @@ public class Audit {
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
      * 
-     * @see #getLogsForTimeBucketAsStream(String)
-     * @see TimeBucketUtils#forMinute(Date)
      */
     public InputStream getLogsForMinuteAsStream(Date date, String language) {
         String timeBucket = TimeBucketUtils.forMinute(date);
@@ -90,8 +86,7 @@ public class Audit {
 
     /**
      * Gets the logs for the given time bucket, as a stream. A time bucket can be either an hour or a minute of any day,
-     * in the form of <tt>yyyy-MM-dd'T'HH</tt> for hour or <tt>yy-MM-dd'T'HH:mm for minute.
-     * <p>
+     * in the form of <tt>yyyy-MM-dd'T'HH</tt> for hour or <tt>yy-MM-dd'T'HH:mm for minute.</tt>
      * API Call: <tt>GET /audit/logs?time_bucket={timeBucket}</tt>
      * 
      * @param timeBucket
@@ -105,9 +100,8 @@ public class Audit {
 
     /**
      * Gets the logs for the given time bucket, as a stream. A time bucket can be either an hour or a minute of any day,
-     * in the form of <tt>yyyy-MM-dd'T'HH</tt> for hour or <tt>yy-MM-dd'T'HH:mm for minute.
-     * <p>
-     * API Call: <tt>GET /audit/logs?time_bucket={timeBucket}&language={language}</tt>
+     * in the form of <tt>yyyy-MM-dd'T'HH</tt> for hour or <tt>yy-MM-dd'T'HH:mm for minute. </tt>
+     * API Call: <tt>GET /audit/logs?time_bucket={timeBucket} and language={language}</tt>
      * 
      * @param timeBucket
      *            the time bucket for which to retrieve the logs.

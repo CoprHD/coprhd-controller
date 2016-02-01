@@ -30,7 +30,6 @@ public class VirtualPoolAvailableAttributesResourceRep {
     /**
      * The attribute name.
      * 
-     * @valid none
      * 
      * @return The attribute name
      */
@@ -48,7 +47,6 @@ public class VirtualPoolAvailableAttributesResourceRep {
     /**
      * The possible values for the attribute.
      * 
-     * @valid none
      * 
      * @return The set of values for the attribute.
      */

@@ -513,7 +513,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         // update the current progress of connect vdc. the cluster would reboot later.
         updateOpStatus(ConnectionStatus.CONNECTING_SYNCED);
         
-        helper.triggerVdcConfigUpdate(mergedVdcInfo.getVdcConfigVersion(), SiteInfo.NONE);
+        helper.triggerVdcConfigUpdate(mergedVdcInfo.getVdcConfigVersion(), SiteInfo.GEO_OP_CONFIG_CHANGE);
     }
 
     private void postCheck() {

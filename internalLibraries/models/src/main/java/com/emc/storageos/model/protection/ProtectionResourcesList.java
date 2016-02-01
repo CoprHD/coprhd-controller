@@ -27,7 +27,6 @@ public class ProtectionResourcesList {
     /**
      * List of Protection Set Resources. Not currently being used.
      * 
-     * @valid none - not currently implemented
      */
     @XmlElement(name = "protection_set_resource")
     public List<NamedRelatedResourceRep> getResources() {

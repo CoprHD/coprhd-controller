@@ -52,7 +52,14 @@
         <dd class="moreDetails">#{spaceForNull storagePort?.name/}</dd>
         
         <dt class="moreDetails">&{'resources.filesystem.softLimit'}:</dt>
-        <dd class="moreDetails">#{spaceForNull fileSystem?.softLimit/}</dd>
+        <dd class="moreDetails">#{spaceForNull fileSystem?.softLimit/}
+        #{if fileSystem.softLimitExceeded}
+                <span class="label label-warning">
+                   <span class="glyphicon glyphicon-warning-sign"></span> 
+                   &{'resources.filesystem.softLimitExeeded'}
+                </span>
+        #{/if}
+        </dd>
         <dt class="moreDetails">&{'resources.filesystem.softGrace'}:</dt>
         <dd class="moreDetails">#{spaceForNull fileSystem?.softGrace/}</dd>
         <dt class="moreDetails">&{'resources.filesystem.notificationLimit'}:</dt>
@@ -62,8 +69,6 @@
       <dt class="moreDetails">&{'resources.filesystem.nativeid'}:</dt>
       <dd class="moreDetails">#{spaceForNull fileSystem.nativeId/}</dd>      
       #{Resources.commonAttributes resource:fileSystem /}
-      <dt class="moreDetails">&{'resources.filesystem.softLimitExeeded'}:</dt>
-      <dd class="moreDetails">#{spaceForNull storagePort?.name/}</dd>
       
     </dl>
 

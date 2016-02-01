@@ -17,47 +17,6 @@
   $(document).ready(function() {
     $('#project').on('change', reloadFileSystems);
   });
-  
-  render.uploadProgressIcon = function(o, val) {
-		 if (!o) {
-		        return "";
-		    }
-		    var labels = {
-		        '':   'label-danger',
-		        'True':    'label-success',
-		    }
-		    var icons = {
-		        '':    'glyphicon glyphicon-ok',
-		        'True':       'glyphicon glyphicon-remove'
-		    };
-		    var label = defaultValue(labels[o.aData.status], 'label-default');
-		    var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
-		    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span>';
-	}
-  
-  render.uploadProgressMessage = function(o, val) {
-	    if (!o) {
-	        return "";
-	    }
-	    var messages = {
-		    '':    Messages.get("renderFunctions.filesystems.status.normal"),
-	        'True': Messages.get("renderFunctions.filesystems.status.exceeded")
-	    };
-	    
-	    var message = o.aData.status;
-	    if (!message) {
-	        message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.filesystems.status.notset"));
-	    }
-	    if (errorMsg != null){
-	    	return '<span>' + messages[o.aData.status] + '</span>';
-	    }
-	    return '<span>' + messages[o.aData.status] + '</span>';
-	}
-  
-  render.uploadProgress = function(o, val) {
-	    return render.uploadProgressIcon(o, val);
-	}
-  
 </script>
 
 #{Resources.projectsControl projects:projects /}

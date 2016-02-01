@@ -29,7 +29,7 @@ public class FileSystemVirtualPoolChangeParam {
     /**
      * ID of the new virtual pool.
      * 
-     * @valid example: a valid URI
+     * 
      */
     @XmlElement(required = true, name = "vpool")
     @JsonProperty("vpool")

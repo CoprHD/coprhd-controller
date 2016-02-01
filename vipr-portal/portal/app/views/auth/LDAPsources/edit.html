@@ -41,6 +41,7 @@
     	        $('#ldapSources_groupMemberAttributes').closest($ctrlElements).show();
     	        $('#ldapSources_groupAttribute').closest($ctrlElements).show();
     	        $('#ldapSources_groupWhiteListValues').closest($ctrlElements).show();
+                $('#ldapSources_autoRegisterOpenStackProjects').closest($ctrlElements).hide();
     	    } else {
     	        $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
     	        $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
@@ -48,12 +49,14 @@
     	        $('#ldapSources_groupWhiteListValues').closest($ctrlElements).hide();
     	    }
         }else if (authType == 'keystone'){
+            $('#ldapSources_autoRegisterOpenStackProjects').closest($ctrlElements).show();
             $('#ldapSources_groupAttribute').closest($ctrlElements).show();
             $('#ldapSources_groupWhiteListValues').closest($ctrlElements).show();
     	    $('#ldapSources_searchScopeControlGroup').closest($ctrlElements).hide();
     	    $('#ldapSources_searchBaseControlGroup').closest($ctrlElements).hide();
     	    $('#ldapSources_searchFilterControlGroup').closest($ctrlElements).hide();
         } else {
+            $('#ldapSources_autoRegisterOpenStackProjects').closest($ctrlElements).hide();
             $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
             $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
             $('#ldapSources_groupAttribute').closest($ctrlElements).show();
@@ -163,6 +166,17 @@
     #{/field} 
 
     </fieldset>
+
+    <fieldset>
+    #{field 'ldapSources.autoRegisterOpenStackProjects'}
+        %{
+          field.cssClass = 'span0'
+          field.required = false
+        }%
+      #{Form.booleanCheckBoxControlGroup field:field/}
+    #{/field}
+    </fieldset>
+
     <fieldset>
     <legend>Group</legend>
     #{field 'ldapSources.groupAttribute'}

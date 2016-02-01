@@ -17,6 +17,7 @@ public class AuthnProvider extends DataObject {
     private ProvidersType _mode;
     private String _description;
     private Boolean _disable;
+    private Boolean _autoRegisterOpenStackProjects;
     private StringSet _serverUrls;
     private StringSet _domains;
     private String _serverCert;
@@ -86,6 +87,20 @@ public class AuthnProvider extends DataObject {
     public void setDisable(Boolean disable) {
         _disable = disable;
         setChanged("disable");
+    }
+
+    @Name("autoRegisterOpenStackProjects")
+    public Boolean getAutoRegisterOpenStackProjects() {
+        if (null != _autoRegisterOpenStackProjects) {
+            return _autoRegisterOpenStackProjects;
+        } else {
+            return false;
+        }
+    }
+
+    public void setAutoRegisterOpenStackProjects(Boolean autoRegisterOpenStackProjects) {
+        _autoRegisterOpenStackProjects = autoRegisterOpenStackProjects;
+        setChanged("enableOpenstackAuth");
     }
 
     @Name("serverUrls")

@@ -53,6 +53,11 @@ public abstract class AuthnProviderBaseParam {
     private Boolean disable;
 
     /**
+     * Specifies if there is OpenStack registration.
+     */
+    private Boolean autoRegisterOpenStackProjects;
+
+    /**
      * Distinguished Name for the bind user.
      * 
      * @valid Example: CN=Administrator,CN=Users,DC=domain,DC=com
@@ -122,7 +127,7 @@ public abstract class AuthnProviderBaseParam {
     }
 
     public AuthnProviderBaseParam(String mode, String label,
-            String description, Boolean disable, String serverCert,
+            String description, Boolean disable, Boolean autoRegisterOpenStackProjects, String serverCert,
             String managerDn, String managerPassword, String searchBase,
             String searchFilter, String searchScope, String searchAttributeKey,
             String groupAttribute, Integer maxPageSize,
@@ -131,6 +136,7 @@ public abstract class AuthnProviderBaseParam {
         this.label = label;
         this.description = description;
         this.disable = disable;
+        this.autoRegisterOpenStackProjects = autoRegisterOpenStackProjects;
         this.managerDn = managerDn;
         this.managerPassword = managerPassword;
         this.searchBase = searchBase;
@@ -176,6 +182,15 @@ public abstract class AuthnProviderBaseParam {
 
     public void setDisable(Boolean disable) {
         this.disable = disable;
+    }
+
+    @XmlElement(name = "autoRegisterOpenStackProjects", required = false, defaultValue = "false")
+    public Boolean getAutoRegisterOpenStackProjects() {
+        return autoRegisterOpenStackProjects;
+    }
+
+    public void setAutoRegisterOpenStackProjects(Boolean autoRegisterOpenStackProjects) {
+        this.autoRegisterOpenStackProjects = autoRegisterOpenStackProjects;
     }
 
     @XmlElement(name = "manager_dn")
@@ -269,6 +284,8 @@ public abstract class AuthnProviderBaseParam {
         sb.append(description);
         sb.append(", disable=");
         sb.append(disable);
+        sb.append(", autoRegisterOpenStackProjects=");
+        sb.append(autoRegisterOpenStackProjects);
         sb.append(", manager_dn=");
         sb.append(managerDn);
         sb.append(", manager_password=");

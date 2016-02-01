@@ -31,6 +31,7 @@ public class AuthMapper {
         to.setServerUrls(from.getServerUrls());
         to.setGroupWhitelistValues(from.getGroupWhitelistValues());
         to.setDisable(from.getDisable());
+        to.setAutoRegisterOpenStackProjects(from.getAutoRegisterOpenStackProjects());
         to.setDescription(from.getDescription());
         to.setMaxPageSize(from.getMaxPageSize());
         to.setGroupObjectClasses(from.getGroupObjectClassNames());
@@ -48,6 +49,9 @@ public class AuthMapper {
         }
         if (from.getDisable() != null) {
             authn.setDisable(from.getDisable());
+        }
+        if (from.getAutoRegisterOpenStackProjects() != null) {
+            authn.setAutoRegisterOpenStackProjects(from.getAutoRegisterOpenStackProjects());
         }
         StringSet urlStringSet = null;
         if (from.getServerUrls() != null && !from.getServerUrls().isEmpty()) {

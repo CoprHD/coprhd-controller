@@ -32,7 +32,6 @@ public abstract class TenantParam {
     /**
      * Description for the tenant.
      * 
-     * @valid any string
      */
     @XmlElement(required = false)
     public String getDescription() {
@@ -46,7 +45,6 @@ public abstract class TenantParam {
     /**
      * Namespace associated to a tenant.
      * 
-     * @valid any string
      */
     @XmlElement(required = false)
     public String getNamespace() {
@@ -84,7 +82,6 @@ public abstract class TenantParam {
     /**
      * Default project URI for this tenant
      * 
-     * @valid any existing project URI in this tenant
      */
     @XmlElement(name = "web_storage_default_project", required = false)
     @JsonProperty("web_storage_default_project")
@@ -99,7 +96,6 @@ public abstract class TenantParam {
     /**
      * Default virtual pool URI for this tenant
      * 
-     * @valid any existing virtual pool URI
      */
     @XmlElement(name = "web_storage_default_vpool", required = false)
     @JsonProperty("web_storage_default_vpool")

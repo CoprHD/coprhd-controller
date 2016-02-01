@@ -42,7 +42,6 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * 
      * Optional Detailed Description of the Tenant
      * 
-     * @valid none
      */
     @XmlElement
     public String getDescription() {
@@ -57,7 +56,6 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * 
      * Id and hyperlink of the parent tenant
      * 
-     * @valid none
      */
     @XmlElement(name = "parent_tenant")
     public RelatedResourceRep getParentTenant() {
@@ -74,12 +72,10 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * mapped to a tenant using parameters such as domains, LDAP attributes,
      * and AD group membership.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "user_mappings")
     /**
      * One individual mapping
-     * @valid none 
      * @return 
      */
     @XmlElement(name = "user_mapping")
@@ -98,7 +94,6 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * 
      * Namespace mapped to the Tenant
      * 
-     * @valid none
      */
     @XmlElement(name = "object_namespace")
     public String getNamespace() {

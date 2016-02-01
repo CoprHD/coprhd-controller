@@ -94,7 +94,6 @@ public enum ResourceTypeEnum {
     /**
      * The type of the resource
      * 
-     * @valid none
      */
     @XmlElement
     public String getType() {

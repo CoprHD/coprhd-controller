@@ -39,7 +39,6 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
     /**
      * Roles of the volume group
      * 
-     * @valid none
      */
     @XmlElement(name = "role")
     public Set<String> getRoles() {
@@ -56,7 +55,6 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
     /**
      * Related parent volume group
      * 
-     * @valid none
      */
     @XmlElement(name = "parent")
     @JsonProperty("parent")

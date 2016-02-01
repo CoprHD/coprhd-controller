@@ -10863,9 +10863,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _log.info("Update volume group {}", volumeGroup);
         TaskCompleter completer = null;
         List<URI> addVols = null;
+        String waitFor = null;
         // Get a new workflow to execute the volume group update.
         Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_VOLUMEGROUP_WF_NAME,
                 false, opId);
+        Set<URI> cgs = new HashSet<URI>();
+        List<Volume> vnxVolumes = new ArrayList<Volume>();
         try {
             List<URI> allRemoveBEVolumes = new ArrayList<URI>();
             if (removeVolumeList != null && !removeVolumeList.isEmpty()) {
@@ -10876,6 +10879,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         _log.info(String.format("The volume: %s has been deleted. Skip it.", voluri));
                         continue;
                     }
+                    cgs.add(vol.getConsistencyGroup());
                     StringSet backends = vol.getAssociatedVolumes();
                     if (backends == null) {
                         _log.info(String.format("The volume: %s do not have backend volumes. Skip it.", voluri));
@@ -10892,17 +10896,24 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("Creating steps for adding volumes to the volume group");
                 addVols = addVolList.getVolumes();
                 
-                // Sort the backend volumes by their storage systems. all volumes in the list should belong to the same VPLEX CG
-                Map<URI, List<URI>> addVolsMap = new HashMap<URI, List<URI>>();
                 for (URI addVol : addVols) {
                     Volume addVplexVol = getDataObject(Volume.class, addVol, _dbClient);
+                    cgs.add(addVplexVol.getConsistencyGroup());
                     StringSet backends = addVplexVol.getAssociatedVolumes();
                     if (backends == null) {
                         _log.info(String.format("The volume: %s do not have backend volumes. Skip it.", addVol));
                         continue;
                     }
                     for (String backendId : backends) {
-                        allAddBEVolumes.add(URI.create(backendId));
+                        URI backUri = URI.create(backendId);
+                        Volume backVol =  getDataObject(Volume.class, backUri, _dbClient);
+                        if (ControllerUtils.isVnxVolume(backVol, _dbClient) && 
+                                NullColumnValueGetter.isNotNullValue(backVol.getReplicationGroupInstance())) {
+                            // This is a VNX volume and it is in a RG, need to convert the real RG to virtual one. 
+                            vnxVolumes.add(backVol);
+                        } else {
+                            allAddBEVolumes.add(URI.create(backendId));
+                        }
                     }
                 }
             }
@@ -10910,9 +10921,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             addBEVolList.setReplicationGroupName(addVolList.getReplicationGroupName());
             addBEVolList.setConsistencyGroup(addVolList.getConsistencyGroup());
             
+            // add step for convert VNX replication group
+            if (!vnxVolumes.isEmpty()) {
+                _log.info("Creating step to convert VNX RG");
+                waitFor = _blockDeviceController.addStepsForConvertVNXReplicationGroup(workflow, vnxVolumes, waitFor, opId);                
+            }
             // add steps for add source and remove vols
-            _blockDeviceController.addStepsForUpdateApplication(workflow, completer, addBEVolList, allRemoveBEVolumes, null, opId);
-            completer = new VolumeGroupUpdateTaskCompleter(volumeGroup, addVols, removeVolumeList, opId);
+            _blockDeviceController.addStepsForUpdateApplication(workflow, addBEVolList, allRemoveBEVolumes, waitFor, opId);
+            completer = new VolumeGroupUpdateTaskCompleter(volumeGroup, addVols, removeVolumeList, cgs, opId);
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_VOLUMEGROUP_WF_NAME);
             String successMessage = String.format(

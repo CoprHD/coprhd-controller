@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -3499,14 +3500,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 }
             }
 
-            virtVolBackVolMap = updateVolumesNotInCGInVolumeGroup(virtVolBackVolMap, volumeGroup, taskId);
+            List<URI> vnxVolumesInRG = new ArrayList<URI>();
+            virtVolBackVolMap = updateVolumesNotInCGInVolumeGroup(virtVolBackVolMap, volumeGroup, taskId, vnxVolumesInRG);
 
             if (virtVolBackVolMap.isEmpty()) {
                 return null;
             }
             
             // Having backend volumes not in replication group, make sure replicationGroupName is specified
-            if (addVolsGroupName == null || addVolsGroupName.isEmpty()) {
+            if ((addVolsGroupName == null || addVolsGroupName.isEmpty()) &&
+                    (vnxVolumesInRG.size() != virtVolBackVolMap.size())) {
                 Set<URI> vols = virtVolBackVolMap.keySet();
                 Iterator<URI> it = vols.iterator();
                 throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(it.next().toString(), "replicationGroupName is not specified");
@@ -3546,12 +3549,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param application
      *            application
      * @param taskId
+     * @param vnxVolumesInRG output. VNX volumes in replication group
      * @return the remaining volumes that are not in a CG
      */
     private Map<URI, List<Volume>> updateVolumesNotInCGInVolumeGroup(Map<URI, List<Volume>> virtVolBackVolMap, VolumeGroup application,
-            String taskId) {
+            String taskId, List<URI> vnxVolumesInRG) {
         Map<URI, List<Volume>> volsNotInCG = new HashMap<URI, List<Volume>>();
         List<URI> volumesInCG = new ArrayList<URI>();
+        Set<String> checkedRG = new HashSet<String>();
         for (Entry<URI, List<Volume>> entry : virtVolBackVolMap.entrySet()) {
 
             URI vvUri = entry.getKey();
@@ -3561,31 +3566,42 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             URI cgUri = null;
             String rpName = null;
             URI storageSystemUri = null;
+            boolean backVolIsVNX = false;
             for (Volume backingVol : backingVols) {
                 cgUri = backingVol.getConsistencyGroup();
                 rpName = backingVol.getReplicationGroupInstance();
                 if (!NullColumnValueGetter.isNullURI(cgUri) && NullColumnValueGetter.isNotNullValue(rpName)) {
                     backingVolsAreInCG = true;
                     storageSystemUri = backingVol.getStorageController();
-                    break;
-                }
-            }
-            if (backingVolsAreInCG) {
-                volumesInCG.add(vvUri);
-
-                // if the backing volumes are in a array cg, we need to verify that all virtual volumes from the
-                // same replication group are on the list to be added
-                List<URI> rpVolumes = getVolumesInSameReplicationGroup(rpName, storageSystemUri);
-                for (URI rpvol : rpVolumes) {
-                    if (!virtVolBackVolMap.keySet().contains(rpvol)) {
-                        Volume virtVol = _dbClient.queryObject(Volume.class, vvUri);
-                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(virtVol.getLabel(),
-                                "not all volumes in same replication group are in the add volume list");
+                    StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
+                    if (system.deviceIsType(Type.vnxblock)) {
+                        backVolIsVNX = true;
+                        vnxVolumesInRG.add(vvUri);
+                        break;
                     }
                 }
+            }
+            if (backingVolsAreInCG && !backVolIsVNX) {
+                volumesInCG.add(vvUri);
             } else {
                 volsNotInCG.put(vvUri, backingVols);
             }
+            if ( backingVolsAreInCG) {
+                // if the backing volumes are in a array cg, we need to verify that all virtual volumes from the
+                // same replication group are on the list to be added
+                String key = storageSystemUri.toString() + rpName;
+                if (!checkedRG.contains(key)) {
+                    checkedRG.add(key);
+                    List<URI> rpVolumes = getVolumesInSameReplicationGroup(rpName, storageSystemUri);
+                    for (URI rpvol : rpVolumes) {
+                        if (!virtVolBackVolMap.keySet().contains(rpvol)) {
+                            Volume virtVol = _dbClient.queryObject(Volume.class, vvUri);
+                            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(virtVol.getLabel(),
+                                    "not all volumes in the same replication group are in the add volume list");
+                        }
+                    }
+                }
+            } 
         }
 
         updateVolumesInCgInApplication(volumesInCG, application, taskId);
@@ -3601,7 +3617,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param taskId
      */
     private void updateVolumesInCgInApplication(List<URI> volumesInCG, VolumeGroup application, String taskId) {
-        // for volumes with backing volumes aready in a CG, we just need to update the db
+        // for volumes with backing volumes aready in a CG, we just need to update the db if it is not VNX
     	URI cguri = null;
         for (URI volumeUri : volumesInCG) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
@@ -3744,4 +3760,5 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         return volumeURIs;
     }
+    
 }

@@ -321,24 +321,25 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         for (FileShare source : uriFileShareMap.values()) {
             StringSet mirrorTargets = source.getMirrorfsTargets();
             system = dbClient.queryObject(StorageSystem.class, source.getStorageDevice());
-            for (String mirrorTarget : mirrorTargets) {
+            if (mirrorTargets != null && !mirrorTargets.isEmpty()) {
+                for (String mirrorTarget : mirrorTargets) {
+                    URI targetURI = URI.create(mirrorTarget);
+                    FileShare target = dbClient.queryObject(FileShare.class, targetURI);
+                    if (null == target) {
+                        log.warn("Target FileShare {} not available for Mirror source FileShare {}", source.getId(), targetURI);
+                        // We need to proceed with the operation, as it could be because of a left over from last operation.
+                        return waitFor;
+                    } else {
+                        log.info("deleteElementReplicaSteps- detaching replication session for target file system {}", target.getId());
+                        Workflow.Method detachMethod = detachMirrorPairMethod(system.getId(), source.getId(), targetURI);
+                        String detachStep = workflow.createStep(DELETE_FILE_MIRRORS_STEP,
+                                DETACH_FILE_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                                system.getSystemType(), getClass(), detachMethod, null, null);
+                        waitFor = detachStep;
 
-                URI targetURI = URI.create(mirrorTarget);
-                FileShare target = dbClient.queryObject(FileShare.class, targetURI);
-                if (null == target) {
-                    log.warn("Target FileShare {} not available for Mirror source FileShare {}", source.getId(), targetURI);
-                    // We need to proceed with the operation, as it could be because of a left over from last operation.
-                    return waitFor;
-                } else {
-
-                    Workflow.Method detachMethod = detachMirrorPairMethod(system.getId(), source.getId(), targetURI);
-                    String detachStep = workflow.createStep(DELETE_FILE_MIRRORS_STEP,
-                            DETACH_FILE_MIRRORS_STEP_DESC, waitFor, system.getId(),
-                            system.getSystemType(), getClass(), detachMethod, null, null);
-                    waitFor = detachStep;
+                    }
 
                 }
-
             }
         }
 

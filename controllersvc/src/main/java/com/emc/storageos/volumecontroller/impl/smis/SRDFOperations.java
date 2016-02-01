@@ -1572,8 +1572,9 @@ public class SRDFOperations implements SmisConstants {
             Collection<Volume> tgtVolumes = newArrayList(filter(volumes, utils.volumePersonalityPredicate(TARGET)));
 
             ctxFactory.build(SRDFOperation.SUSPEND, target).perform();
-            if (target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString())
-                    && !target.hasConsistencyGroup()) {
+
+            boolean isTargetCopyModeActive = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
+            if (isTargetCopyModeActive && !target.hasConsistencyGroup()) {
                 Volume source = getSourceVolume(target);
                 ((SRDFLinkStopCompleter) completer).setVolumes(Arrays.asList(source), Arrays.asList(target));
                 log.info("Source: {}", source.getNativeId());
@@ -1615,7 +1616,7 @@ public class SRDFOperations implements SmisConstants {
                 log.info("Targets: {}", Joiner.on(", ").join(transform(tgtVolumes, fctnBlockObjectToNativeGuid())));
                 ctxFactory.build(SRDFOperation.DELETE_GROUP_PAIRS, target).perform();
 
-                if (target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString())) {
+                if (isTargetCopyModeActive) {
                     // If Active SRDF copy mode then refresh storage system and update volume properties
                     // as target volume wwn changes after stop
                     ArrayList<URI> volumeURIs = new ArrayList<URI>(Arrays.asList(target.getId()));

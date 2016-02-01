@@ -633,7 +633,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Mode SRDFMode = getSRDFMode(sourceDescriptors, uriVolumeMap);
         if (Mode.ACTIVE.equals(SRDFMode)) {
             /*
-             * Invoke Suspend on the SRDF group as more ACTIVE pairs cannot added until all other
+             * Invoke Suspend on the SRDF group as more ACTIVE pairs cannot be added until all other
              * existing pairs are in NOT-READY state
              */
             Method suspendGroupMethod = suspendSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);

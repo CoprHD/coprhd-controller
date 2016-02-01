@@ -15,6 +15,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -51,6 +52,9 @@ public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
                                     blockObj.getNativeGuid(),
                                     blockObj.getStorageController(), cg.getLabel()));
                             cg.addSystemConsistencyGroup(blockObj.getStorageController().toString(), blockObj.getReplicationGroupInstance());
+                        }
+                        if (!cg.getTypes().contains(Types.LOCAL.toString())) {
+                            cg.getTypes().add(Types.LOCAL.toString());
                         }
                     }
                 }

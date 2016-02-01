@@ -312,6 +312,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 persistConsistencyGroups(requestContext.getCGObjectsToCreateMap().values());
                 // Update UnManagedConsistencyGroups.
                 if (!requestContext.getUmCGObjectsToUpdate().isEmpty()) {
+                    _logger.info("updating {} unmanagedConsistencyGroups in db.");
                     _dbClient.updateObject(requestContext.getUmCGObjectsToUpdate());
                 }
 
@@ -489,6 +490,15 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.getProcessedUnManagedVolumeMap().put(
                         unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
 
+                // Get the CG's created as part of the ingestion process
+                // Iterate through each CG & decorate its objects.
+                if (!requestContext.getCGObjectsToCreateMap().isEmpty()) {
+                    for (Entry<String, BlockConsistencyGroup> cgEntry : requestContext.getCGObjectsToCreateMap().entrySet()) {
+                        BlockConsistencyGroup cg = cgEntry.getValue();
+                        CGIngestionDecoratorUtil.decorate(unManagedVolume, cg, requestContext, _dbClient);
+                    }
+                }
+
             } catch (APIException ex) {
                 _logger.warn("error: " + ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class,
@@ -505,6 +515,13 @@ public class UnManagedVolumeService extends TaskResourceService {
 
             TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
             taskMap.put(unManagedVolume.getId().toString(), task);
+
+            persistConsistencyGroups(requestContext.getCGObjectsToCreateMap().values());
+            // Update UnManagedConsistencyGroups.
+            if (!requestContext.getUmCGObjectsToUpdate().isEmpty()) {
+                _logger.info("updating {} unmanagedConsistencyGroups in db.");
+                _dbClient.updateObject(requestContext.getUmCGObjectsToUpdate());
+            }
 
             requestContext.getVolumeContext().commit();
         }

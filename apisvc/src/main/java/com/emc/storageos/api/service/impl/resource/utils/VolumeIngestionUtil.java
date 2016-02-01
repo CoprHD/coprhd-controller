@@ -3144,18 +3144,25 @@ public class VolumeIngestionUtil {
             DbClient dbClient) {
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroup(unManagedVolume, dbClient);
 
+        // Check if the CG has last volume to ingest or UMV is RP protected. If yes, create the CG else return null.
         // @TODO verify whether unmanaged snaps & mirrors have the VPLEX attribute populated.
-        if (isVplexRPProtected(unManagedVolume)) {
+        boolean isLastUmvToIngest = isLastUnManagedVolumeToIngest(umcg, unManagedVolume);
+        boolean isVplexRPProtected = isVplexRPProtected(unManagedVolume);
+        if (isVplexRPProtected || !isLastUmvToIngest) {
+            _logger.info(
+                    "Ignoring the CG creation as the volume is either isVplexRPProtected:{} or isLastUmvToIngest: {} exists to ingest.",
+                    isLastUmvToIngest, isVplexRPProtected);
+            _logger.info("Remaining volumes in CG to ingest: {}", umcg.getUnManagedVolumesMap());
             // set ReplicationGroupInstance in the block object.
             blockObj.setReplicationGroupInstance(umcg.getLabel());
-            return null;
-        }
-        // Check if the CG has last volume to ingest. If yes, create the CG else return null.
-        if (!isLastUnManagedVolumeToIngest(umcg, unManagedVolume)) {
-            _logger.info("Ignoring the CG creation as there are volumes: {} exists to ingest.", umcg.getUnManagedVolumesMap());
             updateVolumeInUnManagedConsistencyGroup(umcg, unManagedVolume, blockObj);
             umcgsToUpdate.add(umcg);
             return null;
+        }
+        // If the UMV is last volume, mark the UnManagedConsistencyGroup inactive to true.
+        if (isLastUmvToIngest) {
+            umcg.setInactive(true);
+            umcgsToUpdate.add(umcg);
         }
 
         if (null == umcg || null == umcg.getLabel()) {

@@ -67,10 +67,18 @@ public class FileShare extends FileObject implements ProjectResource {
     private URI _originalProject;
 
     private URI virtualNAS;
-
-    // mirror related attributes
-
-    // mirror target fileshares
+    
+    private Long softLimit;
+    
+    private Boolean softLimitExceeded;
+    
+    private Integer softGracePeriod;
+    
+    private Long notificationLimit;
+    
+    //mirror related attributes
+    
+    //mirror target fileshares
     private StringSet _mirrorfsTargets;
 
     // source file share
@@ -384,9 +392,9 @@ public class FileShare extends FileObject implements ProjectResource {
     }
 
     @Name("virtualNAS")
-    public URI getVirtualNAS() {
-        return virtualNAS;
-    }
+	public URI getVirtualNAS() {
+		return virtualNAS;
+	}
 
     public void setVirtualNAS(URI vituralNAS) {
         this.virtualNAS = vituralNAS;
@@ -405,4 +413,45 @@ public class FileShare extends FileObject implements ProjectResource {
         this.filePolicies = filePolicies;
         setChanged("filePolicies");
     }
+
+    @Name("softLimit")
+    public Long getSoftLimit() {
+        return softLimit;
+    }
+
+    public void setSoftLimit(Long softLimit) {
+        this.softLimit = softLimit;
+        setChanged("softLimit");
+    }
+
+    @Name("softLimitExceeded")
+    public Boolean getSoftLimitExceeded() {
+        return softLimitExceeded;
+    }
+
+    public void setSoftLimitExceeded(Boolean softLimitExceeded) {
+        this.softLimitExceeded = softLimitExceeded;
+        setChanged("softLimitExceeded");
+    }
+
+    @Name("softGracePeriod")
+    public Integer getSoftGracePeriod() {
+        return softGracePeriod;
+    }
+
+    public void setSoftGracePeriod(Integer softGracePeriod) {
+        this.softGracePeriod = softGracePeriod;
+        setChanged("softGracePeriod");
+    }
+    
+    @Name("notificationLimit")
+    public Long getNotificationLimit() {
+        return notificationLimit;
+    }
+
+    public void setNotificationLimit(Long notificationLimit) {
+        this.notificationLimit = notificationLimit;
+        setChanged("notificationLimit");
+    }
+
 }

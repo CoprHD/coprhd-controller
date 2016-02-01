@@ -365,6 +365,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         doFSDeleteQuotaDirsFromDB(args);                   // Delete Quota Directory from DB
                         deleteShareACLsFromDB(args);                       // Delete CIFS Share ACLs from DB
                         doDeleteExportRulesFromDB(true, null, args);       // Delete Export Rules from DB
+                        doDeletePolicyReferenceFromDB(fsObj);              // Remove FileShare Reference from Schedule Policy
                     }
                     generateZeroStatisticsRecord(fsObj);
                 }
@@ -392,6 +393,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
                             args.addQuotaDirectory(null);
                             doFSDeleteQuotaDirsFromDB(args);
+                            doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
                         }
                     }
 
@@ -1586,6 +1588,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             URI qtreeURI = quotaDir.getId();
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
+            quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
+            quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
+            quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
             FileDeviceInputOutput args = new FileDeviceInputOutput();
 
             // Set up args
@@ -2045,6 +2050,27 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 }
             }
         }
+    }
+
+    /**
+     * Delete the reference of FileShare from SchedulePolicy
+     * 
+     * @param fs
+     */
+    private void doDeletePolicyReferenceFromDB(FileShare fs) {
+
+        _log.info("Removing policy reference for file system  " + fs.getName());
+        for (String policy : fs.getFilePolicies()) {
+
+            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, URI.create(policy));
+
+            StringSet fsURIs = fp.getAssignedResources();
+            fsURIs.remove(fs.getId());
+            fp.setAssignedResources(fsURIs);
+            _dbClient.updateObject(fp);
+
+        }
+
     }
 
     private void doDeleteSnapshotsFromDB(FileShare fs, boolean allDirs, String subDir, FileDeviceInputOutput args) throws Exception {
@@ -3356,7 +3382,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     /**
      * Get the deviceType for a StorageSystem.
-     *
+     * 
      * @param deviceURI -- StorageSystem URI
      * @return deviceType String
      */
@@ -3470,7 +3496,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     /**
      * Return a Workflow.Method for rollbackCreateFileSystems
-     *
+     * 
      * @param systemURI
      * @param fileURIs
      * @return Workflow.Method
@@ -3498,7 +3524,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     /**
      * Return a Workflow.Method for deleteFileShares.
-     *
+     * 
      * @param systemURI
      * @param fileShareURIs
      * @return
@@ -3538,14 +3564,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         .assignFilePolicy(storageObj, args);
 
                 if (result.isCommandSuccess()) {
-                    // Update Database
+                    // Update FS database
                     StringSet fpolicies = fs.getFilePolicies();
-                    if (fpolicies == null) {
-
-                        fpolicies = new StringSet();
-                    }
                     fpolicies.add(fp.getId().toString());
                     fs.setFilePolicies(fpolicies);
+
+                    // Update SchedulePolicy database
+                    StringSet resources = fp.getAssignedResources();
+                    resources.add(fs.getId().toString());
+                    fp.setAssignedResources(resources);
                 }
 
                 if (result.getCommandPending()) {
@@ -3568,7 +3595,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         args.getFileSystemPath(),
                         fs, storageObj);
 
-                _dbClient.persistObject(fs);
+                _dbClient.updateObject(fs);
+                _dbClient.updateObject(fp);
             } else {
 
                 throw DeviceControllerException.exceptions.invalidObjectNull();
@@ -3610,11 +3638,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         .unassignFilePolicy(storageObj, args);
 
                 if (result.isCommandSuccess()) {
-                    // Update Database
+                    // Update FS database
                     StringSet fpolicies = fs.getFilePolicies();
-                    fpolicies.remove(policy.toString());
+                    if (fpolicies != null && fpolicies.contains(policy.toString())) {
+                        fpolicies.remove(policy.toString());
+                        fs.setFilePolicies(fpolicies);
+                    }
 
-                    fs.setFilePolicies(fpolicies);
+                    // Update SchedulePolicy database
+                    StringSet resources = fp.getAssignedResources();
+                    if (resources != null && resources.contains(fs.getId().toString())) {
+                        resources.remove(fs.getId().toString());
+                        fp.setAssignedResources(resources);
+                    }
                 }
 
                 if (result.getCommandPending()) {
@@ -3637,7 +3673,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         args.getFileSystemPath(),
                         fs, storageObj);
 
-                _dbClient.persistObject(fs);
+                _dbClient.updateObject(fs);
+                _dbClient.updateObject(fp);
             } else {
 
                 throw DeviceControllerException.exceptions.invalidObjectNull();

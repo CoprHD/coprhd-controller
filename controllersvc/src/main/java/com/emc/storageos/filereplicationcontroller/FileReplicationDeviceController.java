@@ -200,9 +200,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
         for (FileDescriptor sourceDescriptor : sourceDescriptors) {
             FileShare source = uriFileShareMap.get(sourceDescriptor.getFsURI());
-            StringSet mirrorTargets = source.getMirrorfsTargets();
 
-            for (String targetStr : mirrorTargets) {
+            for (String targetStr : source.getMirrorfsTargets()) {
                 URI targetURI = URI.create(targetStr);
 
                 StorageSystem system = dbClient.queryObject(StorageSystem.class,
@@ -341,7 +340,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     waitFor = detachStep;
 
                 }
-
             }
         }
 
@@ -476,7 +474,9 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 for (String target : targetfileUris) {
 
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
-                    completer = new MirrorFileStopTaskCompleter(fileShare.getId(), targetFileShare.getId(), opId);
+                    MirrorFileStopTaskCompleter stopTaskCompleter = new MirrorFileStopTaskCompleter(fileShare.getId(),
+                            targetFileShare.getId(), opId);
+                    stopTaskCompleter.setFileShares(Arrays.asList(fileShare), Arrays.asList(targetFileShare));
                     completer.setNotifyWorkflow(false);
                     getRemoteMirrorDevice(system).doStopMirrorLink(system, targetFileShare, completer);
                 }

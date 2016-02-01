@@ -34,19 +34,19 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
     private static final Logger _logger = LoggerFactory.getLogger(IsilonSyncIQJob.class);
     private static final long ERROR_TRACKING_LIMIT = 60 * 1000; // tracking limit for transient errors. set for 2 hours
 
-    private String _jobName;
-    private URI _storageSystemUri;
-    private TaskCompleter _taskCompleter;
-    private List<String> _jobIds = new ArrayList<String>();
+    protected String _jobName;
+    protected URI _storageSystemUri;
+    protected TaskCompleter _taskCompleter;
+    protected List<String> _jobIds = new ArrayList<String>();
 
-    private long _error_tracking_time = 0L;
-    private JobStatus _status = JobStatus.IN_PROGRESS;
+    protected long _error_tracking_time = 0L;
+    protected JobStatus _status = JobStatus.IN_PROGRESS;
     // status of job.updateStatus() execution
-    private JobStatus _postProcessingStatus = JobStatus.SUCCESS;
-    private Map<String, Object> _map = new HashMap<String, Object>();
+    protected JobStatus _postProcessingStatus = JobStatus.SUCCESS;
+    protected Map<String, Object> _map = new HashMap<String, Object>();
 
-    private JobPollResult _pollResult = new JobPollResult();
-    private String _errorDescription = null;
+    protected JobPollResult _pollResult = new JobPollResult();
+    protected String _errorDescription = null;
 
     public IsilonSyncJobFailover(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         this._storageSystemUri = storageSystemUri;
@@ -150,7 +150,7 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
         return null;
     }
 
-    private void processTransientError(String jobId, long trackingInterval, String errorMessage, Exception ex) {
+    protected void processTransientError(String jobId, long trackingInterval, String errorMessage, Exception ex) {
         _status = JobStatus.ERROR;
         _errorDescription = errorMessage;
         if (ex != null) {
@@ -172,7 +172,7 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
         }
     }
 
-    private String isiGetReportErrMsg(List<IsilonSyncPolicyReport> policyReports) {
+    protected String isiGetReportErrMsg(List<IsilonSyncPolicyReport> policyReports) {
         String errorMessage = "";
         for (IsilonSyncPolicyReport report : policyReports) {
             if (report.getState().equals(JobState.failed) || report.getState().equals(JobState.needs_attention)) {
@@ -183,6 +183,19 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
             }
         }
         return errorMessage;
+    }
+
+    protected IsilonSyncPolicyReport isiGetReportErr(List<IsilonSyncPolicyReport> policyReports) {
+
+        for (IsilonSyncPolicyReport report : policyReports) {
+            if (report.getState().equals(JobState.failed) || report.getState().equals(JobState.needs_attention)) {
+                return report;
+
+            } else {
+                continue;
+            }
+        }
+        return null;
     }
 
 }

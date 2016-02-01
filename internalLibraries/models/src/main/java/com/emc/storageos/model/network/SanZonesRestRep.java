@@ -20,7 +20,6 @@ public class SanZonesRestRep {
     /**
      * A list of San Zones. Each zone has a name and a list of zone members.
      * 
-     * @valid none
      */
     @XmlElement(name = "san_zone")
     public List<SanZoneRestRep> getZones() {

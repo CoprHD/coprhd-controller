@@ -17,7 +17,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class ScheduleSnapshotExpireParam {
 
-    // Schedule Snapshot expire type e.g hours, days, weeks, months
+    // Schedule Snapshot expire type e.g hours, days, weeks, months or never
     private String expireType;
 
     // Schedule Snapshot expire after
@@ -32,7 +32,7 @@ public class ScheduleSnapshotExpireParam {
         this.expireType = expireType;
     }
 
-    @XmlElement(required = true, name = "expire_value")
+    @XmlElement(name = "expire_value")
     public int getExpireValue() {
         return expireValue;
     }

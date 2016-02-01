@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,8 +32,11 @@ import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
+import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
+import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -288,6 +292,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
          * Delete the directory associated with the file share.
          */
         isi.deleteDir(args.getFsMountPath(), true);
+
+        /**
+         * Delete the Schedule Policy for the file system
+         */
+        isiDeleteSnapshotSchedules(isi, args);
     }
 
     /**
@@ -309,6 +318,26 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 args.addSnapshot(snap);
                 isiDeleteSnapshot(isi, args);
             }
+        }
+    }
+
+    /**
+     * Deleting snapshots: - deletes snapshots of a file system
+     * 
+     * @param isi
+     *            IsilonApi object
+     * @param args
+     *            FileDeviceInputOutput
+     * @throws IsilonException
+     */
+    private void isiDeleteSnapshotSchedules(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
+
+        StringSet policies = args.getFs().getFilePolicies();
+
+        for (String policy : policies) {
+            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, URI.create(policy));
+            String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
+            isi.deleteSnapshotSchedule(snapshotScheduleName);
         }
     }
 
@@ -776,10 +805,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    private void isiExpandFS(IsilonApi isi, String quotaId, Long capacity) throws ControllerException, IsilonException {
+    private void isiExpandFS(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
 
-        // get quota from Isilon and check that requested capacity is larger
-        // than the current capacity
+        // get quota from Isilon and check that requested capacity is larger than the current capacity
+        Long capacity = args.getNewFSCapacity();
+
         IsilonSmartQuota quota = isi.getQuota(quotaId);
         Long hard = quota.getThresholds().getHard();
         if (capacity.compareTo(hard) < 0) {
@@ -792,8 +822,29 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     quota.getThresholds().getHard());
         }
         // Modify quota for file system.
-        IsilonSmartQuota expandedQuota = new IsilonSmartQuota(capacity);
+        IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
         isi.modifyQuota(quotaId, expandedQuota);
+    }
+
+    private IsilonSmartQuota getExpandedQuota(IsilonApi isi, FileDeviceInputOutput args, Long capacity) {
+        Long notificationLimit = 0L;
+        Long softLimit = 0L;
+        Long softGracePeriod = 0L;
+
+        if (args.getFsNotificationLimit() != null) {
+            notificationLimit = Long.valueOf(args.getFsNotificationLimit());
+        }
+
+        if (args.getFsSoftLimit() != null) {
+            softLimit = Long.valueOf(args.getFsSoftLimit());
+        }
+
+        if (args.getFsSoftGracePeriod() != null) {
+            softGracePeriod = Long.valueOf(args.getFsSoftGracePeriod());
+        }
+
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, capacity,
+                notificationLimit, softLimit, softGracePeriod);
     }
 
     @Override
@@ -858,19 +909,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // create directory for the file share
             isi.createDir(args.getFsMountPath(), true);
 
-            boolean bThresholdsIncludeOverhead = true;
-            boolean bIncludeSnapshots = true;
-
-            if (configinfo != null && configinfo.containsKey("thresholdsIncludeOverhead")) {
-                bThresholdsIncludeOverhead = Boolean.parseBoolean(configinfo.get("thresholdsIncludeOverhead"));
-            }
-            if (configinfo != null && configinfo.containsKey("includeSnapshots")) {
-                bIncludeSnapshots = Boolean.parseBoolean(configinfo.get("includeSnapshots"));
+            Long softGrace = null;
+            if (args.getFsSoftGracePeriod() != null) {
+                softGrace = Long.valueOf(args.getFsSoftGracePeriod());
             }
 
             // set quota - save the quota id to extensions
-            String qid = isi.createQuota(args.getFsMountPath(), bThresholdsIncludeOverhead, bIncludeSnapshots,
-                    args.getFsCapacity());
+            String qid = createQuotaWithThreshold(args.getFsMountPath(), args.getFsCapacity(), args.getFsSoftLimit(),
+                    args.getFsNotificationLimit(), softGrace, isi);
 
             if (args.getFsExtensions() == null) {
                 args.initFsExtensions();
@@ -940,8 +986,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 return BiosCommandResult.createErrorResult(serviceError);
             }
 
-            Long newCapacity = args.getNewFSCapacity();   // new capacity
-            isiExpandFS(isi, quotaId, newCapacity);
+            isiExpandFS(isi, quotaId, args);
             _log.info("IsilonFileStorageDevice doExpandFS {} - complete", args.getFsId());
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
@@ -1165,18 +1210,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // create directory for the file share
             isi.createDir(qDirPath, true);
 
-            boolean bThresholdsIncludeOverhead = true;
-            boolean bIncludeSnapshots = true;
-
-            if (configinfo != null && configinfo.containsKey("thresholdsIncludeOverhead")) {
-                bThresholdsIncludeOverhead = Boolean.parseBoolean(configinfo.get("thresholdsIncludeOverhead"));
-            }
-            if (configinfo != null && configinfo.containsKey("includeSnapshots")) {
-                bIncludeSnapshots = Boolean.parseBoolean(configinfo.get("includeSnapshots"));
-            }
-
-            // set quota - save the quota id to extensions
-            String qid = isi.createQuota(qDirPath, bThresholdsIncludeOverhead, bIncludeSnapshots, qDirSize);
+            String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, isi);
 
             if (args.getQuotaDirExtensions() == null) {
                 args.initQuotaDirExtensions();
@@ -1251,26 +1285,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (quotaId != null) {
                 // Isilon does not allow to update quota directory to zero.
                 if (qDirSize > 0) {
-                    _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}",
-                            quotaId, qDirSize);
-                    IsilonSmartQuota expandedQuota = new IsilonSmartQuota(qDirSize);
+                    _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
+                    IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 }
 
             } else {
                 // Create a new Quota
-                boolean bThresholdsIncludeOverhead = true;
-                boolean bIncludeSnapshots = true;
-
-                if (configinfo != null && configinfo.containsKey("thresholdsIncludeOverhead")) {
-                    bThresholdsIncludeOverhead = Boolean.parseBoolean(configinfo.get("thresholdsIncludeOverhead"));
-                }
-                if (configinfo != null && configinfo.containsKey("includeSnapshots")) {
-                    bIncludeSnapshots = Boolean.parseBoolean(configinfo.get("includeSnapshots"));
-                }
-
-                // set quota - save the quota id to extensions
-                String qid = isi.createQuota(qDirPath, bThresholdsIncludeOverhead, bIncludeSnapshots, qDirSize);
+                String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, isi);
 
                 if (args.getQuotaDirExtensions() == null) {
                     args.initQuotaDirExtensions();
@@ -1284,6 +1306,70 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.error("doUpdateQuotaDirectory failed.", e);
             return BiosCommandResult.createErrorResult(e);
         }
+    }
+
+    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(QuotaDirectory quotaDir, Long qDirSize, IsilonApi isi) {
+        Long notificationLimit = 0L;
+        Long softlimit = 0L;
+        Long softGrace = 0L;
+
+        if (quotaDir.getNotificationLimit() != null) {
+            notificationLimit = Long.valueOf(quotaDir.getNotificationLimit());
+        }
+
+        if (quotaDir.getSoftLimit() != null) {
+            softlimit = Long.valueOf(quotaDir.getSoftLimit());
+        }
+
+        if (quotaDir.getSoftGrace() != null) {
+            softGrace = Long.valueOf(quotaDir.getSoftGrace());
+        }
+
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, qDirSize,
+                notificationLimit, softlimit, softGrace);
+    }
+
+    private String checkThresholdAndcreateQuota(QuotaDirectory quotaDir, Long qDirSize, String qDirPath, IsilonApi isi) {
+        Long notificationLimit = 0L;
+        Long softlimit = 0L;
+        Long softGrace = 0L;
+
+        if (quotaDir.getNotificationLimit() != null) {
+            notificationLimit = Long.valueOf(quotaDir.getNotificationLimit());
+        }
+
+        if (quotaDir.getSoftLimit() != null) {
+            softlimit = Long.valueOf(quotaDir.getSoftLimit());
+        }
+
+        if (quotaDir.getSoftGrace() != null) {
+            softGrace = Long.valueOf(quotaDir.getSoftGrace());
+        }
+
+        return createQuotaWithThreshold(qDirPath, qDirSize,
+                softlimit, notificationLimit, softGrace, isi);
+    }
+
+    public String createQuotaWithThreshold(String qDirPath, Long qDirSize, Long softLimitSize, Long notificationLimitSize,
+            Long softGracePeriod, IsilonApi isi) {
+        boolean bThresholdsIncludeOverhead = true;
+        boolean bIncludeSnapshots = true;
+
+        if (configinfo != null) {
+            if (configinfo.containsKey("thresholdsIncludeOverhead")) {
+                bThresholdsIncludeOverhead = Boolean.parseBoolean(configinfo.get("thresholdsIncludeOverhead"));
+            }
+            if (configinfo.containsKey("includeSnapshots")) {
+                bIncludeSnapshots = Boolean.parseBoolean(configinfo.get("includeSnapshots"));
+            }
+
+        }
+
+        // set quota - save the quota id to extensions
+        String qid = isi.createQuota(qDirPath, bThresholdsIncludeOverhead,
+                bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+        return qid;
     }
 
     @Override
@@ -2168,6 +2254,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             zoneName = vNAS.getNasName();
         }
         return zoneName;
+
     }
 
     /**
@@ -2195,9 +2282,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 isilonExport.setReadOnlyClients(clients);
                 break;
         }
-    }
 
-    // mirror related operations
+    }
 
     @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
@@ -2303,15 +2389,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private String getIsilonScheduleString(SchedulePolicy schedule) {
         StringBuilder builder = new StringBuilder();
 
-        switch (schedule.getScheduleFrequency().toLowerCase()) {
+        ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(schedule.getScheduleFrequency().toUpperCase());
+        switch (scheduleFreq) {
 
-            case "days":
+            case DAYS:
                 builder.append("every ");
                 builder.append(schedule.getScheduleRepeat());
                 builder.append(" days at ");
                 builder.append(schedule.getScheduleTime());
                 break;
-            case "weeks":
+            case WEEKS:
                 builder.append("every ");
                 builder.append(schedule.getScheduleRepeat());
                 builder.append(" weeks on ");
@@ -2319,7 +2406,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 builder.append(" at ");
                 builder.append(schedule.getScheduleTime());
                 break;
-            case "months":
+            case MONTHS:
                 builder.append("the ");
                 builder.append(schedule.getScheduleDayOfMonth());
                 builder.append(" every ");
@@ -2339,23 +2426,22 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private Integer getSnapshotExpireValue(SchedulePolicy expireParam) {
         Long seconds = 0L;
         if (expireParam != null) {
-            String expireType = expireParam.getSnapshotExpireType().toLowerCase();
             Long expireValue = expireParam.getSnapshotExpireTime();
-
+            SnapshotExpireType expireType = SnapshotExpireType.valueOf(expireParam.getSnapshotExpireType().toUpperCase());
             switch (expireType) {
-                case "hours":
-                    seconds = expireValue * 3600;
+                case HOURS:
+                    seconds = TimeUnit.HOURS.toSeconds(expireValue);
                     break;
-                case "days":
-                    seconds = expireValue * 24 * 3600;
+                case DAYS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue);
                     break;
-                case "weeks":
-                    seconds = expireValue * 7 * 24 * 3600;
+                case WEEKS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue * 7);
                     break;
-                case "months":
-                    seconds = expireValue * 30 * 24 * 3600;
+                case MONTHS:
+                    seconds = TimeUnit.DAYS.toSeconds(expireValue * 30);
                     break;
-                case "never":
+                case NEVER:
                     return null;
                 default:
                     _log.error("Not a valid expire type: " + expireType);

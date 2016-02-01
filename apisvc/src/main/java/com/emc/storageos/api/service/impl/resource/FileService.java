@@ -352,6 +352,13 @@ public class FileService extends TaskResourceService {
 
         setProtectionCapWrapper(cos, capabilities);
 
+        ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
+        ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
+
+        if (param.getSoftLimit() != 0L) {
+            ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
+        }
+
         // verify quota
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, fsSize, "filesystem");
         String suggestedNativeFsId = param.getFsId() == null ? "" : param.getFsId();
@@ -401,6 +408,9 @@ public class FileService extends TaskResourceService {
         fs.setName(convertedName);
         Long fsSize = SizeUtil.translateSize(param.getSize());
         fs.setCapacity(fsSize);
+        fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
+        fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
+        fs.setSoftGracePeriod(param.getSoftGrace());
         fs.setVirtualPool(param.getVpool());
         if (project != null) {
             fs.setProject(new NamedURI(project.getId(), fs.getLabel()));
@@ -1465,6 +1475,11 @@ public class FileService extends TaskResourceService {
         FileShare fs = queryResource(id);
         if (!param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
+            if (!fs.getFilePolicies().isEmpty()) {
+
+                throw APIException.badRequests
+                        .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
+            }
         }
         List<URI> fileShareURIs = new ArrayList<URI>();
         fileShareURIs.add(id);
@@ -1579,6 +1594,15 @@ public class FileService extends TaskResourceService {
 
         fs.setStorageDevice(placement.getSourceStorageSystem());
         fs.setPool(placement.getSourceStoragePool());
+        if (param.getSoftLimit() != 0) {
+            fs.setSoftLimit(new Long(param.getSoftLimit()));
+        }
+        if (param.getNotificationLimit() != 0) {
+            fs.setNotificationLimit(new Long(param.getNotificationLimit()));
+        }
+        if (param.getSoftGrace() > 0) {
+            fs.setSoftGracePeriod(new Integer(param.getSoftGrace()));
+        }
         if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
             fs.setStoragePort(placement.getStoragePorts().get(0));
         }
@@ -1683,6 +1707,13 @@ public class FileService extends TaskResourceService {
         String origQtreeName = param.getQuotaDirName();
         ArgValidator.checkQuotaDirName(origQtreeName, "name");
 
+        ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
+        ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
+
+        if (param.getSoftLimit() != 0L) {
+            ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
+        }
+
         // check duplicate QuotaDirectory names for this fileshare
         checkForDuplicateName(origQtreeName, QuotaDirectory.class, id, "parent", _dbClient);
 
@@ -1706,6 +1737,12 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setOpStatus(new OpStatusMap());
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
         quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
+        quotaDirectory.setSoftLimit(param.getSoftLimit() != 0 ? param.getSoftLimit() :
+                fs.getSoftLimit() != null ? fs.getSoftLimit().intValue() : 0);
+        quotaDirectory.setSoftGrace(param.getSoftGrace() != 0 ? param.getSoftGrace() :
+                fs.getSoftGracePeriod() != null ? fs.getSoftGracePeriod() : 0);
+        quotaDirectory.setNotificationLimit(param.getNotificationLimit() != 0 ? param.getNotificationLimit()
+                : fs.getNotificationLimit() != null ? fs.getNotificationLimit().intValue() : 0);
 
         String convertedName = origQtreeName.replaceAll("[^\\dA-Za-z_]", "");
         _log.info("FileService::QuotaDirectory Original name {} and converted name {}", origQtreeName, convertedName);
@@ -2582,9 +2619,16 @@ public class FileService extends TaskResourceService {
     private TaskList performFileProtectionAction(FileReplicationParam param, URI id, String op) {
         TaskResourceRep taskResp = null;
         TaskList taskList = new TaskList();
-        taskResp = performProtectionAction(id, op);
-        taskList.getTaskList().add(taskResp);
-        return taskList;
+        Copy copy = param.getCopies().get(0);
+        if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name()) ||
+                copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
+            taskResp = performProtectionAction(id, op);
+            taskList.getTaskList().add(taskResp);
+            return taskList;
+        } else {
+            throw APIException.badRequests.invalidCopyType(copy.getType());
+        }
+
     }
 
     /**
@@ -2718,7 +2762,10 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkUri(filePolicyUri);
         SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
-
+        // verify the file system tenant is same as policy tenant
+        if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+            throw APIException.badRequests.assoicatedPolicyTenantMismach(filePolicyUri, id);
+        }
         // Check for VirtualPool support snapshot or not
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
 
@@ -2793,6 +2840,10 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkUri(filePolicyUri);
         SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
+        // verify the file system tenant is same as policy tenant
+        if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+            throw APIException.badRequests.assoicatedPolicyTenantMismach(filePolicyUri, id);
+        }
         // verify the schedule policy is associated with file system or not.
         if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssoicatedPolicy(filePolicyUri);

@@ -39,6 +39,7 @@ public abstract class BlockCGIngestDecorator {
             decorateCGBlockObjects(cg, umv, associatedObjects, requestContext);
         }
         if (null != nextCGIngestDecorator) {
+            nextCGIngestDecorator.setDbClient(dbClient);
             nextCGIngestDecorator.decorate(cg, umv, requestContext);
         }
     }

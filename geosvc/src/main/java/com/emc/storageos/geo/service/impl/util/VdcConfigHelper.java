@@ -221,7 +221,7 @@ public class VdcConfigHelper {
         }
 
         if (vdcConfigChanged) {
-            String action = SiteInfo.NONE;
+            String action = SiteInfo.GEO_OP_CONFIG_CHANGE;
             // on newly added vdc, rotate the ipsec key first before reboot.. otherwise first rebooted node
             // loses connection with other nodes
             if (assignedVdcId != null) {

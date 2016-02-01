@@ -34,7 +34,7 @@ public class IPsecConfig {
     private static final String IPSEC_CONFIG_KIND = "ipsec";
     private static final String IPSEC_CONFIG_ID = "ipsec_config";
     private static final String IPSEC_PSK_KEY = "ipsec_key";
-    private static final String IPSEC_STATUS = "ipsec_status";
+    public static final String IPSEC_STATUS = "ipsec_status";
     private static final int KEY_LENGHT = 64;
 
     // Properties injected by spring

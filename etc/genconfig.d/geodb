@@ -37,7 +37,7 @@ _get_geodbconf_props() {
             [ "${_GENCONFIG_vdc_myid}" == "${vdc}" ] && continue
             # we don't support standalone in multiple vdc
             var="_GENCONFIG_vdc_${vdc}_site1_network_1_ipaddr"
-            if [ -z "${!var}" ]; then
+            if [ -z "${!var}" -o "${!var}" = "0.0.0.0" ]; then
                 var="_GENCONFIG_vdc_${vdc}_site1_network_1_ipaddr6"
             fi
             list+=" ${!var}"
@@ -48,7 +48,7 @@ _get_geodbconf_props() {
     # TODO: add first node from other standby sites
     if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
         var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_1_ipaddr"
-        if [ -z "${!var}" ]; then
+        if [ -z "${!var}" -o "${!var}" = "0.0.0.0" ]; then
             var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_1_ipaddr6"
         fi
         list+=" ${!var}"

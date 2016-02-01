@@ -4,7 +4,9 @@
  */
 package controllers.infra;
 
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.db.DbConsistencyStatusRestRep;
+import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.DownloadProgress;
 import com.emc.vipr.model.sys.NodeProgress;
@@ -19,6 +21,7 @@ import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
 import util.BourneUtil;
+import util.DisasterRecoveryUtils;
 import util.MessagesUtils;
 
 import java.util.Collection;
@@ -51,22 +54,27 @@ public class Upgrade extends Controller {
 
         boolean isStable = clusterState.equalsIgnoreCase(ClusterInfo.ClusterState.STABLE.toString());
         boolean isWorking = !isStable && !clusterState.equalsIgnoreCase(ClusterInfo.ClusterState.UNKNOWN.toString());
-        boolean isDownloading = clusterState.equals(DOWNLOADING_CLUSTER_STATE);
+        boolean isDownloading = clusterState.equals(DOWNLOADING_CLUSTER_STATE) || isStandbySiteDownloading();
 
         DbConsistencyStatusRestRep checkDbState = getSysClient().upgrade().getDbCheckState();
         String isDbCheckStatus = checkDbState.getStatus().toString();
         int checkProgress = checkDbState.getProgress();
 
-        Map<String, DownloadStatus> downloadStatus = Maps.newHashMap();
+        Map<String, Map<String, DownloadStatus>> downloadStatus = Maps.newLinkedHashMap();
         if (isDownloading) {
+            SiteRestRep activeSite = DisasterRecoveryUtils.getActiveSite();
             DownloadProgress downloadProgress = getSysClient().upgrade().getDownloadProgress();
-            downloadStatus = calculateDownloadStatus(downloadProgress);
+            downloadStatus.put(activeSite.getName(), calculateDownloadStatus(downloadProgress));
+
+            for (SiteRestRep standby : DisasterRecoveryUtils.getStandbySites()) {
+                downloadProgress = getSysClient().upgrade().getDownloadProgress(standby.getUuid());
+                downloadStatus.put(standby.getName(), calculateDownloadStatus(downloadProgress));
+            }
         }
 
         render(clusterInfo, clusterState, newVersions, repositoryVersions, isStable, isWorking, isDownloading, downloadStatus,
                 checkProgress, isDbCheckStatus);
     }
-
 
     /*
      * Method to trigger Database consistency check
@@ -105,9 +113,9 @@ public class Upgrade extends Controller {
         renderJSON(dbState);
     }
 
-    public static void installVersion(String version) {
+    public static void installVersion(String version, boolean doPrecheck) {
         try {
-            getSysClient().upgrade().setTargetVersion(version);
+            getSysClient().upgrade().setTargetVersion(version, doPrecheck);
         } catch (Exception e) {
             Logger.error(e, "Setting target version to  %s", version);
             flash.error(e.getMessage());
@@ -139,10 +147,18 @@ public class Upgrade extends Controller {
     }
 
     public static void downloadProgress() {
-        DownloadProgress downloadProgress = getSysClient().upgrade().getDownloadProgress();
-        Map<String, DownloadStatus> nodeProgress = calculateDownloadStatus(downloadProgress);
+        Map<String, Map<String, DownloadStatus>> siteProgress = Maps.newLinkedHashMap();
 
-        renderJSON(nodeProgress);
+        SiteRestRep activeSite = DisasterRecoveryUtils.getActiveSite();
+        DownloadProgress downloadProgress = getSysClient().upgrade().getDownloadProgress();
+        siteProgress.put(activeSite.getName(), calculateDownloadStatus(downloadProgress));
+
+        for (SiteRestRep standby : DisasterRecoveryUtils.getStandbySites()) {
+            downloadProgress = getSysClient().upgrade().getDownloadProgress(standby.getUuid());
+            siteProgress.put(standby.getName(), calculateDownloadStatus(downloadProgress));
+        }
+
+        renderJSON(siteProgress);
     }
 
     public static void cancelDownload() {
@@ -163,8 +179,30 @@ public class Upgrade extends Controller {
         ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo();
         String clusterState = calculateClusterState(clusterInfo);
 
-        boolean statusChanged = !clusterState.equals(currentStatus);
-        renderJSON(statusChanged);
+        // if the current status is downloading,
+        // don't go back to the index page until download is complete on all sites
+        if (currentStatus.equals(DOWNLOADING_CLUSTER_STATE)) {
+            renderJSON(!clusterState.equals(currentStatus) && !isStandbySiteDownloading());
+        } else {
+            boolean statusChanged = !clusterState.equals(currentStatus);
+            renderJSON(statusChanged);
+        }
+    }
+
+    @Util
+    private static boolean isStandbySiteDownloading() {
+        for (SiteRestRep standby : DisasterRecoveryUtils.getStandbySites()) {
+            if (SiteState.STANDBY_PAUSED.toString().equals(standby.getState()) ||
+                    SiteState.STANDBY_PAUSING.toString().equals(standby.getState()) ||
+                    SiteState.STANDBY_RESUMING.toString().equals(standby.getState())) {
+                continue;
+            }
+            ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo(standby.getUuid());
+            if (calculateClusterState(clusterInfo, standby.getUuid()).equals(DOWNLOADING_CLUSTER_STATE)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Util
@@ -198,9 +236,15 @@ public class Upgrade extends Controller {
         return (int) Math.round(((double) bytes / (double) total) * 100);
     }
 
+    @Util
     private static String calculateClusterState(ClusterInfo clusterInfo) {
+        return calculateClusterState(clusterInfo, null);
+    }
+
+    @Util
+    private static String calculateClusterState(ClusterInfo clusterInfo, String siteId) {
         if (clusterInfo.getCurrentState().equalsIgnoreCase(ClusterInfo.ClusterState.SYNCING.toString())) {
-            DownloadProgress downloadProgress = getSysClient().upgrade().getDownloadProgress();
+            DownloadProgress downloadProgress = getSysClient().upgrade().getDownloadProgress(siteId);
             if (isDownloadInProgress(downloadProgress)) {
                 return DOWNLOADING_CLUSTER_STATE;
             }

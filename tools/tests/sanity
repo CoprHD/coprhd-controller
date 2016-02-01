@@ -6947,17 +6947,17 @@ dr_basic_tests()
     vip=$(dr get $standby_site vip|tail -1)
 
     if [ "$vip" != "$DR_SITE_B_IP" ] ; then
-        echo -e "Fail: site vip \"$vip\" isn't equalt to \"$DR_SITE_B_IP\""
+        echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
         exit 1
     fi
 
     if [ "$name" != "$DR_SITE_B_NAME" ] ; then
-        echo -e "Fail: site name \"$name\" isn't equalt to \"$DR_SITE_B_NAME\""
+        echo -e "Fail: site name \"$name\" isn't equal to \"$DR_SITE_B_NAME\""
         exit 1
     fi
 
     if [ "$description" != "$DR_SITE_B_DESCRIPTION" ] ; then
-        echo -e "Fail: site description \"$description\" isn't equalt to \"$DR_SITE_B_DESCRIPTION\""
+        echo -e "Fail: site description \"$description\" isn't equal to \"$DR_SITE_B_DESCRIPTION\""
         exit 1
     fi
 
@@ -6976,6 +6976,20 @@ dr_basic_tests()
     
     echo "---WAIT FOR STABLE $standby_site---"
     dr waitforstable 30 1200
+
+    echo "---VERIFY SITE DETAILS $standby_site---"
+    state=$(dr details $standby_site clusterState|tail -1)
+    latency=$(dr details $standby_site networkLatencyInMs|tail -1)
+
+    if [ "$state" != "STABLE" ] ; then
+        echo -e "Fail: site clusterState \"$state\" isn't equal to STABLE"
+        exit 1
+    fi
+
+    if (( $(echo "$latency < 0" | bc -l) )) ; then
+        echo -e "Fail: site latency \"$latency\" isn't calculated correctly, should be 0 or greater"
+        exit 1
+    fi
 
     # verify project
     project show $projectid
@@ -7107,17 +7121,17 @@ dr_multisite_tests()
     vip=$(dr get $standby_site_b vip|tail -1)
 
     if [ "$vip" != "$DR_SITE_B_IP" ] ; then
-        echo -e "Fail: site vip \"$vip\" isn't equalt to \"$DR_SITE_B_IP\""
+        echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
         exit 1
     fi
 
     if [ "$name" != "$DR_SITE_B_NAME" ] ; then
-        echo -e "Fail: site name \"$name\" isn't equalt to \"$DR_SITE_B_NAME\""
+        echo -e "Fail: site name \"$name\" isn't equal to \"$DR_SITE_B_NAME\""
         exit 1
     fi
 
     if [ "$description" != "$DR_SITE_B_DESCRIPTION" ] ; then
-        echo -e "Fail: site description \"$description\" isn't equalt to \"$DR_SITE_B_DESCRIPTION\""
+        echo -e "Fail: site description \"$description\" isn't equal to \"$DR_SITE_B_DESCRIPTION\""
         exit 1
     fi
 
@@ -7136,6 +7150,20 @@ dr_multisite_tests()
 
     echo "---WAIT FOR STABLE $standby_site_b---"
     dr waitforstable 30 1200
+
+    echo "---VERIFY SITE DETAILS $standby_site_b---"
+    state=$(dr details $standby_site_b clusterState|tail -1)
+    latency=$(dr details $standby_site_b networkLatencyInMs|tail -1)
+
+    if [ "$state" != "STABLE" ] ; then
+        echo -e "Fail: site clusterState \"$state\" isn't equal to STABLE"
+        exit 1
+    fi
+
+    if (( $(echo "$latency < 0" | bc -l) )) ; then
+        echo -e "Fail: site latency \"$latency\" isn't calculated correctly, should be 0 or greater"
+        exit 1
+    fi
 
     # verify project
     echo "---VERIFY PROJECT SYNCED $standby_site_b---"
@@ -7168,17 +7196,17 @@ dr_multisite_tests()
     vip=$(dr get $standby_site_c vip|tail -1)
 
     if [ "$vip" != "$DR_SITE_C_IP" ] ; then
-        echo -e "Fail: site vip \"$vip\" isn't equalt to \"$DR_SITE_C_IP\""
+        echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_C_IP\""
         exit 1
     fi
 
     if [ "$name" != "$DR_SITE_C_NAME" ] ; then
-        echo -e "Fail: site name \"$name\" isn't equalt to \"$DR_SITE_C_NAME\""
+        echo -e "Fail: site name \"$name\" isn't equal to \"$DR_SITE_C_NAME\""
         exit 1
     fi
 
     if [ "$description" != "$DR_SITE_C_DESCRIPTION" ] ; then
-        echo -e "Fail: site description \"$description\" isn't equalt to \"$DR_SITE_C_DESCRIPTION\""
+        echo -e "Fail: site description \"$description\" isn't equal to \"$DR_SITE_C_DESCRIPTION\""
         exit 1
     fi
 
@@ -7197,6 +7225,20 @@ dr_multisite_tests()
 
     echo "---WAIT FOR STABLE $standby_site_c---"
     dr waitforstable 30 1200
+
+    echo "---VERIFY SITE DETAILS $standby_site_c---"
+    state=$(dr details $standby_site_c clusterState|tail -1)
+    latency=$(dr details $standby_site_c networkLatencyInMs|tail -1)
+
+    if [ "$state" != "STABLE" ] ; then
+        echo -e "Fail: site clusterState \"$state\" isn't equal to STABLE"
+        exit 1
+    fi
+
+    if (( $(echo "$latency < 0" | bc -l) )) ; then
+        echo -e "Fail: site latency \"$latency\" isn't calculated correctly, should be 0 or greater"
+        exit 1
+    fi
 
     # verify project
     echo "---VERIFY PROJECT SYNCED $standby_site_c---"

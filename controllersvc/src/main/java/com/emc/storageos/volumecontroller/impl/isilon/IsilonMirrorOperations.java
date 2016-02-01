@@ -26,7 +26,6 @@ import com.emc.storageos.isilon.restapi.IsilonSyncJob.Action;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
-import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -575,9 +574,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             TaskCompleter completer)
             throws IsilonException {
 
-        IsilonSyncTargetPolicy secondaryLocalTargetPolicy;
         IsilonApi isiPrimary = getIsilonDevice(primarySystem);
-        IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
         IsilonSyncJob job = new IsilonSyncJob();
         job.setId(policyName);
         job.setAction(Action.resync_prep);

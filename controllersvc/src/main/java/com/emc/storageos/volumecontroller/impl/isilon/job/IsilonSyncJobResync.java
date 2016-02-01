@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
-import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
 import com.emc.storageos.volumecontroller.JobContext;
@@ -48,8 +47,6 @@ public class IsilonSyncJobResync extends IsilonSyncJobFailover {
                     try {
                         isiApiClient.getReplicationPolicy(newPolicyName);
                     } catch (IsilonException isiex) {
-                        IsilonSyncPolicyReport reportErr = isiGetReportErr(isiApiClient.getTargetReplicationPolicyReports(currentJob)
-                                .getList());
 
                         _logger.info("Isilon reSync still need to be updated: {} succeeded", reportErr.getState().name());
                     }

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2008-2011 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.ecs.api;
 
 public class NamespaceLink {

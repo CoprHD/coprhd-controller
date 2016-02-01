@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2008-2011 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
@@ -35,7 +39,8 @@ public class ObjectNamespaceService extends TaggedResource {
     
     /**
      * Get IDs of all object storage namespaces
-     * @return
+     * 
+     * @return object namespace list
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -56,8 +61,9 @@ public class ObjectNamespaceService extends TaggedResource {
 
     /**
      * Get details of the object storage namespace specified
-     * @param id
-     * @return
+     * 
+     * @param id object storage namespace id
+     * @return details of the namespace
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

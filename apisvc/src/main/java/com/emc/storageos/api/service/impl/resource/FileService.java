@@ -2414,7 +2414,7 @@ public class FileService extends TaskResourceService {
                     varray, project, newVpool, capabilities);
 
             // Verify the source virtual pool recommendations meets source fs storage!!!
-            fileServiceApi.changeFileSystemVirtualPool(fs, project,
+            fileServiceApi.createTargetsForExistingSource(fs, project,
                     newVpool, varray, taskList, task, recommendations, capabilities);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {

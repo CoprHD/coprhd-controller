@@ -152,45 +152,6 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     @Override
-    public TaskResourceRep changeFileSystemVirtualPool(FileShare fs, Project project,
-            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
-        List<FileShare> fileList = null;
-        List<FileShare> fileShares = new ArrayList<FileShare>();
-
-        FileSystemParam fsParams = new FileSystemParam();
-        fsParams.setFsId(fs.getId().toString());
-        fsParams.setLabel(fs.getLabel());
-        fsParams.setVarray(fs.getVirtualArray());
-        fsParams.setVpool(fs.getVirtualPool());
-
-        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
-
-        // Prepare the FileShares
-        fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
-                varray, vpool, recommendations, vpoolCapabilities, false);
-        fileShares.addAll(fileList);
-
-        // prepare the file descriptors
-        final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);
-        final FileOrchestrationController controller = getController(FileOrchestrationController.class,
-                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
-        try {
-            // Execute the change vpool of fileshare!!!
-            controller.changeFileSystemVirtualPool(fs.getId().toString(), fileDescriptors, task);
-        } catch (InternalException e) {
-            _log.error("Controller error when changing filesystem vpool", e);
-            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            _log.error("Controller error when changing filesystem vpool", e);
-            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
-            throw e;
-        }
-        return taskList.getTaskList().get(0);
-    }
-
-    @Override
     public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {

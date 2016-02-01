@@ -157,13 +157,6 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
 
     @Override
-    public TaskResourceRep changeFileSystemVirtualPool(FileShare fs, Project project,
-            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-    @Override
     public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {

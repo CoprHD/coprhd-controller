@@ -37,12 +37,6 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     }
 
     @Override
-    public void changeFileSystemVirtualPool(String sourceFs,
-            List<FileDescriptor> fileDescriptors, String taskId) throws ControllerException {
-        execOrchestration("changeFileSystemVirtualPool", sourceFs, fileDescriptors, taskId);
-    }
-
-    @Override
     public void createTargetsForExistingSource(String sourceFs,
             List<FileDescriptor> fileDescriptors, String taskId) throws ControllerException {
         execOrchestration("createTargetsForExistingSource", sourceFs, fileDescriptors, taskId);

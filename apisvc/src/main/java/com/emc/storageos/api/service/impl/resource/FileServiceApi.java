@@ -72,26 +72,6 @@ public interface FileServiceApi {
     public <T extends DataObject> String checkForDelete(T object) throws InternalException;
 
     /**
-     * Change FileSystem VirtualPool
-     * 
-     * @param fs -source file system for which vpool needs to be changed
-     * @param project -project requested
-     * @param varray -source VirtualArray
-     * @param vpool -VirtualPool requested
-     * @param recommendations -Placement recommendation object
-     * @param taskList -list of tasks for source filesystems
-     * @param task -task ID
-     * @param vpoolCapabilities -wrapper for vpool params
-     * @return TaskList
-     * 
-     * @throws InternalException
-     */
-    public TaskResourceRep changeFileSystemVirtualPool(FileShare fs, Project project,
-            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException;
-
-    /**
      * Create Continuous Copies for existing source file system
      * 
      * @param fs -source file system for which mirror file system to be created

@@ -45,18 +45,6 @@ public interface FileOrchestrationController extends Controller {
             throws ControllerException;
 
     /**
-     * Change virtual pool of a file system
-     * This method is responsible for creating a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystems
-     * 
-     * @param fileDescriptors - The complete list of FileDescriptors received from the API layer.
-     *            This defines what FileSharess need to be created, and in which pool each Fileshare should be created.
-     * @param taskId - The overall taskId for the operation.
-     * @throws ControllerException
-     */
-    public abstract void changeFileSystemVirtualPool(String sourceFs, List<FileDescriptor> fileDescriptors, String taskId)
-            throws ControllerException;
-
-    /**
      * create mirror copies for existing file system
      * This method is responsible for creating a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystems
      * 

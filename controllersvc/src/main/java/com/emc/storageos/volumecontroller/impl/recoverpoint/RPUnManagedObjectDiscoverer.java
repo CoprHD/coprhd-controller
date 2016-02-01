@@ -598,9 +598,9 @@ public class RPUnManagedObjectDiscoverer {
                         // If this an RP source, the vpool must be an RP vpool
                         remove = true;
                     } else if (unManagedVolume.getVolumeInformation().containsKey(
-                                SupportedVolumeInformation.RP_STANDBY_COPY_ROLE.toString())
+                                SupportedVolumeInformation.RP_STANDBY_INTERNAL_SITENAME.toString())
                                 && !VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
-                        // Since this is a Source volume with the presence of the STANDBY_COPY role 
+                        // Since this is a Source volume with the presence of RP_STANDBY_INTERNAL_SITENAME 
                         // it indicates that this volume is MetroPoint, if we get here, this is vpool
                         // must be filtered out.
                         remove = true;

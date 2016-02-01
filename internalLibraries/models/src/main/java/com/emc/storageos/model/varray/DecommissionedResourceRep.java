@@ -20,7 +20,6 @@ public class DecommissionedResourceRep {
     /**
      * The user name.
      * 
-     * @valid none
      * 
      * @return The user name.
      */
@@ -36,7 +35,6 @@ public class DecommissionedResourceRep {
     /**
      * The decommissioned resource type.
      * 
-     * @valid none
      * 
      * @return The decommissioned resource type
      */
@@ -52,7 +50,6 @@ public class DecommissionedResourceRep {
     /**
      * The native guid (unique device id) of the decommissioned resource.
      * 
-     * @valid none
      * 
      * @return The native guid of the decommissioned resource.
      */
@@ -68,7 +65,6 @@ public class DecommissionedResourceRep {
     /**
      * The id of the decommissioned resource.
      * 
-     * @valid none
      * 
      * @return The id of the decommissioned resource.
      */

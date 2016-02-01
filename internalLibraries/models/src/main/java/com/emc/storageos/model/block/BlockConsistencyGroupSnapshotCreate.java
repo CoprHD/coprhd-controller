@@ -30,7 +30,6 @@ public class BlockConsistencyGroupSnapshotCreate {
     /**
      * Snapshot name
      * 
-     * @valid none
      */
     @XmlElement
     public String getName() {
@@ -53,8 +52,6 @@ public class BlockConsistencyGroupSnapshotCreate {
      * That is, the operation will create and activate
      * the synchronization for the snapshot.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "create_inactive", required = false, defaultValue = "false")
     public Boolean getCreateInactive() {
@@ -71,8 +68,6 @@ public class BlockConsistencyGroupSnapshotCreate {
      * 
      * The default value is false. That is, the snapshot will be created as writable.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "read_only", required = false, defaultValue = "false")
 	public Boolean getReadOnly() {

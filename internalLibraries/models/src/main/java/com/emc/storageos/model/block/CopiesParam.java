@@ -28,7 +28,6 @@ public class CopiesParam {
     /**
      * A list of copies.
      * 
-     * @valid none
      */
     @XmlElement(name = "copy")
     public List<Copy> getCopies() {

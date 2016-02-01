@@ -32,7 +32,6 @@ public class ProjectUpdateParam {
     /**
      * New name for the project
      * 
-     * @valid any string within length limits
      */
     @XmlElement
     @Length(min = 2, max = 128)
@@ -47,7 +46,6 @@ public class ProjectUpdateParam {
     /**
      * Owner of the project
      * 
-     * @valid An existing username in the tenant's authentication provider
      */
     @XmlElement
     public String getOwner() {

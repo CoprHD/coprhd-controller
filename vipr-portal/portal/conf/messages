@@ -657,7 +657,7 @@ VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s)
 
 #Application Support
 Application.list.title=Applications
-application.name=Application	
+application.title=Application
 application.description=Description	
 application.role=Role
 Application.deleteConfirm=Are you sure you want to delete the Application(s).

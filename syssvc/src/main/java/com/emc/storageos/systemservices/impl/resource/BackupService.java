@@ -648,8 +648,8 @@ public class BackupService {
         Exec.Result result = Exec.exec(120 * 1000, restoreCommand);
         switch (result.getExitValue()) {
             case 1:
-                backupOps.setRestoreStatus(backupName, BackupRestoreStatus.Status.RESTORE_FAILED, 0, 0, false, false, true);
-                throw SyssvcException.syssvcExceptions.restoreFailed(backupName, "Invalid password");
+                setRestoreFailed(backupName, "Invalid password");
+                //no return
         }
 
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_END, null, backupName);

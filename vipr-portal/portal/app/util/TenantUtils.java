@@ -4,6 +4,9 @@
  */
 package util;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.object.ObjectNamespaceList;
+import com.emc.storageos.model.object.ObjectNamespaceRestRep;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
 import com.emc.storageos.model.tenant.TenantCreateParam;
@@ -13,6 +16,7 @@ import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 
 import controllers.security.Security;
+
 import org.apache.commons.lang.StringUtils;
 
 import java.net.URI;
@@ -83,6 +87,22 @@ public class TenantUtils {
 
     public static TenantOrgRestRep create(TenantCreateParam tenantCreateParam) {
         return getViprClient().tenants().create(tenantCreateParam);
+    }
+    
+    public static List<StringOption> getUnmappedNamespace() {
+        ObjectNamespaceList objNamespaceList = getViprClient().objectNamespace().getObjectNamespaces();
+        List<StringOption> namespaceOptions = Lists.newArrayList();
+        List<NamedRelatedResourceRep> ObjNamedList = objNamespaceList.getNamespaces();
+       
+        for (NamedRelatedResourceRep namedRes : ObjNamedList) {
+            URI uri = namedRes.getId();
+            ObjectNamespaceRestRep objNs = getViprClient().objectNamespace().getObjectNamespace(uri);
+            if (objNs != null && objNs.getMapped() == false) {
+                //only unmapped namespaces to be added to list
+                namespaceOptions.add(new StringOption(objNs.getNativeId(), objNs.getNsName()));
+            }
+        }
+        return namespaceOptions;
     }
 
     public static boolean isRootTenant(URI tenantId) {

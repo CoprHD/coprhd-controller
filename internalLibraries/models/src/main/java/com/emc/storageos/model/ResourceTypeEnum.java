@@ -79,7 +79,9 @@ public enum ResourceTypeEnum {
     VOLUME_GROUP("volume_group", "/volume-groups/block"),
     COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers"),
     BLOCK_SNAPSHOT_SESSION("block_snapshot_session", "/block/snapshot-sessions"),
-    SCHEDULE_POLICY("schedule_policy", "/schedule-policies");
+    SCHEDULE_POLICY("schedule_policy", "/schedule-policies"),
+    OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces");
+    
 
     private final String type;
     private final String service;
@@ -92,7 +94,6 @@ public enum ResourceTypeEnum {
     /**
      * The type of the resource
      * 
-     * @valid none
      */
     @XmlElement
     public String getType() {

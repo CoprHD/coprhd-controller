@@ -44,7 +44,6 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     /**
      * Related storage controller
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_controller")
     public RelatedResourceRep getStorageController() {
@@ -58,7 +57,6 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     /**
      * Related project
      * 
-     * @valid none
      */
     @XmlElement(name = "project")
     public RelatedResourceRep getProject() {
@@ -72,7 +70,6 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     /**
      * Related virtual array
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varray")
@@ -88,7 +85,6 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     /**
      * A volume that exists within the block consistency group
      *
-     * @valid none
      */
     @XmlElement(name = "volume")
     public List<RelatedResourceRep> getVolumes() {
@@ -106,7 +102,6 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
      * The mapping of protection systems/storage systems to consistency groups that
      * are mapped to by the BlockConsistencyGroup.
      * 
-     * @valid none
      */
     @XmlElement(name = "system_consistency_groups")
     public List<StringSetMapAdapter.Entry> getSystemConsistencyGroups() {
@@ -120,7 +115,6 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     /**
      * The types of the block consistency group
      * 
-     * @valid none
      */
     @XmlElement(name = "types")
     public Set<String> getTypes() {
@@ -137,7 +131,6 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     /**
      * The RecoverPoint protection system. Applies only to CGs of type RP.
      * 
-     * @valid none
      */
     @XmlElement(name = "rp_protection_system")
     public URI getRpProtectionSystem() {
@@ -151,7 +144,6 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     /**
      * The RecoverPoint consistency group id. Applies only to CGs of type RP.
      * 
-     * @valid none
      */
     @XmlElement(name = "rp_consistency_group_id")
     public String getRpConsistenyGroupId() {
@@ -165,7 +157,6 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     /**
      * The link status.
      * 
-     * @valid none
      */
     @XmlElement(name = "link_status")
     public String getLinkStatus() {

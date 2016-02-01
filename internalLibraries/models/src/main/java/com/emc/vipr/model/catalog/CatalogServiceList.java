@@ -27,7 +27,6 @@ public class CatalogServiceList {
     /**
      * List of catalog services
      * 
-     * @valid none
      */
     @XmlElement(name = "catalog_service")
     public List<NamedRelatedResourceRep> getCatalogServices() {

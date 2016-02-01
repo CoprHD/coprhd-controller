@@ -25,7 +25,6 @@ public class ProjectList {
     /**
      * List of projects
      * 
-     * @valid none
      * @return List of projects
      */
     @XmlElement(name = "project")

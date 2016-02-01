@@ -227,7 +227,7 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
     /**
      * Lists the block snapshots for a consistency group by ID.
      * <p>
-     * <API Call: <tt>GET /block/consistency-groups/{consistencyGroupId}/protection/snapshots</tt>
+     * API Call: <tt>GET /block/consistency-groups/{consistencyGroupId}/protection/snapshots</tt>
      * 
      * @param consistencyGroupId
      *            the ID of the consistency group.

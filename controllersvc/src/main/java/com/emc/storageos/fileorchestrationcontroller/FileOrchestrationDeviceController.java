@@ -22,8 +22,8 @@ import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.file.CreateMirrorFileSystemsCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FileDeleteWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileSystemVpoolChangeCompleter;
-import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -228,7 +228,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String taskId) throws ControllerException {
         String waitFor = null;    // the wait for key returned by previous call
         List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
-        FileWorkflowCompleter completer = new FileWorkflowCompleter(fileShareUris, taskId);
+        FileDeleteWorkflowCompleter completer = new FileDeleteWorkflowCompleter(fileShareUris, taskId);
         Workflow workflow = null;
 
         try {

@@ -2595,14 +2595,6 @@ public class FileService extends TaskResourceService {
         try {
             fileServiceApi.deleteFileSystems(device.getId(), fileShareURIs,
                     param.getDeleteType(), param.getForceDelete(), deleteMirrorCopies, task);
-            // Reset mirror properties of fs!!
-            StringSet mirrorSet = fs.getMirrorfsTargets();
-            if (mirrorSet != null) {
-                mirrorSet.clear();
-                fs.setMirrorfsTargets(mirrorSet);
-            }
-            fs.setMirrorStatus(MirrorStatus.DETACHED.name());
-            _dbClient.updateObject(fs);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
                 _log.error("deactivate continuous copies error ", e);

@@ -259,10 +259,10 @@
 <target name="java-1.7.0-oracle-extras"            depends="java-1.7.0-oracle-extras-1.7.0.91-1jpp_1"/>
 <target name="java-1.7.0-oracle-fonts"             depends="java-1.7.0-oracle-fonts-1.7.0.91-1jpp_1"/>
 <target name="java-1.7.0-oracle-jdbc"              depends="java-1.7.0-oracle-jdbc-1.7.0.91-1jpp_1"/>
-<target name="java-1.8.0-oracle"                   depends="java-1.8.0-oracle-1.8.0.60-1jpp_1"/>
-<target name="java-1.8.0-oracle-devel"             depends="java-1.8.0-oracle-devel-1.8.0.60-1jpp_1"/>
-<target name="java-1.8.0-oracle-extras"            depends="java-1.8.0-oracle-extras-1.8.0.60-1jpp_1"/>
-<target name="java-1.8.0-oracle-fonts"             depends="java-1.8.0-oracle-fonts-1.8.0.60-1jpp_1"/>
+<target name="java-1.8.0-oracle"                   depends="java-1.8.0-oracle-1.8.0.72-1jpp_1"/>
+<target name="java-1.8.0-oracle-devel"             depends="java-1.8.0-oracle-devel-1.8.0.72-1jpp_1"/>
+<target name="java-1.8.0-oracle-extras"            depends="java-1.8.0-oracle-extras-1.8.0.72-1jpp_1"/>
+<target name="java-1.8.0-oracle-fonts"             depends="java-1.8.0-oracle-fonts-1.8.0.72-1jpp_1"/>
 <target name="java-devel"                          depends="java-1.7.0-oracle-devel"/>
 <target name="java-extras"                         depends="java-1.7.0-oracle-extras"/>
 <target name="java-fonts"                          depends="java-1.7.0-oracle-fonts"/>

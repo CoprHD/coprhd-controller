@@ -1262,8 +1262,22 @@ public class VolumeGroupService extends TaskResourceService {
          */
         @Override
         public void validateUpdateVolumesInVolumeGroup(DbClient dbClient, VolumeGroupUpdateParam param, VolumeGroup volumeGroup) {
-            // TODO Auto-generated method stub
+            validateParameters(Cluster.class, param.getAddClustersList(), "add_clusters");
+            validateParameters(Cluster.class, param.getRemoveClustersList(), "add_clusters");
 
+            validateParameters(Host.class, param.getAddClustersList(), "add_hosts");
+            validateParameters(Host.class, param.getRemoveClustersList(), "add_hosts");
+
+            validateParameters(Volume.class, param.getAddVolumesList().getVolumes(), "add_volumes");
+            validateParameters(Volume.class, param.getRemoveVolumesList().getVolumes(), "add_volumes");
+        }
+
+        private void validateParameters(Class<? extends DataObject> clazz, List<URI> ids, String field) {
+            if (ids != null) {
+                for (URI id : ids) {
+                    ArgValidator.checkFieldUriType(id, clazz, field);
+                }
+            }
         }
 
         protected void updateVolumeAndGroupTasks(DbClient dbClient, List<Volume> addVols, List<Volume> removeVols, URI volumeGroupId,

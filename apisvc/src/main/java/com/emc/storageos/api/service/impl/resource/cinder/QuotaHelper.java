@@ -134,7 +134,7 @@ public class QuotaHelper {
     }
        
     /*
-     * This function populates populates the hashmap with quota class details 
+     * This function populates the hashmap with quota class details 
      * @param className - quota class name
      * @return hashmap of strings with resource name being the key and resource limit
      * being the value of the hashmap 
@@ -147,7 +147,7 @@ public class QuotaHelper {
     		QuotaClassOfCinder defaultQuota = _dbClient.queryObject(QuotaClassOfCinder.class, quota);
     		
     		if(defaultQuota.getQuotaClass().equals(className)){
-    			_log.info("defaultQuota.getLimits() is {}", defaultQuota.getLimits());
+    			_log.debug("defaultQuota.getLimits() is {}", defaultQuota.getLimits());
     			return convertKeyValPairsStringToMap(defaultQuota.getLimits());    			
     		}    		    	
     	}    
@@ -169,8 +169,6 @@ public class QuotaHelper {
 			_log.info("resourceLimit is {}", resourceLimit);
 			if(!resourceLimit.equalsIgnoreCase("")){
 				String[] resourceAndItsLimit = resourceLimit.split("=", 2);
-				_log.info("resourceAndItsLimit[0] is {}", resourceAndItsLimit[0]);
-				_log.info("resourceAndItsLimit[1] is {}", resourceAndItsLimit[1]);
 				String resource = resourceAndItsLimit[0];
 				String quota = resourceAndItsLimit[1];
 				resp.put(resource, quota);
@@ -206,17 +204,14 @@ public class QuotaHelper {
     	HashMap<String,String> map = loadFromQuotaClassFromDb(CinderConstants.DEFAULT_QUOTA_CLASS);
     		
     	if(map == null){
-    		QuotaClassOfCinder objQuotaClassOfCinder = new QuotaClassOfCinder();
-    		_log.info("BEFORE ENUM ITERATION");
+    		QuotaClassOfCinder objQuotaClassOfCinder = new QuotaClassOfCinder();    		
     		String tmpStr = "";
     		
     		for(CinderConstants.ResourceQuotaDefaults item : CinderConstants.ResourceQuotaDefaults.class.getEnumConstants()){
     			tmpStr = tmpStr + item.getResource() + "=" + item.getLimit()+":";
-    			_log.info("tmpStr being appended is {}", tmpStr);
     			defaultQuotaMap.put(item.getResource(), String.valueOf(item.getLimit()));
     		}
-    		
-    		_log.info("final tmpStr is {}", tmpStr);
+    		    		
     		objQuotaClassOfCinder.setLimits(tmpStr);
     		objQuotaClassOfCinder.setQuotaClass(CinderConstants.DEFAULT_QUOTA_CLASS);
     		objQuotaClassOfCinder.setId(URI.create(UUID.randomUUID().toString()));
@@ -313,7 +308,6 @@ public class QuotaHelper {
      */
     public QuotaOfCinder createProjectDefaultQuota(Project project, HashMap<String,String> defaultQuotaMap) {
         
-        //HashMap<String, String> defaultQuotaMap = loadDefaultsMapFromDb();
         long maxQuota = 0;
         
         if (project.getQuotaEnabled()) {
@@ -452,7 +446,7 @@ public class QuotaHelper {
     public HashMap<String,String> getCompleteDefaultConfiguration(String openstack_target_tenant_id){
     	HashMap<String,String> qMap = loadDefaultsMapFromDb();
     	qMap = populateVolumeTypeQuotasWhenNotDefined(qMap , openstack_target_tenant_id, null);
-    	_log.info("----getCompleteDefaultConfiguration is {}",qMap);
+    	_log.debug("getCompleteDefaultConfiguration is {}",qMap);
 		return qMap;
     }
     

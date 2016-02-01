@@ -46,6 +46,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.sun.jersey.api.client.ClientResponse;
 
 
 @Path("/v2/{tenant_id}/os-quota-sets")
@@ -183,12 +184,12 @@ public class QuotaService extends TaskResourceService {
     	CinderQuotaDetails respCinderQuota = new CinderQuotaDetails();
     	
     	HashMap<String, String>  defaultQuotaMap = getQuotaHelper().getCompleteDefaultConfiguration(openstackTargetTenantId);
-    	_log.info("defaultQuotaMap is {}", defaultQuotaMap.toString());
+    	_log.debug("defaultQuotaMap is {}", defaultQuotaMap.toString());
 		
 		//defaultQuotaMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(defaultQuotaMap , openstack_target_tenant_id, null);
 		respCinderQuota.quota_set.putAll(defaultQuotaMap); 
 		    	
-    	_log.info("respCinderQuota is {}", respCinderQuota.quota_set.toString());
+    	_log.debug("respCinderQuota is {}", respCinderQuota.quota_set.toString());
     	return getQuotaDetailFormat(header, respCinderQuota);    	
     }
     
@@ -246,11 +247,11 @@ public class QuotaService extends TaskResourceService {
             objVpool = getCinderHelper().getVpool(vpoolName);
 
             if (objVpool == null) {
-                _log.info("vpool with the given name doesnt exist");
+                _log.error("vpool with the given name doesnt exist");
                 throw APIException.badRequests.parameterIsNotValid(vpoolName);
             }
             if(!_permissionsHelper.tenantHasUsageACL(URI.create(openstackTargetTenantId), objVpool)){
-            	_log.info("tenant {} does not have access to vpool with the given name {}",openstackTargetTenantId, vpoolName);
+            	_log.error("tenant {} does not have access to vpool with the given name {}",openstackTargetTenantId, vpoolName);
                 throw APIException.badRequests.parameterIsNotValid(vpoolName);
             }
             _log.info("objVpool.getLabel() is {}", objVpool.getLabel());
@@ -373,7 +374,7 @@ public class QuotaService extends TaskResourceService {
         } else if (CinderApiUtils.getMediaType(header).equals("json")) {
             return CinderApiUtils.getCinderResponse(respCinderQuota, header, false);
         } else {
-            return Response.status(415).entity("Unsupported Media Type")
+            return Response.status(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getStatusCode()).entity(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getReasonPhrase())
                     .build();
         }
     }

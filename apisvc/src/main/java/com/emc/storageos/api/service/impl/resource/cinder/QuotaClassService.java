@@ -45,6 +45,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.sun.jersey.api.client.ClientResponse;
 
 @Path("/v2/{tenant_id}/os-quota-class-sets")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
@@ -74,7 +75,9 @@ public class QuotaClassService extends TaskResourceService {
      * @param tenant_id the URN of the tenant
      * @param quota_class_name the name of quota class which needs to be modified
      * 
-     * @brief Update Quota
+     * @brief Update Quota class. If the quota class exists, then we update the quota class.
+     * If the quota class does not exist, then we create a quota class.
+     * 
      * @return Quota details of quota class
      */
     @PUT
@@ -85,7 +88,7 @@ public class QuotaClassService extends TaskResourceService {
             CinderQuotaClassDetails quotaClassUpdates, @Context HttpHeaders header) {
     	    
     	String quotaClassName = quotaClassUpdates.quota_class_set.get(CinderConstants.CLASS_NAME_KEY);
-    	_log.info("quotaClassUpdates.quota_class_set is {}",quotaClassUpdates.quota_class_set);
+    	_log.debug("quotaClassUpdates.quota_class_set is {}",quotaClassUpdates.quota_class_set);
     	
     	boolean bVpoolQuotaUpdate = isVpoolQuotaUpdate(quotaClassUpdates.quota_class_set);
     	    	
@@ -94,11 +97,11 @@ public class QuotaClassService extends TaskResourceService {
     	
     	if(bVpoolQuotaUpdate){
 			vpoolName = getVpoolName(quotaClassUpdates.quota_class_set);
-            _log.info("Vpool for which quota is being updated is {}", vpoolName);
+            _log.debug("Vpool for which quota is being updated is {}", vpoolName);
             objVpool = getCinderHelper().getVpool(vpoolName);
 
             if (objVpool == null) {
-                _log.info("vpool with the given name doesnt exist");
+                _log.error("vpool with the given name doesnt exist");
                 throw APIException.badRequests.parameterIsNotValid(vpoolName);
             }          
 		}
@@ -106,20 +109,34 @@ public class QuotaClassService extends TaskResourceService {
     	List<URI> quotaClasses = _dbClient.queryByType(QuotaClassOfCinder.class, true);
     	CinderQuotaClassDetails resp = new CinderQuotaClassDetails();
     	
-    	_log.info("quotaClassName is {}", quotaClassName);
+    	_log.debug("quotaClassName is {}", quotaClassName);
     	for (URI quota : quotaClasses) {
     		QuotaClassOfCinder quotaClass = _dbClient.queryObject(QuotaClassOfCinder.class, quota);
     		
     		if(quotaClass.getQuotaClass().equals(quotaClassName)){
-    			_log.info("quotaClass.getLimits() is {}",quotaClass.getLimits());
+    			_log.debug("quotaClass.getLimits() is {}",quotaClass.getLimits());
     			HashMap<String,String> qMap = (HashMap<String, String>)getQuotaHelper().convertKeyValPairsStringToMap(quotaClass.getLimits());
     			qMap.putAll(quotaClassUpdates.quota_class_set);
     			qMap.remove("class_name");
     			quotaClass.setLimits(getQuotaHelper().convertMapToKeyValPairsString(qMap));
-    			_dbClient.updateObject(quotaClass);    			
+    			_dbClient.updateObject(quotaClass);    
+    			
+    			//Till this step, we have updated the quota class in the DB.
+    			//Let us say that the update request body is as below
+    			//{"quota_class_set": {"class_name": "default", "gigabytes_vnx-vpool-1": 102, "snapshots_vnx-vpool-1": 102, "volumes_vnx-vpool-1": 102}}
+    			//now the result should contain the limits already defined in db for the project or volume types 
+    			//and the default class limits for attributes pertaining to project and volume types, which haven't been defined
+    			//and the attribute that have just now been updated.
+    			// 
+    			//{"quota_class_set": {"gigabytes_ViPR-VMAX": -1, "snapshots_ViPR-VMAX": -1, 
+    			//						"snapshots": 10, "volumes_ViPR-VMAX": -1, 
+    			//						"snapshots_vnx-vpool-1": 102,     			//						
+    			//						"gigabytes_vnx-vpool-1": 102, "volumes_vnx-vpool-1": 102, 
+    			//						"gigabytes": 1000, 
+    			//						"gigabytes_vt-1": -1, "volumes": 10 }}
     			qMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(qMap , openstackTenantId, null);
     			resp.quota_class_set.putAll(qMap);
-    			_log.info("resp.quota_class_set is {}" , resp.quota_class_set.toString());
+    			_log.debug("resp.quota_class_set is {}" , resp.quota_class_set.toString());
     			return getQuotaClassDetailFormat(header, resp);
     		}
     		else{
@@ -127,20 +144,26 @@ public class QuotaClassService extends TaskResourceService {
     		}    			    	    		 
     	}
     	
-    	//If we reached here, it means that we dont have an entry in db. We must create one.
-    	//hence lets create one.
+    	//If we reached here, it means that we don't have an entry in db for the requested 
+    	//quota class with the name quotaClassUpdates.quota_class_set.get(CinderConstants.CLASS_NAME_KEY). 
+    	//Then We must create quota class and populate it in DB. 
     	QuotaClassOfCinder objQuotaClass = new QuotaClassOfCinder();
     	objQuotaClass.setQuotaClass(quotaClassName);
     	
     	HashMap<String,String> qMap = new HashMap<String,String>();
+    	//populating the default project level quota attributes.
+    	qMap.putAll(getQuotaHelper().convertKeyValPairsStringToMap(getQuotaHelper().createDefaultLimitsInStrFormat(null)));
+    	//project level quota attributes, if defined explicitly in the Update request, then we overwrite the defaults we
+    	//loaded in the previous step
 		qMap.putAll(quotaClassUpdates.quota_class_set);
-		qMap.remove("class_name");
-
-		objQuotaClass.setLimits(getQuotaHelper().convertMapToKeyValPairsString(qMap));
+		//remove this class_name attribute as it is not needed in the PUT response.
+		qMap.remove(CinderConstants.CLASS_NAME_KEY);
+		
+		objQuotaClass.setLimits(getQuotaHelper().convertMapToKeyValPairsString(qMap));		
     	objQuotaClass.setId(URI.create(UUID.randomUUID().toString()));
         _dbClient.createObject(objQuotaClass);
-
 		resp.quota_class_set.putAll(qMap);
+		
     	return getQuotaClassDetailFormat(header, resp);
     }
 
@@ -152,7 +175,8 @@ public class QuotaClassService extends TaskResourceService {
      * 
      * @param tenant_id the URN of the tenant asking for quotas
      * @param  quota_class_name the quota class name
-     * @brief
+     * @brief  This function loads the quota class details from the DB. For quota class attributes, which dont
+     * have explicit value defined by the user, we populate the default values in the hashmap before returning.
      * @return Default Quota details of target_tenant_id
      */
     @GET
@@ -166,7 +190,7 @@ public class QuotaClassService extends TaskResourceService {
     	CinderQuotaClassDetails respCinderQuota = new CinderQuotaClassDetails();
     	
     	HashMap<String, String>  defaultQuotaMap = getQuotaHelper().loadFromQuotaClassFromDb(quota_class_name);
-    	_log.info("defaultQuotaMap is {}", defaultQuotaMap.toString());
+    	_log.debug("defaultQuotaMap is {}", defaultQuotaMap.toString());
     	
     	if(respCinderQuota == null){
     		_log.info("quota class with the given name doesnt exist");
@@ -176,7 +200,7 @@ public class QuotaClassService extends TaskResourceService {
 		defaultQuotaMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(defaultQuotaMap , tenantId, null);
 		respCinderQuota.quota_class_set.putAll(defaultQuotaMap); 
 		    	
-    	_log.info("respCinderQuota is {}", respCinderQuota.quota_class_set.toString());
+    	_log.debug("respCinderQuota is {}", respCinderQuota.quota_class_set.toString());
     	return getQuotaClassDetailFormat(header, respCinderQuota);    	
     }
     
@@ -193,7 +217,7 @@ public class QuotaClassService extends TaskResourceService {
         } else if (CinderApiUtils.getMediaType(header).equals("json")) {
             return CinderApiUtils.getCinderResponse(respCinderClassQuota, header, false);
         } else {
-            return Response.status(415).entity("Unsupported Media Type")
+            return Response.status(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getStatusCode()).entity(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getReasonPhrase())
                     .build();
         }
     }

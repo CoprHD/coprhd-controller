@@ -128,6 +128,7 @@ public class FileMapper {
         to.setSoftLimit(from.getSoftLimit());
         to.setSoftGrace(from.getSoftGrace());
         to.setNotificationLimit(from.getNotificationLimit());
+        to.setSoftLimitExceeded(from.getSoftLimitExceeded());
         return to;
     }
 }

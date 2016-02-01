@@ -54,6 +54,7 @@ VirtualDataCenterCapacityService
 VirtualDataCenterService
 UserGroupService
 VirtualNasService
+ObjectNamespaceService
 
 
 =Tenant Services

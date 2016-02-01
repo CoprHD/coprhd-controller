@@ -26,7 +26,6 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     /**
      * native id of quota dir.
      * 
-     * @valid none
      */
     @XmlElement(name = "native_id")
     public String getNativeId() {
@@ -39,9 +38,6 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
 
     /**
      * Specifies whether or not oplocks enabled or not.
-     * 
-     * @valid true
-     * @valid false
      * 
      * @return true if oplocks enabled.
      */
@@ -57,7 +53,6 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     /**
      * Total capacity of the file system in GB
      * 
-     * @valid none
      */
     @XmlElement(name = "quota_size_gb")
     public String getQuotaSize() {
@@ -97,7 +92,6 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     /**
      * Total capacity of the file system in GB
      * 
-     * @valid none
      */
     @XmlElement(name = "security_style")
     public String getSecurityStyle() {
@@ -111,7 +105,6 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     /**
      * URI for the project containing the parent file system.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getProject() {
@@ -125,7 +118,6 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     /**
      * URI for the project containing the parent file system.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getParentFileSystem() {

@@ -23,7 +23,6 @@ public class VcenterDataCenterParam {
     /**
      * The name label for this vCenter data center
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public String getName() {

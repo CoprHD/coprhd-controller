@@ -2065,10 +2065,10 @@ public class RPHelper {
      * @param dbClient db client
      * @param consistencyGroup cg
      * @param varrayId varray ID
-     * @param production is this a production volume
+     * @param productionCopy is this a production volume
      * @return String associated with the existing copy name
      */
-    public static String getCgCopyName(DbClient dbClient, BlockConsistencyGroup consistencyGroup, URI varrayId, boolean production) {
+    public static String getCgCopyName(DbClient dbClient, BlockConsistencyGroup consistencyGroup, URI varrayId, boolean productionCopy) {
         List<Volume> cgVolumes = RPHelper.getCgVolumes(consistencyGroup.getId(), dbClient);
         if (cgVolumes == null) {
             return null;
@@ -2083,11 +2083,11 @@ public class RPHelper {
                 continue;
             }
             
-            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && production) {
+            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
                 return cgVolume.getRpCopyName();
             }
 
-            if (!cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && !production) {
+            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.toString()) && !productionCopy) {
                 return cgVolume.getRpCopyName();
             }
         }

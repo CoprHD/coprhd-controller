@@ -104,7 +104,7 @@ restore_data() {
             restore_node "${viprNode}"
         else
             echo "To restore node ${viprNode} site id only"
-            purge_node "${viprNode}" "onlysiteid"
+            restore_node "${viprNode}" "onlysiteid"
         fi
         if [ $? != 0 ]; then
             echo -n "failed on ${viprNode}.."

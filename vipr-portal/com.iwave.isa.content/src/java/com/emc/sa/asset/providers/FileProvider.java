@@ -290,7 +290,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     
     @Asset("protectedFileSystem")
     @AssetDependencies({ "project" })
-    public List<AssetOption> getProtectedFileSystems(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
+    public List<AssetOption> getProtectedFileSystems(AssetOptionsContext ctx, URI project) {
         debug("getting protected file system (project=%s)", project);
         ViPRCoreClient client = api(ctx);
         List<FileShareRestRep> fileSystems = client.fileSystems().findByProject(project);

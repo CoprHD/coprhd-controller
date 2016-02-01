@@ -225,7 +225,7 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     @XmlElementWrapper(name = "volume_groups")
     /**
-     * List of applications that the host assigned to.
+     * List of applications that the host is assigned to.
      * @valid none
      */
     @XmlElement(name = "volume_group")

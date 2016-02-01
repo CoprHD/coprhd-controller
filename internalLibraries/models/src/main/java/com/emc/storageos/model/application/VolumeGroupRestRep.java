@@ -70,6 +70,11 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
         this.parent = parent;
     }
 
+    /**
+     * Migration type for the mobility group
+     * 
+     * @return migration type
+     */
     @XmlElement(name = "migrationType")
     public String getMigrationType() {
         return migrationType;
@@ -79,6 +84,11 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
         this.migrationType = migrationType;
     }
 
+    /**
+     * Migration group by type for the mobility group
+     * 
+     * @return migration group by
+     */
     @XmlElement(name = "migrationGroupBy")
     public String getMigrationGroupBy() {
         return migrationGroupBy;

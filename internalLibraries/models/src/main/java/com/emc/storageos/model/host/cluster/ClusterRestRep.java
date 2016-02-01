@@ -82,7 +82,7 @@ public class ClusterRestRep extends TenantResourceRestRep {
 
     @XmlElementWrapper(name = "volume_groups")
     /**
-     * List of applications that the volume assigned to.
+     * List of applications that the cluster is assigned to.
      * @valid none
      */
     @XmlElement(name = "volume_group")

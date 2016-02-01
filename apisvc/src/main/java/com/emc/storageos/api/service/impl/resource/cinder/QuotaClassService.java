@@ -55,7 +55,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 public class QuotaClassService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(QuotaClassService.class);
-    private static final String EVENT_SERVICE_TYPE = "block";
+    private static final String EVENT_SERVICE_TYPE = "block";   
    
     private CinderHelpers getCinderHelper() {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);

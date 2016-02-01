@@ -37,10 +37,17 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.errorhandling.KeystoneApiException;
 import com.emc.storageos.keystone.restapi.model.response.*;
+import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
+import com.emc.storageos.model.tenant.TenantCreateParam;
+import com.emc.storageos.model.tenant.UserMappingAttributeParam;
+import com.emc.storageos.model.tenant.UserMappingParam;
+import com.emc.storageos.security.authorization.*;
+import com.emc.storageos.security.authorization.Role;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,15 +60,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.AuthnProvider.ProvidersType;
 import com.emc.storageos.db.client.model.AuthnProvider.SearchScope;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.UserGroup;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.keystone.KeystoneConstants;
@@ -79,9 +79,6 @@ import com.emc.storageos.security.authentication.AuthSvcEndPointLocator;
 import com.emc.storageos.security.authentication.AuthSvcInternalApiClientIterator;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
-import com.emc.storageos.security.authorization.CheckPermission;
-import com.emc.storageos.security.authorization.DefaultPermissions;
-import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.validator.Validator;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -102,6 +99,8 @@ public class AuthnConfigurationService extends TaggedResource {
     private static final String OPENSTACK_CINDER_NAME = "cinderv2";
     private static final String COPRHD_PORT = ":8080/v2/%(tenant_id)s";
     private static final String HTTP = "http://";
+    private static final String PROJECT_NAME = "adminProject";
+    private static final String OPENSTACK_TENANT_ID = "tenant_id";
 
     @Autowired
     private TenantsService _tenantsService;
@@ -234,11 +233,6 @@ public class AuthnConfigurationService extends TaggedResource {
         String mode = provider.getMode();
         if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
             populateKeystoneToken(provider, null);
-            // TODO: check for checkbox value
-            if(true){
-                // Register CoprHD as a Block Service Provider for OpenStack.
-                registerCoprhdInKeystone(provider);
-            }
         } else {
             // Now validate the authn provider to make sure
             // either both group object classes and
@@ -250,6 +244,10 @@ public class AuthnConfigurationService extends TaggedResource {
 
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
         persistProfileAndNotifyChange(provider, true);
+
+        if(provider.getAutoRegisterOpenStackProjects()){
+            registerCoprhdInKeystone(provider);
+        }
 
         auditOp(OperationTypeEnum.CREATE_AUTHPROVIDER, true, null,
                 provider.toString(), provider.getId().toString());
@@ -302,12 +300,30 @@ public class AuthnConfigurationService extends TaggedResource {
         // Retrieve tenant from OpenStack via Keystone API.
         TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
         TenantV2 tenant = retrieveTenant(tenantResponse, tenantName);
-        // TODO: create a tenant and a project
+        if (tenant == null) {
+            _log.info("Tenant is null");
+            throw BadRequestException.badRequests.unableToFindTenant(URI.create("TODO"));
+        } /*else if(){
+             TODO: check if tenant is admin
+        }*/
 
+        // Create mapping rules
+        List<UserMappingParam> userMappings = new ArrayList<>();
+        List<String> values = new ArrayList<>();;
+        values.add(tenant.getId());
+
+        List<UserMappingAttributeParam> attributes = new ArrayList<>();
+        attributes.add(new UserMappingAttributeParam(OPENSTACK_TENANT_ID, values));
+
+        userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
+
+        TenantCreateParam param = new TenantCreateParam(PROJECT_NAME, userMappings);
         // Create a tenant.
-        _tenantsService.createSubTenant();
+        TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(),param);
+
         // Create a project.
-        _tenantsService.createProject();
+        ProjectParam projectParam = new ProjectParam(PROJECT_NAME);
+        _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
 
         _log.info("END - register CoprHD in Keystone");
     }

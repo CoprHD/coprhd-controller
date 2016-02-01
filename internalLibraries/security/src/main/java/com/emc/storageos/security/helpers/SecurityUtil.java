@@ -14,6 +14,9 @@ public class SecurityUtil {
 
     private static SecurityService securityService;
 
+    private static SecureRandom secureRandomInst;
+    private static String secureRandomAlgo;
+
     public synchronized static void setSecurityService(SecurityService secService) {
         securityService = secService;
         log.info("{} is injected to SecurityUtil", secService.getClass().getName());
@@ -53,5 +56,33 @@ public class SecurityUtil {
 
     public static String[] getCipherSuite() {
         return securityService.getCipherSuite();
+    }
+
+    /**
+     * Set the algorithm of the SecureRandom
+     * @param algo the securedRandomAlgorithm to set
+     */
+    public static void setSecuredRandomAlgorithm(String algo) {
+        secureRandomAlgo = algo;
+    }
+
+    /**
+     * return the algorithm name of secure random
+     * @return
+     */
+    public static String getSecuredRandomAlgorithm() {
+        return secureRandomAlgo;
+    }
+
+    /**
+     * return the instance of a SecureRandom and it could be reused.
+     * @return
+     */
+    public synchronized static SecureRandom getSecureRandomInstance() throws Exception {
+        if (secureRandomInst == null) {
+            secureRandomInst = SecureRandom.getInstance(secureRandomAlgo);
+        }
+
+        return secureRandomInst;
     }
 }

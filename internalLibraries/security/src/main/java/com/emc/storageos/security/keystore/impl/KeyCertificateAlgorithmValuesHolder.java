@@ -11,6 +11,7 @@ import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.emc.storageos.security.helpers.SecurityUtil;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -216,21 +217,6 @@ public class KeyCertificateAlgorithmValuesHolder {
     public synchronized static void setSigningAlgorithm(String algo) {
         signingAlgorithm = algo;
         log.info("Signing Algorithm is {}", algo);
-    }
-
-    /**
-     * @return the securedRandomAlgorithm
-     */
-    public String getSecuredRandomAlgorithm() {
-        return securedRandomAlgorithm;
-    }
-
-    /**
-     * @param algo the securedRandomAlgorithm to set
-     */
-    public static synchronized void setSecuredRandomAlgorithm(String algo) {
-        securedRandomAlgorithm = algo;
-        log.info("SecuredRandom's Algorithm is {}", algo);
     }
 
     /**

@@ -27,7 +27,7 @@ public class NamedVolumeGroupsList {
     /**
      * List of volume groups that make up this entry.
      *
-     * @valid Maximum of 4000 volumes can be provided in this list.
+     * Valid values: Maximum of 4000 volumes can be provided in this list.
      */
     @XmlElement(name = "volume-group")
     public List<NamedRelatedResourceRep> getVolumeGroups() {

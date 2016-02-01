@@ -75,7 +75,7 @@ function installPackages
 function installJava
 {
   java=$2
-  [ ! -z "${java}" ] || java=7
+  [ ! -z "${java}" ] || java=8
 
   update-alternatives --set java /usr/lib64/jvm/jre-1.${java}.0-openjdk/bin/java
   update-alternatives --set javac /usr/lib64/jvm/java-1.${java}.0-openjdk/bin/javac

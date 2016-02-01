@@ -37,14 +37,6 @@ public class FileCreateWorkflowCompleter extends FileWorkflowCompleter{
 
         super.complete(dbClient, status, serviceCoded);
 
-        switch (status) {
-            case error:
-
-                handleFileShareErrors(dbClient);
-                break;
-            default:
-                break;
-        }
     }
 	
 	private void handleFileShareErrors(DbClient dbClient) {

@@ -343,27 +343,7 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
             MetricHeaderInfo headerInfo = metricHeaderInfoMap.get(metricKey);
             // We only care about the port metrics ...
             if (headerInfo.type == MetricHeaderInfo.Type.PORT) {
-                StoragePort port = headerInfo.port;
-                PortStat stat = portStatMap.get(port.getId());
-                if (stat == null) {
-                    // We don't have a stats entry for this port yet.
-                    // Create it and add it to the map.
-                    stat = new PortStat(port, 0, 0, 0);
-                    portStatMap.put(port.getId(), stat);
-                }
-                // Which stat is this?
-                if (metricKey.contains(FE_PORT_OPS)) {
-                    stat.iops = Double.valueOf(lastSample.get(metricKey)).longValue();
-                } else if (metricKey.contains(FE_PORT_READ)) {
-                    stat.kbytes += Double.valueOf(lastSample.get(metricKey)).longValue();
-                } else if (metricKey.contains(FE_PORT_WRITE)) {
-                    stat.kbytes += Double.valueOf(lastSample.get(metricKey)).longValue();
-                }
-                // The sampleTime is not associated with a particular port, so we will
-                // check if the stat.sampleTime is not set yet and then set it once.
-                if (stat.sampleTime == null || stat.sampleTime == 0) {
-                    stat.sampleTime = Long.valueOf(lastSample.get(HEADER_KEY_TIME_UTC));
-                }
+                handlePortStat(metricKey, headerInfo, portStatMap, lastSample);
             }
         }
 
@@ -377,6 +357,43 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
             } else {
                 log.warn("Failed to process stats for port {}", portURI);
             }
+        }
+    }
+
+    /**
+     * Create or update the PortStat pertaining to the port indicated by 'metricKey'.
+     * Requires:
+     *  - 'metricKey' points to a headerInfo that is associated with entry of type =
+     *     VPlexPerpetualCSVFileCollector.MetricHeaderInfo.Type.PORT
+     *
+     * @param metricKey [IN] -- Key to which the headerInfo applies
+     * @param headerInfo [IN] -- Meta info for a port stat
+     * @param portStatMap [IN/OUT] -- StoragePort URI to PortStat mapping. Will be filled in new PortStat if
+     *                    it's the first time that the port has been encountered.
+     * @param lastSample [IN] -- The last collected port stat.
+     */
+    private void handlePortStat(String metricKey, MetricHeaderInfo headerInfo, Map<URI, PortStat> portStatMap,
+            Map<String, String> lastSample) {
+        StoragePort port = headerInfo.port;
+        PortStat stat = portStatMap.get(port.getId());
+        if (stat == null) {
+            // We don't have a stats entry for this port yet.
+            // Create it and add it to the map.
+            stat = new PortStat(port, 0, 0, 0);
+            portStatMap.put(port.getId(), stat);
+        }
+        // Which stat is this?
+        if (metricKey.contains(FE_PORT_OPS)) {
+            stat.iops = Double.valueOf(lastSample.get(metricKey)).longValue();
+        } else if (metricKey.contains(FE_PORT_READ)) {
+            stat.kbytes += Double.valueOf(lastSample.get(metricKey)).longValue();
+        } else if (metricKey.contains(FE_PORT_WRITE)) {
+            stat.kbytes += Double.valueOf(lastSample.get(metricKey)).longValue();
+        }
+        // The sampleTime is not associated with a particular port, so we will
+        // check if the stat.sampleTime is not set yet and then set it once.
+        if (stat.sampleTime == null || stat.sampleTime == 0) {
+            stat.sampleTime = Long.valueOf(lastSample.get(HEADER_KEY_TIME_UTC));
         }
     }
 

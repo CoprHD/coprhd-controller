@@ -432,15 +432,15 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
             List<Volume> cgVolumes = getActiveCGVolumes(cg);
-            Volume firstVolume = cgVolumes.get(0);
-
             Set<URI> cgVolumeURIs = new HashSet<URI>();
             for (Volume cgVol : cgVolumes) {
                 cgVolumeURIs.add(cgVol.getId());
             }
 
+            Volume firstVolume = _dbClient.queryObject(Volume.class, cgVolsToAdd.get(0));
+
             // Check if all CG volumes are adding into the application
-            if(!cgVolsToAdd.isEmpty() && !cgVolumeURIs.containsAll(cgVolsToAdd) || cgVolsToAdd.size() != cgVolumeURIs.size()) {
+            if (!cgVolumeURIs.containsAll(cgVolsToAdd) || cgVolsToAdd.size() != cgVolumeURIs.size()) {
                 throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolume.getLabel(),
                         "not all volumes in consistency group are in the add volume list");
             }
@@ -511,6 +511,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
                 if (cg != null && !cg.getInactive()) {
                     cg.setArrayConsistency(false);
+                    Operation op = cg.getOpStatus().get(taskId);
+                    op.ready();
+                    cg.getOpStatus().updateTaskStatus(taskId, op);
                     _dbClient.updateObject(cg);
                 }
             }
@@ -552,7 +555,6 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
             List<Volume> cgVolumes = getActiveCGVolumes(cg);
-            Volume firstVolume = cgVolumes.get(0);
 
             Set<URI> cgVolumeURIs = new HashSet<URI>();
             for (Volume cgVol : cgVolumes) {
@@ -560,7 +562,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             }
 
             // Check if all CG volumes are removing from the application
-            if(!cgVolsToRemove.isEmpty() && !cgVolumeURIs.containsAll(cgVolsToRemove) || cgVolsToRemove.size() != cgVolumeURIs.size()) {
+            Volume firstVolume = _dbClient.queryObject(Volume.class, cgVolsToRemove.get(0));
+            if (!cgVolumeURIs.containsAll(cgVolsToRemove) || cgVolsToRemove.size() != cgVolumeURIs.size()) {
                 throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(firstVolume.getLabel(),
                         "not all volumes in consistency group are in the remove volume list");
             }
@@ -594,6 +597,12 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 cgVol.getOpStatus().updateTaskStatus(taskId, op);
             }
             _dbClient.updateObject(cgVolumes);
+
+            // update task status for CGs
+            Operation op = cg.getOpStatus().get(taskId);
+            op.ready();
+            cg.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.updateObject(cg);
         }
 
         _log.info("Removed volumes in CG from the application" );

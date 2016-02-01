@@ -534,20 +534,20 @@ public class ECSApi {
             nsRepGroup.setNamespaceName(ecsNsResult.getName());
             nsRepGroup.setRgType(ObjectNamespace.OBJ_StoragePool_Type.NONE);
 
-            if (ecsNsResult.getAllowed_vpools_list().size() != 0) {
+            if (!ecsNsResult.getAllowed_vpools_list().isEmpty()) {
                 for (int index = 0; index < ecsNsResult.getAllowed_vpools_list().size(); index++) {
                     //Its possible to have replication group list blank
                     if (ecsNsResult.getAllowed_vpools_list().get(index) != null &&
                             !ecsNsResult.getAllowed_vpools_list().get(index).isEmpty())
-                        nsRepGroup.setReplicationGroups(ecsNsResult.getAllowed_vpools_list().get(index));
+                        nsRepGroup.addReplicationGroups(ecsNsResult.getAllowed_vpools_list().get(index));
                 }
                 nsRepGroup.setRgType(ObjectNamespace.OBJ_StoragePool_Type.ALLOWED);
-            } else if (ecsNsResult.getDisallowed_vpools_list().size() != 0) {
+            } else if (!ecsNsResult.getDisallowed_vpools_list().isEmpty()) {
                 for (int index = 0; index < ecsNsResult.getDisallowed_vpools_list().size(); index++) {
                     //Its possible to have replication group list blank
                     if (ecsNsResult.getDisallowed_vpools_list().get(index) != null &&
                             !ecsNsResult.getDisallowed_vpools_list().get(index).isEmpty())
-                        nsRepGroup.setReplicationGroups(ecsNsResult.getDisallowed_vpools_list().get(index));
+                        nsRepGroup.addReplicationGroups(ecsNsResult.getDisallowed_vpools_list().get(index));
                 }
                 nsRepGroup.setRgType(ObjectNamespace.OBJ_StoragePool_Type.DISALLOWED);
             }

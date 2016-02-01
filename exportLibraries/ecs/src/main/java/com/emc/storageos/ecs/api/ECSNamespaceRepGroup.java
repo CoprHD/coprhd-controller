@@ -34,7 +34,7 @@ public class ECSNamespaceRepGroup {
         return replicationGroups;
     }
     
-    public void setReplicationGroups(String replicationGroups) {
+    public void addReplicationGroups(String replicationGroups) {
         this.replicationGroups.add(replicationGroups);
     }
 }

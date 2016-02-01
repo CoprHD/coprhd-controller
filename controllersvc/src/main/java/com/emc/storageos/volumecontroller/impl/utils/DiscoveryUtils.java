@@ -845,9 +845,8 @@ public class DiscoveryUtils {
             Iterator<ObjectNamespace> objNamespaceIt = dbClient.queryIterativeObjects(ObjectNamespace.class, namespacesDiff, true);
             while (objNamespaceIt.hasNext()) {
                 ObjectNamespace namespace = objNamespaceIt.next();
-                _log.info("Object Namespace deleted {} : {}", namespace.getNativeId(), namespace.getId());
+                _log.info("Object Namespace not visible {} : {}", namespace.getNativeId(), namespace.getId());
                 namespace.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
-                namespace.setInactive(true);
                 dbClient.updateObject(namespace);
             }
         }

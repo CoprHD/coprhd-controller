@@ -132,8 +132,6 @@ public class TenantsService extends TaggedResource {
     private static final String EVENT_SERVICE_TYPE = "tenant";
     private static final String EVENT_SERVICE_SOURCE = "TenantManager";
     private static final Logger _log = LoggerFactory.getLogger(TenantsService.class);
-    //Invalid ECS namespace
-    private static final String INVALID_OBJECT_NAMESPACE = "NONE~!@#";
 
     @Override
     public String getServiceType() {
@@ -332,21 +330,6 @@ public class TenantsService extends TaggedResource {
                     break;
                 }
             }
-        } else if (tenant.getNamespace() != null && (param.getNamespace() == null || param.getNamespace().isEmpty())) {
-            // existing namespce is being unmapped
-            // remove mapping in respective namespace CF
-            List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
-            Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
-            while (nsItr.hasNext()) {
-                ObjectNamespace namesp = nsItr.next();
-                if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace())) {
-                    namesp.setTenant(URI.create(INVALID_OBJECT_NAMESPACE));//updateobject resets only non-null fields
-                    namesp.setMapped(false);
-                    _dbClient.updateObject(namesp);
-                    tenant.setNamespace(INVALID_OBJECT_NAMESPACE);
-                    break;
-                }
-            }
         }
 
         if (!isUserMappingEmpty(param)) {
@@ -451,7 +434,7 @@ public class TenantsService extends TaggedResource {
             Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
                 ObjectNamespace namesp = nsItr.next();
-                if (namesp.getNativeId().equalsIgnoreCase(subtenant.getNamespace())) {
+                if (subtenant.getNamespace().equalsIgnoreCase(namesp.getNativeId())) {
                     namesp.setTenant(subtenant.getId());
                     namesp.setMapped(true);
                     _dbClient.updateObject(namesp);

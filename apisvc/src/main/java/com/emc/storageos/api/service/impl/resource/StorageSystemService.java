@@ -1214,6 +1214,9 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
         StorageSystem system = queryResource(id);
         ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
+            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
+        }
 
         ObjectNamespaceList objNamespaceList = new ObjectNamespaceList();
         URIQueryResultList objNamespaceURIs = new URIQueryResultList();

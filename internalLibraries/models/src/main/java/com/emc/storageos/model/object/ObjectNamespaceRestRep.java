@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.object;
@@ -53,7 +53,7 @@ public class ObjectNamespaceRestRep extends DiscoveredDataObjectRestRep {
     }
 
     public void setTenant(URI tenant) {
-        tenant = tenant;
+        this.tenant = tenant;
     }
 
     @XmlElement(name = "namespace_storage_system")

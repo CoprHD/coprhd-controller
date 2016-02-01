@@ -83,17 +83,14 @@ public class QuotaClassService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{quota_class_name}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public Response updateQuotaClass(@PathParam("tenant_id") String openstack_tenant_id,
-            @PathParam("quota_class_name") String quota_class_name,
+    public Response updateQuotaClass(@PathParam("tenant_id") String openstackTenantId,            
             CinderQuotaClassDetails quotaClassUpdates, @Context HttpHeaders header) {
     	    
     	String quotaClassName = quotaClassUpdates.quota_class_set.get(CinderConstants.CLASS_NAME_KEY);
     	_log.info("quotaClassUpdates.quota_class_set is {}",quotaClassUpdates.quota_class_set);
     	
     	boolean bVpoolQuotaUpdate = isVpoolQuotaUpdate(quotaClassUpdates.quota_class_set);
-    	
-    	List<URI> quotaClasses = _dbClient.queryByType(QuotaClassOfCinder.class, true);
-
+    	    	
     	String vpoolName = null;
     	VirtualPool objVpool = null;
     	
@@ -108,6 +105,7 @@ public class QuotaClassService extends TaskResourceService {
             }          
 		}
     	
+    	List<URI> quotaClasses = _dbClient.queryByType(QuotaClassOfCinder.class, true);
     	CinderQuotaClassDetails resp = new CinderQuotaClassDetails();
     	
     	_log.info("quotaClassName is {}", quotaClassName);
@@ -121,7 +119,7 @@ public class QuotaClassService extends TaskResourceService {
     			qMap.remove("class_name");
     			quotaClass.setLimits(getQuotaHelper().convertMapToKeyValPairsString(qMap));
     			_dbClient.updateObject(quotaClass);    			
-    			qMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(qMap , openstack_tenant_id, null);
+    			qMap = getQuotaHelper().populateVolumeTypeQuotasWhenNotDefined(qMap , openstackTenantId, null);
     			resp.quota_class_set.putAll(qMap);
     			_log.info("resp.quota_class_set is {}" , resp.quota_class_set.toString());
     			return getQuotaClassDetailFormat(header, resp);

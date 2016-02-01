@@ -103,6 +103,8 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 public class VolumeGroupService extends TaskResourceService {
     private static final String VOLUME_GROUP_NAME = "name";
     private static final String VOLUME_GROUP_ROLES = "roles";
+    private static final String MIGRATION_GROUP_BY = "migration_group_by";
+    private static final String MIGRATION_TYPE = "migration_type";
     private static final String EVENT_SERVICE_TYPE = "application";
     private static final Set<String> ALLOWED_SYSTEM_TYPES = new HashSet<String>(Arrays.asList(
             DiscoveredDataObject.Type.vnxblock.name(),
@@ -200,8 +202,13 @@ public class VolumeGroupService extends TaskResourceService {
             throw APIException.badRequests.volumeGroupCantBeCreated(volumeGroup.getLabel(), msg);
         }
 
-        // TODO make sure properties (migration type, etc) are set when creating mobility group
         if (param.getRoles().contains(VolumeGroup.VolumeGroupRole.MOBILITY.name())) {
+            ArgValidator.checkFieldNotEmpty(param.getMigrationType(), MIGRATION_TYPE);
+            ArgValidator.checkFieldNotEmpty(param.getMigrationGroupBy(), MIGRATION_GROUP_BY);
+            ArgValidator.checkFieldValueFromEnum(param.getMigrationType(), MIGRATION_TYPE,
+                    VolumeGroup.MigrationType.class);
+            ArgValidator.checkFieldValueFromEnum(param.getMigrationGroupBy(), MIGRATION_GROUP_BY,
+                    VolumeGroup.MigrationGroupBy.class);
             volumeGroup.setMigrationType(param.getMigrationType());
             volumeGroup.setMigrationGroupBy(param.getMigrationGroupBy());
         }

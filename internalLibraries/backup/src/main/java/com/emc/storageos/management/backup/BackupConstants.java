@@ -53,10 +53,11 @@ public interface BackupConstants {
     public static final long MEGABYTE = 1024 * 1024;
 
     // Number of Kilobyte compare to byte
-    public static final long KILOBYTE = 1024;
+    public static final int KILOBYTE = 1024;
 
     // Delimiter for backup file name
     public static final String BACKUP_NAME_DELIMITER = "_";
+    public static final String COLLECTED_BACKUP_NAME_DELIMITER = "-";
 
     // Backup compress format
     public static final String COMPRESS_SUFFIX = ".zip";
@@ -66,13 +67,17 @@ public interface BackupConstants {
 
     // Standard date string format
     public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    public static final String SCHEDULED_BACKUP_DATE_FORMAT = "yyyyMMddHHmmss";
 
     // Dynamic string format of listing backups
     public static final String LIST_BACKUP_TITLE = "  %%-%ds%%-10s%%-20s";
     public static final String LIST_BACKUP_INFO = "  %%-%ds%%-10.2f%%-20s";
+    public static final String COLLECTED_BACKUP_REGEX_PATTERN = "^(\\S+)*-\\d+-\\d+-(\\S+)*\\.zip$";
+    public static final String SCHEDULED_BACKUP_DATE_REGEX_PATTERN = "^\\d{%d}$";
 
     // The common part of backup info file name
     public static final String BACKUP_INFO_SUFFIX = BACKUP_NAME_DELIMITER + "info.properties";
+    public static final String BACKUP_ZK_FILE_SUFFIX = BACKUP_NAME_DELIMITER + "zk.zip";
     public static final String BACKUP_INFO_VERSION = "version";
     public static final String BACKUP_INFO_HOSTS = "hosts";
     public static final String EVENT_SERVICE_TYPE = "backup";
@@ -86,6 +91,29 @@ public interface BackupConstants {
     public static final String STORAGEOS_GROUP = "storageos";
 
     public static final File[] EMPTY_ARRAY = {};
+
+    String FTPS_URL_PREFIX = "ftps://";
+    String FTP_URL_PREFIX = "ftp://";
+    String CONTENT_LENGTH_HEADER = "Content-Length:";
+    int FILE_DOES_NOT_EXIST = 19;
+    String MD5_SUFFIX = ".md5";
+    int LOCK_TIMEOUT = 1000;
+
+    //constants for restore
+    int DOWNLOAD_BUFFER_SIZE=KILOBYTE*4; //4k
+
+    // The directory to persist downloaded backup files from FTP server
+    String RESTORE_DIR= "/data/restore";
+
+    String BACKUP_RESTORE_STATUS = "restorestatus";
+    String LOCAL_RESTORE_KIND_PREFIX=BACKUP_RESTORE_STATUS + "/local";
+    String REMOTE_RESTORE_KIND_PREFIX=BACKUP_RESTORE_STATUS + "/remote";
+    String DOWNLOAD_OWNER_SUFFIX="/owner";
+    String RESTORE_LOCK="restore";
+    String RESTORE_STATUS_UPDATE_LOCK="restore-status-update";
+    String BACKUP_LOCK = "backup";
+    String CURRENT_DOWNLOADING_BACKUP_NAME_KEY="name";
+    String CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY="isLocal";
 
     public static final String SITE_ID_FILE_NAME = "siteid";
     public static final int SYSTOOL_TIMEOUT_MILLIS = 120000; // 2 min

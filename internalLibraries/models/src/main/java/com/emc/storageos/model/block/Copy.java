@@ -52,8 +52,6 @@ public class Copy implements Serializable {
     }
 
     /**
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "sync", required = false, defaultValue = "false")
     public String getSync() {
@@ -67,7 +65,6 @@ public class Copy implements Serializable {
     /**
      * Type of protection.
      * 
-     * @valid none
      */
     @XmlElement(name = "type", required = true)
     public String getType() {
@@ -93,7 +90,6 @@ public class Copy implements Serializable {
     /**
      * User provided name.
      * 
-     * @valid none
      */
     @XmlElement(name = "name", required = false)
     public String getName() {
@@ -107,7 +103,6 @@ public class Copy implements Serializable {
     /**
      * User provided number of copies.
      * 
-     * @valid none
      */
     @XmlElement(name = "count", required = false)
     public Integer getCount() {
@@ -120,9 +115,7 @@ public class Copy implements Serializable {
 
     /**
      * User provided direction for the synchronization.
-     * 
-     * @valid SOURCE_TO_TARGET
-     * @valid TARGET_TO_SOURCE
+     * Valid values SOURCE_TO_TARGET, TARGET_TO_SOURCE
      * @return The Sync Direction
      */
     @XmlElement(name = "syncDirection", required = false)
@@ -136,10 +129,10 @@ public class Copy implements Serializable {
 
     /**
      * User provided SRDF copy mode for the synchronization.
-     * 
-     * @valid SYNCHRONOUS - Change SRDF copy mode to SYNCHRONOUS
-     * @valid ASYNCHRONOUS - Change SRDF copy mode to ASYNCHRONOUS
-     * @valid ADAPTIVECOPY - Change SRDF copy mode to ADAPTIVE
+     * Valid values: 
+     * SYNCHRONOUS
+     * ASYNCHRONOUS
+     * ADAPTIVECOPY
      * @return
      */
     @XmlElement(name = "copyMode", required = false)

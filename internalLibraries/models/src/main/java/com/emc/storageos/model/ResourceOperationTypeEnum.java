@@ -301,6 +301,9 @@ public enum ResourceOperationTypeEnum {
     UPDATE_ALIAS("UPDATE ALIAS", "update one or more aliases"),
     CREATE_BACKUP("CREATE BACKUP", "create ViPR backup"),
     UPLOAD_BACKUP("UPLOAD BACKUP", "upload ViPR backup to external location"),
+    PULL_BACKUP("PULL BACKUP", "operation to download ViPR backup from external location"),
+    PULL_BACKUP_CANCEL("PULL BACKUP CANCEL", "operation to cancel the download of ViPR backup from external location"),
+    RESTORE_BACKUP("RESTORE BACKUP", "operation to restore ViPR backup"),
     CREATE_VCENTER_CLUSTER("CREATE VCENTER CLUSTER", "create a cluster in vCenter server"),
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
     ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "add journal volume to consistency group"),
@@ -327,7 +330,6 @@ public enum ResourceOperationTypeEnum {
     /**
      * The name of the resource operation
      * 
-     * @valid none
      */
     @XmlElement
     public String getName() {

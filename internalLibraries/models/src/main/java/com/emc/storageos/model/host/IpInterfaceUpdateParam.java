@@ -48,8 +48,6 @@ public class IpInterfaceUpdateParam extends IpInterfaceParam {
     /**
      * The protocol supported by the interface which should be IPv4 or IPv6.
      * 
-     * @valid example IPv4
-     * @valid example IPv6
      */
     // @EnumType(HostInterface.Protocol.class)
     @XmlElement()
@@ -64,7 +62,6 @@ public class IpInterfaceUpdateParam extends IpInterfaceParam {
     /**
      * The IPv4 or IPv6 address of this interface.
      * 
-     * @valid example: 10.247.12.99
      */
     @XmlElement(name = "ip_address")
     @Endpoint(type = Endpoint.EndpointType.IP)

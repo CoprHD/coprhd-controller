@@ -48,7 +48,6 @@ public class SMISProviderCreateParam {
     /**
      * IP address of the SMIS provider.
      * 
-     * @valid example: 10.247.99.87
      */
     @XmlElement(required = true, name = "ip_address")
     public String getIpAddress() {
@@ -62,7 +61,6 @@ public class SMISProviderCreateParam {
     /**
      * The port number of the SMIS provider
      * 
-     * @valid example: 5989
      */
     @XmlElement(required = true, name = "port_number")
     public Integer getPortNumber() {
@@ -76,7 +74,6 @@ public class SMISProviderCreateParam {
     /**
      * User name of the SMIS provider
      * 
-     * @valid example: none
      */
     @XmlElement(required = true, name = "user_name")
     public String getUserName() {
@@ -90,7 +87,6 @@ public class SMISProviderCreateParam {
     /**
      * Password of the SMIS provider
      * 
-     * @valid example: none
      */
     @XmlElement(required = true)
     public String getPassword() {
@@ -105,7 +101,6 @@ public class SMISProviderCreateParam {
      * Specifies whether to use SSL (Secure Sockets Layer)
      * as the authentication method.
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "use_ssl")
     public Boolean getUseSSL() {

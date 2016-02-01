@@ -32,7 +32,6 @@ public class StorageSystemUpdateRequestParam {
     /**
      * Name of the storage system
      * 
-     * @valid none
      */
     @XmlElement(name = "name")
     @Length(min = 2, max = 128)
@@ -47,7 +46,6 @@ public class StorageSystemUpdateRequestParam {
     /**
      * IP Address of the storage system
      * 
-     * @valid none
      */
     @XmlElement(name = "ip_address")
     public String getIpAddress() {
@@ -61,7 +59,6 @@ public class StorageSystemUpdateRequestParam {
     /**
      * Port Number used to connect to the storage system
      * 
-     * @valid none
      */
     @XmlElement(name = "port_number")
     public Integer getPortNumber() {
@@ -75,7 +72,6 @@ public class StorageSystemUpdateRequestParam {
     /**
      * Username to connect to storage system
      * 
-     * @valid none
      */
     @XmlElement(name = "user_name", nillable = true)
     public String getUserName() {
@@ -90,7 +86,6 @@ public class StorageSystemUpdateRequestParam {
      * Password to connect to storage system
      * 
      * 
-     * @valid none
      */
     @XmlElement(name = "password", nillable = true)
     public String getPassword() {
@@ -106,7 +101,6 @@ public class StorageSystemUpdateRequestParam {
      * This field is applicable for storage systems of type 'vnxfile'.
      * It is ignored for other storage system types and can be null.
      * 
-     * @valid none
      */
     @XmlElement(name = "smis_provider_ip")
     public String getSmisProviderIP() {
@@ -122,7 +116,6 @@ public class StorageSystemUpdateRequestParam {
      * This field is applicable for storage systems of type 'vnxfile'.
      * It is ignored for other storage system types and can be null.
      * 
-     * @valid none
      */
     @XmlElement(name = "smis_port_number")
     public Integer getSmisPortNumber() {
@@ -138,7 +131,6 @@ public class StorageSystemUpdateRequestParam {
      * This field is applicable for storage systems of type 'vnxfile'.
      * It is ignored for other storage system types and can be null.
      * 
-     * @valid none
      */
     @XmlElement(name = "smis_user_name")
     public String getSmisUserName() {
@@ -154,7 +146,6 @@ public class StorageSystemUpdateRequestParam {
      * This field is applicable for storage systems of type 'vnxfile'.
      * It is ignored for other storage system types and can be null.
      * 
-     * @valid none
      */
     @XmlElement(name = "smis_password")
     public String getSmisPassword() {
@@ -171,8 +162,6 @@ public class StorageSystemUpdateRequestParam {
      * This field is applicable for storage systems of type 'vnxfile'.
      * It is ignored for other storage system types and can be null.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "smis_use_ssl")
     public Boolean getSmisUseSSL() {
@@ -186,7 +175,6 @@ public class StorageSystemUpdateRequestParam {
     /**
      * Determines the maximum number of resources that are allowed to be created on the storage system
      * 
-     * @valid none
      */
     @XmlElement(name = "max_resources")
     @Range(min = 0, max = Integer.MAX_VALUE)
@@ -201,7 +189,6 @@ public class StorageSystemUpdateRequestParam {
     /**
      * Whether limit on number of Resources has been set
      * 
-     * @valid none
      */
     @XmlElement(name = "unlimited_resources")
     public Boolean getIsUnlimitedResourcesSet() {

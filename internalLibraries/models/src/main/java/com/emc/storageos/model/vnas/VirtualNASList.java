@@ -31,7 +31,6 @@ public class VirtualNASList {
      * List of Storage ports. A Storage port represents a
      * port of a storage device.
      * 
-     * @valid none
      */
     @XmlElement(name = "vnas_server")
     public List<NamedRelatedResourceRep> getVNASServers() {

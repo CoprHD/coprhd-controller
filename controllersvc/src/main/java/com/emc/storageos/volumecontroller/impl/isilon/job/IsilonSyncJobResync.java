@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.isilon.restapi.IsilonApi;
-import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
@@ -42,14 +41,8 @@ public class IsilonSyncJobResync extends IsilonSyncJobFailover {
                     _status = JobStatus.SUCCESS;
                     _pollResult.setJobPercentComplete(100);
                     _logger.info("IsilonSyncIQJob: {} succeeded", currentJob);
-                    String newPolicyName = currentJob;
-                    newPolicyName = newPolicyName.concat("_mirror");
-                    try {
-                        isiApiClient.getReplicationPolicy(newPolicyName);
-                    } catch (IsilonException isiex) {
-                        _logger.info("Isilon reSync still need to be updated: {} succeeded", newPolicyName);
-                        wait(2000);
-                    }
+
+                    wait(2000);
 
                 } else {
                     _errorDescription = isiGetReportErrMsg(isiApiClient.getTargetReplicationPolicyReports(currentJob).getList());

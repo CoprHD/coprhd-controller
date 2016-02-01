@@ -22,13 +22,13 @@ public class HostCreateParam extends HostParam {
 
     /**
      * The host type.
-     * 
-     * @valid Windows
-     * @valid HPUX
-     * @valid Linux
-     * @valid Esx
-     * @valid SUNVCS
-     * @valid Other
+     * Valid values:
+     *   Windows
+     *   HPUX
+     *   Linux
+     *   Esx
+     *   SUNVCS
+     *   Other
      */
     @Override
     @XmlElement(required = true)
@@ -40,9 +40,6 @@ public class HostCreateParam extends HostParam {
      * The short or fully qualified host name or IP address of the host
      * management interface.
      * 
-     * @valid example: hostname
-     * @valid example: fqdn.hostname.com
-     * @valid example: 10.12.100.200
      */
     @Override
     @XmlElement(name = "host_name", required = true)
@@ -55,7 +52,6 @@ public class HostCreateParam extends HostParam {
     /**
      * The user label for this host.
      * 
-     * @valid example: host1
      */
     @XmlElement(required = true)
     public String getName() {

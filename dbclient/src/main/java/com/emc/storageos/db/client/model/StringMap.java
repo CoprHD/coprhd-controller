@@ -36,4 +36,5 @@ public class StringMap extends AbstractChangeTrackingMap<String> {
     public byte[] valToByte(String value) {
         return value.getBytes(Charset.forName("UTF-8"));
     }
+    
 }

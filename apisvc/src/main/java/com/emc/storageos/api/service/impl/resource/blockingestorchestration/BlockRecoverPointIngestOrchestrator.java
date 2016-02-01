@@ -295,6 +295,36 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         volume.setPersonality(PersonalityTypes.SOURCE.toString());
         volume.setAccessState(Volume.VolumeAccessState.READWRITE.toString());
         volume.setLinkStatus(Volume.LinkStatus.IN_SYNC.toString());
+        
+        // For RP+VPLEX Distributed volumes and MetroPoint volumes, we want to set the
+        // internal site names on the backing volumes. This helps when identifying
+        // which Export Groups the volume belongs to on the VPLEX.
+        //
+        // For MetroPoint, the same VPLEX Distributed/Metro volume will be exported to 
+        // two VPLEX Export Groups (aka Storage Views). One for each RPA Cluster in the
+        // MetroPoint configuration.
+        if (RPHelper.isVPlexDistributedVolume(volume)) {
+            // Get the internal site names
+            String rpInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);            
+            String rpStandbyInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.RP_STANDBY_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);
+            // Match the main volume varray to one of it's backing volume varrays. Matching should indicate the volume
+            // is the VPLEX Source side. Non-matching varrays should be the VPLEX HA side.
+            for (String associatedVolId : volume.getAssociatedVolumes()) {
+                Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                if (associatedVolume != null && !associatedVolume.getInactive()) {
+                    if (associatedVolume.getVirtualArray().equals(volume.getVirtualArray())) {
+                        associatedVolume.setInternalSiteName(rpInternalSiteName);
+                    } else {
+                        // If this is a RP+VPLEX Distributed volume (not MP) there is the potential that 
+                        // rpStandbyInternalSiteName could be null, which is fine.
+                        associatedVolume.setInternalSiteName(rpStandbyInternalSiteName);
+                    }
+                    _dbClient.updateObject(associatedVolume);
+                }
+            }
+        }
 
         // When we ingest a source volume, we need to properly create the RP Target list for that source,
         // however it is possible that not all (or any) of the RP targets have been ingested yet. Therefore
@@ -309,7 +339,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         StringSet rpManagedTargetVolumeIdStrs = PropertySetterUtil.extractValuesFromStringSet(
                 SupportedVolumeInformation.RP_MANAGED_TARGET_VOLUMES.toString(),
                 unManagedVolumeInformation);
-        for (String rpManagedTargetVolumeIdStr : rpManagedTargetVolumeIdStrs) {
+        for (String rpManagedTargetVolumeIdStr : rpManagedTargetVolumeIdStrs) {            
             // Check to make sure the target volume is legit.
             Volume managedTargetVolume = _dbClient.queryObject(Volume.class, URI.create(rpManagedTargetVolumeIdStr));
             if (managedTargetVolume == null) {

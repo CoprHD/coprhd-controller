@@ -333,19 +333,13 @@ public class RPUnManagedObjectDiscoverer {
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PERSONALITY.toString(),
                             personality);
                     
-                    StringSet rpCopyRole = new StringSet();
-                    rpCopyRole.add(rpCopyNameToRoleMap.get(volume.getRpCopyName()));
-                    
                     StringSet rpCopyName = new StringSet();
                     rpCopyName.add(volume.getRpCopyName());
                     
                     StringSet rpInternalSiteName = new StringSet();
                     rpInternalSiteName.add(volume.getInternalSiteName());
                     
-                    if (volume.isProductionStandby()) {
-                        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_STANDBY_COPY_ROLE.toString(),
-                                rpCopyRole);
-                                                
+                    if (volume.isProductionStandby()) {                                                                      
                         unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_STANDBY_COPY_NAME.toString(),
                                 rpCopyName);                         
                         
@@ -365,15 +359,17 @@ public class RPUnManagedObjectDiscoverer {
                                     UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name(), Boolean.TRUE.toString());
                         }                        
                     } else {
-                        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_ROLE.toString(),
-                                rpCopyRole);
-                        
                         unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_NAME.toString(),
                                 rpCopyName); 
                         
                         unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(),
                                 rpInternalSiteName);
                     }
+                    
+                    StringSet rpCopyRole = new StringSet();
+                    rpCopyRole.add(rpCopyNameToRoleMap.get(volume.getRpCopyName()));
+                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_ROLE.toString(),
+                            rpCopyRole);
                                                                                                     
                     StringSet rpAccessState = new StringSet();
                     rpAccessState.add(rpCopyAccessStateMap.get(volume.getRpCopyName()));

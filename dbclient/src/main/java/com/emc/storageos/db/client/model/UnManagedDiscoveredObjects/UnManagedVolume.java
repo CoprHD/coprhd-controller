@@ -158,7 +158,6 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         RP_COPY_NAME("rpCopyName", "rpCopyName"),
         RP_STANDBY_COPY_NAME("rpStandbyCopyName", "rpStandbyCopyName"),
         RP_COPY_ROLE("rpCopyRole", "rpCopyRole"),
-        RP_STANDBY_COPY_ROLE("rpStandbyCopyRole", "rpStandbyCopyRole"),
         RP_RSET_NAME("rpRSetName", "rpRSetName"),
         RP_INTERNAL_SITENAME("rpInternalSiteName", "rpInternalSiteName"),
         RP_STANDBY_INTERNAL_SITENAME("rpStandbyInternalSiteName", "rpStandbyInternalSiteName"),

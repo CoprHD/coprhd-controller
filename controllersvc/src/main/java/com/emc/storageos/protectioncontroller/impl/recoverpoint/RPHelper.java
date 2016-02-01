@@ -1614,13 +1614,23 @@ public class RPHelper {
     }
 
     /**
-     * Determines if a volume is part of a MetroPoint configuration.
+     * Determines if a volume is a VPLEX volume.
      *
      * @param volume the volume.
-     * @return true if this is a MetroPoint volume, false otherwise.
+     * @return true if this is a VPLEX volume, false otherwise.
      */
     public static boolean isVPlexVolume(Volume volume) {
         return (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty());
+    }
+    
+    /**
+     * Determines if a volume is a VPLEX Distributed (aka Metro) volume.
+     *
+     * @param volume the volume.
+     * @return true if this is a VPLEX Distributed (aka Metro) volume, false otherwise.
+     */
+    public static boolean isVPlexDistributedVolume(Volume volume) {
+        return (isVPlexVolume(volume) && (volume.getAssociatedVolumes().size() > 1));
     }
 
     /**

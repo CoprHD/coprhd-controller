@@ -1538,7 +1538,11 @@ public class DisasterRecoveryService {
         } catch (UnknownHostException e) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed("Could not resolve target standby site virtual IP.  Please check name service.");
         }
-        param.setVip(DualInetAddress.normalizeInet6Address(address.getHostAddress()));
+        if (address.getHostAddress().contains(":")) {
+            param.setVip(DualInetAddress.normalizeInet6Address(address.getHostAddress()));
+        } else {
+            param.setVip(address.getHostAddress());
+        }
         log.info("Target standby site ip is {}", param.getVip());
 
         for (Site site : existingSites) {

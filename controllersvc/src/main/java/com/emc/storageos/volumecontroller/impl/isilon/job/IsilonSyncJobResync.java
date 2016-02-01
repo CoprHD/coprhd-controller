@@ -36,7 +36,7 @@ public class IsilonSyncJobResync extends IsilonSyncJobFailover {
 
                 IsilonSyncTargetPolicy targetPolicy = isiApiClient.getTargetReplicationPolicy(currentJob);
                 IsilonSyncTargetPolicy.JobState policyState = targetPolicy.getLastJobState();
-                if (policyState.equals(JobState.running) && targetPolicy.getFoFbState().equals(FOFB_STATES.creating_resync_policy)) {
+                if (policyState.equals(JobState.running)) {
                     _status = JobStatus.IN_PROGRESS;
                 } else if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) && policyState.equals(JobState.finished)) {
                     _status = JobStatus.SUCCESS;

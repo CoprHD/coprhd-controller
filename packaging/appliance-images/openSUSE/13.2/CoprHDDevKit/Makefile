@@ -100,6 +100,7 @@ devkit:
 	$(call targetLog,+)
 	bash $(WORKSPACE)/configure.sh installRepositories
 	bash $(WORKSPACE)/configure.sh installPackages
+	bash $(WORKSPACE)/configure.sh installDockerStorage
 	bash $(WORKSPACE)/configure.sh installJava
 	bash $(WORKSPACE)/configure.sh installNginx
 	bash $(WORKSPACE)/configure.sh installStorageOS

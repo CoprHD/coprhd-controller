@@ -26,6 +26,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.management.backup.BackupFile;
 import com.emc.storageos.management.backup.BackupFileSet;
@@ -68,6 +69,9 @@ public class BackupService {
 
     @Autowired
     private AuditLogManager auditMgr;
+
+    @Autowired
+    private DrUtil drUtil;
 
     @Autowired
     private Service serviceinfo;
@@ -495,6 +499,7 @@ public class BackupService {
             {
                 add(tag);
                 add(nodeId);
+                add(drUtil.getLocalSite().getName());
             }
         };
     }

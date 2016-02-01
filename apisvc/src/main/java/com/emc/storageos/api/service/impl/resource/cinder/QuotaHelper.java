@@ -6,8 +6,6 @@
 package com.emc.storageos.api.service.impl.resource.cinder;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -18,24 +16,17 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.cinder.CinderConstants;
-import com.emc.storageos.cinder.model.CinderAvailabiltyZone;
 import com.emc.storageos.cinder.model.UsageStats;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaClassOfCinder;
 import com.emc.storageos.db.client.model.QuotaOfCinder;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.security.authentication.StorageOSUser;
-import com.emc.storageos.security.authorization.ACL;
-import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class QuotaHelper {
     private DbClient _dbClient;
@@ -75,12 +66,12 @@ public class QuotaHelper {
     /*
      * This function populates the quotas map with the vpool default quotas
      * @param qMap - existing quotas hashmap
-     * @param openstack_target_tenant_id - target tenant for whose vpools we are populating
+     * @param openstackTargetTenantId - target tenant for whose vpools we are populating
      * @param vPoolName - if we want to specifically populate a specific pool, we have to pass this.
      * @return updated quotas map
      */
-    public HashMap<String, String> populateVolumeTypeQuotasWhenNotDefined(HashMap<String, String> qMap, 
-    																	  String openstack_target_tenant_id,
+    public HashMap<String, String> populateVolumeTypeDefaultsForQuotalass(HashMap<String, String> qMap, 
+    																	  String openstackTargetTenantId,
     																	  String vPoolName){    	
     	List<URI> vpools = _dbClient.queryByType(VirtualPool.class, true);
 		
@@ -92,7 +83,7 @@ public class QuotaHelper {
             	continue;            	
             }
             if (pool != null && pool.getType().equalsIgnoreCase(VirtualPool.Type.block.name())) {
-                if (_permissionsHelper.tenantHasUsageACL(URI.create(openstack_target_tenant_id), pool)) {
+                if (_permissionsHelper.tenantHasUsageACL(URI.create(openstackTargetTenantId), pool)) {
                 
                 	for(CinderConstants.ResourceQuotaDefaults item : CinderConstants.ResourceQuotaDefaults.class.getEnumConstants()){
                 		if(!qMap.containsKey(item.getResource()+"_"+pool.getLabel())){
@@ -140,7 +131,7 @@ public class QuotaHelper {
      * being the value of the hashmap 
      * 
      */
-    public HashMap<String, String> loadFromQuotaClassFromDb(String className){
+    public HashMap<String, String> loadFromDbQuotaClass(String className){
     	List<URI> quotasInDb = _dbClient.queryByType(QuotaClassOfCinder.class, true);    	
     	    	
     	for (URI quota : quotasInDb) {
@@ -198,10 +189,9 @@ public class QuotaHelper {
      * CinderConstants.ResourceQuotaDefaults
      * @return HashMap with details of resource and its limits.
      */
-    public HashMap loadDefaultsMapFromDb(){    	
-    	List<URI> defaultQuotas = _dbClient.queryByType(QuotaClassOfCinder.class, true);    	
+    public HashMap<String,String> loadDefaultsMapFromDb(){    	    	    
     	HashMap<String, String>  defaultQuotaMap = new HashMap<String, String>();    	
-    	HashMap<String,String> map = loadFromQuotaClassFromDb(CinderConstants.DEFAULT_QUOTA_CLASS);
+    	HashMap<String,String> map = loadFromDbQuotaClass(CinderConstants.DEFAULT_QUOTA_CLASS);
     		
     	if(map == null){
     		QuotaClassOfCinder objQuotaClassOfCinder = new QuotaClassOfCinder();    		
@@ -438,14 +428,14 @@ public class QuotaHelper {
      * 
      * @prereq none
      * 
-     * @param openstack_target_tenant_id openstack tenant id
+     * @param openstackTargetTenantId openstack tenant id
      * 
      * @brief quotaMap
      * @return HashMap
      */
-    public HashMap<String,String> getCompleteDefaultConfiguration(String openstack_target_tenant_id){
+    public HashMap<String,String> getCompleteDefaultConfiguration(String openstackTargetTenantId){
     	HashMap<String,String> qMap = loadDefaultsMapFromDb();
-    	qMap = populateVolumeTypeQuotasWhenNotDefined(qMap , openstack_target_tenant_id, null);
+    	qMap = populateVolumeTypeQuotasWhenNotDefined(qMap , openstackTargetTenantId, null);
     	_log.debug("getCompleteDefaultConfiguration is {}",qMap);
 		return qMap;
     }

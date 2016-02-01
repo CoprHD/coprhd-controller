@@ -63,7 +63,6 @@ public abstract class TenantParam {
     /**
      * Namespace object storage associated to a tenant.
      * 
-     * @valid URI in the form of string
      */
     @XmlElement(required = false)
     public URI getNamespaceStorage() {
@@ -73,7 +72,6 @@ public abstract class TenantParam {
     /**
      * Sets namespace object array for a Tenant.
      * 
-     * @param namespace storage
      */
     public void setNamespaceStorage(URI namespaceStorage) {
         this.namespaceStorage = namespaceStorage;

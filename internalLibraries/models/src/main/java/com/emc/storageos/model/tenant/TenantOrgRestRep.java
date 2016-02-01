@@ -108,7 +108,6 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * 
      * Namespace associated with storage mapped to the Tenant
      * 
-     * @valid none
      */
     @XmlElement(name = "namespace_storage_system")
     public URI getNamespaceStorage() {

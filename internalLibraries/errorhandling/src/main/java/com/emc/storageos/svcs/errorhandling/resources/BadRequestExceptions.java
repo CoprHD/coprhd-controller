@@ -2847,4 +2847,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToDeleteMirrorCopies(final URI fsUri, String reason);
+
+    @DeclareServiceCode(ServiceCode.API_INVALID_ACTION_FOR_LOCAL_MIRRORS)
+    public BadRequestException actionNotApplicableForLocalMirrors(final String actionName);
 }

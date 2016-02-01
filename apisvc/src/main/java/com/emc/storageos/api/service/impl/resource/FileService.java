@@ -88,6 +88,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.filereplicationcontroller.FileReplicationController;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -97,6 +98,9 @@ import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.CopiesParam;
+import com.emc.storageos.model.block.MirrorList;
+import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
@@ -105,6 +109,7 @@ import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyList;
 import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileReplicationCreateParam;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -138,6 +143,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileController;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
@@ -215,6 +221,60 @@ public class FileService extends TaskResourceService {
 
     public void setFilePlacementManager(FilePlacementManager placementManager) {
         _filePlacementManager = placementManager;
+    }
+
+    public enum FileTechnologyType {
+        LOCAL_MIRROR,
+        REMOTE_MIRROR,
+    };
+
+    // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
+    public static enum ProtectionOp {
+        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER),
+        FAILBACK("failback", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
+        START("start", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
+        STOP("stop", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
+        PAUSE("pause", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE),
+        RESUME("resume", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME),
+        UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
+
+        private final String op;
+        private final ResourceOperationTypeEnum resourceType;
+
+        ProtectionOp(String op, ResourceOperationTypeEnum resourceType) {
+            this.op = op;
+            this.resourceType = resourceType;
+        }
+
+        // The rest URI operation
+        public String getRestOp() {
+            return op;
+        }
+
+        // The resource type, which contains a good name and description
+        public ResourceOperationTypeEnum getResourceType() {
+            return resourceType;
+        }
+
+        private static final ProtectionOp[] copyOfValues = values();
+
+        public static String getProtectionOpDisplayName(String op) {
+            for (ProtectionOp opValue : copyOfValues) {
+                if (opValue.getRestOp().contains(op)) {
+                    return opValue.getResourceType().getName();
+                }
+            }
+            return ProtectionOp.UNKNOWN.name();
+        }
+
+        public static ResourceOperationTypeEnum getResourceOperationTypeEnum(String restOp) {
+            for (ProtectionOp opValue : copyOfValues) {
+                if (opValue.getRestOp().contains(restOp)) {
+                    return opValue.getResourceType();
+                }
+            }
+            return ResourceOperationTypeEnum.FILE_PROTECTION_ACTION;
+        }
     }
 
     /**
@@ -2616,6 +2676,273 @@ public class FileService extends TaskResourceService {
         return taskList.getTaskList().get(0);
     }
 
+    /**
+     * 
+     * Start continuous copies.
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param id the URN of a ViPR Source fileshare
+     * @param param List of copies to start
+     * 
+     * @brief Start continuous copies.
+     * @return TaskList
+     * 
+     * @throws ControllerException
+     * 
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/start")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList startContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
+            throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        return performFileProtectionAction(param, id, ProtectionOp.START.getRestOp());
+    }
+
+    /**
+     * Stop continuous copies.
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param id the URN of a ViPR Source fileshare
+     * @param param
+     * 
+     * @brief Stop continuous copies.
+     * @return TaskList
+     * 
+     * @throws ControllerException
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/stop")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList stopContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
+            throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        return performFileProtectionAction(param, id, ProtectionOp.STOP.getRestOp());
+    }
+
+    /**
+     * Pause continuous copies for given source fileshare
+     * 
+     * NOTE: This is an asynchronous operation.
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param id the URN of a ViPR Source fileshare
+     * @param param
+     * 
+     * @brief Pause continuous copies
+     * @return TaskList
+     * 
+     * @throws ControllerException
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/pause")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList pauseContinuousCopies(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        return performFileProtectionAction(param, id, ProtectionOp.PAUSE.getRestOp());
+    }
+
+    /**
+     * Resume continuous copies for given source fileshare
+     * 
+     * NOTE: This is an asynchronous operation.
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param id the URN of a ViPR Source fileshare
+     * @param param
+     * 
+     * @brief Resume continuous copies
+     * @return TaskList
+     * 
+     * @throws ControllerException
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/resume")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList resumeContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
+            throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        return performFileProtectionAction(param, id, ProtectionOp.RESUME.getRestOp());
+    }
+
+    /**
+     * 
+     * Request to failover the protection link associated with the param.copyID.
+     * 
+     * NOTE: This is an asynchronous operation.
+     * 
+     * @prereq none
+     * 
+     * @param id the URN of a ViPR Source fileshare
+     * @param param FileReplicationParam to failover to
+     * 
+     * @brief Failover the fileShare protection link
+     * @return TaskList
+     * 
+     * @throws ControllerException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/failover")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList failoverProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        Copy copy = param.getCopies().get(0);
+        if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
+            return performFileProtectionAction(param, id, ProtectionOp.FAILOVER.getRestOp());
+        } else {
+            throw APIException.badRequests.invalidCopyType(copy.getType());
+        }
+
+    }
+
+    /**
+     * 
+     * Request to fail Back the protection link associated with the param.copyID.
+     * 
+     * NOTE: This is an asynchronous operation.
+     * 
+     * @prereq none
+     * 
+     * @param id the URN of a ViPR Source files hare
+     * @param param FileReplicationParam to fail Back to
+     * 
+     * @brief Fail Back the fileShare protection link
+     * @return TaskList
+     * 
+     * @throws ControllerException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/failback")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList failbackProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        Copy copy = param.getCopies().get(0);
+        if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
+            return performFileProtectionAction(param, id, ProtectionOp.FAILBACK.getRestOp());
+        } else {
+            throw APIException.badRequests.invalidCopyType(copy.getType());
+        }
+    }
+
+    /**
+     * List FileShare mirrors
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param id the URN of a ViPR FileShare to list mirrors
+     * 
+     * @brief List fileShare mirrors
+     * @return FileShare mirror response containing a list of mirror identifiers
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public MirrorList getNativeContinuousCopies(@PathParam("id") URI id) {
+        MirrorList list = new MirrorList();
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
+
+        StringSet sourceFileShareMirrors = sourceFileShare.getMirrorfsTargets();
+
+        if (sourceFileShareMirrors == null || sourceFileShareMirrors.isEmpty()) {
+            return list;
+        }
+
+        for (String uriStr : sourceFileShareMirrors) {
+
+            FileShare fileMirror = _dbClient.queryObject(FileShare.class, URI.create(uriStr));
+
+            if (fileMirror == null || fileMirror.getInactive()) {
+                _log.warn("Stale mirror {} found for fileShare {}", uriStr, sourceFileShare.getId());
+                continue;
+            }
+            list.getMirrorList().add(toNamedRelatedResource(fileMirror));
+        }
+
+        return list;
+    }
+
+    void ValidateCopiesParam(URI uriFS, CopiesParam param) {
+        // Validate the source file share URI
+        ArgValidator.checkFieldUriType(uriFS, FileShare.class, "id");
+        // Validate the list of copies
+        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
+    }
+
+    private TaskResourceRep performProtectionAction(URI id, String op) throws InternalException {
+        String task = UUID.randomUUID().toString();
+
+        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
+        ArgValidator.checkEntity(sourceFileShare, id, true);
+
+        // Make sure that we don't have some pending
+        // operation against the file share
+        checkForPendingTasks(Arrays.asList(sourceFileShare.getTenant().getURI()), Arrays.asList(sourceFileShare));
+
+        Operation status = new Operation();
+        status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
+        _dbClient.createTaskOpStatus(FileShare.class, sourceFileShare.getId(), task, status);
+
+        // get storage system list
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
+
+        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
+
+        // call controller service
+        controller.performRemoteContinuousCopies(system.getId(), id, op, task);
+
+        return toTask(sourceFileShare, task, status);
+    }
+
+    /**
+     * perform file protection action
+     * 
+     * @param param
+     * @param id
+     * @param op
+     * @return
+     */
+    private TaskList performFileProtectionAction(FileReplicationParam param, URI id, String op) {
+        TaskResourceRep taskResp = null;
+        TaskList taskList = new TaskList();
+        Copy copy = param.getCopies().get(0);
+        if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name()) ||
+                copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
+            taskResp = performProtectionAction(id, op);
+            taskList.getTaskList().add(taskResp);
+            return taskList;
+        } else {
+            throw APIException.badRequests.invalidCopyType(copy.getType());
+        }
+
+    }
+
+    /**
+     * copy exports rules
+     * 
+     * @param orig
+     * @param dest
+     * @param fs
+     */
     private void copyPropertiesToSave(FileExportRule orig, ExportRule dest, FileShare fs) {
 
         dest.setFsID(fs.getId());
@@ -2697,6 +3024,7 @@ public class FileService extends TaskResourceService {
      */
     private static FileServiceApi getFileServiceImpl(VirtualPool vpool, DbClient dbClient) {
         // Mutually exclusive logic that selects an implementation of the file service
+
         if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
             if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())) {
                 return getFileServiceApis("localmirror");

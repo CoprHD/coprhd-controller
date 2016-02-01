@@ -275,7 +275,6 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * <<<<<<< HEAD
      * Get application hosts
      * 
      * @param id Application Id
@@ -1732,7 +1731,6 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * <<<<<<< HEAD
      * Get volume group clusters
      * 
      * @param volumeGroup

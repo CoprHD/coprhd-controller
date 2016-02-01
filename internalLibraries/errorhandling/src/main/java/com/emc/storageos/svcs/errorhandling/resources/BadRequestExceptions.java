@@ -2831,4 +2831,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicatePolicyAssociation(URI fp);
+    
+    @DeclareServiceCode(ServiceCode.API_INVALID_ACTION_FOR_LOCAL_MIRRORS)
+    public BadRequestException actionNotApplicableForLocalMirrors(final String actionName);
 }

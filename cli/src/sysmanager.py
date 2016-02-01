@@ -3106,6 +3106,18 @@ def system_parser(parent_subparser, common_parser):
     
     sysmgrcontrolsvc.backup_info_parser(subcommand_parsers, common_parser)
     
+    sysmgrcontrolsvc.backupset_restore_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.backupset_restore_status_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.get_backupsets_external_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.get_backupsets_info_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.backupset_pull_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.backupset_pull_cancel_parser(subcommand_parsers,common_parser)
+    
     list_sites_parser(subcommand_parsers,common_parser)
     
     show_site_parser(subcommand_parsers,common_parser)

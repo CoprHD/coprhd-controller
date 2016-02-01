@@ -34,9 +34,10 @@ public class VolumeGroupCreateParam {
 
     /**
      * volume group unique name
-     * 
-     * @valid minimum of 2 characters
-     * @valid maximum of 128 characters
+     *
+     * Valid values: 
+     *     minimum of 2 characters
+     *     maximum of 128 characters
      */
     @XmlElement(required = true)
     @Length(min = 2, max = 128)
@@ -64,8 +65,9 @@ public class VolumeGroupCreateParam {
     /**
      * The set of supported roles for the volume group.
      * 
-     * @valid COPY
-     * @valid DR
+     * Valid values:
+     *     COPY
+     *     DR
      */
     @XmlElement(name = "role", required = true)
     public Set<String> getRoles() {

@@ -64,7 +64,7 @@ public class BuildEsrsDevice {
                 node = CallHomeConstants.STANDALONE;
             }
             device.setSerialNumber(licenseInfo.getProductId() + "-" + node);
-            device.setModelName(getBaseModelId(licenseInfo.getModelId()) + MODEL_NAME_SUFFIX);
+            device.setModelName(getBaseModelId(licenseInfo.getLicenseType().toString()) + MODEL_NAME_SUFFIX);
             device.setIpAddress(_networkIpAddress);
         }
     }

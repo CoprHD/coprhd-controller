@@ -58,6 +58,7 @@
         <property name="geoContext" ref="geodbclientcontext"/>
         <property name="encryptionProvider" ref="encryptionProvider"/>
         <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
+        <property name="drUtil" ref="drUtil"/>
     </bean>
 
     <bean id="globalGC" class="com.emc.storageos.db.gc.GlobalGCExecutorLoop">

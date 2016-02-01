@@ -287,7 +287,7 @@ public class RecoverPointScheduler implements Scheduler {
             _log.error(String.format("No matching storage pools found for the source varray: %s. There are no storage pools that " +
                     "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to " +
                     "hold at least one resource of the requested size.", varray.getLabel()));
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
         }
 
         this.initResources();
@@ -331,8 +331,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param capabilities parameters
      * @param candidatePools List of StoragePools already populated to choose from. RP+VPLEX.
      * @param vpoolChangeVolume vpool change volume, if applicable
-     * @param vpoolChangeParam
-     * @param protectionStoragePoolsMap pre-populated map for tgt varray to storage pools, use null if not needed
+     * @param preSelectedCandidateProtectionPoolsMap pre-populated map for tgt varray to storage pools, use null if not needed
      * @return list of Recommendation objects to satisfy the request
      */
     protected List<Recommendation> scheduleStorageSourcePoolConstraint(VirtualArray varray,
@@ -427,7 +426,7 @@ public class RecoverPointScheduler implements Scheduler {
             _log.error(String.format("RP Placement : No matching storage pools found for the source varray: [%s]. "
                     + "There are no storage pools that " + "match the passed vpool parameters and protocols and/or there are "
                     + "no pools that have enough capacity to hold at least one resource of the requested size.", varray.getLabel()));
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
         }
 
         for (Recommendation sourcePoolRecommendation : sourcePoolRecommendations) {
@@ -630,7 +629,7 @@ public class RecoverPointScheduler implements Scheduler {
                     + "There are no storage pools that match the passed vpool parameters and protocols and/or there "
                     + "are no pools that have enough capacity to hold at least one resource of the requested size.", varray.getLabel(),
                     vpool.getLabel()));
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
         }
 
         // Verify that any storage pool(s) requiring a VPLEX front end for data protection have
@@ -675,12 +674,12 @@ public class RecoverPointScheduler implements Scheduler {
         }
         return candidateStoragePools;
     }
-
-    /**
-     * Determines the available VPLEX visible storage pools.
-     *
-     * @param varray - Source Virtual Array
-     * @param vpool - Source Virtual Pool
+       
+    /** 
+     * Determines the available VPLEX visible storage pools. 
+     * 
+     * @param srcVarray - Source Virtual Array
+     * @param srcVpool - Source Virtual Pool
      * @param haVarray - HA Virtual Array, in case of VPLEX HA
      * @param haVpool - HA Virtual Pool, in case of VPLEX HA
      * @param capabilities - Virtual Pool capabilities
@@ -766,7 +765,7 @@ public class RecoverPointScheduler implements Scheduler {
                 project, capabilities, vplexPoolMapForSrcVarray);
         if (haRecommendation == null) {
             _log.error("No HA Recommendations could be created.");
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
         }
 
         RPRecommendation rpHaRecommendation = new RPRecommendation();
@@ -1212,7 +1211,7 @@ public class RecoverPointScheduler implements Scheduler {
             _log.error(String.format("RP Placement : No matching storage pools found for the source varray: [%s. "
                     + "There are no storage pools that match the passed vpool parameters and protocols and/or there are "
                     + "no pools that have enough capacity to hold at least one resource of the requested size.", varray.getLabel()));
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
         }
 
         int remainingPossiblePrimarySrcPoolSolutions = sourcePoolRecommendations.size();
@@ -1554,8 +1553,8 @@ public class RecoverPointScheduler implements Scheduler {
                 _log.error(String.format("No matching storage pools found for the source varray: %s. There are no storage pools that " +
                         "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to " +
                         "hold at least one resource of the requested size.", container.getSrcVarray().getLabel()));
-                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(container.getSrcVpool().getId(),
-                        container.getSrcVarray().getId());
+                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(container.getSrcVpool().getLabel(),
+                        container.getSrcVarray().getLabel());
             }
         }
 
@@ -2345,8 +2344,8 @@ public class RecoverPointScheduler implements Scheduler {
      * Convenience method to add entries to a Map used track required capacity per storage pool.
      *
      * @param storagePoolRequiredCapacity
-     * @param key the storage pool URI
-     * @param value
+     * @param storagePoolUri the storage pool URI
+     * @param requiredCapacity 
      */
     private void updateStoragePoolRequiredCapacityMap(Map<URI, Long> storagePoolRequiredCapacity,
             URI storagePoolUri, long requiredCapacity) {
@@ -2660,8 +2659,8 @@ public class RecoverPointScheduler implements Scheduler {
 
     /**
      * Display storage pool information from recommendation
-     *
-     * @param varraySortedPoolMap Sorted Storage Pools
+     * 
+     * @param  poolRecommendations Sorted Storage Pools
      */
     private void printPoolRecommendations(List<Recommendation> poolRecommendations) {
         StringBuffer buf = new StringBuffer();
@@ -3044,7 +3043,7 @@ public class RecoverPointScheduler implements Scheduler {
         }
 
         // Sort the valid associated storage systems by visibility to the arrays already
-        _log.info(String.format("RP Placement : Following storage systems found that can are capable of protecting to %d varrays : %s",
+        _log.info(String.format("RP Placement : Following storage systems were found that are capable of protecting to %d varrays : %s",
                 protectionVarrays.size(), Joiner.on(",").join(validAssociatedStorageSystems)));
         return reorderAssociatedStorageSystems(candidateProtectionSystem, validAssociatedStorageSystems, sourceVarray);
     }
@@ -3342,7 +3341,7 @@ public class RecoverPointScheduler implements Scheduler {
         return false;
     }
 
-    /**
+	/**
      * Placement method that assembles recommendation objects based on the vpool and protection varrays.
      * Recursive: peels off one protectionVarray to hopefully assemble one Protection object within the recommendation object, then calls
      * itself
@@ -3412,7 +3411,7 @@ public class RecoverPointScheduler implements Scheduler {
                     .format("RP Placement : No matching storage pools found for the source varray: [%s]. "
                             + "There are no storage pools that match the passed vpool parameters and protocols and/or there are no pools that have "
                             + "enough capacity to hold at least one resource of the requested size.", varray.getLabel()));
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
         }
 
         VirtualArray targetJournalVarray = protectionVarray;
@@ -3730,9 +3729,9 @@ public class RecoverPointScheduler implements Scheduler {
      * <li>The RP cluster (ProtectionSystem) must have the capacity to create a single CG.</li>
      * <li>Each RP site must have the volume capacity to create the required number of volumes.</li>
      * </ul>
-     *
-     * @param rpConfiguration
-     * @param protectionPoolMappings
+     * 
+     * @param protectionSystem
+     * @param rpRec
      * @param resourceCount number of volumes being requested for creation/protection
      * @return true if recommendation can be handled by protection system
      */
@@ -3918,7 +3917,9 @@ public class RecoverPointScheduler implements Scheduler {
     /**
      * Determines if the RP site is connected to the passed virtual array.
      *
-     * @param rpSiteArray the RP site
+     * @param storageSystemURI 
+     * @param protectionSystemURI
+     * @param siteId
      * @param virtualArray the virtual array to check for RP site connectivity
      * @return
      */

@@ -734,8 +734,8 @@ public class VolumeIngestionUtil {
             throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPoolNicer(
                     spoolName, VOLUME_TEXT, unManagedVolume.getLabel());
         }
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolUri);
         if (!supportedVPoolUris.contains(vpoolUri.toString())) {
-            VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolUri);
             String vpoolName = vpool != null ? vpool.getLabel() : vpoolUri.toString();
             List<VirtualPool> supportedVpools = dbClient.queryObject(
                     VirtualPool.class, Collections2.transform(supportedVPoolUris,
@@ -752,6 +752,14 @@ public class VolumeIngestionUtil {
             }
             throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePoolNicer(
                     vpoolName, VOLUME_TEXT, unManagedVolume.getLabel(), vpoolsString);
+        }
+        // Check to ensure this isn't a non-RP protected unmanaged volume attempted to be ingested
+        // by an RP source vpool.
+        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
+            String value = unManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
+            if (FALSE.equalsIgnoreCase(value)) {
+                throw APIException.internalServerErrors.ingestNotAllowedNonRPVolume(vpool.getLabel(), unManagedVolume.getLabel());
+            }
         }
     }
 

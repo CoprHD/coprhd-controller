@@ -329,7 +329,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                         ingestedSuccessfully = true;
                         taskMessage = INGESTION_SUCCESSFUL_MSG;
                     } else {
-                        _logger.info("block object {} was not partially ingested successfully", createdObject.forDisplay());
+                        _logger.info("block object {} was not partially ingested successfully", createdObject);
                         ingestedSuccessfully = false;
                         StringBuffer taskStatus = requestContext.getTaskStatusMap().get(unManagedVolume.getNativeGuid());
                         if (taskStatus == null) {

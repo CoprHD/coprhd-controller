@@ -5,10 +5,9 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +16,6 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
@@ -165,5 +159,27 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
      */
     abstract protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
             List<URI> fileShareURIs, String deletionType, boolean forceDelete);
+
+
+    /**
+     * Expand fileshare
+     */
+    @Override
+    public void expandFileShare(FileShare fileshare, Long newSize, String taskId)
+            throws InternalException {
+
+        FileOrchestrationController controller = getController(
+                FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+
+        FileDescriptor descriptor = new FileDescriptor(
+                FileDescriptor.Type.FILE_DATA,
+                fileshare.getStorageDevice(), fileshare.getId(), fileshare.getPool(), "", false, newSize);
+
+        List<FileDescriptor> descriptors = new ArrayList<FileDescriptor>(Arrays.asList(descriptor));
+        //call expand filesystem
+        controller.expandFileSystem(descriptors, taskId);
+    }
+
 
 }

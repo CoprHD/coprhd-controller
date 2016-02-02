@@ -40,6 +40,13 @@ public class FileDescriptor implements Serializable {
 		this.deleteType = deletionType;
 		this.forceDelete = forceDelete;
 	}
+
+    public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
+                          String deletionType, boolean forceDelete, Long fileSize) {
+        this(type, deviceURI, fsURI, poolURI, deletionType, forceDelete);
+
+        this._fileSize = fileSize;
+    }
     
 	public enum Type {
         /* ******************************

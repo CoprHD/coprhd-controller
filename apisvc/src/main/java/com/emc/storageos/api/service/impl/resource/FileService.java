@@ -1154,16 +1154,26 @@ public class FileService extends TaskResourceService {
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, expand, "filesystem");
 
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
-
         String task = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPAND_FILE_SYSTEM);
-        controller.expandFS(device.getId(), fs.getId(), newFSsize, task);
         op.setDescription("Filesystem expand");
-        auditOp(OperationTypeEnum.EXPAND_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), fs.getCapacity(), newFSsize);
+
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        try {
+            fileServiceApi.expandFileShare(fs, newFSsize, task);
+        } catch (InternalException e) {
+            if (_log.isErrorEnabled()) {
+                _log.error("Expand File Size error", e);
+            }
+
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
+            op = fs.getOpStatus().get(task);
+            op.error(e);
+            fileShare.getOpStatus().updateTaskStatus(task, op);
+            _dbClient.updateObject(fs);
+            throw e;
+        }
 
         return toTask(fs, task, op);
     }

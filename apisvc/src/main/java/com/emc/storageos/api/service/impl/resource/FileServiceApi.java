@@ -2,11 +2,7 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -69,4 +65,17 @@ public interface FileServiceApi {
      * @throws InternalException
      */
     public <T extends DataObject> String checkForDelete(T object) throws InternalException;
+
+
+    /**
+     * Expand the capacity of size of given size
+     *
+     * @param fileshare
+     * @param newSize
+     * @param taskId
+     * @throws InternalException
+     */
+    public void expandFileShare(FileShare fileshare, Long newSize, String taskId)
+            throws InternalException;
+
 }

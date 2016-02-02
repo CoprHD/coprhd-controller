@@ -38,6 +38,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     static final String CREATE_FILESYSTEMS_WF_NAME = "CREATE_FILESYSTEMS_WORKFLOW";
     static final String DELETE_FILESYSTEMS_WF_NAME = "DELETE_FILESYSTEMS_WORKFLOW";
+    static final String EXPAND_FILESYSTEMS_WF_NAME = "EXPAND_FILESYSTEMS_WORKFLOW";
 
     /*
      * (non-Javadoc)
@@ -50,7 +51,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * (FileShare, FileMirroring). This method is responsible for creating
      * a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystems
      * 
-     * @param filesystems
+     * @param fileDescriptors
      * @param taskId
      * @throws ControllerException
      */
@@ -102,7 +103,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /**
      * Deletes one or more filesystem.
      * 
-     * @param filesystems
+     * @param fileDescriptors
      * @param taskId
      * @throws ControllerException
      */
@@ -150,13 +151,36 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /**
      * expand one or more filesystem
      * 
-     * @param filesystems
+     * @param fileDescriptors
      * @param taskId
      * @throws ControllerException
      */
     @Override
     public void expandFileSystem(List<FileDescriptor> fileDescriptors,
             String taskId) throws ControllerException {
+        String waitFor = null;    // the wait for key returned by previous call
+        List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(fileShareUris, taskId);
+        Workflow workflow = null;
+        try {
+            // Generate the Workflow.
+            workflow = _workflowService.getNewWorkflow(this,
+                    EXPAND_FILESYSTEMS_WF_NAME, false, taskId);
+            // Next, call the FileDeviceController to add its delete methods.
+            waitFor = _fileDeviceController.addStepsForExpandFileSystems(workflow, waitFor, fileDescriptors, taskId);
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Expand FileShares successful for: " + fileShareUris.toString();
+            Object[] callbackArgs = new Object[] { fileShareUris };
+            workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+        } catch (Exception ex) {
+            s_logger.error("Could not Expand FileShares: " + fileShareUris, ex);
+            releaseWorkflowLocks(workflow);
+            String opName = ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM.getName();
+            ServiceError serviceError = DeviceControllerException.errors.expandFileShareFailed(fileShareUris.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
     }
 
     @SuppressWarnings("serial")

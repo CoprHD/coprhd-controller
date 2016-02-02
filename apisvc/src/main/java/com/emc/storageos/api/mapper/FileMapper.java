@@ -48,6 +48,7 @@ public class FileMapper {
         to.setSoftLimit(from.getSoftLimit());
         to.setSoftGrace(from.getSoftGracePeriod());
         to.setNotificationLimit(from.getNotificationLimit());
+        to.setSoftLimitExceeded(from.getSoftLimitExceeded());
         to.setVirtualPool(toRelatedResource(ResourceTypeEnum.FILE_VPOOL, from.getVirtualPool()));
         to.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, from.getVirtualArray()));
         to.setProtocols(from.getProtocol());
@@ -97,7 +98,7 @@ public class FileMapper {
             List<String> supportedVPoolList = new ArrayList<String>(from.getSupportedVpoolUris());
             to.setSupportedVPoolUris(supportedVPoolList);
         }
-        
+
         return to;
     }
 
@@ -127,6 +128,7 @@ public class FileMapper {
         to.setSoftLimit(from.getSoftLimit());
         to.setSoftGrace(from.getSoftGrace());
         to.setNotificationLimit(from.getNotificationLimit());
+        to.setSoftLimitExceeded(from.getSoftLimitExceeded());
         return to;
     }
 }

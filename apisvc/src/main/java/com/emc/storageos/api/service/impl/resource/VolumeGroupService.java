@@ -1274,8 +1274,10 @@ public class VolumeGroupService extends TaskResourceService {
             validateParameters(Host.class, param.getAddHostsList(), ADD_HOSTS);
             validateParameters(Host.class, param.getRemoveHostsList(), REMOVE_HOSTS);
 
-            validateParameters(Volume.class, param.getAddVolumesList().getVolumes(), ADD_VOLUMES);
-            validateParameters(Volume.class, param.getRemoveVolumesList().getVolumes(), REMOVE_VOLUMES);
+            if (param.getAddVolumesList() != null) {
+                validateParameters(Volume.class, param.getAddVolumesList().getVolumes(), ADD_VOLUMES);
+                validateParameters(Volume.class, param.getRemoveVolumesList().getVolumes(), REMOVE_VOLUMES);
+            }
         }
 
         private void validateParameters(Class<? extends DataObject> clazz, List<URI> ids, String field) {

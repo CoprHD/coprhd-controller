@@ -124,8 +124,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         UnManagedVolume unManagedVolume = volumeContext.getUnmanagedVolume();
 
         // Validation checks on the unmanaged volume we're trying to ingest
-        validateUnManagedVolumeProperties(unManagedVolume, volumeContext.getVarray(),
-                volumeContext.getVpool(), volumeContext.getProject());
+        validateUnManagedVolumeProperties(unManagedVolume, volumeContext.getVarray(unManagedVolume),
+                volumeContext.getVpool(unManagedVolume), volumeContext.getProject());
 
         BlockObject blockObject = volumeContext.getManagedBlockObject();
 
@@ -146,7 +146,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.unManagedProtectionSetNotFound(
                     volumeContext.getUnmanagedVolume().getNativeGuid());
         }
-        validateUnmanagedProtectionSet(volumeContext.getVpool(), unManagedVolume, umpset);
+        validateUnmanagedProtectionSet(volumeContext.getVpool(unManagedVolume), unManagedVolume, umpset);
 
         // Test ingestion status message
         _logger.info("Printing Ingestion Report before Ingestion Attempt");
@@ -540,7 +540,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     private void performRPExportIngestion(IngestionRequestContext volumeContext,
             UnManagedVolume unManagedVolume, Volume volume) {
 
-        VirtualArray virtualArray = volumeContext.getVarray();
+        VirtualArray virtualArray = volumeContext.getVarray(unManagedVolume);
         Project project = volumeContext.getProject();
 
         // TODO: In the case where the source or target is exported to a host as well, VMAX2 best practices dictate that you

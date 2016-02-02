@@ -234,7 +234,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVpool()
      */
     @Override
-    public VirtualPool getVpool() {
+    public VirtualPool getVpool(UnManagedVolume unmanagedVolume) {
         return _vpool;
     }
 
@@ -244,7 +244,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVarray()
      */
     @Override
-    public VirtualArray getVarray() {
+    public VirtualArray getVarray(UnManagedVolume unmanagedVolume) {
         return _virtualArray;
     }
 

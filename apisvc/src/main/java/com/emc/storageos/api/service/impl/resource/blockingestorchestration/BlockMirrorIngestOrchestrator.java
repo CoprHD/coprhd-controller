@@ -38,7 +38,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         boolean unManagedVolumeExported = requestContext.getVolumeContext().isVolumeExported();
 
         // Validate the unManagedVolume properties
-        validateUnManagedVolume(unManagedVolume, requestContext.getVpool());
+        validateUnManagedVolume(unManagedVolume, requestContext.getVpool(unManagedVolume));
         validateParentNotRpProtected(unManagedVolume);
 
         // Check whether mirror already ingested or not.
@@ -51,7 +51,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         }
         if (null == mirrorObj) {
             mirrorObj = createBlockMirror(mirrorNativeGuid, requestContext.getStorageSystem(), unManagedVolume,
-                    requestContext.getVpool(), requestContext.getVarray(), requestContext.getProject());
+                    requestContext.getVpool(unManagedVolume), requestContext.getVarray(unManagedVolume), requestContext.getProject());
         }
         // Run this always when the volume is NO_PUBLIC_ACCESS
         if (markUnManagedVolumeInactive(requestContext, mirrorObj)) {

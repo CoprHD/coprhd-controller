@@ -283,10 +283,10 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * 
      * @return the high availability VirtualPool
      */
-    public VirtualPool getHaVpool() {
+    public VirtualPool getHaVpool(UnManagedVolume unmanagedVolume) {
 
         VirtualPool haVpool = null;
-        StringMap haVarrayVpoolMap = _parentRequestContext.getVpool().getHaVarrayVpoolMap();
+        StringMap haVarrayVpoolMap = _parentRequestContext.getVpool(unmanagedVolume).getHaVarrayVpoolMap();
 
         if (haVarrayVpoolMap != null && !haVarrayVpoolMap.isEmpty()) {
             String haVarrayStr = haVarrayVpoolMap.keySet().iterator().next();
@@ -305,10 +305,10 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * 
      * @return the high availability VirtualArray
      */
-    public VirtualArray getHaVarray() {
+    public VirtualArray getHaVarray(UnManagedVolume unmanagedVolume) {
 
         VirtualArray haVarray = null;
-        StringMap haVarrayVpoolMap = _parentRequestContext.getVpool().getHaVarrayVpoolMap();
+        StringMap haVarrayVpoolMap = _parentRequestContext.getVpool(unmanagedVolume).getHaVarrayVpoolMap();
         if (haVarrayVpoolMap != null && !haVarrayVpoolMap.isEmpty()) {
             String haVarrayStr = haVarrayVpoolMap.keySet().iterator().next();
             if (haVarrayStr != null && !(haVarrayStr.equals(NullColumnValueGetter.getNullURI().toString()))) {
@@ -334,27 +334,28 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVpool()
      */
     @Override
-    public VirtualPool getVpool() {
-        UnManagedVolume associatedVolume = getCurrentUnmanagedVolume();
-        VirtualPool vpoolForThisVolume = _parentRequestContext.getVpool();
+    public VirtualPool getVpool(UnManagedVolume unmanagedVolume) {
 
-        _logger.info("trying to find backend cluster id in associated volume " + associatedVolume.forDisplay());
+        VirtualPool vpoolForThisVolume = _parentRequestContext.getVpool(unmanagedVolume);
+
+        _logger.info("trying to find backend cluster id in associated volume " + unmanagedVolume.forDisplay());
 
         // get the backend volume cluster id
         String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
-                associatedVolume.getVolumeInformation());
+                unmanagedVolume.getVolumeInformation());
         _logger.info("backend cluster id is " + backendClusterId);
         if (null != backendClusterId && null != _haClusterId
                 && backendClusterId.equals(_haClusterId)) {
-            if (null != getHaVpool()) {
-                _logger.info("using high availability vpool " + getHaVpool().getLabel());
-                vpoolForThisVolume = getHaVpool();
+            if (null != getHaVpool(unmanagedVolume)) {
+                _logger.info("using high availability vpool " + getHaVpool(unmanagedVolume).getLabel());
+                vpoolForThisVolume = getHaVpool(unmanagedVolume);
             }
         }
 
         // finally, double check for a separate mirror / continuous copies vpool
-        if (getUnmanagedVplexMirrors().keySet().contains(associatedVolume)
+        // TODO: verify separate mirror vpool
+        if (getUnmanagedVplexMirrors().keySet().contains(unmanagedVolume)
                 && vpoolForThisVolume.getMirrorVirtualPool() != null) {
             _logger.info("this associated volume is a mirror and separate mirror vpool is defined");
             VirtualPool mirrorVpool = _dbClient.queryObject(
@@ -372,22 +373,21 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVarray()
      */
     @Override
-    public VirtualArray getVarray() {
+    public VirtualArray getVarray(UnManagedVolume unmanagedVolume) {
 
-        UnManagedVolume associatedVolume = getCurrentUnmanagedVolume();
-        VirtualArray varrayForThisVolume = _parentRequestContext.getVarray();
+        VirtualArray varrayForThisVolume = _parentRequestContext.getVarray(unmanagedVolume);
 
-        _logger.info("trying to find backend cluster id in associated volume " + associatedVolume.forDisplay());
+        _logger.info("trying to find backend cluster id in associated volume " + unmanagedVolume.forDisplay());
 
         // get the backend volume cluster id
         String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
-                associatedVolume.getVolumeInformation());
+                unmanagedVolume.getVolumeInformation());
         _logger.info("backend cluster id is " + backendClusterId);
         if (null != backendClusterId && null != _haClusterId
                 && backendClusterId.equals(_haClusterId)) {
-            _logger.info("using high availability varray " + getHaVarray().getLabel());
-            varrayForThisVolume = getHaVarray();
+            _logger.info("using high availability varray " + getHaVarray(unmanagedVolume).getLabel());
+            varrayForThisVolume = getHaVarray(unmanagedVolume);
         }
 
         return varrayForThisVolume;

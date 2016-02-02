@@ -64,7 +64,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             VolumeIngestionUtil.checkUnManagedResourceIngestable(unManagedVolume);
 
             snapShot = createSnapshot(requestContext.getStorageSystem(), snapNativeGuid, 
-                    requestContext.getVarray(), requestContext.getVpool(), 
+                    requestContext.getVarray(unManagedVolume), requestContext.getVpool(unManagedVolume), 
                     unManagedVolume, requestContext.getProject());
 
             // See if this is a linked target for existing block snapshot sessions.

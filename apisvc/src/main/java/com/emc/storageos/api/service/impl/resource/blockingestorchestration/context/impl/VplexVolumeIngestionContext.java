@@ -54,6 +54,11 @@ import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
  */
 public class VplexVolumeIngestionContext extends VplexBackendIngestionContext implements VolumeIngestionContext, IngestionRequestContext {
 
+    private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
+    private Map<String, BlockObject> _objectsToBeCreatedMap;
+    private Map<String, List<DataObject>> _objectsToBeUpdatedMap;
+    private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
+
     private IngestionRequestContext _parentRequestContext;
     private VolumeIngestionContext _currentBackendVolumeIngestionContext;
     private Iterator<UnManagedVolume> _backendVolumeUrisToProcessIterator;
@@ -66,6 +71,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     private boolean _exportGroupCreated = false;
     private ExportGroup _exportGroup;
     private List<Initiator> _deviceInitiators;
+    private List<BlockObject> _objectsIngestedByExportProcessing;
 
     /**
      * Constructor.
@@ -332,6 +338,8 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         UnManagedVolume associatedVolume = getCurrentUnmanagedVolume();
         VirtualPool vpoolForThisVolume = _parentRequestContext.getVpool();
 
+        _logger.info("trying to find backend cluster id in associated volume " + associatedVolume.forDisplay());
+
         // get the backend volume cluster id
         String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
@@ -368,6 +376,8 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
 
         UnManagedVolume associatedVolume = getCurrentUnmanagedVolume();
         VirtualArray varrayForThisVolume = _parentRequestContext.getVarray();
+
+        _logger.info("trying to find backend cluster id in associated volume " + associatedVolume.forDisplay());
 
         // get the backend volume cluster id
         String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
@@ -458,7 +468,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public List<UnManagedVolume> getUnManagedVolumesToBeDeleted() {
-        return _parentRequestContext.getUnManagedVolumesToBeDeleted();
+        if (null == _unManagedVolumesToBeDeleted) {
+            _unManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
+        }
+
+        return _unManagedVolumesToBeDeleted;
     }
 
     /*
@@ -480,7 +494,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public Map<String, VolumeIngestionContext> getProcessedUnManagedVolumeMap() {
-        return _parentRequestContext.getProcessedUnManagedVolumeMap();
+        if (null == _processedUnManagedVolumeMap) {
+            _processedUnManagedVolumeMap = new HashMap<String, VolumeIngestionContext>();
+        }
+
+        return _processedUnManagedVolumeMap;
     }
 
     /*
@@ -547,7 +565,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public List<BlockObject> getObjectsIngestedByExportProcessing() {
-        return _parentRequestContext.getObjectsIngestedByExportProcessing();
+        if (null == _objectsIngestedByExportProcessing) {
+            _objectsIngestedByExportProcessing = new ArrayList<BlockObject>();
+        }
+
+        return _objectsIngestedByExportProcessing;
     }
 
     /*
@@ -664,7 +686,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public Map<String, BlockObject> getObjectsToBeCreatedMap() {
-        return _parentRequestContext.getObjectsToBeCreatedMap();
+        if (null == _objectsToBeCreatedMap) {
+            _objectsToBeCreatedMap = new HashMap<String, BlockObject>();
+        }
+
+        return _objectsToBeCreatedMap;
     }
 
     /*
@@ -674,7 +700,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public Map<String, List<DataObject>> getObjectsToBeUpdatedMap() {
-        return _parentRequestContext.getObjectsToBeUpdatedMap();
+        if (null == _objectsToBeUpdatedMap) {
+            _objectsToBeUpdatedMap = new HashMap<String, List<DataObject>>();
+        }
+
+        return _objectsToBeUpdatedMap;
     }
 
     /**

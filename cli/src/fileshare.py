@@ -16,6 +16,7 @@ import socket
 import commands
 from common import SOSError
 from threading import Timer
+import schedulepolicy
 
 
 class Fileshare(object):
@@ -51,7 +52,10 @@ class Fileshare(object):
     URI_TASK = URI_TASK_LIST + '/{1}'
     URI_NFS_ACL = '/file/filesystems/{0}/acl'
     
-    COPY_DICT_TYPE = "LOCAL_MIRROR"
+    URI_POLICY_ASSIGN = '/file/filesystems/{0}/assign-file-policy/{1}'
+    URI_POLICY_UNASSIGN = '/file/filesystems/{0}/unassign-file-policy/{1}'
+    URI_POLICY_LIST = '/file/filesystems/{0}/file-policies'
+
     URI_CONTINUOS_COPIES_START = '/file/filesystems/{0}/protection/continuous-copies/start'
     URI_CONTINUOS_COPIES_PAUSE = '/file/filesystems/{0}/protection/continuous-copies/pause'
     URI_CONTINUOS_COPIES_RESUME = '/file/filesystems/{0}/protection/continuous-copies/resume'
@@ -895,6 +899,40 @@ class Fileshare(object):
             return self.check_for_sync(o, sync)
         return o
     
+    def assign_policy(self, filesharename, policyname, tenantname, policyid):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "PUT",
+            Fileshare.URI_POLICY_ASSIGN.format(fsid, policyid),
+            None)
+        
+        return
+    
+    def unassign_policy(self, filesharename, policyname, tenantname, policyid):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+        
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "PUT",
+            Fileshare.URI_POLICY_UNASSIGN.format(fsid, policyid),
+            None)
+        
+        return
+    
+    def policy_list(self, filesharename):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+        
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            Fileshare.URI_POLICY_LIST.format(fsid),
+            None)
+
     def continous_copies_start(self, filesharename):
         fsname = self.show(filesharename)
         fsid = fsname['id']
@@ -2365,6 +2403,141 @@ def fileshare_tag(args):
         common.format_err_msg_and_raise("fileshare", "tag",
                                         e.err_text, e.err_code)
         
+def assign_policy_parser(subcommand_parsers, common_parser):
+    assign_policy_parser = subcommand_parsers.add_parser(
+        'assign-policy',
+        description='ViPR Fileshare Policy assign CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Assign a snapshot scheduling policy to a filesystem')
+    mandatory_args = assign_policy_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    mandatory_args.add_argument('-policyname', '-polnm',
+                               metavar='<policyname>',
+                               dest='polname',
+                               help='Name of policy',
+                               required=True)
+    mandatory_args.add_argument('-tenant', '-tn',
+                            metavar='<tenantname>',
+                            dest='tenant',
+                            help='Name of tenant',
+                            required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                            metavar='<projectname>',
+                            dest='project',
+                            help='Name of Project',
+                            required=True)
+
+    assign_policy_parser.set_defaults(func=assign_policy)
+
+
+def assign_policy(args):
+    try:
+        from schedulepolicy import Schedulepolicy
+        policy = Schedulepolicy(args.ip,
+                        args.port).get_policy_from_name(args.polname, args.tenant)
+        policyid = policy['id']
+        obj = Fileshare(args.ip, args.port)
+        
+        res = obj.assign_policy(args.tenant + "/" + args.project + "/" + args.name,
+                      args.polname,
+                      args.tenant, policyid)
+        return
+    except SOSError as e:
+        common.format_err_msg_and_raise("fileshare", "assign",
+                                        e.err_text, e.err_code)
+        
+
+def unassign_policy_parser(subcommand_parsers, common_parser):
+    unassign_policy_parser = subcommand_parsers.add_parser(
+        'unassign-policy',
+        description='ViPR Fileshare Policy unassign CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Unassign a snapshot scheduling policy from a filesystem')
+    mandatory_args = unassign_policy_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    mandatory_args.add_argument('-policyname', '-polnm',
+                               metavar='<policyname>',
+                               dest='polname',
+                               help='Name of policy',
+                               required=True)
+    mandatory_args.add_argument('-tenant', '-tn',
+                            metavar='<tenantname>',
+                            dest='tenant',
+                            help='Name of tenant',
+                            required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                            metavar='<projectname>',
+                            dest='project',
+                            help='Name of Project',
+                            required=True)
+
+    unassign_policy_parser.set_defaults(func=unassign_policy)
+
+
+def unassign_policy(args):
+    try:
+        from schedulepolicy import Schedulepolicy
+        policy = Schedulepolicy(args.ip,
+                        args.port).get_policy_from_name(args.polname, args.tenant)
+        policyid = policy['id']
+        obj = Fileshare(args.ip, args.port)
+        
+        res = obj.unassign_policy(args.tenant + "/" + args.project + "/" + args.name,
+                      args.polname,
+                      args.tenant, policyid)
+        return
+    except SOSError as e:
+        common.format_err_msg_and_raise("fileshare", "assign",
+                                        e.err_text, e.err_code)
+        
+
+def policy_list_parser(subcommand_parsers, common_parser):
+    policy_list_parser = subcommand_parsers.add_parser(
+        'list-policy',
+        description='ViPR Fileshare Policy list CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='List the snapshot scheduling policies of a filesystem')
+    mandatory_args = policy_list_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    mandatory_args.add_argument('-tenant', '-tn',
+                            metavar='<tenantname>',
+                            dest='tenant',
+                            help='Name of tenant',
+                            required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                            metavar='<projectname>',
+                            dest='project',
+                            help='Name of Project',
+                            required=True)
+
+    policy_list_parser.set_defaults(func=policy_list)
+
+
+def policy_list(args):
+    try:
+        obj = Fileshare(args.ip, args.port)
+        res = obj.policy_list(args.tenant + "/" + args.project + "/" + args.name)
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise("fileshare", "assign",
+                                        e.err_text, e.err_code)
+
+        
 def continous_copies_start_parser(subcommand_parsers, common_parser):
     # start continous copies command parser
     continous_copies_start_parser = subcommand_parsers.add_parser(
@@ -2662,6 +2835,15 @@ def fileshare_parser(parent_subparser, common_parser):
     
     #ACL DELETE PARSER
     nfs_acl_delete_parser(subcommand_parsers, common_parser)
+    
+    #assign policy command parser
+    assign_policy_parser(subcommand_parsers, common_parser)
+    
+    #unassign policy command parser
+    unassign_policy_parser(subcommand_parsers, common_parser)
+    
+    #policy list command parser
+    policy_list_parser(subcommand_parsers, common_parser)
     
     #CONTINOUS COPIES START PARSER
     continous_copies_start_parser(subcommand_parsers, common_parser)

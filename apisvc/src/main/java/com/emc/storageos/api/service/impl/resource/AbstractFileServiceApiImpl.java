@@ -5,9 +5,11 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,12 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
@@ -160,7 +168,6 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     abstract protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
             List<URI> fileShareURIs, String deletionType, boolean forceDelete);
 
-
     /**
      * Expand fileshare
      */
@@ -171,15 +178,36 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         FileOrchestrationController controller = getController(
                 FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
 
-        FileDescriptor descriptor = new FileDescriptor(
-                FileDescriptor.Type.FILE_DATA,
-                fileshare.getStorageDevice(), fileshare.getId(), fileshare.getPool(), "", false, newSize);
+        if (fileshare.getParentFileShare() != null && fileshare.getPersonality().equals(FileShare.PersonalityTypes.TARGET.name())) {
+            throw APIException.badRequests.expandMirrorFileSupportedOnlyOnSource(fileshare.getId());
 
-        List<FileDescriptor> descriptors = new ArrayList<FileDescriptor>(Arrays.asList(descriptor));
-        //call expand filesystem
-        controller.expandFileSystem(descriptors, taskId);
+        } else {
+
+            List<String> targetfileUris = new ArrayList<String>();
+
+            // if filesystem is target then throw exception
+            if (fileshare.getMirrorfsTargets() != null && fileshare.getMirrorfsTargets().isEmpty()) {
+                targetfileUris.addAll(fileshare.getMirrorfsTargets());
+            }
+
+            FileDescriptor descriptor = new FileDescriptor(
+                    FileDescriptor.Type.FILE_DATA,
+                    fileshare.getStorageDevice(), fileshare.getId(), fileshare.getPool(), "", false, newSize);
+            fileDescriptors.add(descriptor);
+
+            // Prepare the descriptor for targets
+            for (String target : targetfileUris) {
+                FileShare targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(target));
+                descriptor = new FileDescriptor(
+                        FileDescriptor.Type.FILE_DATA,
+                        targetFileShare.getStorageDevice(), targetFileShare.getId(), targetFileShare.getPool(), "", false, newSize);
+                fileDescriptors.add(descriptor);
+            }
+        }
+
+        // place the expand filesystem call in queue
+        controller.expandFileSystem(fileDescriptors, taskId);
     }
-
-
 }

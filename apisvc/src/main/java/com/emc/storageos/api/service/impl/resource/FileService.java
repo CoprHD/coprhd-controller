@@ -2631,7 +2631,7 @@ public class FileService extends TaskResourceService {
         TaskList taskList = new TaskList();
         Copy copy = param.getCopies().get(0);
         if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name()) ||
-                copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
+                copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.name())) {
             taskResp = performProtectionAction(id, op);
             taskList.getTaskList().add(taskResp);
             return taskList;

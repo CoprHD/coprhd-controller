@@ -1,5 +1,5 @@
 %{
-  titleKey = 'ApplicationForm.' + (applicationForm?.id ? 'edit' : 'create') + '.title';
+  titleKey = 'applicationForm.' + (applicationForm?.id ? 'edit' : 'create') + '.title';
   descriptionKey = "application.create.description"
   image = '/public/img/assets/Application.png'
 }%
@@ -12,7 +12,7 @@
 #{/set}
   
 #{breadcrumb.container}
-  #{breadcrumb.item @list()}&{'Application.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @list()}&{'application.list.title'}#{/breadcrumb.item}
   #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
 #{/breadcrumb.container}
 

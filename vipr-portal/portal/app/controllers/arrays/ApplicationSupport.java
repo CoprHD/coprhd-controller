@@ -46,7 +46,7 @@ import controllers.util.FlashException;
 public class ApplicationSupport extends Controller {
     
     protected static final String SAVED_SUCCESS = "application.save.success";
-    protected static final String UNKNOWN = "Applications.unknown";
+    protected static final String UNKNOWN = "application.unknown";
     protected static final Set<String> ROLE = new HashSet(Arrays.asList(new String[] {"COPY"}));
     
     public static void list() {

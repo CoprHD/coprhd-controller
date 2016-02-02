@@ -1092,6 +1092,8 @@ public class DisasterRecoveryService {
                     } else {
                         log.warn("Failed to do failover precheck for site {}, ignore it for failover", site.toBriefString());
                     }
+                } catch (Exception e){
+                    log.error("Failed to do failover precheck for site {}, ignore it for failover", site.toBriefString());
                 }
             }
         }
@@ -1129,6 +1131,8 @@ public class DisasterRecoveryService {
                         client.setCoordinatorClient(coordinator);
                         client.setKeyGenerator(apiSignatureGenerator);
                         client.failover(uuid, oldActiveSite.getUuid(), vdcTargetVersion);
+                    } catch (Exception e){
+                        log.error("Failed to do failover for site {}, ignore it for failover", site.toBriefString());
                     }
                 }
             }

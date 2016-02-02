@@ -5,8 +5,10 @@
 
 package com.emc.storageos.model.tenant;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -24,6 +26,7 @@ public class TenantOrgRestRep extends DataObjectRestRep {
     private String description;
     private List<UserMappingParam> userMappings;
     private String namespace;
+    private URI namespaceStorage;
 
     public TenantOrgRestRep() {
     }
@@ -92,13 +95,27 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * Namespace mapped to the Tenant
      * 
      */
-    @XmlElement
+    @XmlElement(name = "object_namespace")
     public String getNamespace() {
         return namespace;
     }
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
+    }
+
+    /**
+     * 
+     * Namespace associated with storage mapped to the Tenant
+     * 
+     */
+    @XmlElement(name = "namespace_storage_system")
+    public URI getNamespaceStorage() {
+        return namespaceStorage;
+    }
+
+    public void setNamespaceStorage(URI namespaceStorage) {
+        this.namespaceStorage = namespaceStorage;
     }
 
 }

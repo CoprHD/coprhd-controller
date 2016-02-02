@@ -31,6 +31,7 @@ public class SiteMapper {
         to.setVip(from.getVip());
         to.setDescription(from.getDescription());
         to.setState(from.getState().toString());
+        to.setCreateTime(from.getCreationTime());
         if (from.getNetworkHealth() != null) {
             to.setNetworkHealth(from.getNetworkHealth().toString());
         }

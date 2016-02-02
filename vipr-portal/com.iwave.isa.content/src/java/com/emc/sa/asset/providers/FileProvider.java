@@ -130,16 +130,18 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
     
     @Asset("fileFilePolicy")
-    @AssetDependencies("project")
-    public List<AssetOption> getFilePolicies(AssetOptionsContext ctx, URI project) {
+    @AssetDependencies( {"project", "fileFilesystem"} )
+    public List<AssetOption> getFilePolicies(AssetOptionsContext ctx, URI project, URI fsId) {
         List<AssetOption> options = Lists.newArrayList();
+        // TODO: Validate against existing file policy assigned to file system so that we can omit already 
+        // assigned file policy once the information becomes available through FileShareRestRep.
+        //FileShareRestRep fileSystem = api(ctx).fileSystems().get(fsId);
         SchedulePolicyList policies = api(ctx).tenants().getSchedulePoliciesByTenant(ctx.getTenant());
         for (NamedRelatedResourceRep policy : policies.getSchdulePolicies()) {
             options.add(new AssetOption(policy.getId(), policy.getName()));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
-        //return createFilesystemOptions(api(ctx).fileSystems().findByProject(project), new UnmountedFilesytemsPredicate());
     }
 
     @Asset("fileSnapshot")

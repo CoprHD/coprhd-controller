@@ -214,7 +214,13 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException rpUnManagedTargetVolumeInImageAccessState(String nativeGuid, String rpAccessState);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException vplexVolumeCannotHaveReplicasOnBothLegs(String details);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException rpUnManagedVolumeCannotHaveMirrors(String volLabel, String mirrors);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException cannotIngestMirrorsOfRPVolumes(String mirrorLabel, String parentLabel);
 }

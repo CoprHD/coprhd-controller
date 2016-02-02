@@ -99,8 +99,8 @@
         <package name="gcc-c++"/>
         <package name="gpgme"/>
         <package name="inst-source-utils"/>
-        <package name="java-1_7_0-openjdk"/>
-        <package name="java-1_7_0-openjdk-devel"/>
+        <package name="java-1_8_0-openjdk"/>
+        <package name="java-1_8_0-openjdk-devel"/>
         <package name="kernel-default-devel"/>
         <package name="kernel-source"/>
         <package name="kiwi-desc-isoboot"/>

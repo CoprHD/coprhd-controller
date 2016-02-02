@@ -28,10 +28,11 @@
 
     <bean id="dbRestoreHandler" class="com.emc.storageos.management.backup.RestoreHandler" >
         <constructor-arg value="/data/db"/>
-        <constructor-arg value="/data/db/1/data/StorageOS"/>
+        <constructor-arg value="/data/db/1/data"/>
         <property name="extraCleanDirs">
             <list value-type="java.lang.String">
                 <value>/data/db/1/commitlog</value>
+                <value>/data/db/1/saved_caches</value>
             </list>
         </property>
     </bean>
@@ -39,14 +40,20 @@
     <bean id="zkRestoreHandler" class="com.emc.storageos.management.backup.RestoreHandler" >
         <constructor-arg value="/data/zk"/>
         <constructor-arg value="/data/zk/version-2"/>
+        <property name="extraCleanDirs">
+            <list value-type="java.lang.String">
+                <value>/data/zk/siteid</value>
+            </list>
+        </property>
     </bean>
 
     <bean id="geoDbRestoreHandler" class="com.emc.storageos.management.backup.RestoreHandler" >
         <constructor-arg value="/data/geodb"/>
-        <constructor-arg value="/data/geodb/1/data/GeoStorageOS"/>
+        <constructor-arg value="/data/geodb/1/data"/>
         <property name="extraCleanDirs">
             <list value-type="java.lang.String">
                 <value>/data/geodb/1/commitlog</value>
+                <value>/data/geodb/1/saved_caches</value>
             </list>
         </property>
     </bean>

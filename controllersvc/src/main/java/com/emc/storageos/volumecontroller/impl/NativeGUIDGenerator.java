@@ -58,6 +58,8 @@ public class NativeGUIDGenerator {
     public static final String FILESYSTEM = "FILESYSTEM";
 
     public static final String VOLUME = "VOLUME";
+    
+    public static final String CONSISTENCY_GROUP = "CONSISTENCYGROUP";
 
     public static final String SNAPSHOT = "SNAPSHOT";
 
@@ -92,6 +94,8 @@ public class NativeGUIDGenerator {
     public static final String PHYSICAL_NAS = "PHYSICALNAS";
 
     public static final String VIRTUAL_NAS = "VIRTUALNAS";
+    
+    public static final String NAMESPACE = "NAMESPACE";
 
     static {
         OBJECT_TYPE_SET.add(POOL);
@@ -643,6 +647,11 @@ public class NativeGUIDGenerator {
 
     }
 
+    public static String generateNativeGuidForCG(String systemNativeGuid, String cgGuid) {
+        return String.format("%s+" + CONSISTENCY_GROUP + "+%s", systemNativeGuid, cgGuid);
+
+    }
+    
     public static String generateNativeGuidForExportMask(String systemNativeGuid, String maskName) {
         return String.format("%s+" + MASKINGVIEW + "+%s", systemNativeGuid, maskName);
 
@@ -752,6 +761,10 @@ public class NativeGUIDGenerator {
     public static String generateNativeGuidForPreExistingFileShare(StorageSystem storageSystem, String fileShareNativeId) {
         return String.format("%s+%s+" + UN_MANAGED_FILE_SHARE + "+%s", _deviceTypeMap.get(storageSystem.getSystemType()), storageSystem
                 .getSerialNumber().toUpperCase(), fileShareNativeId);
+    }
+    
+    public static String generateNativeGuidForNamespace(StorageSystem device, String uniqueId, String type) {
+        return String.format("%s+%s+%s+%s", _deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(), type, uniqueId);
     }
 
 }

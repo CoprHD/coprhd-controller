@@ -1,0 +1,14 @@
+[Unit]
+Description=The fcns.db script
+After=RP.service
+
+[Service]
+Type=forking
+ExecStart=/etc/init.d/fcnsDB start
+ExecStop=/etc/init.d/fcnsDB stop
+
+[Install]
+WantedBy=multi-user.target
+
+
+

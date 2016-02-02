@@ -16,7 +16,10 @@ import json
 import os
 import re
 import sysmgrcontrolsvc
+import sys
+import getpass
 from common import SOSError
+#from compiler.pycodegen import Delegator
 
 
 class Upgrade(object):
@@ -796,6 +799,17 @@ class Configuration(object):
     URI_PROPS_METADATA = "/config/properties/metadata"
     URI_RESET_PROPS = "/config/properties/reset/"
     URI_SKIP_INITIAL_SETUP = "/api/setup/skip"
+    URI_SITES_LIST = '/site'
+    URI_SITE_SHOW = '/site/{0}'
+    URI_SITE_REMOVE = '/site/remove'
+    URI_SITE_PAUSE = '/site/{0}/pause'
+    URI_SITES_PAUSE = '/site/pause'
+    URI_SITE_RESUME = '/site/{0}/resume'
+    URI_SITE_ERROR = '/site/{0}/error'
+    URI_SITE_TIME = '/site/{0}/time'
+    URI_SITE_SWITCHOVER = '/site/{0}/switchover'
+    URI_SITE_FAILOVER = '/site/{0}/failover'
+
     
     URI_CONFIG_PROPERTY_TYPE = ['ovf', 'config', 'mutated', 'obsolete', 'all' , 'secrets']
     UPDATE_PROPERTY_IGNORE_LIST = [
@@ -1062,6 +1076,198 @@ class Configuration(object):
         except IOError as e:
             raise SOSError(e.errno, e.strerror)
         
+    def site_list_uri(self):
+        '''
+        Makes REST API call to list sites
+        Returns:
+            return list of sites
+        '''
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            Configuration.URI_SITES_LIST, None)
+        o = common.json_decode(s)
+        return o['site']
+    
+    def get_uuid_of_site_for_state(self, sitestate):
+        sites = self.site_list_uri()
+        for site in sites:
+            if (site['state'] == sitestate):
+                return site['uuid']
+
+        raise SOSError(
+            SOSError.SOS_FAILURE_ERR,
+            "site with the state:" +
+            sitestate +
+            " Not Found")
+    
+    def add_site(self, name, ip, desc, username, passwd):
+        body = None
+        parms = {
+            'name': name,
+            'vip': ip,
+            'description': desc,
+            'username' : username,
+            'password': passwd
+        }
+        
+        body = json.dumps(parms)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Configuration.URI_SITES_LIST, body)
+        o = common.json_decode(s)
+        return o
+    
+    def site_name_to_uuid(self, sitename):
+        sites = self.site_list_uri()
+        for site in sites:
+            if (site['name'] == sitename):
+                return site['uuid']
+
+        raise SOSError(
+            SOSError.SOS_FAILURE_ERR,
+            "site with the name:" +
+            sitename +
+            " Not Found")
+    
+    def show_site(self, sitename, xml=False):
+        siteuuid = self.site_name_to_uuid(sitename)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            Configuration.URI_SITE_SHOW.format(siteuuid), None, None, xml)
+
+        if(xml is False):
+            return common.json_decode(s)
+        return s
+    
+    def delete_site(self, sitename):
+        siteuuid = self.site_name_to_uuid(sitename)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "DELETE",
+            Configuration.URI_SITE_SHOW.format(siteuuid), None)
+        return
+    
+    def remove_sites(self, sitenames):
+        site_uri_list = []
+        for name in sitenames:
+            siteuuid = self.site_name_to_uuid(name)
+            site_uri_list.append(siteuuid)
+        
+        body = None
+        parms = {
+                 'id' : site_uri_list
+        }
+        body = json.dumps(parms)
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Configuration.URI_SITE_REMOVE, body)
+        
+        return
+    
+    def pause_site(self, sitename):
+        siteuuid = self.site_name_to_uuid(sitename)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Configuration.URI_SITE_PAUSE.format(siteuuid), None)
+        return
+    
+    def pause_sites(self, sitenames):
+        site_uri_list = []
+        for name in sitenames:
+            siteuuid = self.site_name_to_uuid(name)
+            site_uri_list.append(siteuuid)
+        
+        body = None
+        parms = {
+                 'id' : site_uri_list
+        }
+        body = json.dumps(parms)
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Configuration.URI_SITES_PAUSE, body)
+        return
+    
+    def resume_site(self, sitename):
+        siteuuid = self.site_name_to_uuid(sitename)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Configuration.URI_SITE_RESUME.format(siteuuid), None)
+         
+        o = common.json_decode(s)
+        return o
+    
+    def site_error(self, sitename):
+        siteuuid = self.site_name_to_uuid(sitename)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            Configuration.URI_SITE_ERROR.format(siteuuid), None)
+         
+        o = common.json_decode(s)
+        return o
+    
+    def update_site(self, name, newname, desc):
+        siteuuid = self.site_name_to_uuid(name)
+        body = None
+        parms = dict()
+        if(newname is None):
+            parms['name'] = name
+        else:
+            parms['name'] = newname
+        site = self.show_site(name)
+
+        if 'description' in site:
+            original_desc = site['description']
+        else :
+            original_desc = ""
+
+        if(desc is None or len(desc) == 0):
+            parms['description'] = original_desc
+        else:
+            parms['description'] = desc
+        body = json.dumps(parms)
+        
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "PUT",
+            Configuration.URI_SITE_SHOW.format(siteuuid), body)
+        return
+    
+    def site_time(self, sitename):
+        siteuuid = self.site_name_to_uuid(sitename)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            Configuration.URI_SITE_TIME.format(siteuuid), None) 
+        o = common.json_decode(s)
+        return o
+    
+    def switchover_site(self, sitename):
+        siteuuid = self.site_name_to_uuid(sitename)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Configuration.URI_SITE_SWITCHOVER.format(siteuuid), None)
+        return
+    
+    def failover_site(self, sitename):
+        siteuuid = self.site_name_to_uuid(sitename)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Configuration.URI_SITE_FAILOVER.format(siteuuid), None)
+        return
+    
+
 def skip_initial_setup_parser(subcommand_parsers, common_parser):
     skip_initial_setup_parser = subcommand_parsers.add_parser(
         'skip-setup',
@@ -2357,6 +2563,439 @@ def cluster_ipreconfig_status(args):
             "ipreconfig_status",
             e.err_text,
             e.err_code)
+        
+
+def add_site_parser(subcommand_parsers,common_parser):
+    add_site_parser = subcommand_parsers.add_parser(
+        'add-site',
+        description='ViPR: CLI usage to add site',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Add a site')
+
+    mandatory_args = add_site_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-name','-n',
+                                help='Name of the site',
+                                dest='name',
+                                required='True')
+    mandatory_args.add_argument('-standbyipaddress','-stip',
+                                help='Public IP address of the site',
+                                dest='stip',
+                                required='True')
+    add_site_parser.add_argument('-description','-desc',
+                                help='Description of site',
+                                dest='desc')
+    mandatory_args.add_argument('-user','-u',
+                                help='User name for the site',
+                                dest='username',
+                                required='True')
+    
+    add_site_parser.set_defaults(func=add_site)
+
+def add_site(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        if (args.username):
+            passwd = common.get_password("site")
+        else:
+            raise SOSError(SOSError.CMD_LINE_ERR,
+                           args.username + " : invalid username")
+        if(args.desc is None):
+            desc = ""
+        else:
+            desc = args.desc
+        res = obj.add_site(args.name, args.stip, desc, args.username, passwd)
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "add",
+            "site",
+            e.err_text,
+            e.err_code)
+        
+def update_site_parser(subcommand_parsers,common_parser):
+    update_site_parser = subcommand_parsers.add_parser(
+        'update-site',
+        description='ViPR: CLI usage to update site',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Update a site')
+
+    mandatory_args = update_site_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-name','-n',
+                                help='Name of the site',
+                                dest='name',
+                                required='True')
+    update_site_parser.add_argument('-newname',
+                                help='New name of storage provider',
+                                metavar='<name>',
+                                dest='newname')
+    update_site_parser.add_argument('-description','-desc',
+                                help='Description of site',
+                                dest='desc')
+    update_site_parser.set_defaults(func=update_site)
+
+def update_site(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.update_site(args.name, args.newname, args.desc)
+        return
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "update",
+            "site",
+            e.err_text,
+            e.err_code)
+        
+def list_sites_parser(subcommand_parsers,common_parser):
+    list_sites_parser = subcommand_parsers.add_parser(
+        'list-sites',
+        description='ViPR: CLI usage to list all sites',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='List all sites')
+    list_sites_parser.add_argument('-verbose', '-v',
+                             dest='verbose',
+                             help='List sites with details',
+                             action='store_true')
+    list_sites_parser.add_argument('-long', '-l',
+                             dest='long',
+                             help='List sites in table',
+                             action='store_true')
+
+    list_sites_parser.set_defaults(func=list_sites)
+
+def list_sites(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.site_list_uri()
+        
+        from common import TableGenerator
+        if(args.verbose is False and args.long is False):
+                TableGenerator(res,
+                               ["name"]).printTable()
+            
+        # show a long table
+        if(args.verbose is False and args.long is True):
+            TableGenerator(res, ['name','vip','state']).printTable()
+        
+        # show all items in json format
+        if(args.verbose):
+            return common.format_json_object(res)
+
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "list",
+            "site",
+            e.err_text,
+            e.err_code)
+        
+def show_site_parser(subcommand_parsers,common_parser):
+    show_site_parser = subcommand_parsers.add_parser(
+        'show-site',
+        description='ViPR: CLI usage to show a site details',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Show a site')
+
+    mandatory_args = show_site_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-name','-n',
+                                help='Name of the site',
+                                dest='name',
+                                required='True')
+    
+    show_site_parser.set_defaults(func=show_site)
+
+def show_site(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.show_site(args.name)
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "show",
+            "site",
+            e.err_text,
+            e.err_code)
+        
+def delete_site_parser(subcommand_parsers,common_parser):
+    delete_site_parser = subcommand_parsers.add_parser(
+        'delete-site',
+        description='ViPR: CLI usage to delete a standby site',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Delete a standby site')
+
+    mandatory_args = delete_site_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-name','-n',
+                                help='Name of the site',
+                                dest='name',
+                                required='True')
+    
+    delete_site_parser.set_defaults(func=delete_site)
+
+def delete_site(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.delete_site(args.name)
+        return
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "delete",
+            "site",
+            e.err_text,
+            e.err_code)
+        
+def remove_sites_parser(subcommand_parsers,common_parser):
+    remove_sites_parser = subcommand_parsers.add_parser(
+        'delete-sites',
+        description='ViPR: CLI usage to remove multiple standby sites',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Remove multiple standby sites')
+
+    mandatory_args = remove_sites_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-names','-ns',
+                                help='Names of the sites',
+                                dest='names',
+                                nargs='+',
+                                required='True')
+    
+    remove_sites_parser.set_defaults(func=remove_sites)
+
+def remove_sites(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.remove_sites(args.names)
+        return
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "delete",
+            "sites",
+            e.err_text,
+            e.err_code)
+        
+def pause_sites_parser(subcommand_parsers,common_parser):
+    pause_sites_parser = subcommand_parsers.add_parser(
+        'pause-sites',
+        description='ViPR: CLI usage to pause multiple standby sites',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Pause multiple standby sites')
+
+    mandatory_args = pause_sites_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-names','-ns',
+                                help='Names of the sites',
+                                dest='names',
+                                nargs='+',
+                                required='True')
+    
+    pause_sites_parser.set_defaults(func=pause_sites)
+
+def pause_sites(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.pause_sites(args.names)
+        return
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "pause",
+            "sites",
+            e.err_text,
+            e.err_code)
+        
+def pause_site_parser(subcommand_parsers,common_parser):
+    pause_site_parser = subcommand_parsers.add_parser(
+        'pause-site',
+        description='ViPR: CLI usage to pause a standby site',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Pause a standby site')
+
+    mandatory_args = pause_site_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-name','-n',
+                                help='Name of the site',
+                                dest='name',
+                                required='True')
+    
+    pause_site_parser.set_defaults(func=pause_site)
+
+def pause_site(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.pause_site(args.name)
+        return
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "pause",
+            "site",
+            e.err_text,
+            e.err_code)
+        
+def resume_site_parser(subcommand_parsers,common_parser):
+    resume_site_parser = subcommand_parsers.add_parser(
+        'resume-site',
+        description='ViPR: CLI usage to resume a standby site',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Resume a standby site')
+
+    mandatory_args = resume_site_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-name','-n',
+                                help='Name of the site',
+                                dest='name',
+                                required='True')
+    
+    resume_site_parser.set_defaults(func=resume_site)
+
+def resume_site(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.resume_site(args.name)
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "resume",
+            "site",
+            e.err_text,
+            e.err_code)
+        
+def site_error_parser(subcommand_parsers,common_parser):
+    site_error_parser = subcommand_parsers.add_parser(
+        'site-error',
+        description='ViPR: CLI usage to query the latest error message for specific standby site',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Query the latest error message for specific standby site')
+
+    mandatory_args = site_error_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-name','-n',
+                                help='Name of the site',
+                                dest='name',
+                                required='True')
+    
+    site_error_parser.set_defaults(func=site_error)
+
+def site_error(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.site_error(args.name)
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "get error",
+            "site",
+            e.err_text,
+            e.err_code)
+        
+def site_time_parser(subcommand_parsers,common_parser):
+    site_time_parser = subcommand_parsers.add_parser(
+        'site-time',
+        description='ViPR: CLI usage to query the transition timings for specific standby site',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Query the transition timings for specific standby site')
+
+    mandatory_args = site_time_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-name','-n',
+                                help='Name of the site',
+                                dest='name',
+                                required='True')
+    
+    site_time_parser.set_defaults(func=site_time)
+
+def site_time(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.site_time(args.name)
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "get time",
+            "site",
+            e.err_text,
+            e.err_code)
+        
+def switchover_site_parser(subcommand_parsers,common_parser):
+    switchover_site_parser = subcommand_parsers.add_parser(
+        'switchover-site',
+        description='ViPR: CLI usage to switchover to target new active site',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Switchover to target new active site')
+
+    mandatory_args = switchover_site_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-name','-n',
+                                help='Name of the site',
+                                dest='name',
+                                required='True')
+    
+    switchover_site_parser.set_defaults(func=switchover_site)
+
+def switchover_site(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.switchover_site(args.name)
+        return
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "switchover",
+            "site",
+            e.err_text,
+            e.err_code)
+        
+def failover_site_parser(subcommand_parsers,common_parser):
+    failover_site_parser = subcommand_parsers.add_parser(
+        'failover-site',
+        description='ViPR: CLI usage to do failover from standby site',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Failover from standby site. This operation is only allowed when acitve site is down')
+    
+    mandatory_args = failover_site_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-name','-n',
+                                help='Name of the site',
+                                dest='name',
+                                required='True')
+    
+    failover_site_parser.set_defaults(func=failover_site)
+
+def failover_site(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.failover_site(args.name)
+        return res
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "failover",
+            "site",
+            e.err_text,
+            e.err_code)
 
 
 def system_parser(parent_subparser, common_parser):
@@ -2453,5 +3092,52 @@ def system_parser(parent_subparser, common_parser):
 
     cluster_ipinfo_parser(subcommand_parsers,common_parser)
     
+    add_site_parser(subcommand_parsers,common_parser)
+   
+    sysmgrcontrolsvc.dbconsistency_check_cancel_parser(subcommand_parsers, common_parser)
     
-
+    sysmgrcontrolsvc.dbconsistency_check_status_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.trigger_dbconsistency_check_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.upload_backup_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.upload_backup_status_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.backup_info_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.backupset_restore_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.backupset_restore_status_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.get_backupsets_external_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.get_backupsets_info_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.backupset_pull_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.backupset_pull_cancel_parser(subcommand_parsers,common_parser)
+    
+    list_sites_parser(subcommand_parsers,common_parser)
+    
+    show_site_parser(subcommand_parsers,common_parser)
+    
+    delete_site_parser(subcommand_parsers,common_parser)
+    
+    remove_sites_parser(subcommand_parsers,common_parser)
+    
+    pause_site_parser(subcommand_parsers,common_parser)
+    
+    pause_sites_parser(subcommand_parsers,common_parser)
+    
+    resume_site_parser(subcommand_parsers, common_parser)
+    
+    site_error_parser(subcommand_parsers, common_parser)
+    
+    update_site_parser(subcommand_parsers,common_parser)
+    
+    site_time_parser(subcommand_parsers, common_parser)
+    
+    switchover_site_parser(subcommand_parsers,common_parser)
+    
+    failover_site_parser(subcommand_parsers,common_parser)

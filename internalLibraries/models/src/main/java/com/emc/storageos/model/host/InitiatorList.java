@@ -28,7 +28,6 @@ public class InitiatorList {
     /**
      * List of host initiators that exists in ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "initiator")
     public List<NamedRelatedResourceRep> getInitiators() {

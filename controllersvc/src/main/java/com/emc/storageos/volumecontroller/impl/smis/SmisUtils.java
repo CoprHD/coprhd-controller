@@ -156,7 +156,12 @@ public class SmisUtils {
         if ((accessState != null) && (statusDescriptions != null) && (statusDescriptions.contains(SmisConstants.NOT_READY))) {
             return Volume.VolumeAccessState.NOT_READY.name();
         } else if (accessState != null) {
-            return accessState;
+            String displayName = Volume.VolumeAccessState.getVolumeAccessStateDisplayName(accessState);
+            if (displayName.equals(Volume.VolumeAccessState.UNKNOWN.name())) {
+                return accessState;
+            } else {
+                return displayName;
+            }
         }
         return Volume.VolumeAccessState.READWRITE.name();
     }

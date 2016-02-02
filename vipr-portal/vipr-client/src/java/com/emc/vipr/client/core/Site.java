@@ -4,22 +4,19 @@
  */
 package com.emc.vipr.client.core;
 
-import java.util.List;
-
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
+import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
-import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
@@ -29,14 +26,11 @@ import com.sun.jersey.api.client.ClientResponse;
  * <p>
  * Base URL: <tt>/site</tt>
  */
-public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevelResources<SiteRestRep> {
-
-    public Site(ViPRCoreClient parent, RestClient client) {
-        super(parent, client, SiteRestRep.class, PathConstants.SITE_URL);
-    }
-
-    public Site(ViPRCoreClient parent, RestClient client, Class<SiteRestRep> resourceClass, String baseUrl) {
-        super(parent, client, resourceClass, baseUrl);
+public class Site {
+    private RestClient client;
+    
+    public Site(RestClient client) {
+        this.client = client;
     }
 
     public SiteRestRep createSite(SiteAddParam input) {
@@ -83,6 +77,10 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.get(SiteErrorResponse.class, PathConstants.SITE_URL + "/" + uuid + "/error");
     }
 
+    public SiteDetailRestRep getSiteDetails(String uuid) {
+        return client.get(SiteDetailRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/details");
+    }
+
     public ClientResponse doSwitchover(String uuid) {
         return client.post(ClientResponse.class, PathConstants.SITE_URL + "/" + uuid + "/switchover");
     }
@@ -90,25 +88,8 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     public ClientResponse doFailover(String uuid) {
         return client.post(ClientResponse.class, PathConstants.SITE_URL + "/" + uuid + "/failover");
     }
-    
+
     public ClientResponse updateSite(String uuid, SiteUpdateParam updateParam) {
         return client.put(ClientResponse.class, updateParam, PathConstants.SITE_URL + "/" + uuid);
-    }
-
-    @Override
-    public List<SiteRestRep> getAll(ResourceFilter<SiteRestRep> filter) {
-        return null;
-    }
-
-    @Override
-    public List<? extends NamedRelatedResourceRep> list() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public List<SiteRestRep> getAll() {
-        // TODO Auto-generated method stub
-        return null;
     }
 }

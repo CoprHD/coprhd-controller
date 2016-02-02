@@ -17,7 +17,6 @@ public class AuthnProviderList {
     /**
      * List of the authentication providers in the system
      * 
-     * @valid none
      */
     private List<NamedRelatedResourceRep> providers;
 

@@ -7,7 +7,7 @@
 #  Setup
 ##################################################
 export DO_NOT_START := yes
-WORKSPACE := $(shell pwd)
+WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHD
 VERSION := 2.5.0.0
 JOB := 999
@@ -47,8 +47,8 @@ endef
 downdloadISO:
 	$(call targetLog,+)
 	mkdir -p $(WORKSPACE)/iso/mount
-	-[ -f $(WORKSPACE)/iso/$(ISO_FILE) ] || cp -pr /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) $(WORKSPACE)/iso/
-	wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
+	[ ! -f /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) ] || ln -fs /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) $(WORKSPACE)/iso/
+	[ -s $(WORKSPACE)/iso/$(ISO_FILE) ] || wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
 	$(call targetLog,-)
 
 downdloadRPM:
@@ -59,7 +59,7 @@ downdloadRPM:
 	zypper $(ZYPPER_PARAMS) addrepo --name repo-oss --no-gpgcheck --no-check http://download.opensuse.org/distribution/13.2/repo/oss repo-oss.repo
 	zypper $(ZYPPER_PARAMS) refresh
 	zypper $(ZYPPER_PARAMS) --non-interactive download python-py python-requests python-setools python-iniparse python-gpgme
-	zypper $(ZYPPER_PARAMS) --non-interactive download libserf-devel fribidi fbiterm openssh-fips perl-Tk setools-libs sshpass sysstat ca-certificates-cacert yum keepalived strongswan strongswan-ipsec strongswan-libs0
+	zypper $(ZYPPER_PARAMS) --non-interactive download libserf-devel fribidi fbiterm openssh-fips perl-Tk setools-libs sshpass sysstat ca-certificates-cacert yum keepalived strongswan strongswan-ipsec strongswan-libs0 java-1_8_0-openjdk-devel
 	@# openSUSE's non-OSS packages
 	zypper $(ZYPPER_PARAMS) addrepo --name devel-languages-python --no-gpgcheck --no-check http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 devel-languages-python.repo
 	zypper $(ZYPPER_PARAMS) addrepo --name server-monitoring --no-gpgcheck --no-check http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 server-monitoring.repo
@@ -90,7 +90,7 @@ createREPO: | downdloadRPM downdloadTGZ
 	if [ -f $(SOURCE_RPM) ]; then \
 		cp -fr $(SOURCE_RPM) $(WORKSPACE)/zypper/repo/; \
 	fi
-	make -f $(WORKSPACE)/../configure-network/Makefile
+	make --directory=$(WORKSPACE)/../configure-network
 	cp -f $(WORKSPACE)/../configure-network/RPMS/noarch/* $(WORKSPACE)/zypper/repo/
 	find $(WORKSPACE)/zypper/pkg -iname \*.rpm -exec cp -f {} $(WORKSPACE)/zypper/repo/ \;
 	createrepo $(WORKSPACE)/zypper/repo

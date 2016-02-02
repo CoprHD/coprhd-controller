@@ -11,51 +11,51 @@ import com.emc.storageos.db.client.model.StringSetMap;
  */
 @Cf("DriverRegistry")
 public class DriverRegistryRecord extends DataObject {
-    private String _driverName;
+    private String driverName;
     // registry key
-    private String _registryKey;
+    private String registryKey;
     // map of name-value pairs for a registry key
     /*
     Example of registry entry for storage drive:
-    driverName: scaleioDriver
+    driverName: arrayXDriver
     key: connectionData
     attributes:
-        ipAddress: 10.246.13.155
-        port: 8443
-        userName: root
-        password: ChangeMe
+        ipAddress: 10.212.13.145
+        port: 8567
+        userName: name
+        password: Password
      */
-    private StringSetMap _attributes;
+    private StringSetMap attributes;
 
     @Name("driverName")
     @AlternateId("AltIdIndex")
     public String getDriverName() {
-        return _driverName;
+        return driverName;
     }
 
     public void setDriverName(String driverName) {
-        _driverName = driverName;
+        driverName = driverName;
         setChanged("driverName");
     }
 
     @Name("registryKey")
     public String getRegistryKey() {
-        return _registryKey;
+        return registryKey;
 
     }
 
     public void setRegistryKey(String registryKey) {
-        _registryKey = registryKey;
+        registryKey = registryKey;
         setChanged("registryKey");
     }
 
     @Name("attributes")
     public StringSetMap getAttributes() {
-        return _attributes;
+        return attributes;
     }
 
     public void setAttributes(StringSetMap attributes) {
-        _attributes = attributes;
+        attributes = attributes;
         setChanged("attributes");
     }
 }

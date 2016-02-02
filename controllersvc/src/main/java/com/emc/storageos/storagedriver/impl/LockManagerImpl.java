@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Implementation of lock manager service for device drivers.
  */
-public class LockManagerImpl implements LockManager {
+public final class LockManagerImpl implements LockManager {
 
     private static LockManagerImpl lockManager;
     private ControllerLockingService lockingService;
@@ -37,6 +37,6 @@ public class LockManagerImpl implements LockManager {
     }
 
     private void setLockingService(ControllerLockingService lockingService) {
-        lockingService = lockingService;
+        this.lockingService = lockingService;
     }
 }

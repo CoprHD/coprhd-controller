@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.storagedriver.storagecapabilities;
 
 /**
@@ -5,15 +9,15 @@ package com.emc.storageos.storagedriver.storagecapabilities;
  */
 public class StorageCapabilities {
 
-    private CommonStorageCapabilities commonCapabilitis;
+    private CommonStorageCapabilities commonCapabilities;
     private CustomStorageCapabilities customCapabilities;
 
     public CommonStorageCapabilities getCommonCapabilitis() {
-        return commonCapabilitis;
+        return commonCapabilities;
     }
 
-    public void setCommonCapabilitis(CommonStorageCapabilities commonCapabilitis) {
-        this.commonCapabilitis = commonCapabilitis;
+    public void setCommonCapabilitis(CommonStorageCapabilities commonCapabilities) {
+        this.commonCapabilities = commonCapabilities;
     }
 
     public CustomStorageCapabilities getCustomCapabilities() {

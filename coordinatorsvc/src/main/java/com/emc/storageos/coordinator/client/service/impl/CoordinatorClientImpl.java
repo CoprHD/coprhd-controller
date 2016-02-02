@@ -741,6 +741,21 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return clazz.cast(proxy);
     }
 
+    @Override
+    public <T> T locateService(Class<T> clazz, String name, String version, String tag,
+                               String defaultTag, String endpointKey) throws CoordinatorException {
+        T service;
+        try {
+            service = locateService(
+                    clazz, name, version, tag, clazz.getSimpleName());
+        } catch (RetryableCoordinatorException rex) {
+            service = locateService(
+                    clazz, name, version, defaultTag, clazz.getSimpleName());
+        }
+
+        return service;
+    }
+
 
     private List<String> lookupServicePath(String serviceRoot) throws CoordinatorException {
         return lookupServicePath(_zkConnection.getSiteId(), serviceRoot);

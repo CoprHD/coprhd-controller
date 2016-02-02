@@ -40,27 +40,24 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
     private BlockStorageDevice device = null;
 
     @Override
-    public synchronized BlockStorageDevice getDevice()
-    {
+    public synchronized BlockStorageDevice getDevice() {
         if (device == null) {
             device = (BlockStorageDevice) ControllerServiceImpl.getBean(StorageDriverManager.EXTERNAL_STORAGE_DEVICE);
         }
         return device;
     }
 
-    public synchronized StorageDriverManager getDriverManager()
-    {
+    public synchronized StorageDriverManager getDriverManager() {
         if (driverManager == null) {
             driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
         }
         return driverManager;
     }
 
-
     @Override
     public void createWorkFlowAndSubmitForExportGroupCreate(List<URI> initiatorURIs, Map<URI, Integer> volumeMap, String token,
-                                                            ExportOrchestrationTask taskCompleter, BlockStorageDevice device,
-                                                            ExportGroup exportGroup, StorageSystem storage) throws Exception {
+            ExportOrchestrationTask taskCompleter, BlockStorageDevice device,
+            ExportGroup exportGroup, StorageSystem storage) throws Exception {
         // Check that storage system is driver managed.
         StorageDriverManager storageDriverManager = getDriverManager();
         if (!storageDriverManager.isDriverManaged(storage.getSystemType())) {
@@ -96,8 +93,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 workflow, EXPORT_GROUP_MASKING_TASK, exportGroup, null,
                 volumeMap);
 
-        if (!maskingSteps.isEmpty() && null != zoningStep)
-        {
+        if (!maskingSteps.isEmpty() && null != zoningStep) {
             // Execute the plan and allow the WorkflowExecutor to fire the
             // taskCompleter.
             workflow.executePlan(taskCompleter, String.format(
@@ -164,17 +160,15 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
 
     @Override
     public void createWorkFlowAndSubmitForAddVolumes(URI storageURI,
-                                                     URI exportGroupURI, Map<URI, Integer> volumeMap, String token,
-                                                     ExportTaskCompleter taskCompleter, ExportGroup exportGroup,
-                                                     StorageSystem storage) throws Exception
-    {
+            URI exportGroupURI, Map<URI, Integer> volumeMap, String token,
+            ExportTaskCompleter taskCompleter, ExportGroup exportGroup,
+            StorageSystem storage) throws Exception {
         // Note: We support only case when add volumes to export group does not change storage ports in
         // existing export masks where volumes are added.
         // Since we only execute masking step on device for existing masks --- no zoning change is required.
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                 exportGroup, storageURI);
-        if (exportMasks != null && !exportMasks.isEmpty())
-        {
+        if (exportMasks != null && !exportMasks.isEmpty()) {
             // Set up work flow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(),
@@ -191,7 +185,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     // Have to add volumes to user created volumes set in the mask since
                     // generateExportMaskAddVolumesWorkflow() call below does not do this.
                     for (URI volumeUri : volumeMap.keySet()) {
-                        Volume volume = (Volume)_dbClient.queryObject(volumeUri);
+                        Volume volume = (Volume) _dbClient.queryObject(volumeUri);
                         exportMask.addToUserCreatedVolumes(volume);
                     }
                     _dbClient.updateObject(exportMask);
@@ -212,20 +206,16 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     "Volumes successfully added to export on StorageArray %s",
                     storage.getLabel());
             workflow.executePlan(taskCompleter, successMessage);
-        }
-        else
-        {
+        } else {
             // This is the case when export group does not have export mask for storage array where the volumes belongs.
             // In this case we will create new export masks for the storage array and each compute resource in the export group.
             // Essentially for every existing mask we will add a new mask for the array and initiators in the existing mask.
             if (exportGroup.getInitiators() != null
-                    && !exportGroup.getInitiators().isEmpty())
-            {
+                    && !exportGroup.getInitiators().isEmpty()) {
                 _log.info("export_volume_add: adding volume, creating a new export mask");
 
                 List<URI> initiatorURIs = new ArrayList<>();
-                for (String initiatorId : exportGroup.getInitiators())
-                {
+                for (String initiatorId : exportGroup.getInitiators()) {
                     Initiator initiator = _dbClient.queryObject(
                             Initiator.class, URI.create(initiatorId));
                     initiatorURIs.add(initiator.getId());
@@ -239,7 +229,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 // This call will create steps for a new mask for each compute resource
                 // and new volumes. For example, if there are 3 compute resources in the group,
                 // the step will create 3 new masks for these resources and new volumes.
-                List<String> maskingSteps= createNewExportMaskWorkflowForInitiators(initiatorURIs,
+                List<String> maskingSteps = createNewExportMaskWorkflowForInitiators(initiatorURIs,
                         exportGroup, workflow, volumeMap, storage, token,
                         null);
 
@@ -257,9 +247,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                                 storage.getLabel());
 
                 workflow.executePlan(taskCompleter, successMessage);
-            }
-            else
-            {
+            } else {
                 _log.info("Export group doesn't have initiators.");
                 taskCompleter.ready(_dbClient);
             }

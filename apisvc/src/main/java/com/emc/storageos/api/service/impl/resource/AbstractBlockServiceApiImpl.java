@@ -228,6 +228,21 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         return controller;
     }
 
+    /**
+     * Looks up controller dependency for given hardware type.
+     * If cannot locate controller for defined hardware type, lookup default controller
+     * for EXTERNALDEVICE tag.
+     *
+     * @param clazz controller interface
+     * @param hw hardware name
+     * @param externalDevice hardware tag for external devices
+     * @param <T>
+     * @return
+     */
+    protected <T extends Controller> T getController(Class<T> clazz, String hw, String externalDevice) {
+        return _coordinator.locateService(clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, externalDevice, clazz.getSimpleName());
+    }
+
     // Default unsupported operations
 
     /**

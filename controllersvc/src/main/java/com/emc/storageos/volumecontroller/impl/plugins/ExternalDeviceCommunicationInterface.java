@@ -48,13 +48,13 @@ public class ExternalDeviceCommunicationInterface extends
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
     private Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
-    private Map<String, AbstractStorageDriver> _drivers;
+    private Map<String, AbstractStorageDriver> drivers;
 
     // Initialized drivers map
     private Map<String, DiscoveryDriver> discoveryDrivers = new HashMap<>();
 
     public void setDrivers(Map<String, AbstractStorageDriver> drivers) {
-        _drivers = drivers;
+        drivers = drivers;
     }
 
     private synchronized DiscoveryDriver getDriver(String driverType) {
@@ -64,7 +64,7 @@ public class ExternalDeviceCommunicationInterface extends
             return discoveryDriver;
         } else {
             // init driver
-            AbstractStorageDriver driver = _drivers.get(driverType);
+            AbstractStorageDriver driver = drivers.get(driverType);
             if (driver == null) {
                 _log.info("No driver entry defined for device type: {} . ", driverType);
                 return null;
@@ -358,6 +358,7 @@ public class ExternalDeviceCommunicationInterface extends
             _log.info("discoverPorts for storage system {} - start", storageSystemId);
 
             List<StoragePort> driverStoragePorts = new ArrayList<>();
+            // Call driver.
             DriverTask task = driver.discoverStoragePorts(driverStorageSystem, driverStoragePorts);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
@@ -381,21 +382,9 @@ public class ExternalDeviceCommunicationInterface extends
                     if (storagePort == null) {
                         // New port processing
                         storagePort = new com.emc.storageos.db.client.model.StoragePort();
-                        storagePort.setId(URIUtil.createId(com.emc.storageos.db.client.model.StoragePort.class));
-                        storagePort.setIsDriverManaged(true);
-                        storagePort.setTransportType(driverPort.getTransportType());
+                        prepareNewPort(storagePort, driverPort);
                         storagePort.setNativeGuid(portNativeGuid);
-                        storagePort.setNativeId(driverPort.getNativeId());
                         storagePort.setStorageDevice(storageSystemId);
-                        storagePort.setPortName(driverPort.getPortName());
-                        storagePort.setLabel(driverPort.getPortName());
-                        storagePort.setPortSpeed(driverPort.getPortSpeed());
-                        storagePort.setPortGroup(driverPort.getPortGroup());
-                        if (storagePort.getPortGroup() == null) {
-                            storagePort.setPortGroup(storagePort.getPortName());
-                        }
-                        storagePort.setPortEndPointID(driverPort.getEndPointID());
-                        _log.info("discoverPort: portNetworkId: {} ", storagePort.getPortNetworkId());
                         if (driverPort.getNetworkId() != null) {
                             // Get or create Network object for this port
                             Network portNetwork = getNetworkForStoragePort(driverPort);
@@ -447,6 +436,23 @@ public class ExternalDeviceCommunicationInterface extends
         } finally {
             _log.info("Discovery of storage ports of storage system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
         }
+    }
+
+    private void prepareNewPort(com.emc.storageos.db.client.model.StoragePort storagePort, StoragePort driverPort) {
+
+        storagePort.setId(URIUtil.createId(com.emc.storageos.db.client.model.StoragePort.class));
+        storagePort.setIsDriverManaged(true);
+        storagePort.setTransportType(driverPort.getTransportType());
+        storagePort.setNativeId(driverPort.getNativeId());
+        storagePort.setPortName(driverPort.getPortName());
+        storagePort.setLabel(driverPort.getPortName());
+        storagePort.setPortSpeed(driverPort.getPortSpeed());
+        storagePort.setPortGroup(driverPort.getPortGroup());
+        if (storagePort.getPortGroup() == null) {
+            storagePort.setPortGroup(storagePort.getPortName());
+        }
+        storagePort.setPortEndPointID(driverPort.getEndPointID());
+        _log.info("discoverPort: portNetworkId: {} ", storagePort.getPortNetworkId());
     }
 
     private StorageSystem initStorageSystem(com.emc.storageos.db.client.model.StorageSystem storageSystem) {

@@ -97,7 +97,7 @@ class DataCollectionJobInvoker {
                     String externalDeviceContextKey =
                             _accessProfile.getProfileName() + "-" + Constants.EXTERNALDEVICE + "-" + _namespace.toLowerCase();
                     _logger.info("No entry defined for context key: {} . Default to external device context key: {}",
-                            new Object[] { contextkey, externalDeviceContextKey });
+                            contextkey, externalDeviceContextKey);
                     contextkey = externalDeviceContextKey;
                     contextDeviceType = Constants.EXTERNALDEVICE;
                 }

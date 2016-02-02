@@ -347,7 +347,6 @@ public class CapacityUtils {
      * 
      * @param storagePool
      * @return true for file pool, false block pools
-     * @throws ServiceCodeException
      */
     public static boolean isFileStoragePool(StoragePool storagePool, DbClient dbClient) {
         URI storageSystemUri = storagePool.getStorageDevice();
@@ -355,11 +354,7 @@ public class CapacityUtils {
         ArgValidator.checkEntity(storageSystem, storageSystemUri, false);
 
         StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageSystem.getSystemType());
-        if (storageSystemType.equals(StorageSystem.Type.isilon) || storageSystemType.equals(StorageSystem.Type.vnxfile)) {
-            return true;
-        } else {
-            return false;
-        }
+        return (storageSystemType.equals(StorageSystem.Type.isilon) || storageSystemType.equals(StorageSystem.Type.vnxfile));
     }
 
     private static Capacity getVirtualPoolCapacityForPools(DbClient dbClient, URI cosId, VirtualPool.Type cosType, Set<String> pools) {

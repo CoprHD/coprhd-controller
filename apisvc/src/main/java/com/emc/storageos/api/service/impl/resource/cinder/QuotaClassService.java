@@ -134,7 +134,7 @@ public class QuotaClassService extends TaskResourceService {
     			//						"gigabytes_vnx-vpool-1": 102, "volumes_vnx-vpool-1": 102, 
     			//						"gigabytes": 1000, 
     			//						"gigabytes_vt-1": -1, "volumes": 10 }}
-    			qMap = getQuotaHelper().populateVolumeTypeDefaultsForQuotalass(qMap , openstackTenantId, null);
+    			qMap = getQuotaHelper().populateVolumeTypeDefaultsForQuotaClass(qMap , openstackTenantId, null);
     			resp.quotaClassSet.putAll(qMap);
     			_log.debug("resp.quota_class_set is {}" , resp.quotaClassSet.toString());
     			return getQuotaClassDetailFormat(header, resp);
@@ -197,7 +197,7 @@ public class QuotaClassService extends TaskResourceService {
             throw APIException.badRequests.parameterIsNotValid(quotaClassName);
     	}
     				
-		defaultQuotaMap = getQuotaHelper().populateVolumeTypeDefaultsForQuotalass(defaultQuotaMap , tenantId, null);
+		defaultQuotaMap = getQuotaHelper().populateVolumeTypeDefaultsForQuotaClass(defaultQuotaMap , tenantId, null);
 		respCinderQuota.quotaClassSet.putAll(defaultQuotaMap); 
 		    	
     	_log.debug("respCinderQuota is {}", respCinderQuota.quotaClassSet.toString());

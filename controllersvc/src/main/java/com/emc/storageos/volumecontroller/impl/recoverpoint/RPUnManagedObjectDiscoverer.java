@@ -325,7 +325,7 @@ public class RPUnManagedObjectDiscoverer {
                 // Add the unmanaged volume to the list (if it's not there already)
                 if (!unManagedProtectionSet.getUnManagedVolumeIds().contains(unManagedVolume.getId().toString())) {
                     unManagedProtectionSet.getUnManagedVolumeIds().add(unManagedVolume.getId().toString());
-                }
+                }                
 
                 // Update the fields in the UnManagedVolume to reflect RP characteristics
                 String personality = Volume.PersonalityTypes.SOURCE.name();
@@ -473,22 +473,45 @@ public class RPUnManagedObjectDiscoverer {
      * @param dbClient
      */
     private void updateCommonRPProperties(UnManagedProtectionSet unManagedProtectionSet, UnManagedVolume unManagedVolume,
-            String personalityType, GetVolumeResponse volume, DbClient dbClient) {
+            String personalityType, GetVolumeResponse volume, DbClient dbClient) {        
+        StringSet rpCopyName = new StringSet();
+        rpCopyName.add(volume.getRpCopyName());
+        
+        StringSet rpInternalSiteName = new StringSet();
+        rpInternalSiteName.add(volume.getInternalSiteName());
+        
+        if (volume.isProductionStandby()) {                                                                      
+            unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_STANDBY_COPY_NAME.toString(),
+                    rpCopyName);                         
+            
+            unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_STANDBY_INTERNAL_SITENAME.toString(),
+                    rpInternalSiteName);
+            
+            // If this volume is flagged as production standby it indicates that this RP CG is 
+            // MetroPoint. Set the IS_MP flag on UnManagedProtectionSet to TRUE. This only needs
+            // to be done once.
+            String metroPoint = unManagedProtectionSet.getCGCharacteristics().get(
+                                    UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name());                        
+            if (metroPoint == null 
+                    || metroPoint.isEmpty()
+                    || !Boolean.parseBoolean(metroPoint)) {
+                // Set the flag to true if it hasn't already been set
+                unManagedProtectionSet.getCGCharacteristics().put(
+                        UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name(), Boolean.TRUE.toString());
+            }                        
+        } else {
+            unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_NAME.toString(),
+                    rpCopyName); 
+            
+            unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(),
+                    rpInternalSiteName);
+        }
+
         StringSet personality = new StringSet();
         personality.add(personalityType);
         unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PERSONALITY.toString(),
                 personality);
-
-        StringSet rpCopyName = new StringSet();
-        rpCopyName.add(volume.getRpCopyName());
-        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_NAME.toString(),
-                rpCopyName);
-
-        StringSet rpInternalSiteName = new StringSet();
-        rpInternalSiteName.add(volume.getInternalSiteName());
-        unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(),
-                rpInternalSiteName);
-
+        
         StringSet rpProtectionSystemId = new StringSet();
         rpProtectionSystemId.add(unManagedProtectionSet.getProtectionSystemUri().toString());
         unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PROTECTIONSYSTEM.toString(),

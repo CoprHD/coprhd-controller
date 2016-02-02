@@ -31,9 +31,9 @@ public class VirtualPoolHighAvailabilityParam {
 
     /**
      * The high availability type.
-     * 
-     * @valid vplex_local
-     * @valid vplex_distributed
+     * Valid values:
+     *      vplex_local
+     *      vplex_distributed
      */
     @XmlElement(name = "type")
     public String getType() {
@@ -47,7 +47,6 @@ public class VirtualPoolHighAvailabilityParam {
     /**
      * The virtual pool for the high availability virtual array.
      * 
-     * @valid none
      */
     @XmlElement(name = "ha_varray_vpool")
     @JsonProperty("ha_varray_vpool")
@@ -63,8 +62,6 @@ public class VirtualPoolHighAvailabilityParam {
     /**
      * Flag to specify whether or not MetroPoint configuration will be used.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "metroPoint", required = false)
     public Boolean getMetroPoint() {
@@ -102,7 +99,6 @@ public class VirtualPoolHighAvailabilityParam {
         /**
          * The virtual array.
          * 
-         * @valid none
          */
         @XmlElement(name = "varray")
         @JsonProperty("varray")
@@ -117,7 +113,6 @@ public class VirtualPoolHighAvailabilityParam {
         /**
          * The virtual pool.
          * 
-         * @valid none
          */
         @XmlElement(name = "vpool")
         @JsonProperty("vpool")
@@ -135,8 +130,6 @@ public class VirtualPoolHighAvailabilityParam {
          * context, if true, this field indicates that the HA VPlex site will be
          * the active site.
          * 
-         * @valid true
-         * @valid false
          */
         @XmlElement(name = "activeProtectionAtHASite", required = false)
         @JsonProperty("activeProtectionAtHASite")
@@ -153,8 +146,6 @@ public class VirtualPoolHighAvailabilityParam {
      * Flag to specify whether to automatically export both VPlex Clusters to
      * cross-connected hosts.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "autoCrossConnectExport", required = false)
     public Boolean getAutoCrossConnectExport() {

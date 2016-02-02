@@ -52,6 +52,7 @@ import org.apache.curator.framework.recipes.queue.QueueSerializer;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.utils.EnsurePath;
 import org.apache.curator.utils.ZKPaths;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -210,12 +211,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isSiteSpecificSectionInited() throws Exception {
-        String siteConfigPath = String.format("%s/%s", ZkPath.CONFIG, Site.CONFIG_KIND);
+        String siteId = getSiteId();
+        String sitePath = getSitePrefix(siteId);
         try {
-            Stat stat = getZkConnection().curator().checkExists().forPath(siteConfigPath);
+            Stat stat = getZkConnection().curator().checkExists().forPath(sitePath);
             return stat != null;
         } catch (Exception e) {
-            log.error("Failed to access the path {}. Error {}", siteConfigPath, e);
+            log.error("Failed to access the path {}. Error {}", sitePath, e);
             throw e;
         }
     }
@@ -1890,5 +1892,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         } catch (Exception e) {
             throw CoordinatorException.fatals.unableToCheckNodeExists(path, e);
         }
+    }
+
+    public void createEphemeralNode(String path, byte[] data) throws Exception {
+        log.info("create ephemeral node path={} data={}", path, data);
+        _zkConnection.curator().create().withMode(CreateMode.EPHEMERAL).
+                forPath(path, data);
+    }
+
+    public void deleteNode(String path) throws Exception {
+        log.info("delete ephemeral node path={}", path);
+        _zkConnection.curator().delete().forPath(path);
     }
 }

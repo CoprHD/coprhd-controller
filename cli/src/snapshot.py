@@ -379,7 +379,7 @@ class Snapshot(object):
             sync)
 
     def snapshot_restore(self, storageresType,
-                         storageresTypename, resourceUri, name, sync):
+                         storageresTypename, resourceUri, name, sync, syncdirection):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,
@@ -391,10 +391,11 @@ class Snapshot(object):
                 storageresTypename,
                 resourceUri,
                 snapshotUri,
-                sync)
+                sync,
+                syncdirection)
         )
 
-    def snapshot_restore_uri(self, otype, typename, resourceUri, suri, sync):
+    def snapshot_restore_uri(self, otype, typename, resourceUri, suri, sync, syncdirection):
         ''' Makes REST API call to restore Snapshot under a shares or volumes
             parameters:
                 otype    : either file or block or
@@ -407,6 +408,8 @@ class Snapshot(object):
                 restore the snapshot
         '''
         if(resourceUri.find("BlockConsistencyGroup") > 0):
+            if(syncdirection is not None):
+                Snapshot.URI_CONSISTENCY_GROUPS_SNAPSHOT_RESTORE = Snapshot.URI_CONSISTENCY_GROUPS_SNAPSHOT_RESTORE + "?" + "syncDirection=" + syncdirection
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",
@@ -414,6 +417,9 @@ class Snapshot(object):
                     resourceUri,
                     suri), None)
         else:
+            if(syncdirection is not None):
+                Snapshot.URI_SNAPSHOT_RESTORE = Snapshot.URI_SNAPSHOT_RESTORE + "?" + "syncDirection=" + syncdirection
+                
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",
@@ -2356,6 +2362,10 @@ def restore_parser(subcommand_parsers, common_parser):
                                 dest='sync',
                                 help='Synchronous snapshot restore',
                                 action='store_true')
+    restore_parser.add_argument('-syncdirection', '-syncdir',
+                                metavar='<syncdirection>',
+                                dest='syncdirection',
+                                help='Specify the Sync direction for snapshot restore , Either SOURCE_TO_TARGET or TARGET_TO_SOURCE or NONE')
 
     mandatory_args.set_defaults(func=snapshot_restore)
 
@@ -2377,7 +2387,8 @@ def snapshot_restore(args):
             storageresTypename,
             resourceUri,
             args.name,
-            args.sync)
+            args.sync,
+            args.syncdirection)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):

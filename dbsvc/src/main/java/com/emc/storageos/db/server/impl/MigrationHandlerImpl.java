@@ -11,6 +11,7 @@ import java.util.*;
 
 import com.emc.storageos.db.common.*;
 import com.emc.storageos.services.util.AlertsLogger;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -166,6 +167,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
         statusChecker.waitForAllNodesMigrationInit();
 
         if (schemaUtil.isGeoDbsvc()) {
+            // scan and update cassandra schema
+            checkDbSchema();
+            
             // no migration procedure for geosvc, just wait till migration is done on one of the
             // dbsvcs
             log.warn("Migration is not supported for Geodbsvc. Wait till migration is done");
@@ -229,6 +233,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
                 // check if we have a schema upgrade to deal with
                 if (!currentSchemaVersion.equals(targetVersion)) {
+                    log.info("Start scanning and creating new column families");
+                    schemaUtil.checkCf();
+                    log.info("Scanning and creating new column families succeed");
+                    
                     DbSchemasDiff diff = new DbSchemasDiff(persistedSchema, currentSchema,
                             ignoredPkgs);
                     if (diff.isChanged()) {
@@ -271,7 +279,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 log.debug("Migration handler - Done.");
                 return true;
             } catch (Exception e) {
-                if (isUnRetryableException(e)) {
+            	if (e instanceof MigrationCallbackException) {
+            		markMigrationFailure(startTime, currentSchemaVersion, e);
+            	} else if (isUnRetryableException(e)) {
                     markMigrationFailure(startTime, currentSchemaVersion, e);
                     return false;
                 } else {
@@ -307,6 +317,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
         UpgradeFailureInfo failure = new UpgradeFailureInfo();
         failure.setVersion(targetVersion);
         failure.setStartTime(startTime);
+        if (e instanceof MigrationCallbackException) {
+        	failure.setSuggestion(e.getMessage());
+        }
         failure.setMessage(String.format("Upgrade to %s failed:%s", targetVersion, e.getClass().getName()));
         List<String> callStack = new ArrayList<String>();
         for (StackTraceElement t : e.getStackTrace()){
@@ -426,8 +439,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
      * 
      * @param diff
      * @param checkpoint
+     * @throws MigrationCallbackException 
      */
-    private void runMigrationCallbacks(DbSchemasDiff diff, String checkpoint) {
+    private void runMigrationCallbacks(DbSchemasDiff diff, String checkpoint) throws MigrationCallbackException {
         List<MigrationCallback> callbacks = new ArrayList<>();
         // TODO: we are putting class annotations at the first place since that's where
         // @Keyspace belongs, but we probably need some explicit ordering to make sure
@@ -459,9 +473,11 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 log.info("Invoking migration callback: " + callback.getName());
                 try {
                     callback.process();
+                } catch (MigrationCallbackException ex) {
+                	throw ex;
                 } catch (Exception e) {
-                    failedCallbackName = callback.getName();
-                    throw e;
+                	String msg = String.format("%s fail,Please contract the EMC support team", callback.getName());
+                    throw new MigrationCallbackException(msg,e);
                 }
                 // Update checkpoint
                 schemaUtil.setMigrationCheckpoint(callback.getName());
@@ -676,5 +692,27 @@ public class MigrationHandlerImpl implements MigrationHandler {
         }
 
         log.info("Finish dumping changes");
+    }
+    
+    private void checkDbSchema() {
+        log.info("Start scanning and creating new column families");
+        InterProcessLock lock = null;
+        try {
+            String lockName = schemaUtil.isGeoDbsvc() ? DbConfigConstants.GEODB_SCHEMA_LOCK : DbConfigConstants.DB_SCHEMA_LOCK;
+            // grab global lock for migration
+            lock = getLock(lockName);
+            schemaUtil.checkCf();
+            log.info("Scanning and creating new column families succeed");
+        } catch (Exception ex) {
+            log.warn("Unexpected error when scan db schema", ex);
+        } finally {
+            if (lock != null) {
+                try {
+                    lock.release();
+                } catch (Exception ignore) {
+                    log.debug("lock release failed");
+                }
+            }
+        }
     }
 }

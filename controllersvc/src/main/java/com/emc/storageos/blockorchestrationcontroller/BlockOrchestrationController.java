@@ -47,16 +47,18 @@ public interface BlockOrchestrationController extends Controller {
 
     /**
      * Restores a single volume from a snapshot.
+     * 
      * @param storage - URI of storage controller
      * @param pool - URI of pool where the volume belongs
      * @param volume - URI of volume to be restored
      * @param snapshot - URI of snapshot used for restoration
+     * @param syncDirection specifies sync direction between R1 and R2
      * @param taskId - The top level operation's taskId
      * @throws ControllerException
      */
-    void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, String taskId) 
-        throws ControllerException;
-    
+    void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, String syncDirection, String taskId)
+            throws ControllerException;
+
     /**
      * Changes the virtual pool of one or more volumes having potentially mixed technology attributes.
      * 

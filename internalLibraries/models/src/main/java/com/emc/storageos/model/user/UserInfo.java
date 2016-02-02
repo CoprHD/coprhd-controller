@@ -59,11 +59,12 @@ public class UserInfo {
 
     @XmlElementWrapper(name = "vdc_roles")
     /**
-     * Virtual data center roles that the user has.
-     * @valid SYSTEM_ADMIN
-     * @valid SECURITY_ADMIN
-     * @valid SYSTEM_MONITOR
-     * @valid SYSTEM_AUDITOR
+     * Virtual data center roles that the user has. 
+     * Valid values:
+     *  SYSTEM_ADMIN
+     *  SECURITY_ADMIN
+     *  SYSTEM_MONITOR
+     *  SYSTEM_AUDITOR
      */
     @XmlElement(name = "vdc_role")
     public List<String> getVdcRoles() {
@@ -79,10 +80,11 @@ public class UserInfo {
 
     @XmlElementWrapper(name = "home_tenant_roles")
     /**
-     * Provider tenant roles that the user has.
-     * @valid TENANT_ADMIN
-     * @valid PROJECT_ADMIN
-     * @valid TENANT_APPROVER
+     * Provider tenant roles that the user has. 
+     * Valid values:
+     *  TENANT_ADMIN
+     *  PROJECT_ADMIN
+     *  TENANT_APPROVER
      */
     @XmlElement(name = "home_tenant_role")
     public List<String> getHomeTenantRoles() {
@@ -99,7 +101,6 @@ public class UserInfo {
     @XmlElementWrapper(name = "subtenant_roles")
     /**
      * Subtenant(s) that this user has roles in.
-     * @valid none
      */
     @XmlElement(name = "subtenant")
     public List<SubTenantRoles> getSubTenantRoles() {

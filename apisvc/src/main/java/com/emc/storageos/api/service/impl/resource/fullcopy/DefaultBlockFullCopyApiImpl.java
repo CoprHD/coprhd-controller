@@ -301,7 +301,8 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
                 if (fullCopyURI == null) {
                     s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
-                            fullCopySetName, fcSourceObject.getLabel());
+                            fcSourceObject.getLabel(), fullCopySetName);
+                    volumeGroupVolumes.removeAll(volumeList); // to avoid CG Task creation
                     continue;
                 }
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
@@ -405,7 +406,8 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
                 if (fullCopyURI == null) {
                     s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
-                            fullCopySetName, fcSourceObject.getLabel());
+                            fcSourceObject.getLabel(), fullCopySetName);
+                    volumeGroupVolumes.removeAll(volumeList); // to avoid CG Task creation
                     continue;
                 }
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);

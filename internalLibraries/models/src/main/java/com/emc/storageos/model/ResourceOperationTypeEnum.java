@@ -96,6 +96,14 @@ public enum ResourceOperationTypeEnum {
     CREATE_FILE_SYSTEM("CREATE FILESYSTEM", "create filesystem operation"),
     DELETE_FILE_SYSTEM("DELETE FILESYSTEM", "delete filesystem operation"),
     EXPORT_FILE_SYSTEM("EXPORT FILESYSTEM", "export filesystem operation"),
+    FILE_PROTECTION_ACTION("FILE PROTECTION ACTION", "perform unspecified link management"),
+    FILE_PROTECTION_ACTION_STOP("FILE PROTECTION ACTION STOP", "stop the replication link between source and target"),
+    FILE_PROTECTION_ACTION_START("FILE PROTECTION ACTION START", "start the replication link between source and target"),
+    FILE_PROTECTION_ACTION_PAUSE("FILE PROTECTION ACTION PAUSE", "pause the replication link between source and target"),
+    FILE_PROTECTION_ACTION_SUSPEND("FILE PROTECTION ACTION SUSPEND", "suspend the replication link between source and target"),
+    FILE_PROTECTION_ACTION_RESUME("FILE PROTECTION ACTION RESUME", "resume the replication link between source and target"),
+    FILE_PROTECTION_ACTION_FAILOVER("FILE PROTECTION ACTION FAILOVER", "failover target fileshare(s)"),
+    FILE_PROTECTION_ACTION_FAILBACK("FILE PROTECTION ACTION FAILBACK", "failback the replication link source and target fileshare(s)"),
     UPDATE_EXPORT_RULES_FILE_SYSTEM("UPDATE EXPORT RULES FILESYSTEM", "Update export rules filesystem operation"),
     EXPAND_FILE_SYSTEM("EXPAND FILESYSTEM", "expand filesystem operation"),
     CREATE_FILE_SYSTEM_SHARE("CREATE FILESHARE", "create fileshare operation"),
@@ -119,6 +127,10 @@ public enum ResourceOperationTypeEnum {
 
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "tag a filesystem"),
     DELETE_FILE_SNAPSHOT("DELETE FILESYSTEM SNAPSHOT", "delete filesystem snapshot"),
+    ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("ASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",
+            "assign snapshot schedule policy to a filesystem"),
+    UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("UNASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",
+            "unassign snapshot schedule policy to a filesystem"),
     UNEXPORT_FILE_SYSTEM("UNEXPORT FILESYSTEM", "unexport filesystem operation"),
     DELETE_FILE_SYSTEM_SHARE("DELETE FILESHARE", "delete fileshare"),
     EXPORT_FILE_SNAPSHOT("EXPORT FILESYSTEM SNAPSHOT", "export fileshare snapshot"),
@@ -293,6 +305,7 @@ public enum ResourceOperationTypeEnum {
     REMOVE_VDC("REMOVE VDC", "remove a VDC from ViPR"),
     DISCONNECT_VDC("DISCONNECT VDC", "temporarily disconnect a VDC from ViPR"),
     RECONNECT_VDC("RECONNECT VDC", "reconnect a VDC to ViPR"),
+    REBUILD_SET_TRANSFER_SPEED("REBUILD_SET_TRANSFER_SPEED", "Rebuild Set Transfer Speed"),
     UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED("UPGRADE VPLEX LOCAL TO DISTRIBUTED", "Upgrade a VPLEX local volume to distributed"),
     WAIT_ON_VPLEX_VOLUME_REBUILD("WAIT ON VPLEX VOLUME REBUILD", "Wait on VPLEX volume rebuild"),
     ADD_ALIAS("ADD ALIAS", "add one or more aliases"),
@@ -300,6 +313,9 @@ public enum ResourceOperationTypeEnum {
     UPDATE_ALIAS("UPDATE ALIAS", "update one or more aliases"),
     CREATE_BACKUP("CREATE BACKUP", "create ViPR backup"),
     UPLOAD_BACKUP("UPLOAD BACKUP", "upload ViPR backup to external location"),
+    PULL_BACKUP("PULL BACKUP", "operation to download ViPR backup from external location"),
+    PULL_BACKUP_CANCEL("PULL BACKUP CANCEL", "operation to cancel the download of ViPR backup from external location"),
+    RESTORE_BACKUP("RESTORE BACKUP", "operation to restore ViPR backup"),
     CREATE_VCENTER_CLUSTER("CREATE VCENTER CLUSTER", "create a cluster in vCenter server"),
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
     ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "add journal volume to consistency group"),
@@ -326,7 +342,6 @@ public enum ResourceOperationTypeEnum {
     /**
      * The name of the resource operation
      * 
-     * @valid none
      */
     @XmlElement
     public String getName() {

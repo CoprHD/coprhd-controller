@@ -495,6 +495,13 @@ public class BlockFullCopyManager {
 
             TaskResourceRep task = TaskMapper.toTask(fullCopy, taskId, op);
             taskList.addTask(task);
+
+            // clear Flag set for Partial request
+            if (fullCopy.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                fullCopy.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+                _dbClient.updateObject(fullCopy);
+            }
+
             return taskList;
         }
         // Verify passed URIs for the full copy request.

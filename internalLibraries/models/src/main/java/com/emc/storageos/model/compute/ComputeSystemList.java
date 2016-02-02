@@ -25,7 +25,6 @@ public class ComputeSystemList {
     /**
      * List of compute system URLs with name
      * 
-     * @valid none
      */
     @XmlElement(name = "compute_system")
     public List<NamedRelatedResourceRep> getComputeSystems() {

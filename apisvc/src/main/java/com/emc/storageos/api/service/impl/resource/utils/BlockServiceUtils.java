@@ -332,27 +332,6 @@ public class BlockServiceUtils {
     }
 
     /**
-     * Get volume group's volumes.
-     * skip internal volumes
-     *
-     * @param volumeGroup
-     * @return The list of volumes in volume group
-     */
-    public static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
-        List<Volume> result = new ArrayList<Volume>();
-        final List<Volume> volumes = CustomQueryUtility
-                .queryActiveResourcesByConstraint(dbClient, Volume.class,
-                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Volume vol : volumes) {
-            // return only visible volumes. i.e skip backend or internal volumes
-            if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                result.add(vol);
-            }
-        }
-        return result;
-    }
-
-    /**
      * Group volumes by array group.
      *
      * @param volumes the volumes

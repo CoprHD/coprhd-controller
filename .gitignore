@@ -6,6 +6,7 @@ build
 .project
 .settings
 .classpath
+.springBeans
 .idea
 .ivy2
 .DS_Store

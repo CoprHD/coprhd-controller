@@ -238,7 +238,7 @@
           "baseService": "RemoveFileSnapshot"
         },
         {
-          "image": "Service_Remove_File_Snapshot.png",
+          "image": "Service_Associate_File_Policy_File_System.png",
           "baseService": "AssociateFilePolicyToFileSystem"
         },
         {

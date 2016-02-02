@@ -1,7 +1,6 @@
 {
   baseKey:"AssociateFilePolicyToFileSystem.File",
   serviceId:"AssociateFilePolicyToFileSystem",
-  destructive: true,
   fields:{
     project:{
       type:"assetType.vipr.project",

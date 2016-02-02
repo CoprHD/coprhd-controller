@@ -52,12 +52,13 @@ public class CGIngestionDecoratorUtil {
 
     public static void decorate(UnManagedVolume umv, BlockConsistencyGroup cg, IngestionRequestContext requestContext, DbClient dbClient)
             throws Exception {
-        if (cg.getRequestedTypes().contains(Types.VPLEX.toString())) {
-            decorateVplexCG(cg, umv, requestContext, dbClient);
-        } else if (cg.getRequestedTypes().contains(Types.RP.toString())) {
+        if (cg.getRequestedTypes().contains(Types.RP.toString())) {
             decorateRPCG(cg, umv, requestContext, dbClient);
+        } else if (cg.getRequestedTypes().contains(Types.VPLEX.toString())) {
+            decorateVplexCG(cg, umv, requestContext, dbClient);
+        } else {
+            decorateVolumeCG(cg, umv, requestContext, dbClient);
         }
-        decorateVolumeCG(cg, umv, requestContext, dbClient);
     }
 
 }

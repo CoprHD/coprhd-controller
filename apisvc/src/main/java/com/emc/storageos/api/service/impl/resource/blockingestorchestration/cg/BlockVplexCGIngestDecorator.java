@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -13,11 +14,16 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
@@ -101,7 +107,30 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
         List<BlockObject> associatedObjects = new ArrayList<BlockObject>();
         boolean isRP = false;
         if (isRP) {
-            // @TODO RP logic to get VPLEX volumes goes here..
+            // Get all of the block objects that are in the protection set
+            RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
+            ProtectionSet pset = rpContext.getManagedProtectionSet();
+            
+            if (pset == null) {
+                return null;
+            }
+            
+            // All of the volumes in the CG are in the "objects to be updated" map in the RP context.
+            // Only grab the VPLEX ones in this case.
+            List<BlockObject> boList = new ArrayList<BlockObject>();
+            for (String volumeIdStr : pset.getVolumes()) {
+                for (List<DataObject> dataObjList : rpContext.getObjectsToBeUpdatedMap().values()) {
+                    for (DataObject dataObj : dataObjList) {
+                        if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+                            Volume volume = (Volume)dataObj;
+                            if (volume.checkForVplexVirtualVolume(dbClient)) {
+                                boList.add((BlockObject)dataObj);
+                            }
+                        }
+                    }
+                }
+            }
+            return boList;
         } else {
             BlockObject blockObject = requestContext.findCreatedBlockObject(umv.getNativeGuid());
             associatedObjects.add(blockObject);

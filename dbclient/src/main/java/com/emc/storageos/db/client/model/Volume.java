@@ -1036,4 +1036,21 @@ public class Volume extends BlockObject implements ProjectResource {
         }
         return copyVolumeGroup;
     }
+
+    /**
+     * Is this volume a VPLEX virtual volume?
+     * 
+     * @param dbClient db client
+     * @return true if the volume is a vplex virtual volume
+     */
+    public boolean checkForVplexVirtualVolume(DbClient dbClient) {
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, getStorageController());
+        if (system == null) {
+            return false;
+        }
+        if (system.getSystemType().equalsIgnoreCase((DiscoveredDataObject.Type.vplex.toString()))) {
+            return true;
+        }
+        return false;
+    }
 }

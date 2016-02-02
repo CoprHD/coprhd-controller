@@ -7,6 +7,8 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.services.OperationTypeEnum;
 
@@ -40,9 +42,24 @@ public class VolumeDetachCloneCompleter extends VolumeTaskCompleter {
                         dbClient.error(Volume.class, clone.getId(), getOpId(), coded);
                         break;
                     default:
+                        boolean needUpdate = false;
+                        if (NullColumnValueGetter.isNotNullValue(clone.getReplicationGroupInstance())) {
+                            clone.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+                            needUpdate = true;
+                        }
+
+                        if (NullColumnValueGetter.isNotNullValue(clone.getFullCopySetName())) {
+                            clone.setFullCopySetName(NullColumnValueGetter.getNullStr());
+                            needUpdate = true;
+                        }
+
+                        if (needUpdate) {
+                            dbClient.updateObject(clone);
+                        }
                         dbClient.ready(Volume.class, clone.getId(), getOpId());
                 }
             }
+
             recordBlockVolumeOperation(dbClient, OperationTypeEnum.DETACH_VOLUME_FULL_COPY, status, "TEST");
         } catch (Exception e) {
             _log.error("Failed to update status for detach volume clone", e);

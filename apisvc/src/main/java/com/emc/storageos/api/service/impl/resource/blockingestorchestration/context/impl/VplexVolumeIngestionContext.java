@@ -126,7 +126,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         }
 
         _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
-        _logger.info(toStringDebug());
     }
 
     /*
@@ -868,7 +867,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
             }
         }
         s.append(" \n\t ");
-        s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap()).append("\n");
+        s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap()).append("\n\n");
         return s.toString();
     }
 

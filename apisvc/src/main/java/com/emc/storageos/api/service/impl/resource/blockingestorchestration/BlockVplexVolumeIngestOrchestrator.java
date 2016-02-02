@@ -89,7 +89,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();
 
         VolumeIngestionUtil.checkValidVarrayForUnmanagedVolume(unManagedVolume,
-                requestContext.getVarray().getId(),
+                requestContext.getVarray(unManagedVolume).getId(),
                 getClusterIdToNameMap(requestContext.getStorageSystem()),
                 getVarrayToClusterIdMap(requestContext.getStorageSystem()), _dbClient);
 
@@ -145,7 +145,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             try {
                 _logger.info("Ingesting backend structure of VPLEX virtual volume {}", unManagedVolume.getLabel());
 
-                validateContext(requestContext.getVpool(), requestContext.getTenant(), volumeContext);
+                validateContext(requestContext.getVpool(unManagedVolume), requestContext.getTenant(), volumeContext);
 
                 ingestBackendVolumes(requestContext, volumeContext);
 
@@ -447,8 +447,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             UnManagedVolume associatedVolume = backendRequestContext.next();
 
-            String sourceClusterId = getClusterNameForVarray(backendRequestContext.getVarray(), requestContext.getStorageSystem());
-            String haClusterId = getClusterNameForVarray(backendRequestContext.getHaVarray(), requestContext.getStorageSystem());
+            String sourceClusterId = getClusterNameForVarray(
+                    backendRequestContext.getVarray(associatedVolume), requestContext.getStorageSystem());
+            String haClusterId = getClusterNameForVarray(
+                    backendRequestContext.getHaVarray(associatedVolume), requestContext.getStorageSystem());
             _logger.info("the source cluster id is {} and the high availability cluster id is {}",
                     sourceClusterId, haClusterId);
             backendRequestContext.setHaClusterId(haClusterId);
@@ -457,7 +459,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             try {
 
-                validateBackendVolumeVpool(associatedVolume, backendRequestContext.getVpool());
+                validateBackendVolumeVpool(associatedVolume, backendRequestContext.getVpool(associatedVolume));
 
                 IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume, 
                         IngestStrategyFactory.DISREGARD_PROTECTION);
@@ -544,15 +546,15 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             VplexVolumeIngestionContext backendRequestContext)
             throws IngestionException {
 
-        VirtualArray virtualArray = backendRequestContext.getVarray();
-        VirtualPool vPool = backendRequestContext.getVpool();
-
         // process masking for any successfully processed UnManagedVolumes
         for (Entry<String, VolumeIngestionContext> entry : backendRequestContext.getProcessedUnManagedVolumeMap().entrySet()) {
 
             String unManagedVolumeGUID = entry.getKey();
             VolumeIngestionContext volumeContext = entry.getValue();
             UnManagedVolume processedUnManagedVolume = volumeContext.getUnmanagedVolume();
+
+            VirtualArray virtualArray = backendRequestContext.getVarray(processedUnManagedVolume);
+            VirtualPool vPool = backendRequestContext.getVpool(processedUnManagedVolume);
 
             if (processedUnManagedVolume.getUnmanagedExportMasks().isEmpty()) {
                 String reason = "the backend volume has no unmanaged export masks "

@@ -90,16 +90,18 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     /**
      * Returns the VirtualPool for the UnManagedVolume currently being processed.
      * 
+     * @param unmanagedVolume the UnManagedVolume to find the vpool for
      * @return the VirtualPool for the UnManagedVolume currently being processed
      */
-    public VirtualPool getVpool();
+    public VirtualPool getVpool(UnManagedVolume unmanagedVolume);
 
     /**
      * Returns the VirtualArray for the UnManagedVolume currently being processed.
      * 
+     * @param unmanagedVolume the UnManagedVolume to find the varray for
      * @return the VirtualArray for the UnManagedVolume currently being processed
      */
-    public VirtualArray getVarray();
+    public VirtualArray getVarray(UnManagedVolume unmanagedVolume);
 
     /**
      * Returns the Project for the UnManagedVolume currently being processed.

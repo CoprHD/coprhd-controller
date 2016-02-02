@@ -4545,7 +4545,7 @@ common_setup()
     syssvc $CONFIG_FILE "$BOURNE_IP" set_prop system_proxyuser_encpassword ${SYSADMIN_PASSWORD}
     tenant_setup
 
-    if [ "${RPINGEST_TESTS}" = "0" ]; then
+    if [ "${RP_INGESTTESTS}" = "0" ]; then
 	zone_setup
 	transportzone add    $NH/$FC_ZONE_A $BLK_CLIENT_FC
 	transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
@@ -4556,7 +4556,7 @@ common_setup()
     echo "Project id of $PROJECT is $projectid."
 
     ROOT_TENANT=`tenant root|tail -1`
-    if [ "${RPINGEST_TESTS}" = "0" ]; then
+    if [ "${RP_INGESTTESTS}" = "0" ]; then
 	echo "Setup ACLs on neighborhood for $TENANT"
 	neighborhood allow $NH $TENANT
 	neighborhood allow $NH2 $TENANT

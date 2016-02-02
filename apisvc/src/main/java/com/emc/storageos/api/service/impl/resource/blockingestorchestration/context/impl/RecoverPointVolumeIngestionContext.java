@@ -403,8 +403,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVpool()
      */
     @Override
-    public VirtualPool getVpool() {
-        return _parentRequestContext.getVpool();
+    public VirtualPool getVpool(UnManagedVolume unmanagedVolume) {
+        return _parentRequestContext.getVpool(unmanagedVolume);
     }
 
     /*
@@ -413,8 +413,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVarray()
      */
     @Override
-    public VirtualArray getVarray() {
-        return _parentRequestContext.getVarray();
+    public VirtualArray getVarray(UnManagedVolume unmanagedVolume) {
+        return _parentRequestContext.getVarray(unmanagedVolume);
     }
 
     /*

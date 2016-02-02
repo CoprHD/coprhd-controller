@@ -1227,7 +1227,7 @@ def snapshot_create(args):
             args.name,
             args.inactive,
             args.type,
-            args.synchronous,
+            args.sync,
             args.readonly,args.synctimeout)
         return
 

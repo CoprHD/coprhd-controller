@@ -31,6 +31,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -2404,6 +2405,7 @@ public class FileService extends TaskResourceService {
     public TaskList startContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
             throws ControllerException {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+
         return performFileProtectionAction(param, id, ProtectionOp.START.getRestOp());
     }
 
@@ -2618,6 +2620,7 @@ public class FileService extends TaskResourceService {
         return toTask(sourceFileShare, task, status);
     }
 
+
     /**
      * perform file protection action
      * 
@@ -2711,7 +2714,7 @@ public class FileService extends TaskResourceService {
     /**
      * Returns the bean responsible for servicing the request
      * 
-     * @param fileshahre
+     * @param fileShare fileshare
      * @param dbClient db client
      * @return file service implementation object
      */

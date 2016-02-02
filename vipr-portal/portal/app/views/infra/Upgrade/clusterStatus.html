@@ -4,6 +4,8 @@
         &nbsp;&nbsp;#{loading /}
     #{/if}
 <div>&nbsp;</div>
+
+#{alerts/}
 #{if newVersions.size() > 0}
     <div class="alert alert-info">
         &{'upgrade.newVersionAvailable', newVersions[0]}

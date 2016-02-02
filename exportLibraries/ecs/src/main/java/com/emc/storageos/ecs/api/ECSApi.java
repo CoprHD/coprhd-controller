@@ -47,6 +47,7 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_ACL = "/object/bucket/{0}/acl.json";    
     private static final String URI_GET_NAMESPACES = "/object/namespaces.json";
     private static final String URI_GET_NAMESPACE_DETAILS = "/object/namespaces/namespace/{0}.json";
+    private static final String URI_USER_SECRET_KEYS = "/object/user-secret-keys/{0}.json";    
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -562,8 +563,69 @@ public class ECSApi {
         }
     }
 
-    
-    
+    /**
+     * Generate secret keys for the specified user
+     * 
+     * @param user secret key for the user
+     * @return generated secret keys
+     * @throws ECSException
+     */
+    public UserSecretKeysGetCommandResult getUserSecretKeys(String user) throws ECSException {
+        _log.debug("ECSApi:getUserSecretKeys enter");
+        ClientResponse clientResp = null;
+        try {
+            String responseString = null;
+            final String path = MessageFormat.format(URI_USER_SECRET_KEYS, user);
+            clientResp = get(path);
+            if (null == clientResp) {
+                throw ECSException.exceptions.getNamespacesFailed("no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getNamespacesFailed(getResponseDetails(clientResp));
+            }
+
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getUserSecretKeys ECS response is {}", responseString);
+            UserSecretKeysGetCommandResult ecsSecretKeyResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                    UserSecretKeysGetCommandResult.class);
+            return ecsSecretKeyResult;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getUserSecretKeysFailed(user, e);
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getUserSecretKeys exit");
+        }
+    }
+
+    public UserSecretKeysAddCommandResult addUserSecretKeys(String user, String key) throws ECSException {
+        _log.debug("ECSApi:addUserSecretKeys enter");
+        ClientResponse clientResp = null;
+        String body = " { \"secretkey\": \"" + key + "\" }" ;
+        try {
+            String responseString = null;
+            final String path = MessageFormat.format(URI_USER_SECRET_KEYS, user);
+            clientResp = post(path, body);
+            if (null == clientResp) {
+                throw ECSException.exceptions.getNamespacesFailed("no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getNamespacesFailed(getResponseDetails(clientResp));
+            }
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getUserSecretKeys ECS response is {}", responseString);
+            UserSecretKeysAddCommandResult ecsSecretKeyResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                    UserSecretKeysAddCommandResult.class);
+            return ecsSecretKeyResult;
+        } catch (Exception e) {
+            throw ECSException.exceptions.addUserSecretKeysFailed(user, e);
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:addUserSecretKeys exit");
+        }
+    }
+
     
     private ClientResponse get(final String uri) {
         ClientResponse clientResp = _client.get_json(_baseUrl.resolve(uri), authToken);

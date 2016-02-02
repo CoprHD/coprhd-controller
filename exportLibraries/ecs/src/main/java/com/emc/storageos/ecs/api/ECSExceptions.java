@@ -64,4 +64,17 @@ public interface ECSExceptions {
 
     @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACE_DETAILS_ERROR)
     public ECSException getNamespaceDetailsFailed(final String namespace, final Throwable e);
+    
+    @DeclareServiceCode(ServiceCode.ECS_GET_USER_SECRET_KEYS_ERROR)
+    public ECSException getUserSecretKeysFailed(final String user, final String info);
+
+    @DeclareServiceCode(ServiceCode.ECS_GET_USER_SECRET_KEYS_ERROR)
+    public ECSException getUserSecretKeysFailed(final String user, final Throwable e);
+
+    @DeclareServiceCode(ServiceCode.ECS_ADD_USER_SECRET_KEYS_ERROR)
+    public ECSException addUserSecretKeysFailed(final String user, final String info);
+
+    @DeclareServiceCode(ServiceCode.ECS_ADD_USER_SECRET_KEYS_ERROR)
+    public ECSException addUserSecretKeysFailed(final String user, final Throwable e);
+
 }

@@ -32,6 +32,7 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.db.client.model.DataObject;
 
 public class CinderHelpers {
     private DbClient _dbClient;
@@ -220,23 +221,15 @@ public class CinderHelpers {
         return azList;
     }
 
-    public Volume queryVolumeByTag(URI id, StorageOSUser user) {
-        URI vipr_tenantId = URI.create(user.getTenantId());
-        URIQueryResultList uris = new URIQueryResultList();
-        _dbClient.queryByConstraint(
-                PrefixConstraint.Factory.getTagsPrefixConstraint(
-                        Volume.class, id.toString(), vipr_tenantId), uris);
-
-        for (URI volumeUri : uris) {
-            Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
-            if (volume != null) {
-                return volume;
-            }
-        }
-
-        return null;
-    }
-
+    /**
+     * Get Volume for passed project and Id
+     *      
+     * @prereq none
+     * 
+     * @brief query and return Volume for provided Project and Id
+     * @param Project, searchId
+     * @return Volume
+     */
     public Volume queryVolumeById(Project proj, String searchId) {
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
@@ -252,36 +245,30 @@ public class CinderHelpers {
         }
         return null;
     }
-
-    public BlockSnapshot querySnapshotByTag(URI id, StorageOSUser user) {
+    
+    /**
+     * Get DataObject for passed tenant id and class type
+     *      
+     * @prereq none
+     * 
+     * @brief query and return blockObject for provided openstackId and 
+     * class type like volume/snapshot/consistencygroup
+     * @param openstackTenantId
+     * @return Dataobject
+     */
+    public DataObject  queryByTag(URI openstackId, StorageOSUser user, Class<? extends DataObject> block) {
         URI vipr_tenantId = URI.create(user.getTenantId());
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 PrefixConstraint.Factory.getTagsPrefixConstraint(
-                        BlockSnapshot.class, id.toString(), vipr_tenantId), uris);
-
-        for (URI snapUri : uris) {
-            BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapUri);
-            if (snap != null) {
-                return snap;
-            }
-        }
-        return null;
-    }
-
-    public BlockConsistencyGroup queryConsistencyGroupByTag(URI openstackId, StorageOSUser user) {
-        URI vipr_tenantId = URI.create(user.getTenantId());
-        URIQueryResultList uris = new URIQueryResultList();
-        _dbClient.queryByConstraint(
-                PrefixConstraint.Factory.getTagsPrefixConstraint(
-                        BlockConsistencyGroup.class, openstackId.toString(), vipr_tenantId), uris);
+                        block, openstackId.toString(), vipr_tenantId), uris);
 
         if (uris != null) {
             while (uris.iterator().hasNext()) {
-                URI consistencyGroupUri = uris.iterator().next();
-                BlockConsistencyGroup blockConsistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupUri);
-                if (blockConsistencyGroup != null) {
-                    return blockConsistencyGroup;
+                URI blockUri = uris.iterator().next();
+                DataObject blockObject = _dbClient.queryObject(block, blockUri);
+                if (blockObject != null) {
+                    return blockObject;
                 }
             }
         }

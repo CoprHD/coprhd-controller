@@ -124,21 +124,6 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
     }
 
     /**
-     * Gets the varray from cache.
-     *
-     * @param vArrayCache the varray cache
-     * @param vArrayURI the virtual array
-     * @return the varray from cache
-     */
-    private VirtualArray getVarrayFromCache(Map<URI, VirtualArray> vArrayCache, URI vArrayURI) {
-        if (vArrayCache.get(vArrayURI) == null) {
-            VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, vArrayURI);
-            vArrayCache.put(vArrayURI, vArray);
-        }
-        return vArrayCache.get(vArrayURI);
-    }
-
-    /**
      * Get the placement recommendations for the passed full copy source.
      * 
      * @param blockObject A reference to the full copy source.

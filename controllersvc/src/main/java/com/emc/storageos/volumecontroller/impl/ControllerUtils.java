@@ -59,6 +59,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEvent;
@@ -789,6 +790,24 @@ public class ControllerUtils {
     }
 
     /**
+     * Takes in a list of URIs, queries using Iterative method and returns list of volume objects.
+     *
+     * @param dbClient the db client
+     * @param volumeURIs the volume uris
+     * @return the list of volume objects
+     */
+    public static List<Volume> queryVolumesByIterativeQuery(DbClient dbClient, List<URI> volumeURIs) {
+        List<Volume> volumes = new ArrayList<Volume>();
+        @SuppressWarnings("unchecked")
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                volumeURIs);
+        while (volumeIterator.hasNext()) {
+            volumes.add(volumeIterator.next());
+        }
+        return volumes;
+    }
+
+    /**
      * Utility method which will filter the snapshots from getBlockSnapshotsBySnapsetLabel query by the
      * snapshot's project
      * 
@@ -1489,6 +1508,25 @@ public class ControllerUtils {
     }
 
     /**
+     * Returns true if the request is made for subset of array groups within the Volume Group.
+     * For Partial request, PARTIAL Flag was set on the requested Volume.
+     *
+     * @param dbClient the db client
+     * @param volumes the volumes
+     * @return true, if the request is Partial
+     */
+    public static boolean checkVolumesForVolumeGroupPartialRequest(DbClient dbClient, List<BlockObject> volumes) {
+        boolean partial = false;
+        for (BlockObject volume : volumes) {
+            if (volume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                partial = true;
+                break;
+            }
+        }
+        return partial;
+    }
+
+    /**
      * Get volume group's volumes.
      * skip internal volumes
      *
@@ -1511,7 +1549,7 @@ public class ControllerUtils {
     }
 
     /**
-     * Group volumes by array group.
+     * Group volumes by array group. For VPLEX virtual volumes, group them by backend src volumes's array group.
      *
      * @param volumes the volumes
      * @param dbClient dbCLient instance
@@ -1522,12 +1560,11 @@ public class ControllerUtils {
         for (Volume volume : volumes) {
             String repGroupName = volume.getReplicationGroupInstance();
             if (repGroupName == null && volume.isVPlexVolume(dbClient)) {
-                StringSet backedVols = volume.getAssociatedVolumes();
-                if (backedVols.iterator().hasNext()) {
-                    Volume backedVol = dbClient.queryObject(Volume.class, URI.create(backedVols.iterator().next()));
+                // get backend source volume
+                Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (backedVol != null) {
                     repGroupName = backedVol.getReplicationGroupInstance();
                 }
-
             }
             if (arrayGroupToVolumes.get(repGroupName) == null) {
                 arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());

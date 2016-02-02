@@ -4,8 +4,10 @@
  */
 package com.emc.storageos.vplexcontroller;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getDataObject;
 import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getVPlexAPIClient;
+import static com.google.common.collect.Collections2.transform;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -6671,88 +6673,113 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     COPY_VOLUMES_WF_NAME, false, opId);
             _log.info("Created new full copy workflow with operation id {}", opId);
 
-            // We need to know which of the passed volume descriptors represents
-            // the VPLEX virtual volumes that are being copied. We also remove it
-            // from the list, so the only VPLEX volumes in the list are those
-            // of the copies.
-            List<VolumeDescriptor> vplexVolumeDescriptors = VolumeDescriptor
+            /**
+             * Volume descriptors contains
+             * 1. VPLEX v-volume to be copied (source),
+             * 2. VPLEX copy v-volume to be created,
+             * 3. backend source volume to be created as clone for (1)'s backend volume
+             * 4. Empty volume to be created as HA backend volume for (2) in case of Distributed
+             * 
+             * Group the given volume descriptors by backend Array Replication Group (RG).
+             * -For each RG entry, create workflow steps,
+             * -These RG steps run in parallel
+             */
+            Map<String, List<VolumeDescriptor>> repGroupToVolumeDescriptors =
+                    groupDescriptorsByReplicationGroup(volumeDescriptors);
+            for (String repGroupName : repGroupToVolumeDescriptors.keySet()) {
+                _log.info("Processing Array Replication Group {}", repGroupName);
+                List<VolumeDescriptor> volumeDescriptorsRG = repGroupToVolumeDescriptors.get(repGroupName);
+
+                // We need to know which of the passed volume descriptors represents
+                // the VPLEX virtual volumes that are being copied. We also remove it
+                // from the list, so the only VPLEX volumes in the list are those
+                // of the copies.
+                List<VolumeDescriptor> vplexVolumeDescriptors = VolumeDescriptor
+                        .filterByType(volumeDescriptorsRG,
+                                new VolumeDescriptor.Type[] { Type.VPLEX_VIRT_VOLUME },
+                                new VolumeDescriptor.Type[] {});
+                List<VolumeDescriptor> vplexSrcVolumeDescrs = getDescriptorsForFullCopySrcVolumes
+                        (vplexVolumeDescriptors);
+                vplexVolumeDescriptors.removeAll(vplexSrcVolumeDescrs);
+                _log.info("Got volume descriptors for VPLEX volumes being copied.");
+
+                // Get the URIs of the VPLEX copy volumes.
+                vplexCopyVolumeURIs.addAll(VolumeDescriptor
+                        .getVolumeURIs(vplexVolumeDescriptors));
+
+                // Add a rollback step to make sure all full copies are
+                // marked inactive and that the full copy relationships
+                // are updated. This will also mark any HA backend volumes
+                // inactive in the case the copies are distributed. The
+                // step only provides functionality on rollback. Normal
+                // execution is a no-op.
+                List<URI> volumesToMarkInactive = new ArrayList<URI>();
+                volumesToMarkInactive.addAll(vplexCopyVolumeURIs);
+                List<VolumeDescriptor> blockDescriptors = VolumeDescriptor
+                        .filterByType(volumeDescriptorsRG,
+                                new VolumeDescriptor.Type[] { Type.BLOCK_DATA },
+                                new VolumeDescriptor.Type[] {});
+                if (!blockDescriptors.isEmpty()) {
+                    volumesToMarkInactive.addAll(VolumeDescriptor.getVolumeURIs(blockDescriptors));
+                }
+                StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+                Workflow.Method executeMethod = rollbackMethodNullMethod();
+                Workflow.Method rollbackMethod = markVolumesInactiveMethod(volumesToMarkInactive);
+                String waitFor = workflow.createStep(null, "Mark volumes inactive on rollback",
+                        null, vplexURI, vplexSystem.getSystemType(), this.getClass(),
+                        executeMethod, rollbackMethod, null);
+
+                List<VolumeDescriptor> importVolumeDescriptors = VolumeDescriptor
+                        .filterByType(volumeDescriptorsRG,
+                                new VolumeDescriptor.Type[] { Type.VPLEX_IMPORT_VOLUME },
+                                new VolumeDescriptor.Type[] {});
+
+                BlockObject primarySourceObject = null;
+                if (!vplexSrcVolumeDescrs.isEmpty()) {
+                    // Find the backend volume that is the primary volume for one of
+                    // the VPLEX volumes being copied. The primary backend volume is the
+                    // associated volume in the same virtual array as the VPLEX volume.
+                    // It does not matter which one if there are multiple source VPLEX
+                    // volumes. These volumes will all be in a consistency group and
+                    // use the same backend storage system.
+                    VolumeDescriptor vplexSrcVolumeDescr = vplexSrcVolumeDescrs.get(0);
+                    vplexSrcVolumeURI = vplexSrcVolumeDescr.getVolumeURI();
+                    primarySourceObject = getPrimaryForFullCopySrcVolume(vplexSrcVolumeURI);
+                } else {
+                    // For snapshot full copy
+                    URI importVolUri = importVolumeDescriptors.get(0).getVolumeURI();
+                    Volume volumeToBeImported = _dbClient.queryObject(Volume.class, importVolUri);
+                    URI assocSrcVolumeURI = volumeToBeImported.getAssociatedSourceVolume();
+                    primarySourceObject = _dbClient.queryObject(BlockSnapshot.class, assocSrcVolumeURI);
+                }
+
+                _log.info("Primary volume/snapshot is {}", primarySourceObject.getId());
+
+                // Now create the step to do the native full copy of this
+                // primary backend volume or the snapshot to the passed import volumes.
+
+                waitFor = createStepForNativeCopy(workflow,
+                        primarySourceObject, importVolumeDescriptors, waitFor);
+                _log.info("Created workflow step to create {} copies of the primary",
+                        importVolumeDescriptors.size());
+
+                // Next, create a step to create and start an import volume
+                // workflow for each copy.
+                createStepsForFullCopyImport(workflow, vplexURI, primarySourceObject,
+                        vplexVolumeDescriptors, volumeDescriptorsRG, waitFor);
+                _log.info("Created workflow steps to import the primary copies");
+            }
+
+            // Set up the task completer and execute the workflow.
+            List<VolumeDescriptor> vplexVolumeDescrs = VolumeDescriptor
                     .filterByType(volumeDescriptors,
                             new VolumeDescriptor.Type[] { Type.VPLEX_VIRT_VOLUME },
                             new VolumeDescriptor.Type[] {});
-            List<VolumeDescriptor> vplexSrcVolumeDescrs = getDescriptorsForFullCopySrcVolumes
-                    (vplexVolumeDescriptors);
-            vplexVolumeDescriptors.removeAll(vplexSrcVolumeDescrs);
-            _log.info("Got volume descriptors for VPLEX volumes being copied.");
-
-            // Get the URIs of the VPLEX copy volumes.
-            vplexCopyVolumeURIs.addAll(VolumeDescriptor
-                    .getVolumeURIs(vplexVolumeDescriptors));
-
-            // Add a rollback step to make sure all full copies are
-            // marked inactive and that the full copy relationships
-            // are updated. This will also mark any HA backend volumes
-            // inactive in the case the copies are distributed. The
-            // step only provides functionality on rollback. Normal
-            // execution is a no-op.
-            List<URI> volumesToMarkInactive = new ArrayList<URI>();
-            volumesToMarkInactive.addAll(vplexCopyVolumeURIs);
-            List<VolumeDescriptor> blockDescriptors = VolumeDescriptor
-                    .filterByType(volumeDescriptors,
-                            new VolumeDescriptor.Type[] { Type.BLOCK_DATA },
-                            new VolumeDescriptor.Type[] {});
-            if (!blockDescriptors.isEmpty()) {
-                volumesToMarkInactive.addAll(VolumeDescriptor.getVolumeURIs(blockDescriptors));
-            }
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-            Workflow.Method executeMethod = rollbackMethodNullMethod();
-            Workflow.Method rollbackMethod = markVolumesInactiveMethod(volumesToMarkInactive);
-            String waitFor = workflow.createStep(null, "Mark volumes inactive on rollback",
-                    null, vplexURI, vplexSystem.getSystemType(), this.getClass(),
-                    executeMethod, rollbackMethod, null);
-
-            List<VolumeDescriptor> importVolumeDescriptors = VolumeDescriptor
-                    .filterByType(volumeDescriptors,
-                            new VolumeDescriptor.Type[] { Type.VPLEX_IMPORT_VOLUME },
-                            new VolumeDescriptor.Type[] {});
-
-            BlockObject primarySourceObject = null;
-            if (!vplexSrcVolumeDescrs.isEmpty()) {
-                // Find the backend volume that is the primary volume for one of
-                // the VPLEX volumes being copied. The primary backend volume is the
-                // associated volume in the same virtual array as the VPLEX volume.
-                // It does not matter which one if there are multiple source VPLEX
-                // volumes. These volumes will all be in a consistency group and
-                // use the same backend storage system.
-                VolumeDescriptor vplexSrcVolumeDescr = vplexSrcVolumeDescrs.get(0);
-                vplexSrcVolumeURI = vplexSrcVolumeDescr.getVolumeURI();
-                primarySourceObject = getPrimaryForFullCopySrcVolume(vplexSrcVolumeURI);
-            } else {
-                // For snapshot full copy
-                URI importVolUri = importVolumeDescriptors.get(0).getVolumeURI();
-                Volume volumeToBeImported = _dbClient.queryObject(Volume.class, importVolUri);
-                URI assocSrcVolumeURI = volumeToBeImported.getAssociatedSourceVolume();
-                primarySourceObject = _dbClient.queryObject(BlockSnapshot.class, assocSrcVolumeURI);
-            }
-
-            _log.info("Primary volume/snapshot is {}", primarySourceObject.getId());
-
-            // Now create the step to do the native full copy of this
-            // primary backend volume or the snapshot to the passed import volumes.
-
-            waitFor = createStepForNativeCopy(workflow,
-                    primarySourceObject, importVolumeDescriptors, waitFor);
-            _log.info("Created workflow step to create {} copies of the primary",
-                    importVolumeDescriptors.size());
-
-            // Next, create a step to create and start an import volume
-            // workflow for each copy.
-            createStepsForFullCopyImport(workflow, vplexURI, primarySourceObject,
-                    vplexVolumeDescriptors, volumeDescriptors, waitFor);
-            _log.info("Created workflow steps to import the primary copies");
-
-            // Set up the task completer and execute the workflow.
+            List<VolumeDescriptor> vplexSrcVolumeDescs = getDescriptorsForFullCopySrcVolumes
+                    (vplexVolumeDescrs);
+            vplexVolumeDescrs.removeAll(vplexSrcVolumeDescs); // VPLEX copy volumes
             TaskCompleter completer = new VPlexTaskCompleter(Volume.class,
-                    vplexCopyVolumeURIs, opId, null);
+                    VolumeDescriptor.getVolumeURIs(vplexVolumeDescrs), opId, null);
             _log.info("Executing workflow plan");
             workflow.executePlan(completer, String.format(
                     "Copy of VPLEX volume %s completed successfully", vplexSrcVolumeURI));
@@ -6822,6 +6849,109 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
+     * Group the given volume descriptors by backend Array Replication Group.
+     * 
+     * Volume descriptors contains
+     * 1. VPLEX v-volume to be copied (source),
+     * 2. VPLEX copy v-volume to be created,
+     * 3. backend source volume to be created as clone for (1)'s backend volume
+     * 4. Empty volume to be created as HA backend volume for (2) in case of Distributed
+     *
+     * @param volumeDescriptors the volume descriptors
+     * @return the replication group to volume desciptors map
+     */
+    private Map<String, List<VolumeDescriptor>> groupDescriptorsByReplicationGroup(List<VolumeDescriptor> volumeDescriptors) {
+        _log.info("Group the given desciptors based on backend Replication Group");
+        Map<String, List<VolumeDescriptor>> repGroupToVolumeDescriptors =
+                new HashMap<String, List<VolumeDescriptor>>();
+        List<VolumeDescriptor> vplexVolumeDescriptors = VolumeDescriptor
+                .filterByType(volumeDescriptors,
+                        new VolumeDescriptor.Type[] { Type.VPLEX_VIRT_VOLUME },
+                        new VolumeDescriptor.Type[] {});
+        List<VolumeDescriptor> vplexSrcVolumeDescrs = getDescriptorsForFullCopySrcVolumes
+                (vplexVolumeDescriptors);
+        vplexVolumeDescriptors.removeAll(vplexSrcVolumeDescrs); // has only copy v-volumes
+        List<URI> vplexSrcVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexSrcVolumeDescrs);
+
+        if (!vplexSrcVolumeURIs.isEmpty()) {
+            List<Volume> vplexSrcVolumes = ControllerUtils.queryVolumesByIterativeQuery(_dbClient, vplexSrcVolumeURIs);
+            // group volumes by Array Group
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(vplexSrcVolumes, _dbClient);
+            for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) { // AG - Array Replication Group
+                _log.debug("Processing Replication Group {}", arrayGroupName);
+                List<Volume> vplexSrcVolumesAG = arrayGroupToVolumesMap.get(arrayGroupName);
+
+                List<VolumeDescriptor> descriptorsForAG = new ArrayList<VolumeDescriptor>();
+                // add VPLEX src volumes to descriptor list
+                descriptorsForAG.addAll(getDescriptorsForURIsFromGivenList(vplexSrcVolumeDescrs,
+                        transform(vplexSrcVolumesAG, fctnDataObjectToID())));
+
+                List<URI> allCopies = getFullCopiesForVolumes(vplexSrcVolumesAG);
+                for (VolumeDescriptor vplexCopyVolumeDesc : vplexVolumeDescriptors) {
+                    URI vplexCopyVolume = vplexCopyVolumeDesc.getVolumeURI();
+                    if (allCopies.contains(vplexCopyVolume)) {
+                        _log.debug("Adding VPLEX copy volume descriptor for {}", vplexCopyVolume);
+                        // add VPLEX Copy volumes to descriptor list
+                        descriptorsForAG.add(vplexCopyVolumeDesc);
+
+                        // add Copy associated volumes to desciptor list
+                        List<VolumeDescriptor> assocDescriptors = getDescriptorsForAssociatedVolumes(
+                                vplexCopyVolume, volumeDescriptors);
+                        descriptorsForAG.addAll(assocDescriptors);
+                    }
+                }
+
+                _log.info("Entry: Replication Group {}, Volume descriptors {}",
+                        arrayGroupName, Joiner.on(',').join(VolumeDescriptor.getVolumeURIs(descriptorsForAG)));
+                repGroupToVolumeDescriptors.put(arrayGroupName, descriptorsForAG);
+            }
+        } else {
+            // non-application & clone for Snapshot
+            _log.info("Request is not for VPLEX volume, returning all.");
+            repGroupToVolumeDescriptors.put("SNAPSHOT_GROUP", volumeDescriptors);
+        }
+
+        return repGroupToVolumeDescriptors;
+    }
+
+    /**
+     * Gets the full copies for the given volumes.
+     *
+     * @param volumes the volumes
+     * @return the list of full copy uris
+     */
+    private List<URI> getFullCopiesForVolumes(List<Volume> volumes) {
+        List<URI> fullCopies = new ArrayList<URI>();
+        for (Volume volume : volumes) {
+            StringSet volumeFullCopies = volume.getFullCopies();
+            if (volumeFullCopies != null) {
+                for (String fullCopy : volumeFullCopies) {
+                    fullCopies.add(URI.create(fullCopy));
+                }
+            }
+        }
+        return fullCopies;
+    }
+
+    /**
+     * From the given desciptor list, get the volume descriptors for the given volumes.
+     *
+     * @param volumeDescrs all volume descrs
+     * @param volumeURIs the volume uris
+     * @return the descriptors for given volume uris
+     */
+    private List<VolumeDescriptor> getDescriptorsForURIsFromGivenList(List<VolumeDescriptor> volumeDescrs,
+            Collection<URI> volumeURIs) {
+        List<VolumeDescriptor> volumeDescsForGivenURIs = new ArrayList<VolumeDescriptor>();
+        for (VolumeDescriptor volumeDesc : volumeDescrs) {
+            if (volumeURIs.contains(volumeDesc.getVolumeURI())) {
+                volumeDescsForGivenURIs.add(volumeDesc);
+            }
+        }
+        return volumeDescsForGivenURIs;
+    }
+
+    /**
      * Create a step in the passed workflow to create native full copies for
      * the volumes or snapshots represented by the passed volume descriptors.
      * 
@@ -6847,7 +6977,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Workflow.Method executeMethod = new Workflow.Method(FULL_COPY_METHOD_NAME,
                 srcVolumeSystemURI, copyVolumeURIs, Boolean.FALSE);
         Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_FULL_COPY_METHOD, srcVolumeSystemURI, copyVolumeURIs);
-        workflow.createStep(COPY_VOLUME_STEP, String.format(
+        waitFor = workflow.createStep(COPY_VOLUME_STEP, String.format(
                 "Create full copy volumes %s on system %s", copyVolumeURIs,
                 srcVolumeSystemURI), waitFor, srcVolumeSystemURI,
                 srcVolumeSystem.getSystemType(), BlockDeviceController.class,
@@ -6863,7 +6993,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         _log.info("Created workflow step to create native full copies");
 
-        return COPY_VOLUME_STEP;
+        return waitFor;
     }
 
     /**

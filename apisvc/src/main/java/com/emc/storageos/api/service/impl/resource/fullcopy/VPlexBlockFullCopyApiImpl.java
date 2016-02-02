@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -106,33 +107,28 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         Volume fcSourceVolume = (Volume) fcSourceObj;
         URI cgURI = fcSourceObj.getConsistencyGroup();
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
-            // if volume is part of COPY type Volume Group, get only the Array Group volumes
+            // if volume is part of Application, get only the Array Group volumes
             if (fcSourceVolume.getApplication(_dbClient) != null) {
-                // Get vplex volumes based on the backed volume replication group
+                // Get VPLEX volumes based on the backed volume replication group
                 String replicationGroupName = null;
                 s_logger.info("fcSourceVolume :{}", fcSourceVolume.getId());
-                StringSet backedVolumeList = fcSourceVolume.getAssociatedVolumes();
-                if (backedVolumeList.iterator().hasNext()) {
-                    Volume backedVolume = _dbClient.queryObject(Volume.class, URI.create(backedVolumeList.iterator().next()));
-                    s_logger.info("backedVolume :{}", backedVolume.getId());
-                    replicationGroupName = backedVolume.getReplicationGroupInstance();
+                Volume srcBackendVolume = VPlexUtil.getVPLEXBackendVolume(fcSourceVolume, true, _dbClient);
+                if (srcBackendVolume != null) {
+                    s_logger.info("backedVolume :{}", srcBackendVolume.getId());
+                    replicationGroupName = srcBackendVolume.getReplicationGroupInstance();
                 }
+
                 s_logger.info("replicationGroupName :{}", replicationGroupName);
-
                 if (replicationGroupName != null) {
-                    List<Volume> backedVolumes = ControllerUtils.getVolumesPartOfRG(replicationGroupName, _dbClient);
-
-                    for (Volume backedVolume : backedVolumes) {
-
-                        Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, backedVolume);
+                    List<Volume> backendVolumes = ControllerUtils.getVolumesPartOfRG(replicationGroupName, _dbClient);
+                    for (Volume backendVolume : backendVolumes) {
+                        Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, backendVolume);
                         s_logger.info("vplexVolume id: {}", vplexVolume.getId());
                         fcSourceObjList.add(vplexVolume);
                     }
-
                 } else {
                     fcSourceObjList.add(fcSourceObj);
                 }
-
             } else {
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                 // If there is no corresponding native CG for the VPLEX
@@ -218,7 +214,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
             // If there are more than one volume in the consistency group, and they are on
             // different backend storage systems, return error.
-            // TODO check if we can allow this? backend volumes in multiple arrays
+            // TODO check if we can allow this? backend volumes src & ha are in different arrays
             if (fcSourceObjList.size() > 1) {
                 List<Volume> volumes = new ArrayList<Volume>();
                 for (BlockObject fcSource : fcSourceObjList) {
@@ -291,8 +287,11 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         List<Volume> vplexCopyVolumes = new ArrayList<Volume>();
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         List<BlockObject> sortedSourceObjectList = sortFullCopySourceList(fcSourceObjList);
+        Map<URI, VirtualArray> vArrayCache = new HashMap<URI, VirtualArray>();
         for (BlockObject fcSourceObj : sortedSourceObjectList) {
             URI fcSourceURI = fcSourceObj.getId();
+            // volumes in VolumeGroup can be from different vArrays
+            varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
             String copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
 
             vplexSrcSystemId = fcSourceObj.getStorageController();
@@ -431,7 +430,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 if (!vplexCopyHAVolumes.isEmpty()) {
                     vplexCopyHAVolume = vplexCopyHAVolumes.get(i);
                 }
-                Volume vplexCopyVolume = prepareFullCopyVPlexVolume(copyName, count, i, size,
+                Volume vplexCopyVolume = prepareFullCopyVPlexVolume(copyName, name, count, i, size,
                         fcSourceObj, vplexSrcProject, varray, vpool,
                         vplexSrcSystemId, vplexCopyPrimaryVolume, vplexCopyHAVolume, taskId,
                         volumeDescriptors);
@@ -442,6 +441,25 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 TaskResourceRep task = toTask(vplexCopyVolume, taskId, op);
                 taskList.getTaskList().add(task);
             }
+        }
+
+        // if Volume is part of Application (COPY type VolumeGroup)
+        BlockObject fcSourceObj = fcSourceObjList.get(0);
+        VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
+                ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
+        if (volumeGroup != null &&
+                !ControllerUtils.checkVolumesForVolumeGroupPartialRequest(_dbClient, fcSourceObjList)) {
+
+            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
+                    ResourceOperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY);
+            taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
+
+            // create tasks for all CGs involved
+            addConsistencyGroupTasks(fcSourceObjList, taskList, taskId,
+                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
+        } else {
+            addConsistencyGroupTasks(fcSourceObjList, taskList, taskId,
+                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
         }
 
         // Invoke the VPLEX controller to create the copies.
@@ -484,6 +502,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 }
             }
         }
+
+        // TODO update CG and VolumeGroup Tasks in case of ERROR
 
         return taskList;
     }
@@ -573,6 +593,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * Prepares the VPLEX volume copies.
      * 
      * @param name The base name for the volume.
+     * @param fullCopySetName
      * @param copyCount The total number of copies.
      * @param copyIndex The index for this copy.
      * @param size The size for the HA volume.
@@ -588,7 +609,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * 
      * @return A reference to the prepared VPLEX volume copy.
      */
-    private Volume prepareFullCopyVPlexVolume(String name, int copyCount, int copyIndex,
+    private Volume prepareFullCopyVPlexVolume(String name, String fullCopySetName, int copyCount, int copyIndex,
             long size, BlockObject fcSourceObject, Project srcProject, VirtualArray srcVarray,
             VirtualPool srcVpool, URI srcSystemURI, Volume primaryVolume, Volume haVolume,
             String taskId, List<VolumeDescriptor> volumeDescriptors) {
@@ -630,6 +651,11 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             vplexCopyVolume.setSyncActive(Boolean.FALSE);
         } else {
             vplexCopyVolume.setSyncActive(Boolean.TRUE);
+        }
+
+        // For Application, set the user provided clone name on all the clones to identify clone set
+        if (fcSourceObject instanceof Volume && ((Volume) fcSourceObject).getApplication(_dbClient) != null) {
+            vplexCopyVolume.setFullCopySetName(fullCopySetName);
         }
 
         // Persist the copy.

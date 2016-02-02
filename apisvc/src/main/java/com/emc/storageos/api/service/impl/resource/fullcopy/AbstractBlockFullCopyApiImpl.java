@@ -566,6 +566,21 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     }
 
     /**
+     * Gets the varray from cache.
+     *
+     * @param vArrayCache the varray cache
+     * @param vArrayURI the virtual array
+     * @return the varray from cache
+     */
+    protected VirtualArray getVarrayFromCache(Map<URI, VirtualArray> vArrayCache, URI vArrayURI) {
+        if (vArrayCache.get(vArrayURI) == null) {
+            VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, vArrayURI);
+            vArrayCache.put(vArrayURI, vArray);
+        }
+        return vArrayCache.get(vArrayURI);
+    }
+
+    /**
      * Gets the full copy from source object for the given full copy set name.
      *
      * @param fcSourceObject the fc source object

@@ -228,7 +228,7 @@ public class RestoreManager {
      * 
      * @param backupInfoFile The backup info file
      */
-    private void checkBackupInfo(final File backupInfoFile, boolean backupInMultiVdc) {
+    public void checkBackupInfo(final File backupInfoFile, boolean backupInMultiVdc) {
         try (InputStream fis = new FileInputStream(backupInfoFile)) {
             Properties properties = new Properties();
             properties.load(fis);

@@ -155,7 +155,13 @@ URI_BACKUP                      = URI_SERVICES_BASE + '/backupset'
 URI_BACKUP_CREATE               = URI_BACKUP + '/backup?tag={0}'
 URI_BACKUP_DELETE               = URI_BACKUP + '/backup?tag={0}'
 URI_BACKUP_LIST                 = URI_BACKUP
+URI_BACKUP_LIST_EXTERNAL        = URI_BACKUP + '/external'
 URI_BACKUP_DOWNLOAD             = URI_BACKUP + '/download?tag={0}'
+URI_BACKUP_UPLOAD               = URI_BACKUP + '/backup/upload?tag={0}'
+URI_BACKUP_QUERY_UPLOAD         = URI_BACKUP + '/backup?tag={0}'
+URI_BACKUP_PULL                 = URI_BACKUP + '/pull?file={0}'
+URI_BACKUP_QUERY_PULL           = URI_BACKUP + '/restore/status?backupname={0}&isLocal={1}'
+URI_BACKUP_RESTORE              = URI_BACKUP + '/restore?backupname={0}&isLocal={1}&password={2}'
 
 URI_VOLUME_LIST                 = URI_SERVICES_BASE  + '/block/volumes'
 URI_VOLUME_BULKGET              = URI_VOLUME_LIST  + '/bulk'
@@ -3516,8 +3522,26 @@ class Bourne:
     def list_backup(self):
         return self.api('GET', URI_BACKUP_LIST)
    
+    def list_external_backup(self):
+        return self.api('GET', URI_BACKUP_LIST_EXTERNAL)
+
     def download_backup(self,name):
         return self.api('GET', URI_BACKUP_DOWNLOAD.format(name), None, None, content_type=CONTENT_TYPE_OCTET)
+
+    def upload_backup(self,name):
+        return self.api('POST', URI_BACKUP_UPLOAD.format(name), None, None, content_type=CONTENT_TYPE_OCTET)
+
+    def query_upload_backup(self,name):
+        return self.api('GET', URI_BACKUP_QUERY_UPLOAD.format(name))
+
+    def pull_backup(self,name):
+        return self.api('POST', URI_BACKUP_PULL.format(name), None, None, content_type=CONTENT_TYPE_OCTET)
+
+    def query_pull_backup(self,name,isLocal):
+        return self.api('GET', URI_BACKUP_QUERY_PULL.format(name, isLocal))
+
+    def restore_backup(self,name,isLocal,password):
+        return self.api('POST', URI_BACKUP_RESTORE.format(name, isLocal, password))
 
     def get_db_repair_status(self):
         return self.api('GET', URI_DB_REPAIR)

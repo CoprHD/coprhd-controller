@@ -883,12 +883,14 @@ disasterRecovery.deleteConfirm=WARNING: You are about to delete Standby Site(s).
 
 disasterRecovery.testButton=Test
 disasterRecovery.pauseButton=Pause
+disasterRecovery.retryButton=Retry
 disasterRecovery.resumeButton=Resume
 disasterRecovery.FailoverButton=Failover
 disasterRecovery.SwitchoverButton=Switchover
 disasterRecovery.save.success=Standby add request initiated for site: '%s'
 disasterRecovery.pause.success=Pause request initiated...
 disasterRecovery.resume.success=Resume request initiated for site: '%s'
+disasterRecovery.retry.success=Retry request initiated for site: '%s'
 disasterRecovery.test.success=Test Mode request initiated for site: '%s'
 disasterRecovery.save.error=Failed to add standby '%s'
 disasterRecovery.pause.error=Failed to pause standby '%s'
@@ -935,6 +937,7 @@ disasterRecovery.switchover.login.instruction=To login to new Active Site, pleas
 disasterRecovery.switchover.standby.vip= with site VIP:
 disasterRecovery.confirm.switchover=WARNING: Are you sure you want to Switchover to Standby site ?
 disasterRecovery.confirm.failover=WARNING: Failover could lead to Data Lost. Are you sure you want to Failover to Standby site ?
+disasterRecovery.confirm.retry=WARNING: Are you sure you want to Retry the last Operation on Standby site ?
 disasterRecovery.confirm.pause=WARNING: Are you sure you want to Pause the Standby site(s)?
 disasterRecovery.error.code=Error Code
 disasterRecovery.error.code.name=Error Code Name
@@ -959,14 +962,20 @@ system.about.license=Licenses
 #Database Consistency Page
 db.healthdashboard.title=Database Housekeeping Status
 
-# Backup page
-Backup.list.title=Backups
+# Backup and Restore Page
+Backup.list.title=Data Backup
 backup.name=Name
 backup.size=Size
+backup.GB=%s GB
+backup.MB=%s MB
+backup.KB=%s KB
+backup.bytes=%s bytes
 backup.creationtime=Creation Time
-backup.uploadstatus=Upload Status
-backup.upload=Upload
+backup.actionstatus=Status
+backup.action=Action
 backup.create.description=Enter the information needed to create backup
+backup.tab.local=Local Backups
+backup.tab.remote=Remote Backups
 BackupForm.title=Add Backup
 backupForm.name=Backup Name
 backupForm.force=Force Creation
@@ -978,7 +987,6 @@ backups.deleted=Backup(s) deleted successfully.
 backup.upload.title=Backup Upload
 backup.uploadProgress =Upload Progress
 backup.upload.status=Backup Status
-upgrade.downloadProgress.description=Backup is being uploaded
 renderFunctions.backupupload.status.notstarted=Not Started
 renderFunctions.backupupload.status.failed=Failed
 renderFunctions.backupupload.status.progress=In Progress
@@ -989,7 +997,22 @@ renderFunctions.backupupload.error.notexist=Can not find the target backup files
 renderFunctions.backupupload.error.invalid=Target backup is invalid
 renderFunctions.backupupload.error.failure=Internal failures during the upload
 renderFunction.backupupload.status.unknown=Unknown
-
+renderFunctions.restore.status.loading=Loading
+renderFunctions.restore.status.downloading=Downloading
+renderFunctions.restore.status.downloadsuccess=Download Successfully
+renderFunctions.restore.status.downloadfailed=Download Failed
+renderFunctions.restore.status.downloadcancel=Download Cancelled
+renderFunctions.restore.status.restorefailed=Restore Failed
+renderFunctions.restore.status.restoresuccess=Restore Successfully
+restore.title=Data Restore
+restore.from.version=Restore From Data Backup
+restore.download.progress=Download Progress
+restore.download.progress.description=The system is downloading the backup file
+restoreForm.password=Root Password
+restore.checkbox=no
+restore.geo.checkbox.help=To restore the vdc1 in an all crashed Geo Environment
+restore.geo.disconnect=Please make sure the VDC to be restored has been disconnected from other VDCs.
+restore.prompt=Click OK to restore your data, the system will be unavailable for several minutes then reboot, and you will be redirected to login.
 
 # System Node Recovery
 system.noderecovery.title=Node Recovery
@@ -2612,6 +2635,13 @@ auditLog._serviceType=Service Type
 auditLog._userId=User
 auditLog._operationalStatus=Result
 auditLog._description=Description
+auditLog.download=Download
+auditLog.changefilter=Filter
+
+filterDialog.resultStatus=Status
+filterDialog.serviceType=Service Type
+filterDialog.user=User
+filterDialog.keyword=Keyword
 
 discovery.status.title=Discovery:
 discovery.status.created=Pending
@@ -3648,6 +3678,7 @@ button.activate=Activate
 button.restore=Restore
 button.save=Save
 button.done=Done
+button.ok=OK
 button.remove=Remove
 button.rediscover=Rediscover
 button.manage=Manage

@@ -239,6 +239,12 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_RECOVERY_NEW_NODE_FAILURE)
     public InternalServerErrorException newNodeFailureInNodeRecovery(final String nodes);
 
+    @DeclareServiceCode(ServiceCode.SYS_BACKUP_LIST_EXTERNAL_FAILED)
+    public InternalServerErrorException listExternalBackupFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.SYS_BACKUP_QUERY_EXTERNAL_FAILED)
+    public InternalServerErrorException queryExternalBackupFailed(final Throwable cause);
+
     @DeclareServiceCode(ServiceCode.SYS_IPRECONFIG_TRIGGER_FAILED)
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);
 
@@ -292,6 +298,9 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
     public InternalServerErrorException resumeStandbyFailed(final String siteName, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_RETRY_STANDBY_OP_FAILED)
+    public InternalServerErrorException retryStandbyOpFailed(final String siteName, String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_TIMEOUT)
     public InternalServerErrorException resumeStandbyFailedTimeout(final long timeoutValue);

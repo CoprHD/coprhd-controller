@@ -58,6 +58,10 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().resumeSite(uuid);
     }
 
+    public static SiteRestRep retryStandby(String uuid) {
+        return getViprClient().site().retrySite(uuid);
+    }
+
     public static SiteRestRep getSite(String uuid) {
         try {
             return getViprClient().site().getSite(uuid);

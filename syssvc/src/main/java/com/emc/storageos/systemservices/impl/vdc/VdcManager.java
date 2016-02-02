@@ -555,7 +555,11 @@ public class VdcManager extends AbstractManager {
         for(Site site : drUtil.listSites()) {
             SiteError error = getSiteError(site);
             if (error != null) {
+                log.info("set site {} state to STANDBY_ERROR, set lastState to {}",site.getName(),site.getState());
                 coordinatorClient.setTargetInfo(site.getUuid(), error);
+                if (!site.getState().equals(SiteState.STANDBY_SYNCING)) {
+                    site.setLastState(site.getState());
+                }
                 site.setState(SiteState.STANDBY_ERROR);
                 coordinatorClient.persistServiceConfiguration(site.toConfiguration());
             }
@@ -574,7 +578,7 @@ public class VdcManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step3: Site {} set to error due to add standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case STANDBY_PAUSING:
@@ -582,7 +586,7 @@ public class VdcManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step3: Site {} set to error due to pause standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.pauseStandbyFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case STANDBY_RESUMING:
@@ -590,7 +594,7 @@ public class VdcManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step3: Site {} set to error due to resume standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.resumeStandbyFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case STANDBY_SYNCING:
@@ -598,7 +602,7 @@ public class VdcManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step3: Site {} set to error due to data sync timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.dataSyncFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000),site.getLastState().name());
                 }
                 break;
             case STANDBY_REMOVING:
@@ -606,7 +610,7 @@ public class VdcManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step3: Site {} set to error due to remove standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.removeStandbyFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case ACTIVE_SWITCHING_OVER:
@@ -614,7 +618,7 @@ public class VdcManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step3: Site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverActiveFailedTimeout(
-                            site.getName(), drOpTimeoutMillis / 60 / 1000));
+                            site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case STANDBY_SWITCHING_OVER:
@@ -622,7 +626,7 @@ public class VdcManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step3: Site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverStandbyFailedTimeout(
-                            site.getName(), drOpTimeoutMillis / 60 / 1000));
+                            site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case STANDBY_FAILING_OVER:
@@ -630,7 +634,7 @@ public class VdcManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step3: Site {} set to error due to failover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.failoverFailedTimeout(
-                            site.getName(), drOpTimeoutMillis / 60 / 1000));
+                            site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case ACTIVE_FAILING_OVER:
@@ -638,7 +642,7 @@ public class VdcManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step3: Site {} set to error due to failover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.failoverFailedTimeout(
-                            site.getName(), drOpTimeoutMillis / 60 / 1000));
+                            site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
         }

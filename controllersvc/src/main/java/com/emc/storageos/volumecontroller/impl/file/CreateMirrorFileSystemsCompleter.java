@@ -12,6 +12,8 @@ import javax.xml.bind.annotation.XmlTransient;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -39,8 +41,24 @@ public class CreateMirrorFileSystemsCompleter extends FileWorkflowCompleter {
 
         switch (status) {
             case error:
-
                 handleFileShareErrors(dbClient);
+                break;
+            case ready:
+                // Remove target attributes from source file system!!
+                for (URI id : getIds()) {
+                    FileShare fileSystem = dbClient.queryObject(FileShare.class, id);
+                    if (fileSystem != null && !fileSystem.getInactive()) {
+                        if (fileSystem.getPersonality() != null &&
+                                PersonalityTypes.SOURCE.name().equalsIgnoreCase(fileSystem.getPersonality())) {
+                            // Set the mirror status!!
+                            fileSystem.setMirrorStatus(MirrorStatus.UNKNOWN.name());
+                            dbClient.updateObject(fileSystem);
+                            _log.info("CreateMirrorFileSystemsCompleter::Set the mirror status of source file system {}",
+                                    fileSystem.getId());
+                        }
+                    }
+                    dbClient.ready(FileShare.class, id, getOpId());
+                }
                 break;
             default:
                 break;

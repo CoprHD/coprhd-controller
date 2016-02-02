@@ -476,9 +476,9 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         if (isTargetFS == false) {
             if (null != placement.getSourceStoragePool()) {
                 pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
-                fileShare.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
-                fileShare.setAccessState(FileAccessState.READWRITE.name());
             }
+            fileShare.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
+            fileShare.setAccessState(FileAccessState.READWRITE.name());
             // set the storage ports
             if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
                 fileShare.setStoragePort(placement.getStoragePorts().get(0));
@@ -491,7 +491,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         } else {
 
             Map<URI, FileMirrorRecommendation.Target> targetMap = placement.getVirtualArrayTargetMap();
-            if (targetMap != null ) {
+            if (targetMap != null) {
                 Target target = targetMap.get(virtualArray.getId());
                 if (target != null) {
                     pool = _dbClient.queryObject(StoragePool.class, target.getTargetStoragePool());

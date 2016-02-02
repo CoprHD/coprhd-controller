@@ -26,7 +26,7 @@
 #{if showPauseButton}
 	<a href="@{infra.Upgrade.index()}">&{'disasterRecovery.backToUpgrade'}</a>
 #{/if}
-#{elseif util.DisasterRecoveryUtils.hasPausedSite()}
+#{elseif (controllers.infra.DisasterRecovery.isActiveSite() && util.DisasterRecoveryUtils.hasPausedSite()) }
 	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteWarning'}</span>
 #{/elseif}
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}

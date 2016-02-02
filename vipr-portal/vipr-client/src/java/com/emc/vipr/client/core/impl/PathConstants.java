@@ -179,5 +179,6 @@ public class PathConstants {
     public static final String FILE_REPLICATION_DEACTIVATE_URL = FILE_REPLICATION_URL+"/deactivate";
     public static final String FILE_REPLICATION_COPYPOLICY_URL = FILE_REPLICATION_URL+"/copypolicy";
     public static final String FILE_REPLICATION_INFO_URL = FILE_REPLICATION_URL+"/{mid}";
+    public static final String FILE_VPOOL_CHANGE_URL = "/vpool-change";
     
 }

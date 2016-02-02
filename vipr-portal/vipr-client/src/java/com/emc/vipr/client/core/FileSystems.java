@@ -13,6 +13,7 @@ import java.util.Properties;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
@@ -601,9 +602,164 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * @return a task for monitoring the progress of the operation.     * 
      */
     
-    public Task<FileShareRestRep> startReplication(URI id, FileReplicationParam param) {
+    public Tasks<FileShareRestRep> startReplication(URI id, FileReplicationParam param) {
         UriBuilder builder = client.uriBuilder(getReplicationStartUrl());
         URI targetUri = builder.build(id);
-        return postTaskURI(param, targetUri);
+        return postTasks(param, targetUri.getPath());
+    }
+    
+    /**
+     * Stops replication operation on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/stop</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     *            
+     * @return a task for monitoring the progress of the operation.     * 
+     */
+    
+    public Tasks<FileShareRestRep> stopReplication(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getReplicationStopUrl());
+        URI targetUri = builder.build(id);
+        return postTasks(param, targetUri.getPath());
+    }
+    
+    
+    /**
+     * Pause replication operation on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/pause</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     *            
+     * @return a task for monitoring the progress of the operation.     * 
+     */
+    
+    public Tasks<FileShareRestRep> pauseReplication(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getReplicationPauseUrl());
+        URI targetUri = builder.build(id);
+        return postTasks(param, targetUri.getPath());
+    }
+    
+    /**
+     * Resume replication operation on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/resume</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     *            
+     * @return a task for monitoring the progress of the operation.     * 
+     */
+    
+    public Tasks<FileShareRestRep> resumeReplication(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getReplicationResumeUrl());
+        URI targetUri = builder.build(id);
+        return postTasks(param, targetUri.getPath());
+    }
+    
+    /**
+     * Failover replication operation on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/failover</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     *            
+     * @return a task for monitoring the progress of the operation.     * 
+     */
+    
+    public Tasks<FileShareRestRep> failOverReplication(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getReplicationFailOverUrl());
+        URI targetUri = builder.build(id);
+        return postTasks(param, targetUri.getPath());
+    }
+    
+    
+    /**
+     * FailBack replication operation on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/failback</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     *            
+     * @return a task for monitoring the progress of the operation.     * 
+     */
+    
+    public Tasks<FileShareRestRep> failBackReplication(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getReplicationFailBackUrl());
+        URI targetUri = builder.build(id);
+        return postTasks(param, targetUri.getPath());
+    }
+    
+    /**
+     * copypolicy replication operation on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/copypolicy</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     *            
+     * @return a task for monitoring the progress of the operation.     * 
+     */
+   //TBD 
+//    public Tasks<FileShareRestRep> copyPolicyReplication(URI id, FileReplicationParam param) {
+//        UriBuilder builder = client.uriBuilder(getReplicationCopyPolicyUrl());
+//        URI targetUri = builder.build(id);
+//        return postTasks(param, targetUri.getPath());
+//    }
+
+    /**
+     * deactivate replication operation on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/deactivate</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     *            
+     * @return a task for monitoring the progress of the operation.     * 
+     */
+    
+    public Tasks<FileShareRestRep> deactivateReplication(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getReplicationDeactivateUrl());
+        URI targetUri = builder.build(id);
+        return postTasks(param, targetUri.getPath());
+    }
+    
+    /**
+     * Get details of replication copy on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/{mid}</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     *            
+     * @return a task for monitoring the progress of the operation.     * 
+     */
+    
+    public Tasks<FileShareRestRep> replicationInfo(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getReplicationDetailsUrl());
+        URI targetUri = builder.build(id);
+        return postTasks(param, targetUri.getPath());
+    }
+    
+    /**
+     * Change vpool of the file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/vpool-change</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     *            
+     * @return a task for monitoring the progress of the operation.     * 
+     */
+    
+    public Task<FileShareRestRep> changeVpool(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getIdUrl()+PathConstants.FILE_VPOOL_CHANGE_URL);
+        URI targetUri = builder.build(id);
+        return putTaskURI(param, targetUri);
     }
 }

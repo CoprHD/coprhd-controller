@@ -258,6 +258,8 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
      * 
      * @param id
      *            the tenant id.
+     * @param param 
+     *            the policy param
      * @return a task for monitoring the progress of the operation.
      */
     public SchedulePolicyList createSchedulePolicy(URI id, PolicyParam param) {

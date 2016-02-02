@@ -38,7 +38,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * The cluster when the host is in a cluster.
      * 
-     * @valid none
      */
     @XmlElement(name = "cluster")
     public RelatedResourceRep getCluster() {
@@ -52,7 +51,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * The host name.
      * 
-     * @valid none
      */
     @XmlElement(name = "host_name")
     public String getHostName() {
@@ -66,7 +64,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * The operating system version of the host.
      * 
-     * @valid none
      */
     @XmlElement(name = "os_version")
     public String getOsVersion() {
@@ -80,7 +77,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * The host management port number.
      * 
-     * @valid none
      */
     @XmlElement(name = "port_number")
     public Integer getPortNumber() {
@@ -94,7 +90,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * The project to which the host is assigned.
      * 
-     * @valid none
      */
     @XmlElement(name = "project")
     public RelatedResourceRep getProject() {
@@ -117,7 +112,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * The host type.
      * 
-     * @valid none
      */
     @XmlElement(name = "type")
     public String getType() {
@@ -131,7 +125,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * The login account name.
      * 
-     * @valid none
      */
     @XmlElement(name = "user_name")
     public String getUsername() {
@@ -145,8 +138,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * The boolean flag that indicates if SSL should be used when communicating with the host.
      * 
-     * @valid true = use SSL
-     * @valid false = do not use SSL
      */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSsl() {
@@ -160,7 +151,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * The name of the data center in vCenter where this host resides.
      * 
-     * @valid none
      */
     @XmlElement(name = "vcenter_data_center")
     public RelatedResourceRep getvCenterDataCenter() {
@@ -176,8 +166,6 @@ public class HostRestRep extends ComputeSystemRestRep {
      * performed against this host.
      * 
      * @return true if automatic discovery is enabled, false if automatic discovery is disabled.
-     * @valid true = discovery is enabled
-     * @valid false = discovery is disabled
      */
     @XmlElement(name = "discoverable")
     public Boolean getDiscoverable() {

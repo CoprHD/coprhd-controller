@@ -84,6 +84,7 @@ public class PrincipalValidatorResource {
 
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/principalsValidate")
     public Response validatePrincipals(PrincipalsToValidate principalsToValidate) {
         List<String> invalidPrincipals = new ArrayList<String>();

@@ -20,7 +20,6 @@ public class ManagedResourcesCapacity {
     /**
      * A list of managed resource capacity response instances.
      * 
-     * @valid none
      */
     @XmlElement
     public List<ManagedResourceCapacity> getResourceCapacityList() {
@@ -43,12 +42,13 @@ public class ManagedResourcesCapacity {
         private double resourceCapacity;
 
         /**
-         * The type of the resources.
+         * The type of the resources. 
+         * Valid values:
+         *  VOLUME
+         *  FILESHARE
+         *  POOL
+         *  BUCKET
          * 
-         * @valid VOLUME
-         * @valid FILESHARE
-         * @valid POOL
-         * @valid BUCKET
          */
         @XmlElement
         public CapacityResourceType getType() {
@@ -62,7 +62,6 @@ public class ManagedResourcesCapacity {
         /**
          * The number of resources.
          * 
-         * @valid none
          */
         @XmlElement(name = "nResources")
         @JsonProperty("nResources")
@@ -77,7 +76,6 @@ public class ManagedResourcesCapacity {
         /**
          * The capacity of the resources.
          * 
-         * @valid none
          */
         @XmlElement
         public double getResourceCapacity() {

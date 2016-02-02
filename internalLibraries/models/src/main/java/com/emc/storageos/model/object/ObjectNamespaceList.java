@@ -30,7 +30,6 @@ public class ObjectNamespaceList {
     /**
      * List of individual object namespaces
      * 
-     * @valid none
      */
     @XmlElement(name = "object_namespace")
     public List<NamedRelatedResourceRep> getNamespaces() {

@@ -14,6 +14,13 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
 
     @Override
+    protected List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
+            throws Exception {
+        // TODO Add logic to return the RP block objects to update in CG.
+        return null;
+    }
+
+    @Override
     public void decorateCG(BlockConsistencyGroup cg, UnManagedVolume umv, List<BlockObject> associatedObjects,
             IngestionRequestContext requestContext)
             throws Exception {
@@ -26,14 +33,11 @@ public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
                     IngestionRequestContext requestContext)
                     throws Exception {
         // @TODO Iterate thru each blockObject and update CG systemConsistencyGroups & types.
-
-    }
-
-    @Override
-    protected List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
-            throws Exception {
-        // TODO Add logic to return the RP block objects to update in CG.
-        return null;
+        if (!associatedObjects.isEmpty()) {
+            for (BlockObject blockObject : associatedObjects) {
+                blockObject.setConsistencyGroup(cg.getId());
+            }
+        }
     }
 
 }

@@ -372,7 +372,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                                 IngestionException.exceptions.unmanagedVolumeIsNotVisible(unManagedVolume.getLabel(), taskMessage));
                     }
                 }
-                // Update the related objects if any after ingestion
+
                 // Update the related objects if any after ingestion
                 List<DataObject> updatedObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {

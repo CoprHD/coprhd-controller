@@ -250,19 +250,4 @@ public class Tenants extends AbstractCoreBulkResources<TenantOrgRestRep> impleme
     public SchedulePolicyList getSchedulePoliciesByTenant(URI id) {
         return client.get(SchedulePolicyList.class, getIdUrl() + "/schedule-policies", id);
     }
-    
-    /**
-     * Create a schedule policy for a tenant.
-     * <p>
-     * API Call: <tt>POST /tenants/{tenantId}/schedule-policies</tt>
-     * 
-     * @param id
-     *            the tenant id.
-     * @param param 
-     *            the policy param
-     * @return a task for monitoring the progress of the operation.
-     */
-    public SchedulePolicyList createSchedulePolicy(URI id, PolicyParam param) {
-        return client.post(SchedulePolicyList.class, param, getIdUrl() + "/schedule-policies", id);
-    }
 }

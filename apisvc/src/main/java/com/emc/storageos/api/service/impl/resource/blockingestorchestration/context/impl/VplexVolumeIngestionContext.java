@@ -338,13 +338,10 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
 
         VirtualPool vpoolForThisVolume = _parentRequestContext.getVpool(unmanagedVolume);
 
-        _logger.info("trying to find backend cluster id in associated volume " + unmanagedVolume.forDisplay());
-
         // get the backend volume cluster id
         String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
                 unmanagedVolume.getVolumeInformation());
-        _logger.info("backend cluster id is " + backendClusterId);
         if (null != backendClusterId && null != _haClusterId
                 && backendClusterId.equals(_haClusterId)) {
             if (null != getHaVpool(unmanagedVolume)) {
@@ -377,13 +374,10 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
 
         VirtualArray varrayForThisVolume = _parentRequestContext.getVarray(unmanagedVolume);
 
-        _logger.info("trying to find backend cluster id in associated volume " + unmanagedVolume.forDisplay());
-
         // get the backend volume cluster id
         String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
                 unmanagedVolume.getVolumeInformation());
-        _logger.info("backend cluster id is " + backendClusterId);
         if (null != backendClusterId && null != _haClusterId
                 && backendClusterId.equals(_haClusterId)) {
             _logger.info("using high availability varray " + getHaVarray(unmanagedVolume).getLabel());

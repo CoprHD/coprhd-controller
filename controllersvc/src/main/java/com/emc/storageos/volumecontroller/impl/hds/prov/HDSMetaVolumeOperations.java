@@ -314,7 +314,7 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
         } else {
             job.setHDSJob(messageId);
         }
-        JobContext jobContext = new JobContext(dbClient, null, null, hdsApiFactory, null, null, null);
+        JobContext jobContext = new JobContext(dbClient, null, null, hdsApiFactory, null, null, null, null);
         long startTime = System.currentTimeMillis();
         while (true) {
             JobPollResult result = job.poll(jobContext, SYNC_WRAPPER_WAIT);

@@ -212,7 +212,9 @@ public class DrUtil {
             for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
                 sites.add(new Site(siteConfig));
             }
-            vdcSiteMap.put(vdcConfig.getId(), sites);
+            if (sites.size() > 0) {
+                vdcSiteMap.put(vdcConfig.getId(), sites);
+            }
         }
         return vdcSiteMap;
     }

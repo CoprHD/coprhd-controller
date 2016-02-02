@@ -697,16 +697,19 @@ public class DisasterRecoveryServiceTest {
 
         assertEquals(null, siteError.getCreationTime());
         assertEquals(null, siteError.getErrorMessage());
+        assertEquals(null, siteError.getOperation());
 
         standbySite2.setState(SiteState.STANDBY_ERROR);
+        standbySite2.setLastState(SiteState.STANDBY_ADDING);
 
-        SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(20));
+        SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(20),SiteState.STANDBY_PAUSING.name());
         doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);
         
         siteError = drService.getSiteError(standbySite2.getUuid());
         
         assertEquals(new Date(error.getCreationTime()), siteError.getCreationTime());
         assertEquals(error.getErrorMessage(), siteError.getErrorMessage());
+        assertEquals(error.getOperation(), siteError.getErrorMessage());
         
         try {
             drService.getSiteError(NONEXISTENT_ID);

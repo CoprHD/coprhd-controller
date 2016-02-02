@@ -54,6 +54,7 @@ public abstract class VdcOpHandler {
     private static final int FAILOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 15;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
+    private static final int RESUME_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 20;
     private static final int IPSEC_RESTART_DELAY = 1000 * 60; // 1 min
     // data revision time out - 5 minutes
@@ -474,6 +475,8 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
+            //if site is in observer restart dbsvc
+            restartDbsvcOnResumedSite();
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
             changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
@@ -1024,6 +1027,24 @@ public abstract class VdcOpHandler {
             }
         }
     }
+
+    protected void restartDbsvcOnResumedSite() throws Exception {
+        Site site = drUtil.getLocalSite();
+
+        //check both state and last state so we know this is a retry
+        if (site.getState().equals(SiteState.STANDBY_RESUMING)
+                && site.getLastState().equals(SiteState.STANDBY_RESUMING)) {
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
+                    RESUME_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            barrier.enter();
+            try {
+                localRepository.restart(Constants.GEODBSVC_NAME);
+                localRepository.restart(Constants.DBSVC_NAME);
+            } finally {
+                barrier.leave();
+            }
+        }
+    }
     
     protected void reconfigVdc() throws Exception {
         reconfigVdc(true);
@@ -1103,11 +1124,19 @@ public abstract class VdcOpHandler {
     }
     
     protected void populateStandbySiteErrorIfNecessary(Site site, InternalServerErrorException e) {
-        SiteError error = new SiteError(e);
-        
-        log.info("Set error state for site: {}", site.getUuid());
+
+        SiteState operation = site.getState();
+        if (SiteState.STANDBY_SYNCING.equals(site.getState())) {
+            operation = site.getLastState();
+        }
+        SiteError error = new SiteError(e,operation.name());
+
+        log.info("set site {} state to STANDBY_ERROR, set lastState to {}",site.getName(),site.getState());
         coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
 
+        if (!site.getState().equals(SiteState.STANDBY_SYNCING)) {
+            site.setLastState(site.getState());
+        }
         site.setState(SiteState.STANDBY_ERROR);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
     }
@@ -1116,6 +1145,7 @@ public abstract class VdcOpHandler {
         List<Site> newSites = drUtil.listSitesInState(from);
         for(Site newSite : newSites) {
             log.info("Change standby site {} state from {} to {}", new Object[]{newSite.getSiteShortId(), from, to});
+            newSite.setLastState(from);
             newSite.setState(to);
             coordinator.getCoordinatorClient().persistServiceConfiguration(newSite.toConfiguration());
         }

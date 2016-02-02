@@ -161,7 +161,17 @@ public enum OperationTypeEnum {
 
     CREATE_FILE_MIRROR("FileSystemMirrorCreated", "FileSystemMirrorCreateFailed", "FileSystemMirror Create"),
     DELETE_FILE_MIRROR("FileSystemMirrorDeleted", "FileSystemMirrorDeleteFailed", "FileSystemMirror Delete"),
-    
+
+    SUSPEND_FILE_MIRROR("FileSystemMirrorSuspended", "FileSysteMirrorSuspendFailed", "FileSystemMirror Suspend"),
+    DETACH_FILE_MIRROR("FileSystemMirrorDetach", "FileSystemMirrorDetachFailed", "FileSystemMirror Detach"),
+    PAUSE_FILE_MIRROR("FileSystemMirrorPaused", "FileSystemMirrorPauseFailed", "FileSystemMirror Link Pause"),
+    RESUME_FILE_MIRROR("FileSystemMirrorResumed", "FileSystemMirrorResumeFailed", "FileSystemMirror Resume"),
+    FAILOVER_FILE_MIRROR("FileSystemMirrorFailover", "FileSystemMirrorFailOverFailed", "FileSystemMirror Fail Over"),
+    FAILBACK_FILE_MIRROR("FileSystemMirrorFailback", "FileSystemMirrorFailbackFailed", "FileSystemMirror Fail Back"),
+    STOP_FILE_MIRROR("FileSystemMirrorStop", "FileSystemMirrorStopFailed", "FileSystemMirror Stop"),
+    START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
+    RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
+
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
     UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),
@@ -414,6 +424,9 @@ public enum OperationTypeEnum {
     CREATE_BACKUP("CREATE BACKUP", "", "operation to create ViPR backup"),
     DELETE_BACKUP("DELETE BACKUP", "", "operation to delete ViPR backup"),
     UPLOAD_BACKUP("UPLOAD BACKUP", "", "operation to upload ViPR backup to external location"),
+    PULL_BACKUP("PULL BACKUP", "", "operation to download ViPR backup from external location"),
+    PULL_BACKUP_CANCEL("PULL BACKUP CANCEL", "", "operation to cancel the download of ViPR backup from external location"),
+    RESTORE_BACKUP("RESTORE BACKUP", "", "operation to restore ViPR backup"),
     RECOVER_NODES("RECOVER NODES", "", "operation to recover corrupted nodes"),
     RECONFIG_IP("Reconfig IPs", "", "trigger ip reconfiguration"),
     CREATE_USERGROUP("CREATE USER GROUP", "", "operation to create a user group."),
@@ -427,7 +440,7 @@ public enum OperationTypeEnum {
             "operation to update and verify a compute image server."),
     DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
     CREATE_VOLUME_GROUP("CREATE VOLUME GROUP", "", "operation to create volume group"),
-    DELETE_VOLUME_GROUP("DELETE VOLUME GROUP", "", "operation to delete volume group"), 
+    DELETE_VOLUME_GROUP("DELETE VOLUME GROUP", "", "operation to delete volume group"),
     UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "", "operation to update volume group"),
 
     CREATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyCreated", "VolumeGroupFullCopyCreateFailed", "VolumeGroupFullCopy Created"),
@@ -450,6 +463,7 @@ public enum OperationTypeEnum {
     REMOVE_STANDBY("REMOVE STANDBY", "", "operation to initiate removing an existing standby from ensemble"),
     PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to initiate pausing replication between acitve site and standby site"),
     RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between acitve site and standby site"),
+    RETRY_STANDBY_OP("RETRY STANDBY OPERATION", "", "operation to initiate retry of last operation on a standby site"),
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
     SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from acitve site to a standby site"),
     ACTIVE_SWITCHOVER("ACTIVE BECOME STANDBY AFTER SWITCHOVER", "", "operation that marks switchover on old active site complete"),

@@ -1377,7 +1377,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException unsupportedSystemType(final String systemType);
-    
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException unsupportedParameterForStorageSystem(final String propertyName);
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException updateVirtualPoolOnlyAllowedToChange();
 
@@ -2831,7 +2834,20 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicatePolicyAssociation(URI fp);
-    
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidVirtualPoolForVirtualPoolChange(String label, String reason);
+
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noMatchingStoragePoolsForFileSystemVpoolChange(final URI varrayId,
+            final URI vPoolId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToCreateMirrorCopies(final URI fsUri, String reason);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToDeleteMirrorCopies(final URI fsUri, String reason);
+
     @DeclareServiceCode(ServiceCode.API_INVALID_ACTION_FOR_LOCAL_MIRRORS)
     public BadRequestException actionNotApplicableForLocalMirrors(final String actionName);
 }

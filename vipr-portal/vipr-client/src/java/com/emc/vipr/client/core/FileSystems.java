@@ -518,9 +518,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the ID of the file policy.
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId, FileSystemParam input) {
+    public Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId) {
         UriBuilder builder = client.uriBuilder(getIdUrl() + "/assign-file-policy/{file_policy_uri}");
         URI targetUri = builder.build(fileSystemId, filePolicyId);
-        return putTaskURI(input, targetUri);
+        return putTaskURI(null, targetUri);
     }
 }

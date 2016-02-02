@@ -18,12 +18,12 @@ public class AssociateFilePolicyToFileSystem extends WaitForTask<FileShareRestRe
 
     public AssociateFilePolicyToFileSystem(URI fileSystemId, URI filePolicyId) {
         this.fileSystemId = fileSystemId;
-        this.filePolicyId = fileSystemId;
+        this.filePolicyId = filePolicyId;
         provideDetailArgs(fileSystemId, filePolicyId);
     }
 
     @Override
     protected Task<FileShareRestRep> doExecute() throws Exception {
-        return getClient().fileSystems().associateFilePolicy(fileSystemId, filePolicyId, new FileSystemParam());
+        return getClient().fileSystems().associateFilePolicy(fileSystemId, filePolicyId);
     }
 }

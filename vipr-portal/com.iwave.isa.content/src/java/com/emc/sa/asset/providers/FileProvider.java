@@ -135,7 +135,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         SchedulePolicyList policies = api(ctx).tenants().getSchedulePoliciesByTenant(ctx.getTenant());
         for (NamedRelatedResourceRep policy : policies.getSchdulePolicies()) {
-            options.add(new AssetOption(policy.getName(), policy.getName()));
+            options.add(new AssetOption(policy.getId(), policy.getName()));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

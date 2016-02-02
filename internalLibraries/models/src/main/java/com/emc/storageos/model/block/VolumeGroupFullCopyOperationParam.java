@@ -32,8 +32,6 @@ public class VolumeGroupFullCopyOperationParam {
      * If set to true, volumes list should be provided with full copy URIs one from each Array replication group.
      * In any case, minimum of one full copy URI needs to be specified in order to identify the clone set.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "partial", required = false, defaultValue = "false")
     public Boolean getPartial() {

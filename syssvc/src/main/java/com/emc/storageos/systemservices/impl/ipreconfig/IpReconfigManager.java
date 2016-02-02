@@ -150,6 +150,7 @@ public class IpReconfigManager implements Runnable {
      */
     @Override
     public void run() {
+        init();
         while (true) {
             try {
                 handleIpReconfig();

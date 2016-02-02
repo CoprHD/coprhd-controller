@@ -22,6 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
+
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -58,8 +60,7 @@ public class IPsecManager {
      */
     public String generateKey() throws Exception {
         return RandomStringUtils.random(KEY_LENGTH, 0, charsForKey.length-1,
-                true, true, charsForKey,
-                SecurityUtil.getSecureRandomInstance());
+                true, true, charsForKey, SecurityUtil.getSecureRandomInstance());
     }
 
     /**
@@ -118,7 +119,7 @@ public class IPsecManager {
             log.info("IPsec Key gets rotated successfully to the version {}", vdcConfigVersion);
             return Long.toString(vdcConfigVersion);
         } catch (Exception e) {
-            log.warn("Fail to rotate ipsec key due to: {}", e);
+            log.warn("Fail to rotate ipsec key.", e);
             throw SecurityException.fatals.failToRotateIPsecKey(e);
         }
     }

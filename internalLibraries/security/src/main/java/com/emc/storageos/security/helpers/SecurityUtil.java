@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class SecurityUtil {
 
+    private static final int SEED_LEN = 20;
     private static Logger log = LoggerFactory.getLogger(SecurityUtil.class);
 
     private static SecurityService securityService;
@@ -81,6 +82,7 @@ public class SecurityUtil {
     public synchronized static SecureRandom getSecureRandomInstance() throws Exception {
         if (secureRandomInst == null) {
             secureRandomInst = SecureRandom.getInstance(secureRandomAlgo);
+            secureRandomInst.setSeed(secureRandomInst.generateSeed(SEED_LEN));
         }
 
         return secureRandomInst;

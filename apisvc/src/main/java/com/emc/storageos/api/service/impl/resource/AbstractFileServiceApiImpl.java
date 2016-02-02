@@ -28,6 +28,7 @@ import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -145,15 +146,22 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
 
     @Override
     public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs,
-            String deletionType, boolean forceDelete, String task) throws InternalException {
+            String deletionType, boolean forceDelete, boolean deleteOnlyMirrors, String task) throws InternalException {
         // Get volume descriptor for all volumes to be deleted.
         List<FileDescriptor> fileDescriptors = getDescriptorsOfFileShareDeleted(
-                systemURI, fileSystemURIs, deletionType, forceDelete);
+                systemURI, fileSystemURIs, deletionType, forceDelete, deleteOnlyMirrors);
         // place request in queue
         FileOrchestrationController controller = getController(
                 FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         controller.deleteFileSystems(fileDescriptors, task);
+    }
+
+    @Override
+    public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
@@ -166,7 +174,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
      * @return
      */
     abstract protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
-            List<URI> fileShareURIs, String deletionType, boolean forceDelete);
+            List<URI> fileShareURIs, String deletionType, boolean forceDelete, boolean deleteOnlyMirrors);
 
     /**
      * Expand fileshare

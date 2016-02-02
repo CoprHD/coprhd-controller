@@ -4,74 +4,82 @@
  */
 package com.emc.storageos.fileorchestrationcontroller;
 
-import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-
 import java.io.Serializable;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class FileDescriptor implements Serializable {
 
     public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
-			Long fileSize,
-			VirtualPoolCapabilityValuesWrapper capabilitiesValues,
-			URI migrationId, String suggestedNativeFsId) {
-		super();
-		this._type = type;
-		this._deviceURI = deviceURI;
-		this._fsURI = fsURI;
-		this._poolURI = poolURI;
-		this._fileSize = fileSize;
-		this._capabilitiesValues = capabilitiesValues;
-		this._migrationId = migrationId;
-		this._suggestedNativeFsId = suggestedNativeFsId;
-		
-	}
-    
-    public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
-						String deletionType, boolean forceDelete) {
-		super();
+            Long fileSize,
+            VirtualPoolCapabilityValuesWrapper capabilitiesValues,
+            URI migrationId, String suggestedNativeFsId) {
+        super();
+        this._type = type;
+        this._deviceURI = deviceURI;
+        this._fsURI = fsURI;
+        this._poolURI = poolURI;
+        this._fileSize = fileSize;
+        this._capabilitiesValues = capabilitiesValues;
+        this._migrationId = migrationId;
+        this._suggestedNativeFsId = suggestedNativeFsId;
 
-		this._type = type;
-		this._deviceURI = deviceURI;
-		this._fsURI = fsURI;
-		this._poolURI = poolURI;
-		this.deleteType = deletionType;
-		this.forceDelete = forceDelete;
-	}
+    }
 
     public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
-                          String deletionType, boolean forceDelete, Long fileSize) {
+            String deletionType, boolean forceDelete) {
+        super();
+
+        this._type = type;
+        this._deviceURI = deviceURI;
+        this._fsURI = fsURI;
+        this._poolURI = poolURI;
+        this.deleteType = deletionType;
+        this.forceDelete = forceDelete;
+    }
+
+    public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
+            String deletionType, boolean forceDelete, Long fileSize) {
         this(type, deviceURI, fsURI, poolURI, deletionType, forceDelete);
 
         this._fileSize = fileSize;
     }
-    
-	public enum Type {
+
+    public enum Type {
         /* ******************************
          * The ordering of these are important for the sortByType() method,
          * be mindful when adding/removing/changing the list.
-        */
+         */
         FILE_DATA(1),                   // user's data filesystem
         FILE_LOCAL_MIRROR_TARGET(2),    // array level mirror
         FILE_SNAPSHOT(3),               // array level snapshot
-        FILE_EXISTING_SOURCE(4),        //  existing source file
+        FILE_EXISTING_SOURCE(4),        // existing source file
         FILE_MIRROR_SOURCE(5),          // remote mirror source
         FILE_MIRROR_TARGET(6);          // remote mirror target
 
         private final int order;
+
         private Type(int order) {
             this.order = order;
         }
+
         public int getOrder() {
             return order;
         }
     };
-    
-    public enum DeleteType{
-    	FULL,
-    	VIPR_ONLY
+
+    public enum DeleteType {
+        FULL,
+        VIPR_ONLY
     }
 
     private Type _type;                  // The type of this file
@@ -81,36 +89,38 @@ public class FileDescriptor implements Serializable {
     private Long _fileSize;              // Used to separate multi-file create requests
     private VirtualPoolCapabilityValuesWrapper _capabilitiesValues;  // mirror policy is stored in here
     private URI _migrationId;            // Reference to the migration object for this file
-    private String _suggestedNativeFsId; //user suggested native id
-    private String deleteType;           //delete type either FULL or VIPR_ONLY
-    
+    private String _suggestedNativeFsId; // user suggested native id
+    private String deleteType;           // delete type either FULL or VIPR_ONLY
+
+    private boolean deleteTargetOnly;
+
     public String getDeleteType() {
-		return deleteType;
-	}
+        return deleteType;
+    }
 
-	public void setDeleteType(String deleteType) {
-		this.deleteType = deleteType;
-	}
+    public void setDeleteType(String deleteType) {
+        this.deleteType = deleteType;
+    }
 
-	public boolean isForceDelete() {
-		return forceDelete;
-	}
+    public boolean isForceDelete() {
+        return forceDelete;
+    }
 
-	public void setForceDelete(boolean forceDelete) {
-		this.forceDelete = forceDelete;
-	}
+    public void setForceDelete(boolean forceDelete) {
+        this.forceDelete = forceDelete;
+    }
 
-	private boolean forceDelete;
+    private boolean forceDelete;
 
     public String getSuggestedNativeFsId() {
-		return _suggestedNativeFsId;
-	}
+        return _suggestedNativeFsId;
+    }
 
-	public void setSuggestedNativeFsId(String suggestedNativeFsId) {
-		this._suggestedNativeFsId = suggestedNativeFsId;
-	}
+    public void setSuggestedNativeFsId(String suggestedNativeFsId) {
+        this._suggestedNativeFsId = suggestedNativeFsId;
+    }
 
-	public Type getType() {
+    public Type getType() {
         return _type;
     }
 
@@ -166,10 +176,18 @@ public class FileDescriptor implements Serializable {
         this._migrationId = migrationId;
     }
 
+    public boolean isDeleteTargetOnly() {
+        return deleteTargetOnly;
+    }
+
+    public void setDeleteTargetOnly(boolean deleteTargetOnly) {
+        this.deleteTargetOnly = deleteTargetOnly;
+    }
+
     /**
      * Sorts the descriptors using the natural order of the enum type
      * defined at the top of the class.
-     *
+     * 
      * @param descriptors FileDescriptors to sort
      */
     public static void sortByType(List<FileDescriptor> descriptors) {
@@ -180,9 +198,10 @@ public class FileDescriptor implements Serializable {
             }
         });
     }
+
     /**
      * Return a map of device URI to a list of descriptors in that device.
-     *
+     * 
      * @param descriptors List<FileDescriptors>
      * @return Map of device URI to List<FileDescriptors> in that device
      */
@@ -199,7 +218,7 @@ public class FileDescriptor implements Serializable {
 
     /**
      * Return a map of pool URI to a list of descriptors in that pool.
-     *
+     * 
      * @param descriptors List<FileDescriptors>
      * @return Map of pool URI to List<FileDescriptors> in that pool
      */
@@ -213,10 +232,7 @@ public class FileDescriptor implements Serializable {
         }
         return poolMap;
     }
-    
-    
 
-    
     /**
      * Returns all the descriptors of a given type.
      * 
@@ -236,7 +252,7 @@ public class FileDescriptor implements Serializable {
 
     /**
      * Return a map of pool URI to a list of descriptors in that pool of each size.
-     *
+     * 
      * @param descriptors List<FileDescriptors>
      * @return Map of pool URI to a map of identical sized filesystems to List<FileDescriptors> in that pool of that size
      */
@@ -263,7 +279,7 @@ public class FileDescriptor implements Serializable {
 
     /**
      * Return a List of URIs for the filesystems.
-     *
+     * 
      * @param descriptors List<FileDescriptors>
      * @return List<URI> of filesystems in the input list
      */
@@ -277,7 +293,7 @@ public class FileDescriptor implements Serializable {
 
     /**
      * Filter a list of FileDescriptors by type(s).
-     *
+     * 
      * @param descriptors -- Original list.
      * @param inclusive -- Types to be included (or null if not used).
      * @param exclusive -- Types to be excluded (or null if not used).

@@ -17,6 +17,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParam;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -109,8 +110,89 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
 	protected String getNfsACLsUrl() {
 		return "/file/filesystems/{id}/acl";
 	}
-    
+	
+	
+	/**
+	 * Gets the URL for File Replication Start operation: <tt>/file/filesystems/{id}/protection/continuous-copies/start</tt>
+	 * @return Start File replication URL.
+	 */
+	protected String getReplicationStartUrl(){
+	    return getIdUrl()+PathConstants.FILE_REPLICATION_START_URL;
+	}
+	
+    /**
+     * Gets the URL for File Replication Stop operation: <tt>/file/filesystems/{id}/protection/continuous-copies/stop</tt>
+     * @return Start File replication URL.
+     */
+    protected String getReplicationStopUrl(){
+        return getIdUrl()+PathConstants.FILE_REPLICATION_STOP_URL;
+    }
+	
+    /**
+     * Gets the URL for File Replication Pause operation: <tt>/file/filesystems/{id}/protection/continuous-copies/pause</tt>
+     * @return Start File replication URL.
+     */
+    protected String getReplicationPauseUrl(){
+        return getIdUrl()+PathConstants.FILE_REPLICATION_PAUSE_URL;
+    }
 
+    /**
+     * Gets the URL for File Replication Resume operation: <tt>/file/filesystems/{id}/protection/continuous-copies/resume</tt>
+     * @return Start File replication URL.
+     */
+    protected String getReplicationResumeUrl(){
+        return getIdUrl()+PathConstants.FILE_REPLICATION_RESUME_URL;
+    }
+
+    /**
+     * Gets the URL for File Replication FailOver operation: <tt>/file/filesystems/{id}/protection/continuous-copies/failOver</tt>
+     * @return Start File replication URL.
+     */
+    protected String getReplicationFailOverUrl(){
+        return getIdUrl()+PathConstants.FILE_REPLICATION_FAILOVER_URL;
+    }
+    
+    /**
+     * Gets the URL for File Replication FailBack operation: <tt>/file/filesystems/{id}/protection/continuous-copies/failBack</tt>
+     * @return Start File replication URL.
+     */
+    protected String getReplicationFailBackUrl(){
+        return getIdUrl()+PathConstants.FILE_REPLICATION_FAILBACK_URL;
+    }
+    
+    /**
+     * Gets the URL for File Replication CopyPolicy operation: <tt>/file/filesystems/{id}/protection/continuous-copies/copypolicy</tt>
+     * @return Start File replication URL.
+     */
+    protected String getReplicationCopyPolicyUrl(){
+        return getIdUrl()+PathConstants.FILE_REPLICATION_COPYPOLICY_URL;
+    }
+    
+    /**
+     * Gets the URL for File Replication Deactivate operation: <tt>/file/filesystems/{id}/protection/continuous-copies/deactivate</tt>
+     * @return Start File replication URL.
+     */
+    protected String getReplicationDeactivateUrl(){
+        return getIdUrl()+PathConstants.FILE_REPLICATION_DEACTIVATE_URL;
+    }
+    
+    /**
+     * Gets the URL for File Replication continous-copies operation: <tt>/file/filesystems/{id}/protection/continuous-copies</tt>
+     * @return Start File replication URL.
+     */
+    protected String getReplicationContinousCopiesUrl(){
+        return getIdUrl()+PathConstants.FILE_REPLICATION_URL;
+    }
+    
+    /**
+     * Gets the URL for File Replication details : <tt>/file/filesystems/{id}/protection/continuous-copies/{mid}</tt>
+     * @return Start File replication URL.
+     */
+    protected String getReplicationDetailsUrl(){
+        return getIdUrl()+PathConstants.FILE_REPLICATION_INFO_URL;
+    }
+
+    
     @Override
     protected List<FileShareRestRep> getBulkResources(BulkIdParam input) {
         FileShareBulkRep response = client.post(FileShareBulkRep.class, input, getBulkUrl());
@@ -504,5 +586,24 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> deleteShareACL(URI id, String shareName) {
         return deleteTask(getShareACLsUrl(), id, shareName);
+    }
+    
+    
+    
+    /**
+     * Starts replication operation on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/start</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     *            
+     * @return a task for monitoring the progress of the operation.     * 
+     */
+    
+    public Task<FileShareRestRep> startReplication(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getReplicationStartUrl());
+        URI targetUri = builder.build(id);
+        return postTaskURI(param, targetUri);
     }
 }

@@ -6,7 +6,6 @@ package controllers.arrays;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static controllers.Common.flashException;
-import static util.BourneUtil.getViprClient;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -30,8 +29,6 @@ import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
-import com.emc.storageos.model.systems.StorageSystemRestRep;
-import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.exceptions.ViPRException;
 
 import controllers.Common;
@@ -63,15 +60,7 @@ public class MobilityGroups extends ViprResourceController {
 
     public static void create() {
         renderArgs.put("migrationTypes", StringOption.options(MIGRATION_TYPE));
-
-        List<StorageSystemRestRep> sourceStorageSystems = getViprClient().storageSystems().getAll();
-        renderArgs.put("sourceStorageSystems", sourceStorageSystems);
-
         renderArgs.put("migrationGroupBys", StringOption.options(GROUP_BY, false));
-
-        List<BlockVirtualPoolRestRep> sourceVirtualPools = getViprClient().blockVpools().getAll();
-        renderArgs.put("sourceVirtualPools", sourceVirtualPools);
-
         render();
     }
 

@@ -709,6 +709,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         // set internal object flag on any backend volumes
         for (BlockObject o : getObjectsToBeCreatedMap().values()) {
             if (getBackendVolumeGuids().contains(o.getNativeGuid())) {
+                o.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
                 _logger.info("setting INTERNAL_OBJECT flag on " + o.getLabel());
                 o.addInternalFlags(Flag.INTERNAL_OBJECT);
             }

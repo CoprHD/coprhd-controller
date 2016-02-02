@@ -106,6 +106,12 @@ public class VolumeGroupService extends TaskResourceService {
     private static final String MIGRATION_GROUP_BY = "migration_group_by";
     private static final String MIGRATION_TYPE = "migration_type";
     private static final String EVENT_SERVICE_TYPE = "application";
+    private static final String ADD_CLUSTERS = "add_clusters";
+    private static final String REMOVE_CLUSTERS = "remove_clusters";
+    private static final String ADD_HOSTS = "add_hosts";
+    private static final String REMOVE_HOSTS = "remove_hosts";
+    private static final String ADD_VOLUMES = "add_volumes";
+    private static final String REMOVE_VOLUMES = "remove_volumes";
     private static final Set<String> ALLOWED_SYSTEM_TYPES = new HashSet<String>(Arrays.asList(
             DiscoveredDataObject.Type.vnxblock.name(),
             DiscoveredDataObject.Type.vplex.name(),
@@ -1262,14 +1268,14 @@ public class VolumeGroupService extends TaskResourceService {
          */
         @Override
         public void validateUpdateVolumesInVolumeGroup(DbClient dbClient, VolumeGroupUpdateParam param, VolumeGroup volumeGroup) {
-            validateParameters(Cluster.class, param.getAddClustersList(), "add_clusters");
-            validateParameters(Cluster.class, param.getRemoveClustersList(), "add_clusters");
+            validateParameters(Cluster.class, param.getAddClustersList(), ADD_CLUSTERS);
+            validateParameters(Cluster.class, param.getRemoveClustersList(), REMOVE_CLUSTERS);
 
-            validateParameters(Host.class, param.getAddClustersList(), "add_hosts");
-            validateParameters(Host.class, param.getRemoveClustersList(), "add_hosts");
+            validateParameters(Host.class, param.getAddHostsList(), ADD_HOSTS);
+            validateParameters(Host.class, param.getRemoveHostsList(), REMOVE_HOSTS);
 
-            validateParameters(Volume.class, param.getAddVolumesList().getVolumes(), "add_volumes");
-            validateParameters(Volume.class, param.getRemoveVolumesList().getVolumes(), "add_volumes");
+            validateParameters(Volume.class, param.getAddVolumesList().getVolumes(), ADD_VOLUMES);
+            validateParameters(Volume.class, param.getRemoveVolumesList().getVolumes(), REMOVE_VOLUMES);
         }
 
         private void validateParameters(Class<? extends DataObject> clazz, List<URI> ids, String field) {

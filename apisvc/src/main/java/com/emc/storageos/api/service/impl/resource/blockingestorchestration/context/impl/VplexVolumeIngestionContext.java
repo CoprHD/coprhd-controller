@@ -338,6 +338,8 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         UnManagedVolume associatedVolume = getCurrentUnmanagedVolume();
         VirtualPool vpoolForThisVolume = _parentRequestContext.getVpool();
 
+        _logger.info("trying to find backend cluster id in associated volume " + associatedVolume.forDisplay());
+
         // get the backend volume cluster id
         String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
@@ -374,6 +376,8 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
 
         UnManagedVolume associatedVolume = getCurrentUnmanagedVolume();
         VirtualArray varrayForThisVolume = _parentRequestContext.getVarray();
+
+        _logger.info("trying to find backend cluster id in associated volume " + associatedVolume.forDisplay());
 
         // get the backend volume cluster id
         String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(

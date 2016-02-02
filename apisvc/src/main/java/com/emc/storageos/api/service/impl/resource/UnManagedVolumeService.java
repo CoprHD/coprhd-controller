@@ -344,11 +344,9 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
 
                 if (ingestedSuccessfully) {
-                    volumeContext.commit();
                     _dbClient.ready(UnManagedVolume.class,
                             unManagedVolume.getId(), taskId, taskMessage);
                 } else {
-                    volumeContext.rollback();
                     _dbClient.error(UnManagedVolume.class, unManagedVolume.getId(), taskId,
                             IngestionException.exceptions.unmanagedVolumeIsNotVisible(unManagedVolume.getLabel(), taskMessage));
                 }
@@ -358,11 +356,14 @@ public class UnManagedVolumeService extends TaskResourceService {
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
                 }
+
+                volumeContext.commit();
+
             }
 
             _dbClient.createObject(requestContext.getObjectsToBeCreatedMap().values());
             _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
-            
+
             // persist any consistency group changes
             if (!consistencyGroupObjectsToUpdate.isEmpty()) {
             	_dbClient.updateObject(consistencyGroupObjectsToUpdate.values());            	

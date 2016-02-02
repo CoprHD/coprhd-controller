@@ -594,9 +594,22 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         // nested below (for example, for vplex backend or recover point ingestion)
         if (blockObject == null) {
             _logger.info("a block object for native GUID {} wasn't found at the top, digging deeper...", nativeGuid);
+            VolumeIngestionContext currentVolumeContext = getVolumeContext();
+            if (currentVolumeContext instanceof IngestionRequestContext) {
+                _logger.info("looking for block object with native GUID {} in the current volume context...", nativeGuid);
+                blockObject = ((IngestionRequestContext) currentVolumeContext).getObjectsToBeCreatedMap().get(nativeGuid);
+                if (blockObject != null) {
+                    _logger.info("\tfound block object: " + blockObject.forDisplay());
+                    return blockObject;
+                }
+            }
+        }
+
+        if (blockObject == null){
+            _logger.info("a block object for native GUID {} still not found, checking all volume contexts...", nativeGuid);
             for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
                 if (volumeContext instanceof IngestionRequestContext) {
-                    _logger.info("the volume context for {} is also contains created objects, searching...", 
+                    _logger.info("the volume context for {} also contains created objects, searching...", 
                             volumeContext.getUnmanagedVolume().getNativeGuid());
                     blockObject = ((IngestionRequestContext) volumeContext).getObjectsToBeCreatedMap().get(nativeGuid);
                     if (blockObject != null) {
@@ -607,6 +620,9 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             }
         }
 
+        if (blockObject == null) {
+            _logger.info("could not find a block object for native GUID {} anywhere.", nativeGuid);
+        }
         return blockObject;
     }
 }

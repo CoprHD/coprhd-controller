@@ -96,6 +96,9 @@ public class CoordinatorClientExt {
     private static final int ZK_LEADER_ELECTION_PORT = 2888;
     private static final int DUAL_ZK_LEADER_ELECTION_PORT = 2898;
     
+    private static final int CHECK_ACTIVE_SITE_STABLE_CONNECT_TIMEOUT = 10000;
+    private static final int CHECK_ACTIVE_SITE_STABLE_READ_TIMEOUT = 5000;
+    
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
     private ServiceImpl _svc;
@@ -1862,7 +1865,8 @@ public class CoordinatorClientExt {
         int port = _svc.getEndpoint().getPort();
         String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, vip, port);
         try {
-            SysClient client = SysClientFactory.getSysClient(URI.create(baseNodeURL));
+            SysClient client = SysClientFactory.getSysClient(URI.create(baseNodeURL), CHECK_ACTIVE_SITE_STABLE_READ_TIMEOUT,
+                    CHECK_ACTIVE_SITE_STABLE_CONNECT_TIMEOUT);
             ClusterInfo clusterInfo = client.get(URI.create(URI_INTERNAL_GET_CLUSTER_INFO), ClusterInfo.class, null);
             _log.info("Get cluster info from active site {}", clusterInfo.getCurrentState());
             if (ClusterState.STABLE.equals(ClusterState.valueOf(clusterInfo.getCurrentState()))) {

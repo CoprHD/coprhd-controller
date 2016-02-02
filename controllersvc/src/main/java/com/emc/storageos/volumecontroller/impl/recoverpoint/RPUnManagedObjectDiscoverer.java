@@ -16,6 +16,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject.Flag;
@@ -366,8 +367,17 @@ public class RPUnManagedObjectDiscoverer {
                                 rpInternalSiteName);
                     }
                     
+                    // Check to see if the copy role already has a value, if so append the new role to the existing.
+                    // Example: MetroPoint Source can have both ACTIVE_PRODUCTION and STANDBY_PRODUCTION roles.
+                    String rpCopyRoleValue = PropertySetterUtil.extractValueFromStringSet(
+                            SupportedVolumeInformation.RP_COPY_ROLE.toString(), unManagedVolume.getVolumeInformation());
+                    if (rpCopyRoleValue == null) {
+                        rpCopyRoleValue = rpCopyNameToRoleMap.get(volume.getRpCopyName());
+                    } else {
+                        rpCopyRoleValue = rpCopyRoleValue + ", " + rpCopyNameToRoleMap.get(volume.getRpCopyName());
+                    }
                     StringSet rpCopyRole = new StringSet();
-                    rpCopyRole.add(rpCopyNameToRoleMap.get(volume.getRpCopyName()));
+                    rpCopyRole.add(rpCopyRoleValue);
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_ROLE.toString(),
                             rpCopyRole);
                                                                                                     
@@ -602,7 +612,7 @@ public class RPUnManagedObjectDiscoverer {
                                 && !VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
                         // Since this is a Source volume with the presence of RP_STANDBY_INTERNAL_SITENAME 
                         // it indicates that this volume is MetroPoint, if we get here, this is vpool
-                        // must be filtered out.
+                        // must be filtered out since it's not MP.
                         remove = true;
                     }
                 }

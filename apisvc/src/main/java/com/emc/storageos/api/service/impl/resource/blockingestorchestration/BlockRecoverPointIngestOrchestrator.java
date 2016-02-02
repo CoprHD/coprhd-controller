@@ -299,8 +299,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         volume.setAccessState(Volume.VolumeAccessState.READWRITE.toString());
         volume.setLinkStatus(Volume.LinkStatus.IN_SYNC.toString());
                 
-        // For RP+VPLEX Distributed volumes and MetroPoint volumes, we want to set the
-        // internal site names on the backing volumes. This helps when identifying
+        // For RP+VPLEX Distributed and MetroPoint volumes, we want to set the
+        // internal site and copy names on the backing volumes. This helps when identifying
         // which Export Groups the volume belongs to on the VPLEX.
         //
         // For MetroPoint, the same VPLEX Distributed/Metro volume will be exported to 
@@ -317,8 +317,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             String rpStandbyCopyName = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.RP_STANDBY_COPY_NAME.toString(), unManagedVolumeInformation);
             
-            // Match the main volume varray to one of it's backing volume varrays. Matching should indicate the volume
-            // is the VPLEX Source side. Non-matching varrays should be the VPLEX HA side.
+            // Match the main VPLEX virtual volume varray to one of it's backing volume varrays. 
+            // Matching should indicate the volume is the VPLEX Source side. 
+            // Non-matching varrays will be the VPLEX HA side.
             for (String associatedVolId : volume.getAssociatedVolumes()) {
                 Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                 if (associatedVolume != null && !associatedVolume.getInactive()) {

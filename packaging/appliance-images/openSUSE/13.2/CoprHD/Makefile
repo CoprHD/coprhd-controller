@@ -28,6 +28,10 @@ STORAGEOS_VERSION := 2.5.0.0
 STORAGEOS_STABLE := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-master/lastStableBuild/buildNumber)
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
 
+ifeq ($(SOURCE_RPM),jenkins)
+    JOB := $(STORAGEOS_STABLE)
+endif
+
 .DEFAULT: all
 .PHONY: downdloadISO downdloadRPM downdloadTGZ createREPO appliance clean destroy
 all: appliance

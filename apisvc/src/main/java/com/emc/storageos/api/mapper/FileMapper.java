@@ -5,8 +5,10 @@
 package com.emc.storageos.api.mapper;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toLink;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,14 +18,18 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
 import com.emc.storageos.model.adapters.StringSetMapAdapter;
 import com.emc.storageos.model.file.FileObjectRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
+import com.emc.storageos.model.file.FileShareRestRep.FileProtectionRestRep;
 import com.emc.storageos.model.file.FileSnapshotRestRep;
 import com.emc.storageos.model.file.QuotaDirectoryRestRep;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
@@ -59,6 +65,29 @@ public class FileMapper {
         to.setStoragePort(toRelatedResource(ResourceTypeEnum.STORAGE_PORT, from.getStoragePort(), from.getStorageDevice()));
         to.setVirtualNAS(toRelatedResource(ResourceTypeEnum.VIRTUAL_NAS, from.getVirtualNAS()));
         to.setThinlyProvisioned(from.getThinlyProvisioned());
+        // Set file replication attributes!!
+        FileProtectionRestRep replication = new FileProtectionRestRep();
+        if (from.getPersonality() != null) {
+            replication.setPersonality(from.getPersonality());
+            if (PersonalityTypes.SOURCE.name().equalsIgnoreCase(from.getPersonality())) {
+                if ((from.getMirrorfsTargets() != null) && (!from.getMirrorfsTargets().isEmpty())) {
+                    List<VirtualArrayRelatedResourceRep> mirrorTargets = new ArrayList<VirtualArrayRelatedResourceRep>();
+                    for (String target : from.getMirrorfsTargets()) {
+                        mirrorTargets.add(toTargetFileSystemRelatedResource(ResourceTypeEnum.FILE, URI.create(target), null));
+                    }
+                    replication.setTargetFileSystems(mirrorTargets);
+                }
+            } else if (PersonalityTypes.TARGET.name().equalsIgnoreCase(from.getPersonality())) {
+                replication.setParentFileSystem(toRelatedResource(ResourceTypeEnum.FILE, from.getParentFileShare().getURI()));
+            }
+        }
+        if (from.getMirrorStatus() != null) {
+            replication.setMirrorStatus(from.getMirrorStatus());
+        }
+        if (from.getAccessState() != null) {
+            replication.setAccessState(from.getAccessState());
+        }
+        to.setProtection(replication);
         return to;
     }
 
@@ -130,5 +159,17 @@ public class FileMapper {
         to.setNotificationLimit(from.getNotificationLimit());
         to.setSoftLimitExceeded(from.getSoftLimitExceeded());
         return to;
+    }
+
+    private static VirtualArrayRelatedResourceRep toTargetFileSystemRelatedResource(
+            ResourceTypeEnum type, URI id, URI varray) {
+        VirtualArrayRelatedResourceRep resourceRep = new VirtualArrayRelatedResourceRep();
+        if (NullColumnValueGetter.isNullURI(id)) {
+            return null;
+        }
+        resourceRep.setId(id);
+        resourceRep.setLink(toLink(type, id));
+        resourceRep.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, varray));
+        return resourceRep;
     }
 }

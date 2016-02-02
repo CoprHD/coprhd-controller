@@ -285,8 +285,10 @@ public class FileService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param param File system parameters
-     * @param id the URN of a ViPR Project
+     * @param param
+     *            File system parameters
+     * @param id
+     *            the URN of a ViPR Project
      * @brief Create file system
      * @return Task resource representation
      * @throws InternalException
@@ -484,7 +486,8 @@ public class FileService extends TaskResourceService {
     /**
      * Get info for file system
      * 
-     * @param id the URN of a ViPR File system
+     * @param id
+     *            the URN of a ViPR File system
      * @brief Show file system
      * @return File system details
      */
@@ -565,7 +568,8 @@ public class FileService extends TaskResourceService {
     /**
      * @Deprecated use @Path("/{id}/export") instead.
      *             Get list of file system exports
-     * @param id the URN of a ViPR File system
+     * @param id
+     *            the URN of a ViPR File system
      * @brief List file system exports.
      *        <p>
      *        Use /file/filesystems/{id}/export instead
@@ -706,8 +710,10 @@ public class FileService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param param File system export parameters
-     * @param id the URN of a ViPR File system
+     * @param param
+     *            File system export parameters
+     * @param id
+     *            the URN of a ViPR File system
      * @brief Create file export
      * @return Task resource representation
      * @throws InternalException
@@ -807,15 +813,22 @@ public class FileService extends TaskResourceService {
     /**
      * @Deprecated use @Path("/{id}/export") instead
      * 
-     *             Existing file system exports may have their list of endpoints updated. The permission, security, or root user
-     *             mapping of an existing export may not be changed. In order to change one of these attributes, the export must be
+     *             Existing file system exports may have their list of endpoints updated. The permission, security, or
+     *             root user
+     *             mapping of an existing export may not be changed. In order to change one of these attributes, the
+     *             export must be
      *             first deleted and then created with the new value.
      * 
-     * @param id the URN of a ViPR Project
-     * @param protocol Protocol valid values - NFS,NFSv4,CIFS
-     * @param securityType Security type valid values - sys,krb5,krb5i,krb5p
-     * @param permissions Permissions valid values - ro,rw,root
-     * @param rootUserMapping Root user mapping
+     * @param id
+     *            the URN of a ViPR Project
+     * @param protocol
+     *            Protocol valid values - NFS,NFSv4,CIFS
+     * @param securityType
+     *            Security type valid values - sys,krb5,krb5i,krb5p
+     * @param permissions
+     *            Permissions valid values - ro,rw,root
+     * @param rootUserMapping
+     *            Root user mapping
      * @brief Update file system export.
      *        <p>
      *        Use /file/filesystems/{id}/export instead
@@ -899,11 +912,16 @@ public class FileService extends TaskResourceService {
      * 
      *             <p>
      *             NOTE: This is an asynchronous operation.
-     * @param id the URN of a ViPR Project
-     * @param protocol Protocol valid values - NFS,NFSv4,CIFS
-     * @param securityType Security type valid values - sys,krb5,krb5i,krb5p
-     * @param permissions Permissions valid values - ro,rw,root
-     * @param rootUserMapping Root user mapping
+     * @param id
+     *            the URN of a ViPR Project
+     * @param protocol
+     *            Protocol valid values - NFS,NFSv4,CIFS
+     * @param securityType
+     *            Security type valid values - sys,krb5,krb5i,krb5p
+     * @param permissions
+     *            Permissions valid values - ro,rw,root
+     * @param rootUserMapping
+     *            Root user mapping
      * @brief Delete file system export.
      *        <p>
      *        Use /file/filesystems/{id}/export instead
@@ -1012,7 +1030,8 @@ public class FileService extends TaskResourceService {
     /**
      * Get list of SMB shares for the specified file system.
      * 
-     * @param id the URN of a ViPR File system
+     * @param id
+     *            the URN of a ViPR File system
      * @brief List file system SMB shares
      * @return List of file system shares.
      */
@@ -1064,8 +1083,10 @@ public class FileService extends TaskResourceService {
     /**
      * Get the SMB share for the specified file system.
      * 
-     * @param id the URN of a ViPR File system
-     * @param shareName file system share name
+     * @param id
+     *            the URN of a ViPR File system
+     * @param shareName
+     *            file system share name
      * @brief List file system SMB shares
      * @return List of file system shares.
      */
@@ -1119,8 +1140,10 @@ public class FileService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param param File system expansion parameters
-     * @param id the URN of a ViPR File system
+     * @param param
+     *            File system expansion parameters
+     * @param id
+     *            the URN of a ViPR File system
      * @brief Expand file system
      * @return Task resource representation
      * @throws InternalException
@@ -1178,8 +1201,10 @@ public class FileService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param id the URN of a ViPR File system
-     * @param param File system share parameters
+     * @param id
+     *            the URN of a ViPR File system
+     * @param param
+     *            File system share parameters
      * @brief Create file system SMB share
      * @return Task resource representation
      * @throws InternalException
@@ -1209,7 +1234,8 @@ public class FileService extends TaskResourceService {
                     + StorageProtocol.File.CIFS.name() + " protocol");
         }
         // locate storage port for sharing file System
-        // Select IP port of the storage array, owning the file system, which belongs to the same varray as the file system.
+        // Select IP port of the storage array, owning the file system, which belongs to the same varray as the file
+        // system.
         StoragePort sport = _fileScheduler.placeFileShareExport(fs, StorageProtocol.File.CIFS.name(), null);
 
         // Check if maxUsers is "unlimited" and set it to -1 in this case.
@@ -1273,8 +1299,10 @@ public class FileService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param id the URN of a ViPR File system
-     * @param shareName file system share name
+     * @param id
+     *            the URN of a ViPR File system
+     * @param shareName
+     *            file system share name
      * @brief Delete file system SMB share
      * @return Task resource representation
      * @throws InternalException
@@ -1321,7 +1349,8 @@ public class FileService extends TaskResourceService {
     /**
      * Get file system snapshots
      * 
-     * @param id the URN of a ViPR File system
+     * @param id
+     *            the URN of a ViPR File system
      * @brief List file system snapshots
      * @return List of snapshots
      */
@@ -1345,8 +1374,10 @@ public class FileService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param id the URN of a ViPR File system
-     * @param param file system snapshot parameters
+     * @param id
+     *            the URN of a ViPR File system
+     * @param param
+     *            file system snapshot parameters
      * @brief Create file system snapshot
      * @return Task resource representation
      * @throws InternalException
@@ -1459,8 +1490,10 @@ public class FileService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param id the URN of a ViPR File system
-     * @param param File system delete param for optional force delete
+     * @param id
+     *            the URN of a ViPR File system
+     * @param param
+     *            File system delete param for optional force delete
      * @brief Delete file system
      * @return Task resource representation
      * @throws InternalException
@@ -1518,11 +1551,13 @@ public class FileService extends TaskResourceService {
     /**
      * Retrieve resource representations based on input ids.
      * 
-     * @param param POST data containing the id list.
+     * @param param
+     *            POST data containing the id list.
      * @brief List data of file share resources
      * @return list of representations.
      * 
-     * @throws DatabaseException When an error occurs querying the database.
+     * @throws DatabaseException
+     *             When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
@@ -1536,8 +1571,10 @@ public class FileService extends TaskResourceService {
     /**
      * Validates the clients are registered IP Interfaces if they exist in the database.
      * 
-     * @param clients list of clients
-     * @param dbClient DbClient
+     * @param clients
+     *            list of clients
+     * @param dbClient
+     *            DbClient
      */
     public static void validateIpInterfacesRegistered(List<String> clients, DbClient dbClient) {
         if (clients != null) {
@@ -1695,8 +1732,10 @@ public class FileService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param id the URN of a ViPR File system
-     * @param param File system Quota directory parameters
+     * @param id
+     *            the URN of a ViPR File system
+     * @param param
+     *            File system Quota directory parameters
      * @brief Create file system Quota directory
      * @return Task resource representation
      * @throws InternalException
@@ -1737,7 +1776,7 @@ public class FileService extends TaskResourceService {
         // Create the QuotaDirectory object for the DB
         QuotaDirectory quotaDirectory = new QuotaDirectory();
         quotaDirectory.setId(URIUtil.createId(QuotaDirectory.class));
-        quotaDirectory.setParent(new NamedURI(id, origQtreeName));  // ICICIC - Curious !
+        quotaDirectory.setParent(new NamedURI(id, origQtreeName)); // ICICIC - Curious !
         quotaDirectory.setLabel(origQtreeName);
         quotaDirectory.setOpStatus(new OpStatusMap());
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
@@ -1766,8 +1805,9 @@ public class FileService extends TaskResourceService {
         }
 
         if (param.getSize() != null) {
-            Long quotaSize = SizeUtil.translateSize(param.getSize());
-            ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), " Bytes", "size");
+            Long quotaSize = SizeUtil.translateSize(param.getSize()); // converts the input string in format "<value>GB"
+                                                                      // to bytes
+            ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), SizeUtil.SIZE_B, "size");
             quotaDirectory.setSize(quotaSize);
         } else {
             quotaDirectory.setSize((long) 0);
@@ -1812,7 +1852,8 @@ public class FileService extends TaskResourceService {
     /**
      * Get list of quota directories for the specified file system.
      * 
-     * @param id the URN of a ViPR File system
+     * @param id
+     *            the URN of a ViPR File system
      * @brief List file system quota directories
      * @return List of file system quota directories.
      */
@@ -1861,8 +1902,10 @@ public class FileService extends TaskResourceService {
      * 
      * Existing file system exports may have their list of export rules updated.
      * 
-     * @param id the URN of a ViPR fileSystem
-     * @param subDir sub-directory within a filesystem
+     * @param id
+     *            the URN of a ViPR fileSystem
+     * @param subDir
+     *            sub-directory within a filesystem
      * @brief Update file system export
      * @return Task resource representation
      * @throws InternalException
@@ -1938,9 +1981,12 @@ public class FileService extends TaskResourceService {
      * 
      * Existing file system exports may have their list of export rules deleted.
      * 
-     * @param id the URN of a ViPR fileSystem
-     * @param subDir sub-directory within a filesystem
-     * @param allDirs All Dirs within a filesystem
+     * @param id
+     *            the URN of a ViPR fileSystem
+     * @param subDir
+     *            sub-directory within a filesystem
+     * @param allDirs
+     *            All Dirs within a filesystem
      * @return Task resource representation
      * @throws InternalException
      */
@@ -2071,9 +2117,12 @@ public class FileService extends TaskResourceService {
     /**
      * API to update ACLs of an existing share
      * 
-     * @param id the file system URI
-     * @param shareName name of the share
-     * @param param request payload object of type <code>com.emc.storageos.model.file.CifsShareACLUpdateParams</code>
+     * @param id
+     *            the file system URI
+     * @param shareName
+     *            name of the share
+     * @param param
+     *            request payload object of type <code>com.emc.storageos.model.file.CifsShareACLUpdateParams</code>
      * @return TaskResponse
      * @throws InternalException
      */
@@ -2212,9 +2261,12 @@ public class FileService extends TaskResourceService {
     /**
      * GET all ACLs for a fileSystem
      * 
-     * @param id the URN of a ViPR fileSystem
-     * @param allDirs all directory within a fileSystem
-     * @param subDir sub-directory within a fileSystem
+     * @param id
+     *            the URN of a ViPR fileSystem
+     * @param allDirs
+     *            all directory within a fileSystem
+     * @param subDir
+     *            sub-directory within a fileSystem
      * @return list of ACLs for file system.
      * @throws InternalException
      */
@@ -2257,8 +2309,10 @@ public class FileService extends TaskResourceService {
      * 
      * Update existing file system ACL
      * 
-     * @param id the URN of a ViPR fileSystem
-     * @param param FileNfsACLUpdateParams
+     * @param id
+     *            the URN of a ViPR fileSystem
+     * @param param
+     *            FileNfsACLUpdateParams
      * @brief Update file system ACL
      * @return Task resource representation
      * @throws InternalException
@@ -2324,8 +2378,10 @@ public class FileService extends TaskResourceService {
     /**
      * Delete all the existing ACLs of a fileSystem or subDirectory
      * 
-     * @param id the URN of a ViPR fileSystem
-     * @param subDir sub-directory within a fileSystem
+     * @param id
+     *            the URN of a ViPR fileSystem
+     * @param subDir
+     *            sub-directory within a fileSystem
      * @return Task resource representation
      */
     @DELETE

@@ -57,7 +57,7 @@ public class QuotaHelper {
         return instQuotaHelpers;
     }
     
-    protected CinderHelpers getCinderHelper() {
+    private CinderHelpers getCinderHelper() {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
     }
     

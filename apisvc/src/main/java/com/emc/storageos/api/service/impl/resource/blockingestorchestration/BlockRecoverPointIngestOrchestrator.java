@@ -275,8 +275,11 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         String rpInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);
 
-        volume.setRpCopyName(rpCopyName); // This comes from UNMANAGED_CG discovery of Protection System
-        volume.setRSetName(rpRSetName); // This comes from UNMANAGED_CG discovery of Protection System
+        // Only set RSet name for Source and Targets. Journals belong to the RP CG and are not part of any particular RSet
+        if (!Volume.PersonalityTypes.METADATA.toString().equalsIgnoreCase(type)) {
+            volume.setRSetName(rpRSetName); // This comes from UNMANAGED_CG discovery of Protection System
+        }
+        volume.setRpCopyName(rpCopyName); // This comes from UNMANAGED_CG discovery of Protection System                
         volume.setInternalSiteName(rpInternalSiteName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setProtectionController(URI.create(rpProtectionSystem)); // This comes from UNMANAGED_CG discovery of Protection System
     }
@@ -295,7 +298,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         volume.setPersonality(PersonalityTypes.SOURCE.toString());
         volume.setAccessState(Volume.VolumeAccessState.READWRITE.toString());
         volume.setLinkStatus(Volume.LinkStatus.IN_SYNC.toString());
-        
+                
         // For RP+VPLEX Distributed volumes and MetroPoint volumes, we want to set the
         // internal site names on the backing volumes. This helps when identifying
         // which Export Groups the volume belongs to on the VPLEX.
@@ -304,11 +307,16 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // two VPLEX Export Groups (aka Storage Views). One for each RPA Cluster in the
         // MetroPoint configuration.
         if (RPHelper.isVPlexDistributedVolume(volume)) {
-            // Get the internal site names
+            // Get the internal site and copy names
             String rpInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
-                    SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);            
+                    SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);
+            String rpCopyName = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.RP_COPY_NAME.toString(), unManagedVolumeInformation);
             String rpStandbyInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.RP_STANDBY_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);
+            String rpStandbyCopyName = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.RP_STANDBY_COPY_NAME.toString(), unManagedVolumeInformation);
+            
             // Match the main volume varray to one of it's backing volume varrays. Matching should indicate the volume
             // is the VPLEX Source side. Non-matching varrays should be the VPLEX HA side.
             for (String associatedVolId : volume.getAssociatedVolumes()) {
@@ -316,10 +324,12 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 if (associatedVolume != null && !associatedVolume.getInactive()) {
                     if (associatedVolume.getVirtualArray().equals(volume.getVirtualArray())) {
                         associatedVolume.setInternalSiteName(rpInternalSiteName);
+                        associatedVolume.setRpCopyName(rpCopyName);
                     } else {
                         // If this is a RP+VPLEX Distributed volume (not MP) there is the potential that 
-                        // rpStandbyInternalSiteName could be null, which is fine.
+                        // rpStandbyInternalSiteName and rpStandbyCopyName could be null, which is fine.
                         associatedVolume.setInternalSiteName(rpStandbyInternalSiteName);
+                        associatedVolume.setRpCopyName(rpStandbyCopyName);
                     }
                     _dbClient.updateObject(associatedVolume);
                 }

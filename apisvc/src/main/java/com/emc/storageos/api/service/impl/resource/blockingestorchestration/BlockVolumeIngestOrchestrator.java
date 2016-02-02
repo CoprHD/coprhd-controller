@@ -18,9 +18,11 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -30,6 +32,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 
@@ -79,7 +82,8 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
 
             volume = createVolume(requestContext.getStorageSystem(), volumeNativeGuid, pool,
                     requestContext.getVarray(), requestContext.getVpool(), unManagedVolume,
-                    requestContext.getProject(), requestContext.getTenant(), autoTierPolicyId);
+                    requestContext.getProject(), requestContext.getTenant(), autoTierPolicyId, requestContext.getCGObjectsToCreateMap(),
+                    requestContext.getUmCGObjectsToUpdate());
         }
 
         if (volume != null) {
@@ -194,5 +198,16 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         } else {
             super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
         }
+    }
+
+    @Override
+    protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj, VirtualPool vPool,
+            URI project, URI tenant, URI virtualArray, List<UnManagedConsistencyGroup> umcgsToUpdate, DbClient dbClient) {
+        if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
+            return VolumeIngestionUtil.getBlockObjectConsistencyGroup(unManagedVolume, blockObj, vPool, project, tenant, virtualArray,
+                    umcgsToUpdate,
+                    dbClient);
+}
+        return null;
     }
 }

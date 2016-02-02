@@ -223,6 +223,11 @@ public class DbObjectMapper {
         if (from.getNamespace() != null) {
             to.setNamespace(from.getNamespace());
         }
+        
+        if (from.getNamespaceStorage() != null) {
+            to.setNamespaceStorage(from.getNamespaceStorage());
+        }
+        
         return to;
     }
 

@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
@@ -770,6 +771,16 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
 
         return blockObject;
+    }
+
+    @Override
+    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
+        return _parentRequestContext.getCGObjectsToCreateMap();
+}
+
+    @Override
+    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate() {
+        return _parentRequestContext.getUmCGObjectsToUpdate();
     }
 
 }

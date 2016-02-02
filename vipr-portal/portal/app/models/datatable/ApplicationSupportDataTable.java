@@ -18,7 +18,7 @@ import util.datatable.DataTable;
 public class ApplicationSupportDataTable extends DataTable {
     
     public ApplicationSupportDataTable() {
-        addColumn("title").setRenderFunction("renderLink");
+        addColumn("name").setRenderFunction("renderLink");
         addColumn("description");
         setDefaultSort("name", "asc");
         setRowCallback("createRowLink");

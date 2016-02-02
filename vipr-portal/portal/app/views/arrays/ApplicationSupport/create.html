@@ -1,18 +1,18 @@
 %{
-  titleKey = 'applicationForm.' + (applicationForm?.id ? 'edit' : 'create') + '.title';
-  descriptionKey = "application.create.description"
+  titleKey = 'applicationGroup.' + (applicationGroup?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = "applicationGroup.create.description"
   image = '/public/img/assets/Application.png'
 }%
 
 #{extends 'main.html' /}
 #{set 'title'}&{titleKey}#{/set}
-#{set editMode:applicationForm?.id ? true : false/}
+#{set editMode:applicationGroup?.id ? true : false/}
 #{set 'moreScripts'}
     #{get 'moreScripts'/}
 #{/set}
   
 #{breadcrumb.container}
-  #{breadcrumb.item @list()}&{'application.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @list()}&{'applicationGroup.list.title'}#{/breadcrumb.item}
   #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
@@ -27,21 +27,21 @@ $(document).ready(function() {
 
   #{alerts/}
 
-  #{form @save(), id:'applicationForm',class:'form form-horizontal', autocomplete:"off"}
+  #{form @save(), id:'applicationGroup',class:'form form-horizontal', autocomplete:"off"}
   
-  	#{if applicationForm?.id}
-        #{field 'applicationForm.id'}
+  	#{if applicationGroup?.id}
+        #{field 'applicationGroup.id'}
             <input type="hidden" name="${field.name}" value="${field.value}">
         #{/field}
     #{/if}
     
-    #{if applicationForm?.roles}
-        #{field 'applicationForm.roles'}
+    #{if applicationGroup?.roles}
+        #{field 'applicationGroup.roles'}
            <input type="hidden" name="${field.name}" value="${field.value}">
         #{/field}
     #{/if}
 
-    #{field "applicationForm.name"}
+    #{field "applicationGroup.name"}
       %{
         field.cssClass = fieldCssClass
         field.required = true
@@ -49,7 +49,7 @@ $(document).ready(function() {
       #{Form.inputTextControlGroup field:field/}
     #{/field}
    
-     #{field 'applicationForm.description'}
+     #{field 'applicationGroup.description'}
         %{
           field.cssClass = 'span0'
           field.required = false

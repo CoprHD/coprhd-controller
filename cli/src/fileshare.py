@@ -932,6 +932,9 @@ class Fileshare(object):
             "GET",
             Fileshare.URI_POLICY_LIST.format(fsid),
             None)
+        
+        res = common.json_decode(s)
+        return res['file_policy']
 
     def continous_copies_start(self, filesharename):
         fsname = self.show(filesharename)

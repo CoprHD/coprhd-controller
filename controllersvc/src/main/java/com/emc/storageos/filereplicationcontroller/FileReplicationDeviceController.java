@@ -477,8 +477,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     MirrorFileStopTaskCompleter stopTaskCompleter = new MirrorFileStopTaskCompleter(fileShare.getId(),
                             targetFileShare.getId(), opId);
                     stopTaskCompleter.setFileShares(Arrays.asList(fileShare), Arrays.asList(targetFileShare));
-                    completer.setNotifyWorkflow(false);
-                    getRemoteMirrorDevice(system).doStopMirrorLink(system, targetFileShare, completer);
+                    stopTaskCompleter.setNotifyWorkflow(false);
+                    getRemoteMirrorDevice(system).doStopMirrorLink(system, targetFileShare, stopTaskCompleter);
                 }
             } else {
                 log.error("Invalid operation {}", opType);

@@ -2621,7 +2621,7 @@ public class FileService extends TaskResourceService {
         TaskList taskList = new TaskList();
         Copy copy = param.getCopies().get(0);
         if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name()) ||
-                copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
+                copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.name())) {
             taskResp = performProtectionAction(id, op);
             taskList.getTaskList().add(taskResp);
             return taskList;
@@ -2764,7 +2764,7 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
         // verify the file system tenant is same as policy tenant
         if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
-            throw APIException.badRequests.assoicatedPolicyTenantMismach(filePolicyUri, id);
+            throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
         }
         // Check for VirtualPool support snapshot or not
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
@@ -2842,11 +2842,11 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
         // verify the file system tenant is same as policy tenant
         if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
-            throw APIException.badRequests.assoicatedPolicyTenantMismach(filePolicyUri, id);
+            throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
         }
         // verify the schedule policy is associated with file system or not.
         if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
-            throw APIException.badRequests.cannotFindAssoicatedPolicy(filePolicyUri);
+            throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());

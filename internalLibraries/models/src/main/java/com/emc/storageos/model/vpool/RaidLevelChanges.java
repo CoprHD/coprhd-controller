@@ -26,7 +26,6 @@ public class RaidLevelChanges {
     /**
      * RAID levels to be added to the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "add")
     public RaidLevelAssignments getAdd() {
@@ -40,7 +39,6 @@ public class RaidLevelChanges {
     /**
      * RAID levels to be removed from the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "remove")
     public RaidLevelAssignments getRemove() {

@@ -18,7 +18,6 @@ public class StoragePoolBulkRep extends BulkRestRep {
     /**
      * List of storage pools
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_pool")
     public List<StoragePoolRestRep> getStoragePools() {

@@ -74,7 +74,7 @@ ifneq ($(strip $(jdk.home.1.7)),)
                  JAVA_HOME = $(jdk.home.1.7)
 endif
 ifeq  ($(strip $(JAVA_HOME)),)
-                 JAVA_HOME = /usr/lib64/jvm/java-1.7.0-oracle
+                 JAVA_HOME = /usr/lib64/jvm/java-1.8.0-oracle
 endif
 
                     BINDIR = $(BUILD_BASE)/bin

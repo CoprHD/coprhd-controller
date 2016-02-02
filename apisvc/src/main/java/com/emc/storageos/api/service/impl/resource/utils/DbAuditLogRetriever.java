@@ -8,6 +8,7 @@ package com.emc.storageos.api.service.impl.resource.utils;
 import java.io.Writer;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.security.audit.AuditLogRequest;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +30,8 @@ public class DbAuditLogRetriever extends AbstractDbRetriever implements AuditLog
     private static final Logger log = LoggerFactory.getLogger(DbAuditLogRetriever.class);
 
     @Override
-    public void getBulkAuditLogs(DateTime time, TimeSeriesMetadata.TimeBucket bucket,
-            MediaType type, String lang, Writer writer) throws MarshallingExcetion {
+    public void getBulkAuditLogs(AuditLogRequest auditLogRequest,
+                                 MediaType type, Writer writer) throws MarshallingExcetion {
 
         if (dbClient == null) {
             throw APIException.internalServerErrors.auditLogNoDb();
@@ -44,21 +45,34 @@ public class DbAuditLogRetriever extends AbstractDbRetriever implements AuditLog
         } else if (type.equals(MediaType.APPLICATION_JSON_TYPE)) {
             marshaller = new JSONAuditLogMarshaller();
             log.debug("Parser type: {}", type.toString());
+        } else if (type.equals(MediaType.TEXT_PLAIN_TYPE)) {
+            marshaller = new TextAuditLogMarshaller();
+            log.debug("parser type: {}", type.toString());
         } else {
             log.warn("unsupported type: {}, use XML", type.toString());
             marshaller = new XMLAuditLogMarshaller();
         }
-        marshaller.setLang(lang);
+        marshaller.setLang(auditLogRequest.getLanguage());
+
+        DateTime start = auditLogRequest.getStartTime();
+        DateTime end = auditLogRequest.getEndTime();
+
+        TimeSeriesMetadata.TimeBucket bucket = TimeSeriesMetadata.TimeBucket.HOUR;
+        if (start.plusHours(1).isAfter(end.toInstant())){
+            bucket = TimeSeriesMetadata.TimeBucket.MINUTE;
+        }
 
         AuditLogQueryResult result = new AuditLogQueryResult(marshaller,
-                writer);
+                    writer,auditLogRequest);
 
         marshaller.header(writer);
 
-        log.info("Query time bucket {}", time.toString());
-
-        dbClient.queryTimeSeries(AuditLogTimeSeries.class, time, bucket, result,
-                getThreadPool());
+        log.info("Query time bucket  {} to {}", start,end);
+        for ( ; !start.isAfter(end.toInstant());start = start.plusHours(1)){
+            dbClient.queryTimeSeries(AuditLogTimeSeries.class, start, bucket, result,
+                    getThreadPool());
+        }
+        result.outputCount();
 
         marshaller.tailer(writer);
     }

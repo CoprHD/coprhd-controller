@@ -24,7 +24,6 @@ public class ObjectVirtualPoolBulkRep extends BulkRestRep {
     /**
      * List of all virtual pools of object System type.
      * 
-     * @valid none
      */
     @XmlElement(name = "object_vpool")
     @JsonProperty("object_vpool")

@@ -44,7 +44,6 @@ public class ComputeVirtualPoolCreateParam {
     /**
      * The name for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(required = false)
     @Length(min = 2, max = 128)
@@ -59,7 +58,6 @@ public class ComputeVirtualPoolCreateParam {
     /**
      * The description for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "description")
     public String getDescription() {
@@ -73,7 +71,6 @@ public class ComputeVirtualPoolCreateParam {
     /**
      * Supported System Types
      * 
-     * @valid Cisco_UCSM
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {
@@ -228,7 +225,6 @@ public class ComputeVirtualPoolCreateParam {
     /**
      * The virtual arrays for the virtual pool
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     public Set<String> getVarrays() {
@@ -246,8 +242,6 @@ public class ComputeVirtualPoolCreateParam {
      * Determines if matched or valid assigned Compute Elements are returned
      * from command to retrieve the list of Compute Elements.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "use_matched_elements")
     public Boolean getUseMatchedElements() {
@@ -262,7 +256,6 @@ public class ComputeVirtualPoolCreateParam {
     /**
      * The service Profile templates for the virtual pool
      * 
-     * @valid none
      */
     @XmlElement(name = "service_profile_template")
     public Set<String> getServiceProfileTemplates() {

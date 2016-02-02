@@ -51,7 +51,7 @@ public class SchedulePolicies extends AbstractCoreBulkResources<SchedulePolicyRe
      * @param tenantId
      *            the ID of the tenant.
      * @param input
-     *            the project configuration.
+     *            the Policy configuration.
      * @return the newly created schedule policy.
      */
     public SchedulePolicyRestRep create(URI tenantId, PolicyParam input) {

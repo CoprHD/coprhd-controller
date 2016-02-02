@@ -258,7 +258,7 @@ public class SchedulePolicies extends ViprResourceController {
         // Day of the month
         public int scheduleDayOfMonth;
 
-        // Schedule Snapshot expire type e.g hours, days, weeks, months
+        // Schedule Snapshot expire type e.g hours, days, weeks, months and never
         public String expireType;
 
         // Schedule Snapshot expire after

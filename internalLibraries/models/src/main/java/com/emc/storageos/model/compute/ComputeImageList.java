@@ -27,7 +27,6 @@ public class ComputeImageList {
     /**
      * List of storage system URLs with name
      * 
-     * @valid none
      */
     @XmlElement(name = "compute_image")
     public List<NamedRelatedResourceRep> getComputeImages() {

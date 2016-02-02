@@ -5,6 +5,15 @@
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Severity;
 import com.emc.nas.vnxfile.xmlapi.Status;
@@ -13,14 +22,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 public class VNXSnapshotCreateProcessor extends VNXFileProcessor {
 
@@ -53,12 +54,9 @@ public class VNXSnapshotCreateProcessor extends VNXFileProcessor {
                         if (status.getMaxSeverity() == Severity.OK) {
                             _logger.info("NewCheckpoint creation success");
                             keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
-                        }
-                        else if (status.getMaxSeverity() == Severity.ERROR)
-                        {
+                        } else if (status.getMaxSeverity() == Severity.ERROR) {
+                            processErrorStatus(status, keyMap);
                             _logger.info("NewCheckpoint creation failed");
-                            keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_FAILURE);
-                            keyMap.put(VNXFileConstants.FAULT_DESC, "Unable to create snapshot");
                         }
 
                         break;

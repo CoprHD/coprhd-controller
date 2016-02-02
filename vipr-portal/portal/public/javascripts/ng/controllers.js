@@ -500,6 +500,74 @@ angular.module("portalApp").controller({
     		$scope.formAccessControlList = accessList.toString();
     	}, true);
     },
+    BucketAclCtrl: function($scope, $http, $window, translate) {
+    	
+    	$scope.add = {type:'user', name:'', domain:'', permission:'read'};
+    	
+    	$scope.typeOpt = [{id:'user', name:translate('bucket.acl.user')},
+    	                 {id:'group', name:translate('bucket.acl.group')},
+    	                 {id:'customgroup', name:translate('bucket.acl.customgroup')}];
+    	
+    	
+    	$scope.permOpt = [{id:'read', name:translate('resources.bucket.acl.read')}, 
+    	                  {id:'write', name:translate('resources.bucket.acl.write')}, 
+    	                  {id:'execute', name:translate('resources.bucket.acl.execute')},
+    	                  {id:'full_control', name:translate('resources.bucket.acl.full_control')},
+						  {id:'delete', name:translate('resources.bucket.acl.delete')},
+						  {id:'none', name:translate('resources.bucket.acl.none')},
+						  {id:'privileged_write', name:translate('resources.bucket.acl.privileged_write')},
+						  {id:'read_acl', name:translate('resources.bucket.acl.read_acl')},
+						  {id:'write_acl', name:translate('resources.bucket.acl.write_acl')}];
+    	
+    	var setData = function(data) {
+    		$scope.acl = data;
+    	}
+    	
+    	var resetModal = function() {
+    		$scope.acl = {};
+    	}
+    	
+    	$scope.populateModal = function() {
+    		    resetModal();
+    			$scope.acl.accesscontrols = [];
+        		$scope.acl.accesscontrols.push(angular.copy($scope.add));
+        		$scope.$apply();
+
+    	}
+
+    	$scope.deleteACE = function(idx) { $scope.acl.accesscontrols.splice(idx, 1); }
+    	$scope.addACE = function() { $scope.acl.accesscontrols.push(angular.copy($scope.add)); }
+    	
+    	$scope.$watch('acl', function(newVal) {
+    		var accessList = [];
+    		angular.forEach($scope.acl.accesscontrols, function(obj) {
+    			if (obj.name != '') {
+    				var val = obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission;
+    				val =val.split(",").join("|")
+    				accessList.push(val);
+    			}
+    		});
+    		
+    		$scope.formAccessControlList = accessList.toString();
+    	}, true);
+    },
+    AssignPolicyCtrl: function($scope, $http, $window, translate) {
+    	
+    	var resetModal = function() {
+    		$scope.policyOptions = [];
+    	}
+    	
+    	$scope.populateModal = function() {
+    		
+    		resetModal();
+    		
+    		$http.get(routes.FileSystems_getScheculePolicies()).success(function(data) {
+            	$scope.policyOptions = data;
+            });
+            
+    	    $scope.$apply();
+       }
+    },
     FileQuotaCtrl: function($scope, $http, $filter, translate) {
         $scope.securityOptions = [{id:"unix", name:translate('resources.filesystem.quota.security.unix')}, 
                                   {id:"ntfs", name:translate('resources.filesystem.quota.security.ntfs')},
@@ -916,17 +984,17 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     angular.forEach($scope.orderTypes, function(value) {
         this.push({id:value, name:translate("systemLogs.orderType."+value)});
     }, $scope.orderTypeOptions);
-    
+
     $scope.nodeIdOptions = [{id:'', name:translate('system.logs.allnodes')}];
     angular.forEach($scope.controlNodes, function(value) {
         this.push({id:value.nodeId, name:value.nodeName + " (" + value.nodeId + ")"});
     }, $scope.nodeIdOptions);
-    
+
     $scope.serviceOptions = [];
     angular.forEach($scope.allServices, function(value) {
         this.push({id:value, name:value});
     }, $scope.serviceOptions);
-    
+
     $scope.severityOptions = [];
     angular.forEach(SEVERITIES, function(value, key) {
         this.push({id:key, name:value});
@@ -1109,6 +1177,125 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         $scope.loading = false;
         $scope.error = data;
     }
+});
+
+angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $sce, $cookies) {
+    var APPLY_FILTER = routes.AuditLog_list();
+    var DOWNLOAD_LOGS = routes.AuditLog_download();
+    var RESULT_STATUS = {
+        'S': 'SUCCESS',
+        'F': 'FAILURE'
+    };
+
+    $scope.resultStatusOptions = [];
+    angular.forEach(RESULT_STATUS, function(value, key) {
+        this.push({id:key, name:value});
+    }, $scope.resultStatusOptions);
+
+    $scope.descending = $cookies.sort === 'desc';
+    $scope.toggleSort = function() {
+        $scope.descending = !$scope.descending;
+        $cookies.sort = ($scope.descending ? 'desc' : 'asc');
+    };
+
+    $scope.filter = {
+        startTime: $scope.startTime,
+        resultStatus: $scope.resultStatus,
+        serviceType: $scope.serviceType,
+        user: $scope.user,
+        keyword: $scope.keyword
+    };
+    $scope.$watchCollection('filter', function() {
+        $scope.filterDialog = angular.extend({orderTypes: ''}, $scope.filter);
+    });
+
+    $scope.loading = false;
+    $scope.error = null;
+
+    // Hooks for the filter/download dialog
+    angular.element("#filter-dialog").on("show.bs.modal", function (event) {
+        $scope.$apply(function() {
+            var button = $(event.relatedTarget);
+            var type = button.data('type');
+
+            $scope.filterDialog.type = type;
+            if (type === 'download') {
+                $scope.filterDialog.endTime = new Date().getTime();
+                $scope.filterDialog.endTime_date = getDate($scope.filterDialog.endTime);
+                $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);
+            }
+            $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
+            $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);
+        });
+    });
+
+    // Applies the filter from the dialog
+    $scope.applyFilter = function() {
+        angular.element('#filter-dialog').modal('hide');
+        var args = {
+            startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
+            resultStatus: $scope.filterDialog.resultStatus,
+            serviceType: $scope.filterDialog.serviceType,
+            user: $scope.filterDialog.user,
+            keyword: $scope.filterDialog.keyword,
+            triggerByFilter: "true"
+        };
+        var url = APPLY_FILTER + "?" + encodeArgs(args);
+        window.location.href = url;
+    };
+
+    // Downloads the logs from the server
+    $scope.downloadLogs = function() {
+        angular.element('#filter-dialog').modal('hide');
+        var args = {
+            startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
+            endTime: getDateTime($scope.filterDialog.endTime_date, $scope.filterDialog.endTime_time),
+            resultStatus: $scope.filterDialog.resultStatus,
+            serviceType: $scope.filterDialog.serviceType,
+            user: $scope.filterDialog.user,
+            keyword: $scope.filterDialog.keyword
+        };
+        if ($scope.filterDialog.endTimeCurrentTime) {
+            args.endTime = new Date().getTime();
+        }
+        var url = DOWNLOAD_LOGS + "?" + encodeArgs(args);
+        window.open(url, "_blank");
+    };
+
+    $scope.getLocalDateTime = function(o,datestring){
+        return render.localDate(o,datestring);
+    };
+
+    function getDate(millis) {
+        return millis ? formatDate(millis, "YYYY-MM-DD") : "";
+    }
+
+    function getTime(millis) {
+        return millis ? formatDate(millis, "HH:mm") : "";
+    }
+
+    function getDateTime(dateStr, timeStr) {
+        if (dateStr && timeStr) {
+            return moment(dateStr + " " + timeStr, "YYYY-MM-DD HH:mm").toDate().getTime();
+        }
+        return null;
+    }
+
+    function encodeArgs(args) {
+        var encoded = [];
+        angular.forEach(args, function(value, key) {
+            if (angular.isArray(value)) {
+                angular.forEach(value, function(value) {
+                    encoded.push(key+"="+encodeURIComponent(value));
+                });
+            }
+            else if (value) {
+                encoded.push(key+"="+encodeURIComponent(value));
+            }
+        });
+        return encoded.join("&");
+    }
+
 });
 
 angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {

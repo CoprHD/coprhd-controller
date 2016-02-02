@@ -26,7 +26,6 @@ public class SMISProviderList {
     /**
      * List of SMIS Providers.
      * 
-     * @valid none
      */
     @XmlElement(name = "smis_provider")
     public List<NamedRelatedResourceRep> getSmisProviders() {

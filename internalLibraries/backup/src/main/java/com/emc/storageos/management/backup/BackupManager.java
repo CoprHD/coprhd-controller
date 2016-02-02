@@ -36,7 +36,6 @@ public class BackupManager implements BackupManagerMBean {
     private static final Logger log = LoggerFactory.getLogger(BackupManager.class);
     public static final String MBEAN_NAME = "org.emc.storageos.management.backup:type=BackupManager";
     private static final int DEFAULT_DISK_QUOTA_GB = 50;
-    private static final String MD5_SUFFIX = ".md5";
     private static final String DF_COMMAND = "/bin/df";
     private static final long DF_COMMAND_TIMEOUT = 120000;
     private static final String SPACE_VALUE = "\\s+";
@@ -256,7 +255,7 @@ public class BackupManager implements BackupManagerMBean {
         File backupZip = compressBackupFolder(backupFolder);
         checkQuotaAndDiskStatus();
         // 4. record the digest of backup file
-        computeMd5(backupZip, backupZip.getName() + MD5_SUFFIX);
+        computeMd5(backupZip, backupZip.getName() + BackupConstants.MD5_SUFFIX);
         // Includes RuntimeException here, to ensure no junk data left
         log.info("Backup is created successfully: {}", backupTag);
     }

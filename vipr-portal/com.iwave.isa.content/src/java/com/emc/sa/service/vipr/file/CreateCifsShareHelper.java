@@ -4,9 +4,12 @@
  */
 package com.emc.sa.service.vipr.file;
 
+import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
+import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SHARE_COMMENT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
+import static com.emc.sa.service.ServiceParams.SOFT_LIMIT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.VOLUME_NAME;
@@ -38,6 +41,15 @@ public class CreateCifsShareHelper {
 
     @Param(SHARE_COMMENT)
     protected String shareComment;
+    
+    @Param(value=SOFT_LIMIT,required=false)
+    protected Integer softLimit;
+    
+    @Param(value=ADVISORY_LIMIT,required=false)
+    protected Integer advisoryLimit;
+    
+    @Param(value=GRACE_PERIOD,required=false)
+    protected Integer gracePeriod;
 
     @Bindable(itemType = FileStorageUtils.FileSystemACLs.class)
     protected FileStorageUtils.FileSystemACLs[] fileSystemShareACLs;
@@ -55,7 +67,11 @@ public class CreateCifsShareHelper {
     }
 
     public FileShareRestRep createCifsShare() {
-        this.fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb);
+        int tempSoftLimit=(softLimit!=null)?softLimit:0;
+        int tempAdvisoryLimit=(advisoryLimit!=null)?advisoryLimit:0; 
+        int tempGracePeriod=(gracePeriod!=null)?gracePeriod:0;
+        
+        this.fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb, tempAdvisoryLimit,tempSoftLimit, tempGracePeriod);
         FileStorageUtils.createCifsShare(this.fileSystemId, shareName, shareComment, null);
         return FileStorageUtils.getFileSystem(this.fileSystemId);
     }

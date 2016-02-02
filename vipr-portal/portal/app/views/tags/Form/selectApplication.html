@@ -1,0 +1,31 @@
+%{
+  fieldName = _fieldName ?: 'application'
+  application = _application ?: _caller.application
+  addEmptyOption = true
+  emptyOptionLabel = messages.get("common.none")
+  selectedApplication = emptyOptionLabel
+  
+}%
+<span class="application-select">
+  #{field fieldName}
+    %{
+      field.addEmptyOption = true;
+      field.emptyOptionLabel = messages.get("common.none")
+      field.options = application
+      field.value = selectedApplication
+      field.cssClass = 'input-sm'
+     
+    }%
+    <label for="${field.id}">&{'applicationGroup.resources.title'}:</label>
+    #{Form.selectOne field:field /}
+  #{/field}
+</span>
+<style type="text/css">
+.application-select .chosen-container {
+	  min-width: 250px;
+	}
+
+.project-select + .application-select {
+  margin-left: 10px;
+}
+</style>

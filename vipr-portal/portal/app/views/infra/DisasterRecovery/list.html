@@ -1,6 +1,7 @@
 #{extends 'main.html' /} 
 #{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
 
+#{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{if showPauseButton}
 	#{DataTable.header titleKey:'disasterRecovery.title.pauseResume'/}
 #{/if}
@@ -26,10 +27,9 @@
 #{if showPauseButton}
 	<a href="@{infra.Upgrade.index()}">&{'disasterRecovery.backToUpgrade'}</a>
 #{/if}
-#{elseif util.DisasterRecoveryUtils.hasPausedSite()}
+#{elseif (isActiveSite && util.DisasterRecoveryUtils.hasPausedSite()) }
 	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteWarning'}</span>
 #{/elseif}
-#{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">

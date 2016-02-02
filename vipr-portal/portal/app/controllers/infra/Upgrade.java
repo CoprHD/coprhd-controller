@@ -195,11 +195,17 @@ public class Upgrade extends Controller {
             if (SiteState.STANDBY_PAUSED.toString().equals(standby.getState()) ||
                     SiteState.STANDBY_PAUSING.toString().equals(standby.getState()) ||
                     SiteState.STANDBY_RESUMING.toString().equals(standby.getState())) {
+                // these are supposed to be normal since pause/resume is considered part of the upgrade process
                 continue;
             }
-            ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo(standby.getUuid());
-            if (calculateClusterState(clusterInfo, standby.getUuid()).equals(DOWNLOADING_CLUSTER_STATE)) {
-                return true;
+            try {
+                ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo(standby.getUuid());
+                if (calculateClusterState(clusterInfo, standby.getUuid()).equals(DOWNLOADING_CLUSTER_STATE)) {
+                    return true;
+                }
+            } catch (Exception e) {
+                Logger.error(e, "Getting Standby Site Cluster Info");
+                flash.error(String.format("Failed to get cluster state for site %s", standby.getName()));
             }
         }
         return false;

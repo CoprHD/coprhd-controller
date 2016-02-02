@@ -814,6 +814,7 @@ public class IpReconfigManager implements Runnable {
             }
             site.setHostIPv4AddressMap(ipv4Addresses);
             site.setHostIPv6AddressMap(ipv6Addresses);
+            site.setNodeCount(localIpinfo.getNodeCount());
 
             _coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
 

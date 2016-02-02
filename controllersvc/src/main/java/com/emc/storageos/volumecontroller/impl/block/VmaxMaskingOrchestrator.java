@@ -1304,14 +1304,15 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Set<URI> partialMasks, String token) {
         boolean isVMAX3 = storage.checkIfVmax3();
         
-        // Apply RP+VMAX best practice rules        
-        masksMap = applyVolumesToMasksUsingRPVMAXRules(storage, exportGroup, masksMap);
-        
-        if (masksMap.isEmpty()) {        	
-        	_log.info("No masks were found for RP that satisified the host rule, proceeding to create new masks");
-        	return true;
-        }
-                           
+		// Apply RP+VMAX best practice rules if the export is to an RP     	   
+		if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) || (exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL))) {     		
+			masksMap = applyVolumesToMasksUsingRPVMAXRules(storage, exportGroup, masksMap);    	        
+			if (masksMap.isEmpty()) {        	
+				_log.info("No masks were found for RP that aligned with the masks of the compute resource, proceeding to create new masks");
+				return true;
+			}
+		}
+                                 
         // Rule 1: See if there is a mask that matches our policy and only our policy
         if (!applyVolumesToMasksUsingRule(exportGroup, token,
                 existingMasksToUpdateWithNewVolumes,
@@ -1368,12 +1369,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     	
         Map<ExportMask, ExportMaskPolicy> matchingMaskMap = new HashMap<ExportMask, ExportMaskPolicy>();
         final String RECOVERPOINT_JOURNAL = "journal";
-
-    	
-    	//If this is not a RP export, just return the exist masksMap
-    	if (!exportGroup.checkInternalFlags(Flag.RECOVERPOINT)) {     		
-    		return masksMap;
-    	}
     	
     	//If this an RP Export (non-journal) but there is no host information, return the existing maskMap. 
     	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) && !exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL) 

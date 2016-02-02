@@ -14,6 +14,7 @@ public abstract class TenantParam {
 
     private String description;
     private String namespace;
+    private URI namespaceStorage;
     private URI webStorageDefaultProject;
     private URI webStorageDefaultVpool;
 
@@ -59,6 +60,23 @@ public abstract class TenantParam {
         this.namespace = namespace;
     }
     
+    /**
+     * Namespace object storage associated to a tenant.
+     * 
+     */
+    @XmlElement(required = false)
+    public URI getNamespaceStorage() {
+        return namespaceStorage;
+    }
+
+    /**
+     * Sets namespace object array for a Tenant.
+     * 
+     */
+    public void setNamespaceStorage(URI namespaceStorage) {
+        this.namespaceStorage = namespaceStorage;
+    }
+
     /**
      * Default project URI for this tenant
      * 

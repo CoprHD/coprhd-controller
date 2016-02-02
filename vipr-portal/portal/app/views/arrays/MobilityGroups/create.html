@@ -5,6 +5,7 @@
 }%
 
 #{extends 'main.html' /}
+#{set navSelected: ['nav.virtualStorage', 'nav.mobilityGroups'] /}
 #{set 'title'}&{titleKey}#{/set}
 #{set editMode:mobilityGroupForm?.id ? true : false/}
 #{set 'moreScripts'}

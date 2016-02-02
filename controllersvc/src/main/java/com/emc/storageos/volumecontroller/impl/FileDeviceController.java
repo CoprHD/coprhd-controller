@@ -8,7 +8,14 @@ import static java.util.Arrays.asList;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -838,6 +845,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setFileOperation(true);
             args.setNewFSCapacity(newFSsize);
             args.setOpId(opId);
+            // work flow and we need to add TaskCompleter(TBD for vnxfile)
+            WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doExpandFS(storageObj, args);
             if (result.getCommandPending()) {
                 // async operation
@@ -852,12 +861,16 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
             _dbClient.persistObject(fs);
 
+            // work flow and we need to add TaskCompleter(TBD for vnxfile)
+            WorkflowStepCompleter.stepSucceded(opId);
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.EXPAND_FILE_SYSTEM,
                     result.isCommandSuccess(), eventMsg, "", fs, String.valueOf(newFSsize));
         } catch (Exception e) {
             String[] params = { storage.toString(), uri.toString(), String.valueOf(newFSsize), e.getMessage() };
             _log.error("Unable to expand file system: storage {}, FS URI {}, size {}: {}", params);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             updateTaskStatus(opId, fs, e);
             if (fs != null) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.EXPAND_FILE_SYSTEM, false, e.getMessage(), "", fs,
@@ -3549,7 +3562,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @return
      */
     private String createExpandMirrorFileshareStep(Workflow workflow,
-                                                   String waitFor, List<FileDescriptor> fileDescriptors, String taskId) {
+            String waitFor, List<FileDescriptor> fileDescriptors, String taskId) {
         Map<URI, Long> filesharesToExpand = new HashMap<URI, Long>();
         for (FileDescriptor descriptor : fileDescriptors) {
             // Grab the fileshare, let's see if an expand is really needed
@@ -3570,7 +3583,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             FileShare fileShareToExpand = _dbClient.queryObject(FileShare.class, entry.getKey());
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, fileShareToExpand.getStorageDevice());
             Long fileSize = entry.getValue();
-            expandMethod = expandFileSharesMethod(storage.getId(), fileShareToExpand.getPool(), fileSize);
+            expandMethod = expandFileSharesMethod(storage.getId(), fileShareToExpand.getId(), fileSize);
             waitFor = workflow.createStep(
                     EXPAND_FILESYSTEMS_STEP,
                     String.format("Expand FileShare %s", fileShareToExpand),

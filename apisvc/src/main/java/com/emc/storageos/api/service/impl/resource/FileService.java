@@ -31,7 +31,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -2619,7 +2618,6 @@ public class FileService extends TaskResourceService {
 
         return toTask(sourceFileShare, task, status);
     }
-
 
     /**
      * perform file protection action

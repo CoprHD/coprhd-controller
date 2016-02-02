@@ -118,7 +118,7 @@ public class SchedulePolicies extends ViprResourceController {
             String num = String.valueOf(i);
             daysOfMonth.put(num, num);
         }
-        daysOfMonth.put(LAST_DAY_OF_MONTH, MessagesUtils.get("datetime.dayOfMonth.L"));
+        
         renderArgs.put("daysOfMonth", daysOfMonth);
 
         List<StringOption> expirationTypeOptions = Lists.newArrayList();
@@ -126,7 +126,7 @@ public class SchedulePolicies extends ViprResourceController {
         expirationTypeOptions.add(new StringOption("days", MessagesUtils.get("schedulePolicy.days")));
         expirationTypeOptions.add(new StringOption("weeks", MessagesUtils.get("schedulePolicy.weeks")));
         expirationTypeOptions.add(new StringOption("months", MessagesUtils.get("schedulePolicy.months")));
-        expirationTypeOptions.add(new StringOption("years", MessagesUtils.get("schedulePolicy.years")));
+        
         renderArgs.put("expirationTypeOptions", expirationTypeOptions);
 
         String[] hoursOptions = new String[24];

@@ -554,7 +554,7 @@ angular.module("portalApp").controller({
     AssignPolicyCtrl: function($scope, $http, $window, translate) {
     	
     	var resetModal = function() {
-    		//$scope.tenantId
+    		$scope.policyOptions = [];
     	}
     	
     	$scope.populateModal = function() {

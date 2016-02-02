@@ -44,7 +44,7 @@ public class SchedulePolicies extends AbstractCoreBulkResources<SchedulePolicyRe
     }
 
     /**
-     * Creates a project in the given tenant.
+     * Creates a Schedule Policy in the given tenant.
      * <p>
      * API Call: <tt>POST /tenants/{tenantId}/schedule-policies</tt>
      * 
@@ -52,7 +52,7 @@ public class SchedulePolicies extends AbstractCoreBulkResources<SchedulePolicyRe
      *            the ID of the tenant.
      * @param input
      *            the project configuration.
-     * @return the newly created project.
+     * @return the newly created schedule policy.
      */
     public SchedulePolicyRestRep create(URI tenantId, PolicyParam input) {
         SchedulePolicyResp element = client
@@ -61,12 +61,12 @@ public class SchedulePolicies extends AbstractCoreBulkResources<SchedulePolicyRe
     }
 
     /**
-     * Updates the given project by ID.
+     * Updates the given Schedule Policy by ID.
      * <p>
      * API Call: <tt>PUT /schedule-policies/{policyId}</tt>
      * 
      * @param id
-     *            the ID of the project to update.
+     *            the ID of the policy to update.
      * @param input
      *            the update configuration.
      */
@@ -80,7 +80,7 @@ public class SchedulePolicies extends AbstractCoreBulkResources<SchedulePolicyRe
      * @return the URL for finding by file system.
      */
     protected String getByFileSystemUrl() {
-        return PathConstants.FILESYSTEM_URL + "/{fileSystemId}/file-policies";
+        return PathConstants.FILE_POLICIES_BY_FILESYSTEM_URL;
     }
 
     /**
@@ -90,19 +90,35 @@ public class SchedulePolicies extends AbstractCoreBulkResources<SchedulePolicyRe
      * 
      * @param fileSystemId
      *            the ID of the file system.
-     * @return the list of file quota directory references for the file system.
+     * @return the list of file policies references for the file system.
      */
     public List<FilePolicyRestRep> listByFileSystem(URI fileSystemId) {
         FilePolicyList response = client.get(FilePolicyList.class, getByFileSystemUrl(), fileSystemId);
         return defaultList(response.getFilePolicies());
     }
 
+    /**
+     * This method assigns a policy to a file system.
+     * <p>
+     * API Call: <tt>PUT /file/filesystems/{fs_id}/assign-file-policy/{policy_id}</tt>
+     * 
+     * @param fileSystemId the ID of the file system.
+     * @param policyId the ID of the policy.
+     */
     public void assignPolicyToFileSystem(URI fileSystemId, URI policyId) {
 
         client.put(String.class, PathConstants.ASSIGN_POLICY_URL, fileSystemId, policyId);
 
     }
 
+    /**
+     * This method unassigna policy from the file system.
+     * <p>
+     * API Call: <tt>PUT /file/filesystems/{fs_id}/unassign-file-policy/{policy_id}</tt>
+     * 
+     * @param fileSystemId the ID of the file system.
+     * @param policyId the ID of the policy.
+     */
     public void unassignPolicyToFileSystem(URI fileSystemId, URI policyId) {
 
         client.put(String.class, PathConstants.UNASSIGN_POLICY_URL, fileSystemId, policyId);

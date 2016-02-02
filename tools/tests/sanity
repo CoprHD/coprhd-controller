@@ -2363,7 +2363,7 @@ rpvplexdist_noprotection()
 
 rp_vpool_setup()
 {
-    if [ "${RP_TESTS}" = "1" -o ${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
+    if [ "${RP_TESTS}" = "1" -o "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         rp_targets
 	rp_regular
 	rp_cdp
@@ -2460,7 +2460,7 @@ rp_storage_setup()
 rp_xio_setup()
 {
     echo '*** Recoverpoint XIO setup ***'
-    discoveredsystem create $RECOVERPOINT_XTREMIO_GUID xtremio $RECOVERPOINT_XTREMIO_IP 443 $RECOVERPOINT_XTREMIO_USER $RECOVEWRPOINT_XTREMIO_PASSWD --serialno=$RECOVERPIONT_XTERMIO_SN
+    run storageprovider create xtremeio1 $RECOVERPOINT_XTREMIO_IP 443 $RECOVERPOINT_XTREMIO_USER $RECOVERPOINT_XTREMIO_PASSWD xtremio
 }
 
 rp_vplex_setup()
@@ -2481,7 +2481,7 @@ rp_port_setup()
 {
     echo '*** Recoverpoint port setup ***'
 
-    if [ "${RP_TESTS}" = "1" -o ${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
+    if [ "${RP_TESTS}" = "1" -o "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	if [ "$RECOVERPOINT_STORAGE_ARRAY_A_GUID" != "NONE" ]; then
 	    storageport update $RECOVERPOINT_STORAGE_ARRAY_A_GUID FC --addvarrays $RECOVERPOINT_VARRAY1
 	fi
@@ -3206,6 +3206,11 @@ recoverpoint_add_journal_volume()
 # Simulator setup
 recoverpoint_simulator_setup()
 {
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+	echo "XIO in simulator mode not supported yet"
+	exit
+    fi
+
     echo 'Sim running'
     project_setup
     rp_varray_setup
@@ -3301,7 +3306,6 @@ recoverpoint_common_setup()
     rp_storage_setup
     rp_port_setup
     rp_protection_system_setup
-    sleep 30
     rp_isolate_rpa_clusters
     rp_vpool_setup
 }
@@ -3343,6 +3347,7 @@ recoverpoint_cleanup_cgs()
 
 	if [ "${RP_TESTS}" = "1" ]; then
 	    run blockconsistencygroup delete $RP_CONSISTENCY_GROUP
+	fi
 
 	if [ "${RPVPLEX_TESTS}" = "1" ]; then
 	    run blockconsistencygroup delete $RP_VPLEX_CONSISTENCY_GROUP
@@ -4522,23 +4527,27 @@ common_setup()
 
     syssvc $CONFIG_FILE "$BOURNE_IP" set_prop system_proxyuser_encpassword ${SYSADMIN_PASSWORD}
     tenant_setup
-    zone_setup
-    transportzone add    $NH/$FC_ZONE_A $BLK_CLIENT_FC
-    transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
+
+    if [ "${RPINGEST_TESTS}" = "0" ]; then
+	zone_setup
+	transportzone add    $NH/$FC_ZONE_A $BLK_CLIENT_FC
+	transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
+    fi
 
     project_setup
     projectid=$(project query $PROJECT)
     echo "Project id of $PROJECT is $projectid."
 
-    echo "Setup ACLs on neighborhood for $TENANT"
-    neighborhood allow $NH $TENANT
-    neighborhood allow $NH2 $TENANT
     ROOT_TENANT=`tenant root|tail -1`
-    neighborhood allow $NH $ROOT_TENANT
-    neighborhood allow $NH2 $ROOT_TENANT
-
-    echo "Setup hosts and clusters for $TENANT"
-    host_setup
+    if [ "${RPINGEST_TESTS}" = "0" ]; then
+	echo "Setup ACLs on neighborhood for $TENANT"
+	neighborhood allow $NH $TENANT
+	neighborhood allow $NH2 $TENANT
+	neighborhood allow $NH $ROOT_TENANT
+	neighborhood allow $NH2 $ROOT_TENANT
+	echo "Setup hosts and clusters for $TENANT"
+	host_setup
+    fi
 }
 
 blocksnapshot_setup()

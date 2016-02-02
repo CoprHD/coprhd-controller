@@ -22,8 +22,26 @@ public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
     @Override
     protected List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
             throws Exception {
-        // TODO Add logic to return the RP block objects to update in CG.
-        return null;
+        // Get all of the block objects that are in the protection set
+        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
+        ProtectionSet pset = rpContext.getManagedProtectionSet();
+        
+        if (pset == null) {
+            return null;
+        }
+
+        // All of the volumes in the CG are in the "objects to be updated" map in the RP context.
+        List<BlockObject> boList = new ArrayList<BlockObject>();
+        for (String volumeIdStr : pset.getVolumes()) {
+            for (List<DataObject> dataObjList : rpContext.getObjectsToBeUpdatedMap().values()) {
+                for (DataObject dataObj : dataObjList) {
+                    if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+                        boList.add((BlockObject)dataObj);
+                    }
+                }
+            }
+        }
+        return boList;
     }
 
     @Override
@@ -44,39 +62,10 @@ public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
         if (associatedObjects == null) {
             return;
         }
-        if (!associatedObjects.isEmpty()) {
-            for (BlockObject blockObject : associatedObjects) {
-                blockObject.setConsistencyGroup(cg.getId());
-        for (BlockObject bo : associatedObjects) {
-            bo.setConsistencyGroup(cg.getId());
-        }
-
-    }
-
-    @Override
-    protected List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
-            throws Exception {
-        // Get all of the block objects that are in the protection set
-        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
-        ProtectionSet pset = rpContext.getManagedProtectionSet();
         
-        if (pset == null) {
-            return null;
+        for (BlockObject blockObject : associatedObjects) {
+            blockObject.setConsistencyGroup(cg.getId());
         }
-    }
-
-        // All of the volumes in the CG are in the "objects to be updated" map in the RP context.
-        List<BlockObject> boList = new ArrayList<BlockObject>();
-        for (String volumeIdStr : pset.getVolumes()) {
-            for (List<DataObject> dataObjList : rpContext.getObjectsToBeUpdatedMap().values()) {
-                for (DataObject dataObj : dataObjList) {
-                    if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
-                        boList.add((BlockObject)dataObj);
-}
-                }
-            }
-        }
-        return boList;
     }
 
 }

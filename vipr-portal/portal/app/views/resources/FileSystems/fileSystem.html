@@ -50,10 +50,28 @@
         <dd class="moreDetails">#{spaceForNull storagePool?.name/}</dd>
         <dt class="moreDetails">&{'resources.filesystem.storageport'}:</dt>
         <dd class="moreDetails">#{spaceForNull storagePort?.name/}</dd>
+        
+		<dt class="moreDetails">&{'resources.filesystem.notificationLimit'}:</dt>
+        <dd class="moreDetails">#{spaceForNull fileSystem?.notificationLimit/}</dd>
+        
+        <dt class="moreDetails">&{'resources.filesystem.softLimit'}:</dt>
+        <dd class="moreDetails">#{spaceForNull fileSystem?.softLimit/}
+        #{if fileSystem.softLimitExceeded}
+                <span class="label label-warning">
+                   <span class="glyphicon glyphicon-warning-sign"></span> 
+                   &{'resources.filesystem.softLimitExeeded'}
+                </span>
+        #{/if}
+        </dd>
+        <dt class="moreDetails">&{'resources.filesystem.softGrace'}:</dt>
+        <dd class="moreDetails">#{spaceForNull fileSystem?.softGrace/}</dd>
+
+        
       #{/deadbolt.restrict}
       <dt class="moreDetails">&{'resources.filesystem.nativeid'}:</dt>
       <dd class="moreDetails">#{spaceForNull fileSystem.nativeId/}</dd>      
       #{Resources.commonAttributes resource:fileSystem /}
+      
     </dl>
 
     <div class="clearfix"></div>

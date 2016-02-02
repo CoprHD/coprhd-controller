@@ -3324,6 +3324,12 @@ resources.filesystem.vpool=Virtual Pool
 resources.filesystem.protocols=Protocols
 resources.filesystem.storageport=Storage Port
 resources.filesystem.storagepool=Storage Pool
+resources.filesystem.softLimit=Soft Limit (%%)
+resources.filesystem.softGrace=Grace Period (Days)
+resources.filesystem.notificationLimit=Advisory Limit (%%)
+resources.filesystem.softLimitExeeded=Capacity exceeded
+
+
 resources.filesystem.storagesystem=Storage System
 resources.filesystem.thinly=Thinly Provisioned
 resources.filesystem.nativeid=Native ID
@@ -3592,6 +3598,8 @@ fileSystems.capacity=Size
 fileSystems.vpool=Virtual Pool
 fileSystems.varray=Virtual Array
 fileSystems.protocols=Protocols
+fileSystems.status=Status
+
 
 blockStorageTable.name=Name
 blockStorageTable.size=Size
@@ -4186,6 +4194,9 @@ renderFunctions.disasterRecovery.networkHealth.good=Good
 renderFunctions.disasterRecovery.networkHealth.slow=Slow
 renderFunctions.disasterRecovery.networkHealth.broken=Broken
 
+renderFunctions.filesystems.status.exceeded=File System Softlimits exceeded
+renderFunctions.filesystems.status.normal=File System Softlitmits Normal
+renderFunctions.filesystems.status.notset=N/A
 
 templates.knob.label=%s of %s
 

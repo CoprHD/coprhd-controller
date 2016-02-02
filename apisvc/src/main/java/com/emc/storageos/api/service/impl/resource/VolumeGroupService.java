@@ -1276,6 +1276,8 @@ public class VolumeGroupService extends TaskResourceService {
 
             if (param.getAddVolumesList() != null) {
                 validateParameters(Volume.class, param.getAddVolumesList().getVolumes(), ADD_VOLUMES);
+            }
+            if (param.getRemoveVolumesList() != null) {
                 validateParameters(Volume.class, param.getRemoveVolumesList().getVolumes(), REMOVE_VOLUMES);
             }
         }

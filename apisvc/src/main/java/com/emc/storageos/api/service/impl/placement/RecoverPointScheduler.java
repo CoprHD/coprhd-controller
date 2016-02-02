@@ -2768,7 +2768,7 @@ public class RecoverPointScheduler implements Scheduler {
         // Get all the pools already recommended
         List<RPRecommendation> poolsInAllRecommendations = rpProtectionRecommendation.getPoolsInAllRecommendations();
 
-        // Get all the pools that can satisy the size constraint of (size * resourceCount)
+        // Get all the pools that can satisfy the size constraint of (size * resourceCount)
         List<RPRecommendation> reconsiderPools = new ArrayList<RPRecommendation>();
         StringBuffer buff = new StringBuffer();
         for (StoragePool storagePool : candidatePools) {
@@ -2777,7 +2777,7 @@ public class RecoverPointScheduler implements Scheduler {
             // pool should be capable of satisfying atleast one resource of the specified size.
             if (count >= 1) {
                 if (recommendedPool == null) {
-                    buff.append(String.format("%nRP Placement : # of resources of size %dGB that pool %s can accomodate: %s",
+                    buff.append(String.format("%nRP Placement : # of resources of size %sGB that pool %s can accomodate: %s",
                             SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB), storagePool.getLabel(), count));
                     // Pool not in any recommendation thus far, create a new recommendation
                     Recommendation recommendation = new Recommendation();

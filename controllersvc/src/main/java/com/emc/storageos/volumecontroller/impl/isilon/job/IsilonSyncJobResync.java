@@ -11,9 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.isilon.restapi.IsilonApi;
-import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
-import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
 import com.emc.storageos.volumecontroller.JobContext;
@@ -37,22 +35,12 @@ public class IsilonSyncJobResync extends IsilonSyncJobFailover {
 
                 IsilonSyncTargetPolicy targetPolicy = isiApiClient.getTargetReplicationPolicy(currentJob);
                 IsilonSyncTargetPolicy.JobState policyState = targetPolicy.getLastJobState();
-                if (policyState.equals(JobState.running) && targetPolicy.getFoFbState().equals(FOFB_STATES.creating_resync_policy)) {
+                if (policyState.equals(JobState.running)) {
                     _status = JobStatus.IN_PROGRESS;
                 } else if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) && policyState.equals(JobState.finished)) {
                     _status = JobStatus.SUCCESS;
                     _pollResult.setJobPercentComplete(100);
                     _logger.info("IsilonSyncIQJob: {} succeeded", currentJob);
-                    String newPolicyName = currentJob;
-                    newPolicyName = newPolicyName.concat("_mirror");
-                    try {
-                        isiApiClient.getReplicationPolicy(newPolicyName);
-                    } catch (IsilonException isiex) {
-                        IsilonSyncPolicyReport reportErr = isiGetReportErr(isiApiClient.getTargetReplicationPolicyReports(currentJob)
-                                .getList());
-
-                        _logger.info("Isilon reSync still need to be updated: {} succeeded", reportErr.getState().name());
-                    }
 
                 } else {
                     _errorDescription = isiGetReportErrMsg(isiApiClient.getTargetReplicationPolicyReports(currentJob).getList());

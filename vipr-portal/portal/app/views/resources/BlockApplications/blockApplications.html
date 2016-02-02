@@ -2,12 +2,12 @@
 #{set navSelected: ['nav.storage', 'nav.block.app'] /}
 
 
-#{DataTable.header titleKey:'Application.list.title'/}
-#{DataTable.table id:'application', 
+#{DataTable.header titleKey:'applicationGroup.list.title'/}
+#{DataTable.table id:'applicationGroup', 
                       dataTable:dataTable,
                       source:@blockApplicationsJson(),
                       selectable:true,                      
-                      deleteConfirm:messages.get('Application.deleteConfirm')}
+                      deleteConfirm:messages.get('applicationGroup.deleteConfirm')}
 #{/DataTable.table}
 
 

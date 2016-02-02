@@ -9,6 +9,7 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
 
 /**
@@ -19,7 +20,7 @@ import com.emc.storageos.model.RelatedResourceRep;
  */
 
 @XmlRootElement(name = "schedule_policy")
-public class SchedulePolicyRestRep {
+public class SchedulePolicyRestRep extends DataObjectRestRep{
 
     // Schedule policy associated with tenant
     private RelatedResourceRep tenant;

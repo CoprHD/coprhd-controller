@@ -187,7 +187,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
      */
     public void mapInitiatorName(String storageSystemSerailNumber, String initiatorName) {
         if (storageSystemSerailNumber != null && initiatorName != null && !initiatorName.isEmpty()) {
-            initiatorNames.put(storageSystemSerailNumber, initiatorName);
+            getInitiatorNames().put(storageSystemSerailNumber, initiatorName);
         }
     }
 
@@ -199,7 +199,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
      * @return initiator name for the storage system if present or the label
      */
     public String getMappedInitiatorName(String storageSystemSerailNumber) {
-        String initiatorName = initiatorNames.get(storageSystemSerailNumber);
+        String initiatorName = getInitiatorNames().get(storageSystemSerailNumber);
         return initiatorName != null ? initiatorName : getLabel();
     }
 

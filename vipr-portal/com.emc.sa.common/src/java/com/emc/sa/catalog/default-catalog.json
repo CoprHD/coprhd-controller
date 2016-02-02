@@ -514,15 +514,15 @@
           "baseService": "VplexDataMigration"
         },
         {
-          "image": "icon_VPLEX_data_migration.png",
+          "image": "Service_MobilityGroupMigration.png",
           "baseService": "MobilityGroupMigration"
         },
         {
-          "image": "icon_VPLEX_data_migration.png",
+          "image": "Service_AddResourcesMobilityGroup.png",
           "baseService": "AddResourcesToMobilityGroup"
         },
         {
-          "image": "icon_VPLEX_data_migration.png",
+          "image": "Service_RemoveResourcesMobilityGroup.png",
           "baseService": "RemoveResourcesFromMobilityGroup"
         }
       ]

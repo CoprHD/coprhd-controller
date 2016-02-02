@@ -90,6 +90,7 @@ public enum ResourceOperationTypeEnum {
     UPDATE_EXPORT_GROUP("UPDATE EXPORT GROUP", "update export group operation"),
     DELETE_EXPORT_VOLUME("DELETE VOLUME FROM EXPORTGROUP", "delete volume from the export group"),
     CREATE_FILE_SYSTEM("CREATE FILESYSTEM", "create filesystem operation"),
+    UPDATE_FILE_SYSTEM("UPDATE FILESYSTEM", "update filesystem operation"),
     DELETE_FILE_SYSTEM("DELETE FILESYSTEM", "delete filesystem operation"),
     EXPORT_FILE_SYSTEM("EXPORT FILESYSTEM", "export filesystem operation"),
     UPDATE_EXPORT_RULES_FILE_SYSTEM("UPDATE EXPORT RULES FILESYSTEM", "Update export rules filesystem operation"),

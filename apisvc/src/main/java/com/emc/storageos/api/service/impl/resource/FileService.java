@@ -112,6 +112,7 @@ import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemSnapshotParam;
+import com.emc.storageos.model.file.FileSystemUpdateParam;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
 import com.emc.storageos.model.file.QuotaDirectoryList;
@@ -1075,7 +1076,88 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        Long newFSsize = SizeUtil.translateSize(param.getNewSize());
+        Long newFSsize = getFileSystemSizeAfterValidation(id, param.getNewSize(), fs);
+        
+        FileController controller = getController(FileController.class,
+                device.getSystemType());
+
+        String task = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.EXPAND_FILE_SYSTEM);
+        controller.expandFS(device.getId(), fs.getId(), newFSsize, task);
+        op.setDescription("Filesystem expand");
+        auditOp(OperationTypeEnum.EXPAND_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
+                fs.getId().toString(), fs.getCapacity(), newFSsize);
+
+        return toTask(fs, task, op);
+    }
+    
+    /**
+     * Expand file system.
+     * <p>
+     * NOTE: This is an asynchronous operation.
+     * 
+     * @param param File system expansion parameters
+     * @param id the URN of a ViPR File system
+     * @brief Expand file system
+     * @return Task resource representation
+     * @throws InternalException
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep update(@PathParam("id") URI id, FileSystemUpdateParam param)
+            throws InternalException {
+
+        _log.info(String.format("FileShareUpdate --- FileShare id: %1$s",id));
+        // check file System
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        
+        Boolean deviceSupportsSoftLimit = device.getSupportSoftLimit() != null ? device.getSupportSoftLimit() : false;
+        Boolean deviceSupportsNotificationLimit = device.getSupportNotificationLimit() != null ? device.getSupportNotificationLimit() : false;
+        
+        if (param.getSoftLimit() != 0 && !deviceSupportsSoftLimit) {
+            throw APIException.badRequests.unsupportedParameterForStorageSystem("softLimit");
+        }
+        
+        if (param.getNotificationLimit() != 0 && !deviceSupportsNotificationLimit) {
+            throw APIException.badRequests.unsupportedParameterForStorageSystem("notificationLimit");
+        }
+        
+        ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
+        ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
+
+        if (param.getSoftLimit() != 0L) {
+            ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
+        }
+
+        fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
+        fs.setSoftGracePeriod(param.getSoftGrace());
+        fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
+        
+        _dbClient.updateObject(fs);
+        
+        FileController controller = getController(FileController.class,
+                device.getSystemType());
+
+        String task = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM);
+        controller.modifyFS(fs.getStorageDevice(), fs.getPool(), id, task);
+        op.setDescription("Filesystem update");
+        auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
+                fs.getId().toString(), fs.getCapacity(), param.getNotificationLimit(), 
+                param.getSoftLimit(), param.getSoftGrace());
+
+        return toTask(fs, task, op);
+    }
+
+    private Long getFileSystemSizeAfterValidation(URI id, String size, FileShare fs) {
+        Long newFSsize = SizeUtil.translateSize(size);
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
         if (newFSsize <= 0) {
             throw APIException.badRequests.parameterMustBeGreaterThan("new_size", 0);
@@ -1093,19 +1175,7 @@ public class FileService extends TaskResourceService {
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, expand, "filesystem");
-        
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
-
-        String task = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
-                task, ResourceOperationTypeEnum.EXPAND_FILE_SYSTEM);
-        controller.expandFS(device.getId(), fs.getId(), newFSsize, task);
-        op.setDescription("Filesystem expand");
-        auditOp(OperationTypeEnum.EXPAND_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), fs.getCapacity(), newFSsize);
-
-        return toTask(fs, task, op);
+        return newFSsize;
     }
 
     /**

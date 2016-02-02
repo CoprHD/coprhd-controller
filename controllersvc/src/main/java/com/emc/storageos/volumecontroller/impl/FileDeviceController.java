@@ -1104,7 +1104,43 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
-    public void modifyFS(URI storage, URI pool, URI fs, String opId) throws ControllerException {
+    public void modifyFS(URI storage, URI pooluri, URI fsuri, String opId) throws ControllerException {
+        ControllerUtils.setThreadLocalLogData(fsuri, opId);
+        FileShare fs = null;
+        try {
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            fs = _dbClient.queryObject(FileShare.class, fsuri);
+            args.addFSFileObject(fs);
+            StoragePool pool = _dbClient.queryObject(StoragePool.class, pooluri);
+            args.addStoragePool(pool);
+            args.setFileOperation(true);
+            args.setOpId(opId);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doModifyFS(storageObj, args);
+            if (result.getCommandPending()) {
+                // async operation
+                return;
+            }
+            if (result.isCommandSuccess()) {
+                _log.info("FileSystem old capacity :" + args.getFsCapacity() + ":Expanded Size:" + args.getNewFSCapacity());
+                args.setFsCapacity(args.getNewFSCapacity());
+                _log.info("FileSystem new capacity :" + args.getFsCapacity());
+            }
+            // Set status
+            fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.persistObject(fs);
+
+            String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
+            recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM,
+                    result.isCommandSuccess(), eventMsg, "", fs);
+        } catch (Exception e) {
+            String[] params = { storage.toString(), fsuri.toString(), e.getMessage() };
+            _log.error("Unable to update file system: storage {}, FS URI {}, : {}", params);
+            updateTaskStatus(opId, fs, e);
+            if (fs != null) {
+                recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM, false, e.getMessage(), "", fs);
+            }
+        }
     }
 
     @Override

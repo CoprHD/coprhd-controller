@@ -1109,8 +1109,32 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doModifyFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-        return null; // To change body of implemented methods use File |
-        // Settings | File Templates.
+        try {
+            _log.info("IsilonFileStorageDevice doModifyFS {} - start", args.getFsId());
+            IsilonApi isi = getIsilonDevice(storage);
+            String quotaId = null;
+            if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
+                quotaId = args.getFsExtensions().get(QUOTA);
+            } else {
+                final ServiceError serviceError = DeviceControllerErrors.isilon.unableToUpdateFileSystem(args.getFsId());
+                _log.error(serviceError.getMessage());
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
+
+            IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, args.getFsCapacity());
+            isi.modifyQuota(quotaId, expandedQuota);
+            _log.info("IsilonFileStorageDevice doModifyFS {} - complete", args.getFsId());
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            _log.error("doModifyFS failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        } catch (Exception e) {
+            _log.error("doModifyFS failed.", e);
+            // convert this to a ServiceError and create/or reuse a service
+            // code
+            ServiceError serviceError = DeviceControllerErrors.isilon.unableToUpdateFileSystem(args.getFsId());
+            return BiosCommandResult.createErrorResult(serviceError);
+        }
     }
 
     @Override

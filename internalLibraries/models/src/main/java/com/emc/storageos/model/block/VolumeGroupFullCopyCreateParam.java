@@ -36,8 +36,6 @@ public class VolumeGroupFullCopyCreateParam extends VolumeFullCopyCreateParam {
      * By default it is set to false, and consider that clones to be created for all array replication groups in an Application.
      * If set to true, volumes list should be provided with volumes one from each Array replication group.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "partial", required = false, defaultValue = "false")
     public Boolean getPartial() {
@@ -55,7 +53,7 @@ public class VolumeGroupFullCopyCreateParam extends VolumeFullCopyCreateParam {
      * meaning Clones need not be created for the entire Application, instead create clones for the specified array replication groups.
      * List can have volumes one from each Array replication group.
      * 
-     * @valid example:  list of valid URIs
+     * example:  list of valid URIs
      */
     @XmlElement(required = false, name = "volume")
     public List<URI> getVolumes() {

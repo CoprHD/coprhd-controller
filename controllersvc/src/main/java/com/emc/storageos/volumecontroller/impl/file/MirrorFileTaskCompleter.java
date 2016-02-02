@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2015-2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.file;
+
+import static java.util.Arrays.asList;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -14,9 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -29,8 +32,6 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 
-import static java.util.Arrays.asList;
-
 public class MirrorFileTaskCompleter extends TaskCompleter {
     /**
      * Reference to logger
@@ -38,17 +39,19 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
     private static final Logger _logger = LoggerFactory
             .getLogger(MirrorFileTaskCompleter.class);
 
-	public MirrorFileTaskCompleter(Class clazz, List<URI> ids, String opId) {
-		super(clazz, ids, opId);
-	}
+    public MirrorFileTaskCompleter(Class clazz, List<URI> ids, String opId) {
+        super(clazz, ids, opId);
+    }
+
     private static final String EVENT_SERVICE_TYPE = "file";
     private static final String EVENT_SERVICE_SOURCE = "FileController";
+    protected FileShare.MirrorStatus mirrorSyncStatus = FileShare.MirrorStatus.OTHER;
 
-	public MirrorFileTaskCompleter(Class clazz, URI id, String opId) {
-		super(clazz, id, opId);
-	}
-	
-	public MirrorFileTaskCompleter(URI sourceURI, URI targetURI, String opId) {
+    public MirrorFileTaskCompleter(Class clazz, URI id, String opId) {
+        super(clazz, id, opId);
+    }
+
+    public MirrorFileTaskCompleter(URI sourceURI, URI targetURI, String opId) {
         super(FileShare.class, asList(sourceURI, targetURI), opId);
     }
 
@@ -64,14 +67,11 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
         this.dbClient = dbClient;
     }
 
-
-
     protected List<FileShare> fileshareCache;
 
-	
-	@Override
-	protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
-			throws DeviceControllerException {
+    @Override
+    protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
+            throws DeviceControllerException {
         setStatus(dbClient, status, coded);
         if (isNotifyWorkflow()) {
             updateWorkflowStatus(status, coded);
@@ -79,23 +79,43 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
         updateFileSystemStatus(dbClient, status);
     }
 
+    /**
+     * Update the filesystem status
+     * 
+     * @param dbClient
+     * @param status
+     */
     protected void updateFileSystemStatus(DbClient dbClient, Operation.Status status) {
         try {
             if (Operation.Status.ready.equals(status)) {
                 List<FileShare> fileshares = dbClient.queryObject(FileShare.class, getIds());
-                for (FileShare fileshare : fileshares) {
+                for (FileShare fs : fileshares) {
+                    fs.setMirrorStatus(getFileMirrorStatusForSuccess().name());
+                    fs.setAccessState(getFileShareAccessStateForSuccess(fs).name());
+                    if (fs.getMirrorfsTargets() != null) {
+                        List<URI> targetFsURIs = new ArrayList<URI>();
+                        for (String targetId : fs.getMirrorfsTargets()) {
+                            targetFsURIs.add(URI.create(targetId));
+                        }
+                        List<FileShare> targetFileShares = dbClient.queryObject(FileShare.class, targetFsURIs);
+                        for (FileShare targetFileShare : targetFileShares) {
+                            targetFileShare.setMirrorStatus(getFileMirrorStatusForSuccess().name());
+                            targetFileShare.setAccessState(getFileShareAccessStateForSuccess(targetFileShare).name());
+
+                        }
+                        dbClient.updateAndReindexObject(targetFileShares);
+                    }
                 }
                 dbClient.updateObject(fileshares);
-                _logger.info("Updated Mirror link status for fileshares: {}", getIds());
+                _logger.info("Updated Mirror status for fileshares: {}", getIds());
             }
         } catch (Exception e) {
-            _logger.info("Not updating file Mirror link status for fileshares: {}", getIds(), e);
+            _logger.info("Not updating fileshare mirror link status for fileshares: {}", getIds(), e);
         }
     }
 
-
     /**
-     * Record  FileShare related event and audit
+     * Record FileShare related event and audit
      *
      * @param dbClient db client
      * @param opType operation type
@@ -115,24 +135,15 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
             switch (opType) {
                 case CREATE_FILE_MIRROR:
-                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-                    break;
+                case START_FILE_MIRROR:
                 case SUSPEND_FILE_MIRROR:
-                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-                    break;
                 case DETACH_FILE_MIRROR:
-                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-                    break;
                 case PAUSE_FILE_MIRROR:
-                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-                    break;
                 case RESUME_FILE_MIRROR:
-                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-                    break;
                 case FAILOVER_FILE_MIRROR:
-                    auditFile(dbClient, opType, opStatus, opStage, extParam);
-                    break;
                 case STOP_FILE_MIRROR:
+                case FAILBACK_FILE_MIRROR:
+                case RESYNC_FILE_MIRROR:
                     auditFile(dbClient, opType, opStatus, opStage, extParam);
                     break;
 
@@ -154,9 +165,9 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
      * @param descparams Description paramters
      */
     public static void auditFile(DbClient dbClient, OperationTypeEnum auditType,
-                                 boolean operationalStatus,
-                                 String description,
-                                 Object... descparams) {
+            boolean operationalStatus,
+            String description,
+            Object... descparams) {
         AuditLogManager auditMgr = new AuditLogManager();
         auditMgr.setDbClient(dbClient);
         auditMgr.recordAuditLog(null, null,
@@ -168,8 +179,6 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
                 descparams);
     }
 
-
-
     /**
      *
      * @param dbClient
@@ -179,8 +188,8 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
      * @throws Exception
      */
     public void recordBourneMirrorEvent(DbClient dbClient, URI fileUri,
-                                        String evtType,
-                                        Operation.Status status, String desc)
+            String evtType,
+            Operation.Status status, String desc)
             throws Exception {
 
         RecordableEventManager eventManager = new RecordableEventManager();
@@ -191,7 +200,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
                 "", dbClient, EVENT_SERVICE_TYPE, RecordType.Event.name(), EVENT_SERVICE_SOURCE);
         try {
             eventManager.recordEvents(event);
-            _logger.info("Bourne {} event recorded", evtType);
+            _logger.info("ViPR {} event recorded", evtType);
         } catch (Exception ex) {
             _logger.error(
                     "Failed to record event. Event description: {}. Error: ",
@@ -214,10 +223,10 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
         return fileShareIds;
     }
 
-
     protected FileShare getTargetFileShare() {
         for (FileShare fs : getFileShares()) {
-            if (!NullColumnValueGetter.isNullNamedURI(fs.getParentFileShare()) && !fs.getParentFileShare().getURI().toString().equalsIgnoreCase("null")) {
+            if (!NullColumnValueGetter.isNullNamedURI(fs.getParentFileShare())
+                    && !fs.getParentFileShare().getURI().toString().equalsIgnoreCase("null")) {
                 return fs;
             }
         }
@@ -233,6 +242,38 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
         throw new IllegalStateException("Expected a source FileShare with an non-null Replication parent");
     }
 
+    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
+        return this.mirrorSyncStatus;
+    }
 
+    /**
+     * Setting access state is based on the personality and failover state of the fileshare, regardless of operation
+     * 
+     * @param fs a fileshare impacted by Mirror operation
+     * @return file access state for that fileshare
+     */
+    protected FileShare.FileAccessState getFileShareAccessStateForSuccess(FileShare fs) {
+        // If this fileshare is a source and exported to a host, the is write-disabled. Otherwise it is readwrite.
+        if (fs.getPersonality().equals(FileShare.PersonalityTypes.SOURCE.toString())
+                && fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
+            // Check to see if it's exported
+            URIQueryResultList fsExports = new URIQueryResultList();
+            getDbClient().queryByConstraint(ContainmentConstraint.
+                    Factory.getFileExportRulesConstraint(fs.getId()), fsExports);
+            if (fsExports != null && fsExports.iterator().hasNext()) {
+                // A source file share that is in an exports is write-disabled or not-ready.
+                return FileShare.FileAccessState.NOT_READY;
+            } else {
+                return FileShare.FileAccessState.READWRITE;
+            }
+        } else if (fs.getPersonality().equals(FileShare.PersonalityTypes.SOURCE.toString())
+                && !fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
+            // A target fileshare in any state other than FAILED_OVER is write-disabled or not-ready.
+            return FileShare.FileAccessState.NOT_READY;
+
+        }
+        // Any other state is READWRITE
+        return FileShare.FileAccessState.READWRITE;
+    }
 
 }

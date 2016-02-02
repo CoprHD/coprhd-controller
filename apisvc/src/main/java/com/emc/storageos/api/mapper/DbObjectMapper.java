@@ -6,7 +6,6 @@ package com.emc.storageos.api.mapper;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -18,7 +17,6 @@ import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -28,9 +26,9 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.TenantResource;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.DataObjectRestRep;
@@ -225,6 +223,11 @@ public class DbObjectMapper {
         if (from.getNamespace() != null) {
             to.setNamespace(from.getNamespace());
         }
+        
+        if (from.getNamespaceStorage() != null) {
+            to.setNamespaceStorage(from.getNamespaceStorage());
+        }
+        
         return to;
     }
 
@@ -266,14 +269,15 @@ public class DbObjectMapper {
         to.setSystemDefault(from.getSystemDefault());
         return to;
     }
-    
+
     /**
      * Map an VolumeGroup to VolumeGroupRestRep
+     * 
      * @param from VolumeGroup
      * @return VolumeGroupRestRep
      */
     public static VolumeGroupRestRep map(VolumeGroup from) {
-        if ( from == null) {
+        if (from == null) {
             return null;
         }
         VolumeGroupRestRep rep = new VolumeGroupRestRep();
@@ -308,6 +312,8 @@ public class DbObjectMapper {
         }
         if (from.getSnapshotExpireType() != null) {
             to.setSnapshotExpireType(from.getSnapshotExpireType());
+        }
+        if (from.getSnapshotExpireTime() != null) {
             to.setSnapshotExpireTime(from.getSnapshotExpireTime());
         }
         return to;

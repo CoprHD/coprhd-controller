@@ -124,7 +124,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         for (FileShare filesystem : filesystems) {
             FileDescriptor.Type fileType = FileDescriptor.Type.FILE_MIRROR_SOURCE;
 
-            if (filesystem.getPersonality() != null && 
+            if (filesystem.getPersonality() != null &&
                     filesystem.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())) {
                 fileType = FileDescriptor.Type.FILE_MIRROR_TARGET;
             }
@@ -263,8 +263,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                     if (protectionSettings.getVirtualPool() != null) {
                         targetVpool = _dbClient.queryObject(VirtualPool.class, protectionSettings.getVirtualPool());
                     }
-
-                    fileLabelBuilder = new StringBuilder(sourceFileShare.getLabel().toString()).append("-target-" + targetVArray.getLabel());
+                    fileLabelBuilder = new StringBuilder(sourceFileShare.getLabel())
+                            .append("-target-" + targetVArray.getLabel());
                     targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                             project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
 

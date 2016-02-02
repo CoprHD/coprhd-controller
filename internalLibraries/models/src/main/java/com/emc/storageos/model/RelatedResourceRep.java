@@ -29,7 +29,6 @@ public class RelatedResourceRep {
      * 
      * ViPR ID of the related object
      * 
-     * @valid none
      */
     @XmlElement(name = "id")
     public URI getId() {
@@ -44,7 +43,6 @@ public class RelatedResourceRep {
      * 
      * A hyperlink to the related object
      * 
-     * @valid none
      */
     @XmlElement(name = "link")
     public RestLinkRep getLink() {

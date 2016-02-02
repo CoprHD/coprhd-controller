@@ -116,6 +116,15 @@ public class FileStorageUtils {
         return aclsToAdd;
     }
 
+    public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb,int advisoryLimit, int softLimit, int gracePeriod) {
+        Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb,advisoryLimit, softLimit, gracePeriod, virtualPool, virtualArray, project));
+        addAffectedResource(task);
+        URI fileSystemId = task.getResourceId();
+        addRollback(new DeactivateFileSystem(fileSystemId, FileControllerConstants.DeleteTypeEnum.FULL));
+        logInfo("file.storage.filesystem.task", fileSystemId, task.getOpId());
+        return fileSystemId;
+    }
+    
     public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb) {
         Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, virtualPool, virtualArray, project));
         addAffectedResource(task);
@@ -355,8 +364,8 @@ public class FileStorageUtils {
         return task.getResourceId();
     }
 
-    public static URI createFileSystemQuotaDirectory(URI fileSystemId, String name, Boolean oplock, String securityStyle, String size) {
-        Task<QuotaDirectoryRestRep> task = execute(new CreateFileSystemQuotaDirectory(fileSystemId, name, oplock, securityStyle, size));
+    public static URI createFileSystemQuotaDirectory(URI fileSystemId, String name, Boolean oplock, String securityStyle, String size, int softLimit , int advisoryLimit, int gracePeriod) {
+        Task<QuotaDirectoryRestRep> task = execute(new CreateFileSystemQuotaDirectory(fileSystemId, name, oplock, securityStyle, size,softLimit, advisoryLimit, gracePeriod));
         addAffectedResource(task);
         return task.getResourceId();
     }

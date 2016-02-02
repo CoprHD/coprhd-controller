@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2015-2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -20,6 +20,5 @@ public class IsilonSyncJobStart extends IsilonSyncIQJob {
     public IsilonSyncJobStart(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         super(jobId, storageSystemUri, taskCompleter, jobName);
     }
-    
 
 }

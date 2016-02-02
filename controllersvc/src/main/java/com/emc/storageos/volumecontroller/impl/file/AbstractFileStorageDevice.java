@@ -18,7 +18,6 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
-import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /*
  * Default implementation of FileStorageDevice, so that subclass can just overwrite necessary methods.
@@ -28,7 +27,6 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
 
     @Override
     public void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        // TODO Auto-generated method stub
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
@@ -37,10 +35,10 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
         throw DeviceControllerException.exceptions.operationNotSupported();
 
     }
-    
+
     @Override
     public void doRollbackMirrorLink(StorageSystem system, List<URI> sources,
-                                     List<URI> targets, TaskCompleter completer) {
+            List<URI> targets, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
@@ -49,18 +47,16 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
             TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
 
     @Override
     public void doStartMirrorLink(StorageSystem system, FileShare target,
-            TaskCompleter completer) {
+            TaskCompleter completer, String policyName) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
+
     @Override
     public void doStopMirrorLink(StorageSystem system, FileShare target,
-                                  TaskCompleter completer) {
-        // TODO Auto-generated method stub
+            TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
@@ -75,13 +71,16 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     }
 
     @Override
-    public void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+    public void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
-    
-   
-    
+
+    @Override
+    public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer,
+            String policyName) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
     /**
      * Cancel a replication link.
      *
@@ -90,10 +89,9 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
      * @param completer
      */
     @Override
-    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer){
+    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
 
     @Override
     public BiosCommandResult doCreateFS(StorageSystem storage,
@@ -252,21 +250,6 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj,
             FileDeviceInputOutput args) {
-        throw DeviceControllerException.exceptions.operationNotSupported();
-    }
-
-    @Override
-    public void doCreateMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.operationNotSupported();
-
-    }
-
-    @Override
-    public void doDeleteMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 

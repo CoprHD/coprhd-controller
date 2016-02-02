@@ -26,7 +26,6 @@ public class StorageTierList {
      * List of storage tiers where a storage tier is a
      * collection of multiple pools.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_tier")
     public List<NamedRelatedResourceRep> getStorageTiers() {

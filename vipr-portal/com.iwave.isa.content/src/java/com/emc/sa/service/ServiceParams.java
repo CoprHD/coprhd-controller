@@ -125,8 +125,13 @@ public interface ServiceParams {
     public String OWNER = "owner";
     public String BUCKET = "bucket";
     
+    public String ADVISORY_LIMIT="advisoryLimit";
+    public String SOFT_LIMIT="softLimit";
+    public String GRACE_PERIOD="gracePeriod";
+    
     public String LINKED_SNAPSHOT = "linkedSnapshot";
     public String LINKED_SNAPSHOT_NAME = "linkedSnapshotName";
     public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
     public String LINKED_SNAPSHOT_COPYMODE = "linkedSnapshotCopyMode";
+
 }

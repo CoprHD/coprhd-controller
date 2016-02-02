@@ -87,16 +87,16 @@ public class QuotaClassService extends TaskResourceService {
     public Response updateQuotaClass(@PathParam("tenant_id") String openstackTenantId,            
             CinderQuotaClassDetails quotaClassUpdates, @Context HttpHeaders header) {
     	    
-    	String quotaClassName = quotaClassUpdates.quotaClassSet.get(CinderConstants.CLASS_NAME_KEY);
-    	_log.debug("quotaClassUpdates.quota_class_set is {}",quotaClassUpdates.quotaClassSet);
+    	String quotaClassName = quotaClassUpdates.quota_class_set.get(CinderConstants.CLASS_NAME_KEY);
+    	_log.debug("quotaClassUpdates.quota_class_set is {}",quotaClassUpdates.quota_class_set);
     	
-    	boolean bVpoolQuotaUpdate = isVpoolQuotaUpdate(quotaClassUpdates.quotaClassSet);
+    	boolean bVpoolQuotaUpdate = isVpoolQuotaUpdate(quotaClassUpdates.quota_class_set);
     	    	
     	String vpoolName = null;
     	VirtualPool objVpool = null;
     	
     	if(bVpoolQuotaUpdate){
-			vpoolName = getVpoolName(quotaClassUpdates.quotaClassSet);
+			vpoolName = getVpoolName(quotaClassUpdates.quota_class_set);
             _log.debug("Vpool for which quota is being updated is {}", vpoolName);
             objVpool = getCinderHelper().getVpool(vpoolName);
 
@@ -116,7 +116,7 @@ public class QuotaClassService extends TaskResourceService {
     		if(quotaClass.getQuotaClass().equals(quotaClassName)){
     			_log.debug("quotaClass.getLimits() is {}",quotaClass.getLimits());
     			HashMap<String,String> qMap = (HashMap<String, String>)getQuotaHelper().convertKeyValPairsStringToMap(quotaClass.getLimits());
-    			qMap.putAll(quotaClassUpdates.quotaClassSet);
+    			qMap.putAll(quotaClassUpdates.quota_class_set);
     			qMap.remove("class_name");
     			quotaClass.setLimits(getQuotaHelper().convertMapToKeyValPairsString(qMap));
     			_dbClient.updateObject(quotaClass);    
@@ -135,8 +135,8 @@ public class QuotaClassService extends TaskResourceService {
     			//						"gigabytes": 1000, 
     			//						"gigabytes_vt-1": -1, "volumes": 10 }}
     			qMap = getQuotaHelper().populateVolumeTypeDefaultsForQuotaClass(qMap , openstackTenantId, null);
-    			resp.quotaClassSet.putAll(qMap);
-    			_log.debug("resp.quota_class_set is {}" , resp.quotaClassSet.toString());
+    			resp.quota_class_set.putAll(qMap);
+    			_log.debug("resp.quota_class_set is {}" , resp.quota_class_set.toString());
     			return getQuotaClassDetailFormat(header, resp);
     		}
     		else{
@@ -155,14 +155,14 @@ public class QuotaClassService extends TaskResourceService {
     	qMap.putAll(getQuotaHelper().convertKeyValPairsStringToMap(getQuotaHelper().createDefaultLimitsInStrFormat(null)));
     	//project level quota attributes, if defined explicitly in the Update request, then we overwrite the defaults we
     	//loaded in the previous step
-		qMap.putAll(quotaClassUpdates.quotaClassSet);
+		qMap.putAll(quotaClassUpdates.quota_class_set);
 		//remove this class_name attribute as it is not needed in the PUT response.
 		qMap.remove(CinderConstants.CLASS_NAME_KEY);
 		
 		objQuotaClass.setLimits(getQuotaHelper().convertMapToKeyValPairsString(qMap));		
     	objQuotaClass.setId(URI.create(UUID.randomUUID().toString()));
         _dbClient.createObject(objQuotaClass);
-		resp.quotaClassSet.putAll(qMap);
+		resp.quota_class_set.putAll(qMap);
 		
     	return getQuotaClassDetailFormat(header, resp);
     }
@@ -190,17 +190,22 @@ public class QuotaClassService extends TaskResourceService {
     	CinderQuotaClassDetails respCinderQuota = new CinderQuotaClassDetails();
     	
     	HashMap<String, String>  defaultQuotaMap = getQuotaHelper().loadFromDbQuotaClass(quotaClassName);
-    	_log.debug("defaultQuotaMap is {}", defaultQuotaMap.toString());
     	
     	if(defaultQuotaMap == null){
-    		_log.error("quota class with the given name doesnt exist");
-            throw APIException.badRequests.parameterIsNotValid(quotaClassName);
+    		if(quotaClassName.equals(CinderConstants.DEFAULT_QUOTA_CLASS)){
+    			defaultQuotaMap = getQuotaHelper().loadDefaultsMapFromDb();
+    		}
+    		else{
+	    		_log.error("quota class with the given name doesnt exist");
+	            throw APIException.badRequests.parameterIsNotValid(quotaClassName);
+    		}
     	}
-    				
+    	_log.debug("defaultQuotaMap is {}", defaultQuotaMap.toString());
+    	
 		defaultQuotaMap = getQuotaHelper().populateVolumeTypeDefaultsForQuotaClass(defaultQuotaMap , tenantId, null);
-		respCinderQuota.quotaClassSet.putAll(defaultQuotaMap); 
+		respCinderQuota.quota_class_set.putAll(defaultQuotaMap); 
 		    	
-    	_log.debug("respCinderQuota is {}", respCinderQuota.quotaClassSet.toString());
+    	_log.debug("respCinderQuota is {}", respCinderQuota.quota_class_set.toString());
     	return getQuotaClassDetailFormat(header, respCinderQuota);    	
     }
     
@@ -212,7 +217,7 @@ public class QuotaClassService extends TaskResourceService {
     private Response getQuotaClassDetailFormat(HttpHeaders header, CinderQuotaClassDetails respCinderClassQuota) {
         if (CinderApiUtils.getMediaType(header).equals("xml")) {
             return CinderApiUtils.getCinderResponse(CinderApiUtils
-                    .convertMapToXML(respCinderClassQuota.quotaClassSet, "quota_set"),
+                    .convertMapToXML(respCinderClassQuota.quota_class_set, "quota_set"),
                     header, false);
         } else if (CinderApiUtils.getMediaType(header).equals("json")) {
             return CinderApiUtils.getCinderResponse(respCinderClassQuota, header, false);

@@ -386,7 +386,7 @@ public class QuotaService extends TaskResourceService {
     private Response getQuotaClassDetailFormat(HttpHeaders header, CinderQuotaClassDetails respCinderClassQuota) {
         if (CinderApiUtils.getMediaType(header).equals("xml")) {
             return CinderApiUtils.getCinderResponse(CinderApiUtils
-                    .convertMapToXML(respCinderClassQuota.quotaClassSet, "quota_set"),
+                    .convertMapToXML(respCinderClassQuota.quota_class_set, "quota_set"),
                     header, false);
         } else if (CinderApiUtils.getMediaType(header).equals("json")) {
             return CinderApiUtils.getCinderResponse(respCinderClassQuota, header, false);

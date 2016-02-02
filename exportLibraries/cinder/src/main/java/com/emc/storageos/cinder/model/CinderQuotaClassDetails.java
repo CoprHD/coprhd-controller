@@ -31,10 +31,10 @@ public class CinderQuotaClassDetails {
      */
 	
     @XmlElement(name = "quota_class_set")
-    public Map<String, String> quotaClassSet = new HashMap<String, String>();
+    public Map<String, String> quota_class_set = new HashMap<String, String>();
          
     public Map<String, String> getQuotaClass_set() {
-        return quotaClassSet;
+        return quota_class_set;
     }
 
 }

@@ -15,6 +15,11 @@ VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso
 ISO_URL := http://download.opensuse.org/distribution/13.2/iso/$(ISO_FILE)
 SOURCE_RPM := jenkins
+STORAGEOS_VERSION := 2.5.0.0
+STORAGEOS_STABLE := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-master/lastStableBuild/buildNumber)
+ifeq ($(SOURCE_RPM),jenkins)
+    JOB := $(STORAGEOS_STABLE)
+endif
 
 ##################################################
 #  Target files/folders
@@ -24,13 +29,7 @@ OUTPUT_DIR := $(WORKSPACE)/output/$(JOB)
 BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 VMDK := $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
 OVF := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
-STORAGEOS_VERSION := 2.5.0.0
-STORAGEOS_STABLE := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-master/lastStableBuild/buildNumber)
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
-
-ifeq ($(SOURCE_RPM),jenkins)
-    JOB := $(STORAGEOS_STABLE)
-endif
 
 .DEFAULT: all
 .PHONY: downdloadISO downdloadRPM downdloadTGZ createREPO appliance clean destroy

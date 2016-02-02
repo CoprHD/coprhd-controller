@@ -3483,6 +3483,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return waitFor = DELETE_FILESYSTEMS_STEP;
     }
 
+    /*
+     * Expand filesystem
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface#addStepsForExpandFileSystems(com.emc.storageos.workflow.
+     * Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
@@ -3490,8 +3498,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         List<FileDescriptor> sourceDescriptors =
                 FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                         FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
-                        FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                        FileDescriptor.Type.FILE_MIRROR_TARGET);
+                        FileDescriptor.Type.FILE_MIRROR_SOURCE);
         if (sourceDescriptors == null || sourceDescriptors.isEmpty()) {
             return waitFor;
         } else {
@@ -3563,6 +3570,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      */
     private String createExpandMirrorFileshareStep(Workflow workflow,
             String waitFor, List<FileDescriptor> fileDescriptors, String taskId) {
+        _log.info("START Expand file system");
         Map<URI, Long> filesharesToExpand = new HashMap<URI, Long>();
         for (FileDescriptor descriptor : fileDescriptors) {
             // Grab the fileshare, let's see if an expand is really needed

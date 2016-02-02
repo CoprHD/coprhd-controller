@@ -1134,7 +1134,7 @@ public class FileService extends TaskResourceService {
         // check file System
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+
         Long newFSsize = SizeUtil.translateSize(param.getNewSize());
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
         if (newFSsize <= 0) {

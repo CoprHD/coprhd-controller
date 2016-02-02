@@ -249,14 +249,14 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
                     _log.info("Updating Initiator label from {} to {} in ViPR DB", initiatorObj.getLabel(), initiator.getName());
                     initiatorObj.setLabel(initiator.getName());
-                    initiatorObj.getInitiatorNames().put(storage.getSerialNumber(), initiator.getName());
+                    initiatorObj.mapInitiatorName(storage.getSerialNumber(), initiator.getName());
                     initiatorObjs.add(initiatorObj);
                 } else {
                     _log.info("No initiator objects in vipr db for port address {}", initiator.getPortAddress());
                 }
             }
             if (!initiatorObjs.isEmpty()) {
-                dbClient.updateAndReindexObject(initiatorObjs);
+                dbClient.updateObject(initiatorObjs);
             }
         } catch (Exception e) {
             _log.warn("Refreshing XtremIO Initiator ports failed", e);

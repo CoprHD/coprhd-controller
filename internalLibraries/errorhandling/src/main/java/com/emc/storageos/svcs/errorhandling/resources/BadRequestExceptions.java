@@ -2827,10 +2827,10 @@ public interface BadRequestExceptions {
     public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException assoicatedPolicyTenantMismach(URI fp, URI fs);
+    public BadRequestException associatedPolicyTenantMismatch(URI fp, URI fs);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotFindAssoicatedPolicy(URI fp);
+    public BadRequestException cannotFindAssociatedPolicy(URI fp);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicatePolicyAssociation(URI fp);

@@ -21,5 +21,16 @@
 
 DIR=/opt/storageos/bin
 
+check_password() {                                                              
+    local password="$1"
+    echo "${password}" | sudo -S ls /tmp &>/dev/null
+
+    if [ $? -ne 0 ]; then
+        echo "Invalid root password"
+        exit 1 
+    fi
+}
+
+check_password "$2"
+
 nohup ${DIR}/restore-internal.sh "$1" "$2" "$3" "$4"& 
-exit 0

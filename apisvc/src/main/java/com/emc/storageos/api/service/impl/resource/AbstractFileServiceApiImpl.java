@@ -188,7 +188,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
             List<String> targetfileUris = new ArrayList<String>();
 
             // if filesystem is target then throw exception
-            if (fileshare.getMirrorfsTargets() != null && fileshare.getMirrorfsTargets().isEmpty()) {
+            if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
                 targetfileUris.addAll(fileshare.getMirrorfsTargets());
             }
 

@@ -105,6 +105,7 @@ nav.tasks=Tasks
 # Subnavigation
 nav.vdcs=Virtual Data Centers
 nav.projects=Projects
+nav.schedulepolicies=Schedule Policies
 nav.consistencyGroups=Consistency Groups
 nav.license=License
 nav.supportRequest=Support Request
@@ -657,26 +658,19 @@ VCenters.detachStorageConfirm=Are you sure you want to detach storage from the s
 VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s).
 
 #Application Support
-Application.list.title=Applications
-application.name=Application	
-application.description=Description	
-application.role=Role
-Application.deleteConfirm=Are you sure you want to delete the Application(s).
-ApplicationForm.create.title=Create Application
+applicationGroup.list.title=Applications
+applicationGroup.name=Application Name
+applicationGroup.description=Description	
+applicationGroup.role=Role
+applicationGroup.deleteConfirm=Are you sure you want to delete the Application(s).
+applicationGroup.create.title=Create Application
+applicationGroup.edit.title=Edit Application
+applicationGroup.create.description=Enter information needed for an Application
+applicationGroup.save.success=Saved '%s'
 
-ApplicationForm.edit.title=Edit Application
-application.create.description=Enter information needed for an Application
-applicationForm.name=Application Name
-applicationForm.description=Description
-applicationForm.roles=Roles
-application.volume=Volumes
-application.clones=Clones
-application.snapshot=Snapshots
-application.mirror=Mirrors
-application.save.success=Saved '%s'
-applications.deleted=Application(s) deleted successfully
-Application.unknown=Unknown Application with ID '%s'
-application.resources.title=Application
+applicationGroup.deleted=Application(s) deleted successfully
+applicationGroup.unknown=Unknown Application with ID '%s'
+applicationGroup.resources.title=Application
 
 # Custom Config
 CustomConfigs.list.title=Controller Configurations
@@ -1225,6 +1219,36 @@ project.enableQuota=Enable Quota
 project.quota.error.required=A quota must be supplied if quotas enabled
 project.quota.error.invalid=Quota must be an integer value
 project.owner.error.invalid=Not a valid username.
+
+schedulepolicies.policyName=Name
+schedulepolicies.policyType=Type
+schedulepolicies.list.title=Schedule Policies
+schedulepolicies.deleted=Schedule Policies deleted successfully.
+schedulepolicies.deleteConfirm=Are you sure you want to delete these Policies?
+schedulepolicies.create.title=Create Policy
+schedulepolicies.edit.title=Edit Policy
+schedulePolicy.policyName=Name
+schedulePolicy.policyType=Type
+schedulePolicy.scheduleTime=Schedule Time
+schedulePolicy.scheduleTime.help=(HH:MM)
+schedulePolicy.repeat=Generate Snapshot every
+schedulePolicy.dayOfWeek=Day of Week
+schedulePolicy.dayOfMonth=Day of Month
+schedulePolicy.daily=Daily
+schedulePolicy.weekly=Weekly
+schedulePolicy.monthly=Monthly
+schedulePolicy.frequency=Frequency
+schedulePolicy.snapshot=Snapshot
+schedulePolicy.hours=Hour(s)
+schedulePolicy.days=Day(s)
+schedulePolicy.weeks=Weeks(s)
+schedulePolicy.months=Month(s)
+schedulePolicy.years=Year(s)
+schedulePolicy.expire.never=Never expires
+schedulePolicy.expire.value=Snapshot expires
+schedulePolicy.expiration=Snapshot Expiration
+schedulePolicy.policyName.error.required=Policy name must be supplied
+filePolicy.name=Policy Name
 
 vdcs.list.title=Virtual Data Centers
 vdcs.edit.title=Edit Virtual Data Center
@@ -2207,7 +2231,7 @@ vpool.replicationCopies=Replication Copies
 vpool.remoteVirtualArray=Virtual Array
 vpool.remoteVirtualPool=Virtual Pool
 vpool.replicationType=Replication Type
-
+vpool.scheduleSnapshots=Schedule Snapshots
 # File Replication
 replicationCopy.virtualArray=Virtual Array
 replicationCopy.virtualPool=Virtual Pool
@@ -3336,6 +3360,12 @@ resources.filesystem.vpool=Virtual Pool
 resources.filesystem.protocols=Protocols
 resources.filesystem.storageport=Storage Port
 resources.filesystem.storagepool=Storage Pool
+resources.filesystem.softLimit=Soft Limit (%%)
+resources.filesystem.softGrace=Grace Period (Days)
+resources.filesystem.notificationLimit=Advisory Limit (%%)
+resources.filesystem.softLimitExeeded=Capacity exceeded
+
+
 resources.filesystem.storagesystem=Storage System
 resources.filesystem.thinly=Thinly Provisioned
 resources.filesystem.nativeid=Native ID
@@ -3354,6 +3384,13 @@ resources.filesystems.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed? 
 resources.filesystem.quotaDirectory=Quota Directory
 resources.filesystem.nfsAccessControl=NFS Access Controls
 resources.filesystem.nfs.acl.none=No NFS Access Controls
+resources.filesystem.snapshotPolicies=Snapshot Policies
+resources.filesystem.snapshotPolicies.none=No Snapshot Policies
+resources.filesystem.policy.name=Policy Name
+resources.filesystem.snapshot.pattern=Snapshot Pattern
+resources.filesystem.snapshot.policy.assign=Assign Policy
+resources.filesystem.policy.none=No Policies
+resources.filesystem.policy.unassign.confirm=Are you sure you want to unassign this policy  from the file system?
 
 resources.filesystem.export.mountpoint=Mount Point
 resources.filesystem.export.exportPath=Export Path
@@ -3604,6 +3641,8 @@ fileSystems.capacity=Size
 fileSystems.vpool=Virtual Pool
 fileSystems.varray=Virtual Array
 fileSystems.protocols=Protocols
+fileSystems.status=Status
+
 
 blockStorageTable.name=Name
 blockStorageTable.size=Size
@@ -3670,6 +3709,8 @@ button.addExisting=Add Existing
 button.addExportRule=Add Export Rule
 button.updateAcl=Access Control
 button.addNfsAcl=Add Access Controls
+button.assignPolicy=Assign Policy
+button.unassignPolicy=Unassign Policy
 button.addSubDir=Add Share
 button.duplicate=Duplicate
 button.cancel=Cancel
@@ -4198,6 +4239,9 @@ renderFunctions.disasterRecovery.networkHealth.good=Good
 renderFunctions.disasterRecovery.networkHealth.slow=Slow
 renderFunctions.disasterRecovery.networkHealth.broken=Broken
 
+renderFunctions.filesystems.status.exceeded=File System Softlimits exceeded
+renderFunctions.filesystems.status.normal=File System Softlitmits Normal
+renderFunctions.filesystems.status.notset=N/A
 
 templates.knob.label=%s of %s
 

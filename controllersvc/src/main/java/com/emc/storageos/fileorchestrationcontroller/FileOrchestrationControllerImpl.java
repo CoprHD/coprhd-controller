@@ -36,6 +36,12 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         execOrchestration("expandFileSystem", fileDescriptors, taskId);
     }
 
+    @Override
+    public void createTargetsForExistingSource(String sourceFs,
+            List<FileDescriptor> fileDescriptors, String taskId) throws ControllerException {
+        execOrchestration("createTargetsForExistingSource", sourceFs, fileDescriptors, taskId);
+    }
+
     // getter and setter methods
     public FileOrchestrationController getController() {
         return _controller;

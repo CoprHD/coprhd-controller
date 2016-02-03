@@ -207,6 +207,7 @@
         #{/deadbolt.restrict}            
         #{deadbolt.restrict roles:[['TENANT_ADMIN'], ['PROJECT_ADMIN']]}
           #{nav.item 'projects', href: @tenant.Projects.list()/}
+          #{nav.item 'schedulepolicies', href: @tenant.SchedulePolicies.list()/}
           #{license.ifController}
             #{nav.item 'consistencygroups', href: @resources.ConsistencyGroups.list()/}
           #{/license.ifController}

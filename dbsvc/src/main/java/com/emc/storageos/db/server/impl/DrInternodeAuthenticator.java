@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import com.emc.storageos.model.property.PropertyConstants;
 import org.apache.cassandra.auth.IInternodeAuthenticator;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.slf4j.Logger;
@@ -56,7 +57,7 @@ public class DrInternodeAuthenticator implements IInternodeAuthenticator {
         isDegraded = localSite.getState().equals(SiteState.STANDBY_DEGRADED)
                 || localSite.getState().equals(SiteState.STANDBY_DEGRADING);
         Collection<String> nodeAddrList = localSite.getHostIPv4AddressMap().values();
-        if (nodeAddrList.isEmpty()) {
+        if (localSite.getVip().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
             nodeAddrList = localSite.getHostIPv6AddressMap().values();
         }
         for (String nodeAddr : nodeAddrList) {

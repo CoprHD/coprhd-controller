@@ -24,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -902,10 +903,10 @@ public class VdcConfigHelper {
             vdcConfig.setShortId(vdc.getShortId());
             Site activeSite = drUtil.getActiveSite(vdc.getShortId());
             
-            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty()) {
+            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getVip().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
                 HashMap<String, String> addressMap = new HashMap<String, String>(activeSite.getHostIPv4AddressMap());
                 vdcConfig.setHostIPv4AddressesMap(addressMap);
-            } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getHostIPv6AddressMap().isEmpty()) {
+            } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getVip().equals(PropertyConstants.IPV6_ADDR_DEFAULT)) {
                 HashMap<String, String> addressMap = new HashMap<String, String>(activeSite.getHostIPv6AddressMap());
                 vdcConfig.setHostIPv6AddressesMap(addressMap);
             } else {

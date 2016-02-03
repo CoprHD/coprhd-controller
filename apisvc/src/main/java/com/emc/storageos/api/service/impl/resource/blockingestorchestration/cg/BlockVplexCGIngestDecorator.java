@@ -17,6 +17,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
+import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -46,7 +47,16 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
 
         // Add a system consistency group mapping for the varray the cluster is connected to
         try {
+            // In the case of RP CGs initiating the creation of the CG, it is possible that non-VPLEX volumes 
+            // that are NOT backing volumes to VPLEX will be in the CG.  This check will filter those out from
+            // VPLEX analysis/processing.
+            if (!VolumeIngestionUtil.isVplexBackendVolume(umv)) {
+                return;
+            }
+            
             StorageSystem system = dbClient.queryObject(StorageSystem.class, umv.getStorageSystemUri());
+            Volume volume = (Volume)requestContext.findCreatedBlockObject(umv.getNativeGuid());
+            consistencyGroup.setVirtualArray(volume.getVirtualArray());
             String vplexClusterName = VPlexControllerUtils.getVPlexClusterName(
                     dbClient, consistencyGroup.getVirtualArray(), system.getId());
             if (vplexClusterName != null) {
@@ -106,8 +116,9 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
     public List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext) {
         // If the UMV is RP, then this should return all RP => VPLEX volumes else just return vplex volume
         List<BlockObject> associatedObjects = new ArrayList<BlockObject>();
-        boolean isRP = false;
-        if (isRP) {
+
+        // If this is RP, filter out only the VPLEX volumes
+        if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
             // Get all of the block objects that are in the protection set
             RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
             ProtectionSet pset = rpContext.getManagedProtectionSet();

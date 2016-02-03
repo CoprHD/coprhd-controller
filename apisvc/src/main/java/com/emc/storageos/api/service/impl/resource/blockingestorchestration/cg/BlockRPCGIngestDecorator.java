@@ -23,6 +23,11 @@ public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
     @Override
     protected List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
             throws Exception {
+        return BlockRPCGIngestDecorator.getAssociatedObjectsStatic(cg, umv, requestContext);
+    }
+
+    public static List<BlockObject> getAssociatedObjectsStatic(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
+            throws Exception {
         // Get all of the block objects that are in the protection set
         RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
         ProtectionSet pset = rpContext.getManagedProtectionSet();
@@ -51,7 +56,7 @@ public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
         }
         return boList;
     }
-
+    
     @Override
     public void decorateCG(BlockConsistencyGroup cg, UnManagedVolume umv, List<BlockObject> associatedObjects,
             IngestionRequestContext requestContext)

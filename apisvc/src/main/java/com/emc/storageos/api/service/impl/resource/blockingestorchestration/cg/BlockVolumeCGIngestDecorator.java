@@ -4,7 +4,11 @@
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -12,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -20,9 +25,11 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.util.VPlexUtil;
 
 public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
     private static final Logger logger = LoggerFactory.getLogger(BlockVolumeCGIngestDecorator.class);
@@ -96,20 +103,59 @@ public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
             }
         } else {
             UnManagedConsistencyGroup umcg = VolumeIngestionUtil.getUnManagedConsistencyGroup(umv, dbClient);
-            if (umcg.getLabel().equalsIgnoreCase(cg.getLabel())) {
-                StringMap managedVolumeMap = umcg.getManagedVolumesMap();
-                if (null != managedVolumeMap && !managedVolumeMap.isEmpty()) {
-                    for (Entry<String, String> managedVolumeMapEntry : managedVolumeMap.entrySet()) {
-                        BlockObject blockObject = requestContext.findCreatedBlockObject(managedVolumeMapEntry.getKey());
-                        if (null == blockObject) {
-                            blockObject = VolumeIngestionUtil.getBlockObject(managedVolumeMapEntry.getKey(), dbClient);
+            if (umcg != null) {
+                if (umcg.getLabel().equalsIgnoreCase(cg.getLabel())) {
+                    StringMap managedVolumeMap = umcg.getManagedVolumesMap();
+                    if (null != managedVolumeMap && !managedVolumeMap.isEmpty()) {
+                        for (Entry<String, String> managedVolumeMapEntry : managedVolumeMap.entrySet()) {
+                            BlockObject blockObject = requestContext.findCreatedBlockObject(managedVolumeMapEntry.getKey());
                             if (null == blockObject) {
-                                logger.warn("BlockObject {} is not yet ingested", managedVolumeMapEntry.getKey());
-                                continue;
+                                blockObject = VolumeIngestionUtil.getBlockObject(managedVolumeMapEntry.getKey(), dbClient);
+                                if (null == blockObject) {
+                                    logger.warn("BlockObject {} is not yet ingested", managedVolumeMapEntry.getKey());
+                                    continue;
+                                }
+                            }
+                            associatedObjects.add(blockObject);
+                        }
+                    }
+                }
+            } else {
+                // In the case of RP, we want the block decorator to care about:
+                // Non-VPLEX volumes in the protection set
+                // VPLEX volume's backing volumes only
+                Collection<BlockObject> blockObjects = BlockRPCGIngestDecorator.getAssociatedObjectsStatic(cg, umv, requestContext);
+                if (blockObjects != null) {
+                    Iterator<BlockObject> blockObjectItr = blockObjects.iterator();
+                    while (blockObjectItr.hasNext()) {
+                        // Is this a VPLEX volume?
+                        Volume volume = (Volume)blockObjectItr.next();
+                        if (!volume.checkForVplexVirtualVolume(dbClient)) {
+                            associatedObjects.add(volume);
+                        } else {
+                            // Get the back-end volume(s)
+                            StringSet associatedVolumeIds = volume.getAssociatedVolumes();
+                            if (associatedVolumeIds != null) {
+                                for (String associatedVolumeId : associatedVolumeIds) {
+                                    // First look in created block objects for the associated volumes.  This would be the latest version.
+                                    BlockObject blockObject = requestContext.findCreatedBlockObject(associatedVolumeId);
+                                    if (blockObject == null) {
+                                        // Next look in the updated objects.
+                                        blockObject = (BlockObject)requestContext.findInUpdatedObjects(URI.create(associatedVolumeId));
+                                    }
+                                    if (blockObject == null) {
+                                        // Finally look in the DB itself.  It may be from a previous ingestion operation.
+                                        blockObject = dbClient.queryObject(Volume.class, URI.create(associatedVolumeId));
+                                        // Since I pulled this in from the database, we need to add it to the list of objects to update.
+                                        ((RecoverPointVolumeIngestionContext)requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(blockObject.getNativeGuid(), Arrays.asList(blockObject));
+                                    }
+                                    if (blockObject != null) {
+                                        associatedObjects.add(blockObject);
+                                    }
+                                }
                             }
                         }
-                        associatedObjects.add(blockObject);
-                    }
+                    }                            
                 }
             }
 

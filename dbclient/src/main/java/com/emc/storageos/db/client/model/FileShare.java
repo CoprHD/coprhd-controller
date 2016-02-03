@@ -104,7 +104,8 @@ public class FileShare extends FileObject implements ProjectResource {
         CONSISTENT("4"),
         FAILED_BACK("5"),
         DETACHED("6"),
-        OTHER("7");
+        OTHER("7"),
+        SYNCED("8");
         private final String status;
 
         MirrorStatus(String status) {

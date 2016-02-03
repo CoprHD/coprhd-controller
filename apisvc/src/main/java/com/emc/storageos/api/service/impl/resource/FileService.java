@@ -229,13 +229,14 @@ public class FileService extends TaskResourceService {
 
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
-        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
-                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
-                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
-                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
-                                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), UNKNOWN("unknown",
-                                                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
+        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER),
+        FAILBACK("failback", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
+        START("start", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
+        STOP("stop", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
+        PAUSE("pause", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE),
+        RESUME("resume", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME),
+        REFRESH("refresh", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH),
+        UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -2770,6 +2771,34 @@ public class FileService extends TaskResourceService {
             throws ControllerException {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         return performFileProtectionAction(param, id, ProtectionOp.START.getRestOp());
+    }
+
+    /**
+     * 
+     * Refresh continuous copies.
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param id
+     *            the URN of a ViPR Source fileshare
+     * @param param
+     *            List of copies to refresh
+     * 
+     * @brief Refresh continuous copies.
+     * @return TaskList
+     * 
+     * @throws ControllerException
+     * 
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/refresh")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList refreshContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
+            throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        return performFileProtectionAction(param, id, ProtectionOp.REFRESH.getRestOp());
     }
 
     /**

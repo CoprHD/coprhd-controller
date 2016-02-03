@@ -172,6 +172,7 @@ public enum OperationTypeEnum {
     FAILBACK_FILE_MIRROR("FileSystemMirrorFailback", "FileSystemMirrorFailbackFailed", "FileSystemMirror Fail Back"),
     STOP_FILE_MIRROR("FileSystemMirrorStop", "FileSystemMirrorStopFailed", "FileSystemMirror Stop"),
     START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
+    REFRESH_FILE_MIRROR("FileSystemMirrorRefresh", "FileSystemMirrorRefreshFailed", "FileSystemMirror Refresh"),
     RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
 
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),

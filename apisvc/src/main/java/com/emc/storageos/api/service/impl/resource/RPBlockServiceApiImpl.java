@@ -1333,9 +1333,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     break;
                 }
             }
-            
-            // Special case if it's a change vpool and all XIO, we can simply reuse the source capacity
-            // so that the target(s) have the all the same size.
+                       
+            // XtremIO target is added to a replication set, it must be exactly the same size as the
+            // source volume. It cannot be larger or smaller.
+            // This is a special case for change vpool to ensure this is true.
             if (storageSystemsMatch 
                     && isChangeVpool
                     && DiscoveredDataObject.Type.xtremio.name().equals(storageSystem.getSystemType())) {                

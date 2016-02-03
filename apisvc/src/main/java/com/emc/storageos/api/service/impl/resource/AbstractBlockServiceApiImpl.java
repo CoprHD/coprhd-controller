@@ -1239,7 +1239,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             // Note that we must go back to the database to get the latest snapshot status map.
             for (BlockSnapshot snapshot : allSnapshots) {
                 BlockSnapshot updatedSnapshot = _dbClient.queryObject(BlockSnapshot.class, snapshot.getId());
-                Operation op = snapshot.getOpStatus().get(taskId);
+                Operation op = updatedSnapshot.getOpStatus().get(taskId);
                 op.ready("Snapshot succesfully deleted from ViPR");
                 updatedSnapshot.getOpStatus().updateTaskStatus(taskId, op);
                 _dbClient.updateObject(updatedSnapshot);

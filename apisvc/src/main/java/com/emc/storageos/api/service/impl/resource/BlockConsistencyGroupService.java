@@ -34,6 +34,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.model.block.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,21 +89,6 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupBulkRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
-import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
-import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
-import com.emc.storageos.model.block.BlockSnapshotRestRep;
-import com.emc.storageos.model.block.BlockSnapshotSessionList;
-import com.emc.storageos.model.block.BulkDeleteParam;
-import com.emc.storageos.model.block.CopiesParam;
-import com.emc.storageos.model.block.Copy;
-import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.SnapshotSessionCreateParam;
-import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
-import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -1471,6 +1457,58 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
+     * The method implements the API to create and link new target
+     * volumes to an existing BlockSnapshotSession instance.
+     *
+     * @brief Link target volumes to a snapshot session.
+     *
+     * @prereq The block snapshot session has been created and the maximum
+     *         number of targets has not already been linked to the snapshot sessions
+     *         for the source object.
+     *
+     * @param id The URI of the BlockSnapshotSession instance to which the
+     *            new targets will be linked.
+     * @param param The linked target information.
+     *
+     * @return A TaskList representing the snapshot session task.
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions/{sid}/link-targets")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList linkTargetVolumes(@PathParam("id") URI id,
+                                      @PathParam("sid") URI sessionId,
+                                      SnapshotSessionLinkTargetsParam param) {
+        validateSessionPartOfConsistencyGroup(id, sessionId);
+        return getSnapshotSessionManager().linkTargetVolumesToSnapshotSession(sessionId, param);
+    }
+
+    /**
+     * The method implements the API to unlink target volumes from an existing
+     * BlockSnapshotSession instance and optionally delete those target volumes.
+     *
+     * @brief Unlink target volumes from a snapshot session.
+     *
+     * @prereq A snapshot session is created and target volumes have previously
+     *         been linked to that snapshot session.
+     *
+     * @param id The URI of the BlockSnapshotSession instance to which the targets are linked.
+     * @param param The linked target information.
+     *
+     * @return A TaskResourceRep representing the snapshot session task.
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions/{sid}/unlink-targets")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskResourceRep unlinkTargetVolumesForSession(@PathParam("id") URI id,
+                                                         @PathParam("sid") URI sessionId,
+                                                         SnapshotSessionUnlinkTargetsParam param) {
+        validateSessionPartOfConsistencyGroup(id, sessionId);
+        return getSnapshotSessionManager().unlinkTargetVolumesFromSnapshotSession(sessionId, param);
+    }
+
+    /**
      * Activate the specified consistency group full copy.
      * 
      * @prereq Create consistency group full copy as inactive.
@@ -2185,6 +2223,24 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (volumeGroup != null) {
             throw APIException.badRequests.replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(volumeGroup.getLabel(),
                     replicaType);
+        }
+    }
+
+    private void validateSessionPartOfConsistencyGroup(URI cgId, URI sessionId) {
+        ArgValidator.checkUri(sessionId);
+        ArgValidator.checkUri(cgId);
+
+        BlockSnapshotSession session = _dbClient.queryObject(BlockSnapshotSession.class, sessionId);
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+
+        if (session == null) {
+            throw APIException.notFound.unableToFindEntityInURL(sessionId);
+        }
+        if (cg == null) {
+            throw APIException.notFound.unableToFindEntityInURL(cgId);
+        }
+        if (!cg.getId().equals(session.getConsistencyGroup())) {
+            throw APIException.badRequests.snapshotSessionIsNotForConsistencyGroup(session.getLabel(), cg.getLabel());
         }
     }
     

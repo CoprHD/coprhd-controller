@@ -139,21 +139,33 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         IsilonApi isiSecondary = getIsilonDevice(systemTarget);
         try {
             policy = isiPrimary.getReplicationPolicy(policyName);
-            localTarget = isiSecondary.getTargetReplicationPolicy(policyName);
 
-            if (!policy.getEnabled()) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.DETACHED);
-            } else if (policy.getLastStarted() == null) {
+            if (policy.getLastStarted() == null && !policy.getEnabled()) {
                 mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
-            } else if (policy.getLastStarted() != null && !policy.getEnabled()) {
+            }
+            if (policy.getLastStarted() != null && !policy.getEnabled()) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.DETACHED);
+            }
+            if (policy.getLastStarted() != null && policy.getLastJobState().equals(JobState.paused)) {
                 mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SUSPENDED);
-            } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);
-            } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled) &&
-                    policy.getLastJobState().equals(JobState.finished)) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCHRONIZED);
-            } else if (policy.getLastJobState().equals(JobState.running)) {
+            }
+            if (policy.getLastStarted() != null) {
+                localTarget = isiSecondary.getTargetReplicationPolicy(policyName);
+                if (localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
+                    mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);
+                }
+            }
+            if (policy.getLastStarted() != null && policy.getLastJobState().equals(JobState.finished)) {
+                localTarget = isiSecondary.getTargetReplicationPolicy(policyName);
+                if (localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled)) {
+                    mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCHRONIZED);
+                }
+            }
+            if (policy.getLastJobState().equals(JobState.running)) {
                 mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.IN_SYNC);
+            }
+            if (policy.getLastJobState().equals(JobState.failed) || policy.getLastJobState().equals(JobState.needs_attention)) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.ERROR);
             }
             completer.ready(_dbClient);
         } catch (IsilonException e) {

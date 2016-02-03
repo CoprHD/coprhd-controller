@@ -7768,7 +7768,9 @@ backuprestore_tests()
     remote_backup_file=""
 
     backup_tests "${backupname}" "${backupname2}" "${filepath}"
+    set +E
     restore_tests "${filepath}"
+    set -E
 }
 
 backup_tests()
@@ -7938,7 +7940,6 @@ restore_tests()
 
     for (( i=0; i<240; i++ )); do
        security login $SYSADMIN $SYSADMIN_PASSWORD
-
        if [[ $? -eq 0 ]]; then
             break;
        fi

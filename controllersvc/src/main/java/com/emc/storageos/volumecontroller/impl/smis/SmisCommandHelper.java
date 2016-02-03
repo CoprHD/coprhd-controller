@@ -742,6 +742,14 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.reference(CP_SYNCHRONIZATION, groupSync) };
     }
 
+    public CIMArgument[] getActivePairSuspendInputArguments(CIMObjectPath groupSync) {
+        return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
+                _cimArgument.uint16(CP_OPERATION, SUSPEND_SYNC_PAIR),
+                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SUSPENDED),
+                _cimArgument.bool(CP_FORCE, true),
+                _cimArgument.reference(CP_SYNCHRONIZATION, groupSync) };
+    }
+
     public CIMArgument[] getASyncSwapInputArguments(CIMObjectPath groupSync) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, SWAP_SYNC_PAIR),
@@ -757,6 +765,13 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getASyncPairResumeInputArguments(CIMObjectPath groupSync) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
+                _cimArgument.reference(CP_SYNCHRONIZATION, groupSync) };
+    }
+
+    public CIMArgument[] getActivePairResumeInputArguments(CIMObjectPath groupSync) {
+        return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
+                _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
+                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED),
                 _cimArgument.reference(CP_SYNCHRONIZATION, groupSync) };
     }
 
@@ -4906,6 +4921,10 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.reference(CP_SOURCE_GROUP, srcCG));
         args.add(_cimArgument.reference(CP_TARGET_GROUP, tgtCG));
         // args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance));
+        // WaitForCopyState only valid for Active mode.
+        if (SRDFOperations.Mode.ACTIVE.getMode() == mode) {
+            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED));
+        }
         return args.toArray(new CIMArgument[] {});
     }
 
@@ -6557,7 +6576,8 @@ public class SmisCommandHelper implements SmisConstants {
             CIMObjectPath[] targetVolumePath,
             int mode,
             CIMObjectPath repCollection,
-            CIMInstance repSetting) {
+            CIMInstance repSetting,
+            boolean addWaitForCopyState) {
         List<CIMArgument> args = new ArrayList<>();
         args.add(_cimArgument.referenceArray(CP_SOURCE_ELEMENTS, sourceVolumePath));
         args.add(_cimArgument.referenceArray(CP_TARGET_ELEMENTS, targetVolumePath));
@@ -6565,8 +6585,9 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.uint16(CP_MODE, mode));
         args.add(_cimArgument.reference(CP_CONNECTIVITY_COLLECTION, repCollection));
 
-        // WaitForCopyState only valid for Synchronous mode.
-        if (SRDFOperations.Mode.SYNCHRONOUS.getMode() == mode) {
+        // WaitForCopyState only valid for Synchronous mode
+        // Or Active Mode when adding pairs to an empty RDF group.
+        if (SRDFOperations.Mode.SYNCHRONOUS.getMode() == mode || addWaitForCopyState) {
             args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED));
         }
 

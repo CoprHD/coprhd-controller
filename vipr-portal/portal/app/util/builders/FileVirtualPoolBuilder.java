@@ -72,4 +72,13 @@ public class FileVirtualPoolBuilder extends VirtualPoolBuilder {
         getProtection().setReplicationParam(replicationParam);
         return this;
     }
+    
+    public FileVirtualPoolBuilder setScheduleSnapshots(Boolean scheduleSnapshots) {
+        getProtection().setScheduleSnapshots(scheduleSnapshots);
+        return this;
+    }
+    
+    public static Boolean getScheduleSnapshots(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getScheduleSnapshots() : null;
+    }
 }

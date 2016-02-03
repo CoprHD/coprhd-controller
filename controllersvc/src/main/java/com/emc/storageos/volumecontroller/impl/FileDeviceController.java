@@ -3444,7 +3444,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                     FileDescriptor.Type.FILE_DATA,
-                    FileDescriptor.Type.FILE_EXISTING_SOURCE,
                     FileDescriptor.Type.FILE_MIRROR_SOURCE,
                     FileDescriptor.Type.FILE_MIRROR_TARGET);
 
@@ -3486,26 +3485,34 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             for (URI uriFile : fileshareURIs) {
                 FileShare fsObj = _dbClient.queryObject(FileShare.class, uriFile);
                 if (fsObj != null && fsObj.getMirrorfsTargets() != null) {
-
                     for (String mirrorTarget : fsObj.getMirrorfsTargets()) {
                         URI targetURI = URI.create(mirrorTarget);
                         FileShare fsTargObj = _dbClient.queryObject(FileShare.class, targetURI);
-                        workflow.createStep(DELETE_FILESYSTEMS_STEP,
-                                String.format("Deleting fileshares:%n%s", asList(targetURI)),
-                                waitFor, fsTargObj.getStorageDevice(), getDeviceType(fsTargObj.getStorageDevice()),
-                                this.getClass(),
-                                deleteFileSharesMethod(fsTargObj.getStorageDevice(), asList(targetURI),
-                                        filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                                null, null);
+                        if (fsTargObj != null && !fsTargObj.getInactive()) {
+                            _log.info("addStepsForDeleteFileSystems - deleting target fs {} for file system {}",
+                                    fsTargObj.getId(), fsObj.getId());
+                            workflow.createStep(DELETE_FILESYSTEMS_STEP,
+                                    String.format("Deleting fileshares:%n%s", asList(targetURI)),
+                                    waitFor, fsTargObj.getStorageDevice(), getDeviceType(fsTargObj.getStorageDevice()),
+                                    this.getClass(),
+                                    deleteFileSharesMethod(fsTargObj.getStorageDevice(), asList(targetURI),
+                                            filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
+                                    null, null);
+                        }
                     }
                 }
-                workflow.createStep(DELETE_FILESYSTEMS_STEP,
-                        String.format("Deleting fileshares:%n%s", fileshareURIs),
-                        waitFor, deviceURI, getDeviceType(deviceURI),
-                        this.getClass(),
-                        deleteFileSharesMethod(deviceURI, fileshareURIs,
-                                filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                        null, null);
+                // Dont delete the source file system for delete only targets operation!!
+                if (!filesystems.get(0).isDeleteTargetOnly()) {
+                    _log.info("addStepsForDeleteFileSystems - deleting source fs {} ", fsObj.getId());
+                    workflow.createStep(DELETE_FILESYSTEMS_STEP,
+                            String.format("Deleting fileshares:%n%s", fileshareURIs),
+                            waitFor, deviceURI, getDeviceType(deviceURI),
+                            this.getClass(),
+                            deleteFileSharesMethod(deviceURI, fileshareURIs,
+                                    filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
+                            null, null);
+                }
+
             }
         }
         return waitFor = DELETE_FILESYSTEMS_STEP;

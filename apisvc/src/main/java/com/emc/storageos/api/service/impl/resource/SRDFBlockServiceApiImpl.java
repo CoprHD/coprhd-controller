@@ -419,6 +419,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         volume.getOpStatus().put(token, op);
         if (consistencyGroup != null) {
             volume.setConsistencyGroup(consistencyGroup.getId());
+            volume.setReplicationGroupInstance(consistencyGroup.getLabel());
         }
 
         if (null != vpool.getAutoTierPolicyName()) {

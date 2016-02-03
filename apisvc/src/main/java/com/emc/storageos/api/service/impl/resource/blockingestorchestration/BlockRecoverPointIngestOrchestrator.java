@@ -311,7 +311,11 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 unManagedVolumeInformation);
         for (String rpManagedTargetVolumeIdStr : rpManagedTargetVolumeIdStrs) {
             // Check to make sure the target volume is legit.
-            Volume managedTargetVolume = _dbClient.queryObject(Volume.class, URI.create(rpManagedTargetVolumeIdStr));
+            Volume managedTargetVolume = null;
+            BlockObject bo = volumeContext.findCreatedBlockObject(URI.create(rpManagedTargetVolumeIdStr));
+            if (bo != null && bo instanceof Volume) {
+                managedTargetVolume = (Volume) bo;
+            }
             if (managedTargetVolume == null) {
                 _logger.error("Could not find managed target volume: " + rpManagedTargetVolumeIdStr + " in DB.  Ingestion failed.");
                 throw IngestionException.exceptions.noManagedTargetVolumeFound(unManagedVolume.getNativeGuid(), rpManagedTargetVolumeIdStr);
@@ -392,7 +396,11 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 SupportedVolumeInformation.RP_MANAGED_SOURCE_VOLUME.toString(), unManagedVolumeInformation);
         if (rpManagedSourceVolume != null) {
             // (1) Add the new managed target volume ID to the source volume's RP target list
-            Volume sourceVolume = _dbClient.queryObject(Volume.class, URI.create(rpManagedSourceVolume));
+            Volume sourceVolume = null;
+            BlockObject bo = volumeContext.findCreatedBlockObject(URI.create(rpManagedSourceVolume));
+            if (bo != null && bo instanceof Volume) {
+                sourceVolume = (Volume) bo;
+            }
             if (sourceVolume == null) {
                 _logger.error("Could not find managed RP source volume in DB: " + rpManagedSourceVolume);
                 throw IngestionException.exceptions.noManagedSourceVolumeFound(unManagedVolume.getNativeGuid(), rpManagedSourceVolume);
@@ -487,10 +495,12 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.noVolumesFoundInProtectionSet(pset.getLabel());
         }
 
-        Iterator<Volume> volumesItr = _dbClient.queryIterativeObjects(Volume.class, URIUtil.toURIList(pset.getVolumes()));
         List<Volume> volumes = new ArrayList<Volume>();
-        while (volumesItr.hasNext()) {
-            volumes.add(volumesItr.next());
+        for (String volId : pset.getVolumes()) {
+            BlockObject volume = volumeContext.findCreatedBlockObject(URI.create(volId));
+            if (volume != null && volume instanceof Volume) {
+                volumes.add((Volume)volume);
+            }
         }
 
         // Make sure all of the changed managed block objects get updated
@@ -854,24 +864,15 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             List<Volume> volumes = new ArrayList<Volume>();
             sb.append("\n\nIngested Volumes:\n");
             for (URI volumeId : URIUtil.toURIList(umpset.getManagedVolumeIds())) {
-                Volume volume = _dbClient.queryObject(Volume.class, volumeId);
-                if (volume == null) {
-                    // Check the "just created" list in the volume context
-                    for (BlockObject blockObject : volumeContext.getObjectsToBeCreatedMap().values()) {
-                        if (blockObject.getId().toString().equals(volumeId.toString())) {
-                            if (blockObject instanceof Volume) {
-                                volume = (Volume) blockObject;
-                                break;
-                            }
-                        }
-                    }
-                    if (volume != null) {
-                        volumes.add(volume);
-                    } else {
-                        continue;
-                    }
-                } else {
+                Volume volume = null;
+                BlockObject bo = volumeContext.findCreatedBlockObject(volumeId);
+                if (bo != null && bo instanceof Volume) {
+                    volume = (Volume) bo;
+                }
+                if (volume != null) {
                     volumes.add(volume);
+                } else {
+                    continue;
                 }
 
                 // Get the width of the columns so we can have a compact, formatted printout.

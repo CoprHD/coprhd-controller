@@ -18,6 +18,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -27,6 +28,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -587,6 +589,11 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      */
     @Override
     public BlockObject findCreatedBlockObject(String nativeGuid) {
+
+        if (URIUtil.isValid(nativeGuid)) {
+            _logger.warn("the nativeGuid {} argument is a valid URI. caller maybe meant to use findCreatedBlockObject(URI)?", nativeGuid);
+        }
+
         BlockObject blockObject = getObjectsToBeCreatedMap().get(nativeGuid);
 
         // if the block object wasn't found in this context's created object map
@@ -632,8 +639,8 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     @Override
     public BlockObject findCreatedBlockObject(URI uri) {
 
-        if (null == uri) {
-            _logger.warn("URI for findCreatedBlockObject was null");
+        if (!URIUtil.isValid(uri)) {
+            _logger.warn("URI ({}) for findCreatedBlockObject is null or invalid", uri);
             return null;
         }
 
@@ -666,6 +673,16 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
                     }
                 }
             }
+        }
+
+        try {
+            BlockObject bo = (BlockObject) _dbClient.queryObject(uri);
+            if (bo != null) {
+                _logger.info("\tfound block object in the database: " + bo.forDisplay());
+                return bo;
+            }
+        } catch (ClassCastException ex) {
+            _logger.warn("Failed to find a block object for URI {}: {}", uri, ex.getLocalizedMessage());
         }
 
         _logger.info("could not find a block object for uri {} anywhere.", uri);

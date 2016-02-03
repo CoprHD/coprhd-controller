@@ -96,7 +96,7 @@ public class MobilityGroupMigrationService extends ViPRService {
             }
             for (Task<VolumeRestRep> failedTask : ComputeUtils.getFailedTasks(tasks)) {
                 String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
-                ExecutionUtils.currentContext().logError("computeutils.exportbootvolumes.failure",
+                ExecutionUtils.currentContext().logError("mobilityGroupMigration.changeVirtualPool.failure",
                         failedTask.getResource().getName(), errorMessage);
                 tasks.remove(failedTask);
             }
@@ -110,13 +110,12 @@ public class MobilityGroupMigrationService extends ViPRService {
             } catch (TimeoutException te) {
                 // ignore timeout after polling interval
             } catch (Exception e) {
-                ExecutionUtils.currentContext().logError("computeutils.task.exception", e.getMessage());
+                ExecutionUtils.currentContext().logError("mobilityGroupMigration.task.exception", e.getMessage());
             }
         }
     }
 
     private void ingestVolumes() {
-        // String ingestionMethod = IngestionMethodEnum.FULL.toString();
         List<NamedRelatedResourceRep> hostsOrClusters = Lists.newArrayList();
         if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
             hostsOrClusters = execute(new GetMobilityGroupHosts(mobilityGroup.getId()));
@@ -147,8 +146,6 @@ public class MobilityGroupMigrationService extends ViPRService {
                     ingestVolumeIds.add(unmanaged.getId());
                 }
             }
-
-            // logInfo("planning to ingest %s volumes = %s", ingestVolumeIds.size(), ingestVolumeIds);
 
             int succeed = execute(new IngestExportedUnmanagedVolumes(virtualPool, virtualArray, project,
                     host == null ? null : host,

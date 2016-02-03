@@ -205,6 +205,12 @@ public class SchedulePolicyService extends TaggedResource {
                         expireTime, minExpireTime, maxExpireTime);
                 throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime, minExpireTime, maxExpireTime);
             }
+        } else {
+            if (param.getPolicyType().equalsIgnoreCase(SchedulePolicyType.snapshot.toString())) {
+                errorMsg.append("Required parameter snapshot_expire was missing or empty");
+                _log.error("Failed to update schedule policy due to {} ", errorMsg.toString());
+                throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());
+            }
         }
 
         if (isValidSchedule) {
@@ -217,7 +223,7 @@ public class SchedulePolicyService extends TaggedResource {
                 if (!param.getSnapshotExpire().getExpireType().equalsIgnoreCase(SnapshotExpireType.NEVER.toString())) {
                     schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
                 } else {
-                    schedulePolicy.setSnapshotExpireTime(null);
+                    schedulePolicy.setSnapshotExpireTime(0L);
                 }
             }
             _dbClient.updateObject(schedulePolicy);

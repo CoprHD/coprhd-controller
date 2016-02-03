@@ -916,6 +916,7 @@ disasterRecovery.standby.resumeLink=Resume Synchronization
 disasterRecovery.standby.stopConfirm=Are you sure you want to Pause Standby Site?
 disasterRecovery.backToUpgrade=Back To Upgrade
 disasterRecovery.pausedSiteWarning=At least one of the standby sites is in paused state and will remain in the previous version until resumed.<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Resuming the paused site will automatically update it to the same version with the active site.
+disasterRecovery.pausedSiteDataNotConsistentWarning=Current view of disaster recovery sites may be not up to date due to losing connection with active site.
 disasterRecovery.create.title=Add Standby
 disasterRecovery.edit.title=Edit Standby
 disasterRecovery.list.title=System Disaster Recovery

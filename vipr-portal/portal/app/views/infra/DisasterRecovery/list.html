@@ -31,6 +31,10 @@
 	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteWarning'}</span>
 #{/elseif}
 
+#{if !isActiveSite && util.DisasterRecoveryUtils.getLocalSiteState() == "STANDBY_PAUSED"}
+	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteDataNotConsistentWarning'}</span>
+#{/if}
+
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
 		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}

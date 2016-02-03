@@ -5,6 +5,7 @@
 package com.emc.storageos.vplexcontroller;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
+import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkCloneConsistencyGroup;
 import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getDataObject;
 import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getVPlexAPIClient;
 import static com.google.common.collect.Collections2.transform;
@@ -64,6 +65,7 @@ import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -119,6 +121,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
@@ -128,6 +131,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRem
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.TaskLockingCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDetachCloneCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
@@ -425,7 +429,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * 
      * 
      */
-    static class VPlexTaskCompleter extends TaskCompleter {
+    static class VPlexTaskCompleter extends TaskLockingCompleter {
 
         OperationTypeEnum _opType = null;
 
@@ -445,7 +449,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
             try {
                 _log.info("Completing", _opId);
-                super.setStatus(dbClient, status, coded);
 
                 // When importing volume to VPLEX, the operation is on the
                 // the volume being imported. However, when importing a
@@ -481,6 +484,26 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 updateWorkflowStatus(status, coded);
             } catch (DatabaseException ex) {
                 _log.error("Unable to complete task: " + getOpId());
+            }
+
+            super.setStatus(dbClient, status, coded);
+            super.complete(dbClient, status, coded);
+
+            // clear VolumeGroup's Partial_Request Flag
+            List<Volume> toUpdate = new ArrayList<Volume>();
+            for (URI fullCopyURI : getIds()) {
+                if (URIUtil.isType(fullCopyURI, Volume.class)) {
+                    Volume fullCopy = dbClient.queryObject(Volume.class, fullCopyURI);
+                    Volume source = dbClient.queryObject(Volume.class, fullCopy.getAssociatedSourceVolume());
+                    if (source != null && source.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                        source.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+                        toUpdate.add(source);
+                    }
+                }
+            }
+            if (!toUpdate.isEmpty()) {
+                _log.info("Clearing PARTIAL flag set on Clones for Partial request");
+                dbClient.updateObject(toUpdate);
             }
 
             // Record audit log if opType specified.
@@ -6699,8 +6722,32 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // creating a single copy of multiple source volumes which are in a consistency
         // group.
         URI vplexSrcVolumeURI = null;
-        List<URI> vplexCopyVolumeURIs = new ArrayList<URI>();
+        List<URI> vplexCopyVolumesURIs = new ArrayList<URI>();
+        TaskCompleter completer = null;
         try {
+            // Set up the task completer
+            List<VolumeDescriptor> vplexVolumeDescrs = VolumeDescriptor
+                    .filterByType(volumeDescriptors,
+                            new VolumeDescriptor.Type[] { Type.VPLEX_VIRT_VOLUME },
+                            new VolumeDescriptor.Type[] {});
+            List<VolumeDescriptor> vplexSrcVolumeDescs = getDescriptorsForFullCopySrcVolumes
+                    (vplexVolumeDescrs);
+            vplexVolumeDescrs.removeAll(vplexSrcVolumeDescs); // VPLEX copy volumes
+            vplexCopyVolumesURIs = VolumeDescriptor.getVolumeURIs(vplexVolumeDescrs);
+            completer = new VPlexTaskCompleter(Volume.class, vplexCopyVolumesURIs, opId, null);
+
+            Volume firstFullCopy = _dbClient.queryObject(Volume.class, vplexCopyVolumesURIs.get(0));
+            URI sourceVolume = firstFullCopy.getAssociatedSourceVolume();
+            Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
+                    _dbClient.queryObject(Volume.class, sourceVolume) : null;
+            VolumeGroup volumeGroup = (source != null) ? source.getApplication(_dbClient) : null;
+            if (volumeGroup != null
+                    && !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, source)) {
+                _log.info("Creating full copy for Application {}", volumeGroup.getLabel());
+                // add VolumeGroup to task completer
+                completer.addVolumeGroupId(volumeGroup.getId());
+            }
+
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     COPY_VOLUMES_WF_NAME, false, opId);
@@ -6721,6 +6768,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     groupDescriptorsByReplicationGroup(volumeDescriptors);
             for (String repGroupName : repGroupToVolumeDescriptors.keySet()) {
                 _log.info("Processing Array Replication Group {}", repGroupName);
+                List<URI> vplexCopyVolumeURIs = new ArrayList<URI>();
                 List<VolumeDescriptor> volumeDescriptorsRG = repGroupToVolumeDescriptors.get(repGroupName);
 
                 // We need to know which of the passed volume descriptors represents
@@ -6739,6 +6787,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Get the URIs of the VPLEX copy volumes.
                 vplexCopyVolumeURIs.addAll(VolumeDescriptor
                         .getVolumeURIs(vplexVolumeDescriptors));
+
+                vplexURI = getDataObject(Volume.class, vplexCopyVolumeURIs.get(0), _dbClient)
+                        .getStorageController();
 
                 // Add a rollback step to make sure all full copies are
                 // marked inactive and that the full copy relationships
@@ -6787,10 +6838,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
 
                 _log.info("Primary volume/snapshot is {}", primarySourceObject.getId());
+                // add CG to taskCompleter
+                if (!NullColumnValueGetter.isNullURI(primarySourceObject.getConsistencyGroup())) {
+                    completer.addConsistencyGroupId(primarySourceObject.getConsistencyGroup());
+                }
 
                 // Now create the step to do the native full copy of this
                 // primary backend volume or the snapshot to the passed import volumes.
-
                 waitFor = createStepForNativeCopy(workflow,
                         primarySourceObject, importVolumeDescriptors, waitFor);
                 _log.info("Created workflow step to create {} copies of the primary",
@@ -6803,16 +6857,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("Created workflow steps to import the primary copies");
             }
 
-            // Set up the task completer and execute the workflow.
-            List<VolumeDescriptor> vplexVolumeDescrs = VolumeDescriptor
-                    .filterByType(volumeDescriptors,
-                            new VolumeDescriptor.Type[] { Type.VPLEX_VIRT_VOLUME },
-                            new VolumeDescriptor.Type[] {});
-            List<VolumeDescriptor> vplexSrcVolumeDescs = getDescriptorsForFullCopySrcVolumes
-                    (vplexVolumeDescrs);
-            vplexVolumeDescrs.removeAll(vplexSrcVolumeDescs); // VPLEX copy volumes
-            TaskCompleter completer = new VPlexTaskCompleter(Volume.class,
-                    VolumeDescriptor.getVolumeURIs(vplexVolumeDescrs), opId, null);
             _log.info("Executing workflow plan");
             workflow.executePlan(completer, String.format(
                     "Copy of VPLEX volume %s completed successfully", vplexSrcVolumeURI));
@@ -6821,10 +6865,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String failMsg = String.format("Copy of VPLEX volume %s failed",
                     vplexSrcVolumeURI);
             _log.error(failMsg, e);
-            TaskCompleter completer = new VPlexTaskCompleter(Volume.class,
-                    vplexCopyVolumeURIs, opId, null);
             ServiceError serviceError = VPlexApiException.errors.fullCopyVolumesFailed(
-                    vplexSrcVolumeURI.toString(), e);
+                    (vplexSrcVolumeURI != null ? vplexSrcVolumeURI.toString() : ""), e);
             completer.error(_dbClient, serviceError);
         }
     }
@@ -6910,33 +6952,44 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<Volume> vplexSrcVolumes = ControllerUtils.queryVolumesByIterativeQuery(_dbClient, vplexSrcVolumeURIs);
             // group volumes by Array Group
             Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(vplexSrcVolumes, _dbClient);
-            for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) { // AG - Array Replication Group
-                _log.debug("Processing Replication Group {}", arrayGroupName);
-                List<Volume> vplexSrcVolumesAG = arrayGroupToVolumesMap.get(arrayGroupName);
+            /**
+             * If only one entry of array replication group, put all descriptors
+             * Else group them according to array group
+             */
+            if (arrayGroupToVolumesMap.size() == 1) {
+                String arrayGroupName = arrayGroupToVolumesMap.keySet().iterator().next();
+                _log.info("Single entry: Replication Group {}, Volume descriptors {}",
+                        arrayGroupName, Joiner.on(',').join(VolumeDescriptor.getVolumeURIs(volumeDescriptors)));
+                repGroupToVolumeDescriptors.put(arrayGroupName, volumeDescriptors);
+            } else {
+                for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) { // AG - Array Replication Group
+                    _log.debug("Processing Replication Group {}", arrayGroupName);
+                    List<Volume> vplexSrcVolumesAG = arrayGroupToVolumesMap.get(arrayGroupName);
 
-                List<VolumeDescriptor> descriptorsForAG = new ArrayList<VolumeDescriptor>();
-                // add VPLEX src volumes to descriptor list
-                descriptorsForAG.addAll(getDescriptorsForURIsFromGivenList(vplexSrcVolumeDescrs,
-                        transform(vplexSrcVolumesAG, fctnDataObjectToID())));
+                    List<VolumeDescriptor> descriptorsForAG = new ArrayList<VolumeDescriptor>();
+                    // add VPLEX src volumes to descriptor list
+                    descriptorsForAG.addAll(getDescriptorsForURIsFromGivenList(vplexSrcVolumeDescrs,
+                            transform(vplexSrcVolumesAG, fctnDataObjectToID())));
 
-                List<URI> allCopies = getFullCopiesForVolumes(vplexSrcVolumesAG);
-                for (VolumeDescriptor vplexCopyVolumeDesc : vplexVolumeDescriptors) {
-                    URI vplexCopyVolume = vplexCopyVolumeDesc.getVolumeURI();
-                    if (allCopies.contains(vplexCopyVolume)) {
-                        _log.debug("Adding VPLEX copy volume descriptor for {}", vplexCopyVolume);
-                        // add VPLEX Copy volumes to descriptor list
-                        descriptorsForAG.add(vplexCopyVolumeDesc);
+                    List<URI> allCopies = getFullCopiesForVolumes(vplexSrcVolumesAG);
+                    for (VolumeDescriptor vplexCopyVolumeDesc : vplexVolumeDescriptors) {
+                        URI vplexCopyVolume = vplexCopyVolumeDesc.getVolumeURI();
+                        if (allCopies.contains(vplexCopyVolume)) {
+                            _log.debug("Adding VPLEX copy volume descriptor for {}", vplexCopyVolume);
+                            // add VPLEX Copy volumes to descriptor list
+                            descriptorsForAG.add(vplexCopyVolumeDesc);
 
-                        // add Copy associated volumes to desciptor list
-                        List<VolumeDescriptor> assocDescriptors = getDescriptorsForAssociatedVolumes(
-                                vplexCopyVolume, volumeDescriptors);
-                        descriptorsForAG.addAll(assocDescriptors);
+                            // add Copy associated volumes to desciptor list
+                            List<VolumeDescriptor> assocDescriptors = getDescriptorsForAssociatedVolumes(
+                                    vplexCopyVolume, volumeDescriptors);
+                            descriptorsForAG.addAll(assocDescriptors);
+                        }
                     }
-                }
 
-                _log.info("Entry: Replication Group {}, Volume descriptors {}",
-                        arrayGroupName, Joiner.on(',').join(VolumeDescriptor.getVolumeURIs(descriptorsForAG)));
-                repGroupToVolumeDescriptors.put(arrayGroupName, descriptorsForAG);
+                    _log.info("Entry: Replication Group {}, Volume descriptors {}",
+                            arrayGroupName, Joiner.on(',').join(VolumeDescriptor.getVolumeURIs(descriptorsForAG)));
+                    repGroupToVolumeDescriptors.put(arrayGroupName, descriptorsForAG);
+                }
             }
         } else {
             // non-application & clone for Snapshot
@@ -7010,7 +7063,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Workflow.Method executeMethod = new Workflow.Method(FULL_COPY_METHOD_NAME,
                 srcVolumeSystemURI, copyVolumeURIs, Boolean.FALSE);
         Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_FULL_COPY_METHOD, srcVolumeSystemURI, copyVolumeURIs);
-        waitFor = workflow.createStep(COPY_VOLUME_STEP, String.format(
+        workflow.createStep(COPY_VOLUME_STEP, String.format(
                 "Create full copy volumes %s on system %s", copyVolumeURIs,
                 srcVolumeSystemURI), waitFor, srcVolumeSystemURI,
                 srcVolumeSystem.getSystemType(), BlockDeviceController.class,
@@ -7026,7 +7079,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         _log.info("Created workflow step to create native full copies");
 
-        return waitFor;
+        return stepId;
     }
 
     /**
@@ -7243,121 +7296,137 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     @Override
     public void restoreFromFullCopy(URI vplexURI, List<URI> fullCopyURIs, String opId)
             throws InternalException {
+        TaskCompleter completer = null;
         try {
+            completer = new CloneWorkflowCompleter(fullCopyURIs, opId);
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     RESTORE_VOLUME_WF_NAME, false, opId);
             _log.info("Created restore volume workflow with operation id {}", opId);
 
-            // Get the VPLEX and backend full copy volumes.
-            URI nativeSystemURI = null;
-            Map<URI, Volume> vplexFullCopyMap = new HashMap<URI, Volume>();
-            Map<URI, Volume> nativeFullCopyMap = new HashMap<URI, Volume>();
-            for (URI fullCopyURI : fullCopyURIs) {
-                Volume fullCopyVolume = getDataObject(Volume.class, fullCopyURI, _dbClient);
-                vplexFullCopyMap.put(fullCopyURI, fullCopyVolume);
-                Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
-                nativeFullCopyMap.put(nativeFullCopyVolume.getId(), nativeFullCopyVolume);
-                if (nativeSystemURI == null) {
-                    nativeSystemURI = nativeFullCopyVolume.getStorageController();
-                }
-            }
+            // Groups the given full copies based on their array replication groups if in Application/CG
+            // for Non-CG case, the map will have single entry
+            Map<String, List<Volume>> arrayGroupToFullCopies = ControllerUtils.
+                    groupFullCopiesByArrayGroup(fullCopyURIs, _dbClient, completer);
 
-            // We'll need a list of the native full copy URIs.
-            List<URI> nativeFullCopyURIs = new ArrayList<URI>(nativeFullCopyMap.keySet());
+            for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
+                _log.info("VPLEX: Restoring full copy group {}", arrayGroupName);
+                List<Volume> fullCopyObjects = arrayGroupToFullCopies.get(arrayGroupName);
+                List<URI> rgFullCopyUris = new ArrayList<URI>(transform(fullCopyObjects, fctnDataObjectToID()));
+                Volume firstFullCopy = fullCopyObjects.get(0);
+                vplexURI = firstFullCopy.getStorageController();
+                // add CG to taskCompleter
+                checkCloneConsistencyGroup(firstFullCopy.getId(), _dbClient, completer);
 
-            // Get the VPLEX system.
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-
-            // Get the native system.
-            StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
-
-            // The workflow depends on if the VPLEX volumes are local
-            // or distributed.
-            String waitFor = null;
-            boolean isLocal = vplexFullCopyMap.values().iterator().next()
-                    .getAssociatedVolumes().size() == 1;
-            if (isLocal) {
-                // Create a step to invalidate the read cache for
-                // the source volume for each VPLEX full copy volume.
-                for (Volume vplexFullCopyVolume : vplexFullCopyMap.values()) {
-                    Volume fcSourceVolume = getDataObject(Volume.class,
-                            vplexFullCopyVolume.getAssociatedSourceVolume(), _dbClient);
-                    waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                            fcSourceVolume.getId(), null, null);
+                // Get the VPLEX and backend full copy volumes.
+                URI nativeSystemURI = null;
+                Map<URI, Volume> vplexFullCopyMap = new HashMap<URI, Volume>();
+                Map<URI, Volume> nativeFullCopyMap = new HashMap<URI, Volume>();
+                for (URI fullCopyURI : rgFullCopyUris) {
+                    Volume fullCopyVolume = getDataObject(Volume.class, fullCopyURI, _dbClient);
+                    vplexFullCopyMap.put(fullCopyURI, fullCopyVolume);
+                    Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+                    nativeFullCopyMap.put(nativeFullCopyVolume.getId(), nativeFullCopyVolume);
+                    if (nativeSystemURI == null) {
+                        nativeSystemURI = nativeFullCopyVolume.getStorageController();
+                    }
                 }
 
-                // Now create a workflow step to natively restore the backend
-                // source volumes from the backend full copies. We execute this
-                // after the invalidate cache steps. We could execute these in
-                // parallel for a little better efficiency, but what if the
-                // invalidate cache fails, but the restore succeeds, the cache
-                // now has invalid data and a cache read hit could return invalid
-                // data.
-                createWorkflowStepForRestoreNativeFullCopy(workflow, nativeSystem,
-                        nativeFullCopyURIs, waitFor, null);
-            } else {
-                for (Volume vplexFullCopyVolume : vplexFullCopyMap.values()) {
-                    // Get the Source VPLEX volume for the copy.
-                    Volume fcSourceVolume = getDataObject(Volume.class,
-                            vplexFullCopyVolume.getAssociatedSourceVolume(), _dbClient);
-                    URI fcSourceVolumeURI = fcSourceVolume.getId();
+                // We'll need a list of the native full copy URIs.
+                List<URI> nativeFullCopyURIs = new ArrayList<URI>(nativeFullCopyMap.keySet());
 
-                    // For distributed full copy volumes before we can do the
-                    // restore, we need to detach the HA mirror of the full copy
-                    // source volume. So, determine the HA backend volume and
-                    // create a workflow step to detach it.
-                    Volume haVolume = VPlexUtil.getVPLEXBackendVolume(
-                            fcSourceVolume, false, _dbClient);
-                    URI haVolumeURI = haVolume.getId();
-                    String detachStepId = workflow.createStepId();
-                    Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
-                            vplexURI, fcSourceVolumeURI, haVolumeURI,
-                            fcSourceVolume.getConsistencyGroup(), detachStepId);
-                    waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem,
-                            fcSourceVolume, haVolumeURI, detachStepId, null,
-                            restoreVolumeRollbackMethod);
+                // Get the VPLEX system.
+                StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
 
-                    // We now create a step to invalidate the cache for the
-                    // VPLEX full copy source volume. Note that if this step
-                    // fails we need to rollback and reattach the HA mirror.
-                    createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                            fcSourceVolumeURI, waitFor, rollbackMethodNullMethod());
+                // Get the native system.
+                StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
 
-                    // Now create a workflow step to reattach the mirror to initiate
-                    // a rebuild of the HA mirror for the full copy source volume.
-                    // Note that these steps will not run until after the native
-                    // restore, which only gets executed once.
-                    waitFor = createWorkflowStepForAttachMirror(workflow, vplexSystem,
-                            fcSourceVolume, haVolumeURI, detachStepId,
-                            RESTORE_VOLUME_STEP, rollbackMethodNullMethod());
+                // The workflow depends on if the VPLEX volumes are local
+                // or distributed.
+                String waitFor = null;
+                boolean isLocal = vplexFullCopyMap.values().iterator().next()
+                        .getAssociatedVolumes().size() == 1;
+                if (isLocal) {
+                    // Create a step to invalidate the read cache for
+                    // the source volume for each VPLEX full copy volume.
+                    for (Volume vplexFullCopyVolume : vplexFullCopyMap.values()) {
+                        Volume fcSourceVolume = getDataObject(Volume.class,
+                                vplexFullCopyVolume.getAssociatedSourceVolume(), _dbClient);
+                        waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
+                                fcSourceVolume.getId(), null, null);
+                    }
 
-                    // Create a step to wait for rebuild of the HA volume to
-                    // complete. This should not do any rollback if the step
-                    // fails because at this point the restore is really
-                    // complete.
-                    createWorkflowStepForWaitOnRebuild(workflow, vplexSystem,
-                            fcSourceVolumeURI, waitFor);
+                    // Now create a workflow step to natively restore the backend
+                    // source volumes from the backend full copies. We execute this
+                    // after the invalidate cache steps. We could execute these in
+                    // parallel for a little better efficiency, but what if the
+                    // invalidate cache fails, but the restore succeeds, the cache
+                    // now has invalid data and a cache read hit could return invalid
+                    // data.
+                    createWorkflowStepForRestoreNativeFullCopy(workflow, nativeSystem,
+                            nativeFullCopyURIs, waitFor, null);
+                } else {
+                    for (Volume vplexFullCopyVolume : vplexFullCopyMap.values()) {
+                        // Get the Source VPLEX volume for the copy.
+                        Volume fcSourceVolume = getDataObject(Volume.class,
+                                vplexFullCopyVolume.getAssociatedSourceVolume(), _dbClient);
+                        URI fcSourceVolumeURI = fcSourceVolume.getId();
+
+                        // For distributed full copy volumes before we can do the
+                        // restore, we need to detach the HA mirror of the full copy
+                        // source volume. So, determine the HA backend volume and
+                        // create a workflow step to detach it.
+                        Volume haVolume = VPlexUtil.getVPLEXBackendVolume(
+                                fcSourceVolume, false, _dbClient);
+                        URI haVolumeURI = haVolume.getId();
+                        String detachStepId = workflow.createStepId();
+                        Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
+                                vplexURI, fcSourceVolumeURI, haVolumeURI,
+                                fcSourceVolume.getConsistencyGroup(), detachStepId);
+                        waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem,
+                                fcSourceVolume, haVolumeURI, detachStepId, null,
+                                restoreVolumeRollbackMethod);
+
+                        // We now create a step to invalidate the cache for the
+                        // VPLEX full copy source volume. Note that if this step
+                        // fails we need to rollback and reattach the HA mirror.
+                        createWorkflowStepForInvalidateCache(workflow, vplexSystem,
+                                fcSourceVolumeURI, waitFor, rollbackMethodNullMethod());
+
+                        // Now create a workflow step to reattach the mirror to initiate
+                        // a rebuild of the HA mirror for the full copy source volume.
+                        // Note that these steps will not run until after the native
+                        // restore, which only gets executed once.
+                        waitFor = createWorkflowStepForAttachMirror(workflow, vplexSystem,
+                                fcSourceVolume, haVolumeURI, detachStepId,
+                                RESTORE_VOLUME_STEP, rollbackMethodNullMethod());
+
+                        // Create a step to wait for rebuild of the HA volume to
+                        // complete. This should not do any rollback if the step
+                        // fails because at this point the restore is really
+                        // complete.
+                        createWorkflowStepForWaitOnRebuild(workflow, vplexSystem,
+                                fcSourceVolumeURI, waitFor);
+                    }
+
+                    // Now create a workflow step to natively restore the backend
+                    // source volumes from the backend full copies. We execute this
+                    // after the invalidate cache steps. We could execute these in
+                    // parallel for a little better efficiency, but what if the
+                    // invalidate cache fails, but the restore succeeds, the cache
+                    // now has invalid data and a cache read hit could return invalid
+                    // data. If this step fails, then again, we need to be sure and
+                    // rollback and reattach the HA mirror. There is nothing to rollback
+                    // for the cache invalidate step. It just means there will be no
+                    // read cache hits on the volume for a while until the cache is
+                    // repopulated.
+                    createWorkflowStepForRestoreNativeFullCopy(workflow, nativeSystem,
+                            nativeFullCopyURIs, INVALIDATE_CACHE_STEP, rollbackMethodNullMethod());
                 }
-
-                // Now create a workflow step to natively restore the backend
-                // source volumes from the backend full copies. We execute this
-                // after the invalidate cache steps. We could execute these in
-                // parallel for a little better efficiency, but what if the
-                // invalidate cache fails, but the restore succeeds, the cache
-                // now has invalid data and a cache read hit could return invalid
-                // data. If this step fails, then again, we need to be sure and
-                // rollback and reattach the HA mirror. There is nothing to rollback
-                // for the cache invalidate step. It just means there will be no
-                // read cache hits on the volume for a while until the cache is
-                // repopulated.
-                createWorkflowStepForRestoreNativeFullCopy(workflow, nativeSystem,
-                        nativeFullCopyURIs, INVALIDATE_CACHE_STEP, rollbackMethodNullMethod());
             }
 
             // Execute the workflow.
             _log.info("Executing workflow plan");
-            TaskCompleter completer = new CloneRestoreCompleter(fullCopyURIs, opId);
             String successMsg = String.format(
                     "Restore full copy volumes %s completed successfully", fullCopyURIs);
             FullCopyOperationCompleteCallback wfCompleteCB = new FullCopyOperationCompleteCallback();
@@ -7368,7 +7437,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String failMsg = String.format(
                     "Restore full copy volumes %s failed", fullCopyURIs);
             _log.error(failMsg, e);
-            TaskCompleter completer = new CloneRestoreCompleter(fullCopyURIs, opId);
             ServiceCoded sc = VPlexApiException.exceptions.restoreFromFullCopyFailed(
                     fullCopyURIs.toString(), e);
             completer.error(_dbClient, sc);
@@ -7420,6 +7488,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (ReplicationState.DETACHED.name().equals(nativeFCReplicaState)) {
                         ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(fullCopyVolume, _dbClient);
                         fullCopyVolume.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
+
+                        if (NullColumnValueGetter.isNotNullValue(fullCopyVolume.getReplicationGroupInstance())) {
+                            fullCopyVolume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+                        }
+
+                        if (NullColumnValueGetter.isNotNullValue(fullCopyVolume.getFullCopySetName())) {
+                            fullCopyVolume.setFullCopySetName(NullColumnValueGetter.getNullStr());
+                        }
                     }
                     fullCopyVolume.setReplicaState(nativeFCReplicaState);
                     _dbClient.persistObject(fullCopyVolume);
@@ -7803,116 +7879,132 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     @Override
     public void resyncFullCopy(URI vplexURI, List<URI> fullCopyURIs, String opId)
             throws InternalException {
+        TaskCompleter completer = null;
         try {
+            completer = new CloneWorkflowCompleter(fullCopyURIs, opId);
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     RESYNC_FULL_COPY_WF_NAME, false, opId);
             _log.info("Created resync full copy workflow with operation id {}", opId);
 
-            // Get the VPLEX and backend full copy volumes.
-            URI nativeSystemURI = null;
-            Map<URI, Volume> vplexFullCopyMap = new HashMap<URI, Volume>();
-            Map<URI, Volume> nativeFullCopyMap = new HashMap<URI, Volume>();
-            for (URI fullCopyURI : fullCopyURIs) {
-                Volume fullCopyVolume = getDataObject(Volume.class, fullCopyURI, _dbClient);
-                vplexFullCopyMap.put(fullCopyURI, fullCopyVolume);
-                Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
-                nativeFullCopyMap.put(nativeFullCopyVolume.getId(), nativeFullCopyVolume);
-                if (nativeSystemURI == null) {
-                    nativeSystemURI = nativeFullCopyVolume.getStorageController();
-                }
-            }
+            // Groups the given full copies based on their array replication groups if in Application/CG
+            // for Non-CG case, the map will have single entry
+            Map<String, List<Volume>> arrayGroupToFullCopies = ControllerUtils.
+                    groupFullCopiesByArrayGroup(fullCopyURIs, _dbClient, completer);
 
-            // Get the VPLEX system.
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
+                _log.info("VPLEX: Resynchronizing full copy group {}", arrayGroupName);
+                List<Volume> fullCopyObjects = arrayGroupToFullCopies.get(arrayGroupName);
+                List<URI> rgFullCopyUris = new ArrayList<URI>(transform(fullCopyObjects, fctnDataObjectToID()));
+                Volume firstFullCopy = fullCopyObjects.get(0);
+                vplexURI = firstFullCopy.getStorageController();
+                // add CG to taskCompleter
+                checkCloneConsistencyGroup(firstFullCopy.getId(), _dbClient, completer);
 
-            // Get the native system.
-            StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
-
-            // We'll need a list of the native full copy URIs.
-            List<URI> nativeFullCopyURIs = new ArrayList<URI>(nativeFullCopyMap.keySet());
-
-            // The workflow depends on if the VPLEX full copy volumes
-            // are local or distributed.
-            String waitFor = null;
-            boolean isLocal = vplexFullCopyMap.values().iterator().next()
-                    .getAssociatedVolumes().size() == 1;
-            if (isLocal) {
-                // Create a step to invalidate the read cache for
-                // each VPLEX full copy volume.
-                for (Volume vplexFullCopyVolume : vplexFullCopyMap.values()) {
-                    waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                            vplexFullCopyVolume.getId(), null, null);
+                // Get the VPLEX and backend full copy volumes.
+                URI nativeSystemURI = null;
+                Map<URI, Volume> vplexFullCopyMap = new HashMap<URI, Volume>();
+                Map<URI, Volume> nativeFullCopyMap = new HashMap<URI, Volume>();
+                for (URI fullCopyURI : rgFullCopyUris) {
+                    Volume fullCopyVolume = getDataObject(Volume.class, fullCopyURI, _dbClient);
+                    vplexFullCopyMap.put(fullCopyURI, fullCopyVolume);
+                    Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+                    nativeFullCopyMap.put(nativeFullCopyVolume.getId(), nativeFullCopyVolume);
+                    if (nativeSystemURI == null) {
+                        nativeSystemURI = nativeFullCopyVolume.getStorageController();
+                    }
                 }
 
-                // Now create a workflow step to natively resynchronize the
-                // backend full copy volumes. We execute this after the
-                // invalidate cache steps. We could execute these in
-                // parallel for a little better efficiency, but what if the
-                // invalidate cache fails, but the resync succeeds, the cache
-                // now has invalid data and a cache read hit could return
-                // invalid data.
-                createWorkflowStepForResyncNativeFullCopy(workflow, nativeSystem,
-                        nativeFullCopyURIs, waitFor, null);
-            } else {
-                for (Volume vplexFullCopyVolume : vplexFullCopyMap.values()) {
-                    URI fullCopyURI = vplexFullCopyVolume.getId();
+                // Get the VPLEX system.
+                StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
 
-                    // For distributed full copy volumes before we can do the
-                    // restore, we need to detach the HA mirror of the full copy
-                    // volume. So, determine the HA backend volume and create a
-                    // workflow step to detach it.
-                    Volume haVolume = VPlexUtil.getVPLEXBackendVolume(
-                            vplexFullCopyVolume, false, _dbClient);
-                    URI haVolumeURI = haVolume.getId();
-                    String detachStepId = workflow.createStepId();
-                    Workflow.Method resyncVolumeRollbackMethod = createRestoreResyncRollbackMethod(
-                            vplexURI, fullCopyURI, haVolumeURI,
-                            vplexFullCopyVolume.getConsistencyGroup(), detachStepId);
-                    waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem,
-                            vplexFullCopyVolume, haVolumeURI, detachStepId, null,
-                            resyncVolumeRollbackMethod);
+                // Get the native system.
+                StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
 
-                    // We now create a step to invalidate the cache for the
-                    // VPLEX full copy volume. Note that if this step fails
-                    // we need to rollback and reattach the HA mirror.
-                    createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                            fullCopyURI, waitFor, rollbackMethodNullMethod());
+                // We'll need a list of the native full copy URIs.
+                List<URI> nativeFullCopyURIs = new ArrayList<URI>(nativeFullCopyMap.keySet());
 
-                    // Now create a workflow step to reattach the mirror to initiate
-                    // a rebuild of the HA mirror for the full copy volume. Note
-                    // that these steps will not run until after the native resync,
-                    // which only gets executed once.
-                    waitFor = createWorkflowStepForAttachMirror(workflow, vplexSystem,
-                            vplexFullCopyVolume, haVolumeURI, detachStepId,
-                            RESYNC_FULL_COPY_STEP, rollbackMethodNullMethod());
+                // The workflow depends on if the VPLEX full copy volumes
+                // are local or distributed.
+                String waitFor = null;
+                boolean isLocal = vplexFullCopyMap.values().iterator().next()
+                        .getAssociatedVolumes().size() == 1;
+                if (isLocal) {
+                    // Create a step to invalidate the read cache for
+                    // each VPLEX full copy volume.
+                    for (Volume vplexFullCopyVolume : vplexFullCopyMap.values()) {
+                        waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
+                                vplexFullCopyVolume.getId(), null, null);
+                    }
 
-                    // Create a step to wait for rebuild of the HA volume to
-                    // complete. This should not do any rollback if the step
-                    // fails because at this point the resync is really
-                    // complete.
-                    createWorkflowStepForWaitOnRebuild(workflow, vplexSystem,
-                            fullCopyURI, waitFor);
+                    // Now create a workflow step to natively resynchronize the
+                    // backend full copy volumes. We execute this after the
+                    // invalidate cache steps. We could execute these in
+                    // parallel for a little better efficiency, but what if the
+                    // invalidate cache fails, but the resync succeeds, the cache
+                    // now has invalid data and a cache read hit could return
+                    // invalid data.
+                    createWorkflowStepForResyncNativeFullCopy(workflow, nativeSystem,
+                            nativeFullCopyURIs, waitFor, null);
+                } else {
+                    for (Volume vplexFullCopyVolume : vplexFullCopyMap.values()) {
+                        URI fullCopyURI = vplexFullCopyVolume.getId();
+
+                        // For distributed full copy volumes before we can do the
+                        // restore, we need to detach the HA mirror of the full copy
+                        // volume. So, determine the HA backend volume and create a
+                        // workflow step to detach it.
+                        Volume haVolume = VPlexUtil.getVPLEXBackendVolume(
+                                vplexFullCopyVolume, false, _dbClient);
+                        URI haVolumeURI = haVolume.getId();
+                        String detachStepId = workflow.createStepId();
+                        Workflow.Method resyncVolumeRollbackMethod = createRestoreResyncRollbackMethod(
+                                vplexURI, fullCopyURI, haVolumeURI,
+                                vplexFullCopyVolume.getConsistencyGroup(), detachStepId);
+                        waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem,
+                                vplexFullCopyVolume, haVolumeURI, detachStepId, null,
+                                resyncVolumeRollbackMethod);
+
+                        // We now create a step to invalidate the cache for the
+                        // VPLEX full copy volume. Note that if this step fails
+                        // we need to rollback and reattach the HA mirror.
+                        createWorkflowStepForInvalidateCache(workflow, vplexSystem,
+                                fullCopyURI, waitFor, rollbackMethodNullMethod());
+
+                        // Now create a workflow step to reattach the mirror to initiate
+                        // a rebuild of the HA mirror for the full copy volume. Note
+                        // that these steps will not run until after the native resync,
+                        // which only gets executed once.
+                        waitFor = createWorkflowStepForAttachMirror(workflow, vplexSystem,
+                                vplexFullCopyVolume, haVolumeURI, detachStepId,
+                                RESYNC_FULL_COPY_STEP, rollbackMethodNullMethod());
+
+                        // Create a step to wait for rebuild of the HA volume to
+                        // complete. This should not do any rollback if the step
+                        // fails because at this point the resync is really
+                        // complete.
+                        createWorkflowStepForWaitOnRebuild(workflow, vplexSystem,
+                                fullCopyURI, waitFor);
+                    }
+
+                    // Now create a workflow step to natively resync the backend
+                    // full copies. We execute this after the invalidate cache
+                    // steps. We could execute these in parallel for a little
+                    // better efficiency, but what if the invalidate cache fails,
+                    // but the restore succeeds, the cache now has invalid data
+                    // and a cache read hit could return invalid data. If this
+                    // step fails, then again, we need to be sure and rollback
+                    // and reattach the HA mirror. There is nothing to rollback
+                    // for the cache invalidate step. It just means there will be
+                    // no read cache hits on the volume for a while until the
+                    // cache is repopulated.
+                    createWorkflowStepForResyncNativeFullCopy(workflow, nativeSystem,
+                            nativeFullCopyURIs, INVALIDATE_CACHE_STEP, rollbackMethodNullMethod());
                 }
-
-                // Now create a workflow step to natively resync the backend
-                // full copies. We execute this after the invalidate cache
-                // steps. We could execute these in parallel for a little
-                // better efficiency, but what if the invalidate cache fails,
-                // but the restore succeeds, the cache now has invalid data
-                // and a cache read hit could return invalid data. If this
-                // step fails, then again, we need to be sure and rollback
-                // and reattach the HA mirror. There is nothing to rollback
-                // for the cache invalidate step. It just means there will be
-                // no read cache hits on the volume for a while until the
-                // cache is repopulated.
-                createWorkflowStepForResyncNativeFullCopy(workflow, nativeSystem,
-                        nativeFullCopyURIs, INVALIDATE_CACHE_STEP, rollbackMethodNullMethod());
             }
 
             // Execute the workflow.
             _log.info("Executing workflow plan");
-            TaskCompleter completer = new CloneResyncCompleter(fullCopyURIs, opId);
             String successMsg = String.format(
                     "Resynchronize full copy volumes %s completed successfully", fullCopyURIs);
             FullCopyOperationCompleteCallback wfCompleteCB = new FullCopyOperationCompleteCallback();
@@ -7923,7 +8015,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String failMsg = String.format(
                     "Resynchronize full copy volumes %s failed", fullCopyURIs);
             _log.error(failMsg, e);
-            TaskCompleter completer = new CloneResyncCompleter(fullCopyURIs, opId);
             ServiceCoded sc = VPlexApiException.exceptions.resyncFullCopyFailed(
                     fullCopyURIs.toString(), e);
             completer.error(_dbClient, sc);
@@ -7965,38 +8056,53 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     @Override
     public void detachFullCopy(URI vplexURI, List<URI> fullCopyURIs, String opId)
             throws InternalException {
+        TaskCompleter completer = null;
         try {
+            completer = new CloneWorkflowCompleter(fullCopyURIs, opId);
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     DETACH_FULL_COPY_WF_NAME, false, opId);
             _log.info("Created detach full copy workflow with operation id {}", opId);
 
-            // Get the native full copy volumes.
-            URI nativeSystemURI = null;
-            Map<URI, Volume> nativeFullCopyMap = new HashMap<URI, Volume>();
-            for (URI fullCopyURI : fullCopyURIs) {
-                Volume fullCopyVolume = getDataObject(Volume.class, fullCopyURI, _dbClient);
-                Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
-                nativeFullCopyMap.put(nativeFullCopyVolume.getId(), nativeFullCopyVolume);
-                if (nativeSystemURI == null) {
-                    nativeSystemURI = nativeFullCopyVolume.getStorageController();
+            // Groups the given full copies based on their array replication groups if in Application/CG
+            // for Non-CG case, the map will have single entry
+            Map<String, List<Volume>> arrayGroupToFullCopies = ControllerUtils.
+                    groupFullCopiesByArrayGroup(fullCopyURIs, _dbClient, completer);
+
+            for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
+                _log.info("VPLEX: Detaching full copy group {}", arrayGroupName);
+                List<Volume> fullCopyObjects = arrayGroupToFullCopies.get(arrayGroupName);
+                List<URI> rgFullCopyUris = new ArrayList<URI>(transform(fullCopyObjects, fctnDataObjectToID()));
+                Volume firstFullCopy = fullCopyObjects.get(0);
+                // add CG to taskCompleter
+                checkCloneConsistencyGroup(firstFullCopy.getId(), _dbClient, completer);
+
+                // Get the native full copy volumes.
+                URI nativeSystemURI = null;
+                Map<URI, Volume> nativeFullCopyMap = new HashMap<URI, Volume>();
+                for (URI fullCopyURI : rgFullCopyUris) {
+                    Volume fullCopyVolume = getDataObject(Volume.class, fullCopyURI, _dbClient);
+                    Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+                    nativeFullCopyMap.put(nativeFullCopyVolume.getId(), nativeFullCopyVolume);
+                    if (nativeSystemURI == null) {
+                        nativeSystemURI = nativeFullCopyVolume.getStorageController();
+                    }
                 }
+
+                // Get the native system.
+                StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
+
+                // We'll need a list of the native full copy URIs.
+                List<URI> nativeFullCopyURIs = new ArrayList<URI>(nativeFullCopyMap.keySet());
+
+                // Create a workflow step to detach the native
+                // full copies.
+                createWorkflowStepForDetachNativeFullCopy(workflow, nativeSystem,
+                        nativeFullCopyURIs, null, null);
             }
-
-            // Get the native system.
-            StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
-
-            // We'll need a list of the native full copy URIs.
-            List<URI> nativeFullCopyURIs = new ArrayList<URI>(nativeFullCopyMap.keySet());
-
-            // Create a workflow step to detach the native
-            // full copies.
-            createWorkflowStepForDetachNativeFullCopy(workflow, nativeSystem,
-                    nativeFullCopyURIs, null, null);
 
             // Execute the workflow.
             _log.info("Executing workflow plan");
-            TaskCompleter completer = new VolumeDetachCloneCompleter(fullCopyURIs, opId);
             String successMsg = String.format(
                     "Detach full copy volumes %s completed successfully", fullCopyURIs);
             FullCopyOperationCompleteCallback wfCompleteCB = new FullCopyOperationCompleteCallback();
@@ -8007,7 +8113,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String failMsg = String.format(
                     "detach full copy volumes %s failed", fullCopyURIs);
             _log.error(failMsg, e);
-            TaskCompleter completer = new VolumeDetachCloneCompleter(fullCopyURIs, opId);
             ServiceCoded sc = VPlexApiException.exceptions.detachFullCopyFailed(
                     fullCopyURIs.toString(), e);
             completer.error(_dbClient, sc);

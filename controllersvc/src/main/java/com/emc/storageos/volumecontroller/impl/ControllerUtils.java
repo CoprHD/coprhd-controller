@@ -908,9 +908,15 @@ public class ControllerUtils {
 
     /**
      * Gets the volumes part of a given replication group.
-     * TODO remove this method when the above method (getVolumesPartOfRG) takes in RepGroup name instead of CG.
+     * TODO remove this method when the above method (getVolumesPartOfRG) takes in RepGroup name instead of CG
+     * and add system check.
+     *
+     * @param system the storage system where the replication group resides
+     * @param replicationGroupInstance the replication group instance
+     * @param dbClient the db client
+     * @return the volumes part of rg
      */
-    public static List<Volume> getVolumesPartOfRG(String replicationGroupInstance, DbClient dbClient) {
+    public static List<Volume> getVolumesPartOfRG(URI system, String replicationGroupInstance, DbClient dbClient) {
         List<Volume> volumes = new ArrayList<Volume>();
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -919,7 +925,7 @@ public class ControllerUtils {
                 uriQueryResultList, true);
         while (volumeIterator.hasNext()) {
             Volume volume = volumeIterator.next();
-            if (volume != null && !volume.getInactive()) {
+            if (volume != null && system.toString().equals(volume.getStorageController())) {
                 volumes.add(volume);
             }
         }
@@ -1498,7 +1504,24 @@ public class ControllerUtils {
             partial = true;
         } else {
             // check on other volumes part of the array group.
-            List<Volume> volumes = ControllerUtils.getVolumesPartOfRG(volume.getReplicationGroupInstance(), dbClient);
+            List<Volume> volumes = new ArrayList<Volume>();
+            String rgName = volume.getReplicationGroupInstance();
+            if (rgName == null && volume.isVPlexVolume(dbClient)) {
+                // get backend source volume
+                Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (backedVol != null) {
+                    rgName = backedVol.getReplicationGroupInstance();
+                    if (rgName != null) {
+                        List<Volume> backendVolumes = getVolumesPartOfRG(backedVol.getStorageController(), rgName, dbClient);
+                        for (Volume backendVolume : backendVolumes) {
+                            Volume vplexVolume = Volume.fetchVplexVolume(dbClient, backendVolume);
+                            volumes.add(vplexVolume);
+                        }
+                    }
+                }
+            } else {
+                volumes = getVolumesPartOfRG(volume.getStorageController(), rgName, dbClient);
+            }
             for (Volume vol : volumes) {
                 if (vol.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
                     partial = true;
@@ -1564,6 +1587,31 @@ public class ControllerUtils {
             arrayGroupToVolumes.get(repGroupName).add(volume);
         }
         return arrayGroupToVolumes;
+    }
+
+    /**
+     * Groups the given full copies based on their array replication group.
+     * If full copies are not part of CG, return the given full copies as a single entry.
+     * 
+     * It also adds VolumeGroup to taskCompleter if full copy is part of application.
+     */
+    public static Map<String, List<Volume>> groupFullCopiesByArrayGroup(List<URI> fullCopies,
+            DbClient dbClient, TaskCompleter completer) {
+        Map<String, List<Volume>> arrayGroupToFullCopies = null;
+        List<Volume> fullCopyVolumeObjects = queryVolumesByIterativeQuery(dbClient, fullCopies);
+
+        if (ConsistencyUtils.getCloneConsistencyGroup(fullCopies.get(0), dbClient) != null) {
+            // add VolumeGroup to taskCompleter
+            if (ControllerUtils.checkCloneInApplication(fullCopies.get(0), dbClient, completer)) {
+                s_logger.info("Full copy {} is part of an Application", fullCopies.get(0));
+            }
+            arrayGroupToFullCopies = groupVolumesByArrayGroup(fullCopyVolumeObjects, dbClient);
+        } else {
+            arrayGroupToFullCopies = new HashMap<String, List<Volume>>();
+            arrayGroupToFullCopies.put("NO_ARRAY_GROUP", fullCopyVolumeObjects);
+        }
+
+        return arrayGroupToFullCopies;
     }
 
     /**

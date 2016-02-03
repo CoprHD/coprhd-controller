@@ -23,7 +23,10 @@ import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -504,33 +507,4 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         return uris;
     }
 
-    /**
-     * Updates passed volume and tasks on failure.
-     * 
-     * @param taskId The unique task id.
-     * @param taskList A list of the task responses.
-     * @param volumes The list of volumes for the operation.
-     * @param sc A reference to the error.
-     * @param markInactive true to mark the volumes inactive, false otherwise.
-     */
-    protected void handleFailedRequest(String taskId, TaskList taskList,
-            List<Volume> volumes, ServiceCoded sc, boolean markInactive) {
-        for (TaskResourceRep volumeTask : taskList.getTaskList()) {
-            volumeTask.setState(Operation.Status.error.name());
-            volumeTask.setMessage(sc.getMessage());
-            Volume volume = _dbClient.queryObject(Volume.class, volumeTask.getResource().getId());
-            Operation op = volume.getOpStatus().get(taskId);
-            if (op != null) {
-                op.error(sc);
-                volume.getOpStatus().updateTaskStatus(taskId, op);
-                _dbClient.persistObject(volume);
-            }
-        }
-        if (markInactive) {
-            for (Volume volume : volumes) {
-                volume.setInactive(true);
-                _dbClient.persistObject(volume);
-            }
-        }
-    }
 }

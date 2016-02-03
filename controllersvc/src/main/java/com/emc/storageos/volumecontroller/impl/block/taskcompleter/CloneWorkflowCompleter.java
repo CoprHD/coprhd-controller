@@ -36,7 +36,7 @@ public class CloneWorkflowCompleter extends VolumeTaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
-        log.info("START FullCopyVolumeWorkflowCompleter complete");
+        log.info("START CloneWorkflowCompleter complete");
 
         super.setStatus(dbClient, status, coded);
         super.complete(dbClient, status, coded);
@@ -55,6 +55,6 @@ public class CloneWorkflowCompleter extends VolumeTaskCompleter {
             dbClient.updateObject(toUpdate);
         }
 
-        log.info("END FullCopyVolumeWorkflowCompleter complete");
+        log.info("END CloneWorkflowCompleter complete");
     }
 }

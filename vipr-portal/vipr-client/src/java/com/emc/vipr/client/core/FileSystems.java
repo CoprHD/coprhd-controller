@@ -13,12 +13,12 @@ import java.util.Properties;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParam;
 import com.emc.storageos.model.file.FilePolicyList;
+import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -30,12 +30,10 @@ import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.NfsACL;
-import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
-import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -102,17 +100,16 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     protected String getShareACLsUrl() {
         return getIdUrl() + "/shares/{shareName}/acl";
     }
-    
-	/**
+
+    /**
 	 * Gets the base URL for NFS ACL for a filesystem:
 	 * <tt>/file/filesystems/{id}/acl</tt>
-	 * 
-	 * @return the NFS ACL URL.
-	 */
-	protected String getNfsACLsUrl() {
-		return "/file/filesystems/{id}/acl";
-	}
-    
+     * 
+     * @return the NFS ACL URL.
+     */
+    protected String getNfsACLsUrl() {
+        return "/file/filesystems/{id}/acl";
+    }
 
     @Override
     protected List<FileShareRestRep> getBulkResources(BulkIdParam input) {
@@ -400,6 +397,27 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
 
     /**
+     * Delete file system acl
+     * 
+     * API Call: <tt>DELETE /file/filesystems/{id}/acl</tt>
+     * 
+     * @param id
+     *            the ID of the file system
+     * @param subDir
+     *            specific directory to delete acl .
+     */
+
+    public Task<FileShareRestRep> deleteAllNfsAcl(URI id, String subDir) {
+        UriBuilder builder = client.uriBuilder(getNfsACLsUrl());
+
+        if (subDir != null) {
+            builder.queryParam(SUBDIR_PARAM, subDir);
+        }
+        URI targetUri = builder.build(id);
+        return deleteTaskURI(targetUri);
+    }
+
+    /**
      * Gets the share ACLs for the given file system by ID.
      * <p>
      * API Call: <tt>GET /file/filesystems/{id}/shares/{shareName}/acl</tt>
@@ -414,7 +432,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         ShareACLs response = client.get(ShareACLs.class, getShareACLsUrl(), id, shareName);
         return defaultList(response.getShareACLs());
     }
-    
+
     /**
      * Gets the all NFS ACLs for the given file system by ID.
      * <p>
@@ -469,7 +487,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the update/create configuration
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<FileShareRestRep> updateNfsACL(URI id, NfsACLUpdateParams param) {
+    public Task<FileShareRestRep> updateNfsACL(URI id, FileNfsACLUpdateParams param) {
         UriBuilder builder = client.uriBuilder(getNfsACLsUrl());
         URI targetUri = builder.build(id);
         return putTaskURI(param, targetUri);

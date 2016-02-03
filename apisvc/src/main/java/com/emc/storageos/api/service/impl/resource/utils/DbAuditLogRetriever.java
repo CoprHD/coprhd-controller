@@ -45,7 +45,7 @@ public class DbAuditLogRetriever extends AbstractDbRetriever implements AuditLog
         } else if (type.equals(MediaType.APPLICATION_JSON_TYPE)) {
             marshaller = new JSONAuditLogMarshaller();
             log.debug("Parser type: {}", type.toString());
-        } else if (type.equals(MediaType.APPLICATION_XML_TYPE)) {
+        } else if (type.equals(MediaType.TEXT_PLAIN_TYPE)) {
             marshaller = new TextAuditLogMarshaller();
             log.debug("parser type: {}", type.toString());
         } else {
@@ -58,7 +58,7 @@ public class DbAuditLogRetriever extends AbstractDbRetriever implements AuditLog
         DateTime end = auditLogRequest.getEndTime();
 
         TimeSeriesMetadata.TimeBucket bucket = TimeSeriesMetadata.TimeBucket.HOUR;
-        if (start.plusHours(1).isAfter(end.toInstant())){
+        if (start.plusSeconds(59).isEqual(end.toInstant())){
             bucket = TimeSeriesMetadata.TimeBucket.MINUTE;
         }
 

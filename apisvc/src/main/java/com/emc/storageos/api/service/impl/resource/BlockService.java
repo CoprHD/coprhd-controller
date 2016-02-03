@@ -3917,8 +3917,48 @@ public class BlockService extends TaskResourceService {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
         String systemType = system.getSystemType();
 
-        // Check if an Export Path Params change.
         StringBuffer notSuppReasonBuff = new StringBuffer();
+        notSuppReasonBuff.setLength(0);
+        /**
+         * Do not support following vpool change operations for the volume part of application
+         * 1. Move into Vplex
+         * 2. Add RecoverPoint
+         * 3. Remove RecoverPoint
+         * 4. Add SRDF
+         */
+        if (volume.getApplication(_dbClient) != null) {
+            //Move into VPLEX
+            if (!VirtualPool.vPoolSpecifiesHighAvailability(currentVpool) && VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
+                notSuppReasonBuff.append("Non VPLEX Application Volume can not be moved into VPLEX vpool");
+                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                        notSuppReasonBuff.toString());
+            }
+
+            //Add recoverPoint
+            if (!VirtualPool.vPoolSpecifiesProtection(currentVpool)
+                    && VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+                notSuppReasonBuff.append("Non RP Application Volume can not be moved into RP vpool");
+                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                        notSuppReasonBuff.toString());
+            }
+
+            //Remove RecoverPoint
+            if(VirtualPool.vPoolSpecifiesProtection(currentVpool)
+                    && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+                notSuppReasonBuff.append("RP Application Volume can not be moved into non RP vpool");
+                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                        notSuppReasonBuff.toString());
+            }
+
+            // Add SRDF
+            if (!VirtualPool.vPoolSpecifiesSRDF(currentVpool) && VirtualPool.vPoolSpecifiesSRDF(newVpool)) {
+                notSuppReasonBuff.append("Non SRDF Application Volume can not be moved into SRDF vpool");
+                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                        notSuppReasonBuff.toString());
+            }
+        }
+
+        // Check if an Export Path Params change.
         if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volume, currentVpool, newVpool,
                 _dbClient, notSuppReasonBuff)) {
             ExportPathUpdater updater = new ExportPathUpdater(_dbClient);

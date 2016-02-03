@@ -60,6 +60,7 @@ import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
+import com.emc.storageos.api.service.impl.resource.FileService.FileTechnologyType;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -333,7 +334,7 @@ public class FileStorageUtils {
     }
     
     public static Tasks<FileShareRestRep> createFileContinuousCopy(URI fileId, String name) {
-        Tasks<FileShareRestRep> copies = execute(new CreateFileContinuousCopy(fileId, name, COPY_NATIVE));
+        Tasks<FileShareRestRep> copies = execute(new CreateFileContinuousCopy(fileId, name, FileTechnologyType.LOCAL_MIRROR.name()));
         addAffectedResources(copies);
         return copies;
     }
@@ -346,15 +347,15 @@ public class FileStorageUtils {
     }
     
     private static void removeFileContinuousCopy(URI fileId, URI continuousCopyId) {
-        execute(new PauseFileContinuousCopy(fileId, continuousCopyId, COPY_NATIVE));
-        Tasks<FileShareRestRep> tasks = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId, COPY_NATIVE));
+        execute(new PauseFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
+        Tasks<FileShareRestRep> tasks = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
         addAffectedResources(tasks);
     }
     
     
     public static void failoverFileSystem(URI fileId, URI targetId) {
-        execute(new PauseFileContinuousCopy(fileId, targetId, COPY_NATIVE));
-        Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, COPY_NATIVE));
+        execute(new PauseFileContinuousCopy(fileId, targetId, FileTechnologyType.LOCAL_MIRROR.name()));
+        Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, FileTechnologyType.LOCAL_MIRROR.name()));
         addAffectedResources(tasks);
     }
 

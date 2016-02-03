@@ -20,6 +20,17 @@ public class VPlexPerpetualCSVFileData {
     // Constants
     public static final String ZERO = "0";
     public static final String NO_DATA = "no data";
+    public static final String TIME_UTC = "Time (UTC)";
+    public static final String TIME = "Time";
+    public static final String DIRECTOR_BUSY = "director.busy";
+    public static final String DIRECTOR_FE_OPS = "director.fe-ops";
+    public static final String FE_PORT_READ = "fe-prt.read";
+    public static final String FE_PORT_WRITE = "fe-prt.write";
+    public static final String FE_PORT_OPS = "fe-prt.ops";
+    public static final String HEADER_KEY_DIRECTOR_BUSY = "director.busy (%)";
+    public static final String HEADER_KEY_DIRECTOR_FE_OPS = "director.fe-ops (counts/s)";
+    public static final String HEADER_KEY_TIME_UTC = "Time (UTC)";
+
     private static final Pattern FILENAME_PATTERN = Pattern.compile(".*?/([\\w\\-_]+)_PERPETUAL_vplex_sys_perf_mon.log");
     // Total number of lines in the file
     private final int totalLines;
@@ -31,6 +42,8 @@ public class VPlexPerpetualCSVFileData {
     private List<String> headers;
     // Structure to hold the data. Each entry in the list is a data line that has a map of key-values representing the data points
     private List<Map<String, String>> data;
+    // Mapping of Time Values to their numeric index in the 'data' list
+    private Map<String, Integer> timeToDataIndex;
 
     public VPlexPerpetualCSVFileData(String name, int totalLines) {
         this.name = name;
@@ -94,13 +107,17 @@ public class VPlexPerpetualCSVFileData {
      * Reset object's data collections
      */
     public void close() {
-        if (this.data != null) {
-            this.data.clear();
-            this.data = null;
+        if (data != null) {
+            data.clear();
+            data = null;
         }
-        if (this.headers != null) {
-            this.headers.clear();
-            this.headers = null;
+        if (headers != null) {
+            headers.clear();
+            headers = null;
+        }
+        if (timeToDataIndex != null) {
+            timeToDataIndex.clear();
+            timeToDataIndex = null;
         }
     }
 
@@ -110,17 +127,19 @@ public class VPlexPerpetualCSVFileData {
      * @param values [IN] - Data values
      */
     public void addDataLine(String[] values) {
-        assert(headers != null && !headers.isEmpty() && headers.size() == values.length);
+        assert (headers != null && !headers.isEmpty() && headers.size() == values.length);
 
         // Create data if it doesn't exist
         if (data == null) {
             data = new ArrayList<>(totalLines);
+            timeToDataIndex = new HashMap<>();
         }
 
         // Iterate through the passed in values. The number of values should match the number
         // of header entries, which specify what the value represents (time, Kb/sec, etc.)
         Map<String, String> dataMap = new HashMap<>();
         int numHeaders = headers.size();
+        int currentDataIndex = data.size();
         for (int index = 0; index < numHeaders; index++) {
             String header = headers.get(index);
             String value = values[index];
@@ -131,6 +150,9 @@ public class VPlexPerpetualCSVFileData {
                 value = NO_DATA;
             }
             dataMap.put(header, value);
+            if (header.equals(TIME_UTC)) {
+                timeToDataIndex.put(value, currentDataIndex);
+            }
         }
         // Add the mapping to the data line structure
         data.add(dataMap);
@@ -143,6 +165,17 @@ public class VPlexPerpetualCSVFileData {
      */
     public List<Map<String, String>> getDataLines() {
         return Collections.unmodifiableList(data);
+    }
+
+    /**
+     * For a given 'timeUTC' value, find its index in the data lines.
+     * 
+     * @param timeUTC [IN] - Time UTC value to look up
+     * @return An index into the 'data' List if 'timeUTC' exists, otherwise 0.
+     */
+    public Integer getDataIndexForTime(Long timeUTC) {
+        Integer result = timeToDataIndex.get(timeUTC.toString());
+        return (result != null) ? result : 0;
     }
 
     @Override

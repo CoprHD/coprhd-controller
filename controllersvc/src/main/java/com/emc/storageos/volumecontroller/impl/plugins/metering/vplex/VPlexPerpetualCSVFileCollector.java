@@ -5,6 +5,17 @@
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vplex;
 
+import static com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileData.DIRECTOR_BUSY;
+import static com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileData.DIRECTOR_FE_OPS;
+import static com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileData.FE_PORT_OPS;
+import static com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileData.FE_PORT_READ;
+import static com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileData.FE_PORT_WRITE;
+import static com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileData.HEADER_KEY_DIRECTOR_BUSY;
+import static com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileData.HEADER_KEY_DIRECTOR_FE_OPS;
+import static com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileData.HEADER_KEY_TIME_UTC;
+import static com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileData.NO_DATA;
+import static com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileData.TIME;
+
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,6 +42,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.google.common.base.Strings;
 import com.iwave.ext.linux.LinuxSystemCLI;
@@ -45,17 +57,7 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
     private static final Set<String> NOT_PORTS = new ConcurrentHashSet<>();
     private static final Map<String, DataObject> OBJECT_CACHE = new ConcurrentHashMap<>();
     private static final Set<String> METRICS_NAMES_TO_GATHER = new HashSet<>();
-
-    private static final String TIME = "Time";
-    private static final String DIRECTOR_BUSY = "director.busy";
-    private static final String DIRECTOR_FE_OPS = "director.fe-ops";
-    private static final String FE_PORT_READ = "fe-prt.read";
-    private static final String FE_PORT_WRITE = "fe-prt.write";
-    private static final String FE_PORT_OPS = "fe-prt.ops";
-
-    private static final String HEADER_KEY_DIRECTOR_BUSY = "director.busy (%)";
-    private static final String HEADER_KEY_DIRECTOR_FE_OPS = "director.fe-ops (counts/s)";
-    private static final String HEADER_KEY_TIME_UTC = "Time (UTC)";
+    private static final String DOUBLE_DATA_PATTERN = "\\d+\\.?\\d*";
 
     private static Logger log = LoggerFactory.getLogger(VPlexPerpetualCSVFileCollector.class);
 
@@ -107,11 +109,20 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
 
             List<Map<String, String>> dataLines = fileData.getDataLines();
             int lineCount = dataLines.size();
-            // There are at least one data point
+            // There is at least one data point
             if (lineCount > 1) {
+                // Determine the last time that metrics were collected.
+                Long lastCollectionTimeUTC = getLastCollectionTime(metricNamesToHeaderInfo);
+                // Try to find the index into dataLines based on the last collection time.
+                // What we're trying to do here is determine the maximum value for the metrics
+                // from the last collection time in ViPR, until the last data line in the file.
+                int start = fileData.getDataIndexForTime(lastCollectionTimeUTC);
+                // Have a mapping of metrics to their maximum value found in the dataLines
+                Map<String, Double> maxValues = findMaxMetricValues(dataLines, start, lineCount);
+                // Process the metrics for this file
                 Map<String, String> last = dataLines.get(lineCount - 1);
-                processDirectorStats(metricNamesToHeaderInfo, last);
-                processPortStats(metricNamesToHeaderInfo, last);
+                processDirectorStats(metricNamesToHeaderInfo, maxValues, last);
+                processPortStats(metricNamesToHeaderInfo, maxValues, last);
             }
             // Clean up fileData resources
             fileData.close();
@@ -119,6 +130,67 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
         // Clean out the cache data, so that it's not laying around
         clearCaches();
         return null;
+    }
+
+    /**
+     * Examines the metricHeaderInfoMap to find an entry referencing a StorageHADomain's (i.e. VPlex director)
+     * metrics. In the metrics, we will lookup the value for the lastSampleTime. We know that all stats are
+     * processed at one time, so this will be considered the last time metrics were collected for *all* objects.
+     *
+     * @param metricHeaderInfoMap - [IN] Metric name to structure holding information about that metric
+     * 
+     * @return Long - Time value in UTC representing the last time metrics were collected. If
+     *         metrics were never collected, then 0 is returned.
+     */
+    private Long getLastCollectionTime(Map<String, MetricHeaderInfo> metricHeaderInfoMap) {
+        Long timeUTC = null;
+        MetricHeaderInfo headerInfo = metricHeaderInfoMap.get(HEADER_KEY_DIRECTOR_BUSY);
+        if (headerInfo != null) {
+            // Note: this call will return 0 if 'lastSampleTime' is not found
+            timeUTC = MetricsKeys.getLong(MetricsKeys.lastSampleTime, headerInfo.director.getMetrics());
+        }
+        return timeUTC;
+    }
+
+    /**
+     * Given the data for a file, starting from 'start' index until 'end' index, calculate
+     * the maximum value for all metrics found. Only numeric values are calculated.
+     * 
+     * @param dataLines [IN] - Data from the CSV file
+     * @param start [IN] - Index value to start from in 'dataLines'
+     * @param end [IN] - Index value to end in 'dataLines'
+     * @return Map of String metricName to max value found for that metric based on search
+     *         of 'dataLines' from 'start' to 'end'
+     */
+    private Map<String, Double> findMaxMetricValues(List<Map<String, String>> dataLines, int start, int end) {
+        assert (start < end);
+        Map<String, Double> maxValuesMap = new HashMap<>();
+        // Search through dataLines starting from the 'start' index
+        for (int index = start; index < end; index++) {
+            // Get the data at the 'index' line
+            Map<String, String> data = dataLines.get(index);
+            // Look at the metrics (which would be considered the columns in the CSV file)
+            for (String metricKey : data.keySet()) {
+                String dataValueString = data.get(metricKey);
+                // Skip over 'no data' and non-numeric values
+                if (dataValueString.equals(NO_DATA) || !dataValueString.matches(DOUBLE_DATA_PATTERN)) {
+                    continue;
+                }
+                // Get the values from dataLine and from what has been previously found (if it exists)
+                Double currentMaxValue = maxValuesMap.get(metricKey);
+                Double dataValue = Double.valueOf(dataValueString);
+                if (currentMaxValue == null) {
+                    // Cache miss: add it
+                    maxValuesMap.put(metricKey, dataValue);
+                } else {
+                    // Cache hit: check if the current data value is greater than the current max value
+                    if (dataValue > currentMaxValue) {
+                        maxValuesMap.put(metricKey, dataValue);
+                    }
+                }
+            }
+        }
+        return maxValuesMap;
     }
 
     /**
@@ -314,15 +386,21 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
      * Process the director metrics found in metricHeaderInfoMap
      * 
      * @param metricHeaderInfoMap - [IN] Metric name to structure holding information about that metric
+     * @param maxValues [IN] - Mapping of metrics to maximum values found in the file data
      * @param lastSample - [IN] Last data sample (the latest)
      */
-    private void processDirectorStats(Map<String, MetricHeaderInfo> metricHeaderInfoMap, Map<String, String> lastSample) {
+    private void processDirectorStats(Map<String, MetricHeaderInfo> metricHeaderInfoMap, Map<String, Double> maxValues,
+            Map<String, String> lastSample) {
         MetricHeaderInfo headerInfo = metricHeaderInfoMap.get(HEADER_KEY_DIRECTOR_BUSY);
         if (headerInfo != null) {
             String directorBusyString = lastSample.get(HEADER_KEY_DIRECTOR_BUSY);
             if (directorBusyString != null) {
+                // Percent busy is a non-counter value; we can use it raw
                 Double percentBusy = Double.valueOf(directorBusyString);
-                Double iops = Double.valueOf(lastSample.get(HEADER_KEY_DIRECTOR_FE_OPS)); // NB: This is really for informational purposes
+                // Note: 'iops' is really for informational purposes. We're going to find the maximum
+                // value in the data or use the latest value, if it's not found
+                Double iops = (maxValues.containsKey(HEADER_KEY_DIRECTOR_FE_OPS)) ? maxValues.get(HEADER_KEY_DIRECTOR_FE_OPS)
+                        : Double.valueOf(lastSample.get(HEADER_KEY_DIRECTOR_FE_OPS));
                 String lastSampleTime = lastSample.get(HEADER_KEY_TIME_UTC);
                 portMetricsProcessor.processFEAdaptMetrics(percentBusy, iops.longValue(), headerInfo.director, lastSampleTime, false);
             }
@@ -331,19 +409,21 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
 
     /**
      * Process all the port metrics found in metricHeaderInfoMap.
-     *
+     * 
      * @param metricHeaderInfoMap - [IN] Metric name to structure holding information about that metric
+     * @param maxValues [IN] - Mapping of metrics to maximum values found in the file data
      * @param lastSample - [IN] Last data sample (the latest)
      */
-    private void processPortStats(Map<String, MetricHeaderInfo> metricHeaderInfoMap, Map<String, String> lastSample) {
+    private void processPortStats(Map<String, MetricHeaderInfo> metricHeaderInfoMap, Map<String, Double> maxValues,
+            Map<String, String> lastSample) {
         Map<URI, PortStat> portStatMap = new HashMap<>();
         // Each key will reference the metric name, an optional object, and units. As we process the
         // keys, we will keep track of the values and persist them in the portStatMap for each port.
         for (String metricKey : metricHeaderInfoMap.keySet()) {
             MetricHeaderInfo headerInfo = metricHeaderInfoMap.get(metricKey);
-            // We only care about the port metrics ...
+            // We only care about the metrics for port objects ...
             if (headerInfo.type == MetricHeaderInfo.Type.PORT) {
-                handlePortStat(metricKey, headerInfo, portStatMap, lastSample);
+                handlePortStat(metricKey, headerInfo, portStatMap, maxValues, lastSample);
             }
         }
 
@@ -363,17 +443,18 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
     /**
      * Create or update the PortStat pertaining to the port indicated by 'metricKey'.
      * Requires:
-     *  - 'metricKey' points to a headerInfo that is associated with entry of type =
-     *     VPlexPerpetualCSVFileCollector.MetricHeaderInfo.Type.PORT
-     *
+     * - 'metricKey' points to a headerInfo that is associated with entry of type =
+     * VPlexPerpetualCSVFileCollector.MetricHeaderInfo.Type.PORT
+     * 
      * @param metricKey [IN] -- Key to which the headerInfo applies
      * @param headerInfo [IN] -- Meta info for a port stat
      * @param portStatMap [IN/OUT] -- StoragePort URI to PortStat mapping. Will be filled in new PortStat if
-     *                    it's the first time that the port has been encountered.
+     *            it's the first time that the port has been encountered.
+     * @param maxValues [IN] - Mapping of metrics to maximum values found in the file data
      * @param lastSample [IN] -- The last collected port stat.
      */
     private void handlePortStat(String metricKey, MetricHeaderInfo headerInfo, Map<URI, PortStat> portStatMap,
-            Map<String, String> lastSample) {
+            Map<String, Double> maxValues, Map<String, String> lastSample) {
         StoragePort port = headerInfo.port;
         PortStat stat = portStatMap.get(port.getId());
         if (stat == null) {
@@ -384,11 +465,14 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
         }
         // Which stat is this?
         if (metricKey.contains(FE_PORT_OPS)) {
-            stat.iops = Double.valueOf(lastSample.get(metricKey)).longValue();
+            stat.iops = maxValues.containsKey(metricKey) ? maxValues.get(metricKey).longValue()
+                    : Double.valueOf(lastSample.get(metricKey)).longValue();
         } else if (metricKey.contains(FE_PORT_READ)) {
-            stat.kbytes += Double.valueOf(lastSample.get(metricKey)).longValue();
+            stat.kbytes += maxValues.containsKey(metricKey) ? maxValues.get(metricKey).longValue()
+                    : Double.valueOf(lastSample.get(metricKey)).longValue();
         } else if (metricKey.contains(FE_PORT_WRITE)) {
-            stat.kbytes += Double.valueOf(lastSample.get(metricKey)).longValue();
+            stat.kbytes += maxValues.containsKey(metricKey) ? maxValues.get(metricKey).longValue()
+                    : Double.valueOf(lastSample.get(metricKey)).longValue();
         }
         // The sampleTime is not associated with a particular port, so we will
         // check if the stat.sampleTime is not set yet and then set it once.

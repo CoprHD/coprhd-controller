@@ -104,6 +104,7 @@ public class FailoverBlockVolumeService extends ViPRService {
 
                 tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type, imageToAccess, pointInTime));
             } else {
+                // Image to access and Point-in-time do not apply so null them out.
                 tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type));
             }
         } else {

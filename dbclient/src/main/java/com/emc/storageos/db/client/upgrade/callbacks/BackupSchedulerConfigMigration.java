@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
@@ -22,7 +23,7 @@ public class BackupSchedulerConfigMigration extends BaseCustomMigrationCallback 
                 return;
             }
             coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
-            coordinatorClient.removeServiceConfiguration(config);
+            coordinatorClient.deletePath(String.format("%s/%s", ZkPath.CONFIG.toString(), BACKUP_SCHEDULER_CONFIG));
             log.info("Backup scheduler has been migrated to site specific area");
         } catch (Exception e) {
             log.error("Fail to migrate backup scheduler config to site specific area", e);

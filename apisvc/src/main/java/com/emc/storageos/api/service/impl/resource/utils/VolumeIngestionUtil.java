@@ -1058,16 +1058,15 @@ public class VolumeIngestionUtil {
     public static BlockConsistencyGroup getVplexConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj, VirtualPool vpool,
             URI projectUri, URI tenantUri, URI varrayUri, DbClient _dbClient) {
 
-        // @TODO Don't create CG if the vplex is behind RP. Add a check here.
         String cgName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_CONSISTENCY_GROUP_NAME.toString(),
                 unManagedVolume.getVolumeInformation());
-        /*
-         * if (isUnManagedVolumeBehindRP) {
-         * blockObj.setReplicationGroupInstance(cgName);
-         * return null;
-         * }
-         */
+
+        // Don't create CG if the vplex is behind RP. Add a check here.
+        if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
+            blockObj.setReplicationGroupInstance(cgName);
+            return null;
+        }
 
         if (cgName != null) {
             _logger.info("VPLEX UnManagedVolume {} is added to consistency group {}",

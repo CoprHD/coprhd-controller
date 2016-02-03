@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -126,6 +127,16 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
                             if (volume.checkForVplexVirtualVolume(dbClient)) {
                                 boList.add((BlockObject)dataObj);
                             }
+                        }
+                    }
+                }
+                
+                Collection<BlockObject> dataObjList = rpContext.getObjectsToBeCreatedMap().values();
+                for (DataObject dataObj : dataObjList) {
+                    if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+                        Volume volume = (Volume)dataObj;
+                        if (volume.checkForVplexVirtualVolume(dbClient)) {
+                            boList.add((BlockObject)dataObj);
                         }
                     }
                 }

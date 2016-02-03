@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
@@ -38,6 +39,13 @@ public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
                     if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
                         boList.add((BlockObject)dataObj);
                     }
+                }
+            }
+
+            Collection<BlockObject> dataObjList = rpContext.getObjectsToBeCreatedMap().values();
+            for (DataObject dataObj : dataObjList) {
+                if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+                    boList.add((BlockObject)dataObj);
                 }
             }
         }

@@ -9,7 +9,7 @@
     },
     
     fileSystem:{
-      type:"assetType.vipr.protectedFileFilesystem",
+      type:"assetType.vipr.protectedFileSystem",
       lockable: true
     },
     

@@ -16,6 +16,7 @@ import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -27,12 +28,14 @@ import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
+import com.emc.storageos.model.file.FileShareRestRep.FileProtectionRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
@@ -293,34 +296,43 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getProtectedFileSystems(AssetOptionsContext ctx, URI project) {
         debug("getting protected file system (project=%s)", project);
         ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        
         List<FileShareRestRep> fileSystems = client.fileSystems().findByProject(project);
         
-        // TODO: only add file system with protection
+        for (FileShareRestRep fileShare : fileSystems) {
+            if (fileShare.getProtection() != null) {
+                if (StringUtils.equals("SOURCE", fileShare.getProtection().getPersonality())) {
+                    options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
+                }
+            }
+        }
         
-        return createFilesystemOptions(fileSystems);
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
     }
 
-    @Asset("failoverTarget")
+    @Asset("failoverFileTarget")
     @AssetDependencies("protectedFileSystem")
     public List<AssetOption> getFailoverFileTarget(AssetOptionsContext ctx, URI protectedFileSystem) {
         if (protectedFileSystem != null) {
             ViPRCoreClient client = api(ctx);
+            List<AssetOption> options = Lists.newArrayList();
 
             debug("getting failoverFileTargets (protectedFileSystem=%s)", protectedFileSystem);
             FileShareRestRep file = client.fileSystems().get(protectedFileSystem);
-
-//            ProtectionRestRep protection = file..getProtection();
-//            if (protection != null) {
-//                // RecoverPoint protection
-//                if (protection.getRpRep() != null && protection.getRpRep().getProtectionSet() != null) {
-//                    return getRpFailoverTargets(client, volume);
-//                }
-//                // VMAX SRDF protection
-//                if (protection.getSrdfRep() != null && protection.getSrdfRep().getSRDFTargetVolumes() != null
-//                        && !protection.getSrdfRep().getSRDFTargetVolumes().isEmpty()) {
-//                    return getSrdfFailoverTargets(client, volume);
-//                }
-//            }
+            
+            FileProtectionRestRep protection = file.getProtection();
+            if (protection != null) {
+                List<VirtualArrayRelatedResourceRep> targets = protection.getTargetFileSystems();
+                for (VirtualArrayRelatedResourceRep target : targets) {
+                    FileShareRestRep t = client.fileSystems().get(target.getId());
+                    options.add(new AssetOption(t.getId(), t.getName()));
+                }
+            }
+            
+            AssetOptionsUtils.sortOptionsByLabel(options);
+            return options;
         }
 
         return Lists.newArrayList();

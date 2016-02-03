@@ -3509,7 +3509,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (sourceDescriptors == null || sourceDescriptors.isEmpty()) {
             return waitFor;
         } else {
-            createExpandMirrorFileshareStep(workflow, waitFor, sourceDescriptors, taskId);
+            createExpandFileshareStep(workflow, waitFor, sourceDescriptors, taskId);
         }
         return waitFor;
     }
@@ -3575,7 +3575,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param taskId
      * @return
      */
-    private String createExpandMirrorFileshareStep(Workflow workflow,
+    private String createExpandFileshareStep(Workflow workflow,
             String waitFor, List<FileDescriptor> fileDescriptors, String taskId) {
         _log.info("START Expand file system");
         Map<URI, Long> filesharesToExpand = new HashMap<URI, Long>();

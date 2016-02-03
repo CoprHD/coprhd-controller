@@ -224,19 +224,18 @@ public class FileService extends TaskResourceService {
     }
 
     public enum FileTechnologyType {
-        LOCAL_MIRROR,
-        REMOTE_MIRROR,
+        LOCAL_MIRROR, REMOTE_MIRROR,
     };
 
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
-        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER),
-        FAILBACK("failback", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
-        START("start", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
-        STOP("stop", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
-        PAUSE("pause", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE),
-        RESUME("resume", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME),
-        UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
+        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), UNKNOWN("unknown",
+                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -366,6 +365,14 @@ public class FileService extends TaskResourceService {
             ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
         }
 
+        if (param.getNotificationLimit() != 0) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.SUPPORT_NOTIFICATION_LIMIT, Boolean.TRUE);
+        }
+
+        if (param.getSoftLimit() != 0) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.SUPPORT_SOFT_LIMIT, Boolean.TRUE);
+        }
+
         // verify quota
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, fsSize, "filesystem");
         String suggestedNativeFsId = param.getFsId() == null ? "" : param.getFsId();
@@ -464,11 +471,16 @@ public class FileService extends TaskResourceService {
      * A method that pre-creates task and FileShare object to return to the caller of the API.
      * 
      * @param param
-     * @param project - project of the FileShare
-     * @param tenantOrg - tenant of the FileShare
-     * @param varray - varray of the FileShare
-     * @param vpool - vpool of the Fileshare
-     * @param flags -
+     * @param project
+     *            - project of the FileShare
+     * @param tenantOrg
+     *            - tenant of the FileShare
+     * @param varray
+     *            - varray of the FileShare
+     * @param vpool
+     *            - vpool of the Fileshare
+     * @param flags
+     *            -
      * @param task
      * @return
      */
@@ -1791,10 +1803,10 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setOpStatus(new OpStatusMap());
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
         quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
-        quotaDirectory.setSoftLimit(param.getSoftLimit() != 0 ? param.getSoftLimit() :
-                fs.getSoftLimit() != null ? fs.getSoftLimit().intValue() : 0);
-        quotaDirectory.setSoftGrace(param.getSoftGrace() != 0 ? param.getSoftGrace() :
-                fs.getSoftGracePeriod() != null ? fs.getSoftGracePeriod() : 0);
+        quotaDirectory.setSoftLimit(
+                param.getSoftLimit() != 0 ? param.getSoftLimit() : fs.getSoftLimit() != null ? fs.getSoftLimit().intValue() : 0);
+        quotaDirectory.setSoftGrace(
+                param.getSoftGrace() != 0 ? param.getSoftGrace() : fs.getSoftGracePeriod() != null ? fs.getSoftGracePeriod() : 0);
         quotaDirectory.setNotificationLimit(param.getNotificationLimit() != 0 ? param.getNotificationLimit()
                 : fs.getNotificationLimit() != null ? fs.getNotificationLimit().intValue() : 0);
 
@@ -2749,8 +2761,10 @@ public class FileService extends TaskResourceService {
      * 
      * @prereq none
      * 
-     * @param id the URN of a ViPR Source fileshare
-     * @param param List of copies to start
+     * @param id
+     *            the URN of a ViPR Source fileshare
+     * @param param
+     *            List of copies to start
      * 
      * @brief Start continuous copies.
      * @return TaskList
@@ -2775,7 +2789,8 @@ public class FileService extends TaskResourceService {
      * 
      * @prereq none
      * 
-     * @param id the URN of a ViPR Source fileshare
+     * @param id
+     *            the URN of a ViPR Source fileshare
      * @param param
      * 
      * @brief Stop continuous copies.
@@ -2801,7 +2816,8 @@ public class FileService extends TaskResourceService {
      * 
      * @prereq none
      * 
-     * @param id the URN of a ViPR Source fileshare
+     * @param id
+     *            the URN of a ViPR Source fileshare
      * @param param
      * 
      * @brief Pause continuous copies
@@ -2826,7 +2842,8 @@ public class FileService extends TaskResourceService {
      * 
      * @prereq none
      * 
-     * @param id the URN of a ViPR Source fileshare
+     * @param id
+     *            the URN of a ViPR Source fileshare
      * @param param
      * 
      * @brief Resume continuous copies
@@ -2852,8 +2869,10 @@ public class FileService extends TaskResourceService {
      * 
      * @prereq none
      * 
-     * @param id the URN of a ViPR Source fileshare
-     * @param param FileReplicationParam to failover to
+     * @param id
+     *            the URN of a ViPR Source fileshare
+     * @param param
+     *            FileReplicationParam to failover to
      * 
      * @brief Failover the fileShare protection link
      * @return TaskList
@@ -2884,8 +2903,10 @@ public class FileService extends TaskResourceService {
      * 
      * @prereq none
      * 
-     * @param id the URN of a ViPR Source files hare
-     * @param param FileReplicationParam to fail Back to
+     * @param id
+     *            the URN of a ViPR Source files hare
+     * @param param
+     *            FileReplicationParam to fail Back to
      * 
      * @brief Fail Back the fileShare protection link
      * @return TaskList
@@ -2914,7 +2935,8 @@ public class FileService extends TaskResourceService {
      * 
      * @prereq none
      * 
-     * @param id the URN of a ViPR FileShare to list mirrors
+     * @param id
+     *            the URN of a ViPR FileShare to list mirrors
      * 
      * @brief List fileShare mirrors
      * @return FileShare mirror response containing a list of mirror identifiers
@@ -3085,8 +3107,10 @@ public class FileService extends TaskResourceService {
     /**
      * Returns the bean responsible for servicing the request
      * 
-     * @param vpool Virtual Pool
-     * @param dbClient db client
+     * @param vpool
+     *            Virtual Pool
+     * @param dbClient
+     *            db client
      * @return file service implementation object
      */
     private static FileServiceApi getFileServiceImpl(VirtualPool vpool, DbClient dbClient) {
@@ -3107,8 +3131,10 @@ public class FileService extends TaskResourceService {
      * 
      * Assign existing file system to file policy.
      * 
-     * @param id the URN of a ViPR fileSystem
-     * @param filePolicyUri the URN of a Policy
+     * @param id
+     *            the URN of a ViPR fileSystem
+     * @param filePolicyUri
+     *            the URN of a Policy
      * @brief Update file system with Policy detail
      * @return Task resource representation
      * @throws InternalException
@@ -3185,8 +3211,10 @@ public class FileService extends TaskResourceService {
      * 
      * Unassign existing file system to file policy.
      * 
-     * @param id the URN of a ViPR fileSystem
-     * @param filePolicyUri the URN of a Policy
+     * @param id
+     *            the URN of a ViPR fileSystem
+     * @param filePolicyUri
+     *            the URN of a Policy
      * @brief Update file system with Policy detail
      * @return Task resource representation
      * @throws InternalException
@@ -3256,7 +3284,8 @@ public class FileService extends TaskResourceService {
     /**
      * Get Policy for file system
      * 
-     * @param id the URN of a ViPR File system
+     * @param id
+     *            the URN of a ViPR File system
      * @brief Show file system
      * @return File system Policy details
      */
@@ -3291,9 +3320,12 @@ public class FileService extends TaskResourceService {
     /**
      * Create FilePolicyRestRep object from the SchedulePolicy object
      * 
-     * @param fpRest FilePolicyRestRep object
-     * @param fp SchedulePolicy object
-     * @param fs FileShare object
+     * @param fpRest
+     *            FilePolicyRestRep object
+     * @param fp
+     *            SchedulePolicy object
+     * @param fs
+     *            FileShare object
      */
     private void getFilePolicyRestRep(FilePolicyRestRep fpRest, SchedulePolicy fp, FileShare fs) {
         String snapshotScheduleName = fp.getPolicyName() + "_" + fs.getName();
@@ -3314,10 +3346,14 @@ public class FileService extends TaskResourceService {
     /**
      * Gets and verifies the VirtualPool passed in the request.
      * 
-     * @param project A reference to the project.
-     * @param cosURI The URI of the VirtualPool.
-     * @param dbClient Reference to a database client.
-     * @param permissionsHelper Reference to a permissions helper.
+     * @param project
+     *            A reference to the project.
+     * @param cosURI
+     *            The URI of the VirtualPool.
+     * @param dbClient
+     *            Reference to a database client.
+     * @param permissionsHelper
+     *            Reference to a permissions helper.
      * 
      * @return A reference to the VirtualPool.
      */
@@ -3346,9 +3382,12 @@ public class FileService extends TaskResourceService {
     /**
      * Checks to see if the file replication change is supported.
      * 
-     * @param currentVpool the source virtual pool
-     * @param newVpool the target virtual pool
-     * @param notSuppReasonBuff the not supported reason string buffer
+     * @param currentVpool
+     *            the source virtual pool
+     * @param newVpool
+     *            the target virtual pool
+     * @param notSuppReasonBuff
+     *            the not supported reason string buffer
      * @return
      */
     private boolean isSupportedFileReplicationCreate(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff) {
@@ -3404,9 +3443,12 @@ public class FileService extends TaskResourceService {
     /**
      * Checks to see if the file replication change is supported.
      * 
-     * @param currentVpool the source virtual pool
-     * @param newVpool the target virtual pool
-     * @param notSuppReasonBuff the not supported reason string buffer
+     * @param currentVpool
+     *            the source virtual pool
+     * @param newVpool
+     *            the target virtual pool
+     * @param notSuppReasonBuff
+     *            the not supported reason string buffer
      * @return
      */
     private boolean validateDeleteMirrorCopies(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff) {

@@ -6,7 +6,6 @@
 package com.emc.storageos.api.service.impl.placement;
 
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -1229,13 +1228,18 @@ public class StorageScheduler implements Scheduler {
         if (consistencyGroup != null) {
             volume.setConsistencyGroup(consistencyGroup.getId());
             if (!consistencyGroup.isProtectedCG()) {
-                volume.setReplicationGroupInstance(consistencyGroup.getLabel());
-
-                // if other volumes in the same CG are in an application, add this volume to the same application
-                VolumeGroup volumeGroup = getApplicationForCG(dbClient, consistencyGroup, volume.getReplicationGroupInstance());
-                if (volumeGroup != null) {
-                    volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
+                String rgName = consistencyGroup.getCgNameOnStorageSystem(volume.getStorageController());
+                if (rgName == null) {
+                    rgName = consistencyGroup.getLabel(); // for new CG
+                } else {
+                    // if other volumes in the same CG are in an application, add this volume to the same application
+                    VolumeGroup volumeGroup = ControllerUtils.getApplicationForCG(dbClient, consistencyGroup, rgName);
+                    if (volumeGroup != null) {
+                        volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
+                    }
                 }
+
+                volume.setReplicationGroupInstance(rgName);
             }
         }
 
@@ -1254,34 +1258,6 @@ public class StorageScheduler implements Scheduler {
         }
 
         return volume;
-    }
-
-    /**
-     * gets the application volume group for this CG and group name if it exists
-     *
-     * @param dbClient
-     *            dbClient to query objects from db
-     * @param consistencyGroup
-     *            consistency group object
-     * @param cgNameOnArray
-     *            cg name to check
-     * @return a VolumeGroup object or null if this CG and group name are not associated with an application
-     */
-    private static VolumeGroup getApplicationForCG(DbClient dbClient, BlockConsistencyGroup consistencyGroup, String cgNameOnArray) {
-        VolumeGroup volumeGroup = null;
-        URIQueryResultList uriQueryResultList = new URIQueryResultList();
-        dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), uriQueryResultList);
-        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
-        while (volumeIterator.hasNext()) {
-            Volume volume = volumeIterator.next();
-            if (volume.getReplicationGroupInstance() != null && volume.getReplicationGroupInstance().equals(cgNameOnArray)) {
-                volumeGroup = volume.getApplication(dbClient);
-                if (volumeGroup != null) {
-                    break;
-                }
-            }
-        }
-        return volumeGroup;
     }
 
     /**

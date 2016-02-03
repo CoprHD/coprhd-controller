@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl;
 
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -1495,16 +1497,9 @@ public class ControllerUtils {
      * @return The list of volumes in volume group
      */
     public static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
-        List<Volume> result = new ArrayList<Volume>();
-        final List<Volume> volumes = CustomQueryUtility
+        return CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Volume vol : volumes) {
-            if (!vol.getInactive()) {
-                result.add(vol);
-            }
-        }
-        return result;
     }
 
     /**
@@ -1568,4 +1563,49 @@ public class ControllerUtils {
         return rpVolumeCount == volumes.size();
     }
 
+
+    /**
+     * gets the application volume group for this CG and group name if it exists
+     *
+     * @param dbClient
+     *            dbClient to query objects from db
+     * @param consistencyGroup
+     *            consistency group object
+     * @param cgNameOnArray
+     *            cg name to check
+     * @return a VolumeGroup object or null if this CG and group name are not associated with an application
+     */
+    public static VolumeGroup getApplicationForCG(DbClient dbClient, BlockConsistencyGroup consistencyGroup, String cgNameOnArray) {
+        VolumeGroup volumeGroup = null;
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), uriQueryResultList);
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume.getReplicationGroupInstance() != null && volume.getReplicationGroupInstance().equals(cgNameOnArray)) {
+                volumeGroup = volume.getApplication(dbClient);
+                if (volumeGroup != null) {
+                    break;
+                }
+            }
+        }
+        return volumeGroup;
+    }
+
+    public static boolean checkIfVolumeHasSnapshot(Volume volume, DbClient dbClient) {
+        URIQueryResultList list = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
+                list);
+        Iterator<URI> it = list.iterator();
+        while (it.hasNext()) {
+            URI snapshotID = it.next();
+            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
+            if (snapshot != null & !snapshot.getInactive()) {
+                s_logger.debug("Volume {} has snapshot", volume.getId());
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

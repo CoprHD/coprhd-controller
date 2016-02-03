@@ -3300,6 +3300,7 @@ cloneApplication.name=Copy Name
 cloneApplication.size=Size
 cloneApplication.status=Status
 cloneApplication.protocol=Protocol
+cloneApplication.volumes=Volumes
 
 resources.snapshots=Block Snapshots
 resources.snapshots.none=No Snapshots

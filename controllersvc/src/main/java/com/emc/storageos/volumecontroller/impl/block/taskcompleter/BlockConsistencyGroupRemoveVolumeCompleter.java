@@ -11,11 +11,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Task completer class for remove volumes from CG
@@ -44,6 +48,12 @@ public class BlockConsistencyGroupRemoveVolumeCompleter extends BlockConsistency
                 for (URI blockObjectURI : removedVolumeList) {
                     BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
                     if (blockObject != null) {
+                        if (blockObject instanceof Volume) {
+                            VolumeGroup volumeGroup = ((Volume) blockObject).getApplication(dbClient);
+                            if (volumeGroup != null) {
+                                ((Volume) blockObject).getVolumeGroupIds().remove(volumeGroup.getId().toString());
+                            }
+                        }
                         blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                         blockObject.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
                     }

@@ -638,7 +638,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         }
 
         for (BlockObject bo : getObjectsToBeCreatedMap().values()) {
-            if (uri.equals(bo.getId())) {
+            if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
                 _logger.info("\tfound block object: " + bo.forDisplay());
                 return bo;
             }
@@ -649,7 +649,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
             _logger.info("looking for block object with uri {} in the current volume context...", uri);
             for (BlockObject bo : ((IngestionRequestContext) currentVolumeContext).getObjectsToBeCreatedMap().values()) {
-                if (uri.equals(bo.getId())) {
+                if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
                     _logger.info("\tfound block object: " + bo.forDisplay());
                     return bo;
                 }
@@ -660,7 +660,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
             if (volumeContext instanceof IngestionRequestContext) {
                 for (BlockObject bo : ((IngestionRequestContext) volumeContext).getObjectsToBeCreatedMap().values()) {
-                    if (uri.equals(bo.getId())) {
+                    if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
                         _logger.info("\tfound block object: " + bo.forDisplay());
                         return bo;
                     }

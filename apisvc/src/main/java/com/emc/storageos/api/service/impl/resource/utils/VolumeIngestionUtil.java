@@ -3073,7 +3073,7 @@ public class VolumeIngestionUtil {
                 pset.getVolumes().add(volumeID);
 
                 if (volume == null) {
-                    BlockObject bo = requestContext.findCreatedBlockObject(volumeID);
+                    BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeID));
                     if (bo != null && bo instanceof Volume) {
                         volume = (Volume) bo;
                     }

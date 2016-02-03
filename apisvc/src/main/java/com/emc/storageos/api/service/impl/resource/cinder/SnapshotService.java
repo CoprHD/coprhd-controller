@@ -869,8 +869,8 @@ public class SnapshotService extends TaskResourceService {
 
     protected BlockSnapshot findSnapshot(String snapshot_id,
             String openstack_tenant_id) {
-        BlockSnapshot snapshot = getCinderHelper().querySnapshotByTag(
-                URI.create(snapshot_id), getUserFromContext());
+        BlockSnapshot snapshot = (BlockSnapshot) getCinderHelper().queryByTag(
+                URI.create(snapshot_id), getUserFromContext(),BlockSnapshot.class);
         if (snapshot != null) {
             Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
             if ((project != null)
@@ -917,7 +917,7 @@ public class SnapshotService extends TaskResourceService {
 
     protected Volume queryVolumeResource(URI id, String openstack_tenant_id) {
 
-        Volume vol = getCinderHelper().queryVolumeByTag(id, getUserFromContext());
+        Volume vol = (Volume) getCinderHelper().queryByTag(id, getUserFromContext(), Volume.class);
 
         if (vol != null) {
             Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());

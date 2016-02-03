@@ -47,7 +47,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Create storage volumes with a given set of capabilities.
      * Before completion of the request, set all required data for provisioned volumes in "volumes" parameter.
      *
-     * @param volumes Input/output argument for volumes.
+     * @param volumes      Input/output argument for volumes.
      * @param capabilities Input argument for capabilities. Defines storage capabilities of volumes to create.
      * @return task
      */
@@ -60,7 +60,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Expand volume.
      * Before completion of the request, set all required data for expanded volume in "volume" parameter.
      *
-     * @param volume Volume to expand. Type: Input/Output argument.
+     * @param volume      Volume to expand. Type: Input/Output argument.
      * @param newCapacity Requested capacity. Type: input argument.
      * @return task
      */
@@ -83,7 +83,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     /**
      * Create volume snapshots.
      *
-     * @param snapshots Type: Input/Output.
+     * @param snapshots    Type: Input/Output.
      * @param capabilities capabilities required from snapshots. Type: Input.
      * @return task
      */
@@ -139,7 +139,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     /**
      * Restore volume to snapshot state.
      *
-     * @param volume Type: Input/Output.
+     * @param volume   Type: Input/Output.
      * @param snapshot Type: Input.
      * @return task
      */
@@ -192,29 +192,29 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     /**
      * Clone volume clones.
      *
-     * @param clones Type: Input/Output.
+     * @param clones       Type: Input/Output.
      * @param capabilities capabilities of clones. Type: Input.
      * @return task
      */
     @Override
     public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
-        DriverTask task=new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CLONE_CREATE));
-        countSucc=0;
-        if (clones!=null && clones.size()>0)
+        log.info("Request to create Clone -- Start :");
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CLONE_CREATE));
+        countSucc = 0;
+        if (clones != null && clones.size() > 0)
 
         {
-            for(VolumeClone clone:clones)
-            {
+            for (VolumeClone clone : clones) {
                 client = this.getClientBySystemId(clone.getStorageSystemId());
-                if (client !=null)
-                {//  Note: ScaleIO snapshots can be treated as full copies, hence re-use of #snapshotVolume
-                    ScaleIOSnapshotVolumeResponse result =null;
-                    try
-                    {
-                        result= client.snapshotVolume(clone.getParentId(), clone.getDisplayName(), clone.getStorageSystemId());
+                if (client != null) {//  Note: ScaleIO snapshots can be treated as full copies, hence re-use of #snapshotVolume
+                    log.info("Start to get Rest client for volume {} of ScaleIO storage system: {}", clone.getParentId(),
+                            clone.getStorageSystemId());
+                    ScaleIOSnapshotVolumeResponse result = null;
+                    try {
+                        result = client.snapshotVolume(clone.getParentId(), clone.getDisplayName(), clone.getStorageSystemId());
                         //Set O/P Value
-                        if(result!=null)
-                        {
+                        if (result != null) {
+                            log.info("Client got! Create snapshot for volume {}:{} - start", clone.getDisplayName(), clone.getParentId());
                             clone.setNativeId(result.getVolumeIdList().get(0));
                             clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                             clone.setReplicationState(VolumeClone.ReplicationState.CREATED);
@@ -222,33 +222,25 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                             Map<String, String> CloneVolNameIdMap = client.getVolumes(result.getVolumeIdList());
                             clone.setDeviceLabel(CloneVolNameIdMap.get(clone.getNativeId()));
                             countSucc++;
-
-                        }else
-                        {
-                            errMsg = "Exception while creating Clone";
-                            log.error(errMsg);
+                            log.info("Successfully create clone for volume {}:{} - end", clone.getDisplayName(),
+                                    clone.getParentId());
+                        } else {
+                            log.info("No clone returned for volume {}:{} ", clone.getDisplayName(), clone.getParentId());
                         }
+                    } catch (Exception e) {
+                        log.error("Exception while creating clone for volume {}", clone.getParentId(), e);
                     }
-                    catch (Exception e)
-                    {
-                        errMsg = "Exception while creating Clone";
-                        log.error(errMsg, e);
-                    }
-
-                }
-                else
-                {
-                    errMsg = "Exception while getting client instance";
+                } else {
+                    log.error("Exception while getting client instance for volume {}:{}", clone.getDisplayName(), clone.getParentId());
                 }
             }
-            this.setTaskStatus(clones.size(), countSucc, task);
-        }else {
-            errMsg = "Empty Clone input List";
-            log.error(errMsg);
+            setTaskStatus(clones.size(), countSucc, task);
+        } else {
+            log.error("Empty clone input List");
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }
-        task.setMessage(errMsg);
         task.setEndTime(Calendar.getInstance());
+        log.info("Request to clone -- End ");
         return task;
 
     }
@@ -261,7 +253,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask detachVolumeClone(List<VolumeClone> clones) {
-
+        log.info("Request to Detach Clone -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CLONE_DETACH));
         countSucc = 0;
 
@@ -271,28 +263,28 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 // delete snapshot
                 if (client != null) {
                     VolumeClone.ReplicationState replicationState;
-                    replicationState=clone.getReplicationState();
-                    if(replicationState=clone.getReplicationState(VolumeClone.ReplicationState.CREATED))
+                    replicationState = clone.getReplicationState();
+               //     if (replicationState = clone.getReplicationState(VolumeClone.ReplicationState.CREATED))
                         try {
+
                             clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
                             countSucc++;
+                            log.info("Successfully detached clone {}:{} - end", clone.getDisplayName(), clone.getNativeId());
                         } catch (Exception e) {
-                            errMsg = "Exception ";
-                            log.error(errMsg, e);
+                            log.error("Exception while detaching clone {}", clone.getNativeId(), e);
                         }
-                }
-                else {
-                    errMsg = "Exception while getting client instance";
+                } else {
+                    log.error("Exception while getting client instance for clone {}:{}", clone.getDisplayName(),
+                            clone.getNativeId());
                 }
             }
-            this.setTaskStatus(clones.size(), countSucc, task);
+            setTaskStatus(clones.size(), countSucc, task);
         } else {
-            errMsg = "Cannot Detach empty clone";
-            log.error(errMsg);
+            log.error("Can't detach empty Clone list");
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }
-        task.setMessage(errMsg);
         task.setEndTime(Calendar.getInstance());
+        log.info("Request to delete Clone -- End ");
         return task;
     }
 
@@ -300,7 +292,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Restore from clone.
      *
      * @param volume Type: Input/Output.
-     * @param clone Type: Input.
+     * @param clone  Type: Input.
      * @return task
      */
     @Override
@@ -322,7 +314,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     /**
      * Create volume mirrors.
      *
-     * @param mirrors Type: Input/Output.
+     * @param mirrors      Type: Input/Output.
      * @param capabilities capabilities of mirrors. Type: Input.
      * @return task
      */
@@ -380,7 +372,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Get export masks for a given set of initiators.
      *
      * @param storageSystem Storage system to get ITLs from. Type: Input.
-     * @param initiators Type: Input.
+     * @param initiators    Type: Input.
      * @return list of export masks
      */
     @Override
@@ -392,22 +384,22 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Export volumes to initiators through a given set of ports. If ports are not provided,
      * use port requirements from ExportPathsServiceOption storage capability
      *
-     * @param initiators Type: Input.
-     * @param volumes Type: Input.
-     * @param volumeToHLUMap map of volume nativeID to requested HLU. HLU value of -1 means that HLU is not defined and will be assigned by
-     *            array.
-     *            Type: Input/Output.
-     * @param recommendedPorts list of storage ports recommended for the export. Optional. Type: Input.
-     * @param availablePorts list of ports available for the export. Type: Input.
-     * @param capabilities storage capabilities. Type: Input.
+     * @param initiators           Type: Input.
+     * @param volumes              Type: Input.
+     * @param volumeToHLUMap       map of volume nativeID to requested HLU. HLU value of -1 means that HLU is not defined and will be assigned by
+     *                             array.
+     *                             Type: Input/Output.
+     * @param recommendedPorts     list of storage ports recommended for the export. Optional. Type: Input.
+     * @param availablePorts       list of ports available for the export. Type: Input.
+     * @param capabilities         storage capabilities. Type: Input.
      * @param usedRecommendedPorts true if driver used recommended and only recommended ports for the export, false otherwise. Type: Output.
-     * @param selectedPorts ports selected for the export (if recommended ports have not been used). Type: Output.
+     * @param selectedPorts        ports selected for the export (if recommended ports have not been used). Type: Output.
      * @return task
      */
     @Override
     public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
-            Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
-            StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
+                                                Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
+                                                StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
         return null;
     }
 
@@ -415,7 +407,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Unexport volumes from initiators
      *
      * @param initiators Type: Input.
-     * @param volumes Type: Input.
+     * @param volumes    Type: Input.
      * @return task
      */
     @Override
@@ -449,13 +441,13 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Create snapshot of consistency group.
      *
      * @param consistencyGroup input parameter
-     * @param snapshots input/output parameter
-     * @param capabilities Capabilities of snapshots. Type: Input.
+     * @param snapshots        input/output parameter
+     * @param capabilities     Capabilities of snapshots. Type: Input.
      * @return task
      */
     @Override
     public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots,
-            List<CapabilityInstance> capabilities) {
+                                                     List<CapabilityInstance> capabilities) {
         log.info("Request to create consistency group snapshot -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_SNAP_CREATE));
         countSucc = 0;
@@ -555,20 +547,23 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Create clone of consistency group.
      *
      * @param consistencyGroup input/output
-     * @param clones output
-     * @param capabilities Capabilities of clones. Type: Input.
+     * @param clones           output
+     * @param capabilities     Capabilities of clones. Type: Input.
      * @return task
      */
     @Override
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
-            List<CapabilityInstance> capabilities) {
+                                                  List<CapabilityInstance> capabilities) {
+        log.info("Request to create consistency group clone -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_CREATE));
         countSucc = 0;
         if (ScaleIOHelper.isFromSameStorageSystem(clones)) {
             String systemId = clones.get(0).getStorageSystemId();
+            log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
             ScaleIORestClient client = this.getClientBySystemId(systemId);
             if (client != null) {
                 try {
+                    log.info("Rest Client Got! Create consistency group clone - Start:");
                     Map<String, String> parent2snap = new HashMap<>();
                     for (VolumeClone clone : clones) {
                         parent2snap.put(clone.getParentId(), clone.getDisplayName());
@@ -598,24 +593,22 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                             }
                         }
                     }
-                    this.setTaskStatus(clones.size(), countSucc, task);
+                    setTaskStatus(clones.size(), countSucc, task);
+                    log.info("Create consistency group clone with group ID:{} - End:", consistencyGroup.getNativeId());
                 } catch (Exception e) {
-                    errMsg = "Exception while performing Rest requests";
-                    log.error(errMsg, e);
+                    log.error("Exception while Creating consistency group clone in storage system: {}", systemId, e);
                     task.setStatus(DriverTask.TaskStatus.FAILED);
                 }
             } else {
-                errMsg = "Exception while getting Rest client instance";
-                log.error(errMsg);
+                log.error("Exception while getting Rest client instance for storage system {} ", systemId);
                 task.setStatus(DriverTask.TaskStatus.FAILED);
             }
         } else {
-            errMsg = "Clones are not from same storage system";
-            log.error(errMsg);
+       //     log.error("Exception while getting Rest client instance for storage system {} ", systemId);
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }
-        task.setMessage(errMsg);
         task.setEndTime(Calendar.getInstance());
+        log.info("Request to create consistency group clone -- End");
         return task;
 
 
@@ -699,7 +692,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Discover storage pools and their capabilities.
      *
      * @param storageSystem Type: Input.
-     * @param storagePools Type: Output.
+     * @param storagePools  Type: Output.
      * @return
      */
     @Override
@@ -760,7 +753,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Discover storage ports and their capabilities
      *
      * @param storageSystem Type: Input.
-     * @param storagePorts Type: Output.
+     * @param storagePorts  Type: Output.
      * @return
      */
     @Override
@@ -820,10 +813,10 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     /**
      * Discover storage volumes
      *
-     * @param storageSystem Type: Input.
+     * @param storageSystem  Type: Input.
      * @param storageVolumes Type: Output.
-     * @param token used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
-     *            that last page was returned. Type: Input/Output.
+     * @param token          used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
+     *                       that last page was returned. Type: Input/Output.
      * @return task
      */
     @Override
@@ -856,11 +849,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Get storage object with a given type with specified native ID which belongs to specified storage system
      *
      * @param storageSystemId storage system native id
-     * @param objectId object native id
-     * @param type class instance
+     * @param objectId        object native id
+     * @param type            class instance
      * @return storage object or null if does not exist
-     *         <p/>
-     *         Example of usage: StorageVolume volume = StorageDriver.getStorageObject("vmax-12345", "volume-1234", StorageVolume.class);
+     * <p/>
+     * Example of usage: StorageVolume volume = StorageDriver.getStorageObject("vmax-12345", "volume-1234", StorageVolume.class);
      */
     @Override
     public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
@@ -871,7 +864,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Get connection info from registry
      *
      * @param systemNativeId
-     * @param attrName use string constants in the scaleioConstants.java. e.g. ScaleIOConstants.IP_ADDRESS
+     * @param attrName       use string constants in the scaleioConstants.java. e.g. ScaleIOConstants.IP_ADDRESS
      * @return Ip_address, port, username or password for given systemId and attribute name
      */
     public String getConnInfoFromRegistry(String systemNativeId, String attrName) {
@@ -901,7 +894,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         List<String> listIP = new ArrayList<>();
         List<String> listPort = new ArrayList<>();
         List<String> listUserName = new ArrayList<>();
-        List<String> listPwd = new ArrayList<>(A);
+        List<String> listPwd = new ArrayList<>();
 
         listIP.add(ipAddress);
         attributes.put(ScaleIOConstants.IP_ADDRESS, listIP);

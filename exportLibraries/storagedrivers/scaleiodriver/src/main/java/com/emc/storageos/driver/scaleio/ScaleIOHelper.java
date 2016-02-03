@@ -18,6 +18,7 @@
 package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
+import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,4 +95,32 @@ public class ScaleIOHelper {
         return isSameCG;
     }
 
+    public static boolean isFromSameStorageSystem(List<VolumeClone> clones) {
+        boolean isSameCG = false;
+        if (clones != null && clones.size() > 0) {
+            String groupId = clones.get(0).getConsistencyGroup();
+            isSameCG = true;
+            for (VolumeClone clone  : clones) {
+                if (clone.getConsistencyGroup() != groupId) {
+                    isSameCG = false;
+                    break;
+                }
+            }
+        }
+        return isSameCG;
+    }
+    public static boolean isFromSameCGgroup(List<VolumeClone> clones) {
+        boolean isSameCG = false;
+        if (clones != null && clones.size() > 0) {
+            String groupId = clones.get(0).getConsistencyGroup();
+            isSameCG = true;
+            for (VolumeClone clone : clones) {
+                if (clone.getConsistencyGroup() != groupId) {
+                    isSameCG = false;
+                    break;
+                }
+            }
+        }
+        return isSameCG;
+    }
 }

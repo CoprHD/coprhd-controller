@@ -24,7 +24,6 @@ import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByCluster;
 import com.emc.sa.service.vipr.block.tasks.GetMobilityGroupVolumesByHost;
 import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumesByHostOrCluster;
 import com.emc.sa.service.vipr.block.tasks.IngestExportedUnmanagedVolumes;
-import com.emc.sa.service.vipr.block.tasks.RemoveVolumeFromMobilityGroup;
 import com.emc.sa.service.vipr.compute.ComputeUtils;
 import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -90,9 +89,6 @@ public class MobilityGroupMigrationService extends ViPRService {
                 URI volumeId = successfulTask.getResourceId();
                 addAffectedResource(volumeId);
                 tasks.remove(successfulTask);
-                if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
-                    execute(new RemoveVolumeFromMobilityGroup(mobilityGroup.getId(), volumeId));
-                }
             }
             for (Task<VolumeRestRep> failedTask : ComputeUtils.getFailedTasks(tasks)) {
                 String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();

@@ -233,6 +233,10 @@ public class AuthnConfigurationService extends TaggedResource {
         String mode = provider.getMode();
         if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
             populateKeystoneToken(provider, null);
+            // TODO: check for checkbox value
+            if(provider.getAutoRegisterOpenStackProjects()){
+                registerCoprhdInKeystone(provider);
+            }
         } else {
             // Now validate the authn provider to make sure
             // either both group object classes and
@@ -315,6 +319,7 @@ public class AuthnConfigurationService extends TaggedResource {
         List<UserMappingAttributeParam> attributes = new ArrayList<>();
         attributes.add(new UserMappingAttributeParam(OPENSTACK_TENANT_ID, values));
 
+        // TODO: check how to get the first domain from StringSet
         userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
 
         TenantCreateParam param = new TenantCreateParam(PROJECT_NAME, userMappings);

@@ -448,7 +448,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         } else {
 
             Map<URI, FileMirrorRecommendation.Target> targetMap = placement.getVirtualArrayTargetMap();
-            if (targetMap != null && !targetMap.isEmpty()) {
+            if (targetMap != null ) {
                 Target target = targetMap.get(virtualArray.getId());
                 if (target != null) {
                     pool = _dbClient.queryObject(StoragePool.class, target.getTargetStoragePool());

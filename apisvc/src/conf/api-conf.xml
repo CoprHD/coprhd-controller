@@ -593,6 +593,11 @@
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
                 </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.ObjectNamespaceService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="retryAttempts" value="5"/>
+                </bean>
                 <ref bean="virtualArrayService"/>
                 <ref bean="networkService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.ExportGroupService">

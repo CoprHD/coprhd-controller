@@ -60,25 +60,25 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         }
 
         if (null == volume) {
-            validateUnManagedVolume(unManagedVolume, requestContext.getVpool());
+            validateUnManagedVolume(unManagedVolume, requestContext.getVpool(unManagedVolume));
             // @TODO Need to revisit this. In 8.x Provider, ReplicationGroup is automatically created when a volume is associated to a
             // StorageGroup.
             // checkUnManagedVolumeAddedToCG(unManagedVolume, virtualArray, tenant, project, vPool);
             checkVolumeExportState(unManagedVolume, unManagedVolumeExported);
-            checkVPoolValidForExportInitiatorProtocols(requestContext.getVpool(), unManagedVolume);
-            checkHostIOLimits(requestContext.getVpool(), unManagedVolume, unManagedVolumeExported);
+            checkVPoolValidForExportInitiatorProtocols(requestContext.getVpool(unManagedVolume), unManagedVolume);
+            checkHostIOLimits(requestContext.getVpool(unManagedVolume), unManagedVolume, unManagedVolumeExported);
 
-            StoragePool pool = validateAndReturnStoragePoolInVAarray(unManagedVolume, requestContext.getVarray());
+            StoragePool pool = validateAndReturnStoragePoolInVAarray(unManagedVolume, requestContext.getVarray(unManagedVolume));
 
             // validate quota is exceeded for storage systems and pools
             checkSystemResourceLimitsExceeded(requestContext.getStorageSystem(), unManagedVolume,
                     requestContext.getExhaustedStorageSystems());
             checkPoolResourceLimitsExceeded(requestContext.getStorageSystem(), pool, unManagedVolume, requestContext.getExhaustedPools());
-            String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, requestContext.getStorageSystem(), requestContext.getVpool());
-            validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, requestContext.getVpool());
+            String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, requestContext.getStorageSystem(), requestContext.getVpool(unManagedVolume));
+            validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, requestContext.getVpool(unManagedVolume));
 
             volume = createVolume(requestContext.getStorageSystem(), volumeNativeGuid, pool,
-                    requestContext.getVarray(), requestContext.getVpool(), unManagedVolume,
+                    requestContext.getVarray(unManagedVolume), requestContext.getVpool(unManagedVolume), unManagedVolume,
                     requestContext.getProject(), requestContext.getTenant(), autoTierPolicyId);
         }
 

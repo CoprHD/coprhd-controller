@@ -278,15 +278,19 @@ public class UnManagedVolumeService extends TaskResourceService {
                                 unManagedVolume.getLabel(), "check the logs for more details");
                     }
 
+                    try {
+                        // If the volume belongs to a consistency group perform consistency group processing 
+                        if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
+                            ingestBlockConsistencyGroups(unManagedVolume, blockObject, requestContext);
+                        }
+                    } catch (IngestionException ex) {
+                        _logger.error("There was an error ingestion the consistency group.", ex);
+                        // TODO: allowing this to continue for now, until CG ingestion support is complete
+                    }
+
                     requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
                     requestContext.getProcessedUnManagedVolumeMap().put(
                             unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
-                    
-                    // If the volume belongs to a consistency group perform consistency group processing 
-                    if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
-                    	ingestBlockConsistencyGroups(unManagedVolume, blockObject, requestContext);
-                    }                                                                                                  
-
                 } catch (APIException ex) {
                     _logger.error("APIException occurred", ex);
                     _dbClient.error(UnManagedVolume.class, requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
@@ -302,14 +306,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                 TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
                 taskList.getTaskList().add(task);
                 taskMap.put(unManagedVolume.getId().toString(), taskId);
-
-                requestContext.getVolumeContext().commit();
             }
 
             // update the task status & update related objects
             for (String unManagedVolumeGUID : requestContext.getProcessedUnManagedVolumeMap().keySet()) {
-                UnManagedVolume unManagedVolume = 
-                        requestContext.getProcessedUnManagedVolumeMap().get(unManagedVolumeGUID).getUnmanagedVolume();
+                VolumeIngestionContext volumeContext = requestContext.getProcessedUnManagedVolumeMap().get(unManagedVolumeGUID);
+                UnManagedVolume unManagedVolume = volumeContext.getUnmanagedVolume();
                 String taskId = taskMap.get(unManagedVolume.getId().toString());
                 String taskMessage = "";
                 boolean ingestedSuccessfully = false;
@@ -323,14 +325,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                     _logger.info("checking partial ingestion status of block object " + createdObject);
                     if ((null != createdObject) && (!createdObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) || 
                         // If this is an ingested RP volume in an uningested protection set, the ingest is successful.
-                        (createdObject instanceof Volume && ((Volume)createdObject).checkForRp() && ((Volume)createdObject).getProtectionSet() == null)) ||
-                        // If this is a successfully processed VPLEX backend volume, it will have the INTERNAL_OBJECT Flag
-                        (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume) && createdObject.checkInternalFlags(Flag.INTERNAL_OBJECT))) {
+                        (createdObject instanceof Volume && ((Volume)createdObject).checkForRp() && ((Volume)createdObject).getProtectionSet() == null))) {
                         _logger.info("successfully partially ingested block object {} ", createdObject.forDisplay());
                         ingestedSuccessfully = true;
                         taskMessage = INGESTION_SUCCESSFUL_MSG;
                     } else {
-                        _logger.info("block object {} was not partially ingested successfully", createdObject.forDisplay());
+                        _logger.info("block object {} was not partially ingested successfully", createdObject);
                         ingestedSuccessfully = false;
                         StringBuffer taskStatus = requestContext.getTaskStatusMap().get(unManagedVolume.getNativeGuid());
                         if (taskStatus == null) {
@@ -343,16 +343,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                     }
                 }
 
-                // task id might be null in the case nested child ingestion contexts,
-                // like for VPLEX backend volumes (the only task tracked is for the parent volume)
-                if (taskId != null) {
-                    if (ingestedSuccessfully) {
-                        _dbClient.ready(UnManagedVolume.class,
-                                unManagedVolume.getId(), taskId, taskMessage);
-                    } else {
-                        _dbClient.error(UnManagedVolume.class, unManagedVolume.getId(), taskId,
-                                IngestionException.exceptions.unmanagedVolumeIsNotVisible(unManagedVolume.getLabel(), taskMessage));
-                    }
+                if (ingestedSuccessfully) {
+                    _dbClient.ready(UnManagedVolume.class,
+                            unManagedVolume.getId(), taskId, taskMessage);
+                } else {
+                    _dbClient.error(UnManagedVolume.class, unManagedVolume.getId(), taskId,
+                            IngestionException.exceptions.unmanagedVolumeIsNotVisible(unManagedVolume.getLabel(), taskMessage));
                 }
 
                 // Update the related objects if any after ingestion
@@ -360,11 +356,14 @@ public class UnManagedVolumeService extends TaskResourceService {
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
                 }
+
+                volumeContext.commit();
+
             }
 
             _dbClient.createObject(requestContext.getObjectsToBeCreatedMap().values());
             _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
-            
+
             // persist any consistency group changes
             if (!consistencyGroupObjectsToUpdate.isEmpty()) {
             	_dbClient.updateObject(consistencyGroupObjectsToUpdate.values());            	
@@ -442,15 +441,20 @@ public class UnManagedVolumeService extends TaskResourceService {
                             unManagedVolume.getLabel(), "check the logs for more details");
                 }
 
+                try {
+                    // If the volume belongs to a consistency group perform consistency group processing 
+                    if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
+                        ingestBlockConsistencyGroups(unManagedVolume, blockObject, requestContext);
+                    }
+                } catch (IngestionException ex) {
+                    _logger.error("There was an error ingestion the consistency group.", ex);
+                    // TODO: allowing this to continue for now, until CG ingestion support is complete
+                }
+
                 // TODO come up with a common response object to hold snaps/mirrors/clones
                 requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
                 requestContext.getProcessedUnManagedVolumeMap().put(
                         unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
-                
-                // If the volume belongs to a consistency group perform consistency group processing 
-                if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
-                	ingestBlockConsistencyGroups(unManagedVolume, blockObject, requestContext);
-                } 
 
             } catch (APIException ex) {
                 _logger.warn("error: " + ex.getLocalizedMessage(), ex);
@@ -468,8 +472,6 @@ public class UnManagedVolumeService extends TaskResourceService {
 
             TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
             taskMap.put(unManagedVolume.getId().toString(), task);
-
-            requestContext.getVolumeContext().commit();
         }
     }
 
@@ -509,30 +511,26 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
                 requestContext.getObjectsIngestedByExportProcessing().add(blockObject);
 
-                // task id might be null in the case nested child ingestion contexts,
-                // like for VPLEX backend volumes (the only task tracked is for the parent volume)
-                if (taskId != null) {
-                    // If the ingested object is internal, flag an error.  If it's an RP volume, it's exempt from this check.
-                    if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) && 
-                            !(blockObject instanceof Volume && ((Volume)blockObject).getRpCopyName() != null)) {
-                        StringBuffer taskStatus = requestContext.getTaskStatusMap().get(processedUnManagedVolume.getNativeGuid());
-                        String taskMessage = "";
-                        if (taskStatus == null) {
-                            // No task status found. Put in a default message.
-                            taskMessage = String.format("Not all the parent/replicas of unmanaged volume %s have been ingested",
-                                    processedUnManagedVolume.getLabel());
-                        } else {
-                            taskMessage = taskStatus.toString();
-                        }
-                        _dbClient.error(UnManagedVolume.class, processedUnManagedVolume.getId(), taskId,
-                                IngestionException.exceptions.unmanagedVolumeIsNotVisible(processedUnManagedVolume.getLabel(), taskMessage));
+                // If the ingested object is internal, flag an error.  If it's an RP volume, it's exempt from this check.
+                if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) && 
+                        !(blockObject instanceof Volume && ((Volume)blockObject).getRpCopyName() != null)) {
+                    StringBuffer taskStatus = requestContext.getTaskStatusMap().get(processedUnManagedVolume.getNativeGuid());
+                    String taskMessage = "";
+                    if (taskStatus == null) {
+                        // No task status found. Put in a default message.
+                        taskMessage = String.format("Not all the parent/replicas of unmanaged volume %s have been ingested",
+                                processedUnManagedVolume.getLabel());
                     } else {
-                        _dbClient.ready(UnManagedVolume.class,
-                                processedUnManagedVolume.getId(), taskId, "Successfully ingested exported volume and its masks."); // TODO:
-                                                                                                                                   // convert to
-                                                                                                                                   // props
-                                                                                                                                   // message
+                        taskMessage = taskStatus.toString();
                     }
+                    _dbClient.error(UnManagedVolume.class, processedUnManagedVolume.getId(), taskId,
+                            IngestionException.exceptions.unmanagedVolumeIsNotVisible(processedUnManagedVolume.getLabel(), taskMessage));
+                } else {
+                    _dbClient.ready(UnManagedVolume.class,
+                            processedUnManagedVolume.getId(), taskId, "Successfully ingested exported volume and its masks."); // TODO:
+                                                                                                                               // convert to
+                                                                                                                               // props
+                                                                                                                               // message
                 }
 
                 // Update the related objects if any after successful export mask ingestion
@@ -540,6 +538,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
                 }
+
                 volumeContext.commit();
 
             } catch (APIException ex) {

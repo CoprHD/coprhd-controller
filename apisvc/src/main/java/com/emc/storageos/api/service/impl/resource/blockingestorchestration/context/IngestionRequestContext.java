@@ -88,16 +88,18 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     /**
      * Returns the VirtualPool for the UnManagedVolume currently being processed.
      * 
+     * @param unmanagedVolume the UnManagedVolume to find the vpool for
      * @return the VirtualPool for the UnManagedVolume currently being processed
      */
-    public VirtualPool getVpool();
+    public VirtualPool getVpool(UnManagedVolume unmanagedVolume);
 
     /**
      * Returns the VirtualArray for the UnManagedVolume currently being processed.
      * 
+     * @param unmanagedVolume the UnManagedVolume to find the varray for
      * @return the VirtualArray for the UnManagedVolume currently being processed
      */
-    public VirtualArray getVarray();
+    public VirtualArray getVarray(UnManagedVolume unmanagedVolume);
 
     /**
      * Returns the Project for the UnManagedVolume currently being processed.
@@ -218,6 +220,14 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public VolumeIngestionContext getProcessedVolumeContext(String nativeGuid);
 
     /**
+     * Returns all the currently-known UnManagedVolumes that have been
+     * successfully processed.
+     * 
+     * @return a List of UnManagedVolumes that have been processed
+     */
+    public List<UnManagedVolume> findAllProcessedUnManagedVolumes();
+
+    /**
      * Returns the error messages collection for the given nativeGuid,
      * or an empty List of Strings if none was found.
      * 
@@ -310,12 +320,29 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public void setDeviceInitiators(List<Initiator> deviceInitiators);
 
     /**
-     * Finds a BlockObject by native GUID by first looking in the database,
-     * then in the context's createdObjectMap (or parent contexts, if needed).
+     * Finds a BlockObject by native GUID in the currently-existing 
+     * ingestion request contexts and volume contexts.
      * 
      * @param nativeGuid the BlockObject native GUID to look for
      * @return a BlockObject for the native GUID on null if none found
      */
     public BlockObject findCreatedBlockObject(String nativeGuid);
+
+    /**
+     * Finds a BlockObject by URI in the currently-existing 
+     * ingestion request contexts and volume contexts.
+     * 
+     * @param nativeGuid the BlockObject URI to look for
+     * @return a BlockObject for the URI on null if none found
+     */
+    public BlockObject findCreatedBlockObject(URI uri);
+
+    /**
+     * Finds a DataObject by looking in all the updated objects lists.
+     * 
+     * @param nativeGuid the DataObject URI to look for
+     * @return a BlockObject for the native GUID on null if none found
+     */
+    public DataObject findInUpdatedObjects(URI uri);
 
 }

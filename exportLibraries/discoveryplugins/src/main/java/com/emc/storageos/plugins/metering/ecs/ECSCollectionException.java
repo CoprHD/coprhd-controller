@@ -2,7 +2,7 @@
  * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.volumecontroller.impl.ecs;
+package com.emc.storageos.plugins.metering.ecs;
 
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -11,7 +11,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  * Class for ECS discovery and metering exceptions
  */
 public class ECSCollectionException extends BaseCollectionException {
-
     @Override
     public int getErrorCode() {
         return -1;

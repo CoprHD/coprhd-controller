@@ -17,6 +17,9 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
+import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.vipr.client.Task;
@@ -86,7 +89,7 @@ public class BlockSnapshotSessions extends ResourceController {
         ViPRCoreClient client = BourneUtil.getViprClient();
         List<RelatedResourceRep> targets = client.blockSnapshotSessions().get(uri(snapshotSessionId)).getLinkedTarget();
         List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByRefs(targets);
-        render(snapshots);
+        render(snapshots,snapshotSessionId);
     }
 
     @FlashException(referrer = { "snapshotSessionDetails" })
@@ -116,4 +119,26 @@ public class BlockSnapshotSessions extends ResourceController {
         snapshotSessions(null);
     }
     
+    public static void relinkTarget(String snapshotId, String snapshotSessionId ) {
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        SnapshotSessionRelinkTargetsParam relinkTargetsParam = new SnapshotSessionRelinkTargetsParam();
+        relinkTargetsParam.setLinkedTargetIds(uris(snapshotId));
+        Task<BlockSnapshotSessionRestRep> task  = client.blockSnapshotSessions().relinkTargets(uri(snapshotSessionId), relinkTargetsParam);
+        flash.put("info", MessagesUtils.get("resources.snapshot.session.relink.success", snapshotId));
+        snapshotSessionDetails(snapshotSessionId);
+    }
+    
+    public static void unlinkTarget(String snapshotId, String snapshotSessionId) {
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        SnapshotSessionUnlinkTargetsParam unlinkTarget = new SnapshotSessionUnlinkTargetsParam();
+        List<SnapshotSessionUnlinkTargetParam> unlinkSessions = Lists.newArrayList();
+        SnapshotSessionUnlinkTargetParam unlink = new SnapshotSessionUnlinkTargetParam();
+        unlink.setDeleteTarget(true);
+        unlink.setId(uri(snapshotId));
+        unlinkSessions.add(unlink);
+        unlinkTarget.setLinkedTargets(unlinkSessions);
+        client.blockSnapshotSessions().unlinkTargets(uri(snapshotSessionId), unlinkTarget);
+        flash.put("info", MessagesUtils.get("resources.snapshot.session.unlink.success", snapshotId));
+        snapshotSessionDetails(snapshotSessionId);
+    }
 }

@@ -90,6 +90,16 @@ copy_missing_files() {
     done
 }
 
+purge_node() {
+    local viprNode=${1}
+    initdb="no"
+    if [ ${IS_CONNECTED_VDC} == true ]; then
+        initdb="yes"
+    fi
+    local command="/opt/storageos/bin/bkutils -p $initdb"
+    ssh_execute "$viprNode" "$command"
+}
+
 restore_data() {
     echo "Restoring data on all nodes ... "
     set +e

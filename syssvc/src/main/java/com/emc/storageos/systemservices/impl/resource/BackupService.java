@@ -519,14 +519,11 @@ public class BackupService {
         }
     }
 
-    private void setBackupFileSize(@QueryParam("file") String backupName) {
+    private void setBackupFileSize(String backupName) {
         log.info("To set backup file size");
         SchedulerConfig cfg = backupScheduler.getCfg();
         long size = 0;
         try {
-            if (cfg.uploadUrl == null) {
-                cfg.reload();
-            }
             FtpClient client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
             size = client.getFileSize(backupName);
         }catch(Exception  e) {
@@ -534,7 +531,7 @@ public class BackupService {
             throw new RuntimeException(e);
         }
 
-        backupOps.setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, size, 0, false, true, true);
+        backupOps.setBackupFileSize(backupName, size);
     }
 
     private void notifyOtherNodes(String backupName) {
@@ -555,7 +552,7 @@ public class BackupService {
             log.error(errMsg);
             BackupRestoreStatus.Status s = BackupRestoreStatus.Status.DOWNLOAD_FAILED;
             s.setMessage(errMsg);
-            backupOps.setRestoreStatus(backupName, s, 0, 0, false, false, true);
+            backupOps.setRestoreStatus(backupName, s, false);
             throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
         }
     }
@@ -575,7 +572,7 @@ public class BackupService {
             log.error(errMsg);
             BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
             s.setMessage(errMsg);
-            backupOps.setRestoreStatus(backupName, s, 0, 0, false, false, true);
+            backupOps.setRestoreStatus(backupName, s, false);
             throw SysClientException.syssvcExceptions.restoreFailed(backupName, errMsg);
         }
     }
@@ -686,7 +683,7 @@ public class BackupService {
     private Response setRestoreFailed(String backupName, String msg) {
         BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
         s.setMessage(msg);
-        backupOps.setRestoreStatus(backupName, s, 0, 0, false, false, true);
+        backupOps.setRestoreStatus(backupName, s, false);
         throw SyssvcException.syssvcExceptions.restoreFailed(backupName, msg);
     }
 

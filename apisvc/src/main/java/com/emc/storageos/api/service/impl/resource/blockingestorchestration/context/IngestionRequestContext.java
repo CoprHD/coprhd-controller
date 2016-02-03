@@ -221,11 +221,11 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
 
     /**
      * Returns all the currently-known UnManagedVolumes that have been
-     * successfully processed.
+     * successfully processed and should be deleted at the end of ingestion.
      * 
-     * @return a List of UnManagedVolumes that have been processed
+     * @return a List of UnManagedVolumes to be deleted
      */
-    public List<UnManagedVolume> findAllProcessedUnManagedVolumes();
+    public List<UnManagedVolume> findAllUnManagedVolumesToBeDeleted();
 
     /**
      * Returns the error messages collection for the given nativeGuid,

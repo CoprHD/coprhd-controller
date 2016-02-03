@@ -693,48 +693,36 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllProcessedUnManagedVolumes()
      */
     @Override
-    public List<UnManagedVolume> findAllProcessedUnManagedVolumes() {
-        _logger.info("assembling a List of all processed unmanaged volumes");
+    public List<UnManagedVolume> findAllUnManagedVolumesToBeDeleted() {
+        _logger.info("assembling a List of all unmanaged volumes to be deleted");
 
-        List<UnManagedVolume> processedUnManagedVolumes = new ArrayList<UnManagedVolume>();
+        List<UnManagedVolume> allUnManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
         
         _logger.info("\tadding local unmanaged volumes to be deleted: " + this.getUnManagedVolumesToBeDeleted());
-        processedUnManagedVolumes.addAll(this.getUnManagedVolumesToBeDeleted());
+        allUnManagedVolumesToBeDeleted.addAll(this.getUnManagedVolumesToBeDeleted());
 
         VolumeIngestionContext currentVolumeContext = getVolumeContext();
         if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
             _logger.info("checking current volume ingestion context {}", 
                     currentVolumeContext.getUnmanagedVolume().forDisplay());
-            for (VolumeIngestionContext volumeSubContext : 
-                ((IngestionRequestContext) currentVolumeContext).getProcessedUnManagedVolumeMap().values()) {
-                _logger.info("\t\tadding current volume context UnManagedVolume {}", volumeSubContext.getUnmanagedVolume().forDisplay());
-                processedUnManagedVolumes.add(volumeSubContext.getUnmanagedVolume());
-            }
             for (UnManagedVolume unmanagedSubVolume : 
                 ((IngestionRequestContext) currentVolumeContext).getUnManagedVolumesToBeDeleted()) {
                 _logger.info("\t\tadding current volume context UnManagedVolume {}",unmanagedSubVolume.forDisplay());
-                processedUnManagedVolumes.add(unmanagedSubVolume);
+                allUnManagedVolumesToBeDeleted.add(unmanagedSubVolume);
             }
         }
 
         for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
-            _logger.info("\tadding UnManagedVolume {}", volumeContext.getUnmanagedVolume().forDisplay());
-            processedUnManagedVolumes.add(volumeContext.getUnmanagedVolume());
             if (volumeContext instanceof IngestionRequestContext) {
-                for (VolumeIngestionContext volumeSubContext : 
-                    ((IngestionRequestContext) volumeContext).getProcessedUnManagedVolumeMap().values()) {
-                    _logger.info("\t\tadding sub context UnManagedVolume {}", volumeSubContext.getUnmanagedVolume().forDisplay());
-                    processedUnManagedVolumes.add(volumeSubContext.getUnmanagedVolume());
-                }
                 for (UnManagedVolume unmanagedSubVolume : 
                     ((IngestionRequestContext) volumeContext).getUnManagedVolumesToBeDeleted()) {
                     _logger.info("\t\tadding sub context UnManagedVolume {}",unmanagedSubVolume.forDisplay());
-                    processedUnManagedVolumes.add(unmanagedSubVolume);
+                    allUnManagedVolumesToBeDeleted.add(unmanagedSubVolume);
                 }
             }
         }
 
-        return processedUnManagedVolumes;
+        return allUnManagedVolumesToBeDeleted;
     }
 
     /* (non-Javadoc)

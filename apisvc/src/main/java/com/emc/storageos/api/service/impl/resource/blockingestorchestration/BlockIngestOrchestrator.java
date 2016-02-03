@@ -847,7 +847,7 @@ public abstract class BlockIngestOrchestrator {
             boolean isParentRPVolume = umVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umVolume);
             // if its RP volume, then check whether the RP CG is fully ingested.
             if (isParentRPVolume) {
-                List<UnManagedVolume> ingestedUnManagedVolumes = requestContext.findAllProcessedUnManagedVolumes();
+                List<UnManagedVolume> ingestedUnManagedVolumes = requestContext.findAllUnManagedVolumesToBeDeleted();
                 ingestedUnManagedVolumes.add(umVolume);
                 UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(requestContext, umVolume, _dbClient);
                 // If we are not able to find the unmanaged protection set from the unmanaged volume, it means that the unmanaged volume

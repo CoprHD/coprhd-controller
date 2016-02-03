@@ -604,18 +604,47 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 task.setStatus(DriverTask.TaskStatus.FAILED);
             }
         } else {
-       //     log.error("Exception while getting Rest client instance for storage system {} ", systemId);
+            log.error("Clones are not from same storage system");
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }
         task.setEndTime(Calendar.getInstance());
         log.info("Request to create consistency group clone -- End");
         return task;
+    }
 
-
+ /*   @Override
+    public DriverTask detachConsistencyGroupDetach(List<VolumeClone> clones) {
+        log.info("Request to delete consistency group clone -- Start :");
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_DETACH));
+        if (ScaleIOHelper.isFromSameCGgroupClone(clones)) {
+            String systemId = clones.get(0).getStorageSystemId();
+            log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
+            ScaleIORestClient client = getClientBySystemId(systemId);
+            if (client != null) {
+                try {
+                    log.info("Rest Client Got! delete consistency group snapshot - Start:");
+                    client.removeConsistencyGroupSnapshot(clones.get(0).getConsistencyGroup());
+                    task.setStatus(DriverTask.TaskStatus.READY);
+                    log.info("Successfully delete consistency group snapshot - End:");
+                } catch (Exception e) {
+                    log.error("Exception while deleting consistency group snapshot", e);
+                    task.setStatus(DriverTask.TaskStatus.FAILED);
+                }
+            } else {
+                log.error("Exception while getting client instance for storage system {}", systemId);
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+            }
+        } else {
+            log.error("Snapshots are not from same consistency group");
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+        }
+        task.setEndTime(Calendar.getInstance());
+        log.info("Request to delete consistency group snapshot -- End");
+        return task;
     }
 
     /**
-     * Delete consistency group clone
+     * Detach consistency group clone
      *
      * @param clones output
      * @return task

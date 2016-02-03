@@ -570,14 +570,14 @@ public class ScaleIOStorageDriverTest {
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
-        // create clone for volumes from same storage system
+    //     create clone for volumes from same storage system
         clone = this.createCloneListSameSys(false);
         task = driver.createVolumeClone(clone, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
         this.checkResultCloneList(clone);
 
-        clone = this.createCloneListSameSys(true);
+       clone = this.createCloneListSameSys(true);
         task = driver.createVolumeClone(clone, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
@@ -627,7 +627,7 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
         // volumes from same storage system
-        clones = this.createCloneListSameSys(false);
+        clones = this.createCloneListSameCG(false);
         cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupClone(cg, clones, null);
         Assert.assertNotNull(task);
@@ -639,7 +639,7 @@ public class ScaleIOStorageDriverTest {
         }
 
         // same storage system, some volumes are not existed
-        clones = this.createCloneListSameSys(true);
+        clones = this.createCloneListSameCG(true);
         cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupClone(cg, clones, null);
         Assert.assertNotNull(task);
@@ -647,7 +647,7 @@ public class ScaleIOStorageDriverTest {
         Assert.assertNull(cg.getNativeId());
 
         // volumes from different storage system
-        clones = this.createCloneListSameSys(false);
+        clones = this.createCloneListDiffCG(false);
         cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupClone(cg, clones, null);
         Assert.assertNotNull(task);
@@ -721,7 +721,7 @@ public class ScaleIOStorageDriverTest {
     private List<VolumeClone> createCloneListDiffCG(boolean withInvalid) {
         List<VolumeClone> clones = this.createCloneListSameSys(false);
 
-        // create another group of snapshots
+        // create another group of clones
         List<VolumeClone> clonesB = new LinkedList<>();
         clonesB.add(initializeClone(null, VOLUME_ID_1B, SYS_NATIVE_ID_B));
         clonesB.add(initializeClone(null, VOLUME_ID_2B, SYS_NATIVE_ID_B));

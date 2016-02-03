@@ -126,7 +126,7 @@ public final class DownloadExecutor implements  Runnable {
 
     private void updateDownloadSize(long size) {
         log.info("Increase download size ={}", size);
-        backupOps.setRestoreStatus(remoteBackupFileName, null, 0, size, false, false, false);
+        backupOps.updateDownloadSize(remoteBackupFileName, size);
     }
 
     @Override
@@ -160,7 +160,7 @@ public final class DownloadExecutor implements  Runnable {
                 deleteDownloadedBackup();
             }
 
-            backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, false, false, true);
+            backupOps.setRestoreStatus(remoteBackupFileName, s, false);
 
             log.error("Failed to download e=", e);
         }finally {
@@ -236,7 +236,7 @@ public final class DownloadExecutor implements  Runnable {
                 log.error("Invalid backup e=", e);
                 Status s = Status.DOWNLOAD_FAILED;
                 s.setMessage(e.getMessage());
-                backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, true, false, true);
+                backupOps.setRestoreStatus(remoteBackupFileName, s, true);
                 return;
             }
         }
@@ -249,7 +249,7 @@ public final class DownloadExecutor implements  Runnable {
             }
         }
 
-        backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, true, false, true);
+        backupOps.setRestoreStatus(remoteBackupFileName, s, true);
 
         if (s == Status.DOWNLOAD_SUCCESS || s == Status.DOWNLOAD_CANCELLED || s == Status.DOWNLOAD_FAILED ) {
             backupOps.clearCurrentBackupInfo();
@@ -301,7 +301,7 @@ public final class DownloadExecutor implements  Runnable {
             log.error("Failed to download {} from server e=", backupFileName, e);
             BackupRestoreStatus.Status s = BackupRestoreStatus.Status.DOWNLOAD_FAILED;
             s.setMessage(e.getMessage());
-            backupOps.setRestoreStatus(remoteBackupFileName, s, 0, 0, false, false, true);
+            backupOps.setRestoreStatus(remoteBackupFileName, s, false);
             throw e;
         }
 

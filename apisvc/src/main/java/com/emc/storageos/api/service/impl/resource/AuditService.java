@@ -124,11 +124,11 @@ public class AuditService extends ResourceService {
         if (timeBucket != null && !timeBucket.isEmpty()) {
             startTime = getDataTime(timeBucket,HOUR_BUCKET_TIME_FORMAT);
             if (startTime != null ) {
-                endTime = startTime.plusHours(1);
+                endTime = startTime.plusMinutes(59);
             }else {
                 startTime = getDataTime(timeBucket,MINUTE_BUCKET_TIME_FORMAT);
                 if (startTime != null) {
-                    endTime = startTime.plusMinutes(1);
+                    endTime = startTime.plusSeconds(59);
                 }else {
                     throw APIException.badRequests.invalidTimeBucket(timeBucket);
                 }

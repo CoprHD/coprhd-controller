@@ -22,6 +22,7 @@ public class BackupSchedulerConfigMigration extends BaseCustomMigrationCallback 
                 return;
             }
             coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
+            coordinatorClient.removeServiceConfiguration(config);
             log.info("Backup scheduler has been migrated to site specific area");
         } catch (Exception e) {
             log.error("Fail to migrate backup scheduler config to site specific area", e);

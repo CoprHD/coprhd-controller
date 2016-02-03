@@ -121,8 +121,6 @@ public class MobilityGroupMigrationService extends ViPRService {
             hostsOrClusters = execute(new GetMobilityGroupHosts(mobilityGroup.getId()));
         } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
             hostsOrClusters = execute(new GetMobilityGroupClusters(mobilityGroup.getId()));
-        } else {
-            // TODO fail
         }
 
         for (NamedRelatedResourceRep hostOrCluster : hostsOrClusters) {
@@ -159,6 +157,11 @@ public class MobilityGroupMigrationService extends ViPRService {
 
     }
 
+    /**
+     * Get map of virtual pool id to list of volumes in the virtual pool
+     * 
+     * @return map of virtual pool to volumes
+     */
     private Map<URI, Set<URI>> mapVpoolVolumes() {
         Set<URI> volumes = getVolumes();
         Map<URI, Set<URI>> vpoolVolumes = Maps.newHashMap();
@@ -173,6 +176,11 @@ public class MobilityGroupMigrationService extends ViPRService {
         return vpoolVolumes;
     }
 
+    /**
+     * Get volumes that belong to the mobility group or are exported to hosts or clusters in the mobility group
+     * 
+     * @return volumes
+     */
     private Set<URI> getVolumes() {
         if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
             return execute(new GetMobilityGroupVolumes(Lists.newArrayList(mobilityGroupId)));

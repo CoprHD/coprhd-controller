@@ -42,7 +42,7 @@ public class CGIngestionDecoratorUtil {
         if (VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umv)) {
             commCGDecorator = rpCGDecorator;
             // Check if RP is protecting VPLEX
-            if (VolumeIngestionUtil.isRPProtectingVplexVolumes(requestContext, dbClient)) {
+            if (VolumeIngestionUtil.isRPProtectingVplexVolumes(umv, requestContext, dbClient)) {
                 commCGDecorator.setNextDecorator(vplexCGDecorator);
             }
         } else if (VolumeIngestionUtil.isVplexVolume(umv)) {  // Check if the UnManagedVolume is VPLEX

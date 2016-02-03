@@ -457,8 +457,9 @@ public class VolumeIngestionUtil {
      * @param dbClient
      * @return
      */
-    public static boolean isRPProtectingVplexVolumes(IngestionRequestContext requestContext, DbClient dbClient) {
-        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext();
+    public static boolean isRPProtectingVplexVolumes(UnManagedVolume umv, IngestionRequestContext requestContext, DbClient dbClient) {
+        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(umv
+                .getNativeGuid());
         ProtectionSet pset = rpContext.getManagedProtectionSet();
         boolean isRPProtectingVplexVolumes = false;
 

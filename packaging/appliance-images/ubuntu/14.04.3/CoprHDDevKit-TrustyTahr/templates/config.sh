@@ -20,10 +20,11 @@ cat > /etc/init.d/ovf-network << EOF
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:             ovf-network
-# Required-Start:       mountkernfs \$local_fs urandom
-# Required-Stop:        \$local_fs
-# Default-Start:        S
-# Default-Stop:         0 6
+# Required-Start:       \$local_fs
+# Required-Stop:
+# X-Start-Before:       \$network
+# Default-Start:        B
+# Default-Stop:
 # Short-Description:    ADG network configuration script
 ### END INIT INFO
 

@@ -583,9 +583,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         VirtualArray virtualArray = volumeContext.getVarray(unManagedVolume);
         Project project = volumeContext.getProject();
-
-        // TODO: In the case where the source or target is exported to a host as well, VMAX2 best practices dictate that you
-        // create separate MVs for each host's RP volumes. That would mean a different export group per host/cluster.
+    
         ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
         UnManagedExportMask em = findUnManagedRPExportMask(protectionSystem, unManagedVolume);
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
@@ -601,10 +599,14 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             volumeContext.setExportGroupCreated(true);
             Integer numPaths = em.getZoningMap().size();
             _logger.info("Creating Export Group with label {}", em.getMaskName());
-            // No existing group has the mask, let's create one.
-            //TODO: Bharath - setting the isJournal to false - double check to see if this can be inferred
+          
+            //If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains that interna flag.
+            boolean isJournalExport = false;
+            if (em.getMaskName().toLowerCase().contains("journal")) {
+            	isJournalExport = true;
+            }
             exportGroup = RPHelper.createRPExportGroup(volume.getInternalSiteName(), virtualArray, project, protectionSystem,
-                    storageSystem, numPaths, false);
+                    storageSystem, numPaths, isJournalExport);
         }
 
         volumeContext.setExportGroup(exportGroup);

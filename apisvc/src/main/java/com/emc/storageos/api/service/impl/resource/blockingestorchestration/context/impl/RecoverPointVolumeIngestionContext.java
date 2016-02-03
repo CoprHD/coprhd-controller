@@ -122,7 +122,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
 
         // Find the UnManagedProtectionSet associated with this unmanaged volume
-        UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(getUnmanagedVolume(), _dbClient);
+        UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(this, getUnmanagedVolume(), _dbClient);
 
         // It is possible that the unmanaged volume was already ingested in which case the ingested block object will be part of the
         // unmanaged protection set's managed volumes list.
@@ -130,7 +130,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
                 VolumeIngestionUtil.VOLUME);
         BlockObject managedVolume = VolumeIngestionUtil.getBlockObject(managedVolumeNativeGUID, _dbClient);
         if (managedVolume != null) {
-            umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(managedVolume, _dbClient);
+            umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(this, managedVolume, _dbClient);
         }
 
         if (umpset == null) {
@@ -776,6 +776,12 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
         return _parentRequestContext.getCGObjectsToCreateMap();
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllProcessedUnManagedVolumes()
+     */
+    @Override
+    public List<UnManagedVolume> findAllProcessedUnManagedVolumes() {
+        return _parentRequestContext.findAllProcessedUnManagedVolumes();
 }
 
     @Override
@@ -783,4 +789,21 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         return _parentRequestContext.getUmCGObjectsToUpdate();
     }
 
+}
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.URI)
+     */
+    @Override
+    public DataObject findInUpdatedObjects(URI uri) {
+        return _parentRequestContext.findInUpdatedObjects(uri);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.net.URI)
+     */
+    @Override
+    public BlockObject findCreatedBlockObject(URI uri) {
+        return _parentRequestContext.findCreatedBlockObject(uri);
+    }
 }

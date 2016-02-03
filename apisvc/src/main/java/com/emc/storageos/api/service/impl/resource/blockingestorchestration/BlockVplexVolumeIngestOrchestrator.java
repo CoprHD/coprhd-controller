@@ -151,6 +151,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 ingestBackendExportMasks(requestContext, volumeContext);
 
+                _logger.info("Backend ingestion ended:" + volumeContext.toStringDebug());
+
             } catch (Exception ex) {
                 _logger.error("error during VPLEX backend ingestion: ", ex);
                 throw IngestionException.exceptions.failedToIngestVplexBackend(ex.getLocalizedMessage());
@@ -159,7 +161,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
         _logger.info("Ingesting VPLEX virtual volume {}", unManagedVolume.getLabel());
         T virtualVolume = super.ingestBlockObjects(requestContext, clazz);
-
+        
         return virtualVolume;
     }
 

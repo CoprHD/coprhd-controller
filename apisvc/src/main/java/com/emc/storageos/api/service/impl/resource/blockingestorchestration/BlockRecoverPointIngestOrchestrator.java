@@ -544,9 +544,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         VirtualArray virtualArray = volumeContext.getVarray(unManagedVolume);
         Project project = volumeContext.getProject();
-
-        // TODO: In the case where the source or target is exported to a host as well, VMAX2 best practices dictate that you
-        // create separate MVs for each host's RP volumes. That would mean a different export group per host/cluster.
+    
         ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
         UnManagedExportMask em = findUnManagedRPExportMask(protectionSystem, unManagedVolume);
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
@@ -562,10 +560,14 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             volumeContext.setExportGroupCreated(true);
             Integer numPaths = em.getZoningMap().size();
             _logger.info("Creating Export Group with label {}", em.getMaskName());
-            // No existing group has the mask, let's create one.
-            //TODO: Bharath - setting the isJournal to false - double check to see if this can be inferred
+          
+            //If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains that interna flag.
+            boolean isJournalExport = false;
+            if (em.getMaskName().toLowerCase().contains("journal")) {
+            	isJournalExport = true;
+            }
             exportGroup = RPHelper.createRPExportGroup(volume.getInternalSiteName(), virtualArray, project, protectionSystem,
-                    storageSystem, numPaths, false);
+                    storageSystem, numPaths, isJournalExport);
         }
 
         volumeContext.setExportGroup(exportGroup);
@@ -622,7 +624,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 for (Entry<String, AbstractChangeTrackingSet<String>> siteInitEntry : protectionSystem.getSiteInitiators().entrySet()) {
                     if (siteInitEntry.getValue().contains(wwn)) {
                         _logger.info(String
-                                .format("Found UnManagedVolume %s was found in UnManagedExportMask %s and will be ingested (if not ingested already)",
+                                .format("UnManagedVolume %s was found in UnManagedExportMask %s and will be ingested (if not ingested already)",
                                         unManagedVolume.getLabel(), em.getMaskName()));
                         return em;
                     }
@@ -652,7 +654,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.unManagedProtectionSetNotFound(unManagedVolume.getNativeGuid());
         }
 
-        return VolumeIngestionUtil.validateAllVolumesInCGIngested(parentRequestContext.getUnManagedVolumesToBeDeleted(), umpset, _dbClient);
+        return VolumeIngestionUtil.validateAllVolumesInCGIngested(parentRequestContext.findAllProcessedUnManagedVolumes(), umpset, _dbClient);
     }
 
     /**
@@ -664,7 +666,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      */
     private ProtectionSet createProtectionSet(RecoverPointVolumeIngestionContext volumeContext) {
         UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
-        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(umpset, _dbClient);
+        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(volumeContext, umpset, _dbClient);
         volumeContext.setManagedProtectionSet(pset);
         return pset;
     }

@@ -36,7 +36,7 @@ public class Copy implements Serializable {
     private Integer count;
     private String syncDirection;
     private String copyMode;
-    private String apitTime;
+    private String pointInTime;
 
     public enum SyncDirection {
         SOURCE_TO_TARGET,
@@ -160,13 +160,13 @@ public class Copy implements Serializable {
      * @valid "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
      * @return
      */
-    @XmlElement(name = "apitTime", required = false)
-    public String getApitTime() {
-        return apitTime;
+    @XmlElement(name = "pointInTime", required = false)
+    public String getPointInTime() {
+        return pointInTime;
     }
 
-    public void setApitTime(String apitTime) {
-        this.apitTime = apitTime;
+    public void setPointInTime(String pointInTime) {
+        this.pointInTime = pointInTime;
     }
 
 }

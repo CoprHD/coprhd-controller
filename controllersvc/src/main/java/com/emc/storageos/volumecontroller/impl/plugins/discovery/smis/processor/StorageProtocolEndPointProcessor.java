@@ -56,6 +56,13 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
                     endPointInstance = it.next();
                     String portInstanceID = endPointInstance.getObjectPath()
                             .getKey(SYSTEMNAME).getValue().toString();
+                    if (device.checkIfVmax3()) {
+                        // We need the portInstanceID to not constitute the Virtual port number.
+                        // i.e Instead of SYMMETRIX-+-000196800084-+-115-+-0 we need SYMMETRIX-+-000196800084-+-115
+                        String newPortInstanceID = portInstanceID.split(Constants.SMIS80_DELIMITER)[2];
+                        portInstanceID = newPortInstanceID;
+
+                    }
                     String iScsiPortName = getCIMPropertyValue(endPointInstance, NAME);
                     // Skip the iSCSI ports without name or without a valid name.
                     if (null == iScsiPortName || iScsiPortName.split(COMMA_STR)[0].length() <= 0) {

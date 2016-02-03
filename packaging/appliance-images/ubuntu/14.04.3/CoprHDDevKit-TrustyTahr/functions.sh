@@ -408,7 +408,7 @@ function updateOVF
   OVF=$2
 
   cat ${OVF} | head -n -2 > ${OVF}.tmp
-  sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso,com.vmware.guestInfo\" ovf:required=\"false\">|g" ${OVF}.tmp
+  sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso\" ovf:required=\"false\">|g" ${OVF}.tmp
   sed -i "s|<vssd:VirtualSystemType>virtualbox-[0-9a-z.]\{1,\}</vssd:VirtualSystemType>|<vssd:VirtualSystemType>vmx-07</vssd:VirtualSystemType>|g" ${OVF}.tmp
   cat >> ${OVF}.tmp <<EOF
     <ProductSection ovf:class="vm" ovf:required="false">

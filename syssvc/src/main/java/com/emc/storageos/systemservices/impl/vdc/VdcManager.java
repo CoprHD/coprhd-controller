@@ -80,7 +80,6 @@ public class VdcManager extends AbstractManager {
     public static final int ADD_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int PAUSE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    public static final int DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int REMOVE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     private static final int BACK_UPGRADE_RETRY_MILLIS = 30 * 1000; // 30 seconds
@@ -557,9 +556,6 @@ public class VdcManager extends AbstractManager {
             if (error != null) {
                 log.info("set site {} state to STANDBY_ERROR, set lastState to {}",site.getName(),site.getState());
                 coordinatorClient.setTargetInfo(site.getUuid(), error);
-                if (!site.getState().equals(SiteState.STANDBY_SYNCING)) {
-                    site.setLastState(site.getState());
-                }
                 site.setState(SiteState.STANDBY_ERROR);
                 coordinatorClient.persistServiceConfiguration(site.toConfiguration());
             }
@@ -595,14 +591,6 @@ public class VdcManager extends AbstractManager {
                     log.info("Step3: Site {} set to error due to resume standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.resumeStandbyFailedTimeout(
                             drOpTimeoutMillis / 60 / 1000),site.getState().name());
-                }
-                break;
-            case STANDBY_SYNCING:
-                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_DATA_SYNC_TIMEOUT, DATA_SYNC_TIMEOUT_MILLIS);
-                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step3: Site {} set to error due to data sync timeout", site.getName());
-                    error = new SiteError(APIException.internalServerErrors.dataSyncFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000),site.getLastState().name());
                 }
                 break;
             case STANDBY_REMOVING:

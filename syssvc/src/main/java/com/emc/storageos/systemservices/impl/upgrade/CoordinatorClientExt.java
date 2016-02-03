@@ -1556,7 +1556,7 @@ public class CoordinatorClientExt {
                 if (DrUtil.ZOOKEEPER_MODE_LEADER.equals(state) ||
                         DrUtil.ZOOKEEPER_MODE_FOLLOWER.equals(state) ||
                         DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state)) {
-                    // node is in participant mode, update the local site state to PAUSED if it's SYNCED
+                    // node is in participant mode, update the local site state accordingly
                     checkAndUpdateLocalSiteState();
 
                     // check if active site is back
@@ -1572,17 +1572,27 @@ public class CoordinatorClientExt {
             }
         }
 
+        /**
+         * Update the standby site state when the active site is lost.
+         * if SYNCED, change it to PAUSED.
+         * if SYNCING/RESUMING/ADDING, change it to ERROR since it will never finish without the active site.
+         */
         private void checkAndUpdateLocalSiteState() {
             Site localSite = drUtil.getLocalSite();
 
-            if (!localSite.getState().equals(SiteState.STANDBY_SYNCED)) {
-                // nothing to do
-                return;
+            if (SiteState.STANDBY_SYNCED.equals(localSite.getState())) {
+                _log.info("Updating local site from {} to STANDBY_PAUSED since active is unreachable",
+                        localSite.getState());
+                localSite.setState(SiteState.STANDBY_PAUSED);
+                _coordinator.persistServiceConfiguration(localSite.toConfiguration());
+            } else if (SiteState.STANDBY_SYNCING.equals(localSite.getState()) ||
+                    SiteState.STANDBY_RESUMING.equals(localSite.getState()) ||
+                    SiteState.STANDBY_ADDING.equals(localSite.getState())){
+                _log.info("Updating local site from {} to STANDBY_ERROR since active is unreachable",
+                        localSite.getState());
+                localSite.setState(SiteState.STANDBY_ERROR);
+                _coordinator.persistServiceConfiguration(localSite.toConfiguration());
             }
-
-            _log.info("Updating local site to STANDBY_PAUSED since active is unreachable");
-            localSite.setState(SiteState.STANDBY_PAUSED);
-            _coordinator.persistServiceConfiguration(localSite.toConfiguration());
         }
 
         /**

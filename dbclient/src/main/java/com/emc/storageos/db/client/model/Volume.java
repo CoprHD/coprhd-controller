@@ -19,7 +19,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -1021,5 +1020,21 @@ public class Volume extends BlockObject implements ProjectResource {
             }
         }
         return copyVolumeGroup;
+    }
+
+    /**
+     * Returns true if the volume belongs to VPLEX or not.
+     * 
+     * @param dbClient
+     * @return
+     */
+    public boolean checkForVplexVirtualVolume(DbClient dbClient) {
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, getStorageController());
+        if (system != null) {
+            if (system.getSystemType().equals(DiscoveredSystemObject.Type.vplex.name())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

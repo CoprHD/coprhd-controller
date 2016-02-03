@@ -27,6 +27,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Bloc
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRecoverPointIngestOrchestrator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
@@ -447,6 +448,38 @@ public class VolumeIngestionUtil {
         }
 
         return false;
+    }
+
+    /**
+     * Checks whether RP is protecting any VPLEX volumes or not.
+     * 
+     * @param requestContext
+     * @param dbClient
+     * @return
+     */
+    public static boolean isRPProtectingVplexVolumes(IngestionRequestContext requestContext, DbClient dbClient) {
+        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext();
+        ProtectionSet pset = rpContext.getManagedProtectionSet();
+        boolean isRPProtectingVplexVolumes = false;
+
+        if (pset == null) {
+            return isRPProtectingVplexVolumes;
+        }
+
+        for (String volumeIdStr : pset.getVolumes()) {
+            for (List<DataObject> dataObjList : rpContext.getObjectsToBeUpdatedMap().values()) {
+                for (DataObject dataObj : dataObjList) {
+                    if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+                        Volume volume = (Volume) dataObj;
+                        if (volume.checkForVplexVirtualVolume(dbClient)) {
+                            isRPProtectingVplexVolumes = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return isRPProtectingVplexVolumes;
     }
 
     /**

@@ -1831,7 +1831,7 @@ public class CoordinatorClientExt {
     public boolean isActiveSiteZKLeaderAlive(Site activeSite) {
         // Check alive coordinatorsvc on active site
         Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();
-        if (activeSite.getVip().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
+        if (!activeSite.isUsingIpv4()) {
             nodeAddrList = activeSite.getHostIPv6AddressMap().values();
         }
 

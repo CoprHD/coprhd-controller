@@ -1296,7 +1296,7 @@ public class BackupOps {
         util.setCoordinator(coordinatorClient);
         Site localSite = util.getLocalSite();
         Map<String, String> addresses = localSite.getHostIPv4AddressMap();
-        if (localSite.getVip().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
+        if (!localSite.isUsingIpv4()) {
             addresses = localSite.getHostIPv6AddressMap();
         }
 

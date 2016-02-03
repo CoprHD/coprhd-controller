@@ -836,11 +836,26 @@ public class VdcConfigHelper {
      */
     public boolean areNodesReachable(String vdcShortId, Map<String, String> ipv4, Map<String, String> ipv6, boolean isAllNotReachable) {
         List<String> ips = new ArrayList<String>();
+
         if (ipv4 != null && !ipv4.isEmpty()) {
-            ips.addAll(ipv4.values());
-        } else if (ipv6 != null && !ipv6.isEmpty()) {
-            ips.addAll(ipv6.values());
-        } else {
+            for (String node: ipv4.keySet()) {
+                if(!ipv4.get(node).equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
+                    ips.add(ipv4.get(node));
+                }
+            }
+        }
+
+        if (ips.isEmpty()) {
+            if (ipv6 != null && !ipv6.isEmpty()) {
+                for (String node: ipv6.keySet()) {
+                    if(!ipv6.get(node).equals(PropertyConstants.IPV6_ADDR_DEFAULT)) {
+                        ips.add(ipv6.get(node));
+                    }
+                }
+            }
+        }
+
+        if (ips.isEmpty()) {
             throw new IllegalStateException("Cannot perform node reachable check on vdc " + vdcShortId
                     + " no nodes were found on VdcConfig object");
         }
@@ -903,10 +918,10 @@ public class VdcConfigHelper {
             vdcConfig.setShortId(vdc.getShortId());
             Site activeSite = drUtil.getActiveSite(vdc.getShortId());
             
-            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getVip().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
+            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty() && activeSite.isUsingIpv4()) {
                 HashMap<String, String> addressMap = new HashMap<String, String>(activeSite.getHostIPv4AddressMap());
                 vdcConfig.setHostIPv4AddressesMap(addressMap);
-            } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getVip().equals(PropertyConstants.IPV6_ADDR_DEFAULT)) {
+            } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getHostIPv6AddressMap().isEmpty()) {
                 HashMap<String, String> addressMap = new HashMap<String, String>(activeSite.getHostIPv6AddressMap());
                 vdcConfig.setHostIPv6AddressesMap(addressMap);
             } else {

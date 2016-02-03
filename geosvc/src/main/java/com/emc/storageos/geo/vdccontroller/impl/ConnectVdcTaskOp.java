@@ -423,10 +423,10 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
             
             vdcConfig.setId(vdc.getId());
             vdcConfig.setShortId(vdc.getShortId());
-            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getVip().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
+            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty() && activeSite.isUsingIpv4()) {
                 HashMap<String, String> ipv4AddrMap = new HashMap<String, String>(activeSite.getHostIPv4AddressMap());
                 vdcConfig.setHostIPv4AddressesMap(ipv4AddrMap);
-            } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getVip().equals(PropertyConstants.IPV6_ADDR_DEFAULT)) {
+            } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getHostIPv6AddressMap().isEmpty()) {
                 HashMap<String, String> ipv6AddrMap = new HashMap<String, String>(activeSite.getHostIPv6AddressMap());
                 vdcConfig.setHostIPv6AddressesMap(ipv6AddrMap);
             } else {

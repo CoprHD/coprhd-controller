@@ -57,7 +57,7 @@ public class DrInternodeAuthenticator implements IInternodeAuthenticator {
         isDegraded = localSite.getState().equals(SiteState.STANDBY_DEGRADED)
                 || localSite.getState().equals(SiteState.STANDBY_DEGRADING);
         Collection<String> nodeAddrList = localSite.getHostIPv4AddressMap().values();
-        if (localSite.getVip().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
+        if (!localSite.isUsingIpv4()) {
             nodeAddrList = localSite.getHostIPv6AddressMap().values();
         }
         for (String nodeAddr : nodeAddrList) {

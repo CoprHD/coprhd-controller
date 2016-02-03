@@ -3417,19 +3417,23 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
-        String snapshotNativeGuid = snapshot.getNativeGuid();
-        List<Volume> volumesWithSameNativeGuid = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid);
-        if (!volumesWithSameNativeGuid.isEmpty()) {
-            // There should only be one and it should be a backend volume for
-            // a VPLEX volume.
-            List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
-                    _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
-                            volumesWithSameNativeGuid.get(0).getId().toString()));
-            throw APIException.badRequests
-                    .cantDeleteSnapshotExposedByVolume(snapshot.getLabel().toString(), vplexVolumes.get(0).getLabel());
+    public void deleteSnapshot(BlockSnapshot requestedSnapshot, List<BlockSnapshot> allSnapshots, String taskId, String deleteType) {
+        if (!VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
+            for (BlockSnapshot snapshot : allSnapshots) {
+                String snapshotNativeGuid = snapshot.getNativeGuid();
+                List<Volume> volumesWithSameNativeGuid = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid);
+                if (!volumesWithSameNativeGuid.isEmpty()) {
+                    // There should only be one and it should be a backend volume for
+                    // a VPLEX volume.
+                    List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
+                            _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
+                                    volumesWithSameNativeGuid.get(0).getId().toString()));
+                    throw APIException.badRequests
+                            .cantDeleteSnapshotExposedByVolume(snapshot.getLabel().toString(), vplexVolumes.get(0).getLabel());
+                }
+            }
         }
-        super.deleteSnapshot(snapshot, taskId);
+        super.deleteSnapshot(requestedSnapshot, allSnapshots, taskId, deleteType);
     }
 
     /**

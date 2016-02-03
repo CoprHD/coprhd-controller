@@ -52,6 +52,8 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
@@ -222,55 +224,66 @@ public class BlockSnapshotService extends TaskResourceService {
     @Path("/{id}/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList deactivateSnapshot(@PathParam("id") URI id, @DefaultValue("FULL") @QueryParam("type") String type) {
+        _log.info("Executing {} snapshot delete for snapshot {}", type, id);
+
+        String opStage = null;
+        boolean successStatus = true;
+        String taskId = UUID.randomUUID().toString();
+        TaskList response = new TaskList();
+
         // Get the snapshot.
         BlockSnapshot snap = (BlockSnapshot) queryResource(id);
-
-        // Check if the type is ViPR-Only delete.
-        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
-            return viprOnlyDeleteSnapshot(snap);
-        }
-
-        String task = UUID.randomUUID().toString();
-        TaskList response = new TaskList();
 
         // We can ignore dependencies on BlockSnapshotSession. In this case
         // the BlockSnapshot instance is a linked target for a BlockSnapshotSession
         // and we will unlink the snapshot from the session and delete it.
         List<Class<? extends DataObject>> excludeTypes = new ArrayList<Class<? extends DataObject>>();
         excludeTypes.add(BlockSnapshotSession.class);
+        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+            excludeTypes.add(ExportGroup.class);
+            excludeTypes.add(ExportMask.class);
+        }
         ArgValidator.checkReference(BlockSnapshot.class, id, checkForDelete(snap, excludeTypes));
 
-        // If the BlockSnapshot instance represents a linked target, then
-        // we need to unlink the target form the snapshot session and then
-        // delete the target.
-        URIQueryResultList snapSessionURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(id), snapSessionURIs);
-        Iterator<URI> snapSessionURIsIter = snapSessionURIs.iterator();
-        if (snapSessionURIsIter.hasNext()) {
-            SnapshotSessionUnlinkTargetsParam param = new SnapshotSessionUnlinkTargetsParam();
-            List<SnapshotSessionUnlinkTargetParam> targetInfoList = new ArrayList<SnapshotSessionUnlinkTargetParam>();
-            SnapshotSessionUnlinkTargetParam targetInfo = new SnapshotSessionUnlinkTargetParam(id, Boolean.TRUE);
-            targetInfoList.add(targetInfo);
-            param.setLinkedTargets(targetInfoList);
-            response.getTaskList().add(getSnapshotSessionManager().unlinkTargetVolumesFromSnapshotSession(
-                    snapSessionURIsIter.next(), param));
-            return response;
+        if (!VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+            // The audit log message operation stage.
+            opStage = AuditLogManager.AUDITOP_BEGIN;
+
+            // If the BlockSnapshot instance represents a linked target, then
+            // we need to unlink the target form the snapshot session and then
+            // delete the target.
+            URIQueryResultList snapSessionURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(id), snapSessionURIs);
+            Iterator<URI> snapSessionURIsIter = snapSessionURIs.iterator();
+            if (snapSessionURIsIter.hasNext()) {
+                _log.info("Snapshot is linked target for a snapshot session");
+                SnapshotSessionUnlinkTargetsParam param = new SnapshotSessionUnlinkTargetsParam();
+                List<SnapshotSessionUnlinkTargetParam> targetInfoList = new ArrayList<SnapshotSessionUnlinkTargetParam>();
+                SnapshotSessionUnlinkTargetParam targetInfo = new SnapshotSessionUnlinkTargetParam(id, Boolean.TRUE);
+                targetInfoList.add(targetInfo);
+                param.setLinkedTargets(targetInfoList);
+                response.getTaskList().add(getSnapshotSessionManager().unlinkTargetVolumesFromSnapshotSession(
+                        snapSessionURIsIter.next(), param));
+                return response;
+            }
+    
+            // Not an error if the snapshot we try to delete is already deleted
+            if (snap.getInactive()) {
+                _log.info("Snapshot is already inactive");
+                Operation op = new Operation();
+                op.ready("The snapshot has already been deleted");
+                op.setResourceType(ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT);
+                _dbClient.createTaskOpStatus(BlockSnapshot.class, snap.getId(), taskId, op);
+                response.getTaskList().add(toTask(snap, taskId, op));
+                return response;
+            }
         }
 
-        // Not an error if the snapshot we try to delete is already deleted
-        if (snap.getInactive()) {
-            Operation op = new Operation();
-            op.ready("The snapshot has already been deleted");
-            op.setResourceType(ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT);
-            _dbClient.createTaskOpStatus(BlockSnapshot.class, snap.getId(), task, op);
-            response.getTaskList().add(toTask(snap, task, op));
-            return response;
-        }
-
+        // Get the storage system.
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, snap.getStorageController());
 
+        // Determine all snapshots to delete.
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
-
         final URI cgId = snap.getConsistencyGroup();
         if (!NullColumnValueGetter.isNullURI(cgId)) {
             // Collect all the BlockSnapshots if part of a CG.
@@ -280,16 +293,17 @@ public class BlockSnapshotService extends TaskResourceService {
             snapshots.add(snap);
         }
 
-        // Get the block service API implementation for the snapshot parent volume.
+        // Get the snapshot parent volume.
         Volume parentVolume = _permissionsHelper.getObjectById(snap.getParent(), Volume.class);
 
         // Check that there are no pending tasks for these snapshots.
         checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), snapshots);
 
+        // Create tasks on the volume.
         for (BlockSnapshot snapshot : snapshots) {
-            Operation snapOp = _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), task,
+            Operation snapOp = _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), taskId,
                     ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT);
-            response.getTaskList().add(toTask(snapshot, task, snapOp));
+            response.getTaskList().add(toTask(snapshot, taskId, snapOp));
         }
 
         // Note that for snapshots of VPLEX volumes, the parent volume for the
@@ -298,72 +312,10 @@ public class BlockSnapshotService extends TaskResourceService {
         // should be returned.
         try {
             BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
-            blockServiceApiImpl.deleteSnapshot(snap, task);
-        } catch (APIException | InternalException e) {
-            String errorMsg = String.format("Exception attempting to delete snapshot %s: %s", snap.getId(), e.getMessage());
-            _log.error(errorMsg);
-            for (TaskResourceRep taskResourceRep : response.getTaskList()) {
-                taskResourceRep.setState(Operation.Status.error.name());
-                taskResourceRep.setMessage(errorMsg);
-                _dbClient.error(BlockSnapshot.class, taskResourceRep.getResource().getId(), task, e);
-            }
-        }
-
-        auditOp(OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
-                id.toString(), snap.getLabel(), snap.getParent().getName(), device.getId().toString());
-
-        return response;
-    }
-
-    /**
-     * 
-     * @param snapshot
-     * @return
-     */
-    public TaskList viprOnlyDeleteSnapshot(BlockSnapshot requestedSnapshot) {
-        String taskId = UUID.randomUUID().toString();
-        TaskList response = new TaskList();
-        boolean successStatus = true;
-        try {
-            _log.info("Executing ViPR only snapshot delete for snapshot {}", requestedSnapshot.getId());
-
-            // Get the parent volume.
-            Volume parentVolume = _permissionsHelper.getObjectById(requestedSnapshot.getParent(), Volume.class);
-
-            // Get all snapshots in the snapset.
-            List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
-            URI cgURI = requestedSnapshot.getConsistencyGroup();
-            if (!NullColumnValueGetter.isNullURI(cgURI)) {
-                _log.info("Snapshot in consistency group {}", cgURI);
-                // Collect all the BlockSnapshots if part of a CG.
-                snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(requestedSnapshot, _dbClient);
-            } else {
-                // Snap is not part of a CG so only delete the snap
-                snapshots.add(requestedSnapshot);
-            }
-
-            // Check that there are no pending tasks for these snapshots.
-            checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), snapshots);
-
-            // Create a task for each snapshot
-            List<URI> snapshotURIs = new ArrayList<URI>();
-            for (BlockSnapshot snapshot : snapshots) {
-                snapshotURIs.add(snapshot.getId());
-                Operation op = _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), taskId,
-                        ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT);
-                response.getTaskList().add(toTask(snapshot, taskId, op));
-            }
-
-            // Note that for snapshots of VPLEX volumes, the parent volume for the
-            // snapshot is the source side backend volume, which will have the same
-            // vpool as the VPLEX volume and therefore, the correct implementation
-            // should be returned.
-            BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
-            blockServiceApiImpl.viprOnlyDeleteSnapshot(snapshotURIs, taskId);
+            blockServiceApiImpl.deleteSnapshot(snap, snapshots, taskId, type);
         } catch (APIException | InternalException e) {
             successStatus = false;
-            String errorMsg = String.format("Exception attempting to ViPR-Only delete snapshot %s: %s",
-                    requestedSnapshot.getId(), e.getMessage());
+            String errorMsg = String.format("Exception attempting to delete snapshot %s: %s", snap.getId(), e.getMessage());
             _log.error(errorMsg);
             for (TaskResourceRep taskResourceRep : response.getTaskList()) {
                 taskResourceRep.setState(Operation.Status.error.name());
@@ -372,8 +324,7 @@ public class BlockSnapshotService extends TaskResourceService {
             }
         } catch (Exception e) {
             successStatus = false;
-            String errorMsg = String.format("Exception attempting to ViPR-Only delete snapshot %s: %s",
-                    requestedSnapshot.getId(), e.getMessage());
+            String errorMsg = String.format("Exception attempting to delete snapshot %s: %s", snap.getId(), e.getMessage());
             _log.error(errorMsg);
             ServiceCoded sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
             for (TaskResourceRep taskResourceRep : response.getTaskList()) {
@@ -383,9 +334,8 @@ public class BlockSnapshotService extends TaskResourceService {
             }
         }
 
-        // Log the operation which is really synchronous even though it returns tasks.
-        auditOp(OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, successStatus, null, requestedSnapshot.getId().toString(),
-                requestedSnapshot.getLabel(), requestedSnapshot.getParent().getName());
+        auditOp(OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, successStatus, opStage,
+                id.toString(), snap.getLabel(), snap.getParent().getName(), device.getId().toString());
 
         return response;
     }

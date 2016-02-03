@@ -415,6 +415,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param mirroURIs The URIs of the mirrors involved in the ViPR only delete.
      */
     protected void cleanupForViPROnlyMirrorDelete(List<URI> mirrorURIs) {
+        // NO-OP be default.
     }
 
     /**
@@ -1221,30 +1222,45 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * Uses the appropriate controller to delete the snapshot.
-     * 
-     * @param snapshot The snapshot to delete
-     * @param taskId The unique task identifier
+     * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
-        BlockController controller = getController(BlockController.class, device.getSystemType());
-        controller.deleteSnapshot(device.getId(), snapshot.getId(), taskId);
+    public void deleteSnapshot(BlockSnapshot requestedSnapshot, List<BlockSnapshot> allSnapshots, String taskId, String deleteType) {
+        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
+            s_logger.info("Executing ViPR-only snapshot deletion");
+
+            // Do any cleanup necessary for the ViPR only delete.
+            cleanupForViPROnlySnapshotDelete(allSnapshots);
+
+            // Mark them inactive.
+            _dbClient.markForDeletion(allSnapshots);
+
+            // Update the task status for each snapshot to successfully completed.
+            // Note that we must go back to the database to get the latest snapshot status map.
+            for (BlockSnapshot snapshot : allSnapshots) {
+                BlockSnapshot updatedSnapshot = _dbClient.queryObject(BlockSnapshot.class, snapshot.getId());
+                Operation op = snapshot.getOpStatus().get(taskId);
+                op.ready("Snapshot succesfully deleted from ViPR");
+                updatedSnapshot.getOpStatus().updateTaskStatus(taskId, op);
+                _dbClient.updateObject(updatedSnapshot);
+            }
+        } else {
+            StorageSystem device = _dbClient.queryObject(StorageSystem.class, requestedSnapshot.getStorageController());
+            BlockController controller = getController(BlockController.class, device.getSystemType());
+            controller.deleteSnapshot(device.getId(), requestedSnapshot.getId(), taskId);
+        }
     }
 
     /**
-     * {@inheritDoc}
+     * Perform any database clean up required as a result of removing the snapshots
+     * with the passed URIs from the ViPR database.
      * 
-     * @throws InternalException
+     * @param snapshots The snapshots to be cleaned up.
      */
-    @Override
-    public void viprOnlyDeleteSnapshot(List<URI> snapshotURIs, String taskId)
-            throws InternalException {
-        s_logger.info("Executing ViPR-only snapshot deletion");
-
+    public void cleanupForViPROnlySnapshotDelete(List<BlockSnapshot> snapshots) {
         // Clean up the snapshot in the ViPR database.
-        for (URI snapshotURI : snapshotURIs) {
+        for (BlockSnapshot snapshot : snapshots) {
+            URI snapshotURI = snapshot.getId();
             // If the BlockSnapshot instance represents a linked target, then
             // we need to remove the snapshot from the linked target list of the
             // session.
@@ -1262,18 +1278,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
             // Remove the snapshot from any export groups/masks.
             cleanBlockObjectFromExports(snapshotURI, true);
-        }
-
-        // Mark them inactive.
-        _dbClient.markForDeletion(_dbClient.queryObject(BlockSnapshot.class, snapshotURIs));
-
-        // Update the task status for each snapshot to successfully completed.
-        for (URI snapshotURI : snapshotURIs) {
-            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-            Operation op = snapshot.getOpStatus().get(taskId);
-            op.ready("Snapshot succesfully deleted from ViPR");
-            snapshot.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(snapshot);
         }
     }
 

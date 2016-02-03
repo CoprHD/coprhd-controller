@@ -14,6 +14,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -62,6 +63,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -424,7 +426,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
             BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
 
-            blockServiceApiImpl.deleteSnapshot(snapshot, task);
+            blockServiceApiImpl.deleteSnapshot(snapshot, Arrays.asList(snapshot), task, VolumeDeleteTypeEnum.FULL.name());
 
             auditBlockConsistencyGroup(OperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT,
                     AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()

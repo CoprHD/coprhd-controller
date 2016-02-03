@@ -400,18 +400,12 @@ public interface BlockServiceApi {
     /**
      * Uses the appropriate controller to delete the snapshot.
      * 
-     * @param snapshot The snapshot to delete
+     * @param snapshot The snapshot requested to be deleted.
+     * @param allSnapshots All snapshots to be deleted as a result of deleting the requested snapshot.
      * @param taskId The unique task identifier
+     * @param deleteType The type of mirror deletion i.e., FULL or VIPR_ONLY
      */
-    public void deleteSnapshot(BlockSnapshot snapshot, String taskId);
-
-    /**
-     * Uses the appropriate controller to remove the snapshots from the ViPR database.
-     * 
-     * @param snapshotURIs The URIs of the snapshots to delete.
-     * @param taskId The unique task identifier.
-     */
-    public void viprOnlyDeleteSnapshot(List<URI> snapshotURIs, String taskId);
+    public void deleteSnapshot(BlockSnapshot requestedSnapshot, List<BlockSnapshot> allSnapshots, String taskId, String deleteType);
 
     /**
      * Get the snapshots for the passed volume.

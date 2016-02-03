@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -107,6 +108,7 @@ public class BlockApplications extends ResourceController {
             addColumn("size");
             addColumn("status");
             addColumn("protocol");
+            addColumn("volumes").setRenderFunction("renderLink");;
             sortAll();
         }
 
@@ -118,6 +120,8 @@ public class BlockApplications extends ResourceController {
             public String size;
             public String status;
             public Set<String> protocol;
+            public String volumes;
+            public URI refs;
 
             public Clone(VolumeRestRep volume) {
                 id = volume.getId();
@@ -125,6 +129,8 @@ public class BlockApplications extends ResourceController {
                 size = volume.getProvisionedCapacity();
                 status = volume.getProtection().getFullCopyRep().getReplicaState();
                 protocol = volume.getProtocols();
+                refs = volume.getProtection().getFullCopyRep().getAssociatedSourceVolume().getId();
+                volumes = BourneUtil.getViprClient().blockVolumes().get(refs).getName();
             }
         }
     }

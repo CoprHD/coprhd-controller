@@ -47,6 +47,14 @@ public class ClusterIpInfo implements Serializable {
         this.ipv6_setting = ipv6_setting;
     }
 
+    public int getNodeCount() {
+        int nodeCount = ipv4_setting.getNetworkAddrs().size();
+        if (nodeCount == 0) {
+            nodeCount = ipv6_setting.getNetworkAddrs().size();
+        }
+        return nodeCount;
+    }
+
     public byte[] serialize() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutputStream out = new ObjectOutputStream(bos);

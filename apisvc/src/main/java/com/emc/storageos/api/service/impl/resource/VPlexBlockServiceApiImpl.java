@@ -3447,7 +3447,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param taskId task id used if some volumes are already in a backend array CG
      * @return URI of the storage system the backing volumes are in (this will need to change)
      */
-    private URI getVolumesToAddToApplication(ApplicationAddVolumeList addVols, VolumeGroupVolumeList addVolumes, VolumeGroup volumeGroup, 
+    public URI getVolumesToAddToApplication(ApplicationAddVolumeList addVols, VolumeGroupVolumeList addVolumes, VolumeGroup volumeGroup, 
             String taskId) {
         URI systemURI = null;
         URI consistencyGroupURI = null;
@@ -3739,7 +3739,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param storageSystemUri The backend storage system URI
      * @return The list of Vplex virtual volume URI
      */
-    private List<URI> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri) {
+    public List<URI> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri) {
         List<URI> volumeURIs = new ArrayList<URI>();
         // Get all backend volumes with the same replication group name
         List<Volume> volumes = CustomQueryUtility

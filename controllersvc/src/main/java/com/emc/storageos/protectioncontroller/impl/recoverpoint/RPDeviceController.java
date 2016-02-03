@@ -146,6 +146,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.RPStatisticsHelper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
+import com.emc.storageos.vplexcontroller.completers.VolumeGroupUpdateTaskCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -5936,32 +5937,35 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             List<URI> allRemoveVolumes = new ArrayList<URI>();
             if (removeVolumesURI != null && !removeVolumesURI.isEmpty()) {
                 // get source and target volumes to be removed from the application
-                allRemoveVolumes.addAll(RPHelper.getReplicationSetVolumes(removeVolumesURI, _dbClient));
-                for (URI removeUri : removeVolumesURI) {
+                List<URI> allVolumes = RPHelper.getReplicationSetVolumes(removeVolumesURI, _dbClient);
+                for (URI removeUri : allVolumes) {
                     Volume removeVol = _dbClient.queryObject(Volume.class, removeUri);
                     URI cguri = removeVol.getConsistencyGroup();
                     impactedCGs.add(cguri);
+                    addBackendVolumes(allRemoveVolumes, removeVol, null, false, applicationId);
                 }
             }
             
+            List<Volume> vnxVolumes = new ArrayList<Volume>();
             List<URI> allAddVolumes = new ArrayList<URI>();
             ApplicationAddVolumeList addSourceVols = new ApplicationAddVolumeList();
             ApplicationAddVolumeList addTargetVols = new ApplicationAddVolumeList();
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty()) {
+                allAddVolumes.addAll(addVolList.getVolumes());
                 // get source and target volumes to be added the application
-                allAddVolumes.addAll(RPHelper.getReplicationSetVolumes(addVolList.getVolumes(), _dbClient));
+                List<URI> addVolumes = RPHelper.getReplicationSetVolumes(addVolList.getVolumes(), _dbClient);
                 
                 // split up add volumes list by source and target
                 List<URI> allAddSourceVolumes = new ArrayList<URI>();
                 List<URI> allAddTargetVolumes = new ArrayList<URI>();
-                for (URI volUri : allAddVolumes) {
+                for (URI volUri : addVolumes) {
                     Volume vol = _dbClient.queryObject(Volume.class, volUri);
                     URI cguri = vol.getConsistencyGroup();
                     impactedCGs.add(cguri);
                     if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-                        allAddSourceVolumes.add(volUri);
+                        addBackendVolumes(allAddSourceVolumes, vol, vnxVolumes, true, applicationId);
                     } else if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
-                        allAddTargetVolumes.add(volUri);
+                        addBackendVolumes(allAddTargetVolumes, vol, vnxVolumes, true, applicationId);
                     }
                 }
                 
@@ -5981,10 +5985,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             Workflow workflow = _workflowService.getNewWorkflow(this, BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false, taskId);
             
             // create the completer add the steps and execute the plan.
-            completer = new ApplicationTaskCompleter(applicationId, allAddVolumes, allRemoveVolumes, impactedCGs, taskId);
+            completer = new VolumeGroupUpdateTaskCompleter(applicationId, allAddVolumes, removeVolumesURI, impactedCGs, taskId);
             
+            // add step for convert VNX replication group
+            String waitFor = null;
+            if (!vnxVolumes.isEmpty()) {
+                _log.info("Creating step to convert VNX RG");
+                waitFor = _blockDeviceController.addStepsForConvertVNXReplicationGroup(workflow, vnxVolumes, waitFor, taskId);                
+            }
             // add steps for add source and remove vols
-            String waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addSourceVols, removeVolumesURI, null, taskId);
+            waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addSourceVols, allRemoveVolumes, waitFor, taskId);
             
             // add steps for add target vols
             _blockDeviceController.addStepsForUpdateApplication(workflow, addTargetVols, null, waitFor, taskId);
@@ -5998,6 +6008,38 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 completer.error(_dbClient, DeviceControllerException.exceptions.failedToUpdateVolumesFromAppication(applicationId.toString(), e.getMessage()));
             }
             throw e;
+        }
+    }
+    
+    private void addBackendVolumes(List<URI>allVolumes, Volume volume, List<Volume> vnxVolumes, boolean isAdd, URI application) {
+        if (RPHelper.isVPlexVolume(volume)) {
+            StringSet backends = volume.getAssociatedVolumes();
+            for (String backendId : backends) {
+                if (!isAdd) {
+                    allVolumes.add(URI.create(backendId));
+                } else {
+                    Volume backVol = _dbClient.queryObject(Volume.class, URI.create(backendId));
+                    String rgName = backVol.getReplicationGroupInstance();
+                    if (NullColumnValueGetter.isNotNullValue(rgName) &&
+                            ControllerUtils.isVnxVolume(backVol, _dbClient)) {
+                        vnxVolumes.add(backVol);
+                    } else if (NullColumnValueGetter.isNotNullValue(rgName)){
+                        // the back end volumes is in a replication group. just update the volume's volumeGroupIds attribute
+                        StringSet applications = volume.getVolumeGroupIds();
+                        if (applications == null) {
+                            applications = new StringSet();
+                        }
+                        applications.add(application.toString());
+                        volume.setVolumeGroupIds(applications);
+                        _dbClient.updateObject(volume);
+                        break;
+                    } else {
+                        allVolumes.add(backVol.getId());
+                    }
+                }
+            }  
+        } else {
+            allVolumes.add(volume.getId());
         }
     }
 }

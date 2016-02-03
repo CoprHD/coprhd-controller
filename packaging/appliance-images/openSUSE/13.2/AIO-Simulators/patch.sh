@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2016 EMC Corporation
+# Copyright 2015 EMC Corporation
 # All Rights Reserved
 #
 
@@ -15,6 +15,30 @@ kiwiPath="/usr/share/kiwi/modules"
 rpm -q --quiet kiwi
 if [ $? -ne 0 ]; then
   exit 0
+fi
+
+[ -z "$( pidof udevd )" ] && udevd &
+
+#######################################################
+# Changes for generic bootloader installation
+#######################################################
+# Generic grub probing: https://groups.google.com/d/msg/kiwi-images/vPnpDHN-B9I/ykeVFuKM8E4J
+FileVersion=$( rpm -q kiwi --queryformat "%{RPMTAG_VERSION}" )
+FileBoot="$kiwiPath/KIWIBoot.pm"
+if [ $FileVersion == "7.01.16" ] && [ ! -f $FileBoot.bak ]; then
+  echo "Patching KIWI bootloader container installations"
+  line=$( grep -nr "\$loaderTarget = \$diskname;" $FileBoot | cut -d ':' -f 1 )
+  if [ ! -z "$line" ]; then
+    cp $FileBoot $FileBoot.bak
+    sed -i "$((line+0)),$((line+2))d" $FileBoot
+    sed -i "${line}i\                \$targetMessage= \"On disk target\";" $FileBoot
+    sed -i "${line}i\                \$grubtoolopts.= \"--root-directory=/mnt --force --no-nvram \";" $FileBoot
+    sed -i "${line}i\                \$grubtoolopts.= \"-d \$stages \";" $FileBoot
+    sed -i "${line}i\                \$grubtoolopts = \"--grub-mkdevicemap=\$dmfile \";" $FileBoot
+    sed -i "${line}i\                \$grubtool = \$locator -> getExecPath ('grub2-install');" $FileBoot
+    sed -i "${line}i\                \$loaderTarget = \$this->{loop};" $FileBoot
+    sed -i "${line}i\                # KIWIBoot.pm bootloader generic patch" $FileBoot
+  fi
 fi
 
 #######################################################

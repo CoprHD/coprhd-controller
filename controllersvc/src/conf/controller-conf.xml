@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans
-       http://www.springframework.org/schema/beans/spring-beans.xsd
-       http://www.springframework.org/schema/util
-       http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
     <!-- Import the CIM adapter Spring config file so that the ConnnectionManager bean -->
     <!-- can be referenced.                                                            -->
@@ -20,6 +21,8 @@
     <import resource="classpath:controller-scaleio-prov.xml"/>
     <import resource="classpath:controller-xtremio-prov.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
+
+	<context:property-placeholder location="classpath:isilon.properties" ignore-unresolvable="true"/>
 
     <bean id="blockscheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
         <property name="dbClient" ref="dbclient"/>
@@ -629,10 +632,13 @@
         <property name="customConfigHandler" ref="customConfigHandler" />
     	<property name="configinfo">
     		<util:map map-class="java.util.HashMap" key-type="java.lang.String" value-type="java.lang.String">
-        		<entry key="thresholdsIncludeOverhead" value="true" />
-        		<entry key="includeSnapshots" value="true" />
+        		<entry key="thresholdsIncludeOverhead" value="${isilon.directory.default.thresholdsIncludeOverhead}" />
+        		<entry key="includeSnapshots" value="${isilon.directory.default.includeSnapshots}" />
+        		<entry key="directorySoftQuotaDefaultSize" value="${isilon.directory.default.softquota.size}"/>
+        		<entry key="directorySoftQuotaDefaultGracePeriod" value="${isilon.directory.default.softquota.graceperiod}"/>
+        		<entry key="directoryAdvisoryQuotaSize" value="${isilon.directory.default.advisoryquota.size}"/>
         		<!-- true: Apply Windows Default ACLs; false: Do not change existing permissions     -->
-        		<entry key="inheritablePathAcl" value="true" />
+        		<entry key="inheritablePathAcl" value="${isilon.directory.default.inheritablePathAcl}" />
 		</util:map>
 	</property>  
 	<property name="dbClient" ref="dbclient"/>
@@ -1224,6 +1230,14 @@
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>
+    
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="FileReplicationController"/>
+        <property name="service" ref="fileReplicationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.filereplicationcontroller.FileReplicationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
 
     <bean id="storagedeviceinfo" class="com.emc.storageos.volumecontroller.impl.monitoring.StorageDeviceInfo"/>
 
@@ -1308,6 +1322,7 @@
 		<property name="cimConnectionFactory" ref="CIMConnectionFactory" />
 		<property name="vplexApiFactory" ref="vplexapifactory"/>
 		<property name="hdsApiFactory" ref="hdsApiFactory"/>
+		<property name="isilonApiFactory" ref="isilonapifactory" />
         <property name="cinderApiFactory" ref="cinderapifactory"/>
 		<property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
 		<property name="workflowService" ref="workflowService" />
@@ -1507,5 +1522,9 @@
     		</list>
     	</property>
     </bean>
-
+	
+	<bean id="auditLogManagerFactory" class="com.emc.storageos.security.audit.AuditLogManagerFactory">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
 </beans>

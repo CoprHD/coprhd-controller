@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015 EMC Corporation
+# Copyright (c) 2015-2016 EMC Corporation
 # All Rights Reserved
 #
 # This software contains the intellectual property of EMC Corporation
@@ -8,10 +8,21 @@
 # limited to the terms and conditions of the License Agreement under which
 # it is provided by or on behalf of EMC.
 #
-DEVKIT_BUILD=1
-DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.4.1.0.$(DEVKIT_BUILD)
-DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR):/workspace" $(DEVKIT_IMAGE)
- 
-%::
-	$(DOCKER_RUN) make -f Makefile $@ $(MAKEFLAGS)
 
+ifeq ($(BUILD_TYPE),oss)
+    DEVKIT_BUILD=14
+    DEVKIT_IMAGE=coprhddevkit:2.5.0.0.$(DEVKIT_BUILD)
+    DEVKIT_LOCAL=CoprHDDevKit.x86_64-2.5.0.0.$(DEVKIT_BUILD).tbz
+    DEVKIT_ADDRS=https://build.coprhd.org/jenkins/userContent/DevKits/2.5.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
+else
+    DEVKIT_BUILD=6
+    DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.5.0.0.$(DEVKIT_BUILD)
+endif
+
+DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR):/workspace" -v "$(CURDIR)/.gradle:/root/.gradle" $(DEVKIT_IMAGE)
+
+%::
+	( ! ( [ "$(BUILD_TYPE)" = "oss" ] && ! docker history "$(DEVKIT_IMAGE)" &> /dev/null ) ) || wget --continue "$(DEVKIT_ADDRS)"
+	[ ! -f "$(DEVKIT_LOCAL)" ] || cat "$(DEVKIT_LOCAL)" | docker import - $(DEVKIT_IMAGE)
+	[ ! -f "$(DEVKIT_LOCAL)" ] || rm "$(DEVKIT_LOCAL)"
+	$(DOCKER_RUN) make -f Makefile $@ $(MAKEFLAGS)

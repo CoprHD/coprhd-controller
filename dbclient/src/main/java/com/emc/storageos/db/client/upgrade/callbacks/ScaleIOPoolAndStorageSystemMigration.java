@@ -14,6 +14,8 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +36,7 @@ public class ScaleIOPoolAndStorageSystemMigration extends BaseCustomMigrationCal
             Arrays.asList("systemType", "label", "nativeGuid", "inactive");
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         log.info("Migrating any ScaleIO StoragePools");
         // First determine if there are any SIO based StorageSystems
         if (!haveAnySIOStorageSystems()) {

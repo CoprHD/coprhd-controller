@@ -89,6 +89,7 @@ import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -487,8 +488,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Record audit log if opType specified.
             if ((Operation.Status.ready == status) && (_opType != null)) {
                 // Record audit log.
-                AuditLogManager auditMgr = new AuditLogManager();
-                auditMgr.setDbClient(dbClient);
+                AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
                 auditMgr.recordAuditLog(null, null, ControllerUtils.BLOCK_EVENT_SERVICE,
                         _opType, System.currentTimeMillis(),
                         AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,
@@ -5635,7 +5635,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     @Override
     public void importVolume(URI vplexURI, List<VolumeDescriptor> volumeDescriptors,
-            URI vplexSystemProject, URI vplexSystemTenant, URI newCosURI, String newLabel,
+            URI vplexSystemProject, URI vplexSystemTenant, URI newCosURI, String newLabel, String setTransferSpeed, 
             String opId) throws ControllerException {
         // Figure out the various arguments.
         List<VolumeDescriptor> vplexDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
@@ -5734,14 +5734,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
                         volumeMap, projectURI, tenantURI, waitFor);
             }
-            
+            String transferSize = null; 
             // Get the configured migration speed. This value would be set in VPLEX through 
             // "rebuild set-transfer-speed" command. 
-            String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED,
-                    vplexSystem.getSystemType(), null);
-            _log.info("Migration speed is {}", speed);
-            String transferSize = mgirationSpeedToTransferSizeMap.get(speed);
-            
+            if (setTransferSpeed != null) {
+            	transferSize = mgirationSpeedToTransferSizeMap.get(setTransferSpeed);
+            	if (transferSize == null){
+            		_log.info("Transfer speed parameter {} is invalid", setTransferSpeed);
+            	}
+            }
+            if (transferSize == null) {
+                String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED,
+                        vplexSystem.getSystemType(), null);
+                _log.info("Migration speed is {}", speed);
+                transferSize = mgirationSpeedToTransferSizeMap.get(speed);      	
+            }
             Workflow.Method vplexSetTransferSizeMethod = rebuildSetTransferSizeMethod(vplexVolume.getStorageController(), transferSize);
             //Create a step for updating the transfer speed in VPLEX. 
             workflow.createStep(TRANSFER_SPEED_STEP, String.format("VPlex %s setting transfer size speed",
@@ -7063,7 +7070,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // Reuse the import volume API to create a sub workflow to execute
         // the import.
         importVolume(vplexSystemURI, volumeDescriptors, projectURI, tenantURI,
-                importVolume.getVirtualPool(), importVolume.getLabel(), stepId);
+                importVolume.getVirtualPool(), importVolume.getLabel(), null, stepId);
         _log.info("Created and started sub workflow to import the copy");
     }
 

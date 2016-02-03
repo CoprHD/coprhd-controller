@@ -120,6 +120,9 @@ $(document).ready(function() {
       #{field 'vpool.maxSnapshots'}
         #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
       #{/field}
+      #{field 'vpool.scheduleSnapshots'}
+       #{Form.booleanCheckBoxControlGroup field:field /}
+      #{/field}
       #{field 'vpool.replicationType'}
         #{Form.selectOneControlGroup field:field, options:replicationTypeOptions, cssClass:'span4' /}
       #{/field}

@@ -110,7 +110,7 @@ public class ComputeMapper {
         ComputeImageRestRep to = new ComputeImageRestRep();
         mapDataObjectFields(from, to);
         to.setImageName(from.getImageName());
-        to.setImageUrl(from.getImageUrl());
+        to.setImageUrl(ImageServerControllerImpl.maskImageURLPassword(from.getImageUrl()));
         to.setImageType(from.getImageType());
         to.setComputeImageStatus(from.getComputeImageStatus());
         to.setLastImportStatusMessage(from.getLastImportStatusMessage());

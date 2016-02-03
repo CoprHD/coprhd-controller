@@ -56,7 +56,7 @@ nav.logout=Logout
 nav.storage=Resources
 nav.virtualStorage=Virtual
 nav.object=Object
-nav.settings=Settings
+nav.settings=System
 nav.block=Block
 nav.block.volumes=Volumes
 nav.block.consistencygroups=Consistency Groups
@@ -84,12 +84,12 @@ nav.logs=Reports
 nav.systemHealthDashboard=Health
 nav.systemHealthLogs=Logs
 nav.backup= Data Backup
-nav.systemNodeRecovery=Recovery
+nav.systemNodeRecovery=Node Recovery
 nav.properties=General Configuration
 nav.clusterInfo=Network Configuration
-nav.adminDashboard=System
+nav.adminDashboard=Dashboards
 nav.dbHealthDashboard=Database Housekeeping Status
-nav.adminDashboardPage=Dashboard
+nav.adminDashboardPage=Overview
 nav.localPasswords=Local Passwords
 nav.keystores=Keystore
 nav.providers=Authentication Providers
@@ -104,6 +104,7 @@ nav.tasks=Tasks
 # Subnavigation
 nav.vdcs=Virtual Data Centers
 nav.projects=Projects
+nav.schedulepolicies=Schedule Policies
 nav.consistencyGroups=Consistency Groups
 nav.license=License
 nav.supportRequest=Support Request
@@ -656,26 +657,19 @@ VCenters.detachStorageConfirm=Are you sure you want to detach storage from the s
 VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s).
 
 #Application Support
-Application.list.title=Applications
-application.name=Application	
-application.description=Description	
-application.role=Role
-Application.deleteConfirm=Are you sure you want to delete the Application(s).
-ApplicationForm.create.title=Create Application
+applicationGroup.list.title=Applications
+applicationGroup.name=Application Name
+applicationGroup.description=Description	
+applicationGroup.role=Role
+applicationGroup.deleteConfirm=Are you sure you want to delete the Application(s).
+applicationGroup.create.title=Create Application
+applicationGroup.edit.title=Edit Application
+applicationGroup.create.description=Enter information needed for an Application
+applicationGroup.save.success=Saved '%s'
 
-ApplicationForm.edit.title=Edit Application
-application.create.description=Enter information needed for an Application
-applicationForm.name=Application Name
-applicationForm.description=Description
-applicationForm.roles=Roles
-application.volume=Volumes
-application.clones=Clones
-application.snapshot=Snapshots
-application.mirror=Mirrors
-application.save.success=Saved '%s'
-applications.deleted=Application(s) deleted successfully
-Application.unknown=Unknown Application with ID '%s'
-application.resources.title=Application
+applicationGroup.deleted=Application(s) deleted successfully
+applicationGroup.unknown=Unknown Application with ID '%s'
+applicationGroup.resources.title=Application
 
 # Custom Config
 CustomConfigs.list.title=Controller Configurations
@@ -957,14 +951,20 @@ system.about.license=Licenses
 #Database Consistency Page
 db.healthdashboard.title=Database Housekeeping Status
 
-# Backup page
-Backup.list.title=Backups
+# Backup and Restore Page
+Backup.list.title=Data Backup
 backup.name=Name
 backup.size=Size
+backup.GB=%s GB
+backup.MB=%s MB
+backup.KB=%s KB
+backup.bytes=%s bytes
 backup.creationtime=Creation Time
-backup.uploadstatus=Upload Status
-backup.upload=Upload
+backup.actionstatus=Status
+backup.action=Action
 backup.create.description=Enter the information needed to create backup
+backup.tab.local=Local Backups
+backup.tab.remote=Remote Backups
 BackupForm.title=Add Backup
 backupForm.name=Backup Name
 backupForm.force=Force Creation
@@ -976,7 +976,6 @@ backups.deleted=Backup(s) deleted successfully.
 backup.upload.title=Backup Upload
 backup.uploadProgress =Upload Progress
 backup.upload.status=Backup Status
-upgrade.downloadProgress.description=Backup is being uploaded
 renderFunctions.backupupload.status.notstarted=Not Started
 renderFunctions.backupupload.status.failed=Failed
 renderFunctions.backupupload.status.progress=In Progress
@@ -987,7 +986,22 @@ renderFunctions.backupupload.error.notexist=Can not find the target backup files
 renderFunctions.backupupload.error.invalid=Target backup is invalid
 renderFunctions.backupupload.error.failure=Internal failures during the upload
 renderFunction.backupupload.status.unknown=Unknown
-
+renderFunctions.restore.status.loading=Loading
+renderFunctions.restore.status.downloading=Downloading
+renderFunctions.restore.status.downloadsuccess=Download Successfully
+renderFunctions.restore.status.downloadfailed=Download Failed
+renderFunctions.restore.status.downloadcancel=Download Cancelled
+renderFunctions.restore.status.restorefailed=Restore Failed
+renderFunctions.restore.status.restoresuccess=Restore Successfully
+restore.title=Data Restore
+restore.from.version=Restore From Data Backup
+restore.download.progress=Download Progress
+restore.download.progress.description=The system is downloading the backup file
+restoreForm.password=Root Password
+restore.checkbox=no
+restore.geo.checkbox.help=To restore the vdc1 in an all crashed Geo Environment
+restore.geo.disconnect=Please make sure the VDC to be restored has been disconnected from other VDCs.
+restore.prompt=Click OK to restore your data, the system will be unavailable for several minutes then reboot, and you will be redirected to login.
 
 # System Node Recovery
 system.noderecovery.title=Node Recovery
@@ -1204,6 +1218,36 @@ project.enableQuota=Enable Quota
 project.quota.error.required=A quota must be supplied if quotas enabled
 project.quota.error.invalid=Quota must be an integer value
 project.owner.error.invalid=Not a valid username.
+
+schedulepolicies.policyName=Name
+schedulepolicies.policyType=Type
+schedulepolicies.list.title=Schedule Policies
+schedulepolicies.deleted=Schedule Policies deleted successfully.
+schedulepolicies.deleteConfirm=Are you sure you want to delete these Policies?
+schedulepolicies.create.title=Create Policy
+schedulepolicies.edit.title=Edit Policy
+schedulePolicy.policyName=Name
+schedulePolicy.policyType=Type
+schedulePolicy.scheduleTime=Schedule Time
+schedulePolicy.scheduleTime.help=(HH:MM)
+schedulePolicy.repeat=Generate Snapshot every
+schedulePolicy.dayOfWeek=Day of Week
+schedulePolicy.dayOfMonth=Day of Month
+schedulePolicy.daily=Daily
+schedulePolicy.weekly=Weekly
+schedulePolicy.monthly=Monthly
+schedulePolicy.frequency=Frequency
+schedulePolicy.snapshot=Snapshot
+schedulePolicy.hours=Hour(s)
+schedulePolicy.days=Day(s)
+schedulePolicy.weeks=Weeks(s)
+schedulePolicy.months=Month(s)
+schedulePolicy.years=Year(s)
+schedulePolicy.expire.never=Never expires
+schedulePolicy.expire.value=Snapshot expires
+schedulePolicy.expiration=Snapshot Expiration
+schedulePolicy.policyName.error.required=Policy name must be supplied
+filePolicy.name=Policy Name
 
 vdcs.list.title=Virtual Data Centers
 vdcs.edit.title=Edit Virtual Data Center
@@ -2186,7 +2230,7 @@ vpool.replicationCopies=Replication Copies
 vpool.remoteVirtualArray=Virtual Array
 vpool.remoteVirtualPool=Virtual Pool
 vpool.replicationType=Replication Type
-
+vpool.scheduleSnapshots=Schedule Snapshots
 # File Replication
 replicationCopy.virtualArray=Virtual Array
 replicationCopy.virtualPool=Virtual Pool
@@ -2393,7 +2437,14 @@ license.trial.notice=Limited Use.
 license.usage=%s used of %s
 license.unknown.usage=Unknown Usage
 license.total.capacity=Total Capacity %s
+license.raw.capacity=Raw Capacity
+license.type.tier1=Enterprise
+license.type.tier2=Midrange
+license.type.tier3=Cloud
+license.type.outdated=Outdated
+license.type.trial=Trial
 licenseFeature.name=Feature
+licenseFeature.type=Type
 licenseFeature.status=Status
 licenseFeature.serial=Serial Number
 licenseFeature.expiry=Expiry
@@ -2597,6 +2648,13 @@ auditLog._serviceType=Service Type
 auditLog._userId=User
 auditLog._operationalStatus=Result
 auditLog._description=Description
+auditLog.download=Download
+auditLog.changefilter=Filter
+
+filterDialog.resultStatus=Status
+filterDialog.serviceType=Service Type
+filterDialog.user=User
+filterDialog.keyword=Keyword
 
 discovery.status.title=Discovery:
 discovery.status.created=Pending
@@ -3290,6 +3348,12 @@ resources.filesystem.vpool=Virtual Pool
 resources.filesystem.protocols=Protocols
 resources.filesystem.storageport=Storage Port
 resources.filesystem.storagepool=Storage Pool
+resources.filesystem.softLimit=Soft Limit (%%)
+resources.filesystem.softGrace=Grace Period (Days)
+resources.filesystem.notificationLimit=Advisory Limit (%%)
+resources.filesystem.softLimitExeeded=Capacity exceeded
+
+
 resources.filesystem.storagesystem=Storage System
 resources.filesystem.thinly=Thinly Provisioned
 resources.filesystem.nativeid=Native ID
@@ -3308,6 +3372,13 @@ resources.filesystems.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed? 
 resources.filesystem.quotaDirectory=Quota Directory
 resources.filesystem.nfsAccessControl=NFS Access Controls
 resources.filesystem.nfs.acl.none=No NFS Access Controls
+resources.filesystem.snapshotPolicies=Snapshot Policies
+resources.filesystem.snapshotPolicies.none=No Snapshot Policies
+resources.filesystem.policy.name=Policy Name
+resources.filesystem.snapshot.pattern=Snapshot Pattern
+resources.filesystem.snapshot.policy.assign=Assign Policy
+resources.filesystem.policy.none=No Policies
+resources.filesystem.policy.unassign.confirm=Are you sure you want to unassign this policy  from the file system?
 
 resources.filesystem.export.mountpoint=Mount Point
 resources.filesystem.export.exportPath=Export Path
@@ -3558,6 +3629,8 @@ fileSystems.capacity=Size
 fileSystems.vpool=Virtual Pool
 fileSystems.varray=Virtual Array
 fileSystems.protocols=Protocols
+fileSystems.status=Status
+
 
 blockStorageTable.name=Name
 blockStorageTable.size=Size
@@ -3624,6 +3697,8 @@ button.addExisting=Add Existing
 button.addExportRule=Add Export Rule
 button.updateAcl=Access Control
 button.addNfsAcl=Add Access Controls
+button.assignPolicy=Assign Policy
+button.unassignPolicy=Unassign Policy
 button.addSubDir=Add Share
 button.duplicate=Duplicate
 button.cancel=Cancel
@@ -3633,6 +3708,7 @@ button.activate=Activate
 button.restore=Restore
 button.save=Save
 button.done=Done
+button.ok=OK
 button.remove=Remove
 button.rediscover=Rediscover
 button.manage=Manage
@@ -4151,6 +4227,9 @@ renderFunctions.disasterRecovery.networkHealth.good=Good
 renderFunctions.disasterRecovery.networkHealth.slow=Slow
 renderFunctions.disasterRecovery.networkHealth.broken=Broken
 
+renderFunctions.filesystems.status.exceeded=File System Softlimits exceeded
+renderFunctions.filesystems.status.normal=File System Softlitmits Normal
+renderFunctions.filesystems.status.notset=N/A
 
 templates.knob.label=%s of %s
 

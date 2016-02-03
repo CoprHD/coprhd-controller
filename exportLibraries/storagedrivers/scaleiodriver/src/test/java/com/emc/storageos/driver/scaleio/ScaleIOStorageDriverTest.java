@@ -560,5 +560,175 @@ public class ScaleIOStorageDriverTest {
         snapshots.addAll(snapshotsB);
         return snapshots;
     }
+    @Test
+    public void testCreateVolumeClone() throws Exception {
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
+        // test with null input parameters
+        List<VolumeClone> clone = null;
+        DriverTask task = driver.createVolumeClone(clone, null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED", task.getStatus().toString());
 
+        // create clone for volumes from same storage system
+        clone = this.createCloneListSameSys(false);
+        task = driver.createVolumeClone(clone, null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("READY", task.getStatus().toString());
+        this.checkResultCloneList(clone);
+
+        clone = this.createCloneListSameSys(true);
+        task = driver.createVolumeClone(clone, null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
+        this.checkResultCloneList(clone);
+
+        // create clone for volumes from different storage systems
+        clone= this.createCloneListDiffSys(false);
+        task = driver.createVolumeClone(clone, null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("READY", task.getStatus().toString());
+        this.checkResultCloneList(clone);
+
+        clone = this.createCloneListDiffSys(true);
+        task = driver.createVolumeClone(clone, null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
+        this.checkResultCloneList(clone);
+    }
+
+
+    @Test
+    public void testDetachVolumeClone() throws Exception {
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
+        List<VolumeClone> clone = null;
+        DriverTask task = driver.detachVolumeClone(clone);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED", task.getStatus().toString());
+
+        // create clone for volumes from same storage system
+        clone = this.createCloneListSameSys(false);
+        task = driver.detachVolumeClone(clone);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("READY", task.getStatus().toString());
+        this.checkResultCloneList(clone);
+    }
+
+    @Test
+    public void testCreateConsistencyGroupClone() throws Exception {
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
+        // test with null input parameters
+        List<VolumeClone> clones = null;
+        VolumeConsistencyGroup cg = null;
+        DriverTask task = driver.createConsistencyGroupClone(cg, clones, null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED", task.getStatus().toString());
+
+        // volumes from same storage system
+        clones = this.createCloneListSameSys(false);
+        cg = new VolumeConsistencyGroup();
+        task = driver.createConsistencyGroupClone(cg, clones, null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("READY", task.getStatus().toString());
+        Assert.assertNotNull(cg.getNativeId());
+        for (VolumeClone clone : clones) {
+            Assert.assertNotNull(clone.getNativeId());
+            Assert.assertNotNull(clone.getConsistencyGroup());
+        }
+
+        // same storage system, some volumes are not existed
+        clones = this.createCloneListSameSys(true);
+        cg = new VolumeConsistencyGroup();
+        task = driver.createConsistencyGroupClone(cg, clones, null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED", task.getStatus().toString());
+        Assert.assertNull(cg.getNativeId());
+
+        // volumes from different storage system
+        clones = this.createCloneListSameSys(false);
+        cg = new VolumeConsistencyGroup();
+        task = driver.createConsistencyGroupClone(cg, clones, null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED", task.getStatus().toString());
+        Assert.assertNull(cg.getNativeId());
+
+
+    }
+
+    @Test
+    public void testDeleteConsistencyGroupClone() throws Exception {
+
+    }
+    private VolumeClone initializeClone(String nativeId, String parentId, String storageSystemId) {
+        VolumeClone clone = new VolumeClone();
+        clone.setStorageSystemId(storageSystemId);
+        clone.setParentId(parentId);
+        clone.setNativeId(nativeId);
+        return clone;
+
+    }
+    private List<VolumeClone> createCloneListSameSys(boolean withInvalid) {
+        List<VolumeClone> clones = new LinkedList<>();
+        clones.add(initializeClone(null, VOLUME_ID_1A, SYS_NATIVE_ID_A));
+        clones.add(initializeClone(null, SNAPSHOT_OF_1A, SYS_NATIVE_ID_A));
+        clones.add(initializeClone(null, VOLUME_ID_2A, SYS_NATIVE_ID_A));
+        if (withInvalid) {
+            clones.add(initializeClone(null, INVALID_VOLUME_ID_1, SYS_NATIVE_ID_A));
+        }
+        return clones;
+    }
+    private List<VolumeClone> createCloneListDiffSys(boolean withInvalid) {
+        List<VolumeClone> clones = new LinkedList<>();
+        clones.add(initializeClone(null, VOLUME_ID_1A, SYS_NATIVE_ID_A));
+        clones.add(initializeClone(null, VOLUME_ID_2A, SYS_NATIVE_ID_A));
+        clones.add(initializeClone(null, VOLUME_ID_1B, SYS_NATIVE_ID_B));
+        clones.add(initializeClone(null, VOLUME_ID_2B, SYS_NATIVE_ID_B));
+        if (withInvalid) {
+            clones.add(initializeClone(null, INVALID_VOLUME_ID_1, SYS_NATIVE_ID_B));
+        }
+        return clones;
+    }
+
+    /**
+     * Validate if each snapshot is assigned with a nativeId in the resulting snapshot list
+     *
+     * @param
+     */
+    private void checkResultCloneList(List<VolumeClone> clones) {
+        for (VolumeClone clone : clones) {
+            if (!clone.getParentId().equalsIgnoreCase(INVALID_VOLUME_ID_1)) {
+                Assert.assertNotNull(clone.getNativeId());
+            } else {
+                Assert.assertNull(clone.getNativeId());
+            }
+        }
+    }
+    private List<VolumeClone> createCloneListSameCG(boolean withInvalid) {
+        List<VolumeClone> clones = this.createCloneListSameSys(withInvalid);
+        VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
+        driver.createConsistencyGroupClone(cg, clones, null);
+        return clones;
+    }
+
+    /**
+     * initialize a list of snapshots that in the different consistency group
+     *
+     * @param withInvalid
+     * @return
+     */
+    private List<VolumeClone> createCloneListDiffCG(boolean withInvalid) {
+        List<VolumeClone> clones = this.createCloneListSameSys(false);
+
+        // create another group of snapshots
+        List<VolumeClone> clonesB = new LinkedList<>();
+        clonesB.add(initializeClone(null, VOLUME_ID_1B, SYS_NATIVE_ID_B));
+        clonesB.add(initializeClone(null, VOLUME_ID_2B, SYS_NATIVE_ID_B));
+        VolumeConsistencyGroup cgB = new VolumeConsistencyGroup();
+        driver.createConsistencyGroupClone(cgB, clonesB, null);
+
+        clones.addAll(clonesB);
+        return clones;
+    }
 }

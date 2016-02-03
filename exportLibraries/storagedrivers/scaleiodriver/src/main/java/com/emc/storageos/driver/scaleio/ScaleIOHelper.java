@@ -18,6 +18,7 @@
 package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
+import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,7 @@ public class ScaleIOHelper {
 
     /**
      * Generate Task ID for a task type
-     * 
+     *
      * @param taskType
      * @return task id
      */
@@ -43,7 +44,7 @@ public class ScaleIOHelper {
 
     /**
      * Generate timestamp
-     * 
+     *
      * @return current time string
      */
     public static String getCurrentTime() {
@@ -54,7 +55,7 @@ public class ScaleIOHelper {
 
     /**
      * Check if all snapshots are from same storage system
-     * 
+     *
      * @param snapshots
      * @return true if all volumes are from same storage system, false otherwise
      */
@@ -75,7 +76,7 @@ public class ScaleIOHelper {
 
     /**
      * Check if all snapshots are from same consistency group
-     * 
+     *
      * @param snapshots
      * @return true if all volumes are from same consistency group, false otherwise
      */
@@ -94,4 +95,32 @@ public class ScaleIOHelper {
         return isSameCG;
     }
 
+    public static boolean isFromSameStorageSystemClone(List<VolumeClone> clones) {
+        boolean isSameCG = false;
+        if (clones != null && clones.size() > 0) {
+            String groupId = clones.get(0).getConsistencyGroup();
+            isSameCG = true;
+            for (VolumeClone clone  : clones) {
+                if (clone.getConsistencyGroup() != groupId) {
+                    isSameCG = false;
+                    break;
+                }
+            }
+        }
+        return isSameCG;
+    }
+    public static boolean isFromSameCGgroupClone(List<VolumeClone> clones) {
+        boolean isSameCG = false;
+        if (clones != null && clones.size() > 0) {
+            String groupId = clones.get(0).getConsistencyGroup();
+            isSameCG = true;
+            for (VolumeClone clone : clones) {
+                if (clone.getConsistencyGroup() != groupId) {
+                    isSameCG = false;
+                    break;
+                }
+            }
+        }
+        return isSameCG;
+    }
 }

@@ -344,6 +344,18 @@ public class FileDeviceInputOutput {
         return fs.getCapacity();
     }
 
+    public Long getFsSoftLimit() {
+        return fs.getSoftLimit();
+    }
+    
+    public Long getFsNotificationLimit() {
+        return fs.getNotificationLimit();
+    }
+    
+    public Integer getFsSoftGracePeriod() {
+        return fs.getSoftGracePeriod();
+    }
+    
     /**
      * Get VirtualPool
      * 

@@ -5,6 +5,8 @@
 package util;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.licensing.LicenseFeature;
@@ -90,7 +92,9 @@ public class LicenseUtils {
      */
     public static License getLicense() {
         try {
-            return BourneUtil.getSysClient().license().get();
+            License license = BourneUtil.getSysClient().license().get();
+
+            return license;
         } catch (RuntimeException e) {
             Logger.error(e, "Could not retrieve license");
             return null;
@@ -107,10 +111,19 @@ public class LicenseUtils {
     }
 
     public static String getLabel(LicenseFeature feature) {
-        String modelKey = "license.model." + feature.getModelId();
+        String modelKey = "license.model." + feature.getLicenseFeature();
         String label = MessagesUtils.get(modelKey);
         if (modelKey.equals(label)) {
-            label = feature.getModelId();
+            label = feature.getLicenseFeature();
+        }
+        return label;
+    }
+
+    public static String getType(LicenseFeature feature) {
+        String typeKey = "license.type." + feature.getLicenseType().toLowerCase();
+        String label = MessagesUtils.get(typeKey);
+        if (typeKey.equals(label)) {
+            label = feature.getLicenseType();
         }
         return label;
     }

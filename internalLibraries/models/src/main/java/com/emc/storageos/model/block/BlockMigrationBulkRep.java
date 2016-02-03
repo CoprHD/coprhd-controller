@@ -28,7 +28,8 @@ public class BlockMigrationBulkRep extends BulkRestRep {
     /**
      * Constructor takes the list of migration response instances.
      * 
-     * @param list The list of migration response instances.
+     * @param migrations
+     *         The list of migration response instances.
      */
     public BlockMigrationBulkRep(List<MigrationRestRep> migrations) {
         this.migrations = migrations;
@@ -37,7 +38,6 @@ public class BlockMigrationBulkRep extends BulkRestRep {
     /**
      * The list of migration response instances.
      * 
-     * @valid none
      * 
      * @return The list of migration response instances.
      */

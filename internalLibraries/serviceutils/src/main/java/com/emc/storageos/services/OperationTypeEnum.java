@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2012-2014 EMC Corporation
- * All Rights Reserved
+ * Copyright 2012-2014 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.services;
@@ -37,6 +50,10 @@ public enum OperationTypeEnum {
     REASSIGN_VPOOL_ACL("VpoolUpdated", "", "operation to overwrite VirtualPool acls"),
     MODIFY_VPOOL_ACL("VpoolUpdated", "", "operation to modify VirtualPool acls"),
     ASSIGN_VPOOL_TAG("ASSIGN VPOOL TAG", "", "operation to assign a tag to a VirtualPool"),
+
+    CREATE_QOS("QosCreated", "", "Quality of Service Created"),
+    UPDATE_QOS("QosUpdated", "", "Quality of Service Updated"),
+    DELETE_QOS("QosDeleted", "", "Quality os Service Deleted"),
 
     CREATE_BLOCK_VOLUME("VolumeCreated", "VolumeCreateFailed", "Volume Create"),
     DELETE_BLOCK_VOLUME("VolumeDeleted", "VolumeDeleteFailed", "Volume Delete"),
@@ -118,6 +135,9 @@ public enum OperationTypeEnum {
     EXPAND_FILE_SYSTEM("FileSystemExpanded", "FileSystemExpandFailed", "FileSystem expanded"),
     RELEASE_FILE_SYSTEM("FileSystemReleased", "", "FileSystem released"),
     UNDO_RELEASE_FILE_SYSTEM("FileSystemReleaseUndone", "", "FileSystem release undone"),
+    CHANGE_FILE_SYSTEM_VPOOL("ChangeFileSystemVpool", "ChangeFileSystemVpoolFailed", "FileSystem vpool Changed"),
+    CREATE_MIRROR_FILE_SYSTEM("CreateMirrorFileSystem", "CreateMirrorFileSystemFailed", "MirrorFileSystem Created"),
+    DELETE_MIRROR_FILE_SYSTEM("DeleteMirrorFileSystem", "DeleteMirrorFileSystemFailed", "MirrorFileSystems Deleted"),
 
     CREATE_FILE_SYSTEM_SHARE("FileSystemShared", "FileSystemShareFailed", "FileSystem shared"),
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "", "operation to tag a filesystem"),
@@ -143,7 +163,17 @@ public enum OperationTypeEnum {
 
     CREATE_FILE_MIRROR("FileSystemMirrorCreated", "FileSystemMirrorCreateFailed", "FileSystemMirror Create"),
     DELETE_FILE_MIRROR("FileSystemMirrorDeleted", "FileSystemMirrorDeleteFailed", "FileSystemMirror Delete"),
-    
+
+    SUSPEND_FILE_MIRROR("FileSystemMirrorSuspended", "FileSysteMirrorSuspendFailed", "FileSystemMirror Suspend"),
+    DETACH_FILE_MIRROR("FileSystemMirrorDetach", "FileSystemMirrorDetachFailed", "FileSystemMirror Detach"),
+    PAUSE_FILE_MIRROR("FileSystemMirrorPaused", "FileSystemMirrorPauseFailed", "FileSystemMirror Link Pause"),
+    RESUME_FILE_MIRROR("FileSystemMirrorResumed", "FileSystemMirrorResumeFailed", "FileSystemMirror Resume"),
+    FAILOVER_FILE_MIRROR("FileSystemMirrorFailover", "FileSystemMirrorFailOverFailed", "FileSystemMirror Fail Over"),
+    FAILBACK_FILE_MIRROR("FileSystemMirrorFailback", "FileSystemMirrorFailbackFailed", "FileSystemMirror Fail Back"),
+    STOP_FILE_MIRROR("FileSystemMirrorStop", "FileSystemMirrorStopFailed", "FileSystemMirror Stop"),
+    START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
+    RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
+
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
     UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),
@@ -396,6 +426,9 @@ public enum OperationTypeEnum {
     CREATE_BACKUP("CREATE BACKUP", "", "operation to create ViPR backup"),
     DELETE_BACKUP("DELETE BACKUP", "", "operation to delete ViPR backup"),
     UPLOAD_BACKUP("UPLOAD BACKUP", "", "operation to upload ViPR backup to external location"),
+    PULL_BACKUP("PULL BACKUP", "", "operation to download ViPR backup from external location"),
+    PULL_BACKUP_CANCEL("PULL BACKUP CANCEL", "", "operation to cancel the download of ViPR backup from external location"),
+    RESTORE_BACKUP("RESTORE BACKUP", "", "operation to restore ViPR backup"),
     RECOVER_NODES("RECOVER NODES", "", "operation to recover corrupted nodes"),
     RECONFIG_IP("Reconfig IPs", "", "trigger ip reconfiguration"),
     CREATE_USERGROUP("CREATE USER GROUP", "", "operation to create a user group."),
@@ -409,7 +442,7 @@ public enum OperationTypeEnum {
             "operation to update and verify a compute image server."),
     DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
     CREATE_VOLUME_GROUP("CREATE VOLUME GROUP", "", "operation to create volume group"),
-    DELETE_VOLUME_GROUP("DELETE VOLUME GROUP", "", "operation to delete volume group"), 
+    DELETE_VOLUME_GROUP("DELETE VOLUME GROUP", "", "operation to delete volume group"),
     UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "", "operation to update volume group"),
 
     CREATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyCreated", "VolumeGroupFullCopyCreateFailed", "VolumeGroupFullCopy Created"),

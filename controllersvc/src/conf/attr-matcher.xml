@@ -46,6 +46,8 @@
         <ref bean="storageSystemMatcher" />
         <ref bean="vmaxFASTInitialTierSelectionMatcher"/>
         <ref bean="poolPreferenceBasedOnDriveMathcer"/>
+        <ref bean="softLimitMatcher"/>
+        <ref bean="notificationLimitMatcher"/>
         <ref bean="srdfMetroMatcher"/>
         <ref bean="fileReplicationMatcher" />
         <ref bean="copyModeMatcher" />
@@ -101,6 +103,8 @@
     <bean id="compatiblePoolMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CompatiblePoolMatcher" />
     <bean id="longTermRetentionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.LongTermRetentionMatcher" />
     <bean id="hdsShadowImagePairCountMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HDSShadowImagePairCountMatcher"/>
+    <bean id="softLimitMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SoftLimitMatcher"/>
+    <bean id="notificationLimitMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NotificationLimitMatcher"/>
     <bean id="fileReplicationMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileReplicationAttrMatcher" />
     <bean id="copyModeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileCopyModeMatcher" />
     <bean id="fileScheduleSnapshotMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileScheduleSnaphotMatcher" />

@@ -41,7 +41,6 @@ public class VolumeVirtualPoolChangeParam {
     @XmlElementWrapper(required = true, name = "volumes")
     /**
      * List of Volume IDs.
-     * @valid example:  list of valid URIs
      */
     @XmlElement(required = true, name = "volume")
     public List<URI> getVolumes() {
@@ -58,7 +57,6 @@ public class VolumeVirtualPoolChangeParam {
     /**
      * ID of the new virtual pool.
      * 
-     * @valid example: a valid URI
      */
     @XmlElement(required = true, name = "vpool")
     @JsonProperty("vpool")
@@ -74,7 +72,6 @@ public class VolumeVirtualPoolChangeParam {
      * Virtual Pool (Mirror or RecoverPoint) protection
      * parameters.
      * 
-     * @valid none
      */
     @XmlElement(required = false, name = "protection")
     public BlockVirtualPoolProtectionParam getProtection() {

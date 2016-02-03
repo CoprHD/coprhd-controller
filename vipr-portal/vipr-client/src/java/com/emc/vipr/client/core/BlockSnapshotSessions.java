@@ -236,8 +236,8 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
 
     /**
      * Lists the block snapshot sessions for a consistency group by ID.
-     * <p>
-     * <API Call: <tt>GET /block/consistency-groups/{consistencyGroupId}/protection/snapshot-sessions</tt>
+     * 
+     * API Call: <tt>GET /block/consistency-groups/{consistencyGroupId}/protection/snapshot-sessions</tt>
      * 
      * @param consistencyGroupId
      *            the ID of the consistency group.

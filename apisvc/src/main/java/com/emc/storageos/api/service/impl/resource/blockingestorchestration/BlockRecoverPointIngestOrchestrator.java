@@ -652,7 +652,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.unManagedProtectionSetNotFound(unManagedVolume.getNativeGuid());
         }
 
-        return VolumeIngestionUtil.validateAllVolumesInCGIngested(parentRequestContext.getUnManagedVolumesToBeDeleted(), umpset, _dbClient);
+        return VolumeIngestionUtil.validateAllVolumesInCGIngested(parentRequestContext.findAllProcessedUnManagedVolumes(), umpset, _dbClient);
     }
 
     /**
@@ -664,7 +664,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      */
     private ProtectionSet createProtectionSet(RecoverPointVolumeIngestionContext volumeContext) {
         UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
-        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(umpset, _dbClient);
+        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(volumeContext, umpset, _dbClient);
         volumeContext.setManagedProtectionSet(pset);
         return pset;
     }

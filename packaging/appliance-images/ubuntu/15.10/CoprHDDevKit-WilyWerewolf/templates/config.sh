@@ -16,7 +16,7 @@ make
 make install
 cd $workspace
 
-cat > /etc/systemd/system/multi-user.target.wants/ovf-network.service << EOF
+cat > /lib/systemd/system/ovf-network.service << EOF
 [Unit]
 Description=ADG Automatic network configuration
 DefaultDependencies=no
@@ -30,7 +30,7 @@ ExecStart=/opt/ADG/scripts/ovf-network.sh
 [Install]
 WantedBy=multi-user.target
 EOF
-ln -fs /etc/systemd/system/multi-user.target.wants/ovf-network.service /etc/systemd/system/ovf-network.service
+systemctl enable ovf-network.service
 
 mkdir -p /opt/ADG/scripts
 cat > /opt/ADG/scripts/ovf-network.sh << EOF
@@ -135,65 +135,5 @@ rm /etc/network/interfaces
 
 groupadd -g 444 storageos
 useradd -r -d /opt/storageos -c "StorageOS" -g 444 -u 444 -s /bin/bash storageos
-
-# COPRHD environment build workarounds:
-cat > /opt/ADG/README.coprhd << EOF
-## The following commands are to setup the environment like SLES:
-ln -fs /bin/sed /usr/bin/sed
-ln -fs /bin/systemctl /usr/bin/systemctl
-ln -fs /bin/bash /bin/sh
-
-cat > /etc/rc.status << EOS
-#!/bin/bash
-function rc_reset {
-  /bin/true
-}
-function rc_failed {
-  /bin/true
-}
-function rc_status {
-  /bin/true
-}
-function rc_exit {
-  /bin/true
-}
-EOS
-chmod u+x /etc/rc.status
-
-## The following command converts an RPM to a DEB:
-alien --scripts storageos*.rpm
-
-## The following command installs a DEB:
-export DO_NOT_START=yes
-dpkg -i storageos*.deb
-
-sed -i s/'localfs.service'/'local-fs.target'/g /etc/systemd/system/boot-ovfenv.service
-sed -i s/'network.service'/'network-online.target'/g /etc/systemd/system/boot-ovfenv.service
-sed -i s/'SuSEfirewall2_init.service'//g /etc/systemd/system/boot-ovfenv.service
-sed -i s/'SuSEfirewall2.service'//g /etc/systemd/system/boot-ovfenv.service
-sed -i s/'network.service'/'network-online.target'/g /etc/systemd/system/nginx.service
-sed -i s/'ntpd.service'/'ntp.service'/g /etc/systemd/system/nginx.service
-sed -i s/'SuSEfirewall2.service'//g /etc/systemd/system/storageos-installer.service
-sed -i s/'network.service'/'network-online.target'/g /etc/systemd/system/storageos-*.service
-sed -i s/'ntpd.service'/'ntp.service'/g /etc/systemd/system/storageos-*.service
-sed -i s/'network.service'/'network-online.target'/g /etc/systemd/system/keepalived.service
-sed -i s/'ntpd.service'/'ntp.service'/g /etc/systemd/system/keepalived.service
-sed -i s/'network.service'/'network-online.target'/g /etc/systemd/system/ipchecktool.service
-sed -i s/'SuSEfirewall2.service'//g /etc/systemd/system/ipchecktool.service
-sed -i s/'network.service'/'network-online.target'/g /etc/systemd/system/syncntp.service
-sed -i s/'ntpd.service'/'ntp.service'/g /etc/systemd/system/syncntp.service
-sed -i s/'network.service'/'network-online.target'/g /etc/systemd/system/connectemc.service
-
-## To check services, run
-touch /var/run/storageos/bootmode_normal
-systemctl daemon-reload
-systemctl -t service --all
-systemctl -t target --all
-dpkg -L storageos | grep service$
-
-## Reboot!
-## Edit "vi /etv/ovfenv.properties" and change last number of the first IP to 255 (it won't change the host's network...), then reboot
-
-EOF
 
 exit 0

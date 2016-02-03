@@ -1,21 +1,23 @@
 #
-# Copyright 2015 EMC Corporation
+# Copyright 2015-2016 EMC Corporation
 # All Rights Reserved
 #
 
 ##################################################
 #  Setup
 ##################################################
-export KERNEL := 4.2.0-16-generic
+export KERNEL := 3.19.0-25-generic
+#export KERNEL := 3.13.0-24-generic
 WORKSPACE := $(shell pwd)
 SHELL := /bin/bash
-NAME := CoprHDDevKit-Ubuntu
+NAME := CoprHDDevKit-TrustyTahr
 VERSION := 2.5.0.0
 JOB := 999
 VENDOR := EMC
-ISO_FILE := ubuntu-15.10-server-amd64.iso
-ISO_URL := http://releases.ubuntu.com/15.10/$(ISO_FILE)
+ISO_FILE := ubuntu-14.04.3-server-amd64.iso
+ISO_URL := http://releases.ubuntu.com/14.04.3/$(ISO_FILE)
 RAM := 8192
+RAM := 2048
 MAC := $(shell printf "00%02X%02X%02X%02X%02X" $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256])
 
 ##################################################
@@ -43,7 +45,7 @@ all: appliance
 ##################################################
 PACKAGES_BOOT := linux-image-$(KERNEL) linux-headers-$(KERNEL)
 PACKAGES_LIST := build-essential dkms keyutils kpartx memtest86+ nfs-common openssh-client openssh-server parted psmisc qemu-system-common qemu-utils vim squashfs-tools
-PACKAGES_LIST := $(PACKAGES_LIST) alien ant apparmor arping atop auditd ca-certificates ca-certificates-java createrepo expect gcc-4.8 geoip-bin geoip-database git git-core gradle keepalived libpcre3 libpcre3-dev libserf-dev libtool libssl-dev ndisc6 ntp openjdk-7-jdk openjdk-7-jre openjdk-7-jre-headless p7zip perl perl-base perl-tk python-cjson python-gpgme python-iniparse python-requests python-setools readline-common rpm sipcalc subversion sysstat virtualbox-5.0 xfsprogs xmlstarlet yum strongswan libstrongswan
+PACKAGES_LIST := $(PACKAGES_LIST) alien ant apparmor arping atop auditd ca-certificates ca-certificates-java createrepo expect gcc-4.8 geoip-bin geoip-database git git-core gradle keepalived libapr1-dev libaprutil1-dev libpcre3 libpcre3-dev libserf-dev libstrongswan libtool libssl-dev ndisc6 ntp openjdk-8-jdk openjdk-8-jre openjdk-8-jre-headless p7zip perl perl-base perl-tk python-cjson python-gpgme python-iniparse python-requests python-setools readline-common rpm sipcalc strongswan subversion sysstat uuid-dev virtualbox-5.0 xfsprogs xmlstarlet yum libuuid1=2.20.1-5.1ubuntu20
 
 ISO_MOUNT := $(WORKSPACE)/iso/mount
 DIR_MOUNT := $(WORKSPACE)/dir/mount
@@ -70,7 +72,7 @@ endef
 downloadISO:
 	$(call targetLog,+)
 	mkdir -p $(ISO_MOUNT)
-	[ ! -f /disks/adgbuild/UBUNTU15.10/$(ISO_FILE) ] || ln -fs /disks/adgbuild/UBUNTU15.10/$(ISO_FILE) $(WORKSPACE)/iso/
+	[ ! -f /disks/adgbuild/UBUNTU14.04.3/$(ISO_FILE) ] || ln -fs /disks/adgbuild/UBUNTU14.04.3/$(ISO_FILE) $(WORKSPACE)/iso/
 	[ -s $(WORKSPACE)/iso/$(ISO_FILE) ] || wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
 	$(call targetLog,-)
 
@@ -110,7 +112,7 @@ destroy:
 	$(call targetLog,-)
 
 #appliance: | vbox ovf vhd vmx box tbz qcow2
-appliance: | ovf vmx box
+appliance: | ovf box
 	$(call targetLog,+)
 	chmod a+r $(BUILD_DIR)/*
 	$(call targetLog,-)
@@ -183,6 +185,7 @@ $(VBOX): | $(VMDK)
 	VBoxManage storagectl "$(NAME)-$(VERSION).$(JOB)" --name "IDE Controller" --add ide
 	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
 	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)"
+	rm -fr "$(HOME)/.config/VirtualBox/$(OUTPUT_DIR)
 	sed -i 's|$(BUILD_DIR)/||g' $(VBOX)
 	rm $(VBOX)-prev
 	$(call targetLog,-)
@@ -190,12 +193,13 @@ $(VBOX): | $(VMDK)
 
 $(OVF): | $(VMDK)
 	$(call targetLog,+)
+	ln -fs $(NAME).x86_64-$(VERSION).$(JOB).vmdk $(OUTPUT_DIR)/disk.vmdk
 	VBoxManage createvm --name "$(NAME)-$(VERSION).$(JOB)" --basefolder $(OUTPUT_DIR) --register
 	VBoxManage modifyvm "$(NAME)-$(VERSION).$(JOB)" --memory $(RAM) --cpus 1 --acpi on --boot1 dvd --nic1 bridged --bridgeadapter1 eth0 --ostype Linux_64
 	VBoxManage storagectl "$(NAME)-$(VERSION).$(JOB)" --name "IDE Controller" --add ide
-	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(VMDK)
+	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(OUTPUT_DIR)/disk.vmdk
 	VBoxManage export "$(NAME)-$(VERSION).$(JOB)" --vsys 0 --product $(NAME) --version $(VERSION).$(JOB) --vendor $(VENDOR) --output $(OVF)
-	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)"
+	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)" --delete
 	bash functions.sh updateOVF $(OVF)
 	$(call targetLog,-)
 
@@ -244,17 +248,16 @@ $(BOX): | $(VMDK)
 	VBoxManage modifyvm "$(NAME)-$(VERSION).$(JOB)" --memory $(RAM) --cpus 1 --acpi on --boot1 dvd --nic1 bridged --bridgeadapter1 eth0 --ostype Linux_64
 	VBoxManage storagectl "$(NAME)-$(VERSION).$(JOB)" --name "IDE Controller" --add ide
 	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(OUTPUT_DIR)/box/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
-	VBoxManage export "$(NAME)-$(VERSION).$(JOB)" --vsys 0 --product $(NAME) --version $(VERSION).$(JOB) --vendor $(VENDOR) --output $(OUTPUT_DIR)/box/$(NAME).x86_64-$(VERSION).$(JOB).ovf
+	VBoxManage export "$(NAME)-$(VERSION).$(JOB)" --vsys 0 --product $(NAME) --version $(VERSION).$(JOB) --vendor $(VENDOR) --output $(OUTPUT_DIR)/box/box.ovf
 	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)" --delete
-	bash functions.sh updateOVF $(OUTPUT_DIR)/box/$(NAME).x86_64-$(VERSION).$(JOB).ovf
-	mv $(OUTPUT_DIR)/box/$(NAME).x86_64-$(VERSION).$(JOB).ovf $(OUTPUT_DIR)/box/box.ovf
+	bash functions.sh updateOVF $(OUTPUT_DIR)/box/box.ovf
 	echo '{ "provider" : "virtualbox", "format" : "vmdk" }' > $(OUTPUT_DIR)/box/metadata.json
-	echo '{"versions":[{"version":"$(VERSION).$(JOB)","providers":[{"url":"$(NAME).x86_64-$(VERSION).$(JOB).box","name":"virtualbox"}]}],"description": "$(NAME) - appliance","name":"$(NAME)"}' > $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).json
-	tar -czf $(BOX) -C $(OUTPUT_DIR)/box box.ovf metadata.json $(NAME).x86_64-$(VERSION).$(JOB)-disk1.vmdk
+	tar -czf $(BOX) -C $(OUTPUT_DIR)/box box.ovf metadata.json box-disk1.vmdk
 	cp -fr $(WORKSPACE)/templates/Vagrantfile.orig $(BUILD_DIR)/Vagrantfile
 	sed -i "s|__NAME__|$(NAME)|g" $(BUILD_DIR)/Vagrantfile
 	sed -i "s|__VERSION__|$(VERSION).$(JOB)|g" $(BUILD_DIR)/Vagrantfile
 	sed -i "s|__MAC__|$(MAC)|g" $(BUILD_DIR)/Vagrantfile
+	sed -i "s|__RAM__|$(RAM)|g" $(BUILD_DIR)/Vagrantfile
 	$(call targetLog,-)
 
 $(TBZ): | $(VMDK)

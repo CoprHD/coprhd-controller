@@ -439,15 +439,19 @@ EOF
 # 
 # Reconfigure coordinatorsvc mode. for standby only
 #
-# participant - disconnect and exit observer mode. becomes writable
-# observer - reconnect and enter observer mode. becomes read-only
+# participant - disconnect from active site and exit observer mode. becomes writable
+# observer - reconnect active site and enter observer mode. becomes read-only
 #
 _reconfig_coordinator() {
-    exec /etc/genconfig "coordinator" << EOF
+    if [ "$(_is_dr_standby)" = "true" ] ; then
+        exec /etc/genconfig "coordinator" << EOF
 $(_get_props)
 dr_coordinator_type=${1}
 EOF
-    _fatal     "Failed to exec /etc/genconfig ${1}"
+        _fatal     "Failed to exec /etc/genconfig coordinator"
+   else
+        _fatal     "Unsupported reconfig-coordinator operation"
+   fi
 }
 
 _reconfig_security() {
@@ -476,6 +480,26 @@ _stop() {
     /usr/bin/systemctl stop storageos-${1%*svc} || _fatal2 68 "Unexpected stop ${1} failure. Error code $?"
 }
 
+_reset_coordinator() {
+    if [ "$(_is_dr_standby)" = "true" ] ; then   
+        _stop coordinatorsvc
+        rm -fR /data/zk/version-2/*
+        for svc in coordinatorsvc dbsvc geodbsvc authsvc apisvc geosvc portalsvc syssvc; do
+            _restart ${svc}
+        done
+    else
+        _fatal "Unsupported reset-coordinator operation"
+    fi
+}
+
+_is_dr_standby() {
+    ( IFS="${nl}" ; for arg in $(<${bootfs_vdc_props}) ; do
+          [ "site_is_standby" = "${arg%%=*}" ] && arg="${arg#*=}" && arg="${arg//\\n/${nl}}" && echo "${arg}" && return 0
+      done
+      return 1
+     )
+}
+
 _reload() {
     case ${1} in
         ntp)     
@@ -490,11 +514,6 @@ _reload() {
             exec /usr/bin/systemctl restart SuSEfirewall2 ;;
         ipsec)
             exec /usr/bin/systemctl restart ipsec ;;
-        reset-coordinator)
-            /etc/storageos/storageos stop
-            rm -fR /data/zk/version-2/
-            /etc/storageos/storageos drstandby
-            ;;
         *)
             _fatal2 2 "Unsupported service type ${1}" ;;
     esac
@@ -820,6 +839,7 @@ case ${#} in
             --remount-rw)             _x _bootfs_mount_rw "no" ;;
             --remount-ro)             _x true ;;
             --is-appliance)           _s _is_appliance_wrapper ;;
+            --reset-coordinator)      _x _reset_coordinator ;;
             *)                        _usage
         esac;;
     2)  case ${1} in

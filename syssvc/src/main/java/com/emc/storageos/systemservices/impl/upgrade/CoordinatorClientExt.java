@@ -1496,7 +1496,9 @@ public class CoordinatorClientExt {
                     return new Thread(r, "CoordinatorsvcMonitor");
                 }
             });
-            exe.scheduleAtFixedRate(coordinatorSvcMonitor, 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+            // delay for a period of time to start the monitor. For DR switchover, we stop original active, then start new active. 
+            // So the original active may not see the new active immediately after reboot
+            exe.scheduleAtFixedRate(coordinatorSvcMonitor, 3 * COODINATOR_MONITORING_INTERVAL , COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
         } else {
             _log.info("Start monitoring db quorum on all standby sites");
             ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {

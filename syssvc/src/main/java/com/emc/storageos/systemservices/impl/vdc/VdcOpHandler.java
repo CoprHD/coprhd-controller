@@ -452,7 +452,7 @@ public abstract class VdcOpHandler {
 
             String state = drUtil.getLocalCoordinatorMode(coordinator.getMyNodeId());
             if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
-                coordinator.reconfigZKToWritable(true);
+                coordinator.reconfigZKToWritable();
             }
 
             Site localSite = drUtil.getLocalSite();

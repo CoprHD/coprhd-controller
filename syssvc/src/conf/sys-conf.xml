@@ -76,12 +76,6 @@
 
     <bean id="dbDowntimeTracker" class="com.emc.storageos.systemservices.impl.healthmonitor.DbDowntimeTracker"/>
 
-    <bean id="auditLogManager"
-        class="com.emc.storageos.security.audit.AuditLogManager">
-      <property name="dbClient" ref="dbclient"/>
-      <property name="coordinator" ref="coordinator" />
-    </bean>
-
     <bean id="backupService" class="com.emc.storageos.systemservices.impl.resource.BackupService" >
         <property name="backupOps" ref="backupOps" />
         <property name="backupScheduler" ref="backupScheduler" />

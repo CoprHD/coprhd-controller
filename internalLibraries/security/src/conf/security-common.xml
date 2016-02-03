@@ -53,7 +53,15 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="defaultPskFile" value="${product.home:/opt/storageos}/conf/psk.default"/>
     </bean>
+    
+    <bean id="auditLogManagerFactory" class="com.emc.storageos.security.audit.AuditLogManagerFactory">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
 
+	<bean id="auditLogManager" class="com.emc.storageos.security.audit.AuditLogManager" factory-bean="auditLogManagerFactory" factory-method="getAuditLogManager">
+      
+    </bean>
     <!-- Uncomment this to disable token encoding/decoding, signing
     <bean id="tokenEncodingDisabler" class="com.emc.storageos.security.TokenEncodingDisabler"/>
     -->

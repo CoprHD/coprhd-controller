@@ -16,9 +16,7 @@ public class AuditLogManagerFactory {
      * @return
      */
     public static AuditLogManager getAuditLogManager() {
-        AuditLogManager auditLogManager = new AuditLogManager();
-        auditLogManager.setCoordinator(coordinator);
-        auditLogManager.setDbClient(dbClient);
+        AuditLogManager auditLogManager = new AuditLogManager(dbClient, coordinator);
         
         return auditLogManager;
     }

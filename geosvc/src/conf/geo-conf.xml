@@ -44,12 +44,6 @@
         class="com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager">
       <property name="dbClient" ref="dbclient"/>
     </bean>
-
-    <bean id="auditLogManager"
-        class="com.emc.storageos.security.audit.AuditLogManager">
-      <property name="dbClient" ref="dbclient"/>
-      <property name="coordinator" ref="coordinator" />
-    </bean>
     
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
         <property name="packages">

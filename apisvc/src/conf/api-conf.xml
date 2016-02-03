@@ -50,12 +50,6 @@
         class="com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager">
       <property name="dbClient" ref="dbclient"/>
     </bean>
-
-    <bean id="auditLogManager"
-        class="com.emc.storageos.security.audit.AuditLogManager">
-      <property name="dbClient" ref="dbclient"/>
-      <property name="coordinator" ref="coordinator" />
-    </bean>
         
     <bean id="blockstoragescheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
         <property name="dbClient" ref="dbclient"/>

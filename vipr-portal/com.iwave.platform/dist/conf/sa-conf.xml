@@ -187,13 +187,7 @@
 
     <bean id="orderExecutionQueue" class="com.emc.sa.zookeeper.OrderExecutionQueue"/>
 
-    <bean id="orderNumberSequence" class="com.emc.sa.zookeeper.OrderNumberSequenceImpl"/>
-    
-    <bean id="auditLogManager"
-        class="com.emc.storageos.security.audit.AuditLogManager">
-      <property name="dbClient" ref="dbclient"/>
-      <property name="coordinator" ref="coordinator" />
-    </bean>    
+    <bean id="orderNumberSequence" class="com.emc.sa.zookeeper.OrderNumberSequenceImpl"/>  
 
     <bean id="recordableEventManager"
         class="com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager">

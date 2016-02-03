@@ -571,6 +571,14 @@ public class PasswordServiceTest {
     }
 
     private class DummyAuditLogManager extends AuditLogManager {
+        
+        public DummyAuditLogManager() {
+            this(null, null);
+        }
+
+        public DummyAuditLogManager(DbClient dbClient, CoordinatorClient coordinator) {
+            super(dbClient, coordinator);
+        }
 
         public void setDbClient(DbClient dbClient) {
 

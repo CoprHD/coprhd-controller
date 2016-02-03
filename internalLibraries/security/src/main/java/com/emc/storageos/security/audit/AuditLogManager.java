@@ -18,7 +18,6 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.AuditLog;
 import com.emc.storageos.db.client.model.AuditLogTimeSeries;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -60,8 +59,9 @@ public class AuditLogManager {
     /**
      * Default constructor.
      */
-    public AuditLogManager() {
-        super();
+    public AuditLogManager(DbClient dbClient, CoordinatorClient coordinator) {
+        this._dbClient = dbClient;
+        this._coordinator = coordinator;
     }
 
     /**

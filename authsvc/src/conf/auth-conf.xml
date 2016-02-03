@@ -22,7 +22,8 @@
     <import resource="classpath:auth-var.xml" />
     <import resource="classpath:local-security-conf.xml" />
     <import resource="classpath:jmx-conf.xml" />
-    <import resource="classpath:security-ciphers.xml" />    
+    <import resource="classpath:security-ciphers.xml" />
+    <import resource="classpath:security-common.xml" />     
     <import resource="classpath:geoclient-conf.xml"/>
     <import resource="classpath:truststore-conf.xml"/>
 
@@ -147,12 +148,7 @@
         <property name="disableHTTP" value="true"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="trustStoreLoader" ref="trustStoreLoader"/>
-	</bean>
-
-    <bean id="auditLogManager" class="com.emc.storageos.security.audit.AuditLogManager">
-        <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>
-    </bean>    
+	</bean>  
 
     <bean id="serviceRunsDuringMigration" class="java.lang.Boolean">
         <constructor-arg type="java.lang.String" value="true" />

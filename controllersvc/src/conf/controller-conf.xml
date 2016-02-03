@@ -21,6 +21,7 @@
     <import resource="classpath:controller-scaleio-prov.xml"/>
     <import resource="classpath:controller-xtremio-prov.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
+    <import resource="classpath:security-common.xml" />
 
 	<context:property-placeholder location="classpath:isilon.properties" ignore-unresolvable="true"/>
 
@@ -548,11 +549,6 @@
         <property name="vPlexApiFactory" ref="vplexapifactory"/>
         <property name="recordableEventManager" ref="recordableEventMgr"/>
         <property name="intervalSeconds" value="120"/>
-    </bean>
-
-    <bean id="auditLogManager" class="com.emc.storageos.security.audit.AuditLogManager">
-      <property name="dbClient" ref="dbclient"/>
-      <property name="coordinator" ref="coordinator" />
     </bean>
 
     <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
@@ -1485,8 +1481,4 @@
     	</property>
     </bean>
 	
-	<bean id="auditLogManagerFactory" class="com.emc.storageos.security.audit.AuditLogManagerFactory">
-        <property name="coordinator" ref="coordinator"/>
-        <property name="dbClient" ref="dbclient"/>
-    </bean>
 </beans>

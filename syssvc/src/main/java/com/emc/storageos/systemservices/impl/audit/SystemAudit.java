@@ -45,9 +45,7 @@ public class SystemAudit implements Runnable {
     public SystemAudit(DbClient dbClient, CoordinatorClient coordinatorClient) {
         _log.info("SystemAudit initialized");
 
-        _auditMgr = new AuditLogManager();
-        _auditMgr.setDbClient(dbClient);
-        _auditMgr.setCoordinator(coordinatorClient);
+        _auditMgr = new AuditLogManager(dbClient, coordinatorClient);
     }
 
     public void setScanInterval(int interval) {

@@ -151,7 +151,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                 mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);
             } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled) &&
                     policy.getLastJobState().equals(JobState.finished)) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCED);
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCHRONIZED);
             } else if (policy.getLastJobState().equals(JobState.running)) {
                 mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.IN_SYNC);
             }

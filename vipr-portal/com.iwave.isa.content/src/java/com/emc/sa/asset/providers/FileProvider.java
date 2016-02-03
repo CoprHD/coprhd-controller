@@ -25,6 +25,8 @@ import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FilePolicyList;
+import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.SmbShareResponse;
@@ -35,6 +37,7 @@ import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.VirtualPoolProtocolFilter;
+import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -132,16 +135,33 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @Asset("fileFilePolicy")
     @AssetDependencies( {"project", "fileFilesystem"} )
     public List<AssetOption> getFilePolicies(AssetOptionsContext ctx, URI project, URI fsId) {
+        ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        // TODO: Validate against existing file policy assigned to file system so that we can omit already 
-        // assigned file policy once the information becomes available through FileShareRestRep.
-        //FileShareRestRep fileSystem = api(ctx).fileSystems().get(fsId);
-        SchedulePolicyList policies = api(ctx).tenants().getSchedulePoliciesByTenant(ctx.getTenant());
-        for (NamedRelatedResourceRep policy : policies.getSchdulePolicies()) {
-            options.add(new AssetOption(policy.getId(), policy.getName()));
+
+        FilePolicyList policyList = client.fileSystems().getFilePolicies(fsId);
+        SchedulePolicyList schedulePolicies = client.tenants().getSchedulePoliciesByTenant(ctx.getTenant());
+        
+        for (NamedRelatedResourceRep policy : schedulePolicies.getSchdulePolicies()) {
+            if (!isSchedulePolicyInFilePolicies(policy, policyList)) {
+                options.add(new AssetOption(policy.getId(), policy.getName()));
+            }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
+    }
+    
+    protected boolean isSchedulePolicyInFilePolicies(NamedRelatedResourceRep schedulePolicy, FilePolicyList policyList) {
+        List<FilePolicyRestRep> filePolicies = policyList.getFilePolicies();
+        if (filePolicies == null) {
+            return false;
+        }
+        
+        for (FilePolicyRestRep p : filePolicies) {
+            if (p.getPolicyId().toString().equals(schedulePolicy.getId().toString())) {
+                return true;
+            }
+         }
+        return false;
     }
 
     @Asset("fileSnapshot")

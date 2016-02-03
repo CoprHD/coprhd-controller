@@ -18,6 +18,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParam;
+import com.emc.storageos.model.file.FilePolicyList;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -34,6 +35,7 @@ import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -522,5 +524,18 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         UriBuilder builder = client.uriBuilder(getIdUrl() + "/assign-file-policy/{file_policy_uri}");
         URI targetUri = builder.build(fileSystemId, filePolicyId);
         return putTaskURI(null, targetUri);
+    }
+    
+    /**
+     * Get File Policy associated with a File System
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{id}/file-policies</tt>
+     * 
+     * @param fileSystemId
+     *            the ID of the file system.
+     * @return a file policy list.
+     */
+    public FilePolicyList getFilePolicies(URI fileSystemId) {
+        return client.get(FilePolicyList.class, getIdUrl() + "/file-policies", fileSystemId);
     }
 }

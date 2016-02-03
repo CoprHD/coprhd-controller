@@ -702,8 +702,21 @@ public class BulkList<T> implements List<T> {
          */
         public static boolean isUserAuthorizedForMigration(Migration migration,
                 StorageOSUser user, PermissionsHelper permissionsHelper) {
-              //TODO Temporary fix to prevent NPE. This should not be checked into master! See COP-20103    
-              return true;
+            URI volumeURI = migration.getVolume();
+            Volume volume = permissionsHelper.getObjectById(volumeURI, Volume.class);
+            if (volume == null) {
+                return false;
+            }
+            URI projectURI = volume.getProject().getURI();
+            Project project = permissionsHelper.getObjectById(projectURI, Project.class);
+            if ((permissionsHelper.userHasGivenRole(user,
+                    project.getTenantOrg().getURI(), Role.TENANT_ADMIN))
+                    || (permissionsHelper.userHasGivenACL(user, project.getId(), ACL.OWN,
+                            ACL.ALL))) {
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 

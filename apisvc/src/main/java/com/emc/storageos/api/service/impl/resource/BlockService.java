@@ -3917,7 +3917,6 @@ public class BlockService extends TaskResourceService {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
         String systemType = system.getSystemType();
 
-        // Check if an Export Path Params change.
         StringBuffer notSuppReasonBuff = new StringBuffer();
         notSuppReasonBuff.setLength(0);
         /**
@@ -3959,6 +3958,7 @@ public class BlockService extends TaskResourceService {
             }
         }
 
+        // Check if an Export Path Params change.
         if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volume, currentVpool, newVpool,
                 _dbClient, notSuppReasonBuff)) {
             ExportPathUpdater updater = new ExportPathUpdater(_dbClient);

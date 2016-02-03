@@ -125,7 +125,7 @@ restore_node() {
         command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} $backupTag -f"
     fi
     if [ "${2}" == "onlysiteid" ]; then
-        command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag -osi"
+        command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag osi"
     fi
     ssh_execute "$viprNode" "$command"
 }

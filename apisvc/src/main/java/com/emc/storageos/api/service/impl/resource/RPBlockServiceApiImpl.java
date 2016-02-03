@@ -156,7 +156,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Autowired
     protected PermissionsHelper _permissionsHelper = null;
 
-    // TODO BBB - remove? it's on the parent
+    // TODO BBB - remove? it's on the parents
     @Autowired
     protected DependencyChecker _dependencyChecker;
 
@@ -954,11 +954,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         String size = String.valueOf(rpRec.getSize());
 
         // If the copy name was passed in as null, see if there's an existing label first, then set it now using the varray label.
-        if (copyName == null) {
-            copyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, varray.getId(), productionCopy);                    
-        }
-        
-        copyName = ((copyName != null) ? copyName : varray.getLabel());
+        String existingCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, varray.getId(), productionCopy);  
+        // Prefer existingCopyName, then sent-in copyName, finally the varray label
+        copyName = ((existingCopyName != null) ? existingCopyName : ((copyName != null) ? copyName : varray.getLabel()));
 
         boolean vplex = VirtualPool.vPoolSpecifiesHighAvailability(vpool);
         _log.info(String.format("Prepare Volume %s %s", (vplex ? "(VPLEX) -" : "-"), rpVolumeName));

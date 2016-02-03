@@ -205,6 +205,21 @@ public abstract class BlockIngestOrchestrator {
                 SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.name(), unManagedVolume.getVolumeInformation());
         Set<String> hostIoPs = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.EMC_MAXIMUM_IOPS.name(),
                 unManagedVolume.getVolumeInformation());
+        
+        // If nothing was returned, set the comparative values to zero.
+        if (hostIoBws == null) {
+            hostIoBws = new HashSet<String>();
+        }
+        if (hostIoPs == null) {
+            hostIoPs = new HashSet<String>();
+        }
+        if (hostIoBws.isEmpty()) {
+            hostIoBws.add("0");
+        }
+        if (hostIoPs.isEmpty()) {
+            hostIoPs.add("0");
+        }
+        
         String vPoolBw = "0";
         if (vpool.getHostIOLimitBandwidth() != null) {
             vPoolBw = String.valueOf(vpool.getHostIOLimitBandwidth());
@@ -832,19 +847,18 @@ public abstract class BlockIngestOrchestrator {
             boolean isParentRPVolume = umVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umVolume);
             // if its RP volume, then check whether the RP CG is fully ingested.
             if (isParentRPVolume) {
-                List<UnManagedVolume> ingestedUnManagedVolumes =
-                        new ArrayList<UnManagedVolume>(requestContext.getUnManagedVolumesToBeDeleted());
+                List<UnManagedVolume> ingestedUnManagedVolumes = requestContext.findAllProcessedUnManagedVolumes();
                 ingestedUnManagedVolumes.add(umVolume);
-                UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(umVolume, _dbClient);
+                UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(requestContext, umVolume, _dbClient);
                 // If we are not able to find the unmanaged protection set from the unmanaged volume, it means that the unmanaged volume
                 // has already been ingested. In this case, try to get it from the managed volume
                 if (umpset == null) {
-                    umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(parent, _dbClient);
+                    umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(requestContext, parent, _dbClient);
                 }
                 fullyIngestedVolume = VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient);
                 // If fully ingested, then setup the RP CG too.
                 if (fullyIngestedVolume) {
-                    setupRPCG(umpset, updateObjects);
+                    setupRPCG(requestContext, umpset, updateObjects);
                 } else { // else mark the volume as internal. This will be marked visible when the RP CG is ingested
                     parent.addInternalFlags(INTERNAL_VOLUME_FLAGS);
                 }
@@ -1132,10 +1146,10 @@ public abstract class BlockIngestOrchestrator {
         }
     }
 
-    private void setupRPCG(UnManagedProtectionSet umpset, List<DataObject> updatedObjects) {
+    private void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, List<DataObject> updatedObjects) {
         _logger.info("Ingesting all volumes associated with RP consistency group");
 
-        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(umpset, _dbClient);
+        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(requestContext, umpset, _dbClient);
         BlockConsistencyGroup cg = VolumeIngestionUtil.createRPBlockConsistencyGroup(pset, _dbClient);
         List<Volume> volumes = new ArrayList<Volume>();
         // First try to get the RP volumes from the updated objects list. This will have the latest info for

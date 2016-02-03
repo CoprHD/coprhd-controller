@@ -74,8 +74,8 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
         BlockObject blockObject = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
 
         // validate srdf blockObjects.
-        validateUnManagedVolumeProperties(unManagedVolume, requestContext.getVarray(), 
-                requestContext.getVpool(), requestContext.getProject());
+        validateUnManagedVolumeProperties(unManagedVolume, requestContext.getVarray(unManagedVolume), 
+                requestContext.getVpool(unManagedVolume), requestContext.getProject());
         // Check if ingested volume has exportmasks pending for ingestion.
         if (isExportIngestionPending(blockObject, unManagedVolume.getId(), 
                 requestContext.getVolumeContext().isVolumeExported())) {

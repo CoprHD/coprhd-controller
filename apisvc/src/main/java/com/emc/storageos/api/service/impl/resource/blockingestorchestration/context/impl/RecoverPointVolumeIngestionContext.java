@@ -121,7 +121,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
 
         // Find the UnManagedProtectionSet associated with this unmanaged volume
-        UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(getUnmanagedVolume(), _dbClient);
+        UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(this, getUnmanagedVolume(), _dbClient);
 
         // It is possible that the unmanaged volume was already ingested in which case the ingested block object will be part of the
         // unmanaged protection set's managed volumes list.
@@ -129,7 +129,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
                 VolumeIngestionUtil.VOLUME);
         BlockObject managedVolume = VolumeIngestionUtil.getBlockObject(managedVolumeNativeGUID, _dbClient);
         if (managedVolume != null) {
-            umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(managedVolume, _dbClient);
+            umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(this, managedVolume, _dbClient);
         }
 
         if (umpset == null) {
@@ -402,8 +402,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVpool()
      */
     @Override
-    public VirtualPool getVpool() {
-        return _parentRequestContext.getVpool();
+    public VirtualPool getVpool(UnManagedVolume unmanagedVolume) {
+        return _parentRequestContext.getVpool(unmanagedVolume);
     }
 
     /*
@@ -412,8 +412,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVarray()
      */
     @Override
-    public VirtualArray getVarray() {
-        return _parentRequestContext.getVarray();
+    public VirtualArray getVarray(UnManagedVolume unmanagedVolume) {
+        return _parentRequestContext.getVarray(unmanagedVolume);
     }
 
     /*
@@ -772,4 +772,27 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         return blockObject;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllProcessedUnManagedVolumes()
+     */
+    @Override
+    public List<UnManagedVolume> findAllProcessedUnManagedVolumes() {
+        return _parentRequestContext.findAllProcessedUnManagedVolumes();
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.URI)
+     */
+    @Override
+    public DataObject findInUpdatedObjects(URI uri) {
+        return _parentRequestContext.findInUpdatedObjects(uri);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.net.URI)
+     */
+    @Override
+    public BlockObject findCreatedBlockObject(URI uri) {
+        return _parentRequestContext.findCreatedBlockObject(uri);
+    }
 }

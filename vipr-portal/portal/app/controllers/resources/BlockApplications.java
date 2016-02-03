@@ -105,10 +105,10 @@ public class BlockApplications extends ResourceController {
     public static class CloneApplicationDataTable extends DataTable {
         public CloneApplicationDataTable() {
             addColumn("name");
+            addColumn("volumes").setRenderFunction("renderLink");
             addColumn("size");
             addColumn("status");
             addColumn("protocol");
-            addColumn("volumes").setRenderFunction("renderLink");;
             sortAll();
         }
 

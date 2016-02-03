@@ -208,7 +208,7 @@ public class SchedulePolicyService extends TaggedResource {
         } else {
             if (param.getPolicyType().equalsIgnoreCase(SchedulePolicyType.snapshot.toString())) {
                 errorMsg.append("Required parameter snapshot_expire was missing or empty");
-                _log.error("Failed to create schedule policy due to {} ", errorMsg.toString());
+                _log.error("Failed to update schedule policy due to {} ", errorMsg.toString());
                 throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());
             }
         }

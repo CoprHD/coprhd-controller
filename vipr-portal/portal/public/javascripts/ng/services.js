@@ -36,16 +36,6 @@ angular.module("services", []).directive({
                 }
                 item.value = $scope.defaultValues[item.name] ? $scope.defaultValues[item.name] : item.initialValue;
 
-                if (item.type == "date") {
-                	var currentTime = new Date().getTime();                
-                	$scope.date = formatDate(currentTime, "YYYY-MM-DD");
-                }
-                
-                if (item.type == "time") {
-                	var currentTime = new Date().getTime();                
-                	$scope.time = formatDate(currentTime, "HH:mm");
-                }
-
                 var getAssetOptionsIfWeHaveAllDependencies = function() {
                     var params = {};
 
@@ -143,12 +133,8 @@ angular.module("services", []).directive({
 	                    	addBlankOptionIfRequired(item);
 	                    }
                 	}
-                } else if (item.type == 'date') {
-                    type = '<date-picker>';
-                    tagAttrs = {'ng-model' : item.name};
-                } else if (item.type == 'time') {
-                	type = '<time-picker>';
-                	tagAttrs = {'ng-model' : item.name};    
+                } else if (item.type == 'dateTime') {
+                    type = '<date-time>';
                 } else {
                     item.error = " ";
                     type = "<p class='help-inline'>" + translate('serviceField.unsupportedType',item.type) + "</p>";

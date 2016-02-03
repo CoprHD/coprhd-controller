@@ -5,6 +5,26 @@
 
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.FileMapper.map;
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+
+import java.net.URI;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.UUID;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.mapper.functions.MapQuotaDirectory;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
@@ -15,12 +35,24 @@ import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
-import com.emc.storageos.model.*;
-import com.emc.storageos.model.file.*;
+import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.BulkRestRep;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.file.QuotaDirectoryBulkRep;
+import com.emc.storageos.model.file.QuotaDirectoryDeleteParam;
+import com.emc.storageos.model.file.QuotaDirectoryRestRep;
+import com.emc.storageos.model.file.QuotaDirectoryUpdateParam;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -31,25 +63,10 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.FileController;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
-import java.net.URI;
-import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
-
-import static com.emc.storageos.api.mapper.FileMapper.map;
-import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 @Path("/file/quotadirectories")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        readAcls = { ACL.OWN, ACL.ALL },
-        writeRoles = { Role.TENANT_ADMIN },
-        writeAcls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+        Role.TENANT_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 public class FileQuotaDirectoryService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(FileQuotaDirectoryService.class);
@@ -70,16 +87,14 @@ public class FileQuotaDirectoryService extends TaskResourceService {
     @Override
     public QuotaDirectoryBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<QuotaDirectory> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<QuotaDirectory> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new QuotaDirectoryBulkRep(BulkList.wrapping(_dbIterator, MapQuotaDirectory.getInstance()));
     }
 
     @Override
     protected BulkRestRep queryFilteredBulkResourceReps(
             List<URI> ids) {
-        Iterator<QuotaDirectory> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<QuotaDirectory> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter<QuotaDirectory> filter = new BulkList.ProjectResourceFilter<QuotaDirectory>(
                 getUserFromContext(), _permissionsHelper);
         return new QuotaDirectoryBulkRep(BulkList.wrapping(_dbIterator, MapQuotaDirectory.getInstance(), filter));
@@ -125,12 +140,15 @@ public class FileQuotaDirectoryService extends TaskResourceService {
     /**
      * Retrieve resource representations based on input ids.
      * 
-     * @param param POST data containing the id list.
+     * @param param
+     *            POST data containing the id list.
      * @brief List data of file share resources
      * @return list of representations.
      * 
-     * @throws com.emc.storageos.db.exceptions.DatabaseException When an error occurs querying the database.
+     * @throws com.emc.storageos.db.exceptions.DatabaseException
+     *             When an error occurs querying the database.
      */
+    @Override
     @POST
     @Path("/bulk")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -167,7 +185,8 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         } else {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getFileshareUnderProjectConstraint(
-                            projectId, name), resRepList);
+                            projectId, name),
+                    resRepList);
         }
         return resRepList;
     }
@@ -192,8 +211,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      */
     @Override
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
-            PermissionsHelper permissionsHelper)
-    {
+            PermissionsHelper permissionsHelper) {
         return new ProjOwnedResRepFilter(user, permissionsHelper, FileShare.class);
     }
 
@@ -202,8 +220,10 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param id the URN of a ViPR Quota directory
-     * @param param File system Quota directory update parameters
+     * @param id
+     *            the URN of a ViPR Quota directory
+     * @param param
+     *            File system Quota directory update parameters
      * @brief Update file system Quota directory
      * @return Task resource representation
      * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
@@ -243,9 +263,10 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         }
 
         if (param.getSize() != null) {
-            Long quotaSize = SizeUtil.translateSize(param.getSize());
+            Long quotaSize = SizeUtil.translateSize(param.getSize());// converts the input string in format "<value>GB"
+                                                                     // to Bytes
             if (quotaSize > 0) {
-                ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), " Bytes", "size");
+                ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), SizeUtil.SIZE_B, "size");
                 quotaDir.setSize(quotaSize);
             }
         }
@@ -303,8 +324,10 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param id the URN of the QuotaDirectory
-     * @param param QuotaDirectory delete param for optional force delete
+     * @param id
+     *            the URN of the QuotaDirectory
+     * @param param
+     *            QuotaDirectory delete param for optional force delete
      * @brief Delete file system Quota Dir
      * @return Task resource representation
      * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
@@ -364,7 +387,8 @@ public class FileQuotaDirectoryService extends TaskResourceService {
     /**
      * Get info for file system quota directory
      * 
-     * @param id the URN of a ViPR Quota directory
+     * @param id
+     *            the URN of a ViPR Quota directory
      * @brief Show file system quota directory
      * @return File system quota directory details
      */

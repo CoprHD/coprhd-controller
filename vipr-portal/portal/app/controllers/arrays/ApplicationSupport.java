@@ -45,8 +45,8 @@ import controllers.util.FlashException;
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class ApplicationSupport extends Controller {
     
-    protected static final String SAVED_SUCCESS = "application.save.success";
-    protected static final String UNKNOWN = "Applications.unknown";
+    protected static final String SAVED_SUCCESS = "applicationGroup.save.success";
+    protected static final String UNKNOWN = "applicationGroup.unknown";
     protected static final Set<String> ROLE = new HashSet(Arrays.asList(new String[] {"COPY"}));
     
     public static void list() {
@@ -70,8 +70,8 @@ public class ApplicationSupport extends Controller {
     public static void edit(String id) {
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
        if (application != null) {
-           ApplicationForm applicationForm = new ApplicationForm(application);
-           edit(applicationForm);
+           ApplicationForm applicationGroup = new ApplicationForm(application);
+           edit(applicationGroup);
        }
        else {
            flash.error(MessagesUtils.get(UNKNOWN, id));
@@ -79,8 +79,8 @@ public class ApplicationSupport extends Controller {
        }
     }
     
-    private static void edit(ApplicationForm applicationForm) {
-        render("@create",applicationForm);
+    private static void edit(ApplicationForm applicationGroup) {
+        render("@create",applicationGroup);
     }
 
     public static void delete(@As(",") String[] ids) {
@@ -92,7 +92,7 @@ public class ApplicationSupport extends Controller {
         			deleteExecuted = true;
         		}
         		if (deleteExecuted == true) {
-        			flash.success(MessagesUtils.get("applications.deleted"));
+        			flash.success(MessagesUtils.get("applicationGroup.deleted"));
         		}
         	}
         } catch(ViPRException e) {
@@ -102,18 +102,18 @@ public class ApplicationSupport extends Controller {
     }
     
     @FlashException(keep = true, referrer = { "create", "edit" })
-    public static void save(ApplicationForm applicationForm) {
-        applicationForm.validate("applicationForm");
+    public static void save(ApplicationForm applicationGroup) {
+        applicationGroup.validate("applicationGroup");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
         try {
-            applicationForm.save();
-            flash.success(MessagesUtils.get(SAVED_SUCCESS, applicationForm.name));
+            applicationGroup.save();
+            flash.success(MessagesUtils.get(SAVED_SUCCESS, applicationGroup.name));
             backToReferrer();
         } catch (ViPRException e) {
             flashException(e);
-            error(applicationForm);
+            error(applicationGroup);
         }
     }
     
@@ -126,10 +126,10 @@ public class ApplicationSupport extends Controller {
         }
     }
     
-    private static void error(ApplicationForm applicationForm) {
+    private static void error(ApplicationForm applicationGroup) {
         params.flash();
         Validation.keep();
-        edit(applicationForm);
+        edit(applicationGroup);
     }
     
     public static class ApplicationForm {
@@ -145,11 +145,11 @@ public class ApplicationSupport extends Controller {
         public Set<String> roles;
         
 
-        public ApplicationForm(VolumeGroupRestRep applicationForm) {
-            this.id = applicationForm.getId().toString();
-            this.name = applicationForm.getName();
-            this.description = applicationForm.getDescription();
-            this.roles = applicationForm.getRoles();
+        public ApplicationForm(VolumeGroupRestRep applicationGroup) {
+            this.id = applicationGroup.getId().toString();
+            this.name = applicationGroup.getName();
+            this.description = applicationGroup.getDescription();
+            this.roles = applicationGroup.getRoles();
         }
 
         public boolean isNew() {

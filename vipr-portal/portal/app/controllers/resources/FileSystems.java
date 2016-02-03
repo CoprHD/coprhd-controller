@@ -37,6 +37,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
+import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSnapshotRestRep;
@@ -54,6 +55,7 @@ import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
@@ -68,6 +70,7 @@ import com.google.common.collect.Lists;
 import controllers.Common;
 import controllers.security.Security;
 import controllers.util.FlashException;
+import controllers.util.Models;
 
 @With(Common.class)
 public class FileSystems extends ResourceController {
@@ -462,6 +465,38 @@ public class FileSystems extends ResourceController {
         ViPRCoreClient client = BourneUtil.getViprClient();
         List<QuotaDirectoryRestRep> quotas = client.quotaDirectories().getByFileSystem(uri(fileSystemId));
         render(quotas);
+    }
+
+    @FlashException(referrer = { "fileSystem" })
+    public static void fileSystemSnapshotPolicies(String fileSystemId) {
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        List<FilePolicyRestRep> filePolicies = client.schedulePolicies().listByFileSystem(uri(fileSystemId));
+        render(filePolicies);
+    }
+
+    @FlashException(referrer = { "fileSystem" })
+    public static void assignPolicyToFileSystem(String fileSystemId, String policyId) {
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        client.schedulePolicies().assignPolicyToFileSystem(uri(fileSystemId), uri(policyId));
+        fileSystem(fileSystemId);
+    }
+
+    @FlashException(referrer = { "fileSystem" })
+    public static void unassignPolicyToFileSystem(String fileSystemId, String policyId) {
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        client.schedulePolicies().unassignPolicyToFileSystem(uri(fileSystemId), uri(policyId));
+        fileSystem(fileSystemId);
+    }
+
+    public static void getScheculePolicies() {
+        String tenantId = Models.currentAdminTenant();
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        List<SchedulePolicyRestRep> filePolicies = client.schedulePolicies().getByTenant(uri(tenantId));
+        List<StringOption> policyOptions = Lists.newArrayList();
+        for (SchedulePolicyRestRep filePolicy : filePolicies) {
+            policyOptions.add(new StringOption(filePolicy.getPolicyId().toString(), filePolicy.getPolicyName()));
+        }
+        renderJSON(policyOptions);
     }
 
     @FlashException(referrer = { "fileSystem" })

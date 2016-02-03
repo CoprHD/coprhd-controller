@@ -50,7 +50,7 @@ class QuotaDirectory(object):
     quotadirectory create operation
     """
 
-    def create(self, ouri, name, size, oplock, securitystyle, sync):
+    def create(self, ouri, name, size, oplock, securitystyle, sync, advlim, softlim, grace):
         parms = {
             'name': name,
         }
@@ -61,6 +61,12 @@ class QuotaDirectory(object):
             parms["oplock"] = oplock
         if(securitystyle):
             parms["security_style"] = securitystyle
+        if advlim:
+            parms['notification_limit'] = advlim
+        if softlim:
+            parms['soft_limit'] = softlim
+        if grace:
+            parms['soft_grace'] = grace
             
         body = json.dumps(parms)
 
@@ -85,7 +91,7 @@ class QuotaDirectory(object):
     quotadirectory update operation
     """
 
-    def update(self, ouri, name, size, oplock, securitystyle, sync):
+    def update(self, ouri, name, size, oplock, securitystyle, sync, advlim, softlim, grace):
         qduri = self.quotadirectory_query(ouri, name)
 	    
         params = dict()
@@ -96,6 +102,12 @@ class QuotaDirectory(object):
             params['oplock'] = oplock
         if(securitystyle):
             params['security_style'] = securitystyle
+        if advlim:
+            params['notification_limit'] = advlim
+        if softlim:
+            params['soft_limit'] = softlim
+        if grace:
+            params['soft_grace'] = grace
      
         body = json.dumps(params)
         (s, h) = common.service_json_request(
@@ -298,6 +310,18 @@ def create_parser(subcommand_parsers, common_parser):
                                help='Quota Directory Security Style ',
                                dest='securitystyle',
                                metavar='<securitystyle>')
+    create_parser.add_argument('-advisorylimit', '-advlmt',
+                               dest='advlim',
+                               help='Advisory limit in % for the filesystem',
+                               metavar='<advisorylimit>')
+    create_parser.add_argument('-softlimit', '-softlmt',
+                               dest='softlim',
+                               help='Soft limit in % for the filesystem',
+                               metavar='<softlimit>')
+    create_parser.add_argument('-graceperiod', '-grace',
+                               dest='grace',
+                               help='Grace period in days for soft limit',
+                               metavar='<graceperiod>')
     create_parser.add_argument('-synchronous', '-sync',
                                dest='synchronous',
                                help='Synchronous quotadirectory create',
@@ -321,7 +345,7 @@ def quotadirectory_create(args):
             args.tenant)
 
         obj.create(resourceUri, args.name, args.size, args.oplock, 
-		   args.securitystyle, args.synchronous)
+		   args.securitystyle, args.synchronous, args.advlim, args.softlim, args.grace)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
@@ -603,6 +627,18 @@ def update_parser(subcommand_parsers, common_parser):
                                help='Quota Directory Security Style ',
                                dest='securitystyle',
                                metavar='<securitystyle>')
+    update_parser.add_argument('-advisorylimit', '-advlmt',
+                               dest='advlim',
+                               help='Advisory limit in % for the filesystem',
+                               metavar='<advisorylimit>')
+    update_parser.add_argument('-softlimit', '-softlmt',
+                               dest='softlim',
+                               help='Soft limit in % for the filesystem',
+                               metavar='<softlimit>')
+    update_parser.add_argument('-graceperiod', '-grace',
+                               dest='grace',
+                               help='Grace period in days for soft limit',
+                               metavar='<graceperiod>')
     update_parser.add_argument('-synchronous', '-sync',
                                dest='synchronous',
                                help='Synchronous quotadirectory update',
@@ -621,7 +657,7 @@ def quotadirectory_update(args):
             args.tenant)
 
         obj.update(resourceUri, args.name, args.size, args.oplock, 
-		   args.securitystyle, args.synchronous)
+		   args.securitystyle, args.synchronous, args.advlim, args.softlim, args.grace)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):

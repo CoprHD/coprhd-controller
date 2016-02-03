@@ -8,6 +8,7 @@ package com.emc.storageos.api.service.impl.resource.cinder;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.CinderAvailabiltyZone;
 import com.emc.storageos.cinder.model.UsageStats;
 import com.emc.storageos.db.client.DbClient;
@@ -49,6 +51,7 @@ public class CinderHelpers {
     public CinderHelpers() {
     }
 
+    
     public static CinderHelpers getInstance(DbClient dbClient, PermissionsHelper permissionsHelper) {
 
         if (instCinderHelpers == null) {
@@ -60,6 +63,8 @@ public class CinderHelpers {
         }
         return instCinderHelpers;
     }
+        
+    
     /**
      * Get project from the OpenStack Tenant ID parameter
      * 
@@ -311,204 +316,7 @@ public class CinderHelpers {
 
         return uris;
     }
-    /**
-     * Get quota for provided vpool
-     * 
-     * 
-     * @prereq none
-     * 
-     * @param tenantId
-     * @param vpool
-     * 
-     * @brief get vpool quota
-     * @return quota
-     */
-
-    public QuotaOfCinder getVPoolQuota(String tenantId, VirtualPool vpool, StorageOSUser user) {
-        _log.debug("In getVPoolQuota");
-        Project project = getProject(tenantId.toString(), user);
-
-        List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);
-        for (URI quota : quotas) {
-            QuotaOfCinder quotaObj = _dbClient.queryObject(QuotaOfCinder.class, quota);
-            URI vpoolUri = quotaObj.getVpool();
-
-            if (vpoolUri == null) {
-                continue;
-            }
-            else if ((quotaObj.getProject() != null) &&
-                    (quotaObj.getProject().toString().equalsIgnoreCase(project.getId().toString()))) {
-                VirtualPool pool = _dbClient.queryObject(VirtualPool.class, vpoolUri);
-
-                if ((pool != null) && (pool.getLabel().equals(vpool.getLabel())) && (vpool.getLabel() != null)
-                        && (vpool.getLabel().length() > 0)) {
-                    return quotaObj;
-                }
-            }
-        }
-
-        return createVpoolDefaultQuota(project, vpool);
-    }
-
-    /**
-     * Get quota for given project/tenant
-     * 
-     * 
-     * @prereq none
-     * 
-     * @param tenantId
-     * 
-     * @brief get project quota
-     * @return quota
-     */
-    public QuotaOfCinder getProjectQuota(String tenantId, StorageOSUser user) {
-        Project project = getProject(tenantId.toString(), user);
-
-        List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);
-        for (URI quota : quotas) {
-            QuotaOfCinder quotaObj = _dbClient.queryObject(QuotaOfCinder.class, quota);
-            URI vpoolUri = quotaObj.getVpool();
-            if (vpoolUri != null) {
-                continue;
-            }
-
-            if ((quotaObj.getProject() != null) &&
-                    (quotaObj.getProject().toString().equalsIgnoreCase(project.getId().toString()))) {
-                return quotaObj;
-            }
-        }
-        return createProjectDefaultQuota(project);
-    }
-
-    /**
-     * Get default quota for provided project
-     * 
-     * 
-     * @prereq none
-     * 
-     * @param project
-     * 
-     * @brief get project default quota
-     * @return quota
-     */
-    public QuotaOfCinder createProjectDefaultQuota(Project project) {
-        long maxQuota = 0;
-        if (project.getQuotaEnabled()) {
-            maxQuota = (long) (project.getQuota().intValue());
-        }
-        else {
-            maxQuota = QuotaService.DEFAULT_PROJECT_TOTALGB_QUOTA;
-        }
-
-        QuotaOfCinder quotaObj = new QuotaOfCinder();
-        quotaObj.setId(URI.create(UUID.randomUUID().toString()));
-        quotaObj.setProject(project.getId());
-        quotaObj.setVolumesLimit(QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA);
-        quotaObj.setSnapshotsLimit(QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA);
-        quotaObj.setTotalQuota(maxQuota);
-
-        _log.info("Creating default quota for project");
-        _dbClient.createObject(quotaObj);
-        return quotaObj;
-    }
-
-    /**
-     * Create default quota for vpool
-     * 
-     * 
-     * @prereq none
-     * 
-     * @param project
-     * @param vpool
-     * 
-     * @brief create default quota
-     * @return quota
-     */
-    public QuotaOfCinder createVpoolDefaultQuota(Project project, VirtualPool vpool) {
-        QuotaOfCinder objQuotaOfCinder = new QuotaOfCinder();
-        objQuotaOfCinder.setProject(project.getId());
-        objQuotaOfCinder.setVolumesLimit(QuotaService.DEFAULT_VOLUME_TYPE_VOLUMES_QUOTA);
-        objQuotaOfCinder.setSnapshotsLimit(QuotaService.DEFAULT_VOLUME_TYPE_SNAPSHOTS_QUOTA);
-        objQuotaOfCinder.setTotalQuota(QuotaService.DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA);
-        objQuotaOfCinder.setId(URI.create(UUID.randomUUID().toString()));
-        objQuotaOfCinder.setVpool(vpool.getId());
-
-        _log.info("Create vpool default quota");
-        _dbClient.createObject(objQuotaOfCinder);
-        return objQuotaOfCinder;
-    }
-
-    /**
-     * Get usage statistics(like total number of volumes, snapshots and total size) for given vpool
-     * 
-     * 
-     * @prereq none
-     * 
-     * @param vpool
-     * 
-     * @brief get statistics
-     * @return UsageStats
-     */
-    public UsageStats getStorageStats(URI vpool, URI projectId) {
-        UsageStats objStats = new UsageStats();
-        long totalSnapshotsUsed = 0;
-        long totalSizeUsed = 0;
-        long totalVolumesUsed = 0;
-        URIQueryResultList uris = new URIQueryResultList();
-
-        if (vpool != null) {
-            URIQueryResultList volUris = new URIQueryResultList();
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualPoolVolumeConstraint(vpool), volUris);
-            for (URI voluri : volUris) {
-                Volume volume = _dbClient.queryObject(Volume.class, voluri);
-                if (volume != null && !volume.getInactive()) {
-                    totalSizeUsed += (long) (volume.getAllocatedCapacity() / GB);
-                    totalVolumesUsed++;
-                }
-
-                URIQueryResultList snapList = new URIQueryResultList();
-                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(voluri), snapList);
-
-                for (URI snapUri : snapList) {
-                    BlockSnapshot blockSnap = _dbClient.queryObject(BlockSnapshot.class, snapUri);
-                    if (blockSnap != null && !blockSnap.getInactive()) {
-                        _log.info("ProvisionedCapacity = {} ", blockSnap.getProvisionedCapacity());
-                        totalSizeUsed += (long) (blockSnap.getProvisionedCapacity() / GB);
-                        totalSnapshotsUsed++;
-                    }
-                }
-
-            }
-        }
-        else {
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getProjectVolumeConstraint(projectId), uris);
-
-            for (URI volUri : uris) {
-                Volume volume = _dbClient.queryObject(Volume.class, volUri);
-                if (volume != null && !volume.getInactive()) {
-                    totalSizeUsed += (long) (volume.getAllocatedCapacity() / GB);
-                    totalVolumesUsed++;
-                }
-
-                URIQueryResultList snapList = new URIQueryResultList();
-                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volUri), snapList);
-
-                for (URI snapUri : snapList) {
-                    BlockSnapshot blockSnap = _dbClient.queryObject(BlockSnapshot.class, snapUri);
-                    if (blockSnap != null && !blockSnap.getInactive()) {
-                        totalSizeUsed += (long) (blockSnap.getProvisionedCapacity() / GB);
-                        totalSnapshotsUsed++;
-                    }
-                }
-            }
-        }
-
-        objStats.snapshots = totalSnapshotsUsed;
-        objStats.volumes = totalVolumesUsed;
-        objStats.spaceUsed = totalSizeUsed;
-
-        return objStats;
-    }
+   
 
     /**
      * Get Consistency Group Snapshot Uris

@@ -49,7 +49,7 @@ public class FailoverBlockVolume extends WaitForTasks<VolumeRestRep> {
             copy.setName(copyName);
         }
         if (pointInTime != null) {
-            copy.setApitTime(pointInTime);
+            copy.setPointInTime(pointInTime);
         }
 
         CopiesParam param = new CopiesParam();

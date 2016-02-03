@@ -1650,7 +1650,7 @@ public class CoordinatorClientExt {
                     } finally {
                         leaveZKDoubleBarrier(barrier,DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     }
-                    localRepository.reload("reset-coordinator");
+                    localRepository.restartCoordinator("observer");
                 } else {
                     _log.warn("All nodes unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     leaveZKDoubleBarrier(barrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
@@ -1683,18 +1683,13 @@ public class CoordinatorClientExt {
 
     /**
      * reconfigure ZooKeeper to participant mode within the local site
-     *
-     * @param reloadSyssvc if syssvc needs to be reloaded
      */
-    public void reconfigZKToWritable(boolean reloadSyssvc) {
+    public void reconfigZKToWritable() {
         _log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
         try {
             LocalRepository localRepository = LocalRepository.getInstance();
             localRepository.reconfigCoordinator("participant");
-            localRepository.restart("coordinatorsvc");
-            if (reloadSyssvc) {
-                localRepository.restart("syssvc");
-            }
+            localRepository.restartCoordinator("participant");
         } catch (Exception ex) {
             _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
         }
@@ -1722,8 +1717,7 @@ public class CoordinatorClientExt {
                 }
                 LocalRepository localRepository=LocalRepository.getInstance();
                 localRepository.remoteReconfigCoordinator(node, "participant");
-                localRepository.remoteRestart(node, "coordinatorsvc");
-                localRepository.remoteRestart(node, "syssvc");
+                localRepository.remoteRestartCoordinator(node, "participant");
             }
 
             for(String node:readOnlyNodes){
@@ -1734,12 +1728,12 @@ public class CoordinatorClientExt {
                 }
                 LocalRepository localRepository=LocalRepository.getInstance();
                 localRepository.remoteReconfigCoordinator(node,"participant");
-                localRepository.remoteRestart(node,"coordinatorsvc");
+                localRepository.remoteRestartCoordinator(node,"participant");
             }
 
             //reconfigure local node last
             if (reconfigLocal){
-                reconfigZKToWritable(observerNodes.contains(getMyNodeId()));
+                reconfigZKToWritable();
             }
 
         }catch(Exception ex){

@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2015-206 EMC Corporation
+ * Copyright (c) 2015-2016 EMC Corporation
  * All Rights Reserved
  */
 
 package com.emc.storageos.volumecontroller.impl.file;
 
 import java.net.URI;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,18 +19,11 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class MirrorFileRefreshTaskCompleter extends MirrorFileTaskCompleter {
 
-    private static final Logger _log = LoggerFactory.getLogger(MirrorFileResumeTaskCompleter.class);
+    private static final long serialVersionUID = 1L;
+    private static final Logger _log = LoggerFactory.getLogger(MirrorFileRefreshTaskCompleter.class);
 
-    public MirrorFileRefreshTaskCompleter(Class clazz, List<URI> ids, String opId) {
-        super(clazz, ids, opId);
-    }
-
-    public MirrorFileRefreshTaskCompleter(Class clazz, URI id, String opId) {
+    public MirrorFileRefreshTaskCompleter(Class<?> clazz, URI id, String opId) {
         super(clazz, id, opId);
-    }
-
-    public MirrorFileRefreshTaskCompleter(URI sourceURI, URI targetURI, String opId) {
-        super(sourceURI, targetURI, opId);
     }
 
     @Override

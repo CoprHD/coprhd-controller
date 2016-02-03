@@ -529,6 +529,7 @@ public class BucketService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, Bucket.class, "id");
         bucket = _dbClient.queryObject(Bucket.class, id);
         ArgValidator.checkEntity(bucket, id, isIdEmbeddedInURL(id));
+        syncBucketACL(bucket);
 
         BucketACL bucketAcl = new BucketACL();
         BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getName(), bucket.getId());
@@ -633,5 +634,22 @@ public class BucketService extends TaskResourceService {
         if (softQuota < 0 || hardQuota < 0 || softQuota > hardQuota) {
             throw APIException.badRequests.invalidQuotaRequestForObjectStorage(bucketName);
         }
+    }
+    
+    private void syncBucketACL( Bucket bucket ){
+        
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
+        ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());
+        
+        String task = UUID.randomUUID().toString();
+        _log.info(String.format(
+                "SYNC Bucket ACL  --- Bucket id: %1$s, Task: %2$s", bucket.getId(), task));
+
+
+        Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
+                task, ResourceOperationTypeEnum.SYNC_BUCKET_ACL);
+        op.setDescription("Sync Bucket ACL");
+        controller.syncBucketACL(bucket.getStorageDevice(),bucket.getId(),task);
+        
     }
 }

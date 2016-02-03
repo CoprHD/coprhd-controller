@@ -507,6 +507,39 @@ public class ECSApi {
     }
     
     /**
+     * Get the Bucket ACL
+     * 
+     * @return String response 
+     * @throws ECSException
+     */
+    public String getBucketAclFromECS(String bucketName) throws ECSException {
+        _log.debug("ECSApi:getBucketAclFromECS");
+        ClientResponse clientResp = null;
+       
+        try {
+            String responseString = null;
+            clientResp = get(URI_UPDATE_BUCKET_ACL);
+            if (null == clientResp) {
+                throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, getResponseDetails(clientResp));
+            }
+
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getBucketAclFromECS response is {}", responseString);
+           
+            return responseString;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getNamespacesFailed(e);
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getBucketAclFromECS exit");
+        }
+    }
+    
+    /**
      * 
      * @param Id of the namespace for which allowed/disallowed pools are required
      * @param replicaiton group type

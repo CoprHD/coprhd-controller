@@ -65,4 +65,6 @@ public interface ObjectStorageDevice {
      * @throws ControllerException
      */
     BiosCommandResult doDeleteBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException;
+    
+    BiosCommandResult doSyncBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException;
 }

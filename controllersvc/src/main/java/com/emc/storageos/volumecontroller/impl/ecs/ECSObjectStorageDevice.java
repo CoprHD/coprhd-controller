@@ -322,6 +322,8 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         completeTask(bucket.getId(), taskId, "Successfully updated Bucket ACL.");
         return BiosCommandResult.createSuccessfulResult();
     }
+    
+    
 
     @SuppressWarnings("deprecation")
     private void updateBucketACLInDB(BucketACLUpdateParams param, ObjectDeviceInputOutput args, Bucket bucket) {
@@ -523,5 +525,14 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     private void completeTask(final URI bucketID, final String taskID, final String message) {
         BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
         completer.statusReady(_dbClient, message);
+    }
+
+    @Override
+    public BiosCommandResult doSyncBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId)
+            throws ControllerException {
+        ECSApi objectAPI = getAPI(storageObj);
+        String aclResponse = objectAPI.getBucketAclFromECS(objectArgs.getName());
+        _log.info("aclResponse {} "+aclResponse);
+        return null;
     }
 }

@@ -7,16 +7,11 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
+/**
+ * Class for discovery and metering exceptions for SB SDK baded drivers.
+ */
 public class ExternalDeviceCollectionException extends BaseCollectionException {
 
-    /**
-     * @param retryable
-     * @param code
-     * @param cause
-     * @param detailBase
-     * @param detailKey
-     * @param detailParams
-     */
     public ExternalDeviceCollectionException(boolean retryable, ServiceCode code,
                                     Throwable cause, String detailBase, String detailKey,
                                     Object[] detailParams) {

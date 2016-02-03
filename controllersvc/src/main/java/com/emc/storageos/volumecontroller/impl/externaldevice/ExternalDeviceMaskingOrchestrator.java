@@ -102,6 +102,23 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
         }
     }
 
+    /**
+     * Generates export group create steps for a given set of initiators and volumes.
+     * Only "greenfield" case is supported --- if export masks with one or more of given
+     * initiators exist, we will fail the request.
+     *
+     * @param workflow
+     * @param previousStep
+     * @param device
+     * @param storage
+     * @param exportGroup
+     * @param initiatorURIs
+     * @param volumeMap volume URI to HLU map
+     * @param zoneStepNeeded
+     * @param token
+     * @return list of step Ids
+     * @throws Exception
+     */
     private List<String> generateExportGroupCreateSteps(Workflow workflow,
                                                  String previousStep, BlockStorageDevice device,
                                                  StorageSystem storage, ExportGroup exportGroup,
@@ -109,7 +126,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
             throws Exception {
         Map<String, URI> portNameToInitiatorURI = new HashMap<>();
         List<URI> hostURIs = new ArrayList<>();
-        List<String> portNames = new ArrayList<>();
+        List<String> portNames = new ArrayList<>(); // host initiator names
         String stepId;
         _log.info("Started export mask steps generation.");
         /*
@@ -265,5 +282,15 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
          *
          */
         // Todo: tbd.
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI,
+                                            List<URI> initiatorURIs, String token) throws Exception {
+        // Todo: tbd.
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
     }
 }

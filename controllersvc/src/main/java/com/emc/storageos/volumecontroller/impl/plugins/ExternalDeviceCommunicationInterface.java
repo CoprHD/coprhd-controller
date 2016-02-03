@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
 
@@ -42,6 +46,10 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceColl
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 
+/**
+ * ExtendedCommunicationInterface implementation for SB SDK managed devices.
+ */
+
 public class ExternalDeviceCommunicationInterface extends
         ExtendedCommunicationInterfaceImpl {
 
@@ -57,6 +65,11 @@ public class ExternalDeviceCommunicationInterface extends
         drivers = drivers;
     }
 
+    /**
+     * Get device driver based on the driver type.
+     * @param driverType
+     * @return driver
+     */
     private synchronized DiscoveryDriver getDriver(String driverType) {
         // look up driver
         DiscoveryDriver discoveryDriver = discoveryDrivers.get(driverType);
@@ -76,6 +89,10 @@ public class ExternalDeviceCommunicationInterface extends
     }
 
 
+    /**
+     * Init device driver. Sets registry and lock manager to the driver.
+     * @param driver
+     */
     private void init(AbstractStorageDriver driver) {
         Registry driverRegistry = RegistryImpl.getInstance(_dbClient);
         driver.setDriverRegistry(driverRegistry);

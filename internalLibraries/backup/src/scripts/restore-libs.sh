@@ -50,7 +50,7 @@ finish_message() {
         exit 1
     fi
     echo "Note: nodes will reboot if there is any change of property in this cluster."
-    if [ "$IS_CONNECTED_VDC" == "true" ]; then
+    if [ ${IS_CONNECTED_VDC} == true ]; then
         if [ "$RESTORE_GEO_FROM_SCRATCH" == "false" ]; then
             echo "Please reconnect this vdc after the status of cluster is stable."
         fi
@@ -78,9 +78,9 @@ is_vdc_connected() {
     geodb_type=${geodb_type%%_*}
 
     if [ "$geodb_type" == "geodb" ]; then
-        IS_CONNECTED_VDC="false"                                                                                                       
+        IS_CONNECTED_VDC=false
     elif [ "$geodb_type" == "geodbmultivdc" ]; then
-        IS_CONNECTED_VDC= "true"
+        IS_CONNECTED_VDC=true
     else
         echo -e "\nInvalid geodb type: $geodb_type, exiting.."
         exit 2

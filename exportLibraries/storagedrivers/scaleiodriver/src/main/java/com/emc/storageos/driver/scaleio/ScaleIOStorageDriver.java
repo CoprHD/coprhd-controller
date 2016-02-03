@@ -264,7 +264,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 if (client != null) {
                     VolumeClone.ReplicationState replicationState;
                     replicationState = clone.getReplicationState();
-               //     if (replicationState = clone.getReplicationState(VolumeClone.ReplicationState.CREATED))
+                   if (replicationState == VolumeClone.ReplicationState.CREATED)
                         try {
 
                             clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
@@ -557,7 +557,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         log.info("Request to create consistency group clone -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_CREATE));
         countSucc = 0;
-        if (ScaleIOHelper.isFromSameStorageSystem(clones)) {
+        if (ScaleIOHelper.isFromSameStorageSystemClone(clones)) {
             String systemId = clones.get(0).getStorageSystemId();
             log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
             ScaleIORestClient client = this.getClientBySystemId(systemId);
@@ -580,12 +580,12 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     // get parentID
                     List<String> nativeIds = result.getVolumeIdList();
                     Map<String, ScaleIOVolume> snapIdInfoMap = client.getVolumeNameMap(nativeIds);
-                    String currentTime = ScaleIOHelper.getCurrentTime();
+                    //String currentTime = ScaleIOHelper.getCurrentTime();
                     for (VolumeClone clone : clones) {
                         for (ScaleIOVolume snapInfo : snapIdInfoMap.values()) {
                             if (clone.getParentId().equalsIgnoreCase(snapInfo.getAncestorVolumeId())) {
                                 clone.setNativeId(snapInfo.getId());
-                                // clone.setTimestamp(currentTime);
+                               // clone.setTimestamp(currentTime);
                                 clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                                 clone.setDeviceLabel(snapInfo.getName());
                                 clone.setConsistencyGroup(result.getSnapshotGroupId());

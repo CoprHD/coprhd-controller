@@ -458,9 +458,9 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
     
     @Override
-    public void updateApplication(URI storage, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList,
-            URI application, String opId) throws ControllerException {
-        blockRMI("updateApplication", storage, addVolList, removeVolumeList, application, opId);
+    public void updateApplication(URI storage, ApplicationAddVolumeList addVolList, URI application,
+            String opId) throws ControllerException {
+        blockRMI("updateApplication", storage, addVolList, application, opId);
     }
 
     /**

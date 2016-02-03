@@ -1635,7 +1635,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             } else {
                 consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
             }
-            if (NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
+            if (!consistencyGroup.isProtectedCG() && NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
                 consistencyGroup.setStorageController(storage.getId());
             }
             _dbClient.updateObject(consistencyGroup);
@@ -2432,7 +2432,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                     blockObject.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
                     // unset the Set name on clones
-                    if (blockObject instanceof Volume && ((Volume) blockObject).getFullCopySetName() != null) {
+                    if (blockObject instanceof Volume && NullColumnValueGetter.isNotNullValue(((Volume) blockObject).getFullCopySetName())) {
                         ((Volume) blockObject).setFullCopySetName(NullColumnValueGetter.getNullStr());
                     }
                     objectsToUpdate.add(blockObject);

@@ -27,7 +27,6 @@ public class MigrationList {
     /**
      * The list of migrations.
      * 
-     * @valid none
      */
     @XmlElement(name = "migration")
     public List<NamedRelatedResourceRep> getMigrations() {

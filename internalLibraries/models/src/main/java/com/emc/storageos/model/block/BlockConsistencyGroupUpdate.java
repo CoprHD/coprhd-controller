@@ -23,7 +23,6 @@ public class BlockConsistencyGroupUpdate {
         /**
          * A block volume URI
          * 
-         * @valid none
          */
         @XmlElement(required = true, name = "volume")
         public List<URI> getVolumes() {
@@ -44,7 +43,6 @@ public class BlockConsistencyGroupUpdate {
     /**
      * List of volumes to add to the block consistency group
      * 
-     * @valid none
      */
     @XmlElement(name = "add_volumes")
     public BlockConsistencyGroupVolumeList getAddVolumesList() {
@@ -58,7 +56,6 @@ public class BlockConsistencyGroupUpdate {
     /**
      * List of volumes to remove from the block consistency group
      * 
-     * @valid none
      */
     @XmlElement(name = "remove_volumes")
     public BlockConsistencyGroupVolumeList getRemoveVolumesList() {

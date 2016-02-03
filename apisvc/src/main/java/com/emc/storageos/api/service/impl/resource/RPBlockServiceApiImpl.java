@@ -3599,6 +3599,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         URI cgUri = null;
         for (URI voluri : addVolumeURIs) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
+            if (firstVolLabel == null) {
+                firstVolLabel = volume.getLabel();
+            }
             if (volume == null || volume.getInactive()) {
                 _log.info(String.format("The volume %s does not exist or has been deleted", voluri));
                 continue;

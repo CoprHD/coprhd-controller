@@ -105,6 +105,8 @@ public class FailoverBlockVolumeService extends ViPRService {
                 tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type, imageToAccess, pointInTime));
             } else {
                 // Image to access and Point-in-time do not apply so null them out.
+                imageToAccess = null;
+                pointInTime = null;
                 tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type));
             }
         } else {
@@ -117,6 +119,9 @@ public class FailoverBlockVolumeService extends ViPRService {
 
                 tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type, imageToAccess, pointInTime));
             } else {
+                // Image to access and Point-in-time do not apply so null them out.
+                imageToAccess = null;
+                pointInTime = null;
                 tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type));
             }
         }

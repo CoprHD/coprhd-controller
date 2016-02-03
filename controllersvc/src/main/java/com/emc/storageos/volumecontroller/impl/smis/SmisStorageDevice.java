@@ -2427,6 +2427,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _dbClient.updateAndReindexObject(replicaList);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
+            _log.error("Problem while adding replica to device masking group :{}", consistencyGroupId, e);
             if (null != replicas && !replicas.isEmpty()) {
                 for (URI replicaURI : replicas) {
                     BlockObject blockObj = _dbClient.queryObject(BlockObject.class, replicaURI);
@@ -2434,7 +2435,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     _dbClient.updateObject(blockObj);
                 }
             }
-            _log.error("Problem while adding replica to device masking group :{}", consistencyGroupId, e);
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToAddMembersToReplicationGroup(replicationGroupName,
                             storage.getLabel(), e.getMessage()));

@@ -285,7 +285,7 @@ public class LDAPsources extends ViprResourceController {
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
-            //param.setAutoRegisterOpenStackProjects(this.autoRegisterOpenStackProjects);
+            param.setAutoRegisterOpenStackProjects(this.autoRegisterOpenStackProjects);
 
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(StringUtils.trimToNull(this.managerPassword));

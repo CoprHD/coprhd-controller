@@ -622,7 +622,6 @@
                     <property name="coordinator" ref="coordinator"/>
                     <property name="keystoneFactory" ref="keystoneFactory"/>
                     <property name="tenantsService" ref="tenantsService"/>
-                    <property name="permissionHelper" ref="permissionsHelper"/>
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.WorkflowService">
                     <property name="dbClient" ref="dbclient"/>

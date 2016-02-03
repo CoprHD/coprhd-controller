@@ -100,7 +100,7 @@ public class AuthnProvider extends DataObject {
 
     public void setAutoRegisterOpenStackProjects(Boolean autoRegisterOpenStackProjects) {
         _autoRegisterOpenStackProjects = autoRegisterOpenStackProjects;
-        setChanged("enableOpenstackAuth");
+        setChanged("autoRegisterOpenStackProjects");
     }
 
     @Name("serverUrls")

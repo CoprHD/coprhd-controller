@@ -97,15 +97,14 @@ public class AuthnConfigurationService extends TaggedResource {
     private static String FEATURE_NAME_LDAP_GROUP_SUPPORT = "Group support for LDAP Authentication Provider";
     private static String OPENSTACK_DEFAULT_REGION = "RegionOne";
     private static final String OPENSTACK_CINDER_NAME = "cinderv2";
-    private static final String COPRHD_PORT = ":8080/v2/%(tenant_id)s";
+    private static final String COPRHD_PORT = ":8776/v2/%(tenant_id)s";
     private static final String HTTP = "http://";
     private static final String PROJECT_NAME = "adminProject";
+    private static final String TENANT_NAME = "OpenStack admin";
     private static final String OPENSTACK_TENANT_ID = "tenant_id";
 
     @Autowired
     private TenantsService _tenantsService;
-    @Autowired
-    private BasePermissionsHelper permissionHelper;
     @Autowired
     private AuthSvcEndPointLocator _authSvcEndPointLocator;
     private KeystoneRestClientFactory _keystoneApiFactory;
@@ -116,10 +115,6 @@ public class AuthnConfigurationService extends TaggedResource {
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
-    }
-
-    public void setPermissionHelper(BasePermissionsHelper permissionHelper) {
-        this.permissionHelper = permissionHelper;
     }
 
     public void setTenantsService(TenantsService _tenantsService) {
@@ -233,10 +228,6 @@ public class AuthnConfigurationService extends TaggedResource {
         String mode = provider.getMode();
         if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
             populateKeystoneToken(provider, null);
-            // TODO: check for checkbox value
-            if(provider.getAutoRegisterOpenStackProjects()){
-                registerCoprhdInKeystone(provider);
-            }
         } else {
             // Now validate the authn provider to make sure
             // either both group object classes and
@@ -249,7 +240,8 @@ public class AuthnConfigurationService extends TaggedResource {
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
         persistProfileAndNotifyChange(provider, true);
 
-        if(provider.getAutoRegisterOpenStackProjects()){
+        if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)
+                && provider.getAutoRegisterOpenStackProjects()) {
             registerCoprhdInKeystone(provider);
         }
 
@@ -322,7 +314,7 @@ public class AuthnConfigurationService extends TaggedResource {
         // TODO: check how to get the first domain from StringSet
         userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
 
-        TenantCreateParam param = new TenantCreateParam(PROJECT_NAME, userMappings);
+        TenantCreateParam param = new TenantCreateParam(TENANT_NAME, userMappings);
         // Create a tenant.
         TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(),param);
 
@@ -516,6 +508,10 @@ public class AuthnConfigurationService extends TaggedResource {
         populateKeystoneToken(provider, oldPassword);
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
         persistProfileAndNotifyChange(provider, false);
+
+        if (provider.getAutoRegisterOpenStackProjects()) {
+            registerCoprhdInKeystone(provider);
+        }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,
                 provider.getId().toString(), provider.toString());
         return map(getProviderById(id, false));
@@ -682,6 +678,9 @@ public class AuthnConfigurationService extends TaggedResource {
         authn.setDescription(param.getDescription());
 
         authn.setDisable(param.getDisable() != null ? param.getDisable() : authn.getDisable());
+        
+        authn.setAutoRegisterOpenStackProjects(param.getAutoRegisterOpenStackProjects() != null ? param.getAutoRegisterOpenStackProjects()
+                : authn.getAutoRegisterOpenStackProjects());
 
         authn.setMaxPageSize(param.getMaxPageSize());
 

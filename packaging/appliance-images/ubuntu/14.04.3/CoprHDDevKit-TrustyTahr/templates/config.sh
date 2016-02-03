@@ -16,15 +16,29 @@ make
 make install
 cd $workspace
 
+cat > /etc/init/ovf-network.conf << EOF
+# ovf-network
+#
+# Network Configuration
+
+description "ADG Pre Network configuration"
+
+start on local-filesystems
+stop on runlevel [!2345]
+
+script
+  exec /etc/init.d/ovf-network
+end script
+EOF
+
 cat > /etc/init.d/ovf-network << EOF
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:             ovf-network
 # Required-Start:       \$local_fs
-# Required-Stop:
-# X-Start-Before:       \$network
-# Default-Start:        B
-# Default-Stop:
+# Required-Stop:        
+# Default-Start:        2 3 4 5
+# Default-Stop:         0 1 6
 # Short-Description:    ADG network configuration script
 ### END INIT INFO
 

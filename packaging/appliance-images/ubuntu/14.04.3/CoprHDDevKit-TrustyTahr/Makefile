@@ -7,7 +7,6 @@
 #  Setup
 ##################################################
 export KERNEL := 3.19.0-25-generic
-#export KERNEL := 3.13.0-24-generic
 WORKSPACE := $(shell pwd)
 SHELL := /bin/bash
 NAME := CoprHDDevKit-TrustyTahr

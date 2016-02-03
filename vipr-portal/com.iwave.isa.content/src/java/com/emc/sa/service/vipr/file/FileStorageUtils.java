@@ -22,6 +22,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.service.vipr.file.tasks.AssociateFilePolicyToFileSystem;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshotShare;
@@ -503,6 +504,10 @@ public class FileStorageUtils {
 
     public static List<ExportRule> getFileSnapshotExportRules(URI fileSnapshotId, Boolean allDir, String subDir) {
         return execute(new FindFileSnapshotExportRules(fileSnapshotId, allDir, subDir));
+    }
+    
+    public static Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId) {
+        return execute(new AssociateFilePolicyToFileSystem(fileSystemId, filePolicyId));
     }
     
     public static List<String> getInvalidFileACLs(FileSystemACLs[] fileACLs) {

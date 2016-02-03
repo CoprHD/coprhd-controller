@@ -267,7 +267,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
             } else {
                 return FileShare.FileAccessState.READWRITE;
             }
-        } else if (fs.getPersonality().equals(FileShare.PersonalityTypes.SOURCE.toString())
+        } else if (fs.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())
                 && !fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
             // A target fileshare in any state other than FAILED_OVER is write-disabled or not-ready.
             return FileShare.FileAccessState.NOT_READY;

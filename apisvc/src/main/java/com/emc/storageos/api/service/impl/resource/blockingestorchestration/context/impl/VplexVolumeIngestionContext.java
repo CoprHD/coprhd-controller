@@ -881,4 +881,27 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         return super.toString();
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllProcessedUnManagedVolumes()
+     */
+    @Override
+    public List<UnManagedVolume> findAllProcessedUnManagedVolumes() {
+        return _parentRequestContext.findAllProcessedUnManagedVolumes();
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.URI)
+     */
+    @Override
+    public DataObject findInUpdatedObjects(URI uri) {
+        return _parentRequestContext.findInUpdatedObjects(uri);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.net.URI)
+     */
+    @Override
+    public BlockObject findCreatedBlockObject(URI uri) {
+        return _parentRequestContext.findCreatedBlockObject(uri);
+    }
 }

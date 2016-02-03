@@ -2995,7 +2995,8 @@ public class VolumeIngestionUtil {
      * @param dbClient a reference to the database client
      * @return unmanaged protection set
      */
-    public static UnManagedProtectionSet getUnManagedProtectionSetForUnManagedVolume(UnManagedVolume unManagedVolume, DbClient dbClient) {
+    public static UnManagedProtectionSet getUnManagedProtectionSetForUnManagedVolume(
+            IngestionRequestContext requestContext, UnManagedVolume unManagedVolume, DbClient dbClient) {
         UnManagedProtectionSet umpset = null;
         // Find the UnManagedProtectionSet associated with this unmanaged volume
         List<UnManagedProtectionSet> umpsets =
@@ -3003,6 +3004,11 @@ public class VolumeIngestionUtil {
         Iterator<UnManagedProtectionSet> umpsetsItr = umpsets.iterator();
         if (umpsetsItr.hasNext()) {
             umpset = umpsetsItr.next();
+        }
+
+        DataObject alreadyLoadedUmpset = requestContext.findInUpdatedObjects(umpset.getId());
+        if (alreadyLoadedUmpset != null && (alreadyLoadedUmpset instanceof UnManagedProtectionSet)) {
+            umpset = (UnManagedProtectionSet) alreadyLoadedUmpset;
         }
 
         return umpset;
@@ -3015,7 +3021,8 @@ public class VolumeIngestionUtil {
      * @param dbClient a reference to the database client
      * @return unmanaged protection set
      */
-    public static UnManagedProtectionSet getUnManagedProtectionSetForManagedVolume(BlockObject managedVolume, DbClient dbClient) {
+    public static UnManagedProtectionSet getUnManagedProtectionSetForManagedVolume(
+            IngestionRequestContext requestContext, BlockObject managedVolume, DbClient dbClient) {
         UnManagedProtectionSet umpset = null;
         // Find the UnManagedProtectionSet associated with this managed volume
         List<UnManagedProtectionSet> umpsets =
@@ -3023,6 +3030,11 @@ public class VolumeIngestionUtil {
         Iterator<UnManagedProtectionSet> umpsetsItr = umpsets.iterator();
         if (umpsetsItr.hasNext()) {
             umpset = umpsetsItr.next();
+        }
+
+        DataObject alreadyLoadedUmpset = requestContext.findInUpdatedObjects(umpset.getId());
+        if (alreadyLoadedUmpset != null && (alreadyLoadedUmpset instanceof UnManagedProtectionSet)) {
+            umpset = (UnManagedProtectionSet) alreadyLoadedUmpset;
         }
 
         return umpset;
@@ -3035,7 +3047,8 @@ public class VolumeIngestionUtil {
      * @param dbClient a reference to the database client
      * @return newly created protection set
      */
-    public static ProtectionSet createProtectionSet(UnManagedProtectionSet umpset, DbClient dbClient) {
+    public static ProtectionSet createProtectionSet(
+            IngestionRequestContext requestContext, UnManagedProtectionSet umpset, DbClient dbClient) {
         StringSetMap unManagedCGInformation = umpset.getCGInformation();
         String rpProtectionId = PropertySetterUtil.extractValueFromStringSet(
                 SupportedCGInformation.PROTECTION_ID.toString(), unManagedCGInformation);
@@ -3058,6 +3071,13 @@ public class VolumeIngestionUtil {
                 }
 
                 pset.getVolumes().add(volumeID);
+
+                if (volume == null) {
+                    BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeID));
+                    if (bo != null && bo instanceof Volume) {
+                        volume = (Volume) bo;
+                    }
+                }
 
                 if (volume == null) {
                     _logger.error("Unable to retrieve volume : " + volumeID + " from database.  Ignoring in protection set ingestion.");

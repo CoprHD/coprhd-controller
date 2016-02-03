@@ -3405,7 +3405,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     static final String MODIFY_FILESYSTEMS_STEP = "FileDeviceModifyFileShares";
     static final String DELETE_FILESYSTEMS_STEP = "FileDeviceDeleteFileShares";
     static final String CREATE_FS_MIRRORS_STEP = "FileDeviceCreateMirrors";
-    static final String EXPAND_FILESYSTEMS_STEP = "FileDeviceDeleteFileShares";
+    static final String EXPAND_FILESYSTEMS_STEP = "FileDeviceExpandFileShares";
 
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
@@ -3505,7 +3505,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         List<FileDescriptor> sourceDescriptors =
                 FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                         FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
-                        FileDescriptor.Type.FILE_MIRROR_SOURCE);
+                        FileDescriptor.Type.FILE_MIRROR_TARGET);
         if (sourceDescriptors == null || sourceDescriptors.isEmpty()) {
             return waitFor;
         } else {

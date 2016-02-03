@@ -139,4 +139,10 @@ rm /etc/network/interfaces
 groupadd -g 444 storageos
 useradd -r -d /opt/storageos -c "StorageOS" -g 444 -u 444 -s /bin/bash storageos
 
+update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-1.8.0-openjdk-amd64/bin/java 1
+update-alternatives --install /usr/bin/javac javac /usr/lib/jvm/java-1.8.0-openjdk-amd64/bin/javac 1
+
+update-alternatives --set java /usr/lib/jvm/java-1.8.0-openjdk-amd64/bin/java
+update-alternatives --set javac /usr/lib/jvm/java-1.8.0-openjdk-amd64/bin/javac
+
 exit 0

@@ -887,6 +887,8 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
         return _parentRequestContext.getCGObjectsToCreateMap();
+    }
+
     /* (non-Javadoc)
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllProcessedUnManagedVolumes()
      */
@@ -900,7 +902,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         return _parentRequestContext.getUmCGObjectsToUpdate();
     }
 
-}
 
     /* (non-Javadoc)
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.URI)

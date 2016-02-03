@@ -776,6 +776,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
         return _parentRequestContext.getCGObjectsToCreateMap();
+    }
+    
     /* (non-Javadoc)
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllProcessedUnManagedVolumes()
      */
@@ -788,8 +790,6 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate() {
         return _parentRequestContext.getUmCGObjectsToUpdate();
     }
-
-}
 
     /* (non-Javadoc)
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.URI)

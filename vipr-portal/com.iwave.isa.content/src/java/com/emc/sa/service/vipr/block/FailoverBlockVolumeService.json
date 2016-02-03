@@ -25,23 +25,14 @@
     imageToAccess:{
       type: "assetType.vipr.imageToAccess",
       required: "false",
+      initialValue: "latest",
       lockable: true
     }, 
     
     pointInTime:{
-      type:"group",
-      lockable: true,
-      collapsed: true,
-      items:{
-        pitDate:{
-          type:"date",
-          required: "false"
-        },
-        pitTime:{
-          type:"time",
-          required: "false"
-        }
-      }
+      type: "dateTime",
+      required: "false",
+      lockable: true
     }
 
   }

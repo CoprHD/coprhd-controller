@@ -130,30 +130,35 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     @Override
     public void refreshMirrorFileShareLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer)
             throws DeviceControllerException {
-        MirrorFileRefreshTaskCompleter mirorrRefreshcompleter = (MirrorFileRefreshTaskCompleter) completer;
+        MirrorFileRefreshTaskCompleter mirrorRefreshCompleter = (MirrorFileRefreshTaskCompleter) completer;
         String policyName = target.getLabel();
+        IsilonSyncPolicy policy;
+        IsilonSyncTargetPolicy localTarget;
         StorageSystem systemTarget = _dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
         IsilonApi isiPrimary = getIsilonDevice(system);
         IsilonApi isiSecondary = getIsilonDevice(systemTarget);
+        try {
+            policy = isiPrimary.getReplicationPolicy(policyName);
+            localTarget = isiSecondary.getTargetReplicationPolicy(policyName);
 
-        IsilonSyncPolicy policy = isiPrimary.getReplicationPolicy(policyName);
-        IsilonSyncTargetPolicy localTarget = isiSecondary.getTargetReplicationPolicy(policyName);
-
-        if (!policy.getEnabled()) {
-            mirorrRefreshcompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.DETACHED);
-        } else if (policy.getLastStarted() == null) {
-            mirorrRefreshcompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
-        } else if (policy.getLastStarted() != null && !policy.getEnabled()) {
-            mirorrRefreshcompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SUSPENDED);
-        } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
-            mirorrRefreshcompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);
-        } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled) &&
-                policy.getLastJobState().equals(JobState.finished)) {
-            mirorrRefreshcompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCED);
-        } else if (policy.getLastJobState().equals(JobState.running)) {
-            mirorrRefreshcompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.IN_SYNC);
+            if (!policy.getEnabled()) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.DETACHED);
+            } else if (policy.getLastStarted() == null) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
+            } else if (policy.getLastStarted() != null && !policy.getEnabled()) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SUSPENDED);
+            } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);
+            } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled) &&
+                    policy.getLastJobState().equals(JobState.finished)) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCED);
+            } else if (policy.getLastJobState().equals(JobState.running)) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.IN_SYNC);
+            }
+            completer.ready(_dbClient);
+        } catch (IsilonException e) {
+            completer.error(_dbClient, BiosCommandResult.createErrorResult(e).getServiceCoded());
         }
-        completer.ready(_dbClient);
     }
 
     @Override

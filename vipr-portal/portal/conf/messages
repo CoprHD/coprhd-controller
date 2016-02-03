@@ -3413,6 +3413,10 @@ resources.migrations.pause=Created task to stop migration.
 resources.migrations.cancel=Created task to pause migration.
 resources.migrations.resume=Created task to resume migration.
 
+resources.migrations.name=Name
+resources.migrations.percentage=Percentage
+resources.migrations.status=Status
+resources.migrations.start=Start
 
 resources.varray=Virtual Array
 resources.vpool=Virtual Pool

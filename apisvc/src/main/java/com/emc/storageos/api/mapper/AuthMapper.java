@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 EMC Corporation
+ * Copyright 2016 Intel Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;

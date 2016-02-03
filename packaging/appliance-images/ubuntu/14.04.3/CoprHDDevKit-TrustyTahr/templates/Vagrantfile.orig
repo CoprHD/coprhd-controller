@@ -17,7 +17,7 @@ Vagrant.configure(2) do |config|
   config.vm.network "public_network", ip: "#{node_ip}"
 
   config.vm.provider "virtualbox" do |v|
-    v.gui = true
+    v.gui = false
     v.name = "__NAME__"
     v.memory = __RAM__
     v.cpus = 1

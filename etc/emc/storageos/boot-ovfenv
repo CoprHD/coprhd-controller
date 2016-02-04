@@ -85,9 +85,10 @@ _isIPConsistent() {
       [ "${vdcpropMap[$vdc_ipv4key]}" != "${ovfenvpropMap[$ovfenv_ipv4key]}" ] && echo "false" && return
     
       vdc_ipv6key="vdc_vdc1_"$site_myid"_network_"$node_index"_ipaddr6";
+      vdc_ipaddr6=$(_get_ipv6_compressed "${vdcpropMap[$vdc_ipv6key]}")
       ovfenv_ipv6key="network_"$node_index"_ipaddr6";
       ovfenv_ipaddr6=$(_get_ipv6_compressed "${ovfenvpropMap[$ovfenv_ipv6key]}")
-      [ "${vdcpropMap[$vdc_ipv6key]}" != "${ovfenv_ipaddr6}" ] && echo "false" && return
+      [ "${vdc_ipaddr6}" != "${ovfenv_ipaddr6}" ] && echo "false" && return
     done 
    
     vdc_vipkey="vdc_vdc1_"$site_myid"_network_vip";

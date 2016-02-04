@@ -6998,10 +6998,10 @@ dr_basic_tests()
     echo "---VERIFY sites from standby $standby_site---"
     dr get $standby_site
     dr get $active_site
-    dr checkstandby $DR_SITE_A_IP
+    dr checkstandby "${DR_SITE_A_IP}"
 
     # wait for both sites stable so able to pause standby
-    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
 
     # pause standby
     echo "---PAUSE SITE $standby_site---"
@@ -7105,7 +7105,7 @@ dr_multisite_tests()
     
     echo "---ADD STANDBY SITE B---"
     echo "Adding new standby into current vipr system"
-    standby_site_b=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" $DR_SITE_B_IP $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site_b; exit 1; }
+    standby_site_b=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" "${DR_SITE_B_IP}" $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site_b; exit 1; }
     echo "Adding dr done"
     echo "stanby uuid is $standby_site_b"    
 
@@ -7120,7 +7120,7 @@ dr_multisite_tests()
     description=$(dr get $standby_site_b description|tail -1)
     vip=$(dr get $standby_site_b vip|tail -1)
 
-    if [ "$vip" != "$DR_SITE_B_IP" ] ; then
+    if [ "$vip" != "$DR_SITE_B_IP" -a "[$vip]" != "$DR_SITE_B_IP"  ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
         exit 1
     fi
@@ -7180,7 +7180,7 @@ dr_multisite_tests()
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     echo "Adding new standby into current vipr system"
-    standby_site_c=$(dr add $DR_SITE_C_NAME "$DR_SITE_C_DESCRIPTION" $DR_SITE_C_IP $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site c failed."; echo $standby_site_c; exit 1; }
+    standby_site_c=$(dr add $DR_SITE_C_NAME "$DR_SITE_C_DESCRIPTION" "${DR_SITE_C_IP}" $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site c failed."; echo $standby_site_c; exit 1; }
     echo "Adding dr site c done"
     echo "stanby uuid is $standby_site_c"
 
@@ -7195,7 +7195,7 @@ dr_multisite_tests()
     description=$(dr get $standby_site_c description|tail -1)
     vip=$(dr get $standby_site_c vip|tail -1)
 
-    if [ "$vip" != "$DR_SITE_C_IP" ] ; then
+    if [ "$vip" != "$DR_SITE_C_IP" -a "[$vip]" != "$DR_SITE_C_IP" ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_C_IP\""
         exit 1
     fi
@@ -7261,7 +7261,7 @@ dr_multisite_tests()
     dr get $standby_site_c
     dr get $active_site
 
-    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP $DR_SITE_C_IP
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
     # pause standby b
     echo "---PAUSE SITE $standby_site_b---"
@@ -7276,7 +7276,7 @@ dr_multisite_tests()
     dr waitforstate $standby_site_b STANDBY_PAUSED 30 1200
     echo "Pausing dr done"
 
-    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP $DR_SITE_C_IP
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
     # pause standby c
     echo "---PAUSE SITE $standby_site_c---"
@@ -7362,7 +7362,7 @@ dr_multisite_tests()
     echo "Power off active site $DR_SITE_A_IP to do failover"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr poweroffcluster $DR_SITE_A_IP
+    dr poweroffcluster "${DR_SITE_A_IP}"
 
     echo "Sleep 400 seconds to wait standby ZK switch to participant"
     sleep 400
@@ -7370,10 +7370,10 @@ dr_multisite_tests()
     echo "Wait for stable"
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable --ip $DR_SITE_C_IP 10 600
+    dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
 
     echo "Failover to promote site $DR_SITE_C_NAME as active"
-    dr failover --ip $DR_SITE_C_IP $standby_site_c
+    dr failover --ip "${DR_SITE_C_IP}" $standby_site_c
 
     echo "Sleep 800 seconds to wait failover"
     sleep 800
@@ -7381,10 +7381,10 @@ dr_multisite_tests()
     echo "Wait for stable"
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable --ip $DR_SITE_C_IP 10 600
+    dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
 
     echo "Wait site state to be PRIAMRY after failover"
-    dr waitforstate $standby_site_c ACTIVE 30 600 --ip $DR_SITE_C_IP
+    dr waitforstate $standby_site_c ACTIVE 30 600 --ip "${DR_SITE_C_IP}"
 
     #disabling pipefail option to pipe exit codes
     set +o pipefail

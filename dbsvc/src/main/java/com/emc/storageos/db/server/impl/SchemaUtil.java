@@ -358,7 +358,7 @@ public class SchemaUtil {
                 setCurrentVersion(_service.getVersion());
             }
             Site currentSite = drUtil.getLocalSite();
-            if (currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+            if (SiteState.STANDBY_SYNCING.equals(currentSite.getState())) {
                 // Ensure schema agreement before checking the strategy options,
                 // since the strategy options from the local site might be older than the active site
                 // and shouldn't be relied on any more.

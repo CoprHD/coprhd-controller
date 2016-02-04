@@ -45,6 +45,7 @@ all: appliance
 PACKAGES_BOOT := linux-image-$(KERNEL) linux-headers-$(KERNEL)
 PACKAGES_LIST := build-essential dkms keyutils kpartx memtest86+ nfs-common openssh-client openssh-server parted psmisc qemu-system-common qemu-utils vim squashfs-tools
 PACKAGES_LIST := $(PACKAGES_LIST) alien ant apparmor arping atop auditd ca-certificates ca-certificates-java createrepo expect gcc-4.8 geoip-bin geoip-database git git-core gradle keepalived libapr1-dev libaprutil1-dev libpcre3 libpcre3-dev libserf-dev libstrongswan libtool libssl-dev ndisc6 ntp openjdk-8-jdk openjdk-8-jre openjdk-8-jre-headless p7zip perl perl-base perl-tk python-cjson python-gpgme python-iniparse python-requests python-setools readline-common rpm sipcalc strongswan subversion sysstat uuid-dev virtualbox-5.0 xfsprogs xmlstarlet yum libuuid1=2.20.1-5.1ubuntu20
+PACKAGES_LIST := $(PACKAGES_LIST) sysfsutils libsysfs2 python-setuptools python-pip python-tox
 
 ISO_MOUNT := $(WORKSPACE)/iso/mount
 DIR_MOUNT := $(WORKSPACE)/dir/mount

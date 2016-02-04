@@ -1674,7 +1674,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             String copyName = null;
             if (URIUtil.isValid(copy.getName())) {
                 URI snapshotUri = URI.create(copy.getName());
-                ArgValidator.checkFieldUriType(snapshotUri, Volume.class, "copyName");
+                ArgValidator.checkFieldUriType(snapshotUri, BlockSnapshot.class, "copyName");
 
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotUri);
                 ArgValidator.checkEntity(snapshot, snapshotUri, true);

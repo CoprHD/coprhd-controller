@@ -1591,7 +1591,7 @@ public class BlockService extends TaskResourceService {
                 // For RP failover, if the copy name is specified, it will be a BlockSnapshot URI String
                 if (URIUtil.isValid(copy.getName())) {
                     URI snapshotUri = URI.create(copy.getName());
-                    ArgValidator.checkFieldUriType(snapshotUri, Volume.class, "copyName");
+                    ArgValidator.checkFieldUriType(snapshotUri, BlockSnapshot.class, "copyName");
 
                     BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotUri);
                     ArgValidator.checkEntity(snapshot, snapshotUri, true);
@@ -5166,9 +5166,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     * 
+     *
      * @param consistencyGroup
-     * 
+     *
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,

@@ -14,7 +14,7 @@
 
     <bean id="randomAlgo" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
         <property name="targetClass"
-                  value="com.emc.storageos.security.keystore.impl.KeyCertificateAlgorithmValuesHolder"/>
+                  value="com.emc.storageos.security.helpers.SecurityUtil"/>
         <property name="targetMethod" value="setSecuredRandomAlgorithm"/>
         <property name="arguments" value="SHA1PRNG"/>
     </bean>

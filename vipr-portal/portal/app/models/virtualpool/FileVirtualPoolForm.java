@@ -49,6 +49,8 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
     public Long replicationRpo;
     public String rpRpoType;
     
+    public Boolean scheduleSnapshots;
+    
     
     public void deserialize() {
         Gson g = new Gson();
@@ -77,6 +79,10 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         if ((protection != null) && (protection.getSnapshots() != null)) {
             maxSnapshots = protection.getSnapshots().getMaxSnapshots();
         }
+        if (protection != null) {
+            scheduleSnapshots = protection.getScheduleSnapshots();
+        }
+       
         if(replication != null){
             FileReplicationPolicy replicationPolicy = replication.getSourcePolicy();
             replicationMode = replicationPolicy.getCopyMode();
@@ -128,6 +134,7 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
     private FileVirtualPoolBuilder apply(FileVirtualPoolBuilder builder) {
         applyCommon(builder);
         builder.setSnapshots(maxSnapshots);
+        builder.setScheduleSnapshots(scheduleSnapshots);
         builder.setLongTermRetention(longTermRetention);
         
         FileReplicationPolicy fileReplicationPolicy = new FileReplicationPolicy();
@@ -164,6 +171,7 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
     private FileVirtualPoolUpdateBuilder apply(FileVirtualPoolUpdateBuilder builder) {
         applyCommon(builder);
         builder.setSnapshots(maxSnapshots);
+        builder.setScheduleSnapshots(scheduleSnapshots);
         builder.setLongTermRetention(longTermRetention);
         
         

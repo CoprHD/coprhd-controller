@@ -472,16 +472,15 @@ public class KeyCertificatePairGenerator {
         SecureRandom random = null;
         try {
 
-            random =
-                    SecureRandom.getInstance(valuesHolder.getSecuredRandomAlgorithm());
+            random = SecurityUtil.getSecureRandomInstance();
             keyGen =
                     KeyPairGenerator.getInstance(
                             KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);
             keyGen.initialize(valuesHolder.getKeySize(), random);
             return keyGen.generateKeyPair();
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             throw SecurityException.fatals.noSuchAlgorithmException(
-                    valuesHolder.getSecuredRandomAlgorithm(), e);
+                    SecurityUtil.getSecuredRandomAlgorithm(), e);
         } finally {
             if (keyGen != null) {
                 SecurityUtil.clearSensitiveData(keyGen);

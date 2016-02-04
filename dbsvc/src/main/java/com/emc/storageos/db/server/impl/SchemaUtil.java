@@ -495,7 +495,8 @@ public class SchemaUtil {
         }
         
         // on removed vdc, its strategyOption need be reset
-        if (_vdcList.size() == 1 && strategyOptions.size() > 1) {
+        boolean isDrConfig = drUtil.listSites().size() > 1;
+        if (_vdcList.size() == 1 && strategyOptions.size() > 1 && !isDrConfig) {
             strategyOptions.clear();
         }
         

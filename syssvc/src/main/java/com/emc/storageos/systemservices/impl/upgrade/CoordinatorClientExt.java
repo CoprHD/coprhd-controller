@@ -1497,7 +1497,9 @@ public class CoordinatorClientExt {
                     return new Thread(r, "CoordinatorsvcMonitor");
                 }
             });
-            exe.scheduleAtFixedRate(coordinatorSvcMonitor, 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+            // delay for a period of time to start the monitor. For DR switchover, we stop original active, then start new active. 
+            // So the original active may not see the new active immediately after reboot
+            exe.scheduleAtFixedRate(coordinatorSvcMonitor, 3 * COODINATOR_MONITORING_INTERVAL , COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
         } else {
             _log.info("Start monitoring db quorum on all standby sites");
             ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
@@ -1557,7 +1559,7 @@ public class CoordinatorClientExt {
                 if (DrUtil.ZOOKEEPER_MODE_LEADER.equals(state) ||
                         DrUtil.ZOOKEEPER_MODE_FOLLOWER.equals(state) ||
                         DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state)) {
-                    // node is in participant mode, update the local site state to PAUSED if it's SYNCED
+                    // node is in participant mode, update the local site state accordingly
                     checkAndUpdateLocalSiteState();
 
                     // check if active site is back
@@ -1573,17 +1575,27 @@ public class CoordinatorClientExt {
             }
         }
 
+        /**
+         * Update the standby site state when the active site is lost.
+         * if SYNCED, change it to PAUSED.
+         * if SYNCING/RESUMING/ADDING, change it to ERROR since it will never finish without the active site.
+         */
         private void checkAndUpdateLocalSiteState() {
             Site localSite = drUtil.getLocalSite();
 
-            if (!localSite.getState().equals(SiteState.STANDBY_SYNCED)) {
-                // nothing to do
-                return;
+            if (SiteState.STANDBY_SYNCED.equals(localSite.getState())) {
+                _log.info("Updating local site from {} to STANDBY_PAUSED since active is unreachable",
+                        localSite.getState());
+                localSite.setState(SiteState.STANDBY_PAUSED);
+                _coordinator.persistServiceConfiguration(localSite.toConfiguration());
+            } else if (SiteState.STANDBY_SYNCING.equals(localSite.getState()) ||
+                    SiteState.STANDBY_RESUMING.equals(localSite.getState()) ||
+                    SiteState.STANDBY_ADDING.equals(localSite.getState())){
+                _log.info("Updating local site from {} to STANDBY_ERROR since active is unreachable",
+                        localSite.getState());
+                localSite.setState(SiteState.STANDBY_ERROR);
+                _coordinator.persistServiceConfiguration(localSite.toConfiguration());
             }
-
-            _log.info("Updating local site to STANDBY_PAUSED since active is unreachable");
-            localSite.setState(SiteState.STANDBY_PAUSED);
-            _coordinator.persistServiceConfiguration(localSite.toConfiguration());
         }
 
         /**
@@ -1651,7 +1663,7 @@ public class CoordinatorClientExt {
                     } finally {
                         leaveZKDoubleBarrier(barrier,DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     }
-                    localRepository.reload("reset-coordinator");
+                    localRepository.restartCoordinator("observer");
                 } else {
                     _log.warn("All nodes unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     leaveZKDoubleBarrier(barrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
@@ -1684,18 +1696,13 @@ public class CoordinatorClientExt {
 
     /**
      * reconfigure ZooKeeper to participant mode within the local site
-     *
-     * @param reloadSyssvc if syssvc needs to be reloaded
      */
-    public void reconfigZKToWritable(boolean reloadSyssvc) {
+    public void reconfigZKToWritable() {
         _log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
         try {
             LocalRepository localRepository = LocalRepository.getInstance();
             localRepository.reconfigCoordinator("participant");
-            localRepository.restart("coordinatorsvc");
-            if (reloadSyssvc) {
-                localRepository.restart("syssvc");
-            }
+            localRepository.restartCoordinator("participant");
         } catch (Exception ex) {
             _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
         }
@@ -1723,8 +1730,7 @@ public class CoordinatorClientExt {
                 }
                 LocalRepository localRepository=LocalRepository.getInstance();
                 localRepository.remoteReconfigCoordinator(node, "participant");
-                localRepository.remoteRestart(node, "coordinatorsvc");
-                localRepository.remoteRestart(node, "syssvc");
+                localRepository.remoteRestartCoordinator(node, "participant");
             }
 
             for(String node:readOnlyNodes){
@@ -1735,12 +1741,12 @@ public class CoordinatorClientExt {
                 }
                 LocalRepository localRepository=LocalRepository.getInstance();
                 localRepository.remoteReconfigCoordinator(node,"participant");
-                localRepository.remoteRestart(node,"coordinatorsvc");
+                localRepository.remoteRestartCoordinator(node,"participant");
             }
 
             //reconfigure local node last
             if (reconfigLocal){
-                reconfigZKToWritable(observerNodes.contains(getMyNodeId()));
+                reconfigZKToWritable();
             }
 
         }catch(Exception ex){

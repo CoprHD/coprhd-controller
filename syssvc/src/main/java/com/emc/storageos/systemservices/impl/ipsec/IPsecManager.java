@@ -12,14 +12,18 @@ import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.model.ipsec.IpsecParam;
 import com.emc.storageos.security.geo.GeoClientCacheManager;
+import com.emc.storageos.security.helpers.SecurityUtil;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.security.exceptions.SecurityException;
+import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
+
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,6 +32,10 @@ import java.util.List;
  * This class is to handle all ipsec related requests from web app.
  */
 public class IPsecManager {
+
+    private static final int KEY_LENGTH = 64;
+    private static final char[] charsForKey =
+            "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".toCharArray();
 
     private static final Logger log = LoggerFactory.getLogger(IPsecManager.class);
     public static final String STATUS_ENABLED = "enabled";
@@ -45,6 +53,15 @@ public class IPsecManager {
 
     @Autowired
     private GeoClientCacheManager geoClientManager;
+
+    /**
+     * generate a 64-byte key for IPsec
+     * @return
+     */
+    public String generateKey() throws Exception {
+        return RandomStringUtils.random(KEY_LENGTH, 0, charsForKey.length-1,
+                true, true, charsForKey, SecurityUtil.getSecureRandomInstance());
+    }
 
     /**
      * Checking ipsec status against the entire system.
@@ -79,9 +96,9 @@ public class IPsecManager {
      * @return
      */
     public String rotateKey(boolean enableIpsec) {
-        String psk = ipsecConfig.generateKey();
-
         try {
+            String psk = generateKey();
+
             long vdcConfigVersion = DrUtil.newVdcConfigVersion();
 
             String ipsecStatus = null;
@@ -102,7 +119,7 @@ public class IPsecManager {
             log.info("IPsec Key gets rotated successfully to the version {}", vdcConfigVersion);
             return Long.toString(vdcConfigVersion);
         } catch (Exception e) {
-            log.warn("Fail to rotate ipsec key due to: {}", e);
+            log.warn("Fail to rotate ipsec key.", e);
             throw SecurityException.fatals.failToRotateIPsecKey(e);
         }
     }

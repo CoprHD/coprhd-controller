@@ -1000,7 +1000,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 volumeClusters);
 
         StringSet accesses = new StringSet();
-        accesses.add(Volume.VolumeAccessState.READWRITE.name());
+        accesses.add(Volume.VolumeAccessState.READWRITE.getState());
         unManagedVolumeInformation.put(SupportedVolumeInformation.ACCESS.toString(), accesses);
 
         // set supported vpool list

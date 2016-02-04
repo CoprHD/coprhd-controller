@@ -73,6 +73,6 @@ public interface ObjectController extends StorageController {
      */
     public void deleteBucketACL(URI storage, URI bucket, String opId) throws InternalException;
     
-    public void getUserSecretKey(URI storage, String userId, String task, URI userTrackId)  throws InternalException;
+    public void getUserSecretKey(URI storage, String userId)  throws InternalException;
 
 }

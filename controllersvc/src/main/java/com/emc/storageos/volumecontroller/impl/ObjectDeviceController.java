@@ -118,9 +118,9 @@ public class ObjectDeviceController implements ObjectController {
     }
 
     @Override
-    public void getUserSecretKey(URI storage, String userId, String task, URI userTrackId) throws ControllerException {
+    public void getUserSecretKey(URI storage,  String userId) throws ControllerException {
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        getDevice(storageObj.getSystemType()).doGetUserSecretKey(storageObj, userId, task, userTrackId);
+        getDevice(storageObj.getSystemType()).doGetUserSecretKey(storageObj, userId);
     }
 
     @Override

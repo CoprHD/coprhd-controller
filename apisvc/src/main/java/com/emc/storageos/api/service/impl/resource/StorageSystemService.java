@@ -1317,20 +1317,17 @@ public class StorageSystemService extends TaskResourceService {
             throw APIException.badRequests.invalidParameterURIInvalid("id", id);
         }
         
-        String task = UUID.randomUUID().toString();
-        URI userTrackId = URIUtil.createId(Bucket.class);
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
-        controller.getUserSecretKey(id, userId, task, userTrackId);
+        controller.getUserSecretKey(id, userId);
 
         //poll for task to complete
-        BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, userTrackId, task);
         try {
-            completer.wait();
+            Thread.sleep(500);
         } catch (InterruptedException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
- 
+        
         ScopedLabelSet tagSet = system.getTag();
         String user_key = tagSet.toString();
         int keyAt = user_key.indexOf(":");

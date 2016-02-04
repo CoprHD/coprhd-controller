@@ -61,7 +61,8 @@ public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
     }
 
     @Override
-    protected Collection<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
+    protected Collection<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv,
+            IngestionRequestContext requestContext)
             throws Exception {
         Collection<BlockObject> blockObjects = VolumeIngestionUtil.findBlockObjectsInCg(cg, requestContext);
 
@@ -70,15 +71,13 @@ public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
         while (blockObjectItr.hasNext()) {
             BlockObject blockObject = blockObjectItr.next();
             if (blockObject instanceof Volume) {
-                Volume volume = (Volume)blockObject;
+                Volume volume = (Volume) blockObject;
                 if (volume.checkForVplexVirtualVolume(dbClient)) {
                     blockObjectItr.remove();
                 }
             }
         }
-        return blockObjects;        
+        return blockObjects;
     }
-
-
 
 }

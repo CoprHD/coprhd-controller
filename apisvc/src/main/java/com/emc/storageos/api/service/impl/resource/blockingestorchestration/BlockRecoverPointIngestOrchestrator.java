@@ -29,7 +29,6 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -50,7 +49,6 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGCharacteristics;
@@ -482,7 +480,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      */
     private void decorateVolumeInformationFinalIngest(IngestionRequestContext requestContext) {
 
-        RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
+        RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext();
         ProtectionSet pset = volumeContext.getManagedProtectionSet();
         BlockConsistencyGroup cg = volumeContext.getManagedBlockConsistencyGroup();
 
@@ -546,7 +544,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         VirtualArray virtualArray = volumeContext.getVarray(unManagedVolume);
         Project project = volumeContext.getProject();
-    
+
         ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
         UnManagedExportMask em = findUnManagedRPExportMask(protectionSystem, unManagedVolume);
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
@@ -562,11 +560,12 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             volumeContext.setExportGroupCreated(true);
             Integer numPaths = em.getZoningMap().size();
             _logger.info("Creating Export Group with label {}", em.getMaskName());
-          
-            //If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains that interna flag.
+
+            // If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains that
+            // interna flag.
             boolean isJournalExport = false;
             if (em.getMaskName().toLowerCase().contains("journal")) {
-            	isJournalExport = true;
+                isJournalExport = true;
             }
             exportGroup = RPHelper.createRPExportGroup(volume.getInternalSiteName(), virtualArray, project, protectionSystem,
                     storageSystem, numPaths, isJournalExport);
@@ -656,7 +655,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.unManagedProtectionSetNotFound(unManagedVolume.getNativeGuid());
         }
 
-        return VolumeIngestionUtil.validateAllVolumesInCGIngested(parentRequestContext.findAllProcessedUnManagedVolumes(), umpset, _dbClient);
+        return VolumeIngestionUtil.validateAllVolumesInCGIngested(parentRequestContext.findAllProcessedUnManagedVolumes(), umpset,
+                _dbClient);
     }
 
     /**
@@ -707,7 +707,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         if ((Volume.PersonalityTypes.SOURCE.toString().equalsIgnoreCase(type)) &&
                 (virtualPool.getProtectionVarraySettings() == null)) {
             throw IngestionException.exceptions.invalidSourceRPVirtualPool(unManagedVolume.getLabel(), virtualPool.getLabel());
-        } 
+        }
 
         if (VolumeIngestionUtil.checkUnManagedVolumeHasReplicas(unManagedVolume)) {
             // check if the RP protected volume has any mirrors. If yes, throw an error as we don't support this configuration in ViPR as of
@@ -1032,10 +1032,4 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
     }
 
-    @Override
-    protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj, VirtualPool vPool,
-            URI project, URI tenant, URI virtualArray, List<UnManagedConsistencyGroup> umcgsToUpdate, DbClient dbClient) {
-        // TODO: Create the consistency group for RP here.
-        return null;
-    }
 }

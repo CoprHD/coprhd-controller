@@ -769,7 +769,8 @@ public class VolumeIngestionUtil {
         // Check to ensure this isn't a non-RP protected unmanaged volume attempted to be ingested
         // by an RP source vpool.
         if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
-            String value = unManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
+            String value = unManagedVolume.getVolumeCharacterstics().get(
+                    UnManagedVolume.SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
             if (FALSE.equalsIgnoreCase(value)) {
                 throw APIException.internalServerErrors.ingestNotAllowedNonRPVolume(vpool.getLabel(), unManagedVolume.getLabel());
             }
@@ -1337,7 +1338,7 @@ public class VolumeIngestionUtil {
         SetView<String> diff = Sets.difference(portsInUnManagedMask, storagePortUriStr);
         // Temporary relaxation of storage port restriction for XIO:
         // With XIO we do not have the ability to remove specific (and possibly unavailable) storage ports
-        // from the LUN maps.  So a better check specifically for XIO is to ensure that we at least have one
+        // from the LUN maps. So a better check specifically for XIO is to ensure that we at least have one
         // storage port in the varray.
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
         boolean portsValid = true;
@@ -1346,9 +1347,9 @@ public class VolumeIngestionUtil {
                 portsValid = diff.size() < portsInUnManagedMask.size();
             } else {
                 portsValid = diff.isEmpty();
-            }                    
+            }
         }
-        
+
         if (!portsValid) {
             _logger.warn("Storage Ports {} in unmanaged mask {} is not available in VArray {}", new Object[] {
                     Joiner.on(",").join(diff), mask.getMaskName(), varray });
@@ -3117,6 +3118,7 @@ public class VolumeIngestionUtil {
 
     /**
      * Create a block consistency group for the given protection set
+     * 
      * @param pset protection set
      * @param dbClient
      * 
@@ -3179,21 +3181,22 @@ public class VolumeIngestionUtil {
 
             _logger.info("Updating volume " + volume.getLabel() + " flags/settings to " + volume.getInternalFlags());
 
-            // Find any backing volumes associated with  vplex volumes and add the CG reference to them as well.
+            // Find any backing volumes associated with vplex volumes and add the CG reference to them as well.
             if (volume.checkForVplexVirtualVolume(dbClient)) {
                 // Find associated volumes
                 for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
-                    // First look in created block objects for the associated volumes.  This would be the latest version.
+                    // First look in created block objects for the associated volumes. This would be the latest version.
                     BlockObject blockObject = requestContext.findCreatedBlockObject(associatedVolumeIdStr);
                     if (blockObject == null) {
                         // Next look in the updated objects.
-                        blockObject = (BlockObject)requestContext.findInUpdatedObjects(URI.create(associatedVolumeIdStr));
+                        blockObject = (BlockObject) requestContext.findInUpdatedObjects(URI.create(associatedVolumeIdStr));
                     }
                     if (blockObject == null) {
-                        // Finally look in the DB itself.  It may be from a previous ingestion operation.
+                        // Finally look in the DB itself. It may be from a previous ingestion operation.
                         blockObject = dbClient.queryObject(Volume.class, URI.create(associatedVolumeIdStr));
                         // Since I pulled this in from the database, we need to add it to the list of objects to update.
-                        ((RecoverPointVolumeIngestionContext)requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(blockObject.getNativeGuid(), Arrays.asList(blockObject));
+                        ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(
+                                blockObject.getNativeGuid(), Arrays.asList(blockObject));
                     }
                     if (blockObject != null) {
                         blockObject.setConsistencyGroup(rpCG.getId());
@@ -3201,7 +3204,7 @@ public class VolumeIngestionUtil {
                     }
                 }
             }
-            
+
             updatedObjects.add(volume);
         }
     }
@@ -3245,12 +3248,15 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Create ConsistencyGroup if it doesn't exist in DB.
      * 
      * @param unManagedVolume
+     * @param blockObj
      * @param vpool
      * @param projectUri
      * @param tenantUri
      * @param varrayUri
+     * @param umcgsToUpdate
      * @param dbClient
      * @return
      */
@@ -3259,14 +3265,13 @@ public class VolumeIngestionUtil {
             DbClient dbClient) {
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroup(unManagedVolume, dbClient);
 
-        // Check if the CG has last volume to ingest or UMV is RP protected. If yes, create the CG else return null.
         // @TODO verify whether unmanaged snaps & mirrors have the VPLEX attribute populated.
         boolean isLastUmvToIngest = isLastUnManagedVolumeToIngest(umcg, unManagedVolume);
-        boolean isVplexRPProtected = isVplexRPProtected(unManagedVolume);
-        if (isVplexRPProtected || !isLastUmvToIngest) {
+        boolean isVplexOrRPProtected = isRPOrVplexProtected(unManagedVolume);
+        if (isVplexOrRPProtected || !isLastUmvToIngest) {
             _logger.info(
                     "Ignoring the CG creation as the volume is either isVplexRPProtected:{} or isLastUmvToIngest: {} exists to ingest.",
-                    isLastUmvToIngest, isVplexRPProtected);
+                    isLastUmvToIngest, isVplexOrRPProtected);
             _logger.info("Remaining volumes in CG to ingest: {}", umcg.getUnManagedVolumesMap());
             // set ReplicationGroupInstance in the block object.
             blockObj.setReplicationGroupInstance(umcg.getLabel());
@@ -3353,12 +3358,13 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * @TODO Add logic for RP here...
+     * Check whether the unmanagedvolume is VPLEX or RP protected.
+     * 
      * @param unManagedVolume
      * @return
      */
-    private static boolean isVplexRPProtected(UnManagedVolume unManagedVolume) {
-        return isVplexBackendVolume(unManagedVolume);
+    private static boolean isRPOrVplexProtected(UnManagedVolume unManagedVolume) {
+        return isVplexBackendVolume(unManagedVolume) || checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
     }
 
     private static boolean validateCGProjectDetails(BlockConsistencyGroup cg, StorageSystem storageSystem, URI projectUri, URI tenantUri,
@@ -3390,8 +3396,8 @@ public class VolumeIngestionUtil {
     }
 
     public static Collection<BlockObject> findBlockObjectsInCg(BlockConsistencyGroup cg, IngestionRequestContext requestContext) {
-        // Search for block objects with the CG's ID in our context and the database, if needed. 
-        Set<BlockObject> blockObjects = new HashSet<BlockObject>(); 
+        // Search for block objects with the CG's ID in our context and the database, if needed.
+        Set<BlockObject> blockObjects = new HashSet<BlockObject>();
 
         for (BlockObject bo : requestContext.getObjectsToBeCreatedMap().values()) {
             if (URIUtil.identical(bo.getConsistencyGroup(), cg.getId())) {
@@ -3404,13 +3410,13 @@ public class VolumeIngestionUtil {
                 if (!(dobj instanceof BlockObject)) {
                     continue;
                 }
-                BlockObject bo = (BlockObject)dobj;
+                BlockObject bo = (BlockObject) dobj;
                 if (URIUtil.identical(bo.getConsistencyGroup(), cg.getId())) {
                     blockObjects.add(bo);
                 }
             }
         }
-        
+
         return blockObjects;
     }
 }

@@ -7,7 +7,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,12 +23,10 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -65,10 +63,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             checkVolumeExportState(unManagedVolume, unManagedVolumeExported);
             VolumeIngestionUtil.checkUnManagedResourceIngestable(unManagedVolume);
 
-            snapShot = createSnapshot(requestContext.getStorageSystem(), snapNativeGuid,
-                    requestContext.getVarray(unManagedVolume), requestContext.getVpool(unManagedVolume), 
-                    unManagedVolume, requestContext.getProject(), requestContext.getTenant().getId(),
-                    requestContext.getCGObjectsToCreateMap(), requestContext.getUmCGObjectsToUpdate());
+            snapShot = createSnapshot(requestContext, snapNativeGuid);
 
             // See if this is a linked target for existing block snapshot sessions.
             if (!NullColumnValueGetter.isNullValue(snapShot.getSettingsInstance())) {
@@ -117,10 +112,9 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         return;
     }
 
-    private BlockSnapshot createSnapshot(StorageSystem system, String nativeGuid, VirtualArray virtualArray,
-            VirtualPool vPool, UnManagedVolume unManagedVolume, Project project, URI tenantURI,
-            Map<String, BlockConsistencyGroup> cgsToCreateMap, List<UnManagedConsistencyGroup> umcgsToUpdate) throws IngestionException {
+    private BlockSnapshot createSnapshot(IngestionRequestContext requestContext, String nativeGuid) throws IngestionException {
 
+        UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();
         BlockSnapshot snapShot = new BlockSnapshot();
         snapShot.setId(URIUtil.createId(BlockSnapshot.class));
         snapShot.setNativeGuid(nativeGuid);
@@ -133,9 +127,9 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             deviceLabel = nativeGuid;
         }
         snapShot.setSnapsetLabel(deviceLabel);// TODO: shld revisit this
-        snapShot.setStorageController(system.getId());
-        snapShot.setVirtualArray(virtualArray.getId());
-        snapShot.setProject(new NamedURI(project.getId(), snapShot.getLabel()));
+        snapShot.setStorageController(requestContext.getStorageSystem().getId());
+        snapShot.setVirtualArray(requestContext.getVarray(unManagedVolume).getId());
+        snapShot.setProject(new NamedURI(requestContext.getProject().getId(), snapShot.getLabel()));
         snapShot.setWWN(unManagedVolume.getWwn());
 
         String allocatedCapacity = PropertySetterUtil.extractValueFromStringSet(
@@ -168,10 +162,10 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         String techType = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(),
                 unManagedVolumeInformation);
         snapShot.setTechnologyType(techType);
-        BlockConsistencyGroup cg = getConsistencyGroup(unManagedVolume, snapShot, vPool, project.getId(), tenantURI, virtualArray.getId(),
-                umcgsToUpdate, _dbClient);
+        BlockConsistencyGroup cg = getConsistencyGroup(unManagedVolume, snapShot, requestContext, _dbClient);
         if (null != cg) {
-            cgsToCreateMap.put(cg.getLabel(), cg);
+            requestContext.getCGObjectsToCreateMap().put(cg.getLabel(), cg);
+            decorateCGVolumes(cg, snapShot, requestContext, unManagedVolume);
         }
 
         return snapShot;
@@ -179,13 +173,32 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
     }
 
     @Override
-    protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj, VirtualPool vPool,
-            URI project, URI tenant, URI virtualArray, List<UnManagedConsistencyGroup> umcgsToUpdate, DbClient dbClient) {
+    protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,
+            IngestionRequestContext context, DbClient dbClient) {
         if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
-            return VolumeIngestionUtil.getBlockObjectConsistencyGroup(unManagedVolume, blockObj, vPool, project, tenant, virtualArray,
-                    umcgsToUpdate, dbClient);
+            return VolumeIngestionUtil.getBlockObjectConsistencyGroup(unManagedVolume, blockObj, context.getVpool(unManagedVolume),
+                    context.getProject().getId(), context.getTenant().getId(), context.getVarray(unManagedVolume).getId(),
+                    context.getUmCGObjectsToUpdate(),
+                    dbClient);
         }
         return null;
+    }
+
+    @Override
+    protected void decorateCGVolumes(BlockConsistencyGroup cg, BlockObject snapshot, IngestionRequestContext requestContext,
+            UnManagedVolume unManagedVolume) {
+        UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroupFromContext(cg, requestContext);
+        List<DataObject> updatesToUpdateList = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
+        if (null != umcg && null != umcg.getManagedVolumesMap() && !umcg.getManagedVolumesMap().isEmpty()) {
+            for (Entry<String, String> managedVolumeEntry : umcg.getManagedVolumesMap().entrySet()) {
+                BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(managedVolumeEntry.getValue()));
+                blockObject.setConsistencyGroup(cg.getId());
+                blockObject.setReplicationGroupInstance(cg.getLabel());
+                updatesToUpdateList.add(blockObject);
+            }
+        }
+        snapshot.setConsistencyGroup(cg.getId());
+        snapshot.setReplicationGroupInstance(cg.getLabel());
     }
 
 }

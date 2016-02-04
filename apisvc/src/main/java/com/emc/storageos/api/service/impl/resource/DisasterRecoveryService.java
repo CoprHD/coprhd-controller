@@ -1844,7 +1844,7 @@ public class DisasterRecoveryService {
 
                 log.info("No another active site detect for failback");
             } catch (Exception e) {
-                log.error("Error occurs during failback detect monitor", e);
+                log.error("Error occurs during failback detect monitor: {}", e.getMessage());
             }
         }
 
@@ -1903,7 +1903,7 @@ public class DisasterRecoveryService {
 
                 return hasActiveSite;
             } catch (Exception e) {
-                log.warn("Failed to check remote site information during failback detect", e);
+                log.warn("Failed to check remote site information during failback detect {}", e.getMessage());
                 return false;
             }
         }

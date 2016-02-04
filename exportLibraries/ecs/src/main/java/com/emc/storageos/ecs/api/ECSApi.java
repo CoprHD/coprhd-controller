@@ -576,6 +576,7 @@ public class ECSApi {
         try {
             String responseString = null;
             final String path = MessageFormat.format(URI_USER_SECRET_KEYS, user);
+            getAuthToken();
             clientResp = get(path);
             if (null == clientResp) {
                 throw ECSException.exceptions.getUserSecretKeysFailed("no response from ECS");

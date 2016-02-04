@@ -110,6 +110,25 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
+    public void doGetUserSecretKey(StorageSystem storageObj, String userId) throws ControllerException {
+        ECSApi ecsApi = getAPI(storageObj);
+
+        try {
+            UserSecretKeysGetCommandResult secretKeyRes = ecsApi.getUserSecretKeys(userId);
+            if (secretKeyRes.getSecret_key_1() != null) {
+                ScopedLabel newScopedLabel = new ScopedLabel(userId, secretKeyRes.getSecret_key_1());
+                ScopedLabelSet tagSet = new ScopedLabelSet();
+                tagSet.add(newScopedLabel);
+                storageObj.setTag(tagSet);
+                _dbClient.updateObject(storageObj);
+            }
+        } catch (Exception e) {
+           _log.error("ECSObjectStorageDevice:doGetUserSecretKey failed.");
+        }
+    }
+
+
+    @Override
     public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota,
             Integer retention,
             String taskId) {
@@ -502,20 +521,6 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         return new Gson().toJson(ecsBucketAcl);
     }
     
-    @Override
-    public void doGetUserSecretKey(StorageSystem storageObj, String userId) {
-        ECSApi ecsApi = getAPI(storageObj);
-        
-        UserSecretKeysGetCommandResult secretKeyRes = ecsApi.getUserSecretKeys(userId);
-        if (secretKeyRes.getSecret_key_1() != null) {
-            ScopedLabel newScopedLabel = new ScopedLabel(userId, secretKeyRes.getSecret_key_1());
-            ScopedLabelSet tagSet = new ScopedLabelSet();
-            tagSet.add(newScopedLabel);
-            storageObj.setTag(tagSet);
-            _dbClient.updateObject(storageObj);
-        }
-    }
-
 
     private ECSApi getAPI(StorageSystem storageObj) throws ControllerException {
         ECSApi objectAPI = null;

@@ -519,6 +519,7 @@ public class ECSApi {
         try {
             String responseString = null;
             final String path = MessageFormat.format(URI_UPDATE_BUCKET_ACL, bucketName);
+            getAuthToken();
             clientResp = get(path);
             if (null == clientResp) {
                 throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, "no response from ECS");

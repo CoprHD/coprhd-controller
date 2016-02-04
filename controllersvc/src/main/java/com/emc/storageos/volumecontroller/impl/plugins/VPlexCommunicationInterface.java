@@ -1969,8 +1969,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
         initializeContext(accessProfile);
-        StringMap stats = _statsCollector.collect(accessProfile, _keyMap);
-        processVPlexStats(stats);
+        _statsCollector.collect(accessProfile, _keyMap);
         dumpStatRecords();
         injectStats();
     }
@@ -2306,16 +2305,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
     }
 
-    /**
-     * Statistics collected from Vplex will be in the passed in StringMap. This routine will go through the collected stats
-     * and persist the information for the relevant data model objects.
-     *
-     * @param stats [IN] - StringMap of MetricKeys key/values
-     */
-    private void processVPlexStats(StringMap stats) {
-
-    }
-
     private void initializeContext(AccessProfile accessProfile) {
         _keyMap.put(Constants._serialID, accessProfile.getserialID());
         _keyMap.put(Constants.dbClient, _dbClient);
@@ -2326,5 +2315,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         _keyMap.put(Constants._Stats, new LinkedList<Stat>());
         _keyMap.put(Constants.ACCESSPROFILE, accessProfile);
         _keyMap.put(Constants.PROPS, accessProfile.getProps());
+        _keyMap.put(Constants._Stats, new LinkedList<Stat>());
+        _keyMap.put(Constants._TimeCollected, accessProfile.getCurrentSampleTime());
     }
 }

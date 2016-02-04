@@ -36,10 +36,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
@@ -79,7 +79,7 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
     }
 
     @Override
-    public StringMap collect(AccessProfile accessProfile, Map<String, Object> context) {
+    public void collect(AccessProfile accessProfile, Map<String, Object> context) {
         init();
         DbClient dbClient = (DbClient) context.get(Constants.dbClient);
         // Get which VPlex array that this applies to
@@ -87,7 +87,7 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
         if (storageSystem == null) {
             log.error("Could not find StorageSystem '{}' in DB", storageSystemURI);
-            return null;
+            return;
         }
 
         LinuxSystemCLI cli = new LinuxSystemCLI(accessProfile.getIpAddress(), accessProfile.getUserName(), accessProfile.getPassword());
@@ -122,14 +122,13 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
                 // Process the metrics for this file
                 Map<String, String> last = dataLines.get(lineCount - 1);
                 processDirectorStats(metricNamesToHeaderInfo, maxValues, last);
-                processPortStats(metricNamesToHeaderInfo, maxValues, last);
+                processPortStats(context, metricNamesToHeaderInfo, maxValues, last);
             }
             // Clean up fileData resources
             fileData.close();
         }
         // Clean out the cache data, so that it's not laying around
         clearCaches();
-        return null;
     }
 
     /**
@@ -409,13 +408,14 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
 
     /**
      * Process all the port metrics found in metricHeaderInfoMap.
-     * 
+     *
+     * @param context [IN/OUT] - Metering context structure. Will contain a value for filling in metering data.
      * @param metricHeaderInfoMap - [IN] Metric name to structure holding information about that metric
      * @param maxValues [IN] - Mapping of metrics to maximum values found in the file data
      * @param lastSample - [IN] Last data sample (the latest)
      */
-    private void processPortStats(Map<String, MetricHeaderInfo> metricHeaderInfoMap, Map<String, Double> maxValues,
-            Map<String, String> lastSample) {
+    private void processPortStats(Map<String, Object> context, Map<String, MetricHeaderInfo> metricHeaderInfoMap,
+            Map<String, Double> maxValues, Map<String, String> lastSample) {
         Map<URI, PortStat> portStatMap = new HashMap<>();
         // Each key will reference the metric name, an optional object, and units. As we process the
         // keys, we will keep track of the values and persist them in the portStatMap for each port.
@@ -434,10 +434,30 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
             PortStat stat = portStatMap.get(portURI);
             if (stat.allFilled()) {
                 portMetricsProcessor.processFEPortMetrics(stat.kbytes, stat.iops, stat.port, stat.sampleTime);
+                addPortMetric(context, stat);
             } else {
                 log.warn("Failed to process stats for port {}", portURI);
             }
         }
+    }
+
+    /**
+     * Create a new metric for the VPlex FE port, which is held in 'stat' and add it to the metering data.
+     *
+     * @param context [IN/OUT] - Metering context structure. Will contain a value for filling in metering data.
+     * @param stat [IN] - PortStat for a particular VPlex FE port
+     */
+    private void addPortMetric(Map<String, Object> context, PortStat stat) {
+        Stat fePortStat = new Stat();
+        fePortStat.setServiceType(Constants._Block);
+        fePortStat.setTimeCollected(stat.sampleTime);
+        fePortStat.setTotalIOs(stat.iops);
+        fePortStat.setKbytesTransferred(stat.kbytes);
+        fePortStat.setNativeGuid(stat.port.getNativeGuid());
+        fePortStat.setResourceId(stat.port.getId());
+        @SuppressWarnings("unchecked")
+        List<Stat> metrics = (List<Stat>) context.get(Constants._Stats);
+        metrics.add(fePortStat);
     }
 
     /**

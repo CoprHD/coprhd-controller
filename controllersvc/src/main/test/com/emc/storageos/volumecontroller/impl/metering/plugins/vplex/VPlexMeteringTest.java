@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +40,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -201,6 +203,8 @@ public class VPlexMeteringTest {
 
         Map<String, Object> context = new HashMap<>();
         context.put(Constants.dbClient, mockDbClient);
+        context.put(Constants._Stats, new LinkedList<Stat>());
+        context.put(Constants._TimeCollected, System.currentTimeMillis());
 
         VPlexPerpetualCSVFileCollector collector = new VPlexPerpetualCSVFileCollector();
         PortMetricsProcessor portMetricsProcessor = mockPortMetricsProcessor(mockDbClient);

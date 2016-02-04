@@ -332,6 +332,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         return snapSession;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String label) {
         BlockSnapshot snapshot = new BlockSnapshot();
 
@@ -668,5 +672,4 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 .getPlatformSpecificImplForSystem(srcSideBackendSystem);
         return snapSessionImpl;
     }
-
 }

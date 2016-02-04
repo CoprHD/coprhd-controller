@@ -20,10 +20,12 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexUtil;
 
 /**
  * Block snapshot session implementation for RP protected volumes.
@@ -196,11 +198,33 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      * {@inheritDoc}
      */
     @Override
-    public BlockSnapshotSession prepareSnapshotSession(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshotsMap, String taskId) {
-        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObjList.get(0).getStorageController());
-        return snapSessionImpl.prepareSnapshotSession(sourceObjList, snapSessionLabel, newTargetCount, newTargetsName,
-                snapSessionSnapshotsMap, taskId);
+    public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
+            String taskId) {
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
+        BlockSnapshotSession snapSession = snapSessionImpl.prepareSnapshotSessionFromSource(sourceObj, snapSessionLabel,
+                instanceLabel, taskId);
+        return snapSession;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String instanceLabel) {
+        // Important: that the only difference between these snapshots and snapshots created with the
+        // create snapshot APIs is that the parent and project NamedURIs for those snapshots use the
+        // snapshot label rather than the source label. This is an inconsistency between non-RP snaps
+        // and other snaps and should probably be fixed.
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
+        BlockSnapshot snapshot = snapSessionImpl.prepareSnapshotForSession(sourceObj, snapsetLabel, instanceLabel);
+
+        // This is a native snapshot so do not set the consistency group, otherwise
+        // the SMIS code/array will get confused trying to look for a consistency
+        // group that only exists in RecoverPoint.
+        snapshot.setConsistencyGroup(null);
+        _dbClient.updateObject(snapshot);
+        
+        return snapshot;
     }
 
     /**
@@ -237,5 +261,4 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceVolume.getStorageController());
         snapSessionImpl.verifyActiveMirrors(sourceVolume);
     }
-
 }

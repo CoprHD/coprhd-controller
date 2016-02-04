@@ -1601,11 +1601,22 @@ public class ControllerUtils {
         Map<String, List<Volume>> arrayGroupToFullCopies = null;
         List<Volume> fullCopyVolumeObjects = queryVolumesByIterativeQuery(dbClient, fullCopies);
 
-        if (ConsistencyUtils.getCloneConsistencyGroup(fullCopies.get(0), dbClient) != null) {
-            // add VolumeGroup to taskCompleter
-            if (ControllerUtils.checkCloneInApplication(fullCopies.get(0), dbClient, completer)) {
-                s_logger.info("Full copy {} is part of an Application", fullCopies.get(0));
+        URI fullCopy = fullCopies.get(0);
+        // add VolumeGroup to taskCompleter
+        if (ControllerUtils.checkCloneInApplication(fullCopy, dbClient, completer)) {
+            s_logger.info("Full copy {} is part of an Application", fullCopy);
+        }
+
+        // If VPLEX, get backend src full copy and check on it
+        Volume fullCopyVolume = dbClient.queryObject(Volume.class, fullCopy);
+        if (fullCopyVolume.isVPlexVolume(dbClient)) {
+            Volume backendfullCopy = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, dbClient);
+            if (backendfullCopy != null) {
+                fullCopy = backendfullCopy.getId();
             }
+        }
+
+        if (ConsistencyUtils.getCloneConsistencyGroup(fullCopy, dbClient) != null) {
             arrayGroupToFullCopies = groupVolumesByArrayGroup(fullCopyVolumeObjects, dbClient);
         } else {
             arrayGroupToFullCopies = new HashMap<String, List<Volume>>();

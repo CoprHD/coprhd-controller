@@ -612,7 +612,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         URI fullCopyURI = null;
         StringSet fullCopies = fcSourceObject.getFullCopies();
         if (fullCopies != null) {
-            if (fullCopySetName != null) {
+            if (NullColumnValueGetter.isNotNullValue(fullCopySetName)) {
                 Collection<URI> fullCopySetURIs = transform(fullCopySetVolumes, fctnDataObjectToID());
                 for (String fc : fullCopies) {
                     URI fcURI = URI.create(fc);

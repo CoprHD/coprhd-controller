@@ -7298,7 +7298,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 Volume firstFullCopy = fullCopyObjects.get(0);
                 vplexURI = firstFullCopy.getStorageController();
                 // add CG to taskCompleter
-                checkCloneConsistencyGroup(firstFullCopy.getId(), _dbClient, completer);
+                BlockObject firstSource = BlockObject.fetch(_dbClient, firstFullCopy.getAssociatedSourceVolume());
+                if (!NullColumnValueGetter.isNullURI(firstSource.getConsistencyGroup())) {
+                    completer.addConsistencyGroupId(firstSource.getConsistencyGroup());
+                }
 
                 // Get the VPLEX and backend full copy volumes.
                 URI nativeSystemURI = null;
@@ -7881,7 +7884,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 Volume firstFullCopy = fullCopyObjects.get(0);
                 vplexURI = firstFullCopy.getStorageController();
                 // add CG to taskCompleter
-                checkCloneConsistencyGroup(firstFullCopy.getId(), _dbClient, completer);
+                BlockObject firstSource = BlockObject.fetch(_dbClient, firstFullCopy.getAssociatedSourceVolume());
+                if (!NullColumnValueGetter.isNullURI(firstSource.getConsistencyGroup())) {
+                    completer.addConsistencyGroupId(firstSource.getConsistencyGroup());
+                }
 
                 // Get the VPLEX and backend full copy volumes.
                 URI nativeSystemURI = null;
@@ -8057,7 +8063,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 List<URI> rgFullCopyUris = new ArrayList<URI>(transform(fullCopyObjects, fctnDataObjectToID()));
                 Volume firstFullCopy = fullCopyObjects.get(0);
                 // add CG to taskCompleter
-                checkCloneConsistencyGroup(firstFullCopy.getId(), _dbClient, completer);
+                BlockObject firstSource = BlockObject.fetch(_dbClient, firstFullCopy.getAssociatedSourceVolume());
+                if (!NullColumnValueGetter.isNullURI(firstSource.getConsistencyGroup())) {
+                    completer.addConsistencyGroupId(firstSource.getConsistencyGroup());
+                }
 
                 // Get the native full copy volumes.
                 URI nativeSystemURI = null;

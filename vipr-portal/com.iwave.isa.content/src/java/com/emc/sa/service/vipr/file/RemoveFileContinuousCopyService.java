@@ -21,10 +21,10 @@ public class RemoveFileContinuousCopyService extends ViPRService {
     protected String fileId;
     
     @Param(FILE_COPIES)
-    protected List<URI> fileCopies;
+    protected List<String> fileCopies;
     
     @Override
     public void execute() throws Exception {
-        FileStorageUtils.removeContinuousCopiesForFile(uri(fileId), fileCopies);
+        FileStorageUtils.removeContinuousCopiesForFile(uri(fileId), uris(fileCopies));
     }
 }

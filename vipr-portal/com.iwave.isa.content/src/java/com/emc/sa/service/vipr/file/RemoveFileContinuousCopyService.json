@@ -7,7 +7,7 @@
       lockable: true
     },
     
-    fileSystems:{
+    fileSystem:{
       type:"assetType.vipr.fileWithContinuousCopies",
       select: "one"
     },

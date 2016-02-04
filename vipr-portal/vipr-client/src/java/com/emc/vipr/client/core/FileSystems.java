@@ -588,7 +588,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * @return the list of file continuous copy references.
      */
     public List<NamedRelatedResourceRep> getFileContinuousCopies(URI id) {
-        MirrorList response = client.get(MirrorList.class, null, getContinuousCopiesUrl(), id);
+        MirrorList response = client.get(MirrorList.class, getContinuousCopiesUrl(), id);
         return defaultList(response.getMirrorList());
     }
     
@@ -601,11 +601,11 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * @param id
      *            the ID of the file system.
      * @param input
-     *            the copy configurations.
+     *            the file system delete param.
      * @return tasks for monitoring the progress of the operation.
      */
-    public Tasks<FileShareRestRep> deactivateFileContinuousCopies(URI id, FileReplicationParam input) {
-        return postTasks(input, getContinuousCopiesUrl() + "/deactivate", id);
+    public Task<FileShareRestRep> deactivateFileContinuousCopies(URI id, FileSystemDeleteParam input) {
+        return postTask(input, getContinuousCopiesUrl() + "/deactivate", id);
     }
     
     /**
@@ -619,7 +619,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the copy configurations.
      * @return tasks for monitoring the progress if the operations.
      */
-    public Tasks<FileShareRestRep> pauseFileContinuousCopies(URI id, CopiesParam input) {
+    public Tasks<FileShareRestRep> pauseFileContinuousCopies(URI id, FileReplicationParam input) {
         TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/pause", id);
         return new Tasks<FileShareRestRep>(client, tasks.getTaskList(), FileShareRestRep.class);
     }

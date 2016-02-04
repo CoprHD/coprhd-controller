@@ -348,9 +348,9 @@ public class FileStorageUtils {
     }
     
     private static void removeFileContinuousCopy(URI fileId, URI continuousCopyId) {
-        execute(new PauseFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
-        Tasks<FileShareRestRep> tasks = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
-        addAffectedResources(tasks);
+        //execute(new PauseFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
+        Task<FileShareRestRep> task = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
+        addAffectedResource(task);
     }
     
     

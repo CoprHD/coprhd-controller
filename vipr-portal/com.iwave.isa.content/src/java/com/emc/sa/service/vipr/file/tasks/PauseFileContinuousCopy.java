@@ -7,8 +7,8 @@ package com.emc.sa.service.vipr.file.tasks;
 import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
-import com.emc.storageos.model.block.CopiesParam;
-import com.emc.storageos.model.block.Copy;
+import com.emc.storageos.model.file.Copy;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.vipr.client.Tasks;
 
@@ -22,7 +22,7 @@ public class PauseFileContinuousCopy extends WaitForTasks<FileShareRestRep> {
         this.continuousCopyId = continuousCopyId;
         this.fileId = fileId;
         this.type = type;
-        provideDetailArgs(fileId, continuousCopyId);
+        provideDetailArgs(fileId, continuousCopyId, type);
     }
 
     @Override
@@ -31,7 +31,7 @@ public class PauseFileContinuousCopy extends WaitForTasks<FileShareRestRep> {
         copy.setCopyID(continuousCopyId);
         copy.setType(type);
 
-        CopiesParam param = new CopiesParam();
+        FileReplicationParam param = new FileReplicationParam();
         param.getCopies().add(copy);
         return getClient().fileSystems().pauseFileContinuousCopies(fileId, param);
     }

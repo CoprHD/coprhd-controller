@@ -34,7 +34,7 @@ public class DriverRegistryRecord extends DataObject {
     }
 
     public void setDriverName(String driverName) {
-        driverName = driverName;
+        this.driverName = driverName;
         setChanged("driverName");
     }
 
@@ -45,7 +45,7 @@ public class DriverRegistryRecord extends DataObject {
     }
 
     public void setRegistryKey(String registryKey) {
-        registryKey = registryKey;
+        this.registryKey = registryKey;
         setChanged("registryKey");
     }
 
@@ -55,7 +55,7 @@ public class DriverRegistryRecord extends DataObject {
     }
 
     public void setAttributes(StringSetMap attributes) {
-        attributes = attributes;
+        this.attributes = attributes;
         setChanged("attributes");
     }
 }

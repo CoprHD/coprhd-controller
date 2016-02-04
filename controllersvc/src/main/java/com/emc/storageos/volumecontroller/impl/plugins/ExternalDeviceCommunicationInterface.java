@@ -62,7 +62,7 @@ public class ExternalDeviceCommunicationInterface extends
     private Map<String, DiscoveryDriver> discoveryDrivers = new HashMap<>();
 
     public void setDrivers(Map<String, AbstractStorageDriver> drivers) {
-        drivers = drivers;
+        this.drivers = drivers;
     }
 
     /**

@@ -156,13 +156,13 @@ public class ECSApiFactory {
     }
 
 
-
+/*
     public static void main(String[] args) {          
     System.out.println("starting ecs main");
-    URI uri = URI.create(String.format("https://10.247.142.65:4443/login"));
+    URI uri = URI.create(String.format("https://4443/login"));
     ECSApiFactory factory = new ECSApiFactory();
     factory.init();
-    ECSApi ecsApi = factory.getRESTClient(uri, "root", "ChangeMe");
+    ECSApi ecsApi = factory.getRESTClient(uri, "root", "**");
     
     String authToken = ecsApi.getAuthToken();
     System.out.println(authToken);
@@ -191,5 +191,5 @@ public class ECSApiFactory {
     //"4", "99", "55", "testlogin");
     //ecsApi.deleteBucket("esc_myproj_bucket1");
     }
-
+*/
 }

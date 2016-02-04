@@ -1304,6 +1304,13 @@ public class StorageSystemService extends TaskResourceService {
         return map(ecsNamespace);
     }
     
+    /**
+     * Get the existing secret for the user specified
+     * 
+     * @param id storage system id
+     * @param userId required key for
+     * @return user key
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/object-user-secret-keys/{userId}")
@@ -1320,6 +1327,10 @@ public class StorageSystemService extends TaskResourceService {
         
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
         controller.getUserSecretKey(id, userId);
+        String user = userId;
+        if (user.contains("@")) {
+            user = user.replace("@", "%40");
+        }
 
         //wait max of 1 min to get user keys
         for (int time = 0; time < 60; time++) {
@@ -1332,15 +1343,14 @@ public class StorageSystemService extends TaskResourceService {
             ScopedLabelSet tagSet = system.getTag();
             String user_key = tagSet.toString();
             String key = null;
-            if (user_key.contains(userId)) {
-                int keyStart = user_key.indexOf(userId)+userId.length();
+            if (user_key.contains(user)) {
+                int keyStart = user_key.indexOf(user)+user.length();
                 String user_keyNext = user_key.substring(keyStart+1);
-                int keyEnd = user_keyNext.length();
+                int keyEnd = user_keyNext.length()-1;
                 if (user_keyNext.contains(",")) {
-                    keyEnd = user_keyNext.indexOf(",")-1;
+                    keyEnd = user_keyNext.indexOf(",");
                 }
                 key = user_keyNext.substring(0, keyEnd);
-                System.out.println(key);
             } 
             if (key != null) {
                 ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();

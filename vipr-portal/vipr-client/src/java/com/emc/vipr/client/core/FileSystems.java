@@ -14,6 +14,7 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -22,6 +23,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParam;
+import com.emc.storageos.model.file.FileReplicationCreateParam;
 import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FilePolicyList;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
@@ -540,6 +542,22 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     protected String getContinuousCopiesUrl() {
         return getIdUrl() + "/protection/continuous-copies";
+    }
+    
+    /**
+     * Begins creating a continuous copies for the given file system.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/create</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the configuration of the new continuous copies.
+     * @return tasks for monitoring the progress of the operation(s).
+     */
+    public Task<FileShareRestRep> createFileContinuousCopies(URI id, FileReplicationCreateParam input) {
+        TaskResourceRep task = client.post(TaskResourceRep.class, input, getContinuousCopiesUrl() + "/create", id);
+        return new Task<FileShareRestRep>(client, task, FileShareRestRep.class);
     }
     
     /**

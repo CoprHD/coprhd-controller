@@ -334,10 +334,10 @@ public class FileStorageUtils {
         return null;
     }
     
-    public static Tasks<FileShareRestRep> createFileContinuousCopy(URI fileId, String name) {
-        Tasks<FileShareRestRep> copies = execute(new CreateFileContinuousCopy(fileId, name, FileTechnologyType.LOCAL_MIRROR.name()));
-        addAffectedResources(copies);
-        return copies;
+    public static Task<FileShareRestRep> createFileContinuousCopy(URI fileId, String name) {
+        Task<FileShareRestRep> copy = execute(new CreateFileContinuousCopy(fileId, name, FileTechnologyType.LOCAL_MIRROR.name()));
+        addAffectedResource(copy);
+        return copy;
     }
     
     public static void removeContinuousCopiesForFile(URI fileId, Collection<URI> continuousCopyIds) {

@@ -6,13 +6,12 @@ package com.emc.sa.service.vipr.file.tasks;
 
 import java.net.URI;
 
-import com.emc.sa.service.vipr.tasks.WaitForTasks;
-import com.emc.storageos.model.file.Copy;
-import com.emc.storageos.model.file.FileReplicationParam;
+import com.emc.sa.service.vipr.tasks.WaitForTask;
+import com.emc.storageos.model.file.FileReplicationCreateParam;
 import com.emc.storageos.model.file.FileShareRestRep;
-import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.Task;
 
-public class CreateFileContinuousCopy extends WaitForTasks<FileShareRestRep> {
+public class CreateFileContinuousCopy extends WaitForTask<FileShareRestRep> {
     
     private URI fileId;
     private String name;
@@ -26,13 +25,11 @@ public class CreateFileContinuousCopy extends WaitForTasks<FileShareRestRep> {
     }
 
     @Override
-    protected Tasks<FileShareRestRep> doExecute() throws Exception {
-        Copy copy = new Copy();
+    protected Task<FileShareRestRep> doExecute() throws Exception {
+        FileReplicationCreateParam param = new FileReplicationCreateParam();
+        param.setCopyName(name);
+        param.setType(type);
         
-        copy.setType(type);
-
-        FileReplicationParam param = new FileReplicationParam();
-        param.getCopies().add(copy);
-        return getClient().fileSystems().startFileContinuousCopies(fileId, param);
+        return getClient().fileSystems().createFileContinuousCopies(fileId, param);
     }
 }

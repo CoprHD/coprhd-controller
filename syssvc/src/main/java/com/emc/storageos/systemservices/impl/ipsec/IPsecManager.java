@@ -60,7 +60,7 @@ public class IPsecManager {
      */
     public String generateKey() throws Exception {
         return RandomStringUtils.random(KEY_LENGTH, 0, charsForKey.length-1,
-                true, true, charsForKey, SecurityUtil.getSecureRandomInstance());
+                true, true, charsForKey, SecureRandom.getInstance(SecurityUtil.getSecuredRandomAlgorithm()));
     }
 
     /**

@@ -3187,8 +3187,7 @@ public class VolumeIngestionUtil {
                     BlockObject blockObject = requestContext.findCreatedBlockObject(associatedVolumeIdStr);
                     if (blockObject == null) {
                         // Next look in the updated objects.
-                        // TODO WJEIV: This is available in my feature branch.  Add this back when in feature branch.
-                        //blockObject = (BlockObject)requestContext.findInUpdatedObjects(URI.create(associatedVolumeIdStr));
+                        blockObject = (BlockObject)requestContext.findInUpdatedObjects(URI.create(associatedVolumeIdStr));
                     }
                     if (blockObject == null) {
                         // Finally look in the DB itself.  It may be from a previous ingestion operation.

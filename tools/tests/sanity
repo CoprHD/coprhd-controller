@@ -2383,28 +2383,51 @@ rp_vpool_setup()
     if [ "${RP_TESTS}" = "1" -o "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         rp_targets
 	rp_regular
-	rp_cdp
-	rp_crr
-	rp_clr
+	if [ "${RP_CDP}" = "1" ]; then
+	    rp_cdp
+	fi
+	if [ "${RP_CRR}" = "1" ]; then
+	    rp_crr
+	fi
+	if [ "${RP_CLR}" = "1" ]; then
+	    rp_clr
+	fi
 	rp_noprotection
     fi
 
-    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
+    if [ "${RPVPLEX_TESTS}" = "1" ]; then
 	rpvplex_targets
 	rpvplex_ha
-	rpvplex_cdp
-	rpvplex_crr
-	rpvplex_clr
-	rpmp_cdp
-	rpmp_crr
-	rpmp_clr
+	if [ "${RP_CDP}" = "1" ]; then
+	    rpvplex_cdp
+	fi
+	if [ "${RP_CRR}" = "1" ]; then
+	    rpvplex_crr
+	fi
+	if [ "${RP_CLR}" = "1" ]; then
+	    rpvplex_clr
+	fi
 	rpvplexlocal_noprotection
 	rpvplexdist_noprotection
     fi
 
+    if [ "${RPMP_TESTS}" = "1" ]; then
+	if [ "${RP_CDP}" = "1" ]; then
+	    rpmp_cdp
+	fi
+	if [ "${RP_CRR}" = "1" ]; then
+	    rpmp_crr
+	fi
+	if [ "${RP_CLR}" = "1" ]; then
+	    rpmp_clr
+	fi
+    fi
+
     if [ "${RPXIO_TESTS}" = "1" ]; then
 	rpxio_targets
-	rpxio_cdp
+	if [ "${RP_CDP}" = "1" ]; then
+	    rpxio_cdp
+	fi
     fi
 }
 
@@ -2443,7 +2466,7 @@ rp_storage_setup()
 {
     echo '*** Recoverpoint storage setup ***'
 
-    if [ "${RP_TESTS}" = "1" ]; then
+    if [ "${RP_TESTS}" = "1" -o "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	for var in A B C D
 	do
 	   provider='RECOVERPOINT_SMIS_PROVIDER_'$var
@@ -2490,7 +2513,9 @@ rp_vplex_setup()
     fi
 
     if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ]; then
-        storageprovider create $RECOVERPOINT_VPLEX_B $RECOVERPOINT_VPLEX_B_IP $RECOVERPOINT_VPLEX_B_PORT $RECOVERPOINT_VPLEX_B_USER $RECOVERPOINT_VPLEX_B_PASSWORD vplex
+	if [ "${RP_CRR}" = "1" -o "${RP_CLR}" = "1" ]; then
+	    storageprovider create $RECOVERPOINT_VPLEX_B $RECOVERPOINT_VPLEX_B_IP $RECOVERPOINT_VPLEX_B_PORT $RECOVERPOINT_VPLEX_B_USER $RECOVERPOINT_VPLEX_B_PASSWORD vplex
+	fi
     fi
 }
 
@@ -2516,7 +2541,7 @@ rp_port_setup()
 	fi
     fi
 
-    #VPLEX
+    # VPLEX
     # Override port to varray assigments for VPLEX clusters to prevent port mixing in clusters
     # Source Site
     # Cluster 1
@@ -2531,17 +2556,19 @@ rp_port_setup()
 	    storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY2
 	fi
 
-        # Target Site
-        # Cluster 1
-	if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_C_GUID" != "NONE" ]; then
-	    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY3
-	    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY3
-	fi
+	if [ "${RP_CRR}" = "1" -o "${RP_CLR}" = "1" ]; then
+            # Target Site
+            # Cluster 1
+	    if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_C_GUID" != "NONE" ]; then
+		storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY3
+		storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY3
+	    fi
 
-        # Cluster 2
-	if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_D_GUID" != "NONE" ]; then
-	    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY4
-	    storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY4
+            # Cluster 2
+	    if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_D_GUID" != "NONE" ]; then
+		storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY4
+		storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY4
+	    fi
 	fi
     fi
 
@@ -2755,7 +2782,9 @@ recoverpoint_ingest_setup()
 
     if [ ${RPVPLEX_TESTS} = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	run storagedevice discover_namespace $RECOVERPOINT_VPLEX_A_GUID 'UNMANAGED_VOLUMES'
-	run storagedevice discover_namespace $RECOVERPOINT_VPLEX_B_GUID 'UNMANAGED_VOLUMES'
+	if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
+	    run storagedevice discover_namespace $RECOVERPOINT_VPLEX_B_GUID 'UNMANAGED_VOLUMES'
+	fi
     fi
 
     # Especially with the simulator, the previous RP discovery may still be running
@@ -2789,9 +2818,10 @@ recoverpoint_ingest_test()
     fi
 
     if [ "${RECOVERPOINT_INGEST_VOLBASE}" = "" ]; then
-	RECOVERPOINT_INGEST_VOLBASE=${RECOVERPOINT_INGEST_VOL1BASE}
+	RECOVERPOINT_INGEST_VOLBASE=${RECOVERPOINT_INGEST_VOL1BASE}${RP_SANITY_RANDOM}
     fi
 
+    echo "*** RP sanity random is : ${RP_SANITY_RANDOM}"
     RECOVERPOINT_INGEST_VOL1_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}${RP_SANITY_RANDOM}_${vpool}
     RECOVERPOINT_INGEST_VOL1_SRC=${RECOVERPOINT_INGEST_VOLBASE}_${vpool}
     RECOVERPOINT_INGEST_VOL1_SRC_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-1
@@ -2876,7 +2906,9 @@ recoverpoint_ingest_test()
 
     if [ ${RPVPLEX_TESTS} = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	run storagedevice discover_namespace $RECOVERPOINT_VPLEX_A_GUID 'UNMANAGED_VOLUMES'
-	run storagedevice discover_namespace $RECOVERPOINT_VPLEX_B_GUID 'UNMANAGED_VOLUMES'
+	if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
+	    run storagedevice discover_namespace $RECOVERPOINT_VPLEX_B_GUID 'UNMANAGED_VOLUMES'
+	fi
     fi
 
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
@@ -3220,6 +3252,22 @@ recoverpoint_add_journal_volume()
    run volume add_journal ${copy_name} $PROJECT ${journ_varray} ${journ_vpool} 10GB --consistencyGroup ${rp_cg} --count=1  
 }
 
+recoverpoint_simulator_varsetup() {
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
+        # VPLEX
+        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
+        VPLEX_IP=$SIMULATOR_IP
+	RECOVERPOINT_VPLEX_A=${VPLEX_DEV_NAME}-local
+	RECOVERPOINT_VPLEX_B=${VPLEX_DEV_NAME}-remote
+	RECOVERPOINT_VPLEX_A_GUID=${VPLEX1_SIMULATOR_GUID}
+	RECOVERPOINT_VPLEX_B_GUID=${VPLEX2_SIMULATOR_GUID}
+	RECOVERPOINT_STORAGE_ARRAY_A_GUID=${VMAX1_SIMULATOR_NATIVEGUID}
+	RECOVERPOINT_STORAGE_ARRAY_B_GUID=${VMAX2_SIMULATOR_NATIVEGUID}
+	RECOVERPOINT_STORAGE_ARRAY_C_GUID=${VMAX3_SIMULATOR_NATIVEGUID}
+	RECOVERPOINT_STORAGE_ARRAY_D_GUID=${VMAX4_SIMULATOR_NATIVEGUID}
+    fi
+}
+
 # Simulator setup
 recoverpoint_simulator_setup()
 {
@@ -3239,22 +3287,11 @@ recoverpoint_simulator_setup()
     run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
     
     if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
-        # VPLEX
-        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
-        VPLEX_IP=$SIMULATOR_IP
-	RECOVERPOINT_VPLEX_A=${VPLEX_DEV_NAME}-local
-	RECOVERPOINT_VPLEX_B=${VPLEX_DEV_NAME}-remote
-	RECOVERPOINT_VPLEX_A_GUID=${VPLEX1_SIMULATOR_GUID}
-	RECOVERPOINT_VPLEX_B_GUID=${VPLEX2_SIMULATOR_GUID}
-
         storageprovider show ${RECOVERPOINT_VPLEX_A} &> /dev/null && return $?
         run storageprovider create ${RECOVERPOINT_VPLEX_A} $VPLEX_IP ${VPLEX1_SIMULATOR_PORT} $VPLEX_USER "$VPLEX_PASSWD" vplex
-        run storageprovider create ${RECOVERPOINT_VPLEX_B} $VPLEX_IP ${VPLEX2_SIMULATOR_PORT} $VPLEX_USER "$VPLEX_PASSWD" vplex
-
-	RECOVERPOINT_STORAGE_ARRAY_A_GUID=${VMAX1_SIMULATOR_NATIVEGUID}
-	RECOVERPOINT_STORAGE_ARRAY_B_GUID=${VMAX2_SIMULATOR_NATIVEGUID}
-	RECOVERPOINT_STORAGE_ARRAY_C_GUID=${VMAX3_SIMULATOR_NATIVEGUID}
-	RECOVERPOINT_STORAGE_ARRAY_D_GUID=${VMAX4_SIMULATOR_NATIVEGUID}
+	if [ "${RP_CRR}" = "1" -o "${RP_CLR}" = "1" ]; then
+	    run storageprovider create ${RECOVERPOINT_VPLEX_B} $VPLEX_IP ${VPLEX2_SIMULATOR_PORT} $VPLEX_USER "$VPLEX_PASSWD" vplex
+	fi
 	rp_port_setup
     fi
 
@@ -3283,15 +3320,23 @@ recoverpoint_simulator_setup()
     # Simulator adjustments to cos (shouldn't be needed but RP simulator only sees a subset of what's on the network)
     rp_vpool_setup
 
-    run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
-    run cos update block rp_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
-    run cos update block rp_targets --storage $VMAX3_SIMULATOR_NATIVEGUID
-    run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
-    run cos update block rp_cdp-sync --storage $VMAX1_SIMULATOR_NATIVEGUID
-    run cos update block rp_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
-    run cos update block rp_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
-    run cos update block rp_clr --storage $VMAX1_SIMULATOR_NATIVEGUID
-    run cos update block rp_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
+    if [ "${RP_TESTS}" = "1" -o "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
+	run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
+	run cos update block rp_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
+	run cos update block rp_targets --storage $VMAX3_SIMULATOR_NATIVEGUID
+	if [ "${RP_CDP}" = "1" ]; then
+	    run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
+	    run cos update block rp_cdp-sync --storage $VMAX1_SIMULATOR_NATIVEGUID
+	fi
+	if [ "${RP_CRR}" = "1" ]; then
+	    run cos update block rp_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
+	    run cos update block rp_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
+	fi
+	if [ "${RP_CLR}" = "1" ]; then
+	    run cos update block rp_clr --storage $VMAX1_SIMULATOR_NATIVEGUID
+	    run cos update block rp_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
+	fi
+    fi
     if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
 	run cos update block rpvplex_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
 	run cos update block rpvplex_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
@@ -3299,15 +3344,21 @@ recoverpoint_simulator_setup()
 	run cos update block rpvplex_ha --storage $VMAX1_SIMULATOR_NATIVEGUID
 	run cos update block rpvplex_ha --storage $VMAX2_SIMULATOR_NATIVEGUID
 	run cos update block rpvplex_ha --storage $VMAX3_SIMULATOR_NATIVEGUID
-	run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
-	run cos update block rpvplex_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
-	run cos update block rpvplex_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
-	run cos update block rpvplex_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
-	run cos update block rpvplex_crr --storage $VMAX2_SIMULATOR_NATIVEGUID
-	run cos update block rpvplex_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
-	run cos update block rpmp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
-	run cos update block rpmp_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
-	run cos update block rpmp_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
+	if [ "${RP_CDP}" = "1" ]; then
+	    run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
+	    run cos update block rpvplex_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
+	    run cos update block rpvplex_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
+	fi
+	if [ "${RP_CRR}" = "1" ]; then
+	    run cos update block rpvplex_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
+	    run cos update block rpvplex_crr --storage $VMAX2_SIMULATOR_NATIVEGUID
+	    run cos update block rpvplex_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
+	fi
+	if [ "${RP_CLR}" = "1" ]; then
+	    run cos update block rpmp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
+	    run cos update block rpmp_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
+	    run cos update block rpmp_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
+	fi
     fi
 
     # The simulator tends to need priming
@@ -3330,15 +3381,21 @@ recoverpoint_common_setup()
 recoverpoint_setup()
 {
     POOLS_AUTO_MATCH=true
-    if [ "$RP_RUN_SETUP" = "1" ]; then
-        if [ "$RP_QUICK_PARAM" = "quick" ]; then
+    if [ "$RP_QUICK_PARAM" = "quick" ]; then
+	recoverpoint_simulator_varsetup
+	if [ "$RP_RUN_SETUP" = "1" ]; then
             echo '*** RecoverPoint Simulator setup ***'
             recoverpoint_simulator_setup
-        else
-            echo '*** RecoverPoint setup ***'
-            recoverpoint_common_setup
-        fi
+	else
+	    RP_SANITY_RANDOM=`/opt/storageos/bin/dbutils list UnManagedVolume | grep label | awk '{print $3}' | cut -c10-12 | head -1`
+	    echo "*** Determine existing volume label uses random value: ${RP_SANITY_RANDOM}"
+	fi
+    elif [ "$RP_RUN_SETUP" = "1" ]; then
+	echo '*** RecoverPoint setup ***'
+	recoverpoint_common_setup
     fi
+
+
 }
 
 recoverpoint_cleanup_volumes()
@@ -3537,7 +3594,7 @@ recoverpoint_tests()
 		recoverpoint_ingest_setup
 
 		if [ "$RP_CDP" = "1" ] ; then
-		    recoverpoint_ingest_test rp${rptypetag}_cdp
+		    recoverpoint_ingest_tes trp${rptypetag}_cdp
 		fi
 
 		if [ "$RP_CRR" = "1" ] ; then

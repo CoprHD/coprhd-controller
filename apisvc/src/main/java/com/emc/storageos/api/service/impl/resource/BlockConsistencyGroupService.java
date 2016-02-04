@@ -1673,17 +1673,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             // For RP failover, if the copy name is specified, it will be a BlockSnapshot URI String
             String copyName = null;
             if (URIUtil.isValid(copy.getName())) {
-                URI copySnapshotUri = URI.create(copy.getName());
-                ArgValidator.checkFieldUriType(copySnapshotUri, Volume.class, "copyName");
+                URI snapshotUri = URI.create(copy.getName());
+                ArgValidator.checkFieldUriType(snapshotUri, Volume.class, "copyName");
 
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, copySnapshotUri);
-
-                if (snapshot != null && snapshot.getInactive()) {
-                    // Invalid copy name specified
-                    throw APIException.badRequests.invalidCopyName(copy.getName());
-                } else {
-                    copyName = snapshot.getEmName();
-                }
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotUri);
+                ArgValidator.checkEntity(snapshot, snapshotUri, true);
+                copyName = snapshot.getEmName();
             } else {
                 // Invalid copy name specified
                 throw APIException.badRequests.invalidCopyName(copy.getName());

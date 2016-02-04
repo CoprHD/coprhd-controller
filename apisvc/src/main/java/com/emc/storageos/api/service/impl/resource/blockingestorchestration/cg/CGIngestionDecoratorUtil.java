@@ -5,60 +5,52 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
- *
+ * Util class to get the decorator by unmanaged volume properties.
  *
  */
 public class CGIngestionDecoratorUtil {
 
-    private static BlockVolumeCGIngestDecorator volumeCGDecorator = null;
-    private static BlockVplexCGIngestDecorator vplexCGDecorator = null;
-    private static BlockRPCGIngestDecorator rpCGDecorator = null;
+    private static BlockCGIngestDecorator volumeCGDecorator = null;
+    private static BlockCGIngestDecorator vplexCGDecorator = null;
+    private static BlockCGIngestDecorator rpCGDecorator = null;
 
     static {
         vplexCGDecorator = new BlockVplexCGIngestDecorator();
         rpCGDecorator = new BlockRPCGIngestDecorator();
         volumeCGDecorator = new BlockVolumeCGIngestDecorator();
-
-        rpCGDecorator.setNextDecorator(vplexCGDecorator);
-        vplexCGDecorator.setNextDecorator(volumeCGDecorator);
     }
 
-    public static void decorateVplexCG(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext,
-            DbClient dbClient)
-            throws Exception {
-        vplexCGDecorator.setDbClient(dbClient);
-        vplexCGDecorator.decorate(cg, umv, requestContext);
-    }
-
-    public static void
-            decorateRPCG(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext, DbClient dbClient)
-                    throws Exception {
-        rpCGDecorator.setDbClient(dbClient);
-        rpCGDecorator.decorate(cg, umv, requestContext);
-    }
-
-    public static void decorateVolumeCG(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext,
-            DbClient dbClient)
-            throws Exception {
-        volumeCGDecorator.setDbClient(dbClient);
-        volumeCGDecorator.decorate(cg, umv, requestContext);
-    }
-
+    /**
+     * Set the decorators based on the UnManagedVolume properties.
+     * 
+     * @param umv
+     * @param cg
+     * @param requestContext
+     * @param dbClient
+     * @throws Exception
+     */
     public static void decorate(UnManagedVolume umv, BlockConsistencyGroup cg, IngestionRequestContext requestContext, DbClient dbClient)
             throws Exception {
-        if (cg.getRequestedTypes().contains(Types.RP.toString())) {
-            decorateRPCG(cg, umv, requestContext, dbClient);
-        } else if (cg.getRequestedTypes().contains(Types.VPLEX.toString())) {
-            decorateVplexCG(cg, umv, requestContext, dbClient);
-        } else {
-            decorateVolumeCG(cg, umv, requestContext, dbClient);
-        }
+        BlockCGIngestDecorator commCGDecorator = null;
+        // Check if the UnManagedVolume is RP
+        if (VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umv)) {
+            commCGDecorator = rpCGDecorator;
+            // Check if RP is protecting VPLEX
+            if (VolumeIngestionUtil.isRPProtectingVplexVolumes(umv, requestContext, dbClient)) {
+                commCGDecorator.setNextDecorator(vplexCGDecorator);
+    }
+        } else if (VolumeIngestionUtil.isVplexVolume(umv)) {  // Check if the UnManagedVolume is VPLEX
+            commCGDecorator = vplexCGDecorator;
+            commCGDecorator.setNextDecorator(volumeCGDecorator);
+    }
+        commCGDecorator.setDbClient(dbClient);
+        commCGDecorator.decorate(cg, umv, requestContext);
     }
 
 }

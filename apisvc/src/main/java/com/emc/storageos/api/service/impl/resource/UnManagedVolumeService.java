@@ -115,9 +115,6 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     private IngestStrategyFactory ingestStrategyFactory;
     
-    private Map <String, DataObject> consistencyGroupObjectsToUpdate = new HashMap<String, DataObject>();
-    private Set<BlockConsistencyGroup> blockCGsToCreate = new HashSet<BlockConsistencyGroup>();
-
     public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
         this.ingestStrategyFactory = ingestStrategyFactory;
     }
@@ -379,20 +376,6 @@ public class UnManagedVolumeService extends TaskResourceService {
 
             _dbClient.createObject(requestContext.getObjectsToBeCreatedMap().values());
             _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
-
-            // persist any consistency group changes
-            if (!consistencyGroupObjectsToUpdate.isEmpty()) {
-                _dbClient.updateObject(consistencyGroupObjectsToUpdate.values());            	
-                // log remaining unmanaged volumes for unmanaged consistency groups
-                for (DataObject unManagedCG : consistencyGroupObjectsToUpdate.values()) {
-                    if (unManagedCG instanceof UnManagedConsistencyGroup) {
-                        _logger.info(((UnManagedConsistencyGroup) unManagedCG).logRemainingUnManagedVolumes().toString());
-                    }
-                }
-            }            
-            if (!blockCGsToCreate.isEmpty()) {
-                _dbClient.createObject(blockCGsToCreate);
-            }
 
             // record the events after they have been persisted
             for (BlockObject volume : requestContext.getObjectsToBeCreatedMap().values()) {

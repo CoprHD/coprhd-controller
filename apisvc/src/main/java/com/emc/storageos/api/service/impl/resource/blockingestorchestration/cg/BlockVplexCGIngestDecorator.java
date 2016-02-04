@@ -47,13 +47,6 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
 
         // Add a system consistency group mapping for the varray the cluster is connected to
         try {
-            // In the case of RP CGs initiating the creation of the CG, it is possible that non-VPLEX volumes 
-            // that are NOT backing volumes to VPLEX will be in the CG.  This check will filter those out from
-            // VPLEX analysis/processing.
-            if (!VolumeIngestionUtil.isVplexBackendVolume(umv)) {
-                return;
-            }
-            
             StorageSystem system = dbClient.queryObject(StorageSystem.class, umv.getStorageSystemUri());
             Volume volume = (Volume)requestContext.findCreatedBlockObject(umv.getNativeGuid());
             consistencyGroup.setVirtualArray(volume.getVirtualArray());

@@ -62,6 +62,49 @@ public interface CinderConstants {
     public static String URI_DELETE_SNAPSHOT = DEFAULT_API_VERSION + "/%1$s/snapshots/%2$s";
     public static String URI_UPDATE_SNAPSHOT = DEFAULT_API_VERSION + "/%1$s/snapshots/%2$s​?display_description=%3$s&​display_name=%4$s";
 
+    /**
+     * 
+     * Quota Service specific constants.
+     *
+     */
+    public static String DEFAULT_QUOTA_CLASS = "default";
+    public static String CLASS_NAME_KEY= "class_name";
+    public static String TENANT_ID_KEY= "tenant_id";
+    public static final long DEFAULT_VOLUME_TYPE_QUOTA = -1;
+
+
+    /*
+     * Enum types for different kinds resources for which quota can be defined
+     * with ViPR cinder.  
+     */
+    public static enum ResourceQuotaDefaults
+    {
+        VOLUMES("volumes" , 6000),
+        SNAPSHOTS("snapshots", 3000),
+        GIGABYTES("gigabytes", 1000000);
+        
+        public String resource = "";
+        public long limit = 0;
+
+        ResourceQuotaDefaults(String resource, long limit)
+        {
+            this.resource = resource;
+            this.limit = limit;
+        }
+
+        public String getResource()
+        {
+            return this.resource;
+        }
+        
+        public long getLimit()
+        {
+            return this.limit;
+        }
+    }
+
+    
+    
     /*
      * Enum types for the status check of the components ( volume/snapshot )
      * under creation/modification.

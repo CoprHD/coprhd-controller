@@ -151,5 +151,6 @@ chown storageos:storageos /etc/rc.status
 
 update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
 update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
+update-ca-certificates -f
 
 exit 0

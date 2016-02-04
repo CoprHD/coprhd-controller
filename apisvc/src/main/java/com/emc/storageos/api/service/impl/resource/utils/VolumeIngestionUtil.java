@@ -452,6 +452,39 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Checks whether RP is protecting any VPLEX volumes or not.
+     * 
+     * @param requestContext
+     * @param dbClient
+     * @return
+     */
+    public static boolean isRPProtectingVplexVolumes(UnManagedVolume umv, IngestionRequestContext requestContext, DbClient dbClient) {
+        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(umv
+                .getNativeGuid());
+        ProtectionSet pset = rpContext.getManagedProtectionSet();
+        boolean isRPProtectingVplexVolumes = false;
+
+        if (pset == null) {
+            return isRPProtectingVplexVolumes;
+        }
+
+        for (String volumeIdStr : pset.getVolumes()) {
+            for (List<DataObject> dataObjList : rpContext.getObjectsToBeUpdatedMap().values()) {
+                for (DataObject dataObj : dataObjList) {
+                    if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+                        Volume volume = (Volume) dataObj;
+                        if (volume.checkForVplexVirtualVolume(dbClient)) {
+                            isRPProtectingVplexVolumes = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return isRPProtectingVplexVolumes;
+    }
+
+    /**
      * Check to see if an unmanaged resource is exported to anything non-RP.
      * Note: Being exported to RP doesn't not mean this returns false. It's a way
      * to check if something is exported to something other than RP, regardless of RP.
@@ -1058,16 +1091,15 @@ public class VolumeIngestionUtil {
     public static BlockConsistencyGroup getVplexConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj, VirtualPool vpool,
             URI projectUri, URI tenantUri, URI varrayUri, DbClient _dbClient) {
 
-        // @TODO Don't create CG if the vplex is behind RP. Add a check here.
         String cgName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_CONSISTENCY_GROUP_NAME.toString(),
                 unManagedVolume.getVolumeInformation());
-        /*
-         * if (isUnManagedVolumeBehindRP) {
-         * blockObj.setReplicationGroupInstance(cgName);
-         * return null;
-         * }
-         */
+
+        // Don't create CG if the vplex is behind RP. Add a check here.
+        if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
+            blockObj.setReplicationGroupInstance(cgName);
+            return null;
+        }
 
         if (cgName != null) {
             _logger.info("VPLEX UnManagedVolume {} is added to consistency group {}",

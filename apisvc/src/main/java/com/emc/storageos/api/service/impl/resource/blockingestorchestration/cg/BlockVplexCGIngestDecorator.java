@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -16,6 +17,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
+import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -46,6 +48,8 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
         // Add a system consistency group mapping for the varray the cluster is connected to
         try {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, umv.getStorageSystemUri());
+            Volume volume = (Volume)requestContext.findCreatedBlockObject(umv.getNativeGuid());
+            consistencyGroup.setVirtualArray(volume.getVirtualArray());
             String vplexClusterName = VPlexControllerUtils.getVPlexClusterName(
                     dbClient, consistencyGroup.getVirtualArray(), system.getId());
             if (vplexClusterName != null) {
@@ -105,8 +109,9 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
     public List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext) {
         // If the UMV is RP, then this should return all RP => VPLEX volumes else just return vplex volume
         List<BlockObject> associatedObjects = new ArrayList<BlockObject>();
-        boolean isRP = false;
-        if (isRP) {
+
+        // If this is RP, filter out only the VPLEX volumes
+        if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
             // Get all of the block objects that are in the protection set
             RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
             ProtectionSet pset = rpContext.getManagedProtectionSet();
@@ -126,6 +131,16 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
                             if (volume.checkForVplexVirtualVolume(dbClient)) {
                                 boList.add((BlockObject)dataObj);
                             }
+                        }
+                    }
+                }
+                
+                Collection<BlockObject> dataObjList = rpContext.getObjectsToBeCreatedMap().values();
+                for (DataObject dataObj : dataObjList) {
+                    if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+                        Volume volume = (Volume)dataObj;
+                        if (volume.checkForVplexVirtualVolume(dbClient)) {
+                            boList.add((BlockObject)dataObj);
                         }
                     }
                 }

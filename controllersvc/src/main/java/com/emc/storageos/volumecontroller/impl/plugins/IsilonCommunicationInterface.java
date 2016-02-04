@@ -1296,8 +1296,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             List<UnManagedNFSShareACL> unManagedNfsShareACLList = new ArrayList<UnManagedNFSShareACL>();
             List<UnManagedNFSShareACL> oldunManagedNfsShareACLList = new ArrayList<UnManagedNFSShareACL>();
 
-            UnManagedExportVerificationUtility validationUtility = new UnManagedExportVerificationUtility(
-                    _dbClient);
             List<UnManagedFileExportRule> newUnManagedExportRules = new ArrayList<UnManagedFileExportRule>();
 
             List<FileShare> discoveredFS = new ArrayList<FileShare>();
@@ -1379,30 +1377,27 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             }
                         }
 
-                        // get umcifs & ACLs for given filesystem
-                        UnManagedCifsShareACL existingACL = null;
-                        List<UnManagedCifsShareACL> tempunManagedCifsShareACL = new ArrayList<UnManagedCifsShareACL>();
-                        int noOfShares = 0;
-
                         // get all shares for given file system path
                         HashSet<String> smbShareHashSet = new HashSet<String>();
                         for (Entry<String, HashSet<String>> entry : allSMBShares.entrySet()) {
                             if (entry.getKey().equalsIgnoreCase(fsPathName) || entry.getKey().startsWith(fsPathName + "/")) {
                                 _log.info("filesystem path : {} and share path: {}", fs.getPath(), entry.getKey());
                                 smbShareHashSet.addAll(entry.getValue());
-                                noOfShares += 1;
                             }
                         }
 
+                        _log.info("File System {} has shares and their size is {}", unManagedFs.getId(), smbShareHashSet.size());
+
                         if (!smbShareHashSet.isEmpty()) {
-                            // get UnManaged ACL and also set the shares in fs object
-                            getUnmanagedCifsShareACL(unManagedFs, smbShareHashSet,
-                                    tempunManagedCifsShareACL, storagePort, fs.getName(), nasServer.getNasName(), isilonApi);
-                            noOfShares += 1;
-                            if (!tempunManagedCifsShareACL.isEmpty()) {
-                                unManagedFs.setHasShares(true);
-                                for (UnManagedCifsShareACL unManagedCifsShareACL : tempunManagedCifsShareACL) {
-                                    _log.info("Unmanaged File share acls : {}", unManagedCifsShareACL);
+
+                            List<UnManagedCifsShareACL> umfsCifsShareACL = new ArrayList<UnManagedCifsShareACL>();
+                            // Set UnManaged ACL and also set the shares in fs object
+                            setUnmanagedCifsShareACL(unManagedFs, smbShareHashSet,
+                                    umfsCifsShareACL, storagePort, fs.getName(), nasServer.getNasName(), isilonApi);
+                            if (!umfsCifsShareACL.isEmpty()) {
+
+                                for (UnManagedCifsShareACL unManagedCifsShareACL : umfsCifsShareACL) {
+                                    _log.info("Unmanaged File share acl : {}", unManagedCifsShareACL);
                                     String fsShareNativeId = unManagedCifsShareACL.getFileSystemShareACLIndex();
                                     _log.info("UMFS Share ACL index {}", fsShareNativeId);
                                     String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
@@ -1411,20 +1406,20 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     // set native guid, so each entry unique
                                     unManagedCifsShareACL.setNativeGuid(fsUnManagedFileShareNativeGuid);
                                     // Check whether the CIFS share ACL was present in ViPR DB.
-                                    existingACL = checkUnManagedFsCifsACLExistsInDB(_dbClient,
+                                    UnManagedCifsShareACL existingCifsShareACL = checkUnManagedFsCifsACLExistsInDB(_dbClient,
                                             unManagedCifsShareACL.getNativeGuid());
-                                    if (existingACL == null) {
+                                    if (existingCifsShareACL == null) {
                                         unManagedCifsShareACLList.add(unManagedCifsShareACL);
                                     } else {
                                         unManagedCifsShareACLList.add(unManagedCifsShareACL);
                                         // delete the existing acl
-                                        existingACL.setInactive(true);
-                                        oldunManagedCifsShareACLList.add(existingACL);
+                                        existingCifsShareACL.setInactive(true);
+                                        oldunManagedCifsShareACLList.add(existingCifsShareACL);
                                     }
                                 }
-                                _log.info("File System {} has shares and their size is {}", unManagedFs.getId(), noOfShares);
-                                _log.info("File System {} has ACL and their size is {}", unManagedFs.getId(),
-                                        tempunManagedCifsShareACL.size());
+
+                                _log.info("UMFS ID {} - Size of ACL of all CIFS shares is {}", unManagedFs.getId(),
+                                        umfsCifsShareACL.size());
                             }
                         }
 
@@ -1879,20 +1874,20 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param fsPath
      * @param isilonApi
      */
-    private void getUnmanagedCifsShareACL(UnManagedFileSystem unManagedFileSystem,
+    private void setUnmanagedCifsShareACL(UnManagedFileSystem unManagedFileSystem,
             HashSet<String> smbShares,
             List<UnManagedCifsShareACL> unManagedCifsShareACLList,
             StoragePort storagePort,
             String fsname,
             String zoneName,
             IsilonApi isilonApi) {
-        _log.info("getUnmanagedCifsShareACL for UnManagedFileSystem file path: {} - start", fsname);
 
-        // HashSet<String> smbShares = allShares.get(fsPath);
+        _log.debug("Set CIFS shares and their respective ACL of UMFS: {} from Isilon SMB share details - start", fsname);
+
         if (null != smbShares && !smbShares.isEmpty()) {
             UnManagedSMBShareMap unManagedSmbShareMap = null;
             if (null == unManagedFileSystem.getUnManagedSmbShareMap()) {
-                unManagedSmbShareMap = new UnManagedSMBShareMap(); // initialise
+                unManagedSmbShareMap = new UnManagedSMBShareMap();
                 unManagedFileSystem.setUnManagedSmbShareMap(unManagedSmbShareMap);
             }
             unManagedSmbShareMap = unManagedFileSystem.getUnManagedSmbShareMap();
@@ -1915,10 +1910,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                     // set Unmanaged SMB Share
                     unManagedSmbShareMap.put(isilonSMBShare.getName(), unManagedSMBFileShare);
-                    _log.info("smb share name {} and fs mount point {} ", unManagedSMBFileShare.getName(),
+                    _log.info("SMB share name {} and fs mount point {} ", unManagedSMBFileShare.getName(),
                             unManagedSMBFileShare.getMountPoint());
                     // process ACL permission
                     UnManagedCifsShareACL unManagedCifsShareACL = null;
+                    int aclSize = 0;
                     List<IsilonSMBShare.Permission> permissionList = isilonSMBShare.getPermissions();
                     for (IsilonSMBShare.Permission permission : permissionList) {
                         // Isilon can have deny permission type. Do not ingest the ACL for deny
@@ -1926,30 +1922,34 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         if (FileControllerConstants.CIFS_SHARE_PERMISSION_TYPE_ALLOW
                                 .equalsIgnoreCase(permission.getPermissionType())) {
 
+                            aclSize++;
+                            _log.debug("IsilonSMBShare: [{}] permission details: {}",
+                                    isilonSMBShare.getName(), permission.toString());
+
                             unManagedCifsShareACL = new UnManagedCifsShareACL();
-                            // share name
+                            // Set share name
                             unManagedCifsShareACL.setShareName(isilonSMBShare.getName());
-                            // permission
+                            // Set permission
                             unManagedCifsShareACL.setPermission(permission.getPermission());
 
-                            // we take only username and we can ignore type and id
-                            // user
+                            // We take only username and we can ignore type and id
+                            // Set user
                             unManagedCifsShareACL.setUser(permission.getTrustee().getName());
 
-                            // filesystem id
+                            // Set filesystem id
                             unManagedCifsShareACL.setFileSystemId(unManagedFileSystem.getId());
                             unManagedCifsShareACL.setId(URIUtil.createId(UnManagedCifsShareACL.class));
-
                             unManagedCifsShareACLList.add(unManagedCifsShareACL);
-                            _log.info("isilonSMBShare details permission {}- ", permission.toString());
                         }
                     }
+                    _log.debug("ACL size of share: [{}] is {}", isilonSMBShare.getName(), aclSize);
                 }
             }
-            _log.info("File System id {} and Number of shares : {}", unManagedFileSystem.getId(), unManagedSmbShareMap.size());
 
+            if (!unManagedSmbShareMap.isEmpty()) {
+                unManagedFileSystem.setHasShares(true);
+            }
         }
-        return;
     }
 
     /**

@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
@@ -21,6 +22,11 @@ public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
 
     @Override
     protected List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
+            throws Exception {
+        return BlockRPCGIngestDecorator.getAssociatedObjectsStatic(cg, umv, requestContext);
+    }
+
+    public static List<BlockObject> getAssociatedObjectsStatic(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
             throws Exception {
         // Get all of the block objects that are in the protection set
         RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
@@ -40,10 +46,17 @@ public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
                     }
                 }
             }
+
+            Collection<BlockObject> dataObjList = rpContext.getObjectsToBeCreatedMap().values();
+            for (DataObject dataObj : dataObjList) {
+                if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+                    boList.add((BlockObject)dataObj);
+                }
+            }
         }
         return boList;
     }
-
+    
     @Override
     public void decorateCG(BlockConsistencyGroup cg, UnManagedVolume umv, List<BlockObject> associatedObjects,
             IngestionRequestContext requestContext)

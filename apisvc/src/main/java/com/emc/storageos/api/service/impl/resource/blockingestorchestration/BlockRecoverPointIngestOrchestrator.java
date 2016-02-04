@@ -177,7 +177,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             _logger.info("Successfully ingested all volumes associated with RP consistency group");
 
             createProtectionSet(volumeContext);
-            createBlockConsistencyGroup(volumeContext);
+            BlockConsistencyGroup bcg = createBlockConsistencyGroup(volumeContext);
+            parentRequestContext.getCGObjectsToCreateMap().put(bcg.getId().toString(), bcg);
 
             // Once we have a proper managed consistency group and protection set, we need to
             // sprinkle those references over the managed volumes.

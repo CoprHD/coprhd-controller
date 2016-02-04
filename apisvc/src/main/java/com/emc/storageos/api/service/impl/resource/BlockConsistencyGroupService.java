@@ -1606,7 +1606,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getPointInTime(), ProtectionOp.SWAP.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(), ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
@@ -1670,21 +1670,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            // For RP failover, if the copy name is specified, it will be a BlockSnapshot URI String
-            String copyName = null;
-            if (URIUtil.isValid(copy.getName())) {
-                URI snapshotUri = URI.create(copy.getName());
-                ArgValidator.checkFieldUriType(snapshotUri, BlockSnapshot.class, "copyName");
-
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotUri);
-                ArgValidator.checkEntity(snapshot, snapshotUri, true);
-                copyName = snapshot.getEmName();
-            } else {
-                // Invalid copy name specified
-                throw APIException.badRequests.invalidCopyName(copy.getName());
-            }
-
-            taskResp = performProtectionAction(id, copy.getCopyID(), copyName, copy.getPointInTime(),
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
                     ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
@@ -1741,7 +1727,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getPointInTime(),
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
                     ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
@@ -1759,7 +1745,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      *
      * @param consistencyGroupId the URI of the BlockConsistencyGroup to perform the protection action against.
      * @param targetVarrayId the target virtual array.
-     * @param copyName the name of the copy
      * @param pointInTime any point in time.
      *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
      * @param op operation to perform (pause, stop, failover, etc)
@@ -1767,7 +1752,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @throws InternalException
      */
     private TaskResourceRep
-            performProtectionAction(URI consistencyGroupId, URI targetVarrayId, String copyName, String pointInTime, String op)
+            performProtectionAction(URI consistencyGroupId, URI targetVarrayId, String pointInTime, String op)
                     throws InternalException {
         ArgValidator.checkFieldUriType(consistencyGroupId, BlockConsistencyGroup.class, "id");
         ArgValidator.checkFieldUriType(targetVarrayId, VirtualArray.class, "copyId");
@@ -1811,7 +1796,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         RPController controller = getController(RPController.class, system.getSystemType());
 
-        controller.performProtectionOperation(system.getId(), consistencyGroupId, targetVolume.getId(), copyName, pointInTime, op, task);
+        controller.performProtectionOperation(system.getId(), consistencyGroupId, targetVolume.getId(), pointInTime, op, task);
         /*
          * auditOp(OperationTypeEnum.PERFORM_PROTECTION_ACTION, true, AuditLogManager.AUDITOP_BEGIN,
          * op, copyID.toString(), id.toString(), system.getId().toString());

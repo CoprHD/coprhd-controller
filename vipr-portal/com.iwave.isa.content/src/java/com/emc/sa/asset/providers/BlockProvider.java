@@ -210,34 +210,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("protectedBlockVolume")
     public List<AssetOption> getImageToAccess(AssetOptionsContext ctx, URI protectedBlockVolume) {
         List<AssetOption> options = Lists.newArrayList();
-
-        if (protectedBlockVolume != null) {
-            ViPRCoreClient client = api(ctx);
-
-            if (BlockProviderUtils.isType(protectedBlockVolume, VOLUME_TYPE)) {
-                VolumeRestRep volume = client.blockVolumes().get(protectedBlockVolume);
-
-                ProtectionRestRep protection = volume.getProtection();
-                if (protection != null) {
-                    debug("getting images to access for protectedBlockVolume %s)", protectedBlockVolume);
-                    options = Lists.newArrayList(LATEST_IMAGE_OPTION, PIT_IMAGE_OPTION);
-                    // RecoverPoint protection
-                    if (protection.getRpRep() != null && protection.getRpRep().getProtectionSet() != null) {
-                        // Get the images to access
-                        options.addAll(getConsistencyGroupSnapshots(ctx, volume.getConsistencyGroup().getId()));
-                    }
-                }
-            } else if (BlockProviderUtils.isType(protectedBlockVolume, BLOCK_CONSISTENCY_GROUP_TYPE)) {
-                BlockConsistencyGroupRestRep cg = client.blockConsistencyGroups().get(protectedBlockVolume);
-
-                if (cg.getTypes().contains(BlockConsistencyGroup.Types.RP.name())) {
-                    options = Lists.newArrayList(LATEST_IMAGE_OPTION, PIT_IMAGE_OPTION);
-                    debug("getting images to access for consistency group %s", protectedBlockVolume);
-                    // Get the images to access
-                    options.addAll(getConsistencyGroupSnapshots(ctx, protectedBlockVolume));
-                }
-            }
-        }
+        options = Lists.newArrayList(LATEST_IMAGE_OPTION, PIT_IMAGE_OPTION);
 
         return options;
     }

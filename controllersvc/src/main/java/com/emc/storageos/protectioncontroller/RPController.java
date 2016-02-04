@@ -20,7 +20,6 @@ public interface RPController extends ProtectionController {
      * @param protectionDevice RP protection system URI
      * @param id volume or consistency group ID
      * @param copyID id of protection volume
-     * @param bookmarkName the name of the bookmark
      * @param pointInTime any point in time.
      *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
      * @param op operation to perform
@@ -28,7 +27,7 @@ public interface RPController extends ProtectionController {
      *
      * @throws InternalException
      */
-    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String bookmarkName, String pointInTime, String op,
+    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String pointInTime, String op,
             String task)
             throws InternalException;
 

@@ -1681,9 +1681,6 @@ public interface BadRequestExceptions {
     public BadRequestException invalidCopyType(String type);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidCopyName(String copyName);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidSRDFCopyMode(String copyMode);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

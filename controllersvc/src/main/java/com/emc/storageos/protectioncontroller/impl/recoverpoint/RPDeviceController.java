@@ -3812,7 +3812,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
-    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String bookmarkName, String pointInTime, String op,
+    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String pointInTime, String op,
             String task)
             throws ControllerException {
         RPCGProtectionTaskCompleter taskCompleter = null;
@@ -3914,11 +3914,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_RP_LINK);
                     RPCopyRequestParams copyParams = new RPCopyRequestParams();
                     copyParams.setCopyVolumeInfo(volumeProtectionInfo);
-
-                    if (bookmarkName != null) {
-                        // Failover to a specific bookmark
-                        copyParams.setBookmarkName(bookmarkName);
-                    }
 
                     if (pointInTime != null) {
                         // Build a Date reference.

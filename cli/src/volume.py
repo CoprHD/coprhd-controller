@@ -308,15 +308,13 @@ class Volume(object):
         return o
 
     def mirror_protection_copyparam(
-            self, volume, mirrorvol, copyname, pit, copytype="native", sync='false'):
+            self, volume, mirrorvol, pit, copytype="native", sync='false'):
         copies_param = dict()
         copy = dict()
         copy_entries = []
 
         copy['type'] = copytype
 
-        if(copyname != ""):
-            copy['name'] = copyname
         if(pit != ""):
             copy['pointInTime'] = pit
 
@@ -518,14 +516,13 @@ class Volume(object):
 
         return common.json_decode(s)
 
-    def mirror_protection_failover_ops(self, volume, mirrorvol, copyname, pit,
+    def mirror_protection_failover_ops(self, volume, mirrorvol, pit,
                                 type="native", op="failover"):
         '''
         Failover the volume protection
         Parameters:
             volume    : Source volume path
             mirrorvol : Name of the continous_copy
-            copyname  : name of the copy (snapshot)
             pit       : any point-in-time
             type      : type of protection
         Returns:
@@ -533,11 +530,7 @@ class Volume(object):
         '''
         vol_uri = self.volume_query(volume)
    
-        from snapshot import Snapshot
-        snapshot_obj = Snapshot(self.__ipAddr, self.__port)
-        snapshot_uri = snapshot_obj.search_blocktype_by_project_and_name(project, copyname)
-
-        body = self.mirror_protection_copyparam(volume, mirrorvol, snapshot_uri, pit, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, pit, type)
 
         uri = Volume.URI_VOLUME_PROTECTION_MIRROR_FAILOVER.format(vol_uri)
         if op == 'failover-test':
@@ -598,7 +591,7 @@ class Volume(object):
             body)
         return common.json_decode(s)
 
-    def mirror_protection_copy(self, volume, copyname, count):
+    def mirror_protection_copy(self, volume, copyname,  count):
         '''
         This function is to do different action on mirror protection for
         given volume.
@@ -3200,10 +3193,6 @@ def add_protection_common_parser(cc_common_parser):
                                   dest='type',
                                   metavar='<protectiontype>',
                                   choices=Volume.VOLUME_PROTECTIONS)
-    cc_common_parser.add_argument('-copyname', '-cn',
-                               metavar='<copyname>',
-                               dest='copyname',
-                               help='name of the copy (snapshot) for failover')
     cc_common_parser.add_argument('-pit', '-p',
                                metavar='<pit>',
                                dest='pit',
@@ -3493,7 +3482,6 @@ def volume_mirror_protect_failover_ops(args):
         obj.mirror_protection_failover_ops(
             fullpathvol,
             args.continuouscopyname,
-            args.copyname,
             args.pit,
             args.type,
             args.op)

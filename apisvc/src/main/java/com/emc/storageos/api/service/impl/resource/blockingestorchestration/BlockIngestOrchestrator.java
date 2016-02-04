@@ -1173,7 +1173,7 @@ public abstract class BlockIngestOrchestrator {
             volumes.add(volume);
             updatedObjects.add(volume);
         }
-        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient);
+        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient, requestContext);
         clearPersistedReplicaFlags(volumes, updatedObjects);
         umpset.setInactive(true);
 

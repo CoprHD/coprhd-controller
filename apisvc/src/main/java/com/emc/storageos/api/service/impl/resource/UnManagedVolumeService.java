@@ -698,10 +698,6 @@ public class UnManagedVolumeService extends TaskResourceService {
             _dbClient.createObject(requestContext.getObjectsIngestedByExportProcessing());
             _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
             
-            if (!blockCGsToCreate.isEmpty()) {
-            	_dbClient.createObject(blockCGsToCreate);
-            }
-            
             // record the events after they have been persisted
             for (BlockObject volume : requestContext.getObjectsIngestedByExportProcessing()) {
                 recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),

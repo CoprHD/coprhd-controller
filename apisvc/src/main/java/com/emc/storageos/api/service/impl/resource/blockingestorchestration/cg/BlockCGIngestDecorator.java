@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
+import java.util.Collection;
 import java.util.List;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
@@ -18,12 +19,9 @@ public abstract class BlockCGIngestDecorator {
 
     DbClient dbClient = null;
 
-    public abstract void decorateCG(BlockConsistencyGroup cg, UnManagedVolume umv, List<BlockObject> associatedObjects,
+    public abstract void decorateCG(BlockConsistencyGroup cg, UnManagedVolume umv, Collection<BlockObject> associatedObjects,
             IngestionRequestContext requestContext)
             throws Exception;
-
-    public abstract void decorateCGBlockObjects(BlockConsistencyGroup cg, UnManagedVolume umv, List<BlockObject> associatedObjects,
-            IngestionRequestContext requestContext) throws Exception;
 
     /**
      * Decorate the given CG with respective attributes.
@@ -33,10 +31,9 @@ public abstract class BlockCGIngestDecorator {
      */
     public void decorate(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
             throws Exception {
-        List<BlockObject> associatedObjects = getAssociatedObjects(cg, umv, requestContext);
+        Collection<BlockObject> associatedObjects = getAssociatedObjects(cg, umv, requestContext);
         if (null != cg && !associatedObjects.isEmpty()) {
             decorateCG(cg, umv, associatedObjects, requestContext);
-            decorateCGBlockObjects(cg, umv, associatedObjects, requestContext);
         }
         if (null != nextCGIngestDecorator) {
             nextCGIngestDecorator.setDbClient(dbClient);
@@ -55,7 +52,7 @@ public abstract class BlockCGIngestDecorator {
         this.nextCGIngestDecorator = decorator;
     }
 
-    protected abstract List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv,
+    protected abstract Collection<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv,
             IngestionRequestContext requestContext)
             throws Exception;
 

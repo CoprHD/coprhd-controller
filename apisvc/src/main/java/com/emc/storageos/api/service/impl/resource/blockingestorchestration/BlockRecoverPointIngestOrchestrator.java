@@ -480,8 +480,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * 
      * @param volumeContext the RecoverPointVolumeIngestionContext for the volume currently being ingested
      */
-    private void decorateVolumeInformationFinalIngest(RecoverPointVolumeIngestionContext volumeContext) {
+    private void decorateVolumeInformationFinalIngest(IngestionRequestContext requestContext) {
 
+        RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
         ProtectionSet pset = volumeContext.getManagedProtectionSet();
         BlockConsistencyGroup cg = volumeContext.getManagedBlockConsistencyGroup();
 
@@ -500,7 +501,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         volumes.add((Volume) volumeContext.getManagedBlockObject());
         List<DataObject> updatedObjects = new ArrayList<DataObject>();
 
-        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient);
+        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient, requestContext);
         clearPersistedReplicaFlags(volumes, updatedObjects);
         clearReplicaFlagsInIngestionContext(volumeContext);
 

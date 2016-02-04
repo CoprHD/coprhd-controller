@@ -21,12 +21,19 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
 
     @Override
-    protected List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
+    public void decorateCG(BlockConsistencyGroup cg, UnManagedVolume umv, Collection<BlockObject> associatedObjects,
+            IngestionRequestContext requestContext)
             throws Exception {
-        return BlockRPCGIngestDecorator.getAssociatedObjectsStatic(cg, umv, requestContext);
+        // This information is already set in the RP ingestion orchestrator, however in case anyone ever writes a decorator
+        // above us, this will ensure we put the right information in their CG to represent our RP CG.
+        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
+        ProtectionSet pset = rpContext.getManagedProtectionSet();
+        cg.getTypes().add(BlockConsistencyGroup.Types.RP.toString());
+        cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
     }
 
-    public static List<BlockObject> getAssociatedObjectsStatic(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
+    @Override
+    protected List<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv, IngestionRequestContext requestContext)
             throws Exception {
         // Get all of the block objects that are in the protection set
         RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
@@ -55,30 +62,6 @@ public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
             }
         }
         return boList;
-    }
-    
-    @Override
-    public void decorateCG(BlockConsistencyGroup cg, UnManagedVolume umv, List<BlockObject> associatedObjects,
-            IngestionRequestContext requestContext)
-            throws Exception {
-        // This information is already set in the RP ingestion orchestrator, however in case anyone ever writes a decorator
-        // above us, this will ensure we put the right information in their CG to represent our RP CG.
-        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
-        ProtectionSet pset = rpContext.getManagedProtectionSet();
-        cg.getTypes().add(BlockConsistencyGroup.Types.RP.toString());
-        cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
-    }
-
-    @Override
-    public void decorateCGBlockObjects(BlockConsistencyGroup cg, UnManagedVolume umv, List<BlockObject> associatedObjects,
-            IngestionRequestContext requestContext) throws Exception {
-        if (associatedObjects == null) {
-            return;
-        }
-        
-        for (BlockObject blockObject : associatedObjects) {
-            blockObject.setConsistencyGroup(cg.getId());
-        }
     }
 
 }

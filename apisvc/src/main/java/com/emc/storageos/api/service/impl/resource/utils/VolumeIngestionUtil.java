@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -3147,7 +3148,7 @@ public class VolumeIngestionUtil {
      * @param dbClient a reference to the database client
      */
     public static void decorateRPVolumesCGInfo(List<Volume> rpVolumes, ProtectionSet pset, BlockConsistencyGroup rpCG,
-            List<DataObject> updatedObjects, DbClient dbClient) {
+            List<DataObject> updatedObjects, DbClient dbClient, IngestionRequestContext requestContext) {
         for (Volume volume : rpVolumes) {
             // Set references to protection set/CGs properly in each volume
             volume.setConsistencyGroup(rpCG.getId());
@@ -3178,6 +3179,30 @@ public class VolumeIngestionUtil {
 
             _logger.info("Updating volume " + volume.getLabel() + " flags/settings to " + volume.getInternalFlags());
 
+            // Find any backing volumes associated with  vplex volumes and add the CG reference to them as well.
+            if (volume.checkForVplexVirtualVolume(dbClient)) {
+                // Find associated volumes
+                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
+                    // First look in created block objects for the associated volumes.  This would be the latest version.
+                    BlockObject blockObject = requestContext.findCreatedBlockObject(associatedVolumeIdStr);
+                    if (blockObject == null) {
+                        // Next look in the updated objects.
+                        // TODO WJEIV: This is available in my feature branch.  Add this back when in feature branch.
+                        //blockObject = (BlockObject)requestContext.findInUpdatedObjects(URI.create(associatedVolumeIdStr));
+                    }
+                    if (blockObject == null) {
+                        // Finally look in the DB itself.  It may be from a previous ingestion operation.
+                        blockObject = dbClient.queryObject(Volume.class, URI.create(associatedVolumeIdStr));
+                        // Since I pulled this in from the database, we need to add it to the list of objects to update.
+                        ((RecoverPointVolumeIngestionContext)requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(blockObject.getNativeGuid(), Arrays.asList(blockObject));
+                    }
+                    if (blockObject != null) {
+                        blockObject.setConsistencyGroup(rpCG.getId());
+                        updatedObjects.add(blockObject);
+                    }
+                }
+            }
+            
             updatedObjects.add(volume);
         }
     }
@@ -3363,5 +3388,30 @@ public class VolumeIngestionUtil {
         _logger.info("updating LOCAL type for matching backend/Vplex CG {}", vplexCG.getLabel());
         vplexCG.addConsistencyGroupTypes(Types.LOCAL.name());
         dbClient.updateObject(vplexCG);
+    }
+
+    public static Collection<BlockObject> findBlockObjectsInCg(BlockConsistencyGroup cg, IngestionRequestContext requestContext) {
+        // Search for block objects with the CG's ID in our context and the database, if needed. 
+        Set<BlockObject> blockObjects = new HashSet<BlockObject>(); 
+
+        for (BlockObject bo : requestContext.getObjectsToBeCreatedMap().values()) {
+            if (URIUtil.identical(bo.getConsistencyGroup(), cg.getId())) {
+                blockObjects.add(bo);
+            }
+        }
+
+        for (List<DataObject> doList : requestContext.getObjectsToBeUpdatedMap().values()) {
+            for (DataObject dobj : doList) {
+                if (!(dobj instanceof BlockObject)) {
+                    continue;
+                }
+                BlockObject bo = (BlockObject)dobj;
+                if (URIUtil.identical(bo.getConsistencyGroup(), cg.getId())) {
+                    blockObjects.add(bo);
+                }
+            }
+        }
+        
+        return blockObjects;
     }
 }

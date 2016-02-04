@@ -66,13 +66,13 @@ public interface ECSExceptions {
     public ECSException getNamespaceDetailsFailed(final String namespace, final Throwable e);
     
     @DeclareServiceCode(ServiceCode.ECS_GET_USER_SECRET_KEYS_ERROR)
-    public ECSException getUserSecretKeysFailed(final String user, final String info);
+    public ECSException getUserSecretKeysFailed(final String info);
 
     @DeclareServiceCode(ServiceCode.ECS_GET_USER_SECRET_KEYS_ERROR)
     public ECSException getUserSecretKeysFailed(final String user, final Throwable e);
 
     @DeclareServiceCode(ServiceCode.ECS_ADD_USER_SECRET_KEYS_ERROR)
-    public ECSException addUserSecretKeysFailed(final String user, final String info);
+    public ECSException addUserSecretKeysFailed(final String info);
 
     @DeclareServiceCode(ServiceCode.ECS_ADD_USER_SECRET_KEYS_ERROR)
     public ECSException addUserSecretKeysFailed(final String user, final Throwable e);

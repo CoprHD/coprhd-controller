@@ -578,9 +578,9 @@ public class ECSApi {
             final String path = MessageFormat.format(URI_USER_SECRET_KEYS, user);
             clientResp = get(path);
             if (null == clientResp) {
-                throw ECSException.exceptions.getNamespacesFailed("no response from ECS");
+                throw ECSException.exceptions.getUserSecretKeysFailed("no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getNamespacesFailed(getResponseDetails(clientResp));
+                throw ECSException.exceptions.getUserSecretKeysFailed(getResponseDetails(clientResp));
             }
 
             responseString = clientResp.getEntity(String.class);
@@ -607,9 +607,9 @@ public class ECSApi {
             final String path = MessageFormat.format(URI_USER_SECRET_KEYS, user);
             clientResp = post(path, body);
             if (null == clientResp) {
-                throw ECSException.exceptions.getNamespacesFailed("no response from ECS");
+                throw ECSException.exceptions.addUserSecretKeysFailed("no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getNamespacesFailed(getResponseDetails(clientResp));
+                throw ECSException.exceptions.addUserSecretKeysFailed(getResponseDetails(clientResp));
             }
             responseString = clientResp.getEntity(String.class);
             _log.info("ECSApi:getUserSecretKeys ECS response is {}", responseString);

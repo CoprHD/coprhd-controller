@@ -880,6 +880,7 @@ public class ControllerUtils {
 
     /**
      * Gets the volumes part of a given replication group.
+     * TODO look at below method (getVolumesPartOfRG()) while correcting this.
      */
     public static List<Volume> getVolumesPartOfRG(StorageSystem storage, URI cgURI /* TODO - use replicaitonGroupInstance */, DbClient dbClient) {
         List<Volume> volumes = new ArrayList<Volume>();
@@ -914,7 +915,7 @@ public class ControllerUtils {
      * @param system the storage system where the replication group resides
      * @param replicationGroupInstance the replication group instance
      * @param dbClient the db client
-     * @return the volumes part of rg
+     * @return the volumes part of replication group
      */
     public static List<Volume> getVolumesPartOfRG(URI system, String replicationGroupInstance, DbClient dbClient) {
         List<Volume> volumes = new ArrayList<Volume>();
@@ -925,7 +926,7 @@ public class ControllerUtils {
                 uriQueryResultList, true);
         while (volumeIterator.hasNext()) {
             Volume volume = volumeIterator.next();
-            if (volume != null && system.toString().equals(volume.getStorageController())) {
+            if (volume != null && system.toString().equals(volume.getStorageController().toString())) {
                 volumes.add(volume);
             }
         }

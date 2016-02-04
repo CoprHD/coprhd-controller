@@ -595,7 +595,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      * @param fcSourceObject the fc source object
      * @param fullCopySetName the full copy set name
      * @param fullCopySetVolumes the full copy set volumes
-     * @return the full copy for set
+     * @return the full copy for set or null if not found
      */
     protected URI getFullCopyForSet(Volume fcSourceObject, String fullCopySetName, List<Volume> fullCopySetVolumes) {
         /**
@@ -607,9 +607,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
          * -b. If SetName information is not available
          * --> check by label, Full copies label belonging to same set start with SetName
          * Case-3: Existing full copies are moved into application (setName = null)
-         * --> return any full copy
-         * 
-         * TODO check additional cases
+         * --> return any full copy which does not have setName set on it
          */
         URI fullCopyURI = null;
         StringSet fullCopies = fcSourceObject.getFullCopies();
@@ -635,10 +633,19 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                     }
                 }
             } else {
-                // return first encountered
-                fullCopyURI = URI.create(fullCopies.iterator().next());
+                // return full copy which does not have setName set on it
+                for (String fc : fullCopies) {
+                    URI fcURI = URI.create(fc);
+                    Volume fcObject = _dbClient.queryObject(Volume.class, fcURI);
+                    if (!NullColumnValueGetter.isNotNullValue(fcObject.getFullCopySetName())) {
+                        fullCopyURI = fcURI;
+                        break;
+                    }
+                }
             }
         }
+        s_logger.info("Full Copy {} found for Volume {} and Set {}.",
+                fullCopyURI, fcSourceObject.getLabel(), fullCopySetName);
         return fullCopyURI;
     }
 

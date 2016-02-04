@@ -6968,20 +6968,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                     List<VolumeDescriptor> descriptorsForAG = new ArrayList<VolumeDescriptor>();
                     // add VPLEX src volumes to descriptor list
-                    descriptorsForAG.addAll(getDescriptorsForURIsFromGivenList(vplexSrcVolumeDescrs,
-                            transform(vplexSrcVolumesAG, fctnDataObjectToID())));
+                    Collection<URI> vplexSrcVolumesUrisAG = transform(vplexSrcVolumesAG, fctnDataObjectToID());
+                    descriptorsForAG.addAll(
+                            getDescriptorsForURIsFromGivenList(vplexSrcVolumeDescrs, vplexSrcVolumesUrisAG));
 
-                    List<URI> allCopies = getFullCopiesForVolumes(vplexSrcVolumesAG);
                     for (VolumeDescriptor vplexCopyVolumeDesc : vplexVolumeDescriptors) {
-                        URI vplexCopyVolume = vplexCopyVolumeDesc.getVolumeURI();
-                        if (allCopies.contains(vplexCopyVolume)) {
-                            _log.debug("Adding VPLEX copy volume descriptor for {}", vplexCopyVolume);
+                        URI vplexCopyVolumeURI = vplexCopyVolumeDesc.getVolumeURI();
+                        Volume vplexCopyVolume = getDataObject(Volume.class, vplexCopyVolumeURI, _dbClient);
+                        if (vplexSrcVolumesUrisAG.contains(vplexCopyVolume.getAssociatedSourceVolume())) {
+                            _log.debug("Adding VPLEX copy volume descriptor for {}", vplexCopyVolumeURI);
                             // add VPLEX Copy volumes to descriptor list
                             descriptorsForAG.add(vplexCopyVolumeDesc);
 
                             // add Copy associated volumes to desciptor list
                             List<VolumeDescriptor> assocDescriptors = getDescriptorsForAssociatedVolumes(
-                                    vplexCopyVolume, volumeDescriptors);
+                                    vplexCopyVolumeURI, volumeDescriptors);
                             descriptorsForAG.addAll(assocDescriptors);
                         }
                     }
@@ -6998,25 +6999,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
         return repGroupToVolumeDescriptors;
-    }
-
-    /**
-     * Gets the full copies for the given volumes.
-     *
-     * @param volumes the volumes
-     * @return the list of full copy uris
-     */
-    private List<URI> getFullCopiesForVolumes(List<Volume> volumes) {
-        List<URI> fullCopies = new ArrayList<URI>();
-        for (Volume volume : volumes) {
-            StringSet volumeFullCopies = volume.getFullCopies();
-            if (volumeFullCopies != null) {
-                for (String fullCopy : volumeFullCopies) {
-                    fullCopies.add(URI.create(fullCopy));
-                }
-            }
-        }
-        return fullCopies;
     }
 
     /**

@@ -2447,11 +2447,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
-    private Integer getSnapshotExpireValue(SchedulePolicy expireParam) {
+    private Integer getSnapshotExpireValue(SchedulePolicy schedulePolicy) {
         Long seconds = 0L;
-        if (expireParam != null) {
-            Long expireValue = expireParam.getSnapshotExpireTime();
-            SnapshotExpireType expireType = SnapshotExpireType.valueOf(expireParam.getSnapshotExpireType().toUpperCase());
+        String snapshotExpire = schedulePolicy.getSnapshotExpireType();
+        if (snapshotExpire != null && !snapshotExpire.isEmpty()) {
+            Long expireValue = schedulePolicy.getSnapshotExpireTime();
+            SnapshotExpireType expireType = SnapshotExpireType.valueOf(snapshotExpire.toUpperCase());
             switch (expireType) {
                 case HOURS:
                     seconds = TimeUnit.HOURS.toSeconds(expireValue);
@@ -2470,11 +2471,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 default:
                     _log.error("Not a valid expire type: " + expireType);
                     return null;
-
             }
         }
         return seconds.intValue();
-
     }
 
 }

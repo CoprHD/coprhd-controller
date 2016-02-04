@@ -23,16 +23,21 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FilePolicyList;
+import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.SmbShareResponse;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.VirtualPoolProtocolFilter;
+import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -125,6 +130,38 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("project")
     public List<AssetOption> getUnmountedFilesystems(AssetOptionsContext ctx, URI project) {
         return createFilesystemOptions(api(ctx).fileSystems().findByProject(project), new UnmountedFilesytemsPredicate());
+    }
+    
+    @Asset("fileFilePolicy")
+    @AssetDependencies( {"project", "fileFilesystem"} )
+    public List<AssetOption> getFilePolicies(AssetOptionsContext ctx, URI project, URI fsId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+
+        FilePolicyList policyList = client.fileSystems().getFilePolicies(fsId);
+        SchedulePolicyList schedulePolicies = client.tenants().getSchedulePoliciesByTenant(ctx.getTenant());
+        
+        for (NamedRelatedResourceRep policy : schedulePolicies.getSchdulePolicies()) {
+            if (!isSchedulePolicyInFilePolicies(policy, policyList)) {
+                options.add(new AssetOption(policy.getId(), policy.getName()));
+            }
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    protected boolean isSchedulePolicyInFilePolicies(NamedRelatedResourceRep schedulePolicy, FilePolicyList policyList) {
+        List<FilePolicyRestRep> filePolicies = policyList.getFilePolicies();
+        if (filePolicies == null) {
+            return false;
+        }
+        
+        for (FilePolicyRestRep p : filePolicies) {
+            if (p.getPolicyId().toString().equals(schedulePolicy.getId().toString())) {
+                return true;
+            }
+         }
+        return false;
     }
 
     @Asset("fileSnapshot")

@@ -46,7 +46,7 @@ public class SSHKeyPairGenerator {
 
     private SSHKeyPair generatePairForRSA() {
         try {
-            SecureRandom random = SecurityUtil.getSecureRandomInstance();
+            SecureRandom random = SecureRandom.getInstance(SecurityUtil.getSecuredRandomAlgorithm());
 
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance(
                     KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);

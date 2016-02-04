@@ -472,7 +472,7 @@ public class KeyCertificatePairGenerator {
         SecureRandom random = null;
         try {
 
-            random = SecurityUtil.getSecureRandomInstance();
+            random = SecureRandom.getInstance(SecurityUtil.getSecuredRandomAlgorithm());
             keyGen =
                     KeyPairGenerator.getInstance(
                             KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);

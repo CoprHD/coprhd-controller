@@ -4,7 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
@@ -197,18 +198,7 @@ public class DisasterRecoveryService {
             standbySite.setCreationTime((new Date()).getTime());
             standbySite.setName(param.getName());
             standbySite.setVdcShortId(drUtil.getLocalVdcShortId());
-
-            String vip = param.getVip();
-            if (vip.contains(":")) {
-                String tmpVip = null;
-                if (vip.contains("[")) {
-                    tmpVip = param.getVip().substring(1, param.getVip().length() - 1);
-                } else {
-                    tmpVip = vip;
-                }
-                vip = DualInetAddress.normalizeInet6Address(tmpVip);
-            }
-            standbySite.setVip(vip);
+            standbySite.setVip(param.getVip());
 
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
@@ -1624,6 +1614,20 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
                     "Site name should not be empty or longer than %d characters.", SITE_NAME_LENGTH_LIMIT));
         }
+        String siteVip = param.getVip();
+        InetAddress address = null;
+        try {
+            address = InetAddress.getByName(siteVip);
+        } catch (UnknownHostException e) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Could not resolve target standby site virtual IP.  Please check name service.");
+        }
+        if (address.getHostAddress().contains(":")) {
+            param.setVip(DualInetAddress.normalizeInet6Address(address.getHostAddress()));
+        } else {
+            param.setVip(address.getHostAddress());
+        }
+        log.info("Target standby site ip is {}", param.getVip());
+
         for (Site site : existingSites) {
             if (site.getName().equals(siteName)) {
                 throw APIException.internalServerErrors.addStandbyPrecheckFailed("Duplicate site name");

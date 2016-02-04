@@ -3417,6 +3417,20 @@ public class VolumeIngestionUtil {
             }
         }
 
+        for (List<DataObject> doList : ((RecoverPointVolumeIngestionContext)requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().values()) {
+            for (DataObject dobj : doList) {
+                if (!(dobj instanceof BlockObject)) {
+                    continue;
+                }
+                BlockObject bo = (BlockObject) dobj;
+                if (URIUtil.identical(bo.getConsistencyGroup(), cg.getId())) {
+                    blockObjects.add(bo);
+                }
+            }
+        }
+
+        
+        
         return blockObjects;
     }
 }

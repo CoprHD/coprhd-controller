@@ -29,6 +29,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Bloc
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
@@ -3417,19 +3418,33 @@ public class VolumeIngestionUtil {
             }
         }
 
-        for (List<DataObject> doList : ((RecoverPointVolumeIngestionContext)requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().values()) {
-            for (DataObject dobj : doList) {
-                if (!(dobj instanceof BlockObject)) {
-                    continue;
-                }
-                BlockObject bo = (BlockObject) dobj;
-                if (URIUtil.identical(bo.getConsistencyGroup(), cg.getId())) {
-                    blockObjects.add(bo);
+        if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
+            for (List<DataObject> doList : ((RecoverPointVolumeIngestionContext)requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().values()) {
+                for (DataObject dobj : doList) {
+                    if (!(dobj instanceof BlockObject)) {
+                        continue;
+                    }
+                    BlockObject bo = (BlockObject) dobj;
+                    if (URIUtil.identical(bo.getConsistencyGroup(), cg.getId())) {
+                        blockObjects.add(bo);
+                    }
                 }
             }
         }
 
-        
+        if (requestContext.getVolumeContext() instanceof VplexVolumeIngestionContext) {
+            for (List<DataObject> doList : ((VplexVolumeIngestionContext)requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().values()) {
+                for (DataObject dobj : doList) {
+                    if (!(dobj instanceof BlockObject)) {
+                        continue;
+                    }
+                    BlockObject bo = (BlockObject) dobj;
+                    if (URIUtil.identical(bo.getConsistencyGroup(), cg.getId())) {
+                        blockObjects.add(bo);
+                    }
+                }
+            }
+        }
         
         return blockObjects;
     }

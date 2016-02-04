@@ -44,7 +44,7 @@ all: appliance
 ##################################################
 PACKAGES_BOOT := linux-image-$(KERNEL) linux-headers-$(KERNEL)
 PACKAGES_LIST := build-essential dkms keyutils kpartx memtest86+ nfs-common openssh-client openssh-server parted psmisc qemu-system-common qemu-utils vim squashfs-tools
-PACKAGES_LIST := $(PACKAGES_LIST) alien ant apparmor arping atop auditd ca-certificates ca-certificates-java createrepo expect gcc-4.8 geoip-bin geoip-database git git-core gradle keepalived libpcre3 libpcre3-dev libserf-dev libtool libssl-dev ndisc6 ntp openjdk-8-jdk openjdk-8-jre openjdk-8-jre-headless p7zip perl perl-base perl-tk python-cjson python-gpgme python-iniparse python-requests python-setools readline-common rpm sipcalc subversion sysstat virtualbox-5.0 xfsprogs xmlstarlet yum strongswan libstrongswan
+PACKAGES_LIST := $(PACKAGES_LIST) alien ant apparmor arping atop auditd ca-certificates ca-certificates-java createrepo expect gcc-4.8 geoip-bin geoip-database git git-core keepalived libpcre3 libpcre3-dev libserf-dev libtool libssl-dev ndisc6 ntp openjdk-8-jdk openjdk-8-jre openjdk-8-jre-headless p7zip perl perl-base perl-tk python-cjson python-gpgme python-iniparse python-requests python-setools readline-common rpm sipcalc subversion sysstat virtualbox-5.0 xfsprogs xmlstarlet yum strongswan libstrongswan
 
 ISO_MOUNT := $(WORKSPACE)/iso/mount
 DIR_MOUNT := $(WORKSPACE)/dir/mount

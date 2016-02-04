@@ -19,7 +19,6 @@ public class TagNamedRelatedResourceRep extends NamedRelatedResourceRep {
     /**
      * The tag attached to the resource
      * 
-     * @valid none
      */
     @XmlElement(name = "tag")
     public String getTag() {

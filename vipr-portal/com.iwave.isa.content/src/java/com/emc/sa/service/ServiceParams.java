@@ -50,6 +50,7 @@ public interface ServiceParams {
     public String REMOVED_VOLUMES = "removedVolumes";
     public String SNAPSHOTS = "snapshots";
     public String FILESYSTEMS = "fileSystems";
+    public String FILE_POLICY = "filePolicy";
     public String NFS_PERMISSIONS = "nfsPermissions";
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";
@@ -122,8 +123,13 @@ public interface ServiceParams {
     public String OWNER = "owner";
     public String BUCKET = "bucket";
     
+    public String ADVISORY_LIMIT="advisoryLimit";
+    public String SOFT_LIMIT="softLimit";
+    public String GRACE_PERIOD="gracePeriod";
+    
     public String LINKED_SNAPSHOT = "linkedSnapshot";
     public String LINKED_SNAPSHOT_NAME = "linkedSnapshotName";
     public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
     public String LINKED_SNAPSHOT_COPYMODE = "linkedSnapshotCopyMode";
+
 }

@@ -528,6 +528,9 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.cinder.QuotaService">
                     <property name="dbClient" ref="dbclient"/>
                 </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.QuotaClassService">
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.cinder.MiscService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
@@ -590,6 +593,11 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.SchedulePolicyService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
+                </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.ObjectNamespaceService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="retryAttempts" value="5"/>
                 </bean>
                 <ref bean="virtualArrayService"/>
                 <ref bean="networkService"/>

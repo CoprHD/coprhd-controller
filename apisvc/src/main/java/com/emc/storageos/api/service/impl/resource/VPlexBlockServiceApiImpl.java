@@ -968,7 +968,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VPlexController controller = getController();
             controller.importVolume(vplexURI, descriptors, vplexProject.getId(),
                     vplexProject.getTenantOrg().getURI(), vpool.getId(),
-                    importVolume.getLabel() + SRC_BACKEND_VOL_LABEL_SUFFIX, taskId);
+                    importVolume.getLabel() + SRC_BACKEND_VOL_LABEL_SUFFIX, null, taskId);
         } catch (InternalException ex) {
             s_logger.error("ControllerException on importVolume", ex);
             String errMsg = String.format("ControllerException: %s", ex.getMessage());
@@ -991,7 +991,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param taskId
      * @throws InternalException
      */
-    private void upgradeToDistributed(URI vplexURI, Volume vplexVolume, VirtualPool vpool,
+    private void upgradeToDistributed(URI vplexURI, Volume vplexVolume, VirtualPool vpool, String transferSpeed,
             String taskId) throws InternalException {
         try {
             VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class,
@@ -1070,7 +1070,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             try {
                 s_logger.info("Calling VPlex controller.");
                 VPlexController controller = getController();
-                controller.importVolume(vplexURI, descriptors, null, null, vpool.getId(), null, taskId);
+                controller.importVolume(vplexURI, descriptors, null, null, vpool.getId(), null, transferSpeed, taskId);
                 // controller.importVolume(vplexURI, vpool.getId(),
                 // null, null, /* no need to pass System Project/Tenant */
                 // null, /* no import volume */
@@ -1147,6 +1147,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         s_logger.info("Volume {} VirtualPool change.", volume.getId());
 
+        String transferSpeed = null; 
         ArrayList<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
 
@@ -1165,8 +1166,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         } else {
             if (VirtualPoolChangeAnalyzer.isVPlexConvertToDistributed(volumeVirtualPool, vpool,
                     new StringBuffer())) {
+            	if (vpoolChangeParam.getTransferSpeedParam() != null) {
+            		transferSpeed = vpoolChangeParam.getTransferSpeedParam();
+            		s_logger.info("Coversion of volume from vplex local to distributed will use the provided transfer speed {}",transferSpeed);
+            	}
                 // Convert vplex_local to vplex_distributed
-                upgradeToDistributed(systemURI, volume, vpool, taskId);
+                upgradeToDistributed(systemURI, volume, vpool, transferSpeed, taskId);
             } else if (!VirtualPool.vPoolSpecifiesMirrors(volumeVirtualPool, _dbClient)
                     && (VirtualPool.vPoolSpecifiesMirrors(vpool, _dbClient))
                     && VirtualPoolChangeAnalyzer.isSupportedAddMirrorsVirtualPoolChange(volume, volumeVirtualPool, vpool, _dbClient,

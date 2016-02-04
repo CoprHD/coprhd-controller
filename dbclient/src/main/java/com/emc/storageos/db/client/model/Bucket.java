@@ -43,6 +43,8 @@ public class Bucket extends DataObject implements ProjectResource {
     private String _owner;
     // native device ID as created by storage device
     private String _nativeId;
+    // version of the bucket created. Used by vipr developers only.
+    private String version;
 
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
@@ -201,4 +203,15 @@ public class Bucket extends DataObject implements ProjectResource {
         this.name = name;
         setChanged("name");
     }
+
+    @Name("version")
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+        setChanged("version");
+    }
+    
 }

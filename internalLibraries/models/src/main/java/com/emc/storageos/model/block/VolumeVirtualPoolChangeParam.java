@@ -26,6 +26,7 @@ public class VolumeVirtualPoolChangeParam {
     private URI virtualPool;
     private BlockVirtualPoolProtectionParam protection;
     private URI consistencyGroup;
+    private String transferSpeed; 
 
     public VolumeVirtualPoolChangeParam() {
     }
@@ -40,7 +41,6 @@ public class VolumeVirtualPoolChangeParam {
     @XmlElementWrapper(required = true, name = "volumes")
     /**
      * List of Volume IDs.
-     * @valid example:  list of valid URIs
      */
     @XmlElement(required = true, name = "volume")
     public List<URI> getVolumes() {
@@ -57,7 +57,6 @@ public class VolumeVirtualPoolChangeParam {
     /**
      * ID of the new virtual pool.
      * 
-     * @valid example: a valid URI
      */
     @XmlElement(required = true, name = "vpool")
     @JsonProperty("vpool")
@@ -73,7 +72,6 @@ public class VolumeVirtualPoolChangeParam {
      * Virtual Pool (Mirror or RecoverPoint) protection
      * parameters.
      * 
-     * @valid none
      */
     @XmlElement(required = false, name = "protection")
     public BlockVirtualPoolProtectionParam getProtection() {
@@ -83,6 +81,21 @@ public class VolumeVirtualPoolChangeParam {
     public void setProtection(BlockVirtualPoolProtectionParam protection) {
         this.protection = protection;
     }
+    
+    /**
+     * Parameter for Transfer Speed. Optional parameter for virtual volume migration
+     * from VPLEX Local to Distributed.
+     */
+    @XmlElement(required = false, name = "transfer_speed")
+    public String getTransferSpeedParam() {
+    	return transferSpeed; 
+    }
+    
+    public void setTransferSpeedParam(String transferspeed) {
+    	this.transferSpeed = transferspeed; 
+    }
+    
+    
 
     /**
      * The ViPR consistency group to associate the volume with for

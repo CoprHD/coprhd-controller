@@ -145,6 +145,10 @@ public class VolumeService extends TaskResourceService {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
     }
 
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
+    }
+    
     /**
      * Get the summary list of all volumes for the given tenant
      * 
@@ -317,7 +321,7 @@ public class VolumeService extends TaskResourceService {
         BlockConsistencyGroup blockConsistencyGroup = null;
         if (consistencygroup_id != null) {
             _log.info("Verifying for consistency group : " + consistencygroup_id);
-            blockConsistencyGroup = getCinderHelper().queryConsistencyGroupByTag(URI.create(consistencygroup_id), getUserFromContext());
+            blockConsistencyGroup = (BlockConsistencyGroup) getCinderHelper().queryByTag(URI.create(consistencygroup_id), getUserFromContext(), BlockConsistencyGroup.class);
             blockConsistencyGroupId = blockConsistencyGroup.getId();
             if (blockConsistencyGroup.getTag() != null) {
                 for (ScopedLabel tag : blockConsistencyGroup.getTag()) {
@@ -338,7 +342,7 @@ public class VolumeService extends TaskResourceService {
         URI snapUri = null;
 
         if (snapshotId != null) {
-            snapshot = getCinderHelper().querySnapshotByTag(URI.create(snapshotId), getUserFromContext());
+            snapshot = (BlockSnapshot) getCinderHelper().queryByTag(URI.create(snapshotId), getUserFromContext(),BlockSnapshot.class);
             if (snapshot == null) {
                 throw APIException.badRequests.parameterIsNotValid(snapshotId);
             } else {
@@ -743,9 +747,9 @@ public class VolumeService extends TaskResourceService {
         boolean isValidVolume = false;
 
         if (pool == null)
-            objQuota = getCinderHelper().getProjectQuota(openstackTenantId, getUserFromContext());
+            objQuota = getQuotaHelper().getProjectQuota(openstackTenantId, getUserFromContext());
         else
-            objQuota = getCinderHelper().getVPoolQuota(openstackTenantId, pool, getUserFromContext());
+            objQuota = getQuotaHelper().getVPoolQuota(openstackTenantId, pool, getUserFromContext());
 
         if (objQuota == null) {
             _log.info("Unable to retrive the Quota information");
@@ -759,9 +763,9 @@ public class VolumeService extends TaskResourceService {
         UsageStats stats = null;
 
         if (pool != null)
-            stats = getCinderHelper().getStorageStats(pool.getId(), proj.getId());
+            stats = getQuotaHelper().getStorageStats(pool.getId(), proj.getId());
         else
-            stats = getCinderHelper().getStorageStats(null, proj.getId());
+            stats = getQuotaHelper().getStorageStats(null, proj.getId());
 
         totalVolumesUsed = stats.volumes;
         totalSizeUsed = stats.spaceUsed;
@@ -878,7 +882,7 @@ public class VolumeService extends TaskResourceService {
     }
 
     protected Volume findVolume(String volume_id, String openstackTenantId) {
-        Volume vol = getCinderHelper().queryVolumeByTag(URI.create(volume_id), getUserFromContext());
+        Volume vol = (Volume)getCinderHelper().queryByTag(URI.create(volume_id), getUserFromContext(), Volume.class);
         Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
         if (project == null) {
             throw APIException.badRequests.projectWithTagNonexistent(openstackTenantId);
@@ -988,7 +992,7 @@ public class VolumeService extends TaskResourceService {
             Volume sourceVolume, BlockFullCopyManager blkFullCpManager)
     {
 
-        Volume vol = getCinderHelper().queryVolumeByTag(URI.create(sourceVolId), getUserFromContext());
+        Volume vol = (Volume) getCinderHelper().queryByTag(URI.create(sourceVolId), getUserFromContext(), Volume.class);
         URI volumeUri = vol.getId();
         validateSourceVolumeHasExported(sourceVolume);
 

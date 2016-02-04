@@ -3467,6 +3467,7 @@ public class BlockService extends TaskResourceService {
         oldParam.setVirtualPool(newParam.getVirtualPool());
         oldParam.setProtection(newParam.getProtection());
         oldParam.setConsistencyGroup(newParam.getConsistencyGroup());
+        oldParam.setTransferSpeedParam(newParam.getTransferSpeedParam());
         return oldParam;
     }
 

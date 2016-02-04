@@ -22,7 +22,6 @@ public class ComputeVirtualPoolBulkRep extends BulkRestRep {
     /**
      * List of virtual pools.
      * 
-     * @valid none
      */
     @XmlElement(name = "compute_vpool")
     @JsonProperty("compute_vpool")

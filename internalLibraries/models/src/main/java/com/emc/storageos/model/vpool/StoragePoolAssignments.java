@@ -30,7 +30,6 @@ public class StoragePoolAssignments {
     /**
      * The list of storage pools to be added to or removed from the virtual pool
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_pool")
     @JsonProperty("storage_pool")

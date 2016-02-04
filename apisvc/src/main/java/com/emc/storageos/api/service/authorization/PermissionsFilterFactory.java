@@ -421,7 +421,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
             }
             // disallowed operation
             Site activeSite = drUtil.getActiveSite();
-            throw APIException.forbidden.disallowOperationOnDrStandby(activeSite.getVip());
+            throw APIException.forbidden.disallowOperationOnDrStandby(activeSite.getVipEndPoint());
         }
         
         @Override

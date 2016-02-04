@@ -17,6 +17,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParam;
+import com.emc.storageos.model.file.FilePolicyList;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -524,5 +525,35 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> deleteShareACL(URI id, String shareName) {
         return deleteTask(getShareACLsUrl(), id, shareName);
+    }
+    
+    /**
+     * Associate a file policy to a given file system 
+     * <p>
+     * API Call: <tt>PUT /file/filesystems/{id}/assign-file-policy/{file_policy_uri}</tt>
+     * 
+     * @param fileSystemId
+     *            the ID of the file system.
+     * @param filePolicyId
+     *            the ID of the file policy.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId) {
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/assign-file-policy/{file_policy_uri}");
+        URI targetUri = builder.build(fileSystemId, filePolicyId);
+        return putTaskURI(null, targetUri);
+    }
+    
+    /**
+     * Get File Policy associated with a File System
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{id}/file-policies</tt>
+     * 
+     * @param fileSystemId
+     *            the ID of the file system.
+     * @return a file policy list.
+     */
+    public FilePolicyList getFilePolicies(URI fileSystemId) {
+        return client.get(FilePolicyList.class, getIdUrl() + "/file-policies", fileSystemId);
     }
 }

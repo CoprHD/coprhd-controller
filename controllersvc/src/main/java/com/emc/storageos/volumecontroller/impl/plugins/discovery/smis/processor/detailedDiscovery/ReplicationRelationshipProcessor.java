@@ -79,6 +79,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                 String srcNativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(sourcePath);
                 _logger.info("Target Native Guid {}, Source Native Guid {}", nativeGuid, srcNativeGuid);
                 String syncType = getCIMPropertyValue(instance, SYNC_TYPE);
+                String copyMethod = getCIMPropertyValue(instance, COPY_METHODOLOGY);
 
                 LocalReplicaObject replicaObj = _volumeToLocalReplicaMap
                         .get(nativeGuid);
@@ -91,7 +92,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                     // Need to set source
                     _logger.info("Found Target Local Replica Object {}",
                             replicaObj);
-                    if (SYNC_TYPE_SNAPSHOT.equals(syncType)) {
+                    if (isReplicationSnapshot(syncType, copyMethod)) {
                         StringSet fullCopies = replicaObj.getFullCopies();
                         if (fullCopies != null && !fullCopies.isEmpty()) {
                             for (String fullCopyNativeGuid : fullCopies) {
@@ -128,12 +129,9 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                 String systemName = targetPath.getKey(Constants._SystemName).getValue().toString();
                 String syncState = getCIMPropertyValue(instance, SYNC_STATE);
                 String copyState = getCIMPropertyValue(instance, COPY_STATE);
-                String copyMethod = getCIMPropertyValue(instance, COPY_METHODOLOGY);
                 boolean inSync = COPY_STATE_SYNCHRONIZED.equals(copyState);
 
-                if (SYNC_TYPE_SNAPSHOT.equals(syncType) || (
-                        SYNC_TYPE_CLONE.equals(syncType) && SNAPVX_COPY_METHODOLOGY.equals(copyMethod))) {
-
+                if (isReplicationSnapshot(syncType, copyMethod)) {
                     replicaObj.setType(LocalReplicaObject.Types.BlockSnapshot);
                     String emcCopyState = getCIMPropertyValue(instance, EMC_COPY_STATE_DESC);
                     if (INACTIVE.equals(emcCopyState)) {
@@ -232,5 +230,17 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
             default:
                 return Volume.ReplicationState.UNKNOWN.name();
         }
+    }
+
+    /**
+     * Returns true if the given syncType and/or copyMethod is determined to represent a snapshot.
+     *
+     * @param syncType      Value of a SyncType property.
+     * @param copyMethod    Value of a CopyMethodology property.
+     * @return              true, if they represent a snapshot, false otherwise.
+     */
+    private boolean isReplicationSnapshot(String syncType, String copyMethod) {
+        return SYNC_TYPE_SNAPSHOT.equals(syncType) || (
+                SYNC_TYPE_CLONE.equals(syncType) && SNAPVX_COPY_METHODOLOGY.equals(copyMethod));
     }
 }

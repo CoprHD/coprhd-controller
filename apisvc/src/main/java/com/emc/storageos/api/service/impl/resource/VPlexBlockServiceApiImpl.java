@@ -76,6 +76,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
@@ -391,8 +392,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             varray, vpool, storageDeviceURI,
                             storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
                     
+                    // Check if it is RP target or journal volumes
+                    String rpPersonality = vPoolCapabilities.getPersonality();
+                    boolean isRPTargetOrJournal = false;
+                    if (rpPersonality != null && (rpPersonality.equals(PersonalityTypes.TARGET.name()) 
+                            || rpPersonality.equals(PersonalityTypes.METADATA.name()))) {
+                        s_logger.info("It is RP target or journal volume");
+                        isRPTargetOrJournal = true;
+                    }
                     // Set replicationGroupInstance if CG's arrayConsistency is true
-                    if (backendCG != null && backendCG.getArrayConsistency()) {
+                    if (backendCG != null && backendCG.getArrayConsistency() && !isRPTargetOrJournal) {
 	    	            volume.setReplicationGroupInstance(consistencyGroup.getLabel());
                     }
                     
@@ -3632,13 +3641,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             volume.getOpStatus().updateTaskStatus(taskId, op);
             _dbClient.updateObject(volume);
             if (cguri == null) {
-            	// Once a volume in the CG is added into an application, the CG's arrayConsistency is set to false
-            	cguri = volume.getConsistencyGroup();
-            	BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
-            	if (cg.getArrayConsistency()) {
-            		cg.setArrayConsistency(false);
-            		_dbClient.updateObject(cg);
-            	}
+                // Once a volume in the CG is added into an application, the CG's arrayConsistency is set to false
+                cguri = volume.getConsistencyGroup();
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+                if (cg.getArrayConsistency()) {
+                    cg.setArrayConsistency(false);
+                }
+                Operation cgop = cg.getOpStatus().get(taskId);
+                if (cgop != null) {
+                    cgop.ready();
+                    cg.getOpStatus().updateTaskStatus(taskId,  cgop);
+                }
+                _dbClient.updateObject(cg);
             }
         }
     }

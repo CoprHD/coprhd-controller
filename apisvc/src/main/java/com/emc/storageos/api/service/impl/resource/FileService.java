@@ -3016,6 +3016,23 @@ public class FileService extends TaskResourceService {
         // operation against the file share
         checkForPendingTasks(Arrays.asList(sourceFileShare.getTenant().getURI()), Arrays.asList(sourceFileShare));
 
+        // Get the project.
+        URI projectURI = sourceFileShare.getProject().getURI();
+        Project project = _permissionsHelper.getObjectById(projectURI,
+                Project.class);
+        ArgValidator.checkEntity(project, projectURI, false);
+        _log.info("Found filesystem project {}", projectURI);
+
+        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+
+        // Verify the file system and its vPool are capable of doing replication!!!
+        if (!validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, op)) {
+            _log.error("Mirror Operation {}  is not supported for file system {} due to {}", op.toUpperCase(),
+                    sourceFileShare.getId().toString(), notSuppReasonBuff.toString());
+            throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(), notSuppReasonBuff.toString());
+
+        }
         Operation status = new Operation();
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
         _dbClient.createTaskOpStatus(FileShare.class, sourceFileShare.getId(), task, status);
@@ -3423,27 +3440,9 @@ public class FileService extends TaskResourceService {
         _log.info(String.format("Checking isSupportedFileReplicationCreate for Fs [%s] with vpool [%s]...", fs.getLabel(),
                 currentVpool.getLabel()));
 
-        // file system virtual pool must be enabled with replication!!
-        if (!VirtualPool.vPoolSpecifiesFileReplication(currentVpool)) {
-            notSuppReasonBuff
-                    .append(String
-                            .format("File replication is not enable in file system virtual pool %s.",
-                                    currentVpool.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
+        if (!doBasicMirrorValidation(fs, currentVpool, notSuppReasonBuff)) {
             return false;
         }
-
-        // File system should not be the target file system!!
-        if (fs.getPersonality() != null &&
-                fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
-            notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request is an active Target file system %s.",
-                                    fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-
         // File system should not be the active source file system!!
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
@@ -3483,27 +3482,9 @@ public class FileService extends TaskResourceService {
     private boolean validateDeleteMirrorCopies(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff) {
         _log.info(String.format("Checking validateDeleteMirrorCopies for Fs [%s] ", fs.getLabel()));
 
-        // file system virtual pool must be enabled with replication!!
-        if (!VirtualPool.vPoolSpecifiesFileReplication(currentVpool)) {
-            notSuppReasonBuff
-                    .append(String
-                            .format("File replication is not enable in file system virtual pool %s.",
-                                    currentVpool.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
+        if (!doBasicMirrorValidation(fs, currentVpool, notSuppReasonBuff)) {
             return false;
         }
-
-        // File system should not be the target file system!!
-        if (fs.getPersonality() != null &&
-                fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
-            notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request is an active Target file system %s.",
-                                    fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-
         // File system should not be the failover state
         // Failover state, the mirror copy would be in production!!!
         if (fs.getPersonality() != null
@@ -3525,6 +3506,72 @@ public class FileService extends TaskResourceService {
                     .append(String
                             .format("File system given in request has no active target file system %s.",
                                     fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Checks to see if the file replication operation is supported.
+     * 
+     * @param fs File share
+     * @param currentVpool
+     *            the source virtual pool
+     * @param notSuppReasonBuff
+     *            the not supported reason string buffer
+     * @return
+     */
+    private boolean validateMirrorOperationSupported(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff,
+            String operation) {
+
+        _log.info(String.format("Checking if mirror operation is supported for file system [%s] ", fs.getLabel()));
+
+        if (!doBasicMirrorValidation(fs, currentVpool, notSuppReasonBuff)) {
+            return false;
+        }
+        String currentMirrorStatus = fs.getMirrorStatus();
+
+        if (operation.equalsIgnoreCase(ProtectionOp.REFRESH.toString())) {
+            return true;
+        }
+        if (operation.equalsIgnoreCase(ProtectionOp.FAILBACK.toString())
+                && currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())) {
+            return true;
+        }
+        if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())) {
+            notSuppReasonBuff.append(String.format("Mirror Operation %s can't be performed on the requested File System  %s"
+                    + " as the file system is in FAILED OVER mode.", operation.toUpperCase(), fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Checks to see if the file replication change is supported.
+     * 
+     * @param fs
+     * @param currentVpool
+     *            the source virtual pool
+     * @param notSuppReasonBuff
+     *            the not supported reason string buffer
+     * @return
+     */
+    private boolean doBasicMirrorValidation(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff) {
+
+        // file system virtual pool must be enabled with replication..
+        if (!VirtualPool.vPoolSpecifiesFileReplication(currentVpool)) {
+            notSuppReasonBuff.append(String.format("File replication is not enabled in virtual pool - %s"
+                    + " of the requested file system -%s ", currentVpool.getLabel(), fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // File system should not be the target file system..
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is an active Target file system.",
+                    fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;
         }

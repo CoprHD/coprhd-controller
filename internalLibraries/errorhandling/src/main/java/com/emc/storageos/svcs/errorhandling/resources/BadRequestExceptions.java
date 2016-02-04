@@ -2857,4 +2857,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException expandMirrorFileSupportedOnlyOnSource(URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToPerformMirrorOperation(String operation, final URI fsUri, String reason);
 }

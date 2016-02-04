@@ -123,6 +123,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupService.class);
     private static final int CG_MAX_LIMIT = 64;
     private static final String FULL_COPY = "Full copy";
+    private static final String SNAPSHOT = "Snapshot";
 
     // A reference to the placement manager.
     private PlacementManager _placementManager;
@@ -447,6 +448,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
         }
 
+        // Verify the consistency group in the requests and get the
+        // volumes in the consistency group.
+        List<Volume> cgVolumes = verifyCGForSnapshotRequest(consistencyGroupId);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes, SNAPSHOT);
+
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
@@ -608,6 +616,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
+
+        // Verify the consistency group in the requests and get the
+        // volumes in the consistency group.
+        List<Volume> cgVolumes = verifyCGForSnapshotRequest(consistencyGroupId);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes, SNAPSHOT);
+
         // check for backend CG
         if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
             _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
@@ -685,6 +701,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (consistencyGroup.checkForType(Types.RP)) {
             throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
         }
+
+        // Verify the consistency group in the requests and get the
+        // volumes in the consistency group.
+        List<Volume> cgVolumes = verifyCGForSnapshotRequest(consistencyGroupId);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes, SNAPSHOT);
 
         // check for backend CG
         if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
@@ -765,6 +788,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
 
+        // Verify the consistency group in the requests and get the
+        // volumes in the consistency group.
+        List<Volume> cgVolumes = verifyCGForSnapshotRequest(consistencyGroupId);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes, SNAPSHOT);
+
         // check for backend CG
         if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
             _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
@@ -821,6 +851,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
+
+        // Verify the consistency group in the requests and get the
+        // volumes in the consistency group.
+        List<Volume> cgVolumes = verifyCGForSnapshotRequest(consistencyGroupId);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes, SNAPSHOT);
 
         // check for backend CG
         if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
@@ -2090,5 +2127,34 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
                 operationTypeEnum);
         taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
+    }
+
+    /**
+     * Verifies the CG passed in the request is valid and contains volumes.
+     * 
+     * @param cgURI The URI of a consistency group.
+     * @returnThe volumes in the consistency group.
+     */
+    private List<Volume> verifyCGForSnapshotRequest(URI cgURI) {
+        // Query Consistency Group.
+        BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(cgURI);
+
+        // Ensure that the Consistency Group has been created on all of its
+        // defined system types.
+        if (!consistencyGroup.created()) {
+            throw APIException.badRequests.consistencyGroupNotCreated();
+        }
+
+        // Get the block service implementation.
+        BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
+
+        // Get the volumes in the consistency group.
+        List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
+        if (cgVolumes.isEmpty()) {
+            throw APIException.badRequests
+                    .noVolumesToSnap();
+        }
+
+        return cgVolumes;
     }
 }

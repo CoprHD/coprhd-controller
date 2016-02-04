@@ -1379,13 +1379,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         tempVolumesList.clear();
                         tempVolumesList.addAll(allVolumesToCompare);
                         // Remove the current volume from the list and get a handle on it
-                        Volume currentVolume = tempVolumesList.remove(index);
+                        Volume currentVolume = tempVolumesList.remove(index);                        
+                        StorageSystem currentVolumeStorageSystem = _dbClient.queryObject(StorageSystem.class, currentVolume.getStorageController());
 
                         // Get the System Type for the current volume
                         String currentVolumeSystemType = volumeStorageSystemMap.get(currentVolume.getStorageController()).getSystemType();
                         // Calculate the capacity for the current volume based on the Storage System type to see if it can be adjusted
                         currentVolumeCapacity = capacityCalculatorFactory.getCapacityCalculator(currentVolumeSystemType)
-                                .calculateAllocatedCapacity(capacityToUseInCalculation);
+                                .calculateAllocatedCapacity(capacityToUseInCalculation, currentVolumeStorageSystem);
 
                         _log.info(String.format("Volume [%s] has a capacity of %s on storage system type %s. " +
                                 "The calculated capacity for this volume is %s.",
@@ -1407,10 +1408,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 continue;
                             }
 
+                            StorageSystem volumeToCompareStorageSystem = _dbClient.queryObject(StorageSystem.class, volumeToCompare.getStorageController());
+                            
                             // Calculate the capacity for the volume to compare based on the Storage System type to see if it can be
                             // adjusted
                             volumeToCompareCapacity = capacityCalculatorFactory.getCapacityCalculator(volumeToCompareSystemType)
-                                    .calculateAllocatedCapacity(currentVolumeCapacity);
+                                    .calculateAllocatedCapacity(currentVolumeCapacity, volumeToCompareStorageSystem);
 
                             // Check to see if the capacities match
                             if (!currentVolumeCapacity.equals(volumeToCompareCapacity)) {
@@ -2943,10 +2946,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         if (type == Volume.PersonalityTypes.SOURCE) {
             capacity = capacityCalculatorFactory.getCapacityCalculator(storageSystem.getSystemType())
-                    .calculateAllocatedCapacity(capacityToUseInCalculation);
+                    .calculateAllocatedCapacity(capacityToUseInCalculation, storageSystem);
         } else if (type == Volume.PersonalityTypes.TARGET) {
             capacity = capacityCalculatorFactory.getCapacityCalculator(storageSystem.getSystemType())
-                    .calculateAllocatedCapacity(capacityToUseInCalculation + 5242880L);
+                    .calculateAllocatedCapacity(capacityToUseInCalculation + 5242880L, storageSystem);
         }
 
         return capacity;

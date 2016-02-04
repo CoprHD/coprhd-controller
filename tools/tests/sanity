@@ -603,6 +603,19 @@ HOSTNAME=`hostname`
 BLK_CLIENT_iSCSI=iqn.2010-01.com.emc.snafu-${HOSTNAME}_${seed}
 BLK_HOSTID=sanity-host-${HOSTNAME}-${seed}
 
+######################### Start of Driver Managed System configuration. ############################
+#
+
+#
+# Driver managed system setup (simulated)
+#
+DRIVER_SYSTEM_TYPE=driversystem
+DRIVER_SYSTEM_IP=10.20.30.40
+DRIVER_SYSTEM_PORT=8080
+DRIVER_SYSTEM_USER=user
+DRIVER_SYSTEM_PASSWORD=password
+######################### End of Driver Managed System configuration. ############################
+
 export BOURNE_IPADDR="$BOURNE_IP"
 
 source sanity_utils
@@ -3665,7 +3678,7 @@ isilon_setup()
 driversystem_setup()
 {
     echo "driversystem setup"
-    discoveredsystem create driverManagedSystem driversystem  10.246.55.66 8080 root password
+    discoveredsystem create driverManagedSystem $DRIVER_SYSTEM_TYPE  $DRIVER_SYSTEM_IP $DRIVER_SYSTEM_PORT $DRIVER_SYSTEM_USER $DRIVER_SYSTEM_PASSWORD
 }
 
 

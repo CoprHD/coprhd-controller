@@ -154,7 +154,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     @Override
     public void getUserSecretKey(URI storage, String userId, String task, URI userTrackId) throws InternalException {
         _log.info("ObjectControllerImpl:getUserSecretKey start");
-        execOb("getUserSecretKey", storage, userId, task);
+        execOb("getUserSecretKey", storage, userId, task, userTrackId);
         _log.debug("ObjectControllerImpl:getUserSecretKey end");        
     }
        

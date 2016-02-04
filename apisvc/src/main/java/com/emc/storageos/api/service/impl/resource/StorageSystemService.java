@@ -1342,6 +1342,8 @@ public class StorageSystemService extends TaskResourceService {
         tagSet2.add(newScopedLabel);
         system.setTag(tagSet2);
         _dbClient.updateObject(system);
+        
+        int dummy = 0;
        
     }
 

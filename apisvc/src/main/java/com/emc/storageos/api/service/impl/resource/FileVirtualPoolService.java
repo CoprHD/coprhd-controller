@@ -89,6 +89,8 @@ import com.google.common.base.Function;
 public class FileVirtualPoolService extends VirtualPoolService {
 
     private static final Logger _log = LoggerFactory.getLogger(FileVirtualPoolService.class);
+    private static final Long MINUTES_PER_HOUR = 60L;
+    private static final Long HOURS_PER_DAY = 24L;
 
     /**
      * Create File Store VirtualPool
@@ -603,12 +605,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                         copyMode = replPolicy.getCopyMode();
                         vPool.setFileReplicationCopyMode(copyMode.toUpperCase());
                     }
-                    if (null != replPolicy.getRpoValue() && replPolicy.getRpoValue() > 0L) {
-                        vPool.setFrRpoValue(replPolicy.getRpoValue());
-                    } else {
-                        throw APIException.badRequests.invalidReplicationRPOValue();
-                    }
-
+                    // Validate the RPO value and type!!
                     if (validateReplicationRpoParams(replPolicy)) {
                         vPool.setFrRpoType(replPolicy.getRpoType());
                         vPool.setFrRpoValue(replPolicy.getRpoValue());
@@ -836,13 +833,13 @@ public class FileVirtualPoolService extends VirtualPoolService {
 
         switch (sourcePolicy.getRpoType().toUpperCase()) {
             case "MINUTES":
-                if (sourcePolicy.getRpoValue() > 60) {
+                if (sourcePolicy.getRpoValue() > MINUTES_PER_HOUR) {
                     throw APIException.badRequests.invalidReplicationRPOValueForType(
                             sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
                 }
                 break;
             case "HOURS":
-                if (sourcePolicy.getRpoValue() > 24) {
+                if (sourcePolicy.getRpoValue() > HOURS_PER_DAY) {
                     throw APIException.badRequests.invalidReplicationRPOValueForType(
                             sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
                 }

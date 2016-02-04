@@ -535,9 +535,16 @@
       ]
     },
     {
-      "title": "customservice.title",
+      "title": "Custom Sample",
       "image": "icon_data_services.png",
-      "description": "customservice.description"
-    },
+      "description": "Custom Sample",
+      "services": [
+        {
+          "image": "icon_create_bucket.png",
+          "baseService": "CustomSample"
+        }
+        
+      ]
+    }
   ]
 }

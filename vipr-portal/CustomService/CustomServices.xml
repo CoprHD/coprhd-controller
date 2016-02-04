@@ -1,0 +1,21 @@
+<customservices>
+	<customservice>
+		<title>Create Volume</title>
+		<taskname>CreateVolume</taskname>
+		<img>add.png</img>
+		<fields>
+			<field>name</field>
+			<field>size</field>
+		</fields>
+	</customservice>
+	<customservice>
+		<title>Export Volume</title>
+		<taskname>ExportVolume</taskname>
+		<img>add.png</img>
+		<fields>
+			<field>name</field>
+			<field>size</field>
+			<field>hostip</field>
+		</fields>
+	</customservice>
+</customservices>

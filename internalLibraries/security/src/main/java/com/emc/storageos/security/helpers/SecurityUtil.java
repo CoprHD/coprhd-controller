@@ -74,17 +74,4 @@ public class SecurityUtil {
     public static String getSecuredRandomAlgorithm() {
         return secureRandomAlgo;
     }
-
-    /**
-     * return the instance of a SecureRandom and it could be reused.
-     * @return
-     */
-    public synchronized static SecureRandom getSecureRandomInstance() throws Exception {
-        if (secureRandomInst == null) {
-            secureRandomInst = SecureRandom.getInstance(secureRandomAlgo);
-            secureRandomInst.setSeed(secureRandomInst.generateSeed(SEED_LEN));
-        }
-
-        return secureRandomInst;
-    }
 }

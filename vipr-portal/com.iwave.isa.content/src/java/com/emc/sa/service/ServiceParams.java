@@ -50,6 +50,7 @@ public interface ServiceParams {
     public String REMOVED_VOLUMES = "removedVolumes";
     public String SNAPSHOTS = "snapshots";
     public String FILESYSTEMS = "fileSystems";
+    public String FILE_POLICY = "filePolicy";
     public String NFS_PERMISSIONS = "nfsPermissions";
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";

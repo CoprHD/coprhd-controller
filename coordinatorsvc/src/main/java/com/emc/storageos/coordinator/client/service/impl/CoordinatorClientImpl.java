@@ -261,7 +261,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             }
 
             if (addr.hasInet6()) {
-                ipv6Addresses.put(nodeId, addr.getInet6());
+                ipv6Addresses.put(nodeId, DualInetAddress.normalizeInet6Address(addr.getInet6()));
             } else {
                 ipv6Addresses.put(nodeId, PropertyConstants.IPV6_ADDR_DEFAULT);
             }

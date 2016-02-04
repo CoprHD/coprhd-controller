@@ -374,5 +374,20 @@ public class Site {
         builder.append(", uuid=").append(uuid).append("]");
         return builder.toString();
     }
+
+    public boolean isUsingIpv4() {
+        if (vip.contains(":")) {
+            return false;
+        }
+        return true;
+    }
+
+    public String getVipEndPoint() {
+        if (isUsingIpv4()) {
+            return vip;
+        } else {
+            return "[" + vip + "]";
+        }
+    }
     
 }

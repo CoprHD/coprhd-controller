@@ -211,6 +211,10 @@ public class DisasterRecoveryService {
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }
+
+            // Do this before tx get started which might write key to zk.
+            SecretKey secretKey = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
+
             coordinator.startTransaction();
             coordinator.addSite(standbyConfig.getUuid());
             log.info("Persist standby site to ZK {}", shortId);
@@ -230,7 +234,7 @@ public class DisasterRecoveryService {
             List<Site> allStandbySites = new ArrayList<>();
             allStandbySites.add(standbySite);
             allStandbySites.addAll(existingSites);
-            SiteConfigParam configParam = prepareSiteConfigParam(allStandbySites, ipsecConfig.getPreSharedKey(), standbyConfig.getUuid(), dataRevision, vdcConfigVersion);
+            SiteConfigParam configParam = prepareSiteConfigParam(allStandbySites, ipsecConfig.getPreSharedKey(), standbyConfig.getUuid(), dataRevision, vdcConfigVersion, secretKey);
             viprCoreClient.site().syncSite(standbyConfig.getUuid(), configParam);
 
             drUtil.updateVdcTargetVersion(siteId, SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcConfigVersion, dataRevision);
@@ -263,7 +267,8 @@ public class DisasterRecoveryService {
      * @param targetStandbyDataRevision The data revision of the target standby
      * @return SiteConfigParam all the sites configuration
      */
-    private SiteConfigParam prepareSiteConfigParam(List<Site> standbySites, String ipsecKey, String targetStandbyUUID, long targetStandbyDataRevision, long vdcConfigVersion) {
+    private SiteConfigParam prepareSiteConfigParam(List<Site> standbySites, String ipsecKey, String targetStandbyUUID,
+                                                   long targetStandbyDataRevision, long vdcConfigVersion, SecretKey secretKey) {
         log.info("Preparing to sync sites info among to be added/resumed standby site...");
         Site active = drUtil.getActiveSite();
         SiteConfigParam configParam = new SiteConfigParam();
@@ -277,8 +282,7 @@ public class DisasterRecoveryService {
         for (Site standby : standbySites) {
             SiteParam standbyParam = new SiteParam();
             siteMapper.map(standby, standbyParam);
-            SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
-            standbyParam.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
+            standbyParam.setSecretKey(new String(Base64.encodeBase64(secretKey.getEncoded()), Charset.forName("UTF-8")));
             if (standby.getUuid().equals(targetStandbyUUID)) {
                 log.info("Set data revision for site {} to {}", standby.getUuid(), targetStandbyDataRevision);
                 standbyParam.setDataRevision(targetStandbyDataRevision);
@@ -753,6 +757,9 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(standby.getName(), e.getMessage());
         }
 
+        // Do this before tx get started which might write key to zk.
+        SecretKey secretKey = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
+
         InterProcessLock lock = drUtil.getDROperationLock();
 
         long vdcTargetVersion = DrUtil.newVdcConfigVersion();
@@ -773,7 +780,7 @@ public class DisasterRecoveryService {
                         // init the to-be resumed standby site
                         dataRevision = System.currentTimeMillis();
                         List<Site> standbySites = drUtil.listStandbySites();
-                        SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(), uuid, dataRevision, vdcTargetVersion);
+                        SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(), uuid, dataRevision, vdcTargetVersion, secretKey);
                         try (InternalSiteServiceClient internalSiteServiceClient = new InternalSiteServiceClient()) {
                             internalSiteServiceClient.setCoordinatorClient(coordinator);
                             internalSiteServiceClient.setServer(site.getVip());

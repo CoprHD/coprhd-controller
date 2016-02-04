@@ -1670,7 +1670,26 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getPointInTime(),
+            // For RP failover, if the copy name is specified, it will be a BlockSnapshot URI String
+            String copyName = null;
+            if (URIUtil.isValid(copy.getName())) {
+                URI copySnapshotUri = URI.create(copy.getName());
+                ArgValidator.checkFieldUriType(copySnapshotUri, Volume.class, "copyName");
+
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, copySnapshotUri);
+
+                if (snapshot != null && snapshot.getInactive()) {
+                    // Invalid copy name specified
+                    throw APIException.badRequests.invalidCopyName(copy.getName());
+                } else {
+                    copyName = snapshot.getEmName();
+                }
+            } else {
+                // Invalid copy name specified
+                throw APIException.badRequests.invalidCopyName(copy.getName());
+            }
+
+            taskResp = performProtectionAction(id, copy.getCopyID(), copyName, copy.getPointInTime(),
                     ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {

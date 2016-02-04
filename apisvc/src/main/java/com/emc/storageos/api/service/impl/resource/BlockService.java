@@ -1586,7 +1586,28 @@ public class BlockService extends TaskResourceService {
 
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getName(), copy.getPointInTime(),
+            String copyName = null;
+            if (copy.getName() != null) {
+                // For RP failover, if the copy name is specified, it will be a BlockSnapshot URI String
+                if (URIUtil.isValid(copy.getName())) {
+                    URI copySnapshotUri = URI.create(copy.getName());
+                    ArgValidator.checkFieldUriType(copySnapshotUri, Volume.class, "copyName");
+
+                    BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, copySnapshotUri);
+
+                    if (snapshot != null && snapshot.getInactive()) {
+                        // Invalid copy name specified
+                        throw APIException.badRequests.invalidCopyName(copy.getName());
+                    } else {
+                        copyName = snapshot.getEmName();
+                    }
+                } else {
+                    // Invalid copy name specified
+                    throw APIException.badRequests.invalidCopyName(copy.getName());
+                }
+            }
+
+            taskResp = performProtectionAction(id, copy.getCopyID(), copyName, copy.getPointInTime(),
                     ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {

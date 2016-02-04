@@ -20,12 +20,9 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.FailoverBlockConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.FailoverBlockVolume;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.vipr.client.Tasks;
 
@@ -104,9 +101,6 @@ public class FailoverBlockVolumeService extends ViPRService {
 
                 tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type, imageToAccess, pointInTime));
             } else {
-                // Image to access and Point-in-time do not apply so null them out.
-                imageToAccess = null;
-                pointInTime = null;
                 tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type));
             }
         } else {
@@ -119,9 +113,6 @@ public class FailoverBlockVolumeService extends ViPRService {
 
                 tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type, imageToAccess, pointInTime));
             } else {
-                // Image to access and Point-in-time do not apply so null them out.
-                imageToAccess = null;
-                pointInTime = null;
                 tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type));
             }
         }
@@ -131,21 +122,9 @@ public class FailoverBlockVolumeService extends ViPRService {
     }
 
     /**
-     * Determines the appropriate image to access (copy) for RecoverPoint failover. The imageToAccess
-     * value will specify one of 3 options: latest image, specific point-in-time, or a snapshot.
+     * Determines the appropriate image to access (copy) value for RecoverPoint failover.
      */
     private void setImageToAccessForRP() {
-        // This is a RP failover request so we need to pass along the copyName and pointInTime values.
-        // We only want to do this if the image selected is NOT the latest image (this is handled by
-        // the default case) but a specific snapshot or point in time.
-        if (URIUtil.isValid(imageToAccess) && uri(imageToAccess) != null
-                && URIUtil.isType(uri(imageToAccess), BlockSnapshot.class)) {
-            // If the imageToAccess is a BlockSnapshot, the user is attempting to failover to
-            // a specific RP bookmark. Get the name of that bookmark and pass it down.
-            BlockSnapshotRestRep snapshot = BlockStorageUtils.getSnapshot(uri(imageToAccess));
-            imageToAccess = snapshot.getName();
-        }
-
         if (BlockProvider.PIT_IMAGE_OPTION_KEY.equals(imageToAccess)) {
             // If the image to access is a point-in-time, null out the image access variable otherwise
             // the failover over logic will attempt to look for a bookmark called 'pit'.

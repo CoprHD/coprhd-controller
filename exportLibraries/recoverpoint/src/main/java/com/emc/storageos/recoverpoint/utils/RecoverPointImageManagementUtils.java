@@ -170,7 +170,7 @@ public class RecoverPointImageManagementUtils {
                     ConsistencyGroupCopySnapshots copySnapshots = impl.getGroupCopySnapshotsForTimeFrameAndName(cgCopy, timeFrame, null);
 
                     if (copySnapshots != null && copySnapshots.getSnapshots() != null && copySnapshots.getSnapshots().isEmpty()) {
-                        // There are no snapshots returned so lets see if the query window was invalid. First, see if
+                        // There are no snapshots returned so lets see if the query window is valid. First, see if
                         // the point-in-time is before the start of the protection window.
                         logger.info(String.format("Determined that the protection window is between %s and %s.", copySnapshots
                                 .getEarliest().getTimeInMicroSeconds(), copySnapshots.getLatest().getTimeInMicroSeconds()));

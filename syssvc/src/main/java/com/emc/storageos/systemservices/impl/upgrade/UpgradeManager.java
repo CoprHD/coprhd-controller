@@ -432,7 +432,7 @@ public class UpgradeManager extends AbstractManager {
                         log.info("Step3a: sync'ing with active site as leader of standby site");
                         Site activeSite = drUtil.getActiveSite();
                         URI activeVipEndpoint = URI.create(String.format(SysClientFactory.BASE_URL_FORMAT,
-                                activeSite.getVip(), service.getEndpoint().getPort()));
+                                activeSite.getVipEndPoint(), service.getEndpoint().getPort()));
                         if (!coordinator.isActiveSiteStable(activeSite)) {
                             log.info("Step3a: software image {} not sync'ed on active site yet. Retry later", syncinfo);
                         } else if (syncToNodeInSync(activeVipEndpoint, syncinfo)) {

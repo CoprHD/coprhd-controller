@@ -1862,7 +1862,7 @@ public class CoordinatorClientExt {
 
     public boolean isActiveSiteStable(Site activeSite) {
         // check if cluster state is stable
-        String vip = activeSite.getVip();
+        String vip = activeSite.getVipEndPoint();
         int port = _svc.getEndpoint().getPort();
         String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, vip, port);
         try {

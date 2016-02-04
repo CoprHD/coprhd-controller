@@ -381,5 +381,13 @@ public class Site {
         }
         return true;
     }
+
+    public String getVipEndPoint() {
+        if (isUsingIpv4()) {
+            return vip;
+        } else {
+            return "[" + vip + "]";
+        }
+    }
     
 }

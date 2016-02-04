@@ -157,7 +157,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * @return a task for monitoring the progress of the operation.
      */
     public Task<FileShareRestRep> update(URI id, FileSystemUpdateParam input) {
-        return postTask(input, getIdUrl(), id);
+        return putTask(input, getIdUrl(), id);
     }
     
     /**

@@ -87,14 +87,14 @@ public interface BlockSnapshotSessionApi {
                                                                     String newTargetsName);
 
     /**
-     * Prepare ViPR BlockSnapshot instances for the new targets to be created and
+     * Prepare a ViPR BlockSnapshot instance for a new target to be created and
      * linked to a block snapshot session.
      * 
      * @param sourceObj The snapshot source object.
      * @param snapsetLabel The snapset label for snapshots in a group.
      * @param instanceLabel The snapshot instance label.
      *
-     * @return A map containing the prepared BlockSnapshot instances, keyed by the snapshot URI.
+     * @return The prepared BlockSnapshot instance.
      */
     public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String instanceLabel);
 

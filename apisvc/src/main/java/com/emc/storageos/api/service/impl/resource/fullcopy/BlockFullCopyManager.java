@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -272,6 +273,31 @@ public class BlockFullCopyManager {
             s_logger.info("Volume {} is part of Application, Creating full copy for all volumes in the Application.", sourceURI);
             // get all volumes
             List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            
+            // if RP get source or target volumes
+            if (volumes != null && !volumes.isEmpty() && Volume.checkForRP(_dbClient, volumes.iterator().next().getId())) {
+                // get all RP cg's in the application
+                Set<URI> cgIds = new HashSet<URI>();
+                List<Volume> rpVolumes = new ArrayList<Volume>();
+                for (Volume volume : volumes) {
+                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup()) && !cgIds.contains(volume.getConsistencyGroup())) {
+                        if (param.getVarrayId() != null) {
+                            if (param.getVpoolId() != null) {
+                                if (volume.getVirtualArray().equals(param.getVarrayId()) && volume.getVirtualPool().equals(param.getVpoolId())) {
+                                    rpVolumes.add(volume);
+                                }
+                            } else if (volume.getVirtualArray().equals(param.getVarrayId())) {
+                                rpVolumes.add(volume);
+                            }
+                        } else if (NullColumnValueGetter.isNotNullValue(volume.getPersonality()) && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
+                            rpVolumes.add(volume);
+                        }
+                    }
+                }
+                volumes.clear();
+                volumes.addAll(rpVolumes);
+            }
+            
             // group volumes by Array Group
             Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumes);
             fcSourceObjList = new ArrayList<BlockObject>();
@@ -989,6 +1015,15 @@ public class BlockFullCopyManager {
         }
 
         return fullCopyApi;
+    }
+    
+    /**
+     * returns the vplex specific full copy implementation
+     * 
+     * @return vplex specific full copy implementation
+     */
+    public BlockFullCopyApi getVplexFullCopyImpl() {
+        return _fullCopyImpls.get(FullCopyImpl.vplex.name());
     }
 
     /**

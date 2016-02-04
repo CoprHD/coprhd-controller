@@ -70,9 +70,8 @@ public interface ServiceParams {
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
     public String APPLICATION = "application";
-    public String REPLICATION_GROUP = "replicationGroup";
-    public String NEW_REPLICATION_GROUP = "newReplicationGroup";
-    public String NEW_CONSISTENCY_GROUP = "newConsistencyGroup";
+    public String APPLICATION_SUB_GROUP = "applicationSubGroup";
+    public String NEW_APPLICATION_SUB_GROUP = "newApplicationSubGroup";
     public String FULL_COPY_NAME = "fullCopyName";
 
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";

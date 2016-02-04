@@ -7,6 +7,14 @@
       type:"assetType.vipr.application"
     },
     
+    virtualArray:{
+      type:"assetType.vipr.applicationVirtualArray"
+    },
+
+    virtualPool:{
+      type:"assetType.vipr.applicationVirtualPool"
+    },
+    
     name:{
       type:"text",
       validation:{

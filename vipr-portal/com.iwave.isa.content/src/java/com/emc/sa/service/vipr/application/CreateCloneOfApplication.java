@@ -16,11 +16,15 @@ import com.emc.vipr.client.Tasks;
 public class CreateCloneOfApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
     private final String name;
+    private final URI virtualPoolId;
+    private final URI virtualArrayId;
     private final Integer count;
 
-    public CreateCloneOfApplication(URI applicationId, String name, Integer count) {
+    public CreateCloneOfApplication(URI applicationId, String name, URI virtualArrayId, URI virtualPoolId, Integer count) {
         this.applicationId = applicationId;
         this.name = name;
+        this.virtualArrayId = virtualArrayId;
+        this.virtualPoolId = virtualPoolId;
         this.count = count;
         provideDetailArgs(applicationId, name);
     }
@@ -29,6 +33,8 @@ public class CreateCloneOfApplication extends WaitForTasks<TaskResourceRep> {
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
         VolumeGroupFullCopyCreateParam input = new VolumeGroupFullCopyCreateParam();
         input.setName(name);
+        input.setVarrayId(virtualArrayId);
+        input.setVpoolId(virtualPoolId);
         input.setCount(count);
         input.setCreateInactive(false);
         input.setPartial(false);

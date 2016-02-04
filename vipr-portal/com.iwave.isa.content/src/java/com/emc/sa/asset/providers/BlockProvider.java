@@ -63,6 +63,7 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
@@ -212,15 +213,46 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createVolumeOptions(null, listSourceVolumes(api(ctx), project));
     }
 
-    @Asset("sourceBlockVolume")
-    @AssetDependencies({ "project", "blockVirtualPoolFilter", "consistencyGroupFilter" })
-    public List<AssetOption> getApplicationSourceVolumes(AssetOptionsContext ctx, URI project, URI vpool, URI cg) {
-        ResourceFilter<VolumeRestRep> virtualPoolFilter = vpool != null ? new VirtualPoolFilter(vpool)
-                : new DefaultResourceFilter<VolumeRestRep>();
-        ResourceFilter<VolumeRestRep> cgFilter = cg != null ? new BlockVolumeConsistencyGroupFilter(cg, false)
-                : new BlockVolumeConsistencyGroupFilter(null, true);
+    @Asset("sourceBlockVolumeForAddToApplication")
+    @AssetDependencies({ "consistencyGroupAll" })
+    public List<AssetOption> getApplicationSourceVolumes(AssetOptionsContext ctx, URI cg) {
+        
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupList applications = client.application().getApplications();
+        List<URI> applicationIds = new ArrayList<URI>();
+        for (NamedRelatedResourceRep volumeGroup : applications.getVolumeGroups()) {
+            VolumeGroupRestRep vg = client.application().getApplication(volumeGroup.getId());
+            if (vg.getRoles().contains("COPY")) {
+                applicationIds.add(volumeGroup.getId());
+            }
+        }
+        
+        ResourceFilter<VolumeRestRep> cgFilter = new BlockVolumeConsistencyGroupFilter(cg, true);
+        
+        List<ProjectRestRep> projects = api(ctx).projects().getByTenant(ctx.getTenant());
+        List<VolumeRestRep> volumes = new ArrayList<VolumeRestRep>();
+        for (ProjectRestRep project : projects) {
+            volumes.addAll(listSourceVolumes(api(ctx), project.getId(), cgFilter));
+        }
+        List<VolumeRestRep> volumesNotInApplication = new ArrayList<VolumeRestRep>();
+        for (VolumeRestRep volume : volumes) {
+            if (volume.getVolumeGroups()!= null && !volume.getVolumeGroups().isEmpty()) {
+                boolean volumeIsInApplication = false;
+                for (RelatedResourceRep rep : volume.getVolumeGroups()) {
+                    if (applicationIds.contains(rep.getId())) {
+                        volumeIsInApplication = true;
+                        break;
+                    }
+                }
+                if (!volumeIsInApplication) {
+                    volumesNotInApplication.add(volume);
+                }
+            } else {
+                volumesNotInApplication.add(volume);
+            }
+        }
 
-        return createVolumeOptions(null, listSourceVolumes(api(ctx), project, virtualPoolFilter, cgFilter));
+        return createVolumeOptions(null, volumesNotInApplication);
     }
 
     @Asset("sourceBlockVolumeInConsistencyGroup")
@@ -1731,8 +1763,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         NamedVolumesList volList = client.application().getFullCopiesByApplication(applicationId);
         Set<String> fullCopyNames = new HashSet<String>();
         if (volList != null && volList.getVolumes() != null && !volList.getVolumes().isEmpty()) {
+            List<URI> ids = new ArrayList<URI>();
             for (NamedRelatedResourceRep volId : volList.getVolumes()) {
-                VolumeRestRep vol = client.blockVolumes().get(volId.getId());
+                ids.add(volId.getId());
+            }
+            List<VolumeRestRep> fullCopies = client.blockVolumes().getByIds(ids);
+            for (VolumeRestRep vol : fullCopies) {
                 if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null &&
                         vol.getProtection().getFullCopyRep().getFullCopySetName() != null) {
                     fullCopyNames.add(vol.getProtection().getFullCopyRep().getFullCopySetName());
@@ -1740,6 +1776,29 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
         return createStringOptions(fullCopyNames);
+    }
+    
+    @Asset("applicationVirtualArray")
+    @AssetDependencies("application")
+    public List<AssetOption> getApplicationVirtualArrays(AssetOptionsContext ctx, URI applicationId) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupRestRep application = client.application().getApplication(applicationId);
+        return createNamedResourceOptions(application.getVirtualArrays());
+    }
+    
+    @Asset("applicationVirtualPool")
+    @AssetDependencies({ "application", "applicationVirtualArray" })
+    public List<AssetOption> getApplicationVirtualPools(AssetOptionsContext ctx, URI applicationId, URI varrayId) {
+        final ViPRCoreClient client = api(ctx);
+        NamedVolumesList volumes = client.application().getVolumeByApplication(applicationId);
+        Set<URI> vpoolIds = new HashSet<URI>();
+        for (NamedRelatedResourceRep volResource : volumes.getVolumes()) {
+            VolumeRestRep vol = client.blockVolumes().get(volResource.getId());
+            if (vol.getVirtualArray().getId().equals(varrayId)) {
+                vpoolIds.add(vol.getVirtualPool().getId());
+            }
+        }
+        return createBaseResourceOptions(client.blockVpools().getByIds(vpoolIds));
     }
 
     class VirtualPoolFilter extends DefaultResourceFilter<VolumeRestRep> {

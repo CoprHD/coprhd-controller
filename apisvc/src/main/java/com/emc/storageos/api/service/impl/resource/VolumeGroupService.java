@@ -55,12 +55,14 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
@@ -217,6 +219,7 @@ public class VolumeGroupService extends TaskResourceService {
         VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
         VolumeGroupRestRep resp = DbObjectMapper.map(volumeGroup);
         resp.setReplicationGroupNames(CopyVolumeGroupUtils.getReplicationGroupNames(volumeGroup, _dbClient));
+        resp.setVirtualArrays(CopyVolumeGroupUtils.getVirtualArrays(volumeGroup, _dbClient));
         return resp;
     }
 
@@ -233,7 +236,8 @@ public class VolumeGroupService extends TaskResourceService {
         List<URI> ids = _dbClient.queryByType(VolumeGroup.class, true);
         Iterator<VolumeGroup> iter = _dbClient.queryIterativeObjects(VolumeGroup.class, ids);
         while (iter.hasNext()) {
-            volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(iter.next()));
+            VolumeGroup vg = iter.next();
+            volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(vg));
         }
         return volumeGroupList;
     }
@@ -1329,6 +1333,32 @@ public class VolumeGroupService extends TaskResourceService {
                 }
             }
             return groupNames;
+        }
+        
+        /**
+         * gets the list of replication group names associated with this COPY type volume group
+         * @return list of replication group names or empty list if the volume group is not COPY or no volumes exist in 
+         * the volume group
+         */
+        public static Set<NamedRelatedResourceRep> getVirtualArrays(VolumeGroup group, DbClient dbClient) {
+            
+            Set<URI> varrayIds = new HashSet<URI>();
+            if (group.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())){
+                List<Volume> volumes = getVolumeGroupVolumes(dbClient, group);
+                if (volumes != null && !volumes.isEmpty()) {
+                    for (Volume volume : volumes) {
+                        varrayIds.add(volume.getVirtualArray());
+                    }
+                }
+            }
+            Set<NamedRelatedResourceRep> virtualArrays = new HashSet<NamedRelatedResourceRep>();
+            for (URI varrayId : varrayIds) {
+                VirtualArray varray = dbClient.queryObject(VirtualArray.class, varrayId);
+                if (varray !=null && !varray.getInactive()) {
+                    virtualArrays.add(DbObjectMapper.toNamedRelatedResource(varray));
+                }
+            }
+            return virtualArrays;
         }
 
         /**

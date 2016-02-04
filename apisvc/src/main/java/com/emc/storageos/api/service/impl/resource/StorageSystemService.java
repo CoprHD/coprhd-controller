@@ -1331,16 +1331,26 @@ public class StorageSystemService extends TaskResourceService {
 
             ScopedLabelSet tagSet = system.getTag();
             String user_key = tagSet.toString();
-            int keyStart = user_key.indexOf(":");
-            int keyEnd = user_key.indexOf(",");
-            String key = user_key.substring(keyStart+1, keyEnd);
+            String key = null;
+            if (user_key.contains(userId)) {
+                int keyStart = user_key.indexOf(userId)+userId.length();
+                String user_keyNext = user_key.substring(keyStart+1);
+                int keyEnd = user_keyNext.length();
+                if (user_keyNext.contains(",")) {
+                    keyEnd = user_keyNext.indexOf(",")-1;
+                }
+                key = user_keyNext.substring(0, keyEnd);
+                System.out.println(key);
+            } 
             if (key != null) {
                 ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();
                 to.setKey1(key);
                 return to;
             }
         }
-        return null;       
+        ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();
+        to.setKey1("");
+        return to;     
     }
 
     @GET

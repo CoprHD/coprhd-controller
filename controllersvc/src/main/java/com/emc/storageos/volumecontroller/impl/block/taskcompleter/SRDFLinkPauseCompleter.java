@@ -46,7 +46,7 @@ public class SRDFLinkPauseCompleter extends SRDFTaskCompleter {
 
     @Override
     protected Volume.VolumeAccessState getVolumeAccessStateForSuccess(Volume v) {
-    	if (Mode.ACTIVE.equals(Mode.valueOf(v.getSrdfCopyMode())) && v.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
+    	if (null != v.getSrdfCopyMode() && Mode.ACTIVE.equals(Mode.valueOf(v.getSrdfCopyMode())) && v.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
     		// For Active mode target access state is always updated from the provider
     		// after each operation so just use that.
     		return Volume.VolumeAccessState.getVolumeAccessState(v.getAccessState());

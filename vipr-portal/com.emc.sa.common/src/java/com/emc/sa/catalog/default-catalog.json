@@ -238,6 +238,10 @@
           "baseService": "RemoveFileSnapshot"
         },
         {
+          "image": "Service_Associate_File_Policy_File_System.png",
+          "baseService": "AssociateFilePolicyToFileSystem"
+        },
+        {
           "image": "icon_folder_CIFS_add.png",
           "baseService": "ShareFileSnapshot"
         },

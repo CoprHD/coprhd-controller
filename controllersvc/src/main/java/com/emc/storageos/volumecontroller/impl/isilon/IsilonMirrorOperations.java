@@ -26,7 +26,6 @@ import com.emc.storageos.isilon.restapi.IsilonSyncJob.Action;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
-import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -275,6 +274,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             if (description != null && !description.isEmpty()) {
                 policy.setDescription(description);
             }
+            policy.setEnabled(false);
             String policyId = isi.createReplicationPolicy(policy);
             _log.info("IsilonFileStorageDevice doCreateReplicationPolicy {} with policyId {} - complete", name,
                     policyId);
@@ -575,9 +575,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             TaskCompleter completer)
             throws IsilonException {
 
-        IsilonSyncTargetPolicy secondaryLocalTargetPolicy;
         IsilonApi isiPrimary = getIsilonDevice(primarySystem);
-        IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
         IsilonSyncJob job = new IsilonSyncJob();
         job.setId(policyName);
         job.setAction(Action.resync_prep);
@@ -680,6 +678,11 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     private String createSchedule(String fsRpoValue, String fsRpoType) {
         StringBuilder builder = new StringBuilder();
         switch (fsRpoType) {
+            case "MINUTES":
+                builder.append("every 1 days every ");
+                builder.append(fsRpoValue);
+                builder.append(" minutes between 12:00 AM and 11:59 PM");
+                break;
             case "HOURS":
                 builder.append("every 1 days every ");
                 builder.append(fsRpoValue);

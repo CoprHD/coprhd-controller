@@ -31,7 +31,7 @@ public class NotificationLimitMatcher extends AttributeMatcher {
         _logger.info("started matching pools with notification limit.");
         for (StoragePool pool : allPools) {
             StorageSystem system = _objectCache.getDbClient().queryObject(StorageSystem.class, pool.getStorageDevice());
-            if (system.getSupportNotificationLimit().equals(attributeMap.get(Attributes.support_notification_limit))) {
+            if (system.getSupportNotificationLimit().equals(attributeMap.get(Attributes.support_notification_limit.name()))) {
                 filteredPools.add(pool);
             }
         }

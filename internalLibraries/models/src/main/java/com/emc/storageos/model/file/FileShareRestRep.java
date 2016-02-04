@@ -5,7 +5,9 @@
 
 package com.emc.storageos.model.file;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -17,6 +19,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "filesystem")
@@ -39,6 +42,7 @@ public class FileShareRestRep extends FileObjectRestRep {
     private Boolean thinlyProvisioned;
     private String nativeId;
     private RelatedResourceRep virtualNAS;
+    private FileProtectionRestRep protection;
 
     /**
      * File system's actual path on the array.
@@ -263,6 +267,82 @@ public class FileShareRestRep extends FileObjectRestRep {
 
     public void setVirtualNAS(RelatedResourceRep virtualNAS) {
         this.virtualNAS = virtualNAS;
+    }
+
+    /**
+     * File system replication info
+     * 
+     */
+    @XmlElement(name = "file_replication")
+    public FileProtectionRestRep getProtection() {
+        return protection;
+    }
+
+    public void setProtection(FileProtectionRestRep protection) {
+        this.protection = protection;
+    }
+
+    // Fields specific to protection characteristics of the file system!!
+    public static class FileProtectionRestRep {
+        private String personality;
+        private String mirrorStatus;
+        private String accessState;
+        private RelatedResourceRep parentFileSystem;
+        private List<VirtualArrayRelatedResourceRep> targetFileSystems;
+
+        /**
+         * SOURCE
+         * TARGET
+         * 
+         */
+        @XmlElement(name = "personality")
+        public String getPersonality() {
+            return personality;
+        }
+
+        public void setPersonality(String personality) {
+            this.personality = personality;
+        }
+
+        @XmlElement(name = "access_state")
+        public String getAccessState() {
+            return accessState;
+        }
+
+        public void setAccessState(String accessState) {
+            this.accessState = accessState;
+        }
+
+        @XmlElement(name = "mirror_status")
+        public String getMirrorStatus() {
+            return mirrorStatus;
+        }
+
+        public void setMirrorStatus(String mirrorStatus) {
+            this.mirrorStatus = mirrorStatus;
+        }
+
+        @XmlElement(name = "parent_file_system")
+        public RelatedResourceRep getParentFileSystem() {
+            return parentFileSystem;
+        }
+
+        public void setParentFileSystem(RelatedResourceRep parentFileSystem) {
+            this.parentFileSystem = parentFileSystem;
+        }
+
+        @XmlElementWrapper(name = "target_file_systems")
+        @XmlElement(name = "file_system")
+        public List<VirtualArrayRelatedResourceRep> getTargetFileSystems() {
+            if (targetFileSystems == null) {
+                targetFileSystems = new ArrayList<VirtualArrayRelatedResourceRep>();
+            }
+            return targetFileSystems;
+        }
+
+        public void setTargetFileSystems(List<VirtualArrayRelatedResourceRep> targetFileSystems) {
+            this.targetFileSystems = targetFileSystems;
+        }
     }
 
 }

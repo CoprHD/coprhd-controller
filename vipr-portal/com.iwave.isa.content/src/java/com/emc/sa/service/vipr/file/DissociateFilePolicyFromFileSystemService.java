@@ -17,9 +17,6 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("DissociateFilePolicyFromFileSystem")
 public class DissociateFilePolicyFromFileSystemService extends ViPRService {
 
-    @Param(PROJECT)
-    protected URI project;
-    
     @Param(FILESYSTEMS)
     protected URI fileSystem;
 

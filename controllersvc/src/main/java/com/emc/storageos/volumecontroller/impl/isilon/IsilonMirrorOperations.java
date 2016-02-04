@@ -678,6 +678,11 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     private String createSchedule(String fsRpoValue, String fsRpoType) {
         StringBuilder builder = new StringBuilder();
         switch (fsRpoType) {
+            case "MINUTES":
+                builder.append("every 1 days every ");
+                builder.append(fsRpoValue);
+                builder.append(" minutes between 12:00 AM and 11:59 PM");
+                break;
             case "HOURS":
                 builder.append("every 1 days every ");
                 builder.append(fsRpoValue);

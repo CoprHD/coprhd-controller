@@ -137,7 +137,7 @@ public class Copy implements Serializable {
      * SYNCHRONOUS
      * ASYNCHRONOUS
      * ADAPTIVECOPY
-     * 
+     *
      * @return
      */
     @XmlElement(name = "copyMode", required = false)
@@ -151,8 +151,8 @@ public class Copy implements Serializable {
 
     /**
      * User provided any point-in-time for copy operations.
-     *
-     * @valid "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
+     * Valid value: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
+     * 
      * @return
      */
     @XmlElement(name = "pointInTime", required = false)

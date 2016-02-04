@@ -150,4 +150,12 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
         _log.debug("ObjectControllerImpl:deleteBucketACL end");
         
     }
+
+    @Override
+    public void getUserSecretKey(URI storage, String userId) {
+        _log.info("ObjectControllerImpl:getUserSecretKey start");
+        execOb("getUserSecretKey", storage, userId);
+        _log.debug("ObjectControllerImpl:getUserSecretKey end");        
+    }
+       
 }

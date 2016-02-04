@@ -20,12 +20,15 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.ecs.api.ECSBucketACL;
 import com.emc.storageos.ecs.api.ECSException;
+import com.emc.storageos.ecs.api.UserSecretKeysGetCommandResult;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
@@ -498,6 +501,21 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
         return new Gson().toJson(ecsBucketAcl);
     }
+    
+    @Override
+    public void doGetUserSecretKey(StorageSystem storageObj, String userId) {
+        ECSApi ecsApi = getAPI(storageObj);
+        
+        UserSecretKeysGetCommandResult secretKeyRes = ecsApi.getUserSecretKeys(userId);
+        if (secretKeyRes.getSecret_key_1() != null) {
+            ScopedLabel newScopedLabel = new ScopedLabel(userId, secretKeyRes.getSecret_key_1());
+            ScopedLabelSet tagSet = new ScopedLabelSet();
+            tagSet.add(newScopedLabel);
+            storageObj.setTag(tagSet);
+            _dbClient.updateObject(storageObj);
+        }
+    }
+
 
     private ECSApi getAPI(StorageSystem storageObj) throws ControllerException {
         ECSApi objectAPI = null;
@@ -524,4 +542,5 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
         completer.statusReady(_dbClient, message);
     }
+
 }

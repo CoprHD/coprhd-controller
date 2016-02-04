@@ -58,6 +58,8 @@ import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -1282,6 +1284,9 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
         StorageSystem system = queryResource(id);
         ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
+            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
+        }
 
         ArgValidator.checkFieldUriType(nsId, ObjectNamespace.class, "nativeId");
         ObjectNamespace ecsNamespace = _dbClient.queryObject(ObjectNamespace.class, nsId);
@@ -1294,6 +1299,29 @@ public class StorageSystemService extends TaskResourceService {
             CoordinatorClient coordinator) {
 
         return map(ecsNamespace);
+    }
+    
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/object-user-secret-keys/{userId}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public void getUserSecretKeys(@PathParam("id") URI id,
+            @PathParam("userId") String userId) {
+        // Make sure storage system is registered and object storage
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
+            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
+        }
+        
+        ObjectController controller = getController(ObjectController.class, system.getSystemType());
+        controller.getUserSecretKey(id, userId);
+        ScopedLabelSet tagSet = system.getTag();
+        ScopedLabel scopedLabel = tagSet.valFromString(userId);
+        String s1 = scopedLabel.getLabel();
+        String s2 = scopedLabel.getScope();
+
     }
 
     @GET

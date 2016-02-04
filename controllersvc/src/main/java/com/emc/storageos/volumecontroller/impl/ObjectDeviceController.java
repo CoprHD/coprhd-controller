@@ -247,7 +247,11 @@ public class ObjectDeviceController implements ObjectController {
 
         return acls;
     }
+
+    @Override
+    public void getUserSecretKey(URI storage, String userId) {
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+        getDevice(storageObj.getSystemType()).doGetUserSecretKey(storageObj, userId);
+    }
     
-
-
 }

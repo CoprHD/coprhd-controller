@@ -305,7 +305,7 @@ public abstract class BlockIngestOrchestrator {
 
         String accessState = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.ACCESS.toString(), unManagedVolume.getVolumeInformation());
-        accessState = (accessState != null) ? accessState : Volume.VolumeAccessState.UNKNOWN.name();
+        accessState = Volume.VolumeAccessState.getVolumeAccessStateDisplayName(accessState);
         volume.setAccessState(accessState);
 
         URI cgUri = getConsistencyGroupUri(unManagedVolume, vPool, project.getId(), tenant.getId(), virtualArray.getId(), _dbClient);

@@ -2897,8 +2897,8 @@ public class BlockService extends TaskResourceService {
      *
      * @param id the URN of a ViPR source volume
      * @param copyID id of the target volume
-     * @param pointInTime any point in time used for failover.
-     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms. Can be
+     * @param pointInTime any point in time used for failover, specified in UTC.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in milliseconds. Can be
      *            null.
      * @param op operation to perform (pause, stop, failover, etc)
      * @return task resource rep

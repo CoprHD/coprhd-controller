@@ -523,7 +523,7 @@ class Volume(object):
         Parameters:
             volume    : Source volume path
             mirrorvol : Name of the continous_copy
-            pit       : any point-in-time
+            pit       : any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds
             type      : type of protection
         Returns:
             result of the action.
@@ -3196,7 +3196,7 @@ def add_protection_common_parser(cc_common_parser):
     cc_common_parser.add_argument('-pit', '-p',
                                metavar='<pit>',
                                dest='pit',
-                               help='any failover point-in-time date/time formatted as yyyy-MM-dd_HH:mm:ss')
+                               help='any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds')
 
 # Common parameters for contineous copies parser.
 

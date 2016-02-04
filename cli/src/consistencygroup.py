@@ -440,7 +440,7 @@ class ConsistencyGroup(object):
             name        : name of the consistency group
             project     : name of the project
             copyvarray  : name of the copy target virtual array
-            pit        : any point-in-time
+            pit         : any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds
             type        : type of protection
         Returns:
             result of the action.
@@ -992,7 +992,7 @@ def failover_parser(subcommand_parsers, common_parser):
     failover_parser.add_argument('-pit', '-p',
                                metavar='<pit>',
                                dest='pit',
-                               help='any failover point-in-time date/time formatted as yyyy-MM-dd_HH:mm:ss')
+                               help='any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds')
     failover_parser.add_argument('-type', '-t',
                                metavar='<type>',
                                dest='type',

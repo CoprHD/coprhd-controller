@@ -16,10 +16,10 @@ import javax.xml.bind.annotation.XmlRootElement;
  * type: type of protection (rp, native, srdf)
  * sync: synchronize the mirror
  * copyID: the URI of the copy to be operated on, if none specified operate on all copies for that type
- * name: name of a new mirror being created by start operation. also used to specify a snapshot (bookmark)
+ * name: name of a new mirror being created by start operation.
  * name in the case of a failover operation.
  * count: number of mirrors to create using start operation
- * apitTime: any point-in-time - used for the failover operation
+ * pointInTime: any point-in-time - used for the failover operation
  */
 @XmlRootElement(name = "copy")
 public class Copy implements Serializable {
@@ -36,6 +36,7 @@ public class Copy implements Serializable {
     private Integer count;
     private String syncDirection;
     private String copyMode;
+    // Format: "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds
     private String pointInTime;
 
     public enum SyncDirection {
@@ -152,7 +153,7 @@ public class Copy implements Serializable {
     /**
      * User provided any point-in-time for copy operations.
      * Valid value: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
-     * 
+     *
      * @return
      */
     @XmlElement(name = "pointInTime", required = false)

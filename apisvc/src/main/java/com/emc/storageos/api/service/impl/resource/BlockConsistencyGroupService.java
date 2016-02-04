@@ -1745,8 +1745,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      *
      * @param consistencyGroupId the URI of the BlockConsistencyGroup to perform the protection action against.
      * @param targetVarrayId the target virtual array.
-     * @param pointInTime any point in time.
-     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
+     * @param pointInTime any point in time, specified in UTC.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in milliseconds.
      * @param op operation to perform (pause, stop, failover, etc)
      * @return task resource rep
      * @throws InternalException

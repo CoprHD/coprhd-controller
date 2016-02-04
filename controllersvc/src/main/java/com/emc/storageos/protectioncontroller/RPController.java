@@ -20,8 +20,8 @@ public interface RPController extends ProtectionController {
      * @param protectionDevice RP protection system URI
      * @param id volume or consistency group ID
      * @param copyID id of protection volume
-     * @param pointInTime any point in time.
-     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
+     * @param pointInTime any point in time in UTC.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in milliseconds.
      * @param op operation to perform
      * @param task task object
      *

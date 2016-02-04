@@ -91,6 +91,7 @@ import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.file.UnManagedFileSystemList;
 import com.emc.storageos.model.object.ObjectNamespaceList;
 import com.emc.storageos.model.object.ObjectNamespaceRestRep;
+import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
@@ -1307,7 +1308,7 @@ public class StorageSystemService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/object-user-secret-keys/{userId}")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public void getUserSecretKeys(@PathParam("id") URI id,
+    public ObjectUserSecretKeysRestRep getUserSecretKeys(@PathParam("id") URI id,
             @PathParam("userId") String userId) {
         // Make sure storage system is registered and object storage
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
@@ -1320,28 +1321,26 @@ public class StorageSystemService extends TaskResourceService {
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
         controller.getUserSecretKey(id, userId);
 
-        //poll for task to complete
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        
-        ScopedLabelSet tagSet = system.getTag();
-        String user_key = tagSet.toString();
-        int keyAt = user_key.indexOf(":");
-        String key = user_key.substring(keyAt);
+        //wait max of 1 min to get user keys
+        for (int time = 0; time < 60; time++) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
-        //clean tags
-        ScopedLabel newScopedLabel = null;
-        ScopedLabelSet tagSet2 = new ScopedLabelSet();
-        tagSet2.add(newScopedLabel);
-        system.setTag(tagSet2);
-        _dbClient.updateObject(system);
-        
-        int dummy = 0;
-       
+            ScopedLabelSet tagSet = system.getTag();
+            String user_key = tagSet.toString();
+            int keyStart = user_key.indexOf(":");
+            int keyEnd = user_key.indexOf(",");
+            String key = user_key.substring(keyStart+1, keyEnd);
+            if (key != null) {
+                ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();
+                to.setKey1(key);
+                return to;
+            }
+        }
+        return null;       
     }
 
     @GET

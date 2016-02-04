@@ -92,6 +92,14 @@ public enum ResourceOperationTypeEnum {
     CREATE_FILE_SYSTEM("CREATE FILESYSTEM", "create filesystem operation"),
     DELETE_FILE_SYSTEM("DELETE FILESYSTEM", "delete filesystem operation"),
     EXPORT_FILE_SYSTEM("EXPORT FILESYSTEM", "export filesystem operation"),
+    FILE_PROTECTION_ACTION("FILE PROTECTION ACTION", "perform unspecified link management"),
+    FILE_PROTECTION_ACTION_STOP("FILE PROTECTION ACTION STOP", "stop the replication link between source and target"),
+    FILE_PROTECTION_ACTION_START("FILE PROTECTION ACTION START", "start the replication link between source and target"),
+    FILE_PROTECTION_ACTION_PAUSE("FILE PROTECTION ACTION PAUSE", "pause the replication link between source and target"),
+    FILE_PROTECTION_ACTION_SUSPEND("FILE PROTECTION ACTION SUSPEND", "suspend the replication link between source and target"),
+    FILE_PROTECTION_ACTION_RESUME("FILE PROTECTION ACTION RESUME", "resume the replication link between source and target"),
+    FILE_PROTECTION_ACTION_FAILOVER("FILE PROTECTION ACTION FAILOVER", "failover target fileshare(s)"),
+    FILE_PROTECTION_ACTION_FAILBACK("FILE PROTECTION ACTION FAILBACK", "failback the replication link source and target fileshare(s)"),
     UPDATE_EXPORT_RULES_FILE_SYSTEM("UPDATE EXPORT RULES FILESYSTEM", "Update export rules filesystem operation"),
     EXPAND_FILE_SYSTEM("EXPAND FILESYSTEM", "expand filesystem operation"),
     CREATE_FILE_SYSTEM_SHARE("CREATE FILESHARE", "create fileshare operation"),
@@ -301,6 +309,9 @@ public enum ResourceOperationTypeEnum {
     UPDATE_ALIAS("UPDATE ALIAS", "update one or more aliases"),
     CREATE_BACKUP("CREATE BACKUP", "create ViPR backup"),
     UPLOAD_BACKUP("UPLOAD BACKUP", "upload ViPR backup to external location"),
+    PULL_BACKUP("PULL BACKUP", "operation to download ViPR backup from external location"),
+    PULL_BACKUP_CANCEL("PULL BACKUP CANCEL", "operation to cancel the download of ViPR backup from external location"),
+    RESTORE_BACKUP("RESTORE BACKUP", "operation to restore ViPR backup"),
     CREATE_VCENTER_CLUSTER("CREATE VCENTER CLUSTER", "create a cluster in vCenter server"),
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
     ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "add journal volume to consistency group"),
@@ -314,7 +325,10 @@ public enum ResourceOperationTypeEnum {
     RELINK_SNAPSHOT_SESSION_TARGETS("RELINK SNAPSHOT SESSION TARGETS", "re-links target volumes to a snapshot session"),
     UNLINK_SNAPSHOT_SESSION_TARGETS("UNLINK SNAPSHOT SESSION TARGETS", "unlinks target volumes from a snapshot session"),
     RESTORE_SNAPSHOT_SESSION("RESTORE SNAPSHOT SESSION", "restore source from snapshot session"),
-    DELETE_SNAPSHOT_SESSION("DELETE SNAPSHOT SESSION", "delete snapshot session");
+    DELETE_SNAPSHOT_SESSION("DELETE SNAPSHOT SESSION", "delete snapshot session"),
+    CHANGE_FILE_SYSTEM_VPOOL("CHANGE FILE SYSTEM VPOOL", "change file system vpool operation"),
+    CREATE_FILE_SYSTEM_MIRROR_COPIES("CREATE FILE SYSTEM MIRROR COPIES", "create file system mirror copies operation"),
+    DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation");
 
     private final String name;
     private final String description;

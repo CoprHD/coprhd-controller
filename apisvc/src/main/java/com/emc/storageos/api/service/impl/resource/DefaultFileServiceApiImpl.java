@@ -74,9 +74,24 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
     }
 
     @Override
-    public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType, boolean forceDelete, String task)
+    public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType,
+            boolean forceDelete, boolean deleteOnlyMirrors, String task)
             throws InternalException {
-        super.deleteFileSystems(systemURI, fileSystemURIs, deletionType, forceDelete, task);
+        super.deleteFileSystems(systemURI, fileSystemURIs, deletionType, forceDelete, deleteOnlyMirrors, task);
+    }
+
+    @Override
+    public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        try {
+            super.createTargetsForExistingSource(fs, project, vpool, varray, taskList, task,
+                    recommendations, vpoolCapabilities);
+        } catch (Exception e) {
+            _log.error("Controller error when create mirror filesystems", e);
+            throw e;
+        }
+        return taskList.getTaskList().get(0);
     }
 
     /**
@@ -107,14 +122,14 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
      */
     @Override
     protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
-            List<URI> fileShareURIs, String deletionType, boolean forceDelete) {
+            List<URI> fileShareURIs, String deletionType, boolean forceDelete, boolean deleteOnlyMirrors) {
         List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
         for (URI fileShareURI : fileShareURIs) {
             FileShare filesystem = _dbClient.queryObject(FileShare.class, fileShareURI);
 
             FileDescriptor fileDescriptor = new FileDescriptor(FileDescriptor.Type.FILE_DATA,
                     filesystem.getStorageDevice(), filesystem.getId(),
-                    filesystem.getPool(), deletionType, forceDelete);
+                    filesystem.getPool(), deletionType, forceDelete, deleteOnlyMirrors);
             fileDescriptors.add(fileDescriptor);
         }
         return fileDescriptors;

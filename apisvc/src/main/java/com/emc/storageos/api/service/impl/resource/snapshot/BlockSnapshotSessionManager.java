@@ -368,16 +368,8 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         BlockObject snapSessionSourceObj = null;
-        List<BlockObject> snapSessionSourceObjs = null;
-        if (snapSession.hasConsistencyGroup()) {
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-            snapSessionSourceObjs = BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
-            snapSessionSourceObj = snapSessionSourceObjs.get(0);
-        } else {
-            snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
-                    _uriInfo, true, _dbClient);
-            snapSessionSourceObjs = Lists.newArrayList(snapSessionSourceObj);
-        }
+        List<BlockObject> snapSessionSourceObjs = getAllSnapshotSessionSources(snapSession);
+        snapSessionSourceObj = snapSessionSourceObjs.get(0);
 
         // Get the project for the snapshot session source object.
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
@@ -461,14 +453,8 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         BlockObject snapSessionSourceObj = null;
-        if (snapSession.hasConsistencyGroup()) {
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-            List<BlockObject> snapSessionSourceObjs = BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
-            snapSessionSourceObj = snapSessionSourceObjs.get(0);
-        } else {
-            snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
-                    _uriInfo, true, _dbClient);
-        }
+        List<BlockObject> snapSessionSourceObjs = getAllSnapshotSessionSources(snapSession);
+        snapSessionSourceObj = snapSessionSourceObjs.get(0);
 
         // Get the project for the snapshot session source object.
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
@@ -533,14 +519,8 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         BlockObject snapSessionSourceObj = null;
-        if (snapSession.hasConsistencyGroup()) {
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-            List<BlockObject> snapSessionSourceObjs = BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
-            snapSessionSourceObj = snapSessionSourceObjs.get(0);
-        } else {
-            snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
-                    _uriInfo, true, _dbClient);
-        }
+        List<BlockObject> snapSessionSourceObjs = getAllSnapshotSessionSources(snapSession);
+        snapSessionSourceObj = snapSessionSourceObjs.get(0);
 
         // Get the project for the snapshot session source object.
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
@@ -610,16 +590,8 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         BlockObject snapSessionSourceObj = null;
-        List<BlockObject> snapSessionSourceObjs = null;
-        if (snapSession.hasConsistencyGroup()) {
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-            snapSessionSourceObjs = BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
-            snapSessionSourceObj = snapSessionSourceObjs.get(0);
-        } else {
-            snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
-                    _uriInfo, true, _dbClient);
-            snapSessionSourceObjs = Lists.newArrayList(snapSessionSourceObj);
-        }
+        List<BlockObject> snapSessionSourceObjs = getAllSnapshotSessionSources(snapSession);
+        snapSessionSourceObj = snapSessionSourceObjs.get(0);
 
         // Get the project for the snapshot session source object.
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
@@ -739,15 +711,8 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         BlockObject snapSessionSourceObj = null;
-        List<BlockObject> snapSessionSourceObjs = null;
-        if (snapSession.hasConsistencyGroup()) {
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-            snapSessionSourceObjs = BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
-            snapSessionSourceObj = snapSessionSourceObjs.get(0);
-        } else {
-            snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
-                    _uriInfo, true, _dbClient);
-        }
+        List<BlockObject> snapSessionSourceObjs = getAllSnapshotSessionSources(snapSession);
+        snapSessionSourceObj = snapSessionSourceObjs.get(0);
 
         // Get the project for the snapshot session source object.
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
@@ -929,5 +894,16 @@ public class BlockSnapshotSessionManager {
         return session.hasConsistencyGroup() ?
                 ResourceOperationTypeEnum.RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS :
                 ResourceOperationTypeEnum.RELINK_SNAPSHOT_SESSION_TARGETS;
+    }
+
+    private List<BlockObject> getAllSnapshotSessionSources(BlockSnapshotSession snapSession) {
+        if (snapSession.hasConsistencyGroup()) {
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
+            return BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
+        } else {
+            BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
+                    _uriInfo, true, _dbClient);
+            return Lists.newArrayList(snapSessionSourceObj);
+        }
     }
 }

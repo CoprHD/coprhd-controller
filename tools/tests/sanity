@@ -6931,7 +6931,7 @@ dr_basic_tests()
     
     echo "---ADD STANDBY SITE---"
     echo "Adding new standby into current vipr system"
-    standby_site=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" $DR_SITE_B_IP $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site; exit 1; }
+    standby_site=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" "${DR_SITE_B_IP}" $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site; exit 1; }
     echo "Adding dr done"
     echo "stanby uuid is $standby_site"    
 
@@ -6946,7 +6946,7 @@ dr_basic_tests()
     description=$(dr get $standby_site description|tail -1)
     vip=$(dr get $standby_site vip|tail -1)
 
-    if [ "$vip" != "$DR_SITE_B_IP" ] ; then
+    if [ "$vip" != "$DR_SITE_B_IP" -a "[$vip]" != "$DR_SITE_B_IP" ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
         exit 1
     fi

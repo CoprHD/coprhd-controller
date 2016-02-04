@@ -5602,6 +5602,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         StringSet linkedTargets = snapSession.getLinkedTargets();
         if ((linkedTargets == null) || (!linkedTargets.contains(snapshotURI.toString()))) {
             unlinkBlockSnapshotSessionTarget(systemURI, snapSessionURI, snapshotURI, Boolean.TRUE, stepId);
+        } else {
+            WorkflowStepCompleter.stepSucceded(stepId);
         }
     }
 

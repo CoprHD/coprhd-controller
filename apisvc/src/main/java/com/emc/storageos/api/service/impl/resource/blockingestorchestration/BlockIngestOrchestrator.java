@@ -205,6 +205,21 @@ public abstract class BlockIngestOrchestrator {
                 SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.name(), unManagedVolume.getVolumeInformation());
         Set<String> hostIoPs = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.EMC_MAXIMUM_IOPS.name(),
                 unManagedVolume.getVolumeInformation());
+        
+        // If nothing was returned, set the comparative values to zero.
+        if (hostIoBws == null) {
+            hostIoBws = new HashSet<String>();
+        }
+        if (hostIoPs == null) {
+            hostIoPs = new HashSet<String>();
+        }
+        if (hostIoBws.isEmpty()) {
+            hostIoBws.add("0");
+        }
+        if (hostIoPs.isEmpty()) {
+            hostIoPs.add("0");
+        }
+        
         String vPoolBw = "0";
         if (vpool.getHostIOLimitBandwidth() != null) {
             vPoolBw = String.valueOf(vpool.getHostIOLimitBandwidth());
@@ -832,7 +847,7 @@ public abstract class BlockIngestOrchestrator {
             boolean isParentRPVolume = umVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umVolume);
             // if its RP volume, then check whether the RP CG is fully ingested.
             if (isParentRPVolume) {
-                List<UnManagedVolume> ingestedUnManagedVolumes = requestContext.findAllProcessedUnManagedVolumes();
+                List<UnManagedVolume> ingestedUnManagedVolumes = requestContext.findAllUnManagedVolumesToBeDeleted();
                 ingestedUnManagedVolumes.add(umVolume);
                 UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(requestContext, umVolume, _dbClient);
                 // If we are not able to find the unmanaged protection set from the unmanaged volume, it means that the unmanaged volume

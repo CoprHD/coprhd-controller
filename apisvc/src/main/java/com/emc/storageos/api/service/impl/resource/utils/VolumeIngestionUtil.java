@@ -27,7 +27,6 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Bloc
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRecoverPointIngestOrchestrator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
@@ -3063,7 +3062,6 @@ public class VolumeIngestionUtil {
 
         if (umpset.getManagedVolumeIds() != null) {
             for (String volumeID : umpset.getManagedVolumeIds()) {
-                Volume volume = dbClient.queryObject(Volume.class, URI.create(volumeID));
 
                 // Add all volumes (managed only) to the new protection set
                 if (pset.getVolumes() == null) {
@@ -3072,15 +3070,15 @@ public class VolumeIngestionUtil {
 
                 pset.getVolumes().add(volumeID);
 
-                if (volume == null) {
-                    BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeID));
-                    if (bo != null && bo instanceof Volume) {
-                        volume = (Volume) bo;
-                    }
+                Volume volume = null;
+                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeID));
+                if (bo != null && bo instanceof Volume) {
+                    volume = (Volume) bo;
                 }
 
                 if (volume == null) {
-                    _logger.error("Unable to retrieve volume : " + volumeID + " from database.  Ignoring in protection set ingestion.");
+                    _logger.error("Unable to retrieve volume : " + volumeID 
+                            + " from database or created volumes.  Ignoring in protection set ingestion.");
                     // this will be the expected case for a newly-ingested Volume (because it hasn't been saved yet,
                     // so we make sure to add the volume in RecoverPointVolumeIngestionContext.commitBackend
                     continue;

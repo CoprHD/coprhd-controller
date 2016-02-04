@@ -18,6 +18,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -27,6 +28,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -587,6 +589,11 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      */
     @Override
     public BlockObject findCreatedBlockObject(String nativeGuid) {
+
+        if (URIUtil.isValid(nativeGuid)) {
+            _logger.warn("the nativeGuid {} argument is a valid URI. caller maybe meant to use findCreatedBlockObject(URI)?", nativeGuid);
+        }
+
         BlockObject blockObject = getObjectsToBeCreatedMap().get(nativeGuid);
 
         // if the block object wasn't found in this context's created object map
@@ -632,8 +639,8 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     @Override
     public BlockObject findCreatedBlockObject(URI uri) {
 
-        if (null == uri) {
-            _logger.warn("URI for findCreatedBlockObject was null");
+        if (!URIUtil.isValid(uri)) {
+            _logger.warn("URI ({}) for findCreatedBlockObject is null or invalid", uri);
             return null;
         }
 
@@ -668,6 +675,16 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             }
         }
 
+        try {
+            BlockObject bo = (BlockObject) _dbClient.queryObject(uri);
+            if (bo != null) {
+                _logger.info("\tfound block object in the database: " + bo.forDisplay());
+                return bo;
+            }
+        } catch (ClassCastException ex) {
+            _logger.warn("Failed to find a block object for URI {}: {}", uri, ex.getLocalizedMessage());
+        }
+
         _logger.info("could not find a block object for uri {} anywhere.", uri);
         return null;
     }
@@ -676,48 +693,36 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllProcessedUnManagedVolumes()
      */
     @Override
-    public List<UnManagedVolume> findAllProcessedUnManagedVolumes() {
-        _logger.info("assembling a List of all processed unmanaged volumes");
+    public List<UnManagedVolume> findAllUnManagedVolumesToBeDeleted() {
+        _logger.info("assembling a List of all unmanaged volumes to be deleted");
 
-        List<UnManagedVolume> processedUnManagedVolumes = new ArrayList<UnManagedVolume>();
+        List<UnManagedVolume> allUnManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
         
         _logger.info("\tadding local unmanaged volumes to be deleted: " + this.getUnManagedVolumesToBeDeleted());
-        processedUnManagedVolumes.addAll(this.getUnManagedVolumesToBeDeleted());
+        allUnManagedVolumesToBeDeleted.addAll(this.getUnManagedVolumesToBeDeleted());
 
         VolumeIngestionContext currentVolumeContext = getVolumeContext();
         if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
             _logger.info("checking current volume ingestion context {}", 
                     currentVolumeContext.getUnmanagedVolume().forDisplay());
-            for (VolumeIngestionContext volumeSubContext : 
-                ((IngestionRequestContext) currentVolumeContext).getProcessedUnManagedVolumeMap().values()) {
-                _logger.info("\t\tadding current volume context UnManagedVolume {}", volumeSubContext.getUnmanagedVolume().forDisplay());
-                processedUnManagedVolumes.add(volumeSubContext.getUnmanagedVolume());
-            }
             for (UnManagedVolume unmanagedSubVolume : 
                 ((IngestionRequestContext) currentVolumeContext).getUnManagedVolumesToBeDeleted()) {
                 _logger.info("\t\tadding current volume context UnManagedVolume {}",unmanagedSubVolume.forDisplay());
-                processedUnManagedVolumes.add(unmanagedSubVolume);
+                allUnManagedVolumesToBeDeleted.add(unmanagedSubVolume);
             }
         }
 
         for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
-            _logger.info("\tadding UnManagedVolume {}", volumeContext.getUnmanagedVolume().forDisplay());
-            processedUnManagedVolumes.add(volumeContext.getUnmanagedVolume());
             if (volumeContext instanceof IngestionRequestContext) {
-                for (VolumeIngestionContext volumeSubContext : 
-                    ((IngestionRequestContext) volumeContext).getProcessedUnManagedVolumeMap().values()) {
-                    _logger.info("\t\tadding sub context UnManagedVolume {}", volumeSubContext.getUnmanagedVolume().forDisplay());
-                    processedUnManagedVolumes.add(volumeSubContext.getUnmanagedVolume());
-                }
                 for (UnManagedVolume unmanagedSubVolume : 
                     ((IngestionRequestContext) volumeContext).getUnManagedVolumesToBeDeleted()) {
                     _logger.info("\t\tadding sub context UnManagedVolume {}",unmanagedSubVolume.forDisplay());
-                    processedUnManagedVolumes.add(unmanagedSubVolume);
+                    allUnManagedVolumesToBeDeleted.add(unmanagedSubVolume);
                 }
             }
         }
 
-        return processedUnManagedVolumes;
+        return allUnManagedVolumesToBeDeleted;
     }
 
     /* (non-Javadoc)

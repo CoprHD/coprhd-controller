@@ -6,7 +6,6 @@ package com.emc.storageos.recoverpoint.impl;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -3534,10 +3533,5 @@ public class RecoverPointClient {
             return false;
         }
         return false;
-    }
-
-    public static void main(String[] args) {
-        Calendar c = Calendar.getInstance();
-        System.out.println(c.getTimeInMillis() * 1000);
     }
 }

@@ -308,7 +308,7 @@ class Volume(object):
         return o
 
     def mirror_protection_copyparam(
-            self, volume, mirrorvol, copyname, apit, copytype="native", sync='false'):
+            self, volume, mirrorvol, copyname, pit, copytype="native", sync='false'):
         copies_param = dict()
         copy = dict()
         copy_entries = []
@@ -317,8 +317,8 @@ class Volume(object):
 
         if(copyname != ""):
             copy['name'] = copyname
-        if(apit != ""):
-            copy['apitTime'] = apit
+        if(pit != ""):
+            copy['pointInTime'] = pit
 
         #true=split
         if(sync == 'true'):
@@ -518,21 +518,26 @@ class Volume(object):
 
         return common.json_decode(s)
 
-    def mirror_protection_failover_ops(self, volume, mirrorvol, copyname, apit,
+    def mirror_protection_failover_ops(self, volume, mirrorvol, copyname, pit,
                                 type="native", op="failover"):
         '''
         Failover the volume protection
         Parameters:
             volume    : Source volume path
             mirrorvol : Name of the continous_copy
-            copyname  : name of the copy/bookmark
-            apit      : any point-in-time
+            copyname  : name of the copy (snapshot)
+            pit       : any point-in-time
             type      : type of protection
         Returns:
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, copyname, apit, type)
+   
+        from snapshot import Snapshot
+        snapshot_obj = Snapshot(self.__ipAddr, self.__port)
+        snapshot_uri = snapshot_obj.search_blocktype_by_project_and_name(project, copyname)
+
+        body = self.mirror_protection_copyparam(volume, mirrorvol, snapshot_uri, pit, type)
 
         uri = Volume.URI_VOLUME_PROTECTION_MIRROR_FAILOVER.format(vol_uri)
         if op == 'failover-test':
@@ -3198,10 +3203,10 @@ def add_protection_common_parser(cc_common_parser):
     cc_common_parser.add_argument('-copyname', '-cn',
                                metavar='<copyname>',
                                dest='copyname',
-                               help='name of the copy (bookmark) for failover')
-    cc_common_parser.add_argument('-apit', '-pit',
-                               metavar='<apit>',
-                               dest='apit',
+                               help='name of the copy (snapshot) for failover')
+    cc_common_parser.add_argument('-pit', '-p',
+                               metavar='<pit>',
+                               dest='pit',
                                help='any failover point-in-time date/time formatted as yyyy-MM-dd_HH:mm:ss')
 
 # Common parameters for contineous copies parser.
@@ -3489,7 +3494,7 @@ def volume_mirror_protect_failover_ops(args):
             fullpathvol,
             args.continuouscopyname,
             args.copyname,
-            args.apit,
+            args.pit,
             args.type,
             args.op)
 

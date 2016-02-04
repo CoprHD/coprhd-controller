@@ -147,17 +147,22 @@ public class GeoSeedProviderImpl implements SeedProvider {
         if (isDrActiveSite) {
             // add local seed(s):
             // -For fresh install and upgraded system from 1.1,
-            // get the first started node via the AUTOBOOT flag.
+            //  get the first started node via the AUTOBOOT flag.
             // -For geodb restore/recovery,
             // get the active nodes by checking geodbsvc beacon in zk,
             // successfully booted node will register geodbsvc beacon in zk and remove the REINIT flag.
+            //- For add-vdc
+            //  no local seed. use remote seeds to reinitialize geodb
             List<Configuration> configs = getAllConfigZNodes();
             if (hasRecoveryReinitFlag(configs)) {
                 seeds.addAll(getAllActiveNodes(configs));
             }
+            else if (isNewJoiningVdc(configs)) {
+                log.info("Don't use local seed in the middle of add-vdc");
+            }
             else {
                 seeds.add(getNonAutoBootNode(configs));
-            }
+            } 
         }
     }
 
@@ -246,6 +251,16 @@ public class GeoSeedProviderImpl implements SeedProvider {
         return Constants.STARTUPMODE_HIBERNATE.equalsIgnoreCase(modeType);
     }
 
+    private boolean isNewJoiningVdc(List<Configuration> configs) {
+        for (Configuration config : configs) {
+            String value = config.getConfig(Constants.REINIT_DB);
+            if (value != null && Boolean.parseBoolean(value)){
+                return true;
+            }
+        }
+        return false;
+    }
+    
     private String getDbStartupMode() {
         String modeType = null;
         try {

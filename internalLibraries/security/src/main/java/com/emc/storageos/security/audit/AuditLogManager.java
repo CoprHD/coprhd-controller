@@ -57,7 +57,9 @@ public class AuditLogManager {
     private DrUtil drUtil;
 
     /**
-     * Default constructor.
+     * Default constructor
+     * @param dbClient db client instance
+     * @param coordinator coordinator client instance
      */
     public AuditLogManager(DbClient dbClient, CoordinatorClient coordinator) {
         this._dbClient = dbClient;

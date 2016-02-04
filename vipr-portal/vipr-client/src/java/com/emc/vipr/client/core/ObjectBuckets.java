@@ -129,14 +129,14 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
     }
 
     /**
-     * Begins removing a share ACL from the given file system by ID.
+     * Begins removing a bucket ACL from the given bucket by ID.
      * <p>
-     * API Call: <tt>DELETE /object/buckets/{id}/acl/l</tt>
+     * API Call: <tt>DELETE /object/buckets/{id}/acl/</tt>
      * 
      * @param id is the ID of the Bucket.
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<BucketRestRep> deleteShareACL(URI id) {
+    public Task<BucketRestRep> deleteBucketACL(URI id) {
         return deleteTask(getBucketACLUrl(), id);
     }
 

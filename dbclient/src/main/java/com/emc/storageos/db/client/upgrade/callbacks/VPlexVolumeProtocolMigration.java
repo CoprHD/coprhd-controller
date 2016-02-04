@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to set protocol for VPLEX volumes to FC.
@@ -23,7 +24,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 public class VPlexVolumeProtocolMigration extends BaseCustomMigrationCallback {
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         DbClient dbClient = getDbClient();
         List<URI> volumeURIs = dbClient.queryByType(Volume.class, false);
         Iterator<Volume> volumesIter = dbClient.queryIterativeObjects(Volume.class, volumeURIs);

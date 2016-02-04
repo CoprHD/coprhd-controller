@@ -23,7 +23,6 @@ public class FileSnapshotRestRep extends FileObjectRestRep {
     /**
      * ID of the snapshot, as exported by the array.
      * 
-     * @valid none
      */
     @XmlElement(name = "native_id")
     public String getNativeId() {
@@ -38,7 +37,6 @@ public class FileSnapshotRestRep extends FileObjectRestRep {
      * URI and reference link to the file share that is the
      * source of the snapshot.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getParent() {
@@ -52,7 +50,6 @@ public class FileSnapshotRestRep extends FileObjectRestRep {
     /**
      * Time instant when the snapshot was created.
      * 
-     * @valid none
      */
     @XmlElement
     public String getTimestamp() {

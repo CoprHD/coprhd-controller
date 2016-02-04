@@ -5,11 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -207,4 +203,5 @@ public class CinderApiUtils {
     public static String timeFormat(Calendar cal) {
         return new java.text.SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z").format(cal.getTimeInMillis());
     }
+
 }

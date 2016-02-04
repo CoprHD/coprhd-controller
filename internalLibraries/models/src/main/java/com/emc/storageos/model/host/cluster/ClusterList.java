@@ -28,7 +28,6 @@ public class ClusterList {
     /**
      * Represents a host cluster within ViPR
      * 
-     * @valid none
      */
     @XmlElement(name = "cluster")
     public List<NamedRelatedResourceRep> getClusters() {

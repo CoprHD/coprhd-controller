@@ -56,6 +56,10 @@ import com.emc.vipr.client.core.search.SearchBuilder;
  *
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
+
+//This test fails on public build servers and coverage servers because it is not "self-contained" and relies on external
+//services to be running.  Therefore it is Ignored by default.
+@Ignore
 public class VPlexIngestionTest extends ApisvcTestBase {
 	Properties properties = new Properties();
 	ApiSystemTestUtil util = null;

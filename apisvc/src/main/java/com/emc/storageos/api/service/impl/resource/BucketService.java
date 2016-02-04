@@ -301,9 +301,7 @@ public class BucketService extends TaskResourceService {
                 "BucketDelete --- Bucket id: %1$s, Task: %2$s, ForceDelete: %3$s", id, task, param.getForceDelete()));
         ArgValidator.checkFieldUriType(id, Bucket.class, "id");
         Bucket bucket = queryResource(id);
-        if (!param.getForceDelete()) {
-            ArgValidator.checkReference(Bucket.class, id, checkForDelete(bucket));
-        }
+        
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
 
         Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),

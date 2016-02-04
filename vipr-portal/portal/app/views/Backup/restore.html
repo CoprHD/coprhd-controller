@@ -1,0 +1,169 @@
+#{extends 'main.html' /}
+#{set 'title'}&{'restore.title'}#{/set}
+#{set 'moreScripts'}
+    #{get 'moreScripts'/}
+#{/set}
+
+#{breadcrumb.container}
+    #{breadcrumb.item @list(type)}&{'Backup.list.title'}#{/breadcrumb.item}
+    #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+#{Form.header titleKey:'restore.title' /}
+    <div><b>&{'restore.from.version'}:</b> <span id="restore-version">${id}</span><br/></div>
+    <br/><br/>
+#{if type.equals(models.datatable.BackupDataTable.Type.REMOTE)}
+    <div id="checkPullStatus">
+        #{Form.subheader titleKey:"restore.download.progress", descriptionKey:"restore.download.progress.description"/}
+        <br/>
+
+        <table class="database-check-progress-table">
+            <tr>
+                <td width="300">
+                %{
+                    style = "success"
+                    }%
+                    #{progressBar name:"Status", style:style/}
+                </td>
+            </tr>
+            <tr>
+                <td width="300">
+		        <span id="errorInfo"></span>
+                </td>
+            </tr>
+        </table>
+        <br/>
+        <br/>
+    </div>
+#{/if}
+
+#{form @doRestore(), id:'restoreForm',class:'form form-horizontal', autocomplete:"off"}
+    <div style="width: 500px;">
+        #{field 'restoreForm.password'}
+        %{
+            field.required = true
+            }%
+            #{Form.inputPasswordControlGroup field:field/}
+        #{/field}
+        #{field 'restoreForm.name'}
+            <input type="hidden" name="${field.name}" value="${id}">
+        #{/field}
+        #{field 'restoreForm.type'}
+            <input type="hidden" name="${field.name}" value="${type}">
+        #{/field}
+    </div>
+
+    #{if status.isGeo()}
+        <div id="checkBoxForRestoreGeo">
+            <label><input type="checkbox" name="restoreForm.isGeoFromScratch"> &{'restore.geo.checkbox.help'}</label>
+
+            <div class="alert alert-warning"> &{'restore.geo.disconnect'} </div>
+        </div>
+    #{/if}
+
+    #{if status.isNotSuccess()}
+        <div class="alert alert-danger">${status.getStatus()}</div>
+    #{/if}
+
+    <div class="alert alert-info"> &{'restore.prompt'} </div>
+
+    <div class="button-bar">
+        #{Form.button 'button.ok', class:'primary', icon:'ok-sign', type:'submit', id:'restoreBtn' /}
+        #{Form.button 'button.cancel', icon:'primary', href: @cancelPullBackup(type)/}
+#{/form}
+    </div>
+</div>
+
+<script type="text/javascript">
+    var stop = false;
+    $(document).ready(function () {
+        disableEnter(true);
+
+        type = "${type}";
+        REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
+        if (type == REMOTE) {
+            $("#restoreBtn").prop("disabled", true);
+            checkPullStatusUpdates();
+        }
+    });
+
+    function disableEnter(disable) {
+        $('#restoreForm').on('keyup keypress', function (e) {
+            var code = e.keyCode || e.which;
+            if (code == 13) {
+                if (disable && $("#restoreBtn").is(":disabled")) {
+                    e.preventDefault();
+                    return false;
+                } else {
+                    this.submit();
+                }
+            }
+        });
+    }
+
+    function checkPullStatusUpdates() {
+        var checkUpdate = window.setInterval(function () {
+            if (stop) {
+                console.info("stop interval");
+                clearInterval(checkUpdate);
+                return;
+            }
+            checkPullProgressUpdate();
+        }, 2000); // Check every 2 seconds
+    }
+
+    function checkPullProgressUpdate() {
+        $.ajax({
+            method: "get",
+            url: #{jsAction @getRestoreStatus(':id', ':type')/}({"id": "${id}", "type": REMOTE}),
+            dataType: "json",
+
+            success: function (result) {
+                var description = "";
+                for (var i in result) {
+                    var property = result[i];
+                    description += i + " = " + property + "\n";
+                }
+                var totalSize = result.backupSize;
+                var downloadSize = result.downloadSize;
+                if (totalSize != 0) {
+                    var realPercent = downloadSize / totalSize * 100;
+                }
+                var basePercent = 50;
+                var progress = 0;
+                if(realPercent >= 100) {
+                    progress = basePercent + realPercent / 10;
+                    if(progress >= 100) {
+                        progress = 99;
+                    }
+                } else if(realPercent != null){
+                    progress = realPercent;
+                    if (progress >= basePercent) {
+                        progress = basePercent;
+                    }
+                }
+
+                console.info("progress=%s \n info=%s ", progress, description);
+                updateProgressBar("Status", parseInt(progress));
+
+                if (result.status == "DOWNLOAD_SUCCESS") {
+                    updateProgressBar("Status", 100);
+                    $("#restoreBtn").prop("disabled", false);
+                    disableEnter(false);
+                    stop = true;
+                }
+                else if (result.status == "DOWNLOAD_FAILED") {
+                    updateProgressBar("Status",100);
+                    updateProgressBarStyle("Status", "danger");
+                    $("#errorInfo").text(result.status+': '+result.message);
+                    stop = true;
+                }
+            },
+            error: function () {
+                console.info("Error happens");
+            }
+        });
+    }
+</script>
+

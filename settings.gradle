@@ -20,6 +20,7 @@ addProjects(
         "exportLibraries/hds",
         "exportLibraries/compute",
         "exportLibraries/cinder",
+	"exportLibraries/glance",
         "exportLibraries/keystone",
         "exportLibraries/scaleio",
         "exportLibraries/xtremio",

@@ -26,6 +26,11 @@ import com.emc.storageos.model.object.BucketACLUpdateParams.BucketACLOperationTy
 import com.emc.storageos.model.object.BucketACLUpdateParams.BucketPermissions;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
+
+/**
+ * Utility class for BUCKET ACL Operations.
+ *
+ */
 public class BucketACLUtility {
 
     private final static Logger _log = LoggerFactory
@@ -48,7 +53,6 @@ public class BucketACLUtility {
     // ("Suppressing Sonar violation for variable name should be in camel case")
 
     public BucketACLUtility(DbClient dbClient, String bucketName, URI bucketId) {
-        super();
         this.dbClient = dbClient;
         this.bucketName = bucketName;
         this.bucketId = bucketId;
@@ -117,6 +121,19 @@ public class BucketACLUtility {
                     case USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED: {
                         throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
                                 bucketACE.getUser(), bucketACE.getGroup(), bucketACE.getCustomGroup());
+                    }
+                    case USER_AND_GROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), bucketACE.getGroup(), null);
+                    }
+                    case USER_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), null, bucketACE.getCustomGroup());
+                    }
+
+                    case GROUP_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                null, bucketACE.getGroup(), bucketACE.getCustomGroup());
                     }
 
                     case USER_OR_GROUP_OR_CUSTOMGROUP_NOT_PROVIDED: {
@@ -193,6 +210,20 @@ public class BucketACLUtility {
                     case USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED: {
                         throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
                                 bucketACE.getUser(), bucketACE.getGroup(), bucketACE.getCustomGroup());
+                    }
+                    
+                    case USER_AND_GROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), bucketACE.getGroup(), null);
+                    }
+                    case USER_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), null, bucketACE.getCustomGroup());
+                    }
+
+                    case GROUP_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                null, bucketACE.getGroup(), bucketACE.getCustomGroup());
                     }
 
                     case USER_OR_GROUP_OR_CUSTOMGROUP_NOT_PROVIDED: {
@@ -271,6 +302,20 @@ public class BucketACLUtility {
                         throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
                                 bucketACE.getUser(), bucketACE.getGroup(), bucketACE.getCustomGroup());
                     }
+                    
+                    case USER_AND_GROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), bucketACE.getGroup(), null);
+                    }
+                    case USER_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                bucketACE.getUser(), null, bucketACE.getCustomGroup());
+                    }
+
+                    case GROUP_AND_CUSTOMGROUP_PROVIDED: {
+                        throw APIException.badRequests.userGroupAndCustomGroupInACLFound(
+                                null, bucketACE.getGroup(), bucketACE.getCustomGroup());
+                    }
 
                     case USER_OR_GROUP_OR_CUSTOMGROUP_NOT_PROVIDED: {
 
@@ -304,7 +349,7 @@ public class BucketACLUtility {
                     }
 
                     case ACL_EXISTS: {
-                        throw APIException.badRequests.shareACLAlreadyExists(
+                        throw APIException.badRequests.bucketACLAlreadyExists(
                                 opName, bucketACE.toString());
                     }
                     // case ACL_NOT_FOUND:
@@ -333,12 +378,12 @@ public class BucketACLUtility {
                 break;
             }
             case MODIFY: {
-                verifyModifyShareACLs(bucketACL.getBucketACL());
+                verifyModifyBucketACL(bucketACL.getBucketACL());
 
                 break;
             }
             case DELETE: {
-                verifyDeleteShareACLs(bucketACL.getBucketACL());
+                verifyDeleteBucketACL(bucketACL.getBucketACL());
                 break;
             }
         }
@@ -374,7 +419,7 @@ public class BucketACLUtility {
             // If same acl exists, don't allow to add again.
             if (dbBucketAcl != null) {
                 _log.error(
-                        "Duplicate ACL in add request. User/group in ACL for bucket already exists: {}",
+                        "Duplicate ACL in add request. User/group/customgroup in ACL for bucket already exists: {}",
                         dbBucketAcl);
                 ace.cancelNextStep(BucketACLOperationErrorType.ACL_EXISTS);
                 break;
@@ -388,7 +433,7 @@ public class BucketACLUtility {
         }
     }
 
-    private void verifyModifyShareACLs(List<BucketACE> bucketACEList) {
+    private void verifyModifyBucketACL(List<BucketACE> bucketACEList) {
         if (bucketACEList == null) {
             return;
         }
@@ -429,7 +474,7 @@ public class BucketACLUtility {
         }
     }
 
-    private void verifyDeleteShareACLs(List<BucketACE> bucketACEList) {
+    private void verifyDeleteBucketACL(List<BucketACE> bucketACEList) {
         if (bucketACEList == null) {
             return;
         }
@@ -507,11 +552,11 @@ public class BucketACLUtility {
             containmentConstraint = ContainmentConstraint.Factory
                     .getBucketAclsConstraint(this.bucketId);
 
-            List<ObjectBucketACL> dbBucketShareAcl = CustomQueryUtility
+            List<ObjectBucketACL> dbBucketBucketAcl = CustomQueryUtility
                     .queryActiveResourcesByConstraint(this.dbClient,
                             ObjectBucketACL.class, containmentConstraint);
 
-            return dbBucketShareAcl;
+            return dbBucketBucketAcl;
 
         } catch (Exception e) {
             _log.error("Error while querying DB for ACL of a bucket {}", e);
@@ -539,7 +584,7 @@ public class BucketACLUtility {
 
         // Construct ACL Index
         StringBuffer aclIndex = new StringBuffer();
-        aclIndex.append(this.bucketId).append(domainOfReqAce).append(userOrGroupOrCustomGroup);
+        aclIndex.append(this.bucketId).append(domainOfReqAce.toLowerCase()).append(userOrGroupOrCustomGroup.toLowerCase());
 
         acl = this.queryACLByIndex(aclIndex.toString());
 
@@ -606,6 +651,11 @@ public class BucketACLUtility {
         return false;
     }
 
+    /**
+     * This method verifies user or group or customgroup.
+     * ACE accepts any one entry from group, user and custom group.
+     * 
+     */
     private void verifyUserGroupCustomgroup(BucketACE bucketACE) {
 
         String userOrGroupOrCustomgroup = null;
@@ -619,6 +669,15 @@ public class BucketACLUtility {
             _log.error("User or Group or Customgroup is missing.");
         } else if (bucketACE.getUser() != null && bucketACE.getGroup() != null && bucketACE.getCustomGroup() != null) {
             bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_GROUP_AND_CUSTOMGROUP_PROVIDED);
+            _log.error("Either user or group or customgroup should be provided. Never all of them.");
+        } else if (bucketACE.getUser() != null && bucketACE.getGroup() != null) {
+            bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_GROUP_PROVIDED);
+            _log.error("Either user or group or customgroup should be provided. Never all of them.");
+        } else if (bucketACE.getUser() != null && bucketACE.getCustomGroup() != null) {
+            bucketACE.cancelNextStep(BucketACLOperationErrorType.USER_AND_CUSTOMGROUP_PROVIDED);
+            _log.error("Either user or group or customgroup should be provided. Never all of them.");
+        } else if (bucketACE.getGroup() != null && bucketACE.getCustomGroup() != null) {
+            bucketACE.cancelNextStep(BucketACLOperationErrorType.GROUP_AND_CUSTOMGROUP_PROVIDED);
             _log.error("Either user or group or customgroup should be provided. Never all of them.");
         } else {
             String domain = bucketACE.getDomain();
@@ -645,7 +704,7 @@ public class BucketACLUtility {
                 _log.error("There are multiple ACEs with same user or group or customgroup.");
             }
         }
-        // below code is to validate domain
+        // below code is to validate domain by splitting backslash
         if (bucketACE.getDomain() != null && bucketACE.getUser() != null) {
 
             if (bucketACE.getUser().contains("\\")) {

@@ -306,8 +306,13 @@ public class ObjectBuckets extends ResourceController {
         }
         ObjectBucketACLUpdateParams updateParam = createObjectBucketACLUpdateParams(formAccessControlList);
         ViPRCoreClient client = BourneUtil.getViprClient();
-        client.objectBuckets().updateBucketACL(uri(bucketId), updateParam);
-
+        try {
+            client.objectBuckets().updateBucketACL(uri(bucketId), updateParam);
+        } catch (Exception e) {
+            flash.error(e.getMessage(), null);
+            listBucketACL(bucketId);
+        }
+        flash.success(MessagesUtils.get(ADDED));
         listBucketACL(bucketId);
 
     }

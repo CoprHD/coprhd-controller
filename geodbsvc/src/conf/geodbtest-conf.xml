@@ -58,6 +58,7 @@
         <property name="bypassMigrationLock" value="true"/>
         <property name="geoContext" ref="unencryptedGeoDbContext"/>
         <property name="localContext" ref="dbclientcontext"/>
+        <property name="drUtil" ref="drUtil"/>
     </bean>
 
 	<bean id="globalGC" class="com.emc.storageos.db.gc.GlobalGCExecutorLoop">

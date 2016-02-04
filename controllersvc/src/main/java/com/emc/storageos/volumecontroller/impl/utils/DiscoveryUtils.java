@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -34,6 +35,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -53,6 +55,7 @@ public class DiscoveryUtils {
     private static final Logger _log = LoggerFactory.getLogger(DiscoveryUtils.class);
     public static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
     public static final String UNMANAGED_VOLUME = "UnManagedVolume";
+    public static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
 
     /**
      * get Matched Virtual Pools For Pool.
@@ -674,6 +677,64 @@ public class DiscoveryUtils {
         }
     }
 
+    /**
+     * Compares the set of unmanaged consistency groups for the current discovery operation
+     * to the set of unmanaged consistency groups already in the database from a previous
+     * discovery operation.  Removes existing database entries if the object was not present
+     * in the current discovery operation.
+     * 
+     * @param storageSystem - storage system containing the CGs
+     * @param currentUnManagedCGs - current list of unmanaged CGs
+     * @param dbClient - database client
+     * @param partitionManager - partition manager
+     */
+    public static void performUnManagedConsistencyGroupsBookKeeping(StorageSystem storageSystem, Set<URI> currentUnManagedCGs,
+            	DbClient dbClient, PartitionManager partitionManager) {
+
+        _log.info(" -- Processing {} discovered UnManaged Consistency Group Objects from -- {}",
+        		currentUnManagedCGs.size(), storageSystem.getLabel());        
+        // no consistency groups discovered 
+        if (currentUnManagedCGs.isEmpty()) {
+            return;
+        }
+        
+        // Get all available existing unmanaged CG URIs for this array from DB
+        URIQueryResultList allAvailableUnManagedCGsInDB = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageSystemUnManagedCGConstraint(storageSystem.getId()),              
+                allAvailableUnManagedCGsInDB);
+                
+        Set<URI> unManagedCGsInDBSet = new HashSet<URI>();
+        Iterator<URI> allAvailableUnManagedCGsItr = allAvailableUnManagedCGsInDB.iterator();
+        while (allAvailableUnManagedCGsItr.hasNext()) {
+        	unManagedCGsInDBSet.add(allAvailableUnManagedCGsItr.next());
+        }
+                
+        SetView<URI> onlyAvailableinDB = Sets.difference(unManagedCGsInDBSet, currentUnManagedCGs);
+
+        _log.info("Diff :" + Joiner.on("\t").join(onlyAvailableinDB));
+        if (!onlyAvailableinDB.isEmpty()) {
+            List<UnManagedConsistencyGroup> unManagedCGTobeDeleted = new ArrayList<UnManagedConsistencyGroup>();
+            Iterator<UnManagedConsistencyGroup> unManagedCGs = dbClient.queryIterativeObjects(UnManagedConsistencyGroup.class,
+                    new ArrayList<URI>(onlyAvailableinDB));
+
+            while (unManagedCGs.hasNext()) {
+            	UnManagedConsistencyGroup cg = unManagedCGs.next();
+                if (null == cg || cg.getInactive()) {
+                    continue;
+                }
+
+                _log.info("Setting UnManagedConsistencyGroup {} inactive", cg.getId());
+                cg.setStorageSystemUri(NullColumnValueGetter.getNullURI());
+                cg.setInactive(true);
+                unManagedCGTobeDeleted.add(cg);
+            }
+            if (!unManagedCGTobeDeleted.isEmpty()) {
+                partitionManager.updateAndReIndexInBatches(unManagedCGTobeDeleted, unManagedCGTobeDeleted.size(),
+                        dbClient, UNMANAGED_CONSISTENCY_GROUP);
+            }
+        }
+    }
+    
     public static void markInActiveUnManagedExportMask(URI storageSystemUri,
             Set<URI> discoveredUnManagedExportMasks, DbClient dbClient, PartitionManager partitionManager) {
 
@@ -709,7 +770,7 @@ public class DiscoveryUtils {
                 unManagedExportMasksToBeDeleted.add(uem);
             }
             if (!unManagedExportMasksToBeDeleted.isEmpty()) {
-                partitionManager.updateAndReIndexInBatches(unManagedExportMasksToBeDeleted, Constants.DEFAULT_PARTITION_SIZE,
+                partitionManager.updateAndReIndexInBatches(unManagedExportMasksToBeDeleted, unManagedExportMasksToBeDeleted.size(),
                         dbClient, UNMANAGED_EXPORT_MASK);
             }
         }
@@ -729,5 +790,66 @@ public class DiscoveryUtils {
                 .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
         return dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
     }
+    
+    /**
+     * Determines if the UnManagedConsistencyGroup object exists in the database
+     * 
+     * @param nativeGuid - native Guid for the unmanaged consistency group
+     * @param dbClient - database client
+     * @return unmanagedCG - null if it does not exist in the database, otherwise it returns the 
+     *         UnManagedConsistencyGroup object from the database
+     * @throws IOException
+     */
+    public static UnManagedConsistencyGroup checkUnManagedCGExistsInDB(DbClient dbClient, String nativeGuid) {
+    	UnManagedConsistencyGroup unmanagedCG = null;
+    	URIQueryResultList unManagedCGList = new URIQueryResultList();
+    	dbClient.queryByConstraint(AlternateIdConstraint.Factory
+    			.getCGInfoNativeIdConstraint(nativeGuid), unManagedCGList);
+    	if (unManagedCGList.iterator().hasNext()) {
+    		URI unManagedCGURI = unManagedCGList.iterator().next();
+    		unmanagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedCGURI);            
+    	}
+    	return unmanagedCG;
+    }
 
+    /**
+     * Dump & remove deleted namespaces in object storage
+     * 
+     * @param discoveredNamespaces
+     * @param dbClient
+     * @param storageSystemId
+     */
+    public static void checkNamespacesNotVisible(List<ObjectNamespace> discoveredNamespaces,
+            DbClient dbClient, URI storageSystemId) {
+        // Get the namespaces previousy discovered
+        URIQueryResultList objNamespaceURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceObjectNamespaceConstraint(storageSystemId),
+                objNamespaceURIs);
+        Iterator<URI> objNamespaceIter = objNamespaceURIs.iterator();
+
+        List<URI> existingNamespacesURI = new ArrayList<URI>();
+        while (objNamespaceIter.hasNext()) {
+            existingNamespacesURI.add(objNamespaceIter.next());
+        }
+
+        List<URI> discoveredNamespacesURI = new ArrayList<URI>();
+        for (ObjectNamespace namespace : discoveredNamespaces) {
+            discoveredNamespacesURI.add(namespace.getId());
+        }
+
+        // Present in existing but not in discovered; remove them
+        Set<URI> namespacesDiff = Sets.difference(new HashSet<URI>(existingNamespacesURI), new HashSet<URI>(discoveredNamespacesURI));
+
+        if (!namespacesDiff.isEmpty()) {
+            Iterator<ObjectNamespace> objNamespaceIt = dbClient.queryIterativeObjects(ObjectNamespace.class, namespacesDiff, true);
+            while (objNamespaceIt.hasNext()) {
+                ObjectNamespace namespace = objNamespaceIt.next();
+                _log.info("Object Namespace not visible {} : {}", namespace.getNativeId(), namespace.getId());
+                namespace.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
+                dbClient.updateObject(namespace);
+            }
+        }
+    }
+    
 }

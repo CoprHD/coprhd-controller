@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class HostInterfaceRegistrationStatusMigration extends BaseCustomMigrationCallback {
 
@@ -25,7 +26,7 @@ public class HostInterfaceRegistrationStatusMigration extends BaseCustomMigratio
     private static final Logger log = LoggerFactory.getLogger(HostInterfaceRegistrationStatusMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         processType(Initiator.class);
         processType(IpInterface.class);
     }

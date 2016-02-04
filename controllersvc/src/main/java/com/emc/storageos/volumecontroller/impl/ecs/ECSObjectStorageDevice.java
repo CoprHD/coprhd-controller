@@ -16,10 +16,12 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.ecs.api.ECSBucketACL;
@@ -141,6 +143,20 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         try {
             ECSApi objectAPI = getAPI(storageObj);
             objectAPI.deleteBucket(bucket.getName(), bucket.getNamespace());
+            // Deleting the ACL for bucket if any
+            List<ObjectBucketACL> aclToDelete = queryDbBucketACL(bucket);
+            if (aclToDelete != null && !aclToDelete.isEmpty()) {
+                for (ObjectBucketACL ace : aclToDelete) {
+                    ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
+
+                    if (ace != null) {
+                        dbBucketAcl.setId(ace.getId());
+                        dbBucketAcl.setInactive(true);
+                        _log.info("Marking acl inactive in DB: {}", dbBucketAcl);
+                        _dbClient.updateObject(dbBucketAcl);
+                    }
+                }
+            }
             bucket.setInactive(true);
             _dbClient.persistObject(bucket);
             result = BiosCommandResult.createSuccessfulResult();
@@ -151,6 +167,30 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             completeTask(bucket.getId(), taskId, e);
         }
         return result;
+    }
+    
+    private List<ObjectBucketACL> queryDbBucketACL(Bucket bucket) {
+
+        try {
+            ContainmentConstraint containmentConstraint = null;
+
+            _log.info("Querying DB for ACL of bucket {} ",
+                    bucket.getName());
+            containmentConstraint = ContainmentConstraint.Factory
+                    .getBucketAclsConstraint(bucket.getId());
+
+            List<ObjectBucketACL> dbBucketBucketAcl = CustomQueryUtility
+                    .queryActiveResourcesByConstraint(_dbClient,
+                            ObjectBucketACL.class, containmentConstraint);
+
+            return dbBucketBucketAcl;
+
+        } catch (Exception e) {
+            _log.error("Error while querying DB for ACL of a bucket {}", e);
+        }
+
+        return null;
+
     }
     
     @Override
@@ -328,9 +368,9 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                     for (BucketACE ace : aclToDelete) {
                         ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
                         copyToPersistBucketACL(ace, dbBucketAcl, args, bucket.getId());
-                        ObjectBucketACL dbNfsAclTemp = getExistingBucketAclFromDB(dbBucketAcl);
-                        if (dbNfsAclTemp != null) {
-                            dbBucketAcl.setId(dbNfsAclTemp.getId());
+                        ObjectBucketACL dbBuckeAclTemp = getExistingBucketAclFromDB(dbBucketAcl);
+                        if (dbBuckeAclTemp != null) {
+                            dbBucketAcl.setId(dbBuckeAclTemp.getId());
                             dbBucketAcl.setInactive(true);
                             _log.info("Marking acl inactive in DB: {}", dbBucketAcl);
                             _dbClient.updateObject(dbBucketAcl);

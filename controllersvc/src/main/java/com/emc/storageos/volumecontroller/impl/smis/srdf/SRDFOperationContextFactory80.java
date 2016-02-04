@@ -21,6 +21,7 @@ import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.ChangeModeToA
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.ChangeModeToSyncStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.DetachGroupSyncStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.DetachStorageSyncsStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.EstablishGroupActiveStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.EstablishGroupSyncStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.EstablishStorageActiveStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.EstablishStorageSyncsStrategy;
@@ -35,6 +36,7 @@ import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.RestoreGroupS
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.RestoreStorageSyncsStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SplitGroupSyncStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SplitStorageSyncsStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SuspendGroupActiveStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SuspendGroupSyncStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SuspendStorageActiveStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SuspendStorageSyncsStrategy;
@@ -88,13 +90,17 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
                 break;
             case SUSPEND:
                 if (target.hasConsistencyGroup()) {
-                    executorStrategy = new SuspendGroupSyncStrategy(helper);
+                    if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
+                        executorStrategy = new SuspendGroupActiveStrategy(helper);
+                    } else {
+                        executorStrategy = new SuspendGroupSyncStrategy(helper);
+                    }
                 } else {
-                	if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
-                		executorStrategy = new SuspendStorageActiveStrategy(helper);
-                	} else {
-                		executorStrategy = new SuspendStorageSyncsStrategy(helper);
-                	}
+                    if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
+                        executorStrategy = new SuspendStorageActiveStrategy(helper);
+                    } else {
+                        executorStrategy = new SuspendStorageSyncsStrategy(helper);
+                    }
                 }
                 break;
             case SUSPEND_CONS_EXEMPT:
@@ -109,7 +115,11 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
                 break;
             case ESTABLISH:
                 if (target.hasConsistencyGroup()) {
-                    executorStrategy = new EstablishGroupSyncStrategy(helper);
+                    if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
+                        executorStrategy = new EstablishGroupActiveStrategy(helper);
+                    } else {
+                        executorStrategy = new EstablishGroupSyncStrategy(helper);
+                    }
                 } else {
                     if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
                         executorStrategy = new EstablishStorageActiveStrategy(helper);
@@ -157,13 +167,13 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
                 executorStrategy = new DetachStorageSyncsStrategy(helper);
                 break;
             case RESET_TO_ADAPTIVE:
-            	executorStrategy = new ChangeModeToAdaptiveStrategy(helper);
+                executorStrategy = new ChangeModeToAdaptiveStrategy(helper);
                 break;
             case RESET_TO_ASYNC:
-            	executorStrategy = new ChangeModeToAsyncStrategy(helper);
+                executorStrategy = new ChangeModeToAsyncStrategy(helper);
                 break;
             case RESET_TO_SYNC:
-            	executorStrategy = new ChangeModeToSyncStrategy(helper);
+                executorStrategy = new ChangeModeToSyncStrategy(helper);
                 break;
         }
         ctx.setExecutor(executorStrategy);

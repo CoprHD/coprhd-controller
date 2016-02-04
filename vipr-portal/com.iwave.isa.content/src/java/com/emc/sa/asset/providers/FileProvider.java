@@ -52,6 +52,7 @@ import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
 import com.emc.vipr.client.core.filters.RecoverPointPersonalityFilter;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.filters.SRDFSourceFilter;
+import com.emc.vipr.client.core.filters.SourceTargetFileSystemsFilter;
 import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.client.core.filters.VirtualPoolProtocolFilter;
 import com.emc.vipr.client.core.util.CachedResources;
@@ -314,18 +315,43 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @Asset("fileWithContinuousCopies")
     @AssetDependencies("project")
     public List<AssetOption> getFileWithContinuousCopies(AssetOptionsContext ctx, URI project) {
+//        final ViPRCoreClient client = api(ctx);
+//        List<AssetOption> options = Lists.newArrayList();
+//        List<FileShareRestRep> fs = client.fileSystems().findByProject(project);
+//        
+//        for (FileShareRestRep fileShare: fs) {
+//            if (fileShare.getProtection() != null &&
+//                    StringUtils.equals(fileShare.getProtection().getPersonality(), "SOURCE")) {
+//                options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
+//            }
+//        }
+//        
+//        AssetOptionsUtils.sortOptionsByLabel(options);
+//        return options;
         final ViPRCoreClient client = api(ctx);
-        List<FileShareRestRep> fs = client.fileSystems().findByProject(project);
-        
-        // TODO: only add file system with continuous copies.
-        
-        return createFilesystemOptions(fs);
+        List<FileShareRestRep> fileShares = client.fileSystems().findByProject(project, new SourceTargetFileSystemsFilter() {
+            @Override
+            public boolean acceptId(URI id) {
+                return !client.fileSystems().getFileContinuousCopies(id).isEmpty();
+            }
+        });
+        return createFilesystemOptions(fileShares);
     }
     
     @Asset("fileContinuousCopies")
     @AssetDependencies("fileWithContinuousCopies")
-    public List<AssetOption> getFileContinuousCopies(AssetOptionsContext ctx, URI volume) {
-        return Lists.newArrayList(); //createBaseResourceOptions(api(ctx).fileSystems().getContinuousCopies(volume));
+    public List<AssetOption> getFileContinuousCopies(AssetOptionsContext ctx, URI fileId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        
+        List<NamedRelatedResourceRep> mirrors = client.fileSystems().getFileContinuousCopies(fileId);
+        for (NamedRelatedResourceRep m : mirrors) {
+            FileShareRestRep fileShare = client.fileSystems().get(m.getId());
+            options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
+        }
+        
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
     }
     
     @Asset("protectedFileSystem")

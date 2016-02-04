@@ -13,10 +13,12 @@ import java.util.Properties;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.CopiesParam;
+import com.emc.storageos.model.block.MirrorList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.model.file.ExportRule;
@@ -575,6 +577,21 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/start", id);
         return new Tasks<FileShareRestRep>(client, tasks.getTaskList(), FileShareRestRep.class);
     }
+    
+    /**
+     * Gets the list of continuous copies for the given File System.
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{id}/protection/continuous-copies</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @return the list of file continuous copy references.
+     */
+    public List<NamedRelatedResourceRep> getFileContinuousCopies(URI id) {
+        MirrorList response = client.get(MirrorList.class, null, getContinuousCopiesUrl(), id);
+        return defaultList(response.getMirrorList());
+    }
+    
     
     /**
      * Begins deactivating a number of continuous copies for the given file system.

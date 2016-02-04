@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
@@ -121,6 +122,7 @@ import com.emc.storageos.volumecontroller.StorageController;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
+import com.emc.storageos.volumecontroller.impl.ecs.BucketOperationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -1315,13 +1317,32 @@ public class StorageSystemService extends TaskResourceService {
             throw APIException.badRequests.invalidParameterURIInvalid("id", id);
         }
         
+        String task = UUID.randomUUID().toString();
+        URI userTrackId = URIUtil.createId(Bucket.class);
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
-        controller.getUserSecretKey(id, userId);
-        ScopedLabelSet tagSet = system.getTag();
-        ScopedLabel scopedLabel = tagSet.valFromString(userId);
-        String s1 = scopedLabel.getLabel();
-        String s2 = scopedLabel.getScope();
+        controller.getUserSecretKey(id, userId, task, userTrackId);
 
+        //poll for task to complete
+        BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, userTrackId, task);
+        try {
+            completer.wait();
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+ 
+        ScopedLabelSet tagSet = system.getTag();
+        String user_key = tagSet.toString();
+        int keyAt = user_key.indexOf(":");
+        String key = user_key.substring(keyAt);
+
+        //clean tags
+        ScopedLabel newScopedLabel = null;
+        ScopedLabelSet tagSet2 = new ScopedLabelSet();
+        tagSet2.add(newScopedLabel);
+        system.setTag(tagSet2);
+        _dbClient.updateObject(system);
+       
     }
 
     @GET

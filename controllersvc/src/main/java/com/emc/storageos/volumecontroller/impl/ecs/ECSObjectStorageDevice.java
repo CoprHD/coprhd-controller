@@ -110,7 +110,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public void doGetUserSecretKey(StorageSystem storageObj, String userId) throws ControllerException {
+    public void doGetUserSecretKey(StorageSystem storageObj, String userId, String taskId, URI userTrackId) throws ControllerException {
         ECSApi ecsApi = getAPI(storageObj);
 
         try {
@@ -121,6 +121,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                 tagSet.add(newScopedLabel);
                 storageObj.setTag(tagSet);
                 _dbClient.updateObject(storageObj);
+                completeTask(userTrackId, taskId);
             }
         } catch (Exception e) {
            _log.error("ECSObjectStorageDevice:doGetUserSecretKey failed.");
@@ -546,6 +547,12 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     private void completeTask(final URI bucketID, final String taskID, final String message) {
         BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
         completer.statusReady(_dbClient, message);
+    }
+
+    private void completeTask(final URI bucketID, final String taskID) {
+        BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
+        completer.statusReady(_dbClient, "User key created");
+        completer.notifyAll();
     }
 
 }

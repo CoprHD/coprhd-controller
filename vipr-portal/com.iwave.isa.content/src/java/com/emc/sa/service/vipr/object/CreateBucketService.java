@@ -59,7 +59,7 @@ public class CreateBucketService extends ViPRService {
         if (objectStorageACLs != null && objectStorageACLs.length > 0) {
             List<String> invalidNames = ObjectStorageUtils.getInvalidObjectACLs(objectStorageACLs);
             if (!invalidNames.isEmpty()) {
-                ExecutionUtils.fail("failTask.CreateCifsShareHelper.invalidName", invalidNames, invalidNames);
+                ExecutionUtils.fail("failTask.CreateBucketACL.invalidName", invalidNames, invalidNames);
             }
             objectStorageACLs = ObjectStorageUtils.clearEmptyObjectACLs(objectStorageACLs);
         }

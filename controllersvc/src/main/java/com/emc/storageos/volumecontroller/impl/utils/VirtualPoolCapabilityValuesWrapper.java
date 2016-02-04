@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.StorageSystem;
+
 /**
  * Wrapper for VirtualPoolParams HashMap
  * 
@@ -39,14 +42,16 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SUPPORT_SOFT_LIMIT = "soft_limit";
     public static final String SUPPORT_NOTIFICATION_LIMIT = "notification_limit";
     public static final String QUOTA = "quota";
-    
-    public static final String FILE_RP_RPO_VALUE = "fileRpRpoValue";
-    public static final String FILE_RP_RPO_TYPE  = "fileRpRpoType";
-    public static final String FILE_RP_COPY_MODE = "fileRpCopyMode";
 
+    public static final String FILE_RP_RPO_VALUE = "fileRpRpoValue";
+    public static final String FILE_RP_RPO_TYPE = "fileRpRpoType";
+    public static final String FILE_RP_COPY_MODE = "fileRpCopyMode";
 
     public static final String FILE_REPLICATION_SOURCE = "file_replication_source";
     public static final String FILE_REPLICATION_TARGET = "file_replication_target";
+    public static final String FILE_SYSTEM_CREATE_MIRROR_COPY = "file_system_create_mirror_copy";
+    public static final String EXISTING_SOURCE_FILE_SYSTEM = "existing_source_file_system";
+    public static final String SOURCE_STORAGE_SYSTEM = "source_storage_system";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -160,19 +165,19 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(META_VOLUME_TYPE)) {
             _vpoolCapabilities.put(META_VOLUME_TYPE, capabilities.getMetaVolumeType());
         }
-        
-        if(capabilities.contains(SUPPORT_SOFT_LIMIT)) {
+
+        if (capabilities.contains(SUPPORT_SOFT_LIMIT)) {
             _vpoolCapabilities.put(SUPPORT_SOFT_LIMIT, capabilities.getSupportsSoftLimit());
         }
-        
-        if(capabilities.contains(SUPPORT_NOTIFICATION_LIMIT)) {
+
+        if (capabilities.contains(SUPPORT_NOTIFICATION_LIMIT)) {
             _vpoolCapabilities.put(SUPPORT_NOTIFICATION_LIMIT, capabilities.getSupportsNotificationLimit());
         }
 
         if (capabilities.contains(QUOTA)) {
             _vpoolCapabilities.put(QUOTA, capabilities.getQuota());
         }
-        
+
         if (capabilities.contains(FILE_RP_RPO_TYPE)) {
             _vpoolCapabilities.put(FILE_RP_RPO_TYPE, capabilities.getRpRpoType());
         }
@@ -180,11 +185,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(FILE_RP_RPO_TYPE)) {
             _vpoolCapabilities.put(FILE_RP_RPO_TYPE, capabilities.getRpCopyMode());
         }
-        
+
         if (capabilities.contains(FILE_RP_COPY_MODE)) {
             _vpoolCapabilities.put(FILE_RP_COPY_MODE, capabilities.getRpCopyMode());
         }
-
 
     }
 
@@ -310,12 +314,12 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(META_VOLUME_TYPE);
         return value != null ? (String) value : null;
     }
-    
+
     public Boolean getSupportsSoftLimit() {
         Object value = _vpoolCapabilities.get(SUPPORT_SOFT_LIMIT);
         return value != null ? (boolean) value : false;
     }
-    
+
     public Boolean getSupportsNotificationLimit() {
         Object value = _vpoolCapabilities.get(SUPPORT_NOTIFICATION_LIMIT);
         return value != null ? (boolean) value : false;
@@ -325,7 +329,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(QUOTA);
         return value != null ? (String) value : null;
     }
-    
+
     public Long getFileRpRpoValue() {
         Object value = _vpoolCapabilities.get(FILE_RP_RPO_VALUE);
         return value != null ? (Long) value : 0L;
@@ -335,10 +339,25 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(FILE_RP_RPO_TYPE);
         return value != null ? (String) value : null;
     }
-    
+
     public String getFileRpCopyMode() {
         Object value = _vpoolCapabilities.get(FILE_RP_COPY_MODE);
         return value != null ? (String) value : null;
+    }
+
+    public boolean createMirrorExistingFileSystem() {
+        Object value = _vpoolCapabilities.get(FILE_SYSTEM_CREATE_MIRROR_COPY);
+        return value != null ? (Boolean) value : false;
+    }
+
+    public FileShare getSourceFileSystem() {
+        Object value = _vpoolCapabilities.get(EXISTING_SOURCE_FILE_SYSTEM);
+        return value != null ? (FileShare) value : null;
+    }
+
+    public StorageSystem getSourceStorageDevice() {
+        Object value = _vpoolCapabilities.get(SOURCE_STORAGE_SYSTEM);
+        return value != null ? (StorageSystem) value : null;
     }
 
 }

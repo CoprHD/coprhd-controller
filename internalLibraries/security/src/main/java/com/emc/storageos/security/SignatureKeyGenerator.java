@@ -58,9 +58,7 @@ public abstract class SignatureKeyGenerator {
                 String keyEncoded = SignatureHelper.generateKey(algo);
                 cfg.setConfig(relKeyLocation, keyEncoded);
                 _coordinator.persistServiceConfiguration(cfg);
-                config = _coordinator.queryConfiguration(getSignatureKeyConfig(), getSignatureKeyId());
-                final String encodedKey = config.getConfig(relKeyLocation);
-                return SignatureHelper.createKey(encodedKey, algo);
+                return SignatureHelper.createKey(keyEncoded, algo);
             } finally {
                 if (lock != null) {
                     lock.release();

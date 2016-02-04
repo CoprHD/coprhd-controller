@@ -3341,8 +3341,8 @@ resources.snapshot.session.targets=Linked Targets
 resources.snapshot.session.targets.none=No Linked Targets
 resources.snapshot.session.unlink=Unlink
 resources.snapshot.session.relink=Relink
-resources.snapshot.session.relink.success=Relink Snapshot Session Target on %s successful
-resources.snapshot.session.unlink.success=Unlink Snapshot Session Target on %s successful
+resources.snapshot.session.relink.success=Task created to relink Snapshot Session Target on %s. Please check task list for an updated status.
+resources.snapshot.session.unlink.success=Task created to unlink Snapshot Session Target on %s. Please check task list for an updated status.
 
 resources.filesystems=File Systems
 resources.filesystems.error=File System Not Found

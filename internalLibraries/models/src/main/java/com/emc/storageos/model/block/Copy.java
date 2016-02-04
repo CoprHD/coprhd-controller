@@ -152,9 +152,9 @@ public class Copy implements Serializable {
 
     /**
      * User provided any point-in-time for copy operations.
-     * Valid value: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
+     * Valid value: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in milliseconds.
      *
-     * @return
+     * @return the UTC date/time "yyyy-MM-dd_HH:mm:ss" or milliseconds.
      */
     @XmlElement(name = "pointInTime", required = false)
     public String getPointInTime() {

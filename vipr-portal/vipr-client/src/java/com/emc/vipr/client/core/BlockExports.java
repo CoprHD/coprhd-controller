@@ -166,10 +166,24 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
         return search().byHost(hostId).filter(new ExportFilter(projectId, varrayId)).run();
     }
 
+    /**
+     * Finds any exports (HOST, CLUSTER or EXCLUSIVE) that contain the host.
+     * 
+     * @param hostId
+     *            the ID of the host.
+     * @return the list of export groups associated with the host.
+     */
     public List<ExportGroupRestRep> findContainingHost(URI hostId) {
         return search().byHost(hostId).run();
     }
 
+    /**
+     * Finds the exports associated with a cluster.
+     * 
+     * @param clusterId
+     *            the ID of the cluster.
+     * @return the list of export groups associated with the cluster.
+     */
     public List<ExportGroupRestRep> findContainingCluster(URI clusterId) {
         return search().byCluster(clusterId).run();
     }

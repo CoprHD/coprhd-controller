@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+import com.emc.storageos.model.property.PropertyConstants;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
@@ -1836,7 +1837,7 @@ public class CoordinatorClientExt {
     public boolean isActiveSiteZKLeaderAlive(Site activeSite) {
         // Check alive coordinatorsvc on active site
         Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();
-        if (nodeAddrList.isEmpty()) {
+        if (!activeSite.isUsingIpv4()) {
             nodeAddrList = activeSite.getHostIPv6AddressMap().values();
         }
 
@@ -1867,7 +1868,7 @@ public class CoordinatorClientExt {
 
     public boolean isActiveSiteStable(Site activeSite) {
         // check if cluster state is stable
-        String vip = activeSite.getVip();
+        String vip = activeSite.getVipEndPoint();
         int port = _svc.getEndpoint().getPort();
         String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, vip, port);
         try {

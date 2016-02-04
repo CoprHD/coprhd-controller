@@ -1110,7 +1110,7 @@ public abstract class VdcOpHandler {
             return;
         }
         // all syssvc shares same port
-        String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVip(), service.getEndpoint().getPort());
+        String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVipEndPoint(), service.getEndpoint().getPort());
         SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
         log.info("Powering off site {}", siteId);
         while(drUtil.isSiteUp(siteId)) {

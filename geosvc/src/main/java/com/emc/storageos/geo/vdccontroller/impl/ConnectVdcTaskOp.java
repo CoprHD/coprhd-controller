@@ -27,6 +27,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.geomodel.VdcNatCheckParam;
 import com.emc.storageos.geomodel.VdcNatCheckResponse;
+import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.VdcUtil;
@@ -422,7 +423,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
             
             vdcConfig.setId(vdc.getId());
             vdcConfig.setShortId(vdc.getShortId());
-            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty()) {
+            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty() && activeSite.isUsingIpv4()) {
                 HashMap<String, String> ipv4AddrMap = new HashMap<String, String>(activeSite.getHostIPv4AddressMap());
                 vdcConfig.setHostIPv4AddressesMap(ipv4AddrMap);
             } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getHostIPv6AddressMap().isEmpty()) {

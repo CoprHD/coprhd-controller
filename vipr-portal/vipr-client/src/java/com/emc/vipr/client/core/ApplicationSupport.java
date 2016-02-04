@@ -100,11 +100,23 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
         return response.getVolumes();
     }
 
+    /**
+     * Get hosts associated with an application
+     * 
+     * @param id application id
+     * @return list of hosts
+     */
     public List<NamedRelatedResourceRep> getHosts(URI id) {
         HostList response = client.get(HostList.class, APP_SUPPORT_GET_HOSTS_APP_URL, id);
         return response.getHosts();
     }
 
+    /**
+     * Get clusters associated with an application
+     * 
+     * @param id application id
+     * @return list of clusters
+     */
     public List<NamedRelatedResourceRep> getClusters(URI id) {
         ClusterList response = client.get(ClusterList.class, APP_SUPPORT_GET_CLUSTERS_APP_URL, id);
         return response.getClusters();

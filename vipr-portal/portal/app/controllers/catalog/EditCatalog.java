@@ -22,15 +22,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.xml.bind.Element;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import models.ACLs;
 import models.BreadCrumb;
 import models.RoleAssignmentType;
 
 import org.apache.commons.beanutils.BeanComparator;
 import org.apache.commons.lang.StringUtils;
+import org.jdom.Document;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import play.Logger;
 import play.Play;
@@ -443,7 +450,7 @@ public class EditCatalog extends ServiceCatalog {
 		JSONArray characters = (JSONArray) json.get("categories");
 
 		JSONObject jsonPart = (JSONObject) parser
-				.parse("{\"services\":[{\"baseService\":\"CreateBucket\",\"image\":\"icon_create_bucket.png\"},{\"baseService\":\"EditBucket\",\"image\":\"icon_edit_bucket.png\"},{\"baseService\":\"DeleteBucket\",\"image\":\"icon_delete_bucket.png\"}],\"title\":\"CustomService\",\"description\":\"mydesc\",\"image\":\"icon_data_services.png\"}");
+				.parse("{\"services\":"+ readServicesFromXML() +",\"title\":\"CustomService\",\"description\":\"mydesc\",\"image\":\"icon_data_services.png\"}");
 		if (characters.get(characters.size() - 1).toString()
 				.contains("CustomService")) {
 			characters.remove(characters.size() - 1);
@@ -464,6 +471,42 @@ public class EditCatalog extends ServiceCatalog {
 		edit();
 	}
 
+	private static String readServicesFromXML() {
+		String outputServices = "";
+		try {
+			File XmlFile = new File("../CustomService/CustomServices.xml");
+			DocumentBuilderFactory dbFactory = DocumentBuilderFactory
+					.newInstance();
+			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+			org.w3c.dom.Document doc = dBuilder.parse(XmlFile);
+			doc.getDocumentElement().normalize();
+
+			NodeList nList = doc.getElementsByTagName("customservice");
+
+			StringBuffer outputService = new StringBuffer();
+
+			for (int temp = 0; temp < nList.getLength(); temp++) {
+				Node nNode = nList.item(temp);
+				if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+					org.w3c.dom.Element eElement = (org.w3c.dom.Element) nNode;
+					outputService.append("{\"baseService\":\""
+							+ eElement.getElementsByTagName("taskname").item(0)
+									.getTextContent()
+							+ "\",\"image\":\""
+							+ eElement.getElementsByTagName("img").item(0)
+									.getTextContent() + "\"},");
+				}
+			}
+			String removeCommaOutputService = outputService.toString()
+					.substring(0, outputService.toString().lastIndexOf(','));
+			outputServices = "[" + removeCommaOutputService + "]";
+
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+		return outputServices;
+	}
+	
 	public static void createService(String parentId, String fromId) {
 		CatalogCategoryRestRep parentCategory = CatalogCategoryUtils
 				.getCatalogCategory(uri(parentId));

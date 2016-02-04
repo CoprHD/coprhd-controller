@@ -151,12 +151,8 @@ angular.module("services", []).directive({
                     "help-text": item.description,
                     "error": item.error
                 };
-                
-                var tag = angular.element(type).attr(tagAttrs);
-                
                 var container = angular.element(attrs.controlOnly ? "<table-field-column>" : "<control-group>")
-                                       .attr(containerAttr).append(tag);                                    
-                                       
+                                       .attr(containerAttr).append(tag);
                 element.append($compile(container)(scope));
             }
         }

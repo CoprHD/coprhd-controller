@@ -999,6 +999,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         unManagedVolumeInformation.put(SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString(),
                 volumeClusters);
 
+        StringSet accesses = new StringSet();
+        accesses.add(Volume.VolumeAccessState.READWRITE.name());
+        unManagedVolumeInformation.put(SupportedVolumeInformation.ACCESS.toString(), accesses);
+
         // set supported vpool list
         StringSet matchedVPools = new StringSet();
         String highAvailability = info.getLocality().equals(LOCAL) ?

@@ -81,4 +81,11 @@ $(document).ready(function() {
     
     #{Form.saveCancel cancelHref:@cancel() /}
   #{/form}
+
+
+  #{DataTable.header titleKey:'MobilityGroups.resources.title'/}
+  #{DataTable.table id:'mobilityGroupResources', 
+                      dataTable:mobilityGroupResourcesTable,
+                      source:@mobilityGroupResourcesTable(mobilityGroupForm.id)}
+  #{/DataTable.table}
 </div>

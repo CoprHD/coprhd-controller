@@ -7,6 +7,7 @@ package controllers.arrays;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static controllers.Common.flashException;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -22,14 +23,18 @@ import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
+import util.BourneUtil;
 import util.MessagesUtils;
 import util.MobilityGroupSupportUtil;
 import util.StringOption;
+import util.datatable.DataTable;
 import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.vipr.client.exceptions.ViPRException;
+import com.google.common.collect.Lists;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -68,12 +73,19 @@ public class MobilityGroups extends ViprResourceController {
         list();
     }
 
+    public static void mobilityGroupResourcesTable(String id) {
+        List<controllers.arrays.MobilityGroups.MobilityGroupResourcesTable.MobilityGroupResource> mobilityGroupResourcesTable = new MobilityGroupResourcesTable(
+                uri(id)).fetch();
+        renderJSON(DataTablesSupport.createJSON(mobilityGroupResourcesTable, params));
+    }
+
     public static void edit(String id) {
         VolumeGroupRestRep mobilityGroup = MobilityGroupSupportUtil.getMobilityGroup(id);
         if (mobilityGroup != null) {
             MobilityGroupForm mobilityGroupForm = new MobilityGroupForm(mobilityGroup);
             renderArgs.put("migrationTypes", StringOption.options(MIGRATION_TYPE));
             renderArgs.put("migrationGroupBys", StringOption.options(GROUP_BY, false));
+            renderArgs.put("mobilityGroupResourcesTable", new MobilityGroupResourcesTable(mobilityGroup.getId()));
             edit(mobilityGroupForm);
         }
         else {
@@ -187,4 +199,47 @@ public class MobilityGroups extends ViprResourceController {
             }
         }
     }
+
+    public static class MobilityGroupResourcesTable extends DataTable {
+        private final URI id;
+
+        public MobilityGroupResourcesTable(URI id) {
+            this.id = id;
+            addColumn("name");
+            addColumn("id");
+            sortAll();
+            setDefaultSort("name", "asc");
+        }
+
+        public List<MobilityGroupResource> fetch() {
+
+            List<MobilityGroupResource> resources = Lists.newArrayList();
+            List<NamedRelatedResourceRep> relatedReps = Lists.newArrayList();
+
+            VolumeGroupRestRep mobilityGroup = BourneUtil.getViprClient().application().get(id);
+            if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
+                relatedReps = BourneUtil.getViprClient().application().getVolumes(id);
+            } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
+                relatedReps = BourneUtil.getViprClient().application().getHosts(id);
+            } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
+                relatedReps = BourneUtil.getViprClient().application().getClusters(id);
+            }
+
+            for (NamedRelatedResourceRep resource : relatedReps) {
+                resources.add(new MobilityGroupResource(resource.getId(), resource.getName()));
+            }
+            return resources;
+        }
+
+        public static class MobilityGroupResource {
+            public URI id;
+            public String name;
+
+            public MobilityGroupResource(URI uri, String name) {
+                this.id = uri;
+                this.name = name;
+            }
+        }
+    }
+
 }

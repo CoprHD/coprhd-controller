@@ -69,7 +69,7 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
             IngestionRequestContext requestContext) {
         Collection<BlockObject> blockObjects = VolumeIngestionUtil.findBlockObjectsInCg(cg, requestContext);
 
-        // Filter out vplex volumes
+        // Filter in vplex volumes
         Iterator<BlockObject> blockObjectItr = blockObjects.iterator();
         while (blockObjectItr.hasNext()) {
             BlockObject blockObject = blockObjectItr.next();

@@ -83,7 +83,7 @@
         },
         
         aclPermission:{
-          type:"assetType.vipr.ObjectACLPermission",
+          type:"assetType.vipr.objectACLPermission",
           initialValue:"READ"
         }
       }

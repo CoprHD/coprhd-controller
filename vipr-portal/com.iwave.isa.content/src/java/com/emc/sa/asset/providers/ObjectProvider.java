@@ -122,7 +122,7 @@ public class ObjectProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(api(ctx).objectVpools().getAll());
     }
     
-    @Asset("ObjectACLPermission")
+    @Asset("objectACLPermission")
     public List<AssetOption> getObjectACLPermissions(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
         for (BucketACLUpdateParams.BucketPermissions perm : BucketACLUpdateParams.BucketPermissions.values()) {

@@ -195,10 +195,21 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         List<DataObject> updatesToUpdateList = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
         if (null != umcg && null != umcg.getManagedVolumesMap() && !umcg.getManagedVolumesMap().isEmpty()) {
             for (Entry<String, String> managedVolumeEntry : umcg.getManagedVolumesMap().entrySet()) {
-                BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(managedVolumeEntry.getValue()));
-                blockObject.setConsistencyGroup(cg.getId());
-                blockObject.setReplicationGroupInstance(cg.getLabel());
-                updatesToUpdateList.add(blockObject);
+                // Check volumes in the current context.
+                BlockObject blockObject = requestContext.getProcessedBlockObject(managedVolumeEntry.getKey());
+                if (null == blockObject) {
+                    _logger.info("Volume is not in the current context. querying from db: {}", managedVolumeEntry.getKey());
+                    blockObject = BlockObject.fetch(_dbClient, URI.create(managedVolumeEntry.getValue()));
+                }
+                if (null != blockObject) {
+                    _logger.debug("Found BlockObject for {} and decorating cg information.", managedVolumeEntry.getValue());
+                    blockObject.setConsistencyGroup(cg.getId());
+                    blockObject.setReplicationGroupInstance(cg.getLabel());
+                    updatesToUpdateList.add(blockObject);
+                } else {
+                    _logger.warn("Volume {} is not yet ingested. Hence skipping", managedVolumeEntry.getKey());
+                    continue;
+                }
             }
         }
         volume.setConsistencyGroup(cg.getId());

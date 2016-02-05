@@ -791,12 +791,22 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         if (null != vplexBackendVolumes && !vplexBackendVolumes.isEmpty()) {
             List<DataObject> updatesToUpdateList = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
             for (String vplexBackendVolumeNativeGuid : vplexBackendVolumes) {
-                String volumeNativeGuid = vplexBackendVolumeNativeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
-                        VolumeIngestionUtil.VOLUME);
-                BlockObject blockObject = VolumeIngestionUtil.getBlockObject(volumeNativeGuid, _dbClient);
-                blockObject.setConsistencyGroup(cg.getId());
-                blockObject.setReplicationGroupInstance(cg.getLabel());
-                updatesToUpdateList.add(blockObject);
+                // Check volumes in the current context.
+                BlockObject blockObject = requestContext.getProcessedBlockObject(vplexBackendVolumeNativeGuid);
+                if (null == blockObject) {
+                    _logger.info("Volume is not in the current context. querying from db: {}", vplexBackendVolumeNativeGuid);
+                    blockObject = BlockObject.fetch(_dbClient, URI.create(vplexBackendVolumeNativeGuid));
+                }
+                if (null != blockObject) {
+                    _logger.debug("Found BlockObject for {} and decorating cg information.", vplexBackendVolumeNativeGuid);
+                    blockObject.setConsistencyGroup(cg.getId());
+                    blockObject.setReplicationGroupInstance(cg.getLabel());
+                    updatesToUpdateList.add(blockObject);
+                } else {
+                    _logger.warn("Volume {} is not yet ingested. Hence skipping", vplexBackendVolumeNativeGuid);
+                    continue;
+                }
+
             }
         }
         volume.setConsistencyGroup(cg.getId());

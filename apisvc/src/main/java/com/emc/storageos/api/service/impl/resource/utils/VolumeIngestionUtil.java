@@ -3088,7 +3088,6 @@ public class VolumeIngestionUtil {
                 if (pset.getProject() == null) {
                     pset.setProject(volume.getProject().getURI());
                 }
-
             }
         }
 

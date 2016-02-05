@@ -662,12 +662,8 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error activating Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                String taskId = UUID.randomUUID().toString();
-                Operation op = new Operation();
-                op.setResourceType(ResourceOperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY);
-                op.error(e);
-                _dbClient.createTaskOpStatus(Volume.class, fullCopy.getId(), taskId, op);
-                TaskResourceRep task = TaskMapper.toTask(fullCopy, taskId, op);
+                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
+                        ResourceOperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
         }
@@ -767,12 +763,8 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error detaching Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                String taskId = UUID.randomUUID().toString();
-                Operation op = new Operation();
-                op.setResourceType(ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
-                op.error(e);
-                _dbClient.createTaskOpStatus(Volume.class, fullCopy.getId(), taskId, op);
-                TaskResourceRep task = TaskMapper.toTask(fullCopy, taskId, op);
+                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
+                        ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
         }
@@ -873,12 +865,8 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error restoring Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                String taskId = UUID.randomUUID().toString();
-                Operation op = new Operation();
-                op.setResourceType(ResourceOperationTypeEnum.RESTORE_VOLUME_FULL_COPY);
-                op.error(e);
-                _dbClient.createTaskOpStatus(Volume.class, fullCopy.getId(), taskId, op);
-                TaskResourceRep task = TaskMapper.toTask(fullCopy, taskId, op);
+                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
+                        ResourceOperationTypeEnum.RESTORE_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
         }
@@ -979,12 +967,8 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error resynchronizing Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                String taskId = UUID.randomUUID().toString();
-                Operation op = new Operation();
-                op.setResourceType(ResourceOperationTypeEnum.RESYNCHRONIZE_VOLUME_FULL_COPY);
-                op.error(e);
-                _dbClient.createTaskOpStatus(Volume.class, fullCopy.getId(), taskId, op);
-                TaskResourceRep task = TaskMapper.toTask(fullCopy, taskId, op);
+                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
+                        ResourceOperationTypeEnum.RESYNCHRONIZE_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
         }
@@ -1058,6 +1042,22 @@ public class VolumeGroupService extends TaskResourceService {
         return srcVolume != null ? srcVolume.getConsistencyGroup() : null;
     }
 
+    /**
+     * Creates a Task on given volume with Error state
+     *
+     * @param opr the opr
+     * @param volume the volume
+     * @param sc the sc
+     * @return the failed task for volume
+     */
+    private TaskResourceRep createFailedTaskOnVolume(Volume volume, ResourceOperationTypeEnum opr, ServiceCoded sc) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = new Operation();
+        op.setResourceType(opr);
+        op.error(sc);
+        _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
+        return TaskMapper.toTask(volume, taskId, op);
+    }
     /**
      * allow replica operation only for COPY type VolumeGroup.
      * 

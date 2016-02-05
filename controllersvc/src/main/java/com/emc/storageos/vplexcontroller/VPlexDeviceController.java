@@ -5,7 +5,6 @@
 package com.emc.storageos.vplexcontroller;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
-import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkCloneConsistencyGroup;
 import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getDataObject;
 import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getVPlexAPIClient;
 import static com.google.common.collect.Collections2.transform;
@@ -121,7 +120,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;

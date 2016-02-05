@@ -1287,33 +1287,6 @@ public class ControllerUtils {
     }
 
     /**
-     * Returns true, if the clone is part of an Application, false otherwise.
-     * In addition to this, if a non-null {@link TaskCompleter} is provided the {@VolumeGroup} instance
-     * added to it.
-     *
-     * @param clone URI of the clone/fullcopy
-     * @param dbClient DbClient instance
-     * @param completer Optional TaskCompleter instance.
-     * @return true/false dependent on the clone being part of an application.
-     */
-    public static boolean checkCloneInApplication(URI cloneURI, DbClient dbClient, TaskCompleter completer) {
-        Volume clone = dbClient.queryObject(Volume.class, cloneURI);
-        URI sourceVolume = clone.getAssociatedSourceVolume();
-        Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
-                dbClient.queryObject(Volume.class, sourceVolume) : null;
-        VolumeGroup volumeGroup = (source != null)
-                ? source.getApplication(dbClient) : null;
-
-        if (volumeGroup != null) {
-            if (completer != null) {
-                completer.addVolumeGroupId(volumeGroup.getId());
-            }
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
      * 
      * @param volume

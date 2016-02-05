@@ -497,7 +497,6 @@ public class BlockFullCopyManager {
 
             TaskResourceRep task = TaskMapper.toTask(fullCopy, taskId, op);
             taskList.addTask(task);
-
             return taskList;
         }
         // Verify passed URIs for the full copy request.

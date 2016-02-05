@@ -4569,10 +4569,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_FROM_CLONE_WF_NAME, false, opId);
             _log.info("Created new restore workflow with operation id {}", opId);
-
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
-            // add CG to taskCompleter
-            boolean isCG = checkCloneConsistencyGroup(clones.get(0), _dbClient, completer);
             String waitFor = null;
 
             Volume clone = _dbClient.queryObject(Volume.class, clones.get(0));
@@ -4601,6 +4597,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         splitRollbackMethod, null);
             }
 
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+            // add CG to taskCompleter
+            boolean isCG = checkCloneConsistencyGroup(clones.get(0), _dbClient, completer);
             String description = String.format("Restore volume from %s", clones.get(0));
             String previousStep = workflow.createStep(RESTORE_FROM_CLONE_GROUP, description, waitFor,
                     storage, getDeviceType(storage), BlockDeviceController.class,

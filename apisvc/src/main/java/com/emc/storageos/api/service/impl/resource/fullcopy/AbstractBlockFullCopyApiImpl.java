@@ -5,14 +5,11 @@
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
-import static com.google.common.collect.Collections2.transform;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,7 +36,6 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -481,66 +477,6 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             vArrayCache.put(vArrayURI, vArray);
         }
         return vArrayCache.get(vArrayURI);
-    }
-
-    /**
-     * Gets the full copy from source object for the given full copy set name.
-     *
-     * @param fcSourceObject the fc source object
-     * @param fullCopySetName the full copy set name
-     * @param fullCopySetVolumes the full copy set volumes
-     * @return the full copy for set or null if not found
-     */
-    protected URI getFullCopyForSet(Volume fcSourceObject, String fullCopySetName, List<Volume> fullCopySetVolumes) {
-        /**
-         * Case-1: If Full copies are created for an array group within Application, we set clone Set name (setName = <NAME>)
-         * --> see which full copy for a Volume has this Set name
-         * Case-2: New full copy added for new volume added to Application
-         * -a. SetName in new full copy should be set if other full copies in the set has it
-         * --> see which full copy for a Volume has this Set name
-         * -b. If SetName information is not available
-         * --> check by label, Full copies label belonging to same set start with SetName
-         * Case-3: Existing full copies are moved into application (setName = null)
-         * --> return any full copy which does not have setName set on it
-         */
-        URI fullCopyURI = null;
-        StringSet fullCopies = fcSourceObject.getFullCopies();
-        if (fullCopies != null) {
-            if (NullColumnValueGetter.isNotNullValue(fullCopySetName)) {
-                Collection<URI> fullCopySetURIs = transform(fullCopySetVolumes, fctnDataObjectToID());
-                for (String fc : fullCopies) {
-                    URI fcURI = URI.create(fc);
-                    if (fullCopySetURIs.contains(fcURI)) {
-                        fullCopyURI = fcURI;
-                        break;
-                    }
-                }
-                // full copy not found yet. check by label. Full copies label start with SetName
-                if (fullCopyURI == null) {
-                    for (String fc : fullCopies) {
-                        URI fcURI = URI.create(fc);
-                        Volume fcObject = _dbClient.queryObject(Volume.class, fcURI);
-                        if (fcObject.getLabel().startsWith(fullCopySetName)) {
-                            fullCopyURI =  fcURI;
-                            break;
-                        }
-                    }
-                }
-            } else {
-                // return full copy which does not have setName set on it
-                for (String fc : fullCopies) {
-                    URI fcURI = URI.create(fc);
-                    Volume fcObject = _dbClient.queryObject(Volume.class, fcURI);
-                    if (!NullColumnValueGetter.isNotNullValue(fcObject.getFullCopySetName())) {
-                        fullCopyURI = fcURI;
-                        break;
-                    }
-                }
-            }
-        }
-        s_logger.info("Full Copy {} found for Volume {} and Set {}.",
-                fullCopyURI, fcSourceObject.getLabel(), fullCopySetName);
-        return fullCopyURI;
     }
 
     /**

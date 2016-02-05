@@ -40,8 +40,8 @@ public class ScaleIOStorageDriverTest {
 
     String SYS_NATIVE_ID_A = "6ee6d94e5a3517b8";
     String SYS_NATIVE_ID_B = "3eb4708d2b3ea454";
-    String SYS_NATIVE_ID_C = "3b51b60900000000";
-    String POOL_ID_C = "962fef9b00000000";
+    String SYS_NATIVE_ID_C = "1c865e9900000000";
+    String POOL_ID_C = "45306a6b00000000";
     String IP_ADDRESS_A = "10.193.17.97";
     String IP_ADDRESS_B = "10.193.17.88";
 

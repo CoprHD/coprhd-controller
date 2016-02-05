@@ -1397,7 +1397,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     	List<String> initiators = getComputeResourceInitiators(exportGroup);       
         
         //Fetch all the existing masks for the compute resource
-    	Map<String, Set<URI>> crMaskingViews = getDevice().findExportMasks(storage, initiators, true);   
+    	Map<String, Set<URI>> crMaskingViews = getDevice().findExportMasks(storage, initiators, false);   
     	Map<URI, ExportMask> crMaskingViewMap = new HashMap<URI, ExportMask>();
     	    	
     	for (Entry<String, Set<URI>> crMaskingViewEntry : crMaskingViews.entrySet()) {

@@ -1344,7 +1344,7 @@ public class VolumeGroupService extends TaskResourceService {
             
             Set<URI> varrayIds = new HashSet<URI>();
             if (group.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())){
-                List<Volume> volumes = getVolumeGroupVolumes(dbClient, group);
+                List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(dbClient, group);
                 if (volumes != null && !volumes.isEmpty()) {
                     for (Volume volume : volumes) {
                         varrayIds.add(volume.getVirtualArray());

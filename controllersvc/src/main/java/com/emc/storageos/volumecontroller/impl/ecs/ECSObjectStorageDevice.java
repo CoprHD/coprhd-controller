@@ -127,6 +127,14 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         }
     }
 
+    @Override
+    public void doAddUserSecretKey(StorageSystem storageObj, String userId) throws ControllerException {
+        ECSApi ecsApi = getAPI(storageObj);
+        
+//        try {
+//            UserSecretKeysGetCommandResult secretKeyRes = ecsApi.addUserSecretKeys(userId);
+
+    }
 
     @Override
     public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota,

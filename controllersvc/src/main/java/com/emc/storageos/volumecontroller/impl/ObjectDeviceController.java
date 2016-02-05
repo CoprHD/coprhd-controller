@@ -124,6 +124,12 @@ public class ObjectDeviceController implements ObjectController {
     }
 
     @Override
+    public void addUserSecretKey(URI storage, String userId) throws InternalException {
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+        getDevice(storageObj.getSystemType()).doAddUserSecretKey(storageObj, userId);
+    }
+
+    @Override
     public void deleteBucket(URI storage, URI bucket, String task) throws ControllerException {
         _log.info("ObjectDeviceController:deleteBucket Bucket URI : {} ", bucket);
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
@@ -253,6 +259,5 @@ public class ObjectDeviceController implements ObjectController {
 
         return acls;
     }
-
     
 }

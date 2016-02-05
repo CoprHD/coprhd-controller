@@ -1344,7 +1344,7 @@ public class StorageSystemService extends TaskResourceService {
             String user_key = tagSet.toString();
             String key = null;
             if (user_key.contains(user)) {
-                int keyStart = user_key.indexOf(user)+user.length();
+                int keyStart = user_key.lastIndexOf(user+":")+user.length();
                 String user_keyNext = user_key.substring(keyStart+1);
                 int keyEnd = user_keyNext.length()-1;
                 if (user_keyNext.contains(",")) {
@@ -1358,10 +1358,12 @@ public class StorageSystemService extends TaskResourceService {
                 return to;
             }
         }
+        //For non-existing users return blank
         ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();
         to.setKey1("");
         return to;     
     }
+    
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

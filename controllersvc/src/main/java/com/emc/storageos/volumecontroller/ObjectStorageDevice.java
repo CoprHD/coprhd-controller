@@ -69,4 +69,6 @@ public interface ObjectStorageDevice {
     BiosCommandResult doDeleteBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException;
     
     void doGetUserSecretKey(StorageSystem storageObj, String userId) throws ControllerException;
+    
+    void doAddUserSecretKey(StorageSystem storageObj, String userId) throws ControllerException;
 }

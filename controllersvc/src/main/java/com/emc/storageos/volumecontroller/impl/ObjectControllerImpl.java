@@ -157,5 +157,12 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
         execOb("getUserSecretKey", storage, userId);
         _log.debug("ObjectControllerImpl:getUserSecretKey end");        
     }
+
+    @Override
+    public void addUserSecretKey(URI storage, String userId) throws InternalException {
+        _log.info("ObjectControllerImpl:addUserSecretKey start");
+        execOb("addUserSecretKey", storage, userId);
+        _log.debug("ObjectControllerImpl:adUserSecretKey end");        
+    }
        
 }

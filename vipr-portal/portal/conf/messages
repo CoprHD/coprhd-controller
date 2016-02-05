@@ -3334,6 +3334,7 @@ resources.snapshot.deleteConfirm=Are you sure you want to delete this snapshot?
 resources.snapshot.notFound=Snapshot Not Found
 resources.snapshot.deactivate=Task created to deactivate snapshot with id:[%s]. Please check the task list for an updated status.
 
+resources.snapshot.session.unknown=Unknown Snapshot Session with ID '%s'
 resources.snapshot.session.name=Name
 resources.snapshot.sessions=Block Snapshot Sessions
 resources.snapshot.session.deleteLink=Delete Snapshot Session

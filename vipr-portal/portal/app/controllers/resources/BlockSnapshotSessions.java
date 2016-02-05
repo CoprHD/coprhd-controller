@@ -40,12 +40,11 @@ import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class BlockSnapshotSessions extends ResourceController {
-    private static final String UNKNOWN = "resources.snapshot.unknown";
+    private static final String UNKNOWN = "resources.snapshot.session.unknown";
+    private static final String INVALID_SESSION = "resources.volumes.error";
 
-    // Update for Session
     private static BlockSnapshotSessionsDataTable blockSnapshotsDataTable = new BlockSnapshotSessionsDataTable();
 
-    // Update for Session
     public static void snapshotSessions(String projectId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockSnapshotsDataTable);
@@ -53,7 +52,6 @@ public class BlockSnapshotSessions extends ResourceController {
         render();
     }
 
-    // Update for Session
     public static void snapshotSessionsJson(String projectId) {
         if (StringUtils.isNotBlank(projectId)) {
             setActiveProjectId(projectId);
@@ -64,13 +62,18 @@ public class BlockSnapshotSessions extends ResourceController {
         renderJSON(DataTablesSupport.createJSON(blockSnapshots, params));
     }
 
-
     public static void snapshotSessionDetails(String snapshotSessionId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
 
-        AffectedResources.BlockSnapshotSessionDetails blockSnapshotSession = new AffectedResources.BlockSnapshotSessionDetails(uri(snapshotSessionId));
+        AffectedResources.BlockSnapshotSessionDetails blockSnapshotSession = new AffectedResources.BlockSnapshotSessionDetails(
+                uri(snapshotSessionId));
         if (blockSnapshotSession.blockSnapshotSession == null) {
             flash.error(MessagesUtils.get(UNKNOWN, snapshotSessionId));
+            snapshotSessions(null);
+        }
+
+        if (blockSnapshotSession.volume == null) {
+            flash.error(MessagesUtils.get(INVALID_SESSION, snapshotSessionId));
             snapshotSessions(null);
         }
 
@@ -78,18 +81,19 @@ public class BlockSnapshotSessions extends ResourceController {
 
         List<Task<BlockSnapshotSessionRestRep>> tasks = null;
         if (blockSnapshotSession.blockSnapshotSession != null) {
-            Tasks<BlockSnapshotSessionRestRep> tasksResponse = client.blockSnapshotSessions().getTasks(blockSnapshotSession.blockSnapshotSession.getId());
+            Tasks<BlockSnapshotSessionRestRep> tasksResponse = client.blockSnapshotSessions().getTasks(
+                    blockSnapshotSession.blockSnapshotSession.getId());
             tasks = tasksResponse.getTasks();
         }
 
         render(blockSnapshotSession, volume, tasks);
     }
-    
+
     public static void snapshotSessionLinkTarget(String snapshotSessionId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
         List<RelatedResourceRep> targets = client.blockSnapshotSessions().get(uri(snapshotSessionId)).getLinkedTarget();
         List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByRefs(targets);
-        render(snapshots,snapshotSessionId);
+        render(snapshots, snapshotSessionId);
     }
 
     @FlashException(referrer = { "snapshotSessionDetails" })
@@ -102,7 +106,7 @@ public class BlockSnapshotSessions extends ResourceController {
         }
         snapshotSessionDetails(snapshotId);
     }
-    
+
     @FlashException(value = "snapshotSessions")
     public static void delete(@As(",") String[] ids) {
         delete(uris(ids));
@@ -118,16 +122,16 @@ public class BlockSnapshotSessions extends ResourceController {
         }
         snapshotSessions(null);
     }
-    
-    public static void relinkTarget(String snapshotId, String snapshotSessionId ) {
+
+    public static void relinkTarget(String snapshotId, String snapshotSessionId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
         SnapshotSessionRelinkTargetsParam relinkTargetsParam = new SnapshotSessionRelinkTargetsParam();
         relinkTargetsParam.setLinkedTargetIds(uris(snapshotId));
-        Task<BlockSnapshotSessionRestRep> task  = client.blockSnapshotSessions().relinkTargets(uri(snapshotSessionId), relinkTargetsParam);
+        Task<BlockSnapshotSessionRestRep> task = client.blockSnapshotSessions().relinkTargets(uri(snapshotSessionId), relinkTargetsParam);
         flash.put("info", MessagesUtils.get("resources.snapshot.session.relink.success", snapshotId));
         snapshotSessionDetails(snapshotSessionId);
     }
-    
+
     public static void unlinkTarget(String snapshotId, String snapshotSessionId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
         SnapshotSessionUnlinkTargetsParam unlinkTarget = new SnapshotSessionUnlinkTargetsParam();

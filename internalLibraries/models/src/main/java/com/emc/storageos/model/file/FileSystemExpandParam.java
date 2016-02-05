@@ -24,7 +24,6 @@ public class FileSystemExpandParam {
      * Supported size formats: TB, GB, MB, B. Default format is size in bytes.
      * Examples: 100GB, 614400000, 614400000B
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "new_size")
     public String getNewSize() {
@@ -34,5 +33,5 @@ public class FileSystemExpandParam {
     public void setNewSize(String newSize) {
         this.newSize = newSize;
     }
-
+    
 }

@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -44,6 +45,7 @@ import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
 import com.emc.storageos.model.host.TenantResourceRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Lists;
@@ -221,6 +223,11 @@ public class DbObjectMapper {
         if (from.getNamespace() != null) {
             to.setNamespace(from.getNamespace());
         }
+        
+        if (from.getNamespaceStorage() != null) {
+            to.setNamespaceStorage(from.getNamespaceStorage());
+        }
+        
         return to;
     }
 
@@ -262,14 +269,15 @@ public class DbObjectMapper {
         to.setSystemDefault(from.getSystemDefault());
         return to;
     }
-    
+
     /**
      * Map an VolumeGroup to VolumeGroupRestRep
+     * 
      * @param from VolumeGroup
      * @return VolumeGroupRestRep
      */
     public static VolumeGroupRestRep map(VolumeGroup from) {
-        if ( from == null) {
+        if (from == null) {
             return null;
         }
         VolumeGroupRestRep rep = new VolumeGroupRestRep();
@@ -281,4 +289,36 @@ public class DbObjectMapper {
         rep.setMigrationType(from.getMigrationType());
         return rep;
     }
+
+    public static SchedulePolicyRestRep map(SchedulePolicy from) {
+        if (from == null) {
+            return null;
+        }
+        SchedulePolicyRestRep to = new SchedulePolicyRestRep();
+        if (from.getTenantOrg() != null) {
+            to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenantOrg().getURI()));
+        }
+        to.setPolicyId(from.getId());
+        to.setPolicyType(from.getPolicyType());
+        to.setPolicyName(from.getPolicyName());
+        if (from.getScheduleFrequency() != null) {
+            to.setScheduleFrequency(from.getScheduleFrequency());
+            to.setScheduleRepeat(from.getScheduleRepeat());
+            to.setScheduleTime(from.getScheduleTime());
+        }
+        if (from.getScheduleDayOfWeek() != null) {
+            to.setScheduleDayOfWeek(from.getScheduleDayOfWeek());
+        }
+        if (from.getScheduleDayOfMonth() != null) {
+            to.setScheduleDayOfMonth(from.getScheduleDayOfMonth());
+        }
+        if (from.getSnapshotExpireType() != null) {
+            to.setSnapshotExpireType(from.getSnapshotExpireType());
+        }
+        if (from.getSnapshotExpireTime() != null) {
+            to.setSnapshotExpireTime(from.getSnapshotExpireTime());
+        }
+        return to;
+    }
+
 }

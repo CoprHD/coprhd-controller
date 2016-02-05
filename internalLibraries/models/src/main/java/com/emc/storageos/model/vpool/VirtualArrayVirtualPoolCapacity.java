@@ -35,7 +35,6 @@ public class VirtualArrayVirtualPoolCapacity {
     /**
      * A list of virtual pool capacity response instances.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray_vpool_capacity")
     public List<VirtualPoolCapacity> getVpoolCapacities() {

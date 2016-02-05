@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to initialize the assigned virtual arrays field for the
@@ -28,7 +29,7 @@ public class NetworkAssignedVirtualArraysInitializer extends BaseCustomMigration
 
     @SuppressWarnings("deprecation")
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         DbClient dbClient = getDbClient();
         List<URI> networkURIs = dbClient.queryByType(Network.class, false);
         Iterator<Network> networksIter = dbClient.queryIterativeObjects(Network.class, networkURIs);

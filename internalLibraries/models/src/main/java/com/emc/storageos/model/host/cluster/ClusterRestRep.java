@@ -39,7 +39,6 @@ public class ClusterRestRep extends TenantResourceRestRep {
     /**
      * The project to which the cluster is assigned.
      * 
-     * @valid none
      * @return the project to which the cluster is assigned.
      */
     @XmlElement(name = "project")
@@ -54,7 +53,6 @@ public class ClusterRestRep extends TenantResourceRestRep {
     /**
      * The name of the data center in vCenter where this cluster resides
      * 
-     * @valid none
      * @return the name of the data center in vCenter where this cluster resides
      */
     @XmlElement(name = "vcenter_data_center")

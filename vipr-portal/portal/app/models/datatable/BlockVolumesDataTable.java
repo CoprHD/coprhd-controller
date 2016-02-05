@@ -28,7 +28,7 @@ public class BlockVolumesDataTable extends DataTable {
 
     public BlockVolumesDataTable() {
         addColumn("name").setRenderFunction("renderLink");
-        addColumn("capacity");
+        addColumn("capacity").setRenderFunction("render.sizeInGb");
         addColumn("varray");
         addColumn("vpool");
         addColumn("protocols");
@@ -56,8 +56,12 @@ public class BlockVolumesDataTable extends DataTable {
         else if(applicationId!=null) {
             List<VolumeRestRep> result = Lists.newArrayList();
             List<NamedRelatedResourceRep> groups = AppSupportUtil.getVolumesByApplication(applicationId.toString());
+            List<NamedRelatedResourceRep> clones = AppSupportUtil.getFullCopiesByApplication(applicationId.toString());
             for (NamedRelatedResourceRep volume : groups) {
                 result.add(BourneUtil.getViprClient().blockVolumes().get((volume.getId())));
+            }
+            for (NamedRelatedResourceRep clone:clones) {
+                result.add(BourneUtil.getViprClient().blockVolumes().get((clone.getId())));
             }
             for (VolumeRestRep volumeApplication : result) {
                 results.add(new Volume(volumeApplication, virtualArrays, virtualPools));

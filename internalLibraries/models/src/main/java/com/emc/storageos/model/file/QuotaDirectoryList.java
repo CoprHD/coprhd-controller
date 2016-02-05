@@ -30,7 +30,6 @@ public class QuotaDirectoryList {
     /**
      * The list of virtual pool response instances.
      * 
-     * @valid none
      */
     @XmlElement(name = "quota_dir")
     @JsonProperty("quota_dir")
@@ -49,7 +48,7 @@ public class QuotaDirectoryList {
      * Determines whether or not the list contains a quota resource with the
      * passed id.
      * 
-     * @param quotaid The quota id to check.
+     * @param quotaId The quota id to check.
      * 
      * @return true if the list contains a quota resource with the passed id,
      *         false otherwise.

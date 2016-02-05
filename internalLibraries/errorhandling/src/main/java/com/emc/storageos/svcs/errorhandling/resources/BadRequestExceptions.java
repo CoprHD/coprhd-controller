@@ -53,7 +53,7 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException snapshotsNotSupportedForVNXVRG();
+    public BadRequestException snapshotsNotSupportedForNonRealVNXRG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllowedWhenVNXCGHasSnapshot();
@@ -124,7 +124,7 @@ public interface BadRequestExceptions {
             final String unsupportedFor);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException changeToVirtualPoolNotSupported(final URI vpoolId,
+    public BadRequestException changeToVirtualPoolNotSupported(final String vpool,
             final String notSuppReasonBuff);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -305,6 +305,24 @@ public interface BadRequestExceptions {
     public BadRequestException invalidACLTypeMultipleNotAllowed();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidSchedulePolicyParam(final String policyName, final String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidSchedulePolicyType(final String policyType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidScheduleSnapshotExpireType(final String expireType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidScheduleSnapshotExpireValue(int expireValue, int minValue, int maxValue);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToUpdateSchedulePolicy(final String policyName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToDeleteSchedulePolicy(final String policyName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidAutoTieringPolicy();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -380,6 +398,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
     public BadRequestException invalidParameterAboveMaximum(String string, long size, long minimum,
+            String unit);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
+    public BadRequestException invalidParameterAboveMaximum(String string, double size, double minimum,
             String unit);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1127,6 +1149,12 @@ public interface BadRequestExceptions {
     public BadRequestException invalidReplicationRPOType(String rpoType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidReplicationRPOValue();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidReplicationRPOValueForType(String rpovalue, String units);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidVirtualPoolFromVirtualArray(URI vpool, URI varray);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1359,6 +1387,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException unsupportedSystemType(final String systemType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException unsupportedParameterForStorageSystem(final String propertyName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException updateVirtualPoolOnlyAllowedToChange();
@@ -2703,7 +2734,7 @@ public interface BadRequestExceptions {
     public BadRequestException volumeCantBeAddedToVolumeGroup(final String volumeName, final String reason);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException removeVolumeFromCGNotAllowed(final String volumeName, final String applicationName);
+    public BadRequestException volumeCantBeRemovedFromVolumeGroup(final String volumeName, final String reason);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotNotAllowedWhenBackendVolumeDoestHavingCG();
@@ -2817,4 +2848,31 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException associatedPolicyTenantMismatch(URI fp, URI fs);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotFindAssociatedPolicy(URI fp);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException duplicatePolicyAssociation(URI fp);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidVirtualPoolForVirtualPoolChange(String label, String reason);
+
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noMatchingStoragePoolsForFileSystemVpoolChange(final URI varrayId,
+            final URI vPoolId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToCreateMirrorCopies(final URI fsUri, String reason);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToDeleteMirrorCopies(final URI fsUri, String reason);
+
+    @DeclareServiceCode(ServiceCode.API_INVALID_ACTION_FOR_LOCAL_MIRRORS)
+    public BadRequestException actionNotApplicableForLocalMirrors(final String actionName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException expandMirrorFileSupportedOnlyOnSource(URI id);
 }

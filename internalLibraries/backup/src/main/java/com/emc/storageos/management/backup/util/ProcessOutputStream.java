@@ -2,7 +2,7 @@
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.systemservices.impl.util;
+package com.emc.storageos.management.backup.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

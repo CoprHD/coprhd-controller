@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl;
 
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -62,7 +64,6 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEvent;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
@@ -1323,15 +1324,21 @@ public class ControllerUtils {
     }
 
     /**
-     * Check whether the given volume is in VNX virtual replication group
+     * Check whether the given volume is not in a real replication group
      *
      * @param volume
      * @param dbClient
      * @return
      */
-    public static boolean isInVNXVirtualRG(Volume volume, DbClient dbClient) {
-        return volume != null && ControllerUtils.isVnxVolume(volume, dbClient) &&
-                StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG);
+    public static boolean isNotInRealVNXRG(Volume volume, DbClient dbClient) {
+        if (volume != null && volume.isInCG() && ControllerUtils.isVnxVolume(volume, dbClient)) {
+            BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+            if (consistencyGroup != null && !consistencyGroup.getInactive()) {
+                return !consistencyGroup.getArrayConsistency();
+            }
+        }
+
+        return false;
     }
 
     public static String generateReplicationGroupName(StorageSystem storage, URI cgUri, String replicationGroupName, DbClient dbClient) {
@@ -1364,10 +1371,6 @@ public class ControllerUtils {
         }
 
         return groupName;
-    }
-
-    public static String generateVirtualReplicationGroupName(String groupName) {
-        return SmisConstants.VNX_VIRTUAL_RG + groupName;
     }
 
     /**
@@ -1489,24 +1492,14 @@ public class ControllerUtils {
 
     /**
      * Get volume group's volumes.
-     * skip internal volumes
      *
      * @param volumeGroup
      * @return The list of volumes in volume group
      */
     public static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
-        List<Volume> result = new ArrayList<Volume>();
-        final List<Volume> volumes = CustomQueryUtility
+        return CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Volume vol : volumes) {
-            // return only visible volumes. i.e skip backend or internal volumes
-            // TODO check with others
-            if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                result.add(vol);
-            }
-        }
-        return result;
     }
 
     /**
@@ -1554,7 +1547,7 @@ public class ControllerUtils {
      * @param volumes volumes in the same replication group
      * @return boolean
      */
-    public static boolean replicationGroupHasNoOtherVolume(DbClient dbClient, String rpName, List<URI> volumes, URI storage) {
+    public static boolean replicationGroupHasNoOtherVolume(DbClient dbClient, String rpName, Collection<URI> volumes, URI storage) {
         List<Volume> rpVolumes = CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(rpName));
@@ -1570,4 +1563,49 @@ public class ControllerUtils {
         return rpVolumeCount == volumes.size();
     }
 
+
+    /**
+     * gets the application volume group for this CG and group name if it exists
+     *
+     * @param dbClient
+     *            dbClient to query objects from db
+     * @param consistencyGroup
+     *            consistency group object
+     * @param cgNameOnArray
+     *            cg name to check
+     * @return a VolumeGroup object or null if this CG and group name are not associated with an application
+     */
+    public static VolumeGroup getApplicationForCG(DbClient dbClient, BlockConsistencyGroup consistencyGroup, String cgNameOnArray) {
+        VolumeGroup volumeGroup = null;
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), uriQueryResultList);
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume.getReplicationGroupInstance() != null && volume.getReplicationGroupInstance().equals(cgNameOnArray)) {
+                volumeGroup = volume.getApplication(dbClient);
+                if (volumeGroup != null) {
+                    break;
+                }
+            }
+        }
+        return volumeGroup;
+    }
+
+    public static boolean checkIfVolumeHasSnapshot(Volume volume, DbClient dbClient) {
+        URIQueryResultList list = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
+                list);
+        Iterator<URI> it = list.iterator();
+        while (it.hasNext()) {
+            URI snapshotID = it.next();
+            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
+            if (snapshot != null & !snapshot.getInactive()) {
+                s_logger.debug("Volume {} has snapshot", volume.getId());
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

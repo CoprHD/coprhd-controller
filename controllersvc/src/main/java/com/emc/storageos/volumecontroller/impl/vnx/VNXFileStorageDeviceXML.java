@@ -921,7 +921,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             if (null == vnxComm) {
                 throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
             }
-            result = vnxComm.doRestoreSnapshot(storage, args.getFsName(), args.getSnapNativeId(), args.getSnapshotName());
+            result = vnxComm.doRestoreSnapshot(storage, args.getFsNativeId(), args.getFsName(), args.getSnapNativeId(),
+                    args.getSnapshotName());
             _log.info("restoreSnapshot call result : {}", result.isCommandSuccess());
 
         } catch (NumberFormatException ne) {
@@ -1384,6 +1385,18 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }

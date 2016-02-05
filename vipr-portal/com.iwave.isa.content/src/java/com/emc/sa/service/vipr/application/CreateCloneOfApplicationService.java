@@ -26,21 +26,17 @@ public class CreateCloneOfApplicationService extends ViPRService {
 
     @Param(ServiceParams.COUNT)
     protected Integer count;
-    
-    protected URI volumeId;
 
     @Override
     public void execute() throws Exception {
-        Tasks<? extends DataObjectRestRep> tasks = execute(new CreateCloneOfApplication(applicationId, volumeId, name, count));
+        Tasks<? extends DataObjectRestRep> tasks = execute(new CreateCloneOfApplication(applicationId, name, count));
         addAffectedResources(tasks);
     }
     
     @Override
     public void precheck() throws Exception {
         NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
-        if (volList != null && volList.getVolumes() != null && !volList.getVolumes().isEmpty()) {
-            volumeId = volList.getVolumes().iterator().next().getId();
-        } else {
+        if (volList == null || volList.getVolumes() == null || volList.getVolumes().isEmpty()) {
             ExecutionUtils.fail("failTask.CreateCloneOfApplicationService.volumeId.precheck", new Object[] {});
         }
     }

@@ -88,7 +88,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         if (firstVolumeDescriptor != null) {
             Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
             if (!(volume != null && volume.isInCG() &&
-                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isInVNXVirtualRG(volume, _dbClient)))) {
+                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isNotInRealVNXRG(volume, _dbClient)))) {
                 return waitFor;
             }
             log.info("CG URI:{}", volume.getConsistencyGroup());
@@ -298,8 +298,16 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         log.info("START create clone step");
         URI storage = storageSystem.getId();
         List<URI> cloneList = new ArrayList<URI>();
+
+        // For clones of new volumes added to Application, get the clone set name and set it
+        String cloneSetName = null;
+        List<Volume> fullCopies = ControllerUtils.getFullCopiesPartOfReplicationGroup(repGroupName, _dbClient);
+        if (!fullCopies.isEmpty()) {
+            cloneSetName = fullCopies.get(0).getFullCopySetName();
+        }
+
         for (Volume volume : volumes) {
-            Volume clone = prepareClone(volume, repGroupName);
+            Volume clone = prepareClone(volume, repGroupName, cloneSetName);
             cloneList.add(clone.getId());
         }
 
@@ -346,7 +354,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return snapshot;
     }
 
-    private Volume prepareClone(Volume volume, String repGroupName) {
+    private Volume prepareClone(Volume volume, String repGroupName, String cloneSetName) {
         // create clone for the source
         Volume clone = new Volume();
         clone.setId(URIUtil.createId(Volume.class));
@@ -365,9 +373,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         clone.setReplicationGroupInstance(repGroupName);
 
         // For clones of new volumes added to Application, get the clone set name and set it
-        if (volume.getApplication(_dbClient) != null) {
-            List<Volume> fullCopies = ControllerUtils.getFullCopiesPartOfReplicationGroup(repGroupName, _dbClient);
-            String cloneSetName = (fullCopies.iterator().next()).getFullCopySetName();
+        if (cloneSetName != null) {
             clone.setFullCopySetName(cloneSetName);
         }
 
@@ -592,39 +598,37 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         if (firstVolumeDescriptor != null) {
             Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
             if (!(volume != null && volume.isInCG() &&
-                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isInVNXVirtualRG(volume, _dbClient)))) {
+                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isNotInRealVNXRG(volume, _dbClient)))) {
                 return waitFor;
             }
         }
 
-        // Get the consistency groups. If no consistency group for source
-        // volumes,
-        // just return. Get CGs from all descriptors.
-        // Assume volumes could be in different CGs
-        Map<URI, Set<URI>> cgToVolumes = new HashMap<URI, Set<URI>>();
+        // Sort the volumes by its system, and replicationGroup
+        Map<String, Set<URI>> rgVolsMap = new HashMap<String, Set<URI>>();
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             URI volumeURI = volumeDescriptor.getVolumeURI();
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-            if (volume != null && volume.isInCG()) {
-                URI cg = volume.getConsistencyGroup();
-                Set<URI> cgVolumeList = cgToVolumes.get(cg);
-                if (cgVolumeList == null) {
-                    cgVolumeList = new HashSet<URI>();
-                    cgToVolumes.put(cg, cgVolumeList);
+            if (volume != null) {
+                String replicationGroup = volume.getReplicationGroupInstance(); 
+                if (NullColumnValueGetter.isNotNullValue(replicationGroup)) {
+                    URI storage = volume.getStorageController();
+                    String key = storage.toString() + replicationGroup;
+                    Set<URI> rgVolumeList = rgVolsMap.get(key);
+                    if (rgVolumeList == null) {
+                        rgVolumeList = new HashSet<URI>();
+                        rgVolsMap.put(key, rgVolumeList);
+                    }
+                    rgVolumeList.add(volumeURI);
                 }
-
-                cgVolumeList.add(volumeURI);
             }
         }
 
-        if (cgToVolumes.isEmpty()) {
+        if (rgVolsMap.isEmpty()) {
             return waitFor;
         }
 
-        Set<Entry<URI, Set<URI>>> entrySet = cgToVolumes.entrySet();
-        for (Entry<URI, Set<URI>> entry : entrySet) {
+        for (Set<URI> volumeURIs : rgVolsMap.values()) {
             // find member volumes in the group
-            Set<URI> volumeURIs = entry.getValue();
             List<Volume> volumeList = new ArrayList<Volume>();
             Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumeURIs);
             while (volumeIterator.hasNext()) {
@@ -634,23 +638,27 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 }
             }
 
-            boolean isRemoveAllFromCG = ControllerUtils.cgHasNoOtherVolume(_dbClient, entry.getKey(), volumeList);
-            log.info("isRemoveAllFromCG {}", isRemoveAllFromCG);
+            Volume firstVol = volumeList.get(0);
+            String rpName = firstVol.getReplicationGroupInstance();
+            URI storage = firstVol.getStorageController();
+
+            boolean isRemoveAllFromRG = ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, rpName, volumeURIs, storage);
+            log.info("isRemoveAllFromRG {}", isRemoveAllFromRG);
             if (checkIfCGHasCloneReplica(volumeList)) {
                 log.info("Adding clone steps for deleting volumes");
-                waitFor = detachCloneSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromCG);
+                waitFor = detachCloneSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromRG);
             }
 
             if (checkIfCGHasMirrorReplica(volumeList)) {
                 log.info("Adding mirror steps for deleting volumes");
                 // delete mirrors for the to be deleted volumes
-                waitFor = deleteMirrorSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromCG);
+                waitFor = deleteMirrorSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromRG);
             }
 
             if (checkIfCGHasSnapshotReplica(volumeList)) {
                 log.info("Adding snapshot steps for deleting volumes");
                 // delete snapshots for the to be deleted volumes
-                waitFor = deleteSnapshotSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromCG);
+                waitFor = deleteSnapshotSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromRG);
             }
         }
 
@@ -1009,7 +1017,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         if (!volumes.isEmpty()) {
             Volume firstVolume = volumes.get(0);
             if (!(firstVolume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient)) &&
-                  !ControllerUtils.isInVNXVirtualRG(firstVolume, _dbClient)) {
+                  !ControllerUtils.isNotInRealVNXRG(firstVolume, _dbClient)) {
                 return waitFor;
             }
 

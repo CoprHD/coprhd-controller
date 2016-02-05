@@ -39,7 +39,6 @@ public class VolumeGroupUpdateParam {
         /**
          * A block volume URI
          * 
-         * @valid none
          */
         @XmlElement(name = "volume")
         public List<URI> getVolumes() {
@@ -78,7 +77,6 @@ public class VolumeGroupUpdateParam {
     /**
      * List of volumes to add to the volume group
      * 
-     * @valid none
      */
     @XmlElement(name = "add_volumes")
     public VolumeGroupVolumeList getAddVolumesList() {
@@ -92,7 +90,6 @@ public class VolumeGroupUpdateParam {
     /**
      * List of volumes to remove from the volume group
      * 
-     * @valid none
      */
     @XmlElement(name = "remove_volumes")
     public VolumeGroupVolumeList getRemoveVolumesList() {
@@ -148,9 +145,10 @@ public class VolumeGroupUpdateParam {
 
     /**
      * volume group unique name
-     * 
-     * @valid minimum of 2 characters
-     * @valid maximum of 128 characters
+     *
+     * Valid values: 
+     *     minimum of 2 characters
+     *     maximum of 128 characters
      */
     @XmlElement
     @Length(min = 2, max = 128)

@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
@@ -714,6 +715,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getBlockSnapshotSessionBySessionInstance(String sessionInstance) {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("sessionInstance"), sessionInstance);
+        }
+
+        public static AlternateIdConstraint getObjectNamespaceByNativeGuidConstraint(String nativeGuid) {
+            DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
     }
 }

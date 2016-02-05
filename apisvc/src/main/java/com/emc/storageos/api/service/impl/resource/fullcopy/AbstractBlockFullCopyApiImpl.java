@@ -284,7 +284,8 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
                 if (fullCopyURI == null) {
                     s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
-                            fullCopySetName, fcSourceObject.getLabel());
+                            fcSourceObject.getLabel(), fullCopySetName);
+                    volumeGroupVolumes.removeAll(volumeList); // to avoid CG Task creation
                     continue;
                 }
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
@@ -316,6 +317,11 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                         taskId, op);
                 taskList.addTask(task);
             }
+            // clear Flag set for Partial request
+            if (fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                fullCopyVolume.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+                _dbClient.updateObject(fullCopyVolume);
+            }
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
                     fullCopyVolume.getStorageController());
@@ -341,20 +347,20 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                         taskId, taskOpStatus);
                 taskList.addTask(task);
             }
-        }
 
-        // if Volume is part of VolumeGroup
-        if (volumeGroup != null && !partialRequest) {
-            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
-                    ResourceOperationTypeEnum.ACTIVATE_VOLUME_GROUP_FULL_COPY);
-            taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
+            // if Volume is part of VolumeGroup
+            if (volumeGroup != null && !partialRequest) {
+                Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
+                        ResourceOperationTypeEnum.ACTIVATE_VOLUME_GROUP_FULL_COPY);
+                taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
 
-            // create tasks for all CGs involved
-            addConsistencyGroupTasks(volumeGroupVolumes, taskList, taskId,
-                    ResourceOperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_FULL_COPY);
-        } else {
-            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
-                    ResourceOperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_FULL_COPY);
+                // create tasks for all CGs involved
+                addConsistencyGroupTasks(volumeGroupVolumes, taskList, taskId,
+                        ResourceOperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_FULL_COPY);
+            } else {
+                addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                        ResourceOperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_FULL_COPY);
+            }
         }
 
         return taskList;
@@ -398,7 +404,8 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
                 if (fullCopyURI == null) {
                     s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
-                            fullCopySetName, fcSourceObject.getLabel());
+                            fcSourceObject.getLabel(), fullCopySetName);
+                    volumeGroupVolumes.removeAll(volumeList); // to avoid CG Task creation
                     continue;
                 }
                 Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
@@ -441,6 +448,11 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                     _dbClient.persistObject(volume);
                 }
             }
+            // clear Flag set for Partial request
+            if (fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                fullCopyVolume.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+                _dbClient.updateObject(fullCopyVolume);
+            }
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
                     fullCopyVolume.getStorageController());
@@ -466,20 +478,20 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                         taskId, taskOpStatus);
                 taskList.addTask(task);
             }
-        }
 
-        // if Volume is part of VolumeGroup
-        if (volumeGroup != null && !partialRequest) {
-            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
-                    ResourceOperationTypeEnum.DETACH_VOLUME_GROUP_FULL_COPY);
-            taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
+            // if Volume is part of VolumeGroup
+            if (volumeGroup != null && !partialRequest) {
+                Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
+                        ResourceOperationTypeEnum.DETACH_VOLUME_GROUP_FULL_COPY);
+                taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
 
-            // create tasks for all CGs involved
-            addConsistencyGroupTasks(volumeGroupVolumes, taskList, taskId,
-                    ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
-        } else {
-            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
-                    ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+                // create tasks for all CGs involved
+                addConsistencyGroupTasks(volumeGroupVolumes, taskList, taskId,
+                        ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+            } else {
+                addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                        ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+            }
         }
 
         return taskList;
@@ -529,7 +541,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
          * Delete volume api call will delete all its related replicas for VMAX using SMI 8.0.3.
          * Hence vmax using 8.0.3 can be delete even if volume has replicas.
          */
-        if (volume.isInCG() && BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+        if (volume.isInCG() && BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient)) {
             return true;
         }
 

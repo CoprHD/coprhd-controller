@@ -22,7 +22,6 @@ import java.util.Set;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +31,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -227,12 +227,14 @@ public class BlockServiceUtils {
      * 
      * Fox XtremIO creating/deleting volume in/from CG with existing CG is supported.
      * 
-     * For VNX, creating/deleting volume in/from CG with existing group relationship is supported for virtual replication group
+     * For VNX, creating/deleting volume in/from CG with existing group relationship is supported if volume is not part of an array replication group
      *
+     * @param cg BlockConsistencyGroup
      * @param volume Volume part of the CG
+     * @dbClient DbClient
      * @return true if the operation is supported.
      */
-    public static boolean checkCGVolumeCanBeAddedOrRemoved(Volume volume, DbClient dbClient) {
+    public static boolean checkCGVolumeCanBeAddedOrRemoved(BlockConsistencyGroup cg, Volume volume, DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         if (storage != null) {
             if (storage.deviceIsType(Type.vmax)) {
@@ -240,8 +242,13 @@ public class BlockServiceUtils {
                     return true;
                 }
             } else if (storage.deviceIsType(Type.vnxblock)) {
-                if (StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG)) {
-                    return true;
+                BlockConsistencyGroup consistencyGroup = cg;
+                if (consistencyGroup == null) {
+                    consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+                }
+
+                if (consistencyGroup != null && !consistencyGroup.getInactive()) {
+                    return !consistencyGroup.getArrayConsistency();
                 }
             } else if (storage.deviceIsType(Type.xtremio)) {
                 return true;
@@ -322,27 +329,6 @@ public class BlockServiceUtils {
             }
         }
         return activeMirrorURIs;
-    }
-
-    /**
-     * Get volume group's volumes.
-     * skip internal volumes
-     *
-     * @param volumeGroup
-     * @return The list of volumes in volume group
-     */
-    public static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
-        List<Volume> result = new ArrayList<Volume>();
-        final List<Volume> volumes = CustomQueryUtility
-                .queryActiveResourcesByConstraint(dbClient, Volume.class,
-                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Volume vol : volumes) {
-            // return only visible volumes. i.e skip backend or internal volumes
-            if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                result.add(vol);
-            }
-        }
-        return result;
     }
 
     /**

@@ -20,6 +20,13 @@ function updateVolumes(oSettings) {
     	$('#volumesCountBadge').text(count);
     }
   }
+  
+function updateClones(oSettings) {
+	var count = $('#cloneApplication table').dataTable({ bRetrieve: true }).fnGetData().length;
+	if (count!= '0') {
+		$('#cloneCountBadge').text(count);
+	}
+}
 </script>
 <div class="clear"></div>
 
@@ -41,5 +48,15 @@ function updateVolumes(oSettings) {
         #{/collapse}
       
     </div>
+  </div>
+  <div class="col-sm-12">
+  #{collapse 'resources.volume.fullcopies',badge:'cloneCountBadge', noPanelBody: true}          
+          #{DataTable.table id:'cloneApplication',
+                  dataTable:cloneTable,
+                  source:@applicationCloneJson(application.id),                  
+                  cssClass:'editableRows',
+                  options:['iDisplayLength': '5', 'fnDrawCallback': 'updateClones']/} 
+          
+#{/collapse}
   </div>
 #{/if}

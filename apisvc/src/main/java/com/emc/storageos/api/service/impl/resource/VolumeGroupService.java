@@ -8,11 +8,12 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -43,7 +44,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -273,7 +273,7 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
         VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
         NamedVolumesList result = new NamedVolumesList();
-        List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
         for (Volume volume : volumes) {
             result.getVolumes().add(toNamedRelatedResource(volume));
         }
@@ -357,7 +357,7 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
         VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
 
-        if (!getVolumeGroupVolumes(_dbClient, volumeGroup).isEmpty()) {
+        if (!ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup).isEmpty()) {
             // application could not be deleted if it has volumes
             throw APIException.badRequests.volumeGroupWithVolumesCantBeDeleted(volumeGroup.getLabel());
         }
@@ -1458,7 +1458,7 @@ public class VolumeGroupService extends TaskResourceService {
 
             Set<String> groupNames = new HashSet<String>();
             if (group.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())) {
-                List<Volume> volumes = getVolumeGroupVolumes(dbClient, group);
+                List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(dbClient, group);
                 if (volumes != null && !volumes.isEmpty()) {
                     BlockServiceApi serviceAPI = getBlockService(dbClient, volumes.iterator().next());
                     groupNames.addAll(serviceAPI.getReplicationGroupNames(group));
@@ -1470,8 +1470,7 @@ public class VolumeGroupService extends TaskResourceService {
         /**
          * Validate the volumes to be added to the volume group.
          * For role COPY:
-         * All volumes should be the same type (block, or RP, or VPLEX, or SRDF),
-         * If the volumes are not in a consistency group, it should specify a CG that the volumes to be add to
+         * All volumes should be the same type (block, or RP, or VPLEX, or SRDF), and should be in consistency groups
          * 
          * @param volumes
          * @return The validated volumes
@@ -1481,7 +1480,6 @@ public class VolumeGroupService extends TaskResourceService {
             String addedVolType = null;
             String firstVolLabel = null;
             List<URI> addVolList = param.getAddVolumesList().getVolumes();
-            URI paramCG = param.getAddVolumesList().getConsistencyGroup();
             List<Volume> volumes = new ArrayList<Volume>();
             for (URI volUri : addVolList) {
                 ArgValidator.checkFieldUriType(volUri, Volume.class, "id");
@@ -1489,44 +1487,20 @@ public class VolumeGroupService extends TaskResourceService {
                 if (volume == null || volume.getInactive()) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(), "the volume has been deleted");
                 }
+
                 URI cgUri = volume.getConsistencyGroup();
                 if (NullColumnValueGetter.isNullURI(cgUri)) {
-                    if (paramCG == null) {
-                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                                "consistency group is not specified for the volumes not in a consistency group");
-                    }
-                    ArgValidator.checkFieldUriType(paramCG, BlockConsistencyGroup.class, "consistency_group");
-
-                    BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, paramCG);
-                    if (cg == null || cg.getInactive()) {
-                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                                "consistency group does not exist or has been deleted");
-                    }
-
-                    // this volume will be added to a CG as it's put in the application
-                    // check to make sure there are no other volumes in that CG that are either not in a
-                    // application or in a different application
-                    URIQueryResultList uriQueryResultList = new URIQueryResultList();
-                    dbClient.queryByConstraint(getVolumesByConsistencyGroup(paramCG), uriQueryResultList);
-                    Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
-                    while (volumeIterator.hasNext()) {
-                        Volume otherVolInCg = volumeIterator.next();
-
-                        // skip if the volume is on the add list
-                        if (addVolList.contains(otherVolInCg.getId())) {
-                            continue;
-                        }
-
-                        // fail if the volume is not a member of this application
-                        if (otherVolInCg.getVolumeGroupIds() == null
-                                || !otherVolInCg.getVolumeGroupIds().contains(volumeGroup.getId().toString())) {
-                            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                                    "Another volume in the same consistency group is not part of the application");
-                        }
-                    }
-
-                    impactedCGs.add(paramCG);
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                            "Volume is not in a consistency group");
                 }
+
+                // check mirrors
+                StringSet mirrors = volume.getMirrors();
+                if (mirrors != null && !mirrors.isEmpty()) {
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                            "Volume has mirror");
+                }
+
                 URI systemUri = volume.getStorageController();
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
                 String type = system.getSystemType();
@@ -1557,7 +1531,7 @@ public class VolumeGroupService extends TaskResourceService {
                         } else {
                             if (vg.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())) {
                                 throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                                        String.format("The volume is a member of another application: %s", vg.getLabel()));
+                                        String.format("The volume is already a member of an application: %s", vg.getLabel()));
                             }
                         }
                     }
@@ -1570,9 +1544,10 @@ public class VolumeGroupService extends TaskResourceService {
                     }
                 }
                 volumes.add(volume);
+                impactedCGs.add(volume.getConsistencyGroup());
             }
             // Check if the to-add volumes are the same volume type as existing volumes in the application
-            List<Volume> existingVols = getVolumeGroupVolumes(dbClient, volumeGroup);
+            List<Volume> existingVols = ControllerUtils.getVolumeGroupVolumes(dbClient, volumeGroup);
             if (!existingVols.isEmpty()) {
                 Volume firstVolume = existingVols.get(0);
                 URI systemUri = firstVolume.getStorageController();
@@ -1587,37 +1562,76 @@ public class VolumeGroupService extends TaskResourceService {
 
             // Check to make sure the replication group name is not used in a CG that is not part of an application
             // or part of another application
+            // Check to make sure to be added volumes are in the same CG if the backend volumes are in the same backend array
+            // All volumes in the same replication group should belong to the same CG.
             if (param.getAddVolumesList().getReplicationGroupName() != null) {
                 String replicationGroupName = param.getAddVolumesList().getReplicationGroupName();
                 List<Volume> volumesInReplicationGroup = CustomQueryUtility.queryActiveResourcesByConstraint(
                         dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByReplicationGroupInstance(replicationGroupName));
-
-                if (volumesInReplicationGroup != null && !volumesInReplicationGroup.isEmpty()) {
-                    for (Volume volumeInRepGrp : volumesInReplicationGroup) {
-
-                        Volume volToCheck = volumeInRepGrp;
-
-                        // if this is a vplex backing volume, get the parent virtual voume
-                        if (VPlexUtil.isVplexBackendVolume(volumeInRepGrp, dbClient)) {
-                            List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
-                                    getVolumesByAssociatedId(volumeInRepGrp.getId().toString()));
-                            if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
-                                // we expect just one parent virtual volume for each backing volume
-                                volToCheck = vplexVolumes.get(0);
+                List<URI> toAddVolumes = param.getAddVolumesList().getVolumes();
+                // Get the backend volumes not in replication group and sort them in storage system and CG
+                Map<URI, URI> backendVolSystemCGMap = new HashMap<URI, URI>();
+                for (URI volUri : toAddVolumes) {
+                    Volume volToAdd = dbClient.queryObject(Volume.class, volUri);
+                    URI cgURI = volToAdd.getConsistencyGroup();
+                    StringSet backendVols = volToAdd.getAssociatedVolumes();
+                    if (backendVols != null && !backendVols.isEmpty()) {
+                        for (String backendUri : backendVols) {
+                            Volume backendVol = dbClient.queryObject(Volume.class, URI.create(backendUri));
+                            if (backendVol != null && NullColumnValueGetter.isNullValue(backendVol.getReplicationGroupInstance())) {
+                                URI storage = backendVol.getStorageController();
+                                URI sortCG = backendVolSystemCGMap.get(storage);
+                                if (sortCG != null && !cgURI.equals(sortCG)) {
+                                    // there are at least two volumes backend volumes are from the same storage system,
+                                    // but their CGs are different, throw error
+                                    throw APIException.badRequests
+                                            .volumeCantBeAddedToVolumeGroup(volToAdd.getLabel(),
+                                                    "the volumes in the request are from different consistency group, they could not be added into the same replication group.");
+                                } else if (sortCG == null) {
+                                    backendVolSystemCGMap.put(storage, cgURI);
+                                }
                             }
                         }
+                    }
+                }
+                if (volumesInReplicationGroup != null && !volumesInReplicationGroup.isEmpty()) {
+                    for (Volume volumeInRepGrp : volumesInReplicationGroup) {
+                        URI storage = volumeInRepGrp.getStorageController();
+                        URI addingCG = backendVolSystemCGMap.get(storage);
+                        if (addingCG != null) {
+                            URI existingVolCG = volumeInRepGrp.getConsistencyGroup();
+                            if (!addingCG.equals(existingVolCG)) {
+                                throw APIException.badRequests
+                                        .volumeCantBeAddedToVolumeGroup(
+                                                firstVolLabel,
+                                                String.format(
+                                                        "the replication group %s is existing, but the volumes in the request are from different consistency group",
+                                                        replicationGroupName));
+                            }
 
-                        // check to see if the volume is part of another application or not part of an application
-                        VolumeGroup grp = volToCheck.getApplication(dbClient);
-                        if (grp == null) {
-                            throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
-                                    String.format("a volume, %s is part of the replication group %s but is not part of any application",
-                                            volToCheck.getLabel(), replicationGroupName));
-                        } else if (!grp.getId().equals(volumeGroup.getId())) {
-                            throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
-                                    String.format(
-                                            "a volume, %s is part of the replication group %s and is part of another application: %s",
-                                            volToCheck.getLabel(), replicationGroupName, grp.getLabel()));
+                            Volume volToCheck = volumeInRepGrp;
+
+                            // if this is a vplex backing volume, get the parent virtual voume
+                            if (VPlexUtil.isVplexBackendVolume(volumeInRepGrp, dbClient)) {
+                                List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
+                                        getVolumesByAssociatedId(volumeInRepGrp.getId().toString()));
+                                if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
+                                    // we expect just one parent virtual volume for each backing volume
+                                    volToCheck = vplexVolumes.get(0);
+                                }
+                            }
+
+                            // check to see if the volume is part of another application or not part of an application
+                            VolumeGroup grp = volToCheck.getApplication(dbClient);
+                            if (grp == null) {
+                                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
+                                        String.format("a volume, %s is part of the volume group %s but is not part of any application",
+                                                volToCheck.getLabel(), replicationGroupName));
+                            } else if (!grp.getId().equals(volumeGroup.getId())) {
+                                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
+                                        String.format("a volume, %s is part of the volume group %s and is part of another application: %s",
+                                                volToCheck.getLabel(), replicationGroupName, grp.getLabel()));
+                            }
                         }
                     }
                 }
@@ -1688,6 +1702,15 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         private static BlockServiceApi getBlockService(DbClient dbClient, final Volume volume) {
+            if (!isNullURI(volume.getProtectionController())
+                    && volume.checkForRp()) {
+                return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
+            }
+
+            if (Volume.checkForSRDF(dbClient, volume.getId())) {
+                return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+            }
+
             URI systemUri = volume.getStorageController();
             StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
             String type = system.getSystemType();
@@ -1695,25 +1718,6 @@ public class VolumeGroupService extends TaskResourceService {
             return getBlockServiceImpl(volType);
         }
 
-    }
-
-    /**
-     * Get volume group volumes
-     * 
-     * @param volumeGroup
-     * @return The list of volumes in volume group
-     */
-    private static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
-        List<Volume> result = new ArrayList<Volume>();
-        final List<Volume> volumes = CustomQueryUtility
-                .queryActiveResourcesByConstraint(dbClient, Volume.class,
-                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Volume vol : volumes) {
-            if (!vol.getInactive()) {
-                result.add(vol);
-            }
-        }
-        return result;
     }
 
     /**

@@ -3594,7 +3594,7 @@ recoverpoint_tests()
 		recoverpoint_ingest_setup
 
 		if [ "$RP_CDP" = "1" ] ; then
-		    recoverpoint_ingest_tes trp${rptypetag}_cdp
+		    recoverpoint_ingest_test rp${rptypetag}_cdp
 		fi
 
 		if [ "$RP_CRR" = "1" ] ; then

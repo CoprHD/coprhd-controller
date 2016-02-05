@@ -39,6 +39,7 @@ import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
+import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
 import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.ShareACL;
@@ -648,8 +649,8 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the virtual pool change configuration.
      * @return a task for monitoring the progress of the operation.
      */
-    public Tasks<FileShareRestRep> changeFileVirtualPool(VolumeVirtualPoolChangeParam input) {
-        return postTasks(input, baseUrl + "/vpool-change");
+    public Task<FileShareRestRep> changeFileVirtualPool(URI id, FileSystemVirtualPoolChangeParam input) {
+        return putTask(input, getIdUrl() + "/vpool-change", id);
     }
     
     /**

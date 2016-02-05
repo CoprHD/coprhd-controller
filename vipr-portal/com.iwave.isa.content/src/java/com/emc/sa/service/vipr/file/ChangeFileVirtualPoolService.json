@@ -7,13 +7,18 @@
       lockable: true
     },
 
+    fileSystems:{
+      type:"assetType.vipr.fileFilesystem"
+    },
+    
+    virtualPoolChangeOperation:{
+      type:"assetType.vipr.fileVirtualPoolChangeOperation",
+      lockable: true
+    },
+    
     targetVirtualPool:{
       type:"assetType.vipr.fileTargetVirtualPool",
       lockable: true
-    },
-
-    fileSystems:{
-      type:"assetType.vipr.fileCIFSFilesystem"
     }
   }
 }

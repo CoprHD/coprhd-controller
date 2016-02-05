@@ -20,11 +20,10 @@ public class ChangeFileVirtualPoolService  extends ViPRService {
     protected URI targetVirtualPool;
     
     @Param(FILESYSTEMS)
-    protected List<String> fileSystems;
+    protected String fileId;
     
     @Override
     public void execute() throws Exception {
-        Tasks<FileShareRestRep> tasks = execute(new ChangeFileVirtualPool(uris(fileSystems), targetVirtualPool));
-        addAffectedResources(tasks);
+        FileStorageUtils.changeFileVirtualPool(uri(fileId), targetVirtualPool);
     }
 }

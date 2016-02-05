@@ -23,6 +23,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.service.vipr.file.tasks.ChangeFileVirtualPool;
 import com.emc.sa.service.vipr.file.tasks.CreateFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.AssociateFilePolicyToFileSystem;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshot;
@@ -355,9 +356,14 @@ public class FileStorageUtils {
     
     
     public static void failoverFileSystem(URI fileId, URI targetId) {
-        execute(new PauseFileContinuousCopy(fileId, targetId, FileTechnologyType.LOCAL_MIRROR.name()));
-        Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, FileTechnologyType.LOCAL_MIRROR.name()));
+        //execute(new PauseFileContinuousCopy(fileId, targetId, FileTechnologyType.LOCAL_MIRROR.name()));
+        Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name()));
         addAffectedResources(tasks);
+    }
+    
+    public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool) {
+        Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool));
+        addAffectedResource(task);
     }
 
     public static URI createFileSnapshot(URI fileSystemId, String name) {

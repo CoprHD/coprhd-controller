@@ -29,6 +29,7 @@ import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -44,6 +45,8 @@ import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
+import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
@@ -400,6 +403,47 @@ public class FileProvider extends BaseAssetOptionsProvider {
 
         return Lists.newArrayList();
     }
+    
+    @Asset("fileVirtualPoolChangeOperation")
+    public List<AssetOption> getVirtualPoolchangeOperations(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (VirtualPoolChangeOperationEnum operation : VirtualPoolChangeOperationEnum.values()) {
+            options.add(newAssetOption(operation.name(), "virtualPoolChange.operation." + operation.name()));
+        }
+        return options;
+    }
+    
+    @Asset("fileTargetVirtualPool")
+    @AssetDependencies("fileFilesystem")
+    public List<AssetOption> getFileTargetVirtualPools(AssetOptionsContext ctx, URI fileId) {
+        List<AssetOption> options = Lists.newArrayList();
+        List<FileVirtualPoolRestRep> vpoolChanges = api(ctx).fileVpools().getAll();
+        
+        for (FileVirtualPoolRestRep vpool : vpoolChanges) {
+            options.add(new AssetOption(vpool.getId(), vpool.getName()));
+        }
+        
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+//    protected List<AssetOption> createFileVpoolChangeOptions(String vpoolChangeOperation, List<FileVirtualPoolRestRep> vpoolChanges) {
+//        List<AssetOption> options = Lists.newArrayList();
+//        for (VirtualPoolChangeRep vpoolChange : vpoolChanges) {
+//            if (vpoolChange.getAllowedChangeOperations() != null) {
+//                for (StringHashMapEntry allowedChangeOperation : vpoolChange.getAllowedChangeOperations()) {
+//                    String operation = allowedChangeOperation.getName();
+//                    boolean isCorrectOperation =
+//                            StringUtils.isNotBlank(operation) &&
+//                                    operation.equalsIgnoreCase(vpoolChangeOperation);
+//                    if (isCorrectOperation) {
+//                        options.add(new AssetOption(vpoolChange.getId(), vpoolChange.getName()));
+//                    }
+//                }
+//            }
+//        }
+//        return options;
+//    }
 
     private List<SmbShareResponse> listFileShares(AssetOptionsContext ctx, URI filesystem) {
         return api(ctx).fileSystems().getShares(filesystem);

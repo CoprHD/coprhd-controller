@@ -175,7 +175,6 @@ public class VolumeGroupUpdateParam {
     /**
      * List of hosts to add to the volume group
      * 
-     * @valid none
      */
     @XmlElement(name = "add_hosts")
     public List<URI> getAddHostsList() {
@@ -189,7 +188,6 @@ public class VolumeGroupUpdateParam {
     /**
      * List of hosts to remove from the volume group
      * 
-     * @valid none
      */
     @XmlElement(name = "remove_hosts")
     public List<URI> getRemoveHostsList() {
@@ -203,7 +201,6 @@ public class VolumeGroupUpdateParam {
     /**
      * List of clusters to add to the volume group
      * 
-     * @valid none
      */
     @XmlElement(name = "add_clusters")
     public List<URI> getAddClustersList() {
@@ -217,7 +214,6 @@ public class VolumeGroupUpdateParam {
     /**
      * List of clusters to remove from the volume group
      * 
-     * @valid none
      */
     @XmlElement(name = "remove_clusters")
     public List<URI> getRemoveClustersList() {

@@ -112,6 +112,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private static final AssetOption CONSISTENCY_GROUP_OPTION = newAssetOption(CONSISTENCY_GROUP_OPTION_KEY,
             "block.storage.type.consistencygroup");
 
+    // Failover option keys
+    public static final String LATEST_IMAGE_OPTION_KEY = "latest";
+    public static final String PIT_IMAGE_OPTION_KEY = "pit";
+
+    private static final AssetOption LATEST_IMAGE_OPTION = newAssetOption(LATEST_IMAGE_OPTION_KEY, "failover.image.type.latest");
+    private static final AssetOption PIT_IMAGE_OPTION = newAssetOption(PIT_IMAGE_OPTION_KEY, "failover.image.type.pit");
+
     private static final AssetOption EXCLUSIVE_STORAGE_OPTION = newAssetOption(EXCLUSIVE_STORAGE, "block.storage.type.exclusive");
     private static final AssetOption SHARED_STORAGE_OPTION = newAssetOption(SHARED_STORAGE, "block.storage.type.shared");
     private static final AssetOption RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION = newAssetOption(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE,
@@ -203,6 +210,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return Lists.newArrayList(VOLUME_OPTION, CONSISTENCY_GROUP_OPTION);
     }
 
+    @Asset("imageToAccess")
+    @AssetDependencies("protectedBlockVolume")
+    public List<AssetOption> getImageToAccess(AssetOptionsContext ctx, URI protectedBlockVolume) {
+        List<AssetOption> options = Lists.newArrayList();
+        options = Lists.newArrayList(LATEST_IMAGE_OPTION, PIT_IMAGE_OPTION);
+
+        return options;
+    }
+
     @Asset("blockStorageType")
     public List<AssetOption> getStorageTypes(AssetOptionsContext ctx) {
         return Lists.newArrayList(EXCLUSIVE_STORAGE_OPTION, SHARED_STORAGE_OPTION);
@@ -238,7 +254,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     /**
      * Get source volumes for a specific project. If the deletionType is VIPR_ONLY, create
      * a filter that only retrieves Volumes with Host Exports
-     * 
+     *
      * @param ctx
      * @param project
      * @param deletionType
@@ -477,7 +493,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of unique exports for a given volume.
-     * 
+     *
      * @param ctx
      *            the asset options context
      * @param volumeId
@@ -658,7 +674,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Returns the virtual pools for a given virtualArray (initially added for the Create Volume service)
-     * 
+     *
      * @param ctx
      * @param virtualArray
      * @return
@@ -1776,7 +1792,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      *             This should not be used, as it calls the bulk api and then individually loads the
      *             full VolumeRestRep in order to gain access to special fields on the object( HasXIO3XVolumes ).
      *             This should be viewed as a temporary patch to a problem with the bulk block volume api service.
-     * 
+     *
      * @param client
      * @param project
      * @return
@@ -2012,7 +2028,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of volume IDs associated with the given exports.
-     * 
+     *
      * @param exports
      *            the export groups.
      * @return the set of volume IDs.
@@ -2031,11 +2047,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of volume IDs for volumes in the given project that are exported to the given host/cluster
-     * 
+     *
      * @param client An instance of the ViPRCoreClient
      * @param projectId The ViPR ID of the project
      * @param hostOrClusterId The ViPR ID of the host/cluster
-     * 
+     *
      * @return The set of Volume IDs
      */
     protected static Set<URI> getExportedVolumes(ViPRCoreClient client, URI projectId, URI hostOrClusterId, URI virtualArrayId) {
@@ -2058,7 +2074,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the value of the specified tag from the given volumes.
-     * 
+     *
      * @param tagName
      *            the tag name.
      * @param volumes
@@ -2095,7 +2111,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the volume details for a collection of volumes.
-     * 
+     *
      * @param client the bourne client.
      * @param volumes the collection of volumes.
      * @return the volume details.
@@ -2114,7 +2130,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the unique set of BlockVirtualPool IDs for the given volumes.
-     * 
+     *
      * @param volumes the volumes.
      * @return the block virtual pool IDs.
      */
@@ -2128,7 +2144,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all BlockVirtualPools mapped by ID.
-     * 
+     *
      * @param client the ViPR client instance.
      * @param ids the IDs.
      * @return the mapping of ID->BlockVirtualPoolRestRep
@@ -2143,7 +2159,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all BlockVirtualPools mapped by ID.
-     * 
+     *
      * @param client the ViPR client instance.
      * @param volumes the volumes for which we need the VPool information.
      * @return the mapping of ID->BlockVirtualPoolRestRep
@@ -2161,7 +2177,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all {@link VolumeRestRep}s that are either in the target VArray or use the target VArray for protection
-     * 
+     *
      * @param client the ViPR client instance.
      * @param targetVArrayId the target VArray ID.
      * @param volumes the volumes we are concerned with. (These should be VPlex volumes)
@@ -2193,7 +2209,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Class for holding all volume detail information, currently the volume and virtual pool.
-     * 
+     *
      * @author jonnymiller
      */
     public static class VolumeDetail {
@@ -2325,7 +2341,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Add the volume and it's snapshots to the 'blockObjects' list.
-     * 
+     *
      * When the method completes the snapshots that have been added to the blockObjects list will be removed from the snapshots list.
      */
     protected static void addVolume(List<BlockObjectRestRep> blockObjects, VolumeRestRep volume, List<BlockSnapshotRestRep> snapshots) {

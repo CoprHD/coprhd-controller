@@ -223,7 +223,7 @@ public class BlockConsistencyGroupUtils {
                     StorageSystem cgSystem = dbClient.queryObject(StorageSystem.class, cgSystemUri);
                     // TODO: If we add support for new block systems, add the same in the
                     // isBlockStorageSystem
-                    if (Type.isBlockStorageSystem(Type.valueOf(cgSystem.getSystemType()))) {
+                    if (Type.isBlockStorageSystem(cgSystem.getSystemType())) {
                         localSystemUris.add(cgSystemUri);
                     }
                 }

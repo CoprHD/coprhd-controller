@@ -92,6 +92,30 @@ public interface CoordinatorClient {
             throws CoordinatorException;
 
     /**
+     * Looks up a service with clazz, name and version; tag, default tag and endpointKey (optional)
+     * If cannot find service for a tag, returns service for default tag.
+     * Binds advertised endpoint with a given interface and returns a stub object that implements this interface.
+     * Currently supported endpoint types are rmi, tbd...
+     * <p/>
+     * Default coordinator implementation may implement any load balancing scheme when multiple services of the same name and version are
+     * available. Client stub object for the same endpoint may be cached in CoordinatorClient implementation for performance.
+     * <p/>
+     * Note that liveness of endpoint is not guaranteed - any retry mechanism is a stub object implementation specific.
+     *
+     * @param clazz
+     * @param name
+     * @param version
+     * @param tag
+     * @param defaultTag
+     * @param endpointKey
+     * @param <T>
+     * @return
+     * @throws CoordinatorException
+     */
+    public <T> T locateService(Class<T> clazz, String name, String version, String tag, String defaultTag, String endpointKey)
+            throws CoordinatorException;
+
+    /**
      * Look up all services with given name, version, tag, and endpointKey
      * 
      * @param name service name

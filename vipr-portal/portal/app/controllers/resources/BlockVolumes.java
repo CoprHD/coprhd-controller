@@ -146,7 +146,7 @@ public class BlockVolumes extends ResourceController {
         if (volume.getAccessState() == null || volume.getAccessState().isEmpty()) {
             renderArgs.put("isAccessStateEmpty", "true");
         }
-        
+
         Tasks<VolumeRestRep> tasksResponse = client.blockVolumes().getTasks(volume.getId());
         List<Task<VolumeRestRep>> tasks = tasksResponse.getTasks();
         renderArgs.put("tasks", tasks);
@@ -205,7 +205,7 @@ public class BlockVolumes extends ResourceController {
         List<NamedRelatedResourceRep> refs = client.blockSnapshots().listByVolume(uri(volumeId));
 
         List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByRefs(refs);
-        
+
         render(snapshots);
     }
     

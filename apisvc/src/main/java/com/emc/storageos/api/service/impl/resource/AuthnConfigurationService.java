@@ -38,11 +38,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.keystone.restapi.errorhandling.KeystoneApiException;
 import com.emc.storageos.keystone.restapi.model.response.*;
+import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
-import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.model.tenant.TenantCreateParam;
 import com.emc.storageos.model.tenant.UserMappingAttributeParam;
 import com.emc.storageos.model.tenant.UserMappingParam;
@@ -95,13 +94,16 @@ public class AuthnConfigurationService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(AuthnConfigurationService.class);
 
     private static String FEATURE_NAME_LDAP_GROUP_SUPPORT = "Group support for LDAP Authentication Provider";
-    private static String OPENSTACK_DEFAULT_REGION = "RegionOne";
-    private static final String OPENSTACK_CINDER_NAME = "cinderv2";
-    private static final String COPRHD_PORT = ":8776/v2/%(tenant_id)s";
+
+    private static final String COPRHD_URL_V2 = ":8776/v2/%(tenant_id)s";
+    private static final String COPRHD_URL_V1 = ":8776/v1/%(tenant_id)s";
     private static final String HTTP = "http://";
     private static final String PROJECT_NAME = "adminProject";
     private static final String TENANT_NAME = "OpenStack admin";
-    private static final String OPENSTACK_TENANT_ID = "tenant_id";
+
+    private static final String USERNAME = "username";
+    private static final String TENANTNAME = "tenantname";
+
 
     @Autowired
     private TenantsService _tenantsService;
@@ -240,13 +242,16 @@ public class AuthnConfigurationService extends TaggedResource {
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
         persistProfileAndNotifyChange(provider, true);
 
-        if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)
-                && provider.getAutoRegisterOpenStackProjects()) {
-            registerCoprhdInKeystone(provider);
-        }
-
         auditOp(OperationTypeEnum.CREATE_AUTHPROVIDER, true, null,
                 provider.toString(), provider.getId().toString());
+
+        // We have to create tenants and projects after the creation of AuthProvider.
+        if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
+            // If the checkbox is checked, then register CoprHD.
+            if(provider.getAutoRegisterOpenStackProjects()){
+                registerCoprhdInKeystone(provider);
+            }
+        }
 
         // TODO:
         // recordTenantEvent(RecordableEventManager.EventType.ProfiletCreated,
@@ -262,87 +267,123 @@ public class AuthnConfigurationService extends TaggedResource {
      * @param provider AuthnProvider
      */
     private void registerCoprhdInKeystone(AuthnProvider provider){
-        _log.info("START - register CoprHD in Keystone");
+        _log.debug("START - register CoprHD in Keystone");
 
-        String managerDN = provider.getManagerDN();
-        URI authUri = retrieveUriFromServerUrls(provider.getServerUrls());
-
-        String username = managerDN.split(",")[0].split("=")[1];
-        String tenantName = managerDN.split(",")[1].split("=")[1];
-
-        // Get Keystone API Client.
-        KeystoneApiClient keystoneApi = (KeystoneApiClient) _keystoneApiFactory.getRESTClient(
-                authUri, username, provider.getManagerPassword());
-        keystoneApi.setTenantName(tenantName);
-        // Get Keystone endpoints from Keystone API.
-        EndpointResponse endpoints = keystoneApi.getKeystoneEndpoints();
-        // Get Keystone services from Keystone API.
-        ServiceResponse services = keystoneApi.getKeystoneServices();
+        // Create a new KeystoneAPI.
+        KeystoneApiClient keystoneApi = getKeystoneApi(provider);
         // Find Id of cinderv2 service.
-        String cinderServiceId = retrieveCinderv2ServiceId(services);
-        // Find endpoint to delete.
-        EndpointV2 endpointToDelete = retrieveEndpointId(endpoints, cinderServiceId);
-        // Do not execute delete call when endpoint does not exist.
-        if(endpointToDelete != null){
-            // Override default region name.
-            OPENSTACK_DEFAULT_REGION = endpointToDelete.getRegion();
-            // Delete endpoint using Keystone API.
-            keystoneApi.deleteKeystoneEndpoint(endpointToDelete.getId());
-        }
-        // Prepare new endpoint.
-        EndpointV2 newEndpoint = prepareNewCinderv2Endpoint(OPENSTACK_DEFAULT_REGION, cinderServiceId);
-        // Create a new endpoint pointing to CoprHD using Keystone API.
-        keystoneApi.createKeystoneEndpoint(newEndpoint);
+        String cinderv2ServiceId = KeystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
+        // Find Id of cinder service.
+        String cinderServiceId = KeystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
+        // Delete old endpoint for cinderv2 service.
+        KeystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderv2ServiceId);
+        // Delete old endpoint for cinder service.
+        KeystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderServiceId);
+        // Prepare new endpoint for cinderv2 service.
+        EndpointV2 newEndpointV2 = prepareNewCinderEndpoint(KeystoneUtils.OPENSTACK_DEFAULT_REGION, cinderv2ServiceId, true);
+        // Prepare new endpoint for cinder service.
+        EndpointV2 newEndpointV1 = prepareNewCinderEndpoint(KeystoneUtils.OPENSTACK_DEFAULT_REGION, cinderServiceId, false);
+        // Create a new endpoint pointing to CoprHD for cinderv2 using Keystone API.
+        keystoneApi.createKeystoneEndpoint(newEndpointV2);
+        // Create a new endpoint pointing to CoprHD for cinder using Keystone API.
+        keystoneApi.createKeystoneEndpoint(newEndpointV1);
+        // Get Tenant name.
+        StringMap map = getUsernameAndTenant(provider);
+        String tenantName = map.get(TENANTNAME);
         // Retrieve tenant from OpenStack via Keystone API.
         TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
-        TenantV2 tenant = retrieveTenant(tenantResponse, tenantName);
-        if (tenant == null) {
-            _log.info("Tenant is null");
-            throw BadRequestException.badRequests.unableToFindTenant(URI.create("TODO"));
-        } /*else if(){
-             TODO: check if tenant is admin
-        }*/
+        TenantV2 tenant = KeystoneUtils.retrieveTenant(tenantResponse, tenantName);
+
+        // TODO: check if tenant is admin (for now every tenant in OS is an admin)
 
         // Create mapping rules
         List<UserMappingParam> userMappings = new ArrayList<>();
-        List<String> values = new ArrayList<>();;
+        List<String> values = new ArrayList<>();
         values.add(tenant.getId());
 
         List<UserMappingAttributeParam> attributes = new ArrayList<>();
-        attributes.add(new UserMappingAttributeParam(OPENSTACK_TENANT_ID, values));
+        attributes.add(new UserMappingAttributeParam(KeystoneUtils.OPENSTACK_TENANT_ID, values));
 
         // TODO: check how to get the first domain from StringSet
         userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
 
         TenantCreateParam param = new TenantCreateParam(TENANT_NAME, userMappings);
         // Create a tenant.
-        TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(),param);
+        TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
 
         // Create a project.
         ProjectParam projectParam = new ProjectParam(PROJECT_NAME);
         _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
 
-        _log.info("END - register CoprHD in Keystone");
+        _log.debug("END - register CoprHD in Keystone");
     }
 
     /**
-     * Prepare a new endpoint for cinderv2 service.
+     * Retrieves username and tenantname from the AuthnProvider.
+     *
+     * @param provider AuthnProvider filled with data.
+     * @return StringMap containing username and tenantname keys with values.
+     */
+    private StringMap getUsernameAndTenant(AuthnProvider provider){
+
+        String managerDN = provider.getManagerDN();
+        String username = managerDN.split(",")[0].split("=")[1];
+        String tenantName = managerDN.split(",")[1].split("=")[1];
+        StringMap map = new StringMap();
+        map.put(USERNAME, username);
+        map.put(TENANTNAME, tenantName);
+
+        return map;
+    }
+
+    /**
+     * Get Keystone API client.
+     *
+     * @param provider AuthnProvider filled with data.
+     * @return keystoneApi KeystoneApiClient.
+     */
+    private KeystoneApiClient getKeystoneApi(AuthnProvider provider){
+
+        URI authUri = KeystoneUtils.retrieveUriFromServerUrls(provider.getServerUrls());
+
+        StringMap map = getUsernameAndTenant(provider);
+
+        String username = map.get(USERNAME);
+        String tenantName = map.get(TENANTNAME);
+
+        // Get Keystone API Client.
+        KeystoneApiClient keystoneApi = (KeystoneApiClient) _keystoneApiFactory.getRESTClient(
+                authUri, username, provider.getManagerPassword());
+        keystoneApi.setTenantName(tenantName);
+
+        return keystoneApi;
+    }
+
+    /**
+     * Prepare a new endpoint for cinder or cinderv2 service.
      *
      * @param region Region assigned to the endpoint.
-     * @param serviceId Cinderv2 service ID.
+     * @param serviceId Cinder service ID.
+     * @param isCinderv2 Boolean that holds information about version of a service.
      * @return Endpoint filled with necessary information.
      */
-    private EndpointV2 prepareNewCinderv2Endpoint(String region, String serviceId){
+    private EndpointV2 prepareNewCinderEndpoint(String region, String serviceId, Boolean isCinderv2){
 
         String url = "";
         String localAddress;
         String localIP;
+
         try {
             localAddress = InetAddress.getLocalHost().toString();
             localIP = localAddress.split("/")[1];
-            url = HTTP + localIP + COPRHD_PORT;
+            // Checks whether url should point to cinderv2 or to cinder service.
+            if(isCinderv2){
+                url = HTTP + localIP + COPRHD_URL_V2;
+            }else{
+                url = HTTP + localIP + COPRHD_URL_V1;
+            }
         } catch (UnknownHostException | NullPointerException e) {
-            _log.error(e.getMessage());
+            _log.error("Could not retrieve local CoprHD IP - {}", e);
             e.printStackTrace();
         }
 
@@ -357,84 +398,15 @@ public class AuthnConfigurationService extends TaggedResource {
     }
 
     /**
-     * Retrieves OpenStack endpoint ID related to given service ID.
-     *
-     * @param serviceId Service ID.
-     * @return ID of endpoint.
-     */
-    private EndpointV2 retrieveEndpointId(EndpointResponse response, String serviceId){
-
-        for(EndpointV2 endpoint : response.getEndpoints()){
-            if(endpoint.getServiceId().equals(serviceId)){
-                return endpoint;
-            }
-        }
-        // TODO: solve problem with multiple endpoints for a single service with different regions
-        // Return null if there is no endpoints for cinderv2 service.
-        return null;
-    }
-
-    /**
-     * Retrieves OpenStack tenant with a given name.
-     *
-     * @param response Keystone response with tenants inside.
-     * @param tenantName Name of a tenant to look for.
-     * @return Tenant with given name.
-     */
-    private TenantV2 retrieveTenant(TenantResponse response, String tenantName){
-
-        for(TenantV2 tenant : response.getTenants()){
-            if(tenant.getName().equals(tenantName)){
-                return tenant;
-            }
-        }
-        // Return null if there is no tenant with given name.
-        return null;
-    }
-
-    /**
-     * Retrieves OpenStack Cinder v2 service ID.
-     *
-     * @param response Response containing Keystone services.
-     * @return ID of service related to cinderv2.
-     */
-    private String retrieveCinderv2ServiceId(ServiceResponse response){
-
-        for(ServiceV2 service : response.getServices()){
-            if(service.getName().equals(OPENSTACK_CINDER_NAME)){
-                return service.getId();
-            }
-        }
-        // Raise an exception if cinderv2 service is missing.
-        throw KeystoneApiException.exceptions.missingService(OPENSTACK_CINDER_NAME);
-    }
-
-    /**
-     * Retrieves URI from server urls.
-     *
-     * @param serverUrls Set of strings representing server urls.
-     * @return First URI from server urls param.
-     */
-    private URI retrieveUriFromServerUrls(Set<String> serverUrls){
-        URI authUri = null;
-        for (String uri : serverUrls) {
-            authUri = URI.create(uri);
-            break; // There will be single URL only
-        }
-        return authUri;
-    }
-
-    /**
      * Populate or Modify the keystone token
      * in authentication provider.
-     * 
+     *
      * @param provider
      */
     private void populateKeystoneToken(AuthnProvider provider, String oldPassword) {
-        String managerDn = provider.getManagerDN();
         Set<String> uris = provider.getServerUrls();
 
-        URI authUri = retrieveUriFromServerUrls(uris);
+        URI authUri = KeystoneUtils.retrieveUriFromServerUrls(uris);
 
         String password = "";
         if (null == oldPassword) {
@@ -446,8 +418,10 @@ public class AuthnConfigurationService extends TaggedResource {
             password = (null == newPassword) ? oldPassword :
                     (oldPassword.equals(newPassword) ? oldPassword : newPassword);
         }
-        String username = managerDn.split(",")[0].split("=")[1];
-        String tenantName = managerDn.split(",")[1].split("=")[1];
+        StringMap map = getUsernameAndTenant(provider);
+
+        String username = map.get(USERNAME);
+        String tenantName = map.get(TENANTNAME);
         KeystoneApiClient keystoneApi = (KeystoneApiClient) _keystoneApiFactory.getRESTClient(
                 authUri, username, password);
         keystoneApi.setTenantName(tenantName);
@@ -872,6 +846,17 @@ public class AuthnConfigurationService extends TaggedResource {
             checkForVdcRolesUsingDomains(provider.getDomains());
             checkForUserGroupsUsingDomains(provider.getDomains());
             verifyDomainsIsNotInUse(provider.getDomains());
+        }else{
+            // Create a new KeystoneAPI.
+            KeystoneApiClient keystoneApi = getKeystoneApi(provider);
+            // Get a cinderv2 service id.
+            String serviceIdV2 = KeystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
+            // Get a cinder service id.
+            String serviceIdV1 = KeystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
+            // Delete endpoint for cinderv2 service.
+            KeystoneUtils.deleteKeystoneEndpoint(keystoneApi, serviceIdV2);
+            // Delete endpoint for cinder service.
+            KeystoneUtils.deleteKeystoneEndpoint(keystoneApi, serviceIdV1);
         }
         _dbClient.removeObject(provider);
         notifyChange();

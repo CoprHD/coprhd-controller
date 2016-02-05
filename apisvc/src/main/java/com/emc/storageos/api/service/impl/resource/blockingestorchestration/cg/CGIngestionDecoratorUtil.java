@@ -49,7 +49,7 @@ public class CGIngestionDecoratorUtil {
         } else if (VolumeIngestionUtil.isVplexVolume(umv)) {  // Check if the UnManagedVolume is VPLEX
             commCGDecorator = vplexCGDecorator;
             commCGDecorator.setNextDecorator(volumeCGDecorator);
-    }
+        }
         commCGDecorator.setDbClient(dbClient);
         commCGDecorator.decorate(cg, umv, requestContext);
     }

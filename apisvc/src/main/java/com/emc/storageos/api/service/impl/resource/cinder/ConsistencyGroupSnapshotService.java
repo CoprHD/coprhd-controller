@@ -500,8 +500,8 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
      */
     private BlockSnapshot findSnapshot(String snapshotId,
             String openstackTenantId) {
-        BlockSnapshot snapshot = getCinderHelper().querySnapshotByTag(
-                URI.create(snapshotId), getUserFromContext());
+        BlockSnapshot snapshot = (BlockSnapshot) getCinderHelper().queryByTag(
+                URI.create(snapshotId), getUserFromContext(),BlockSnapshot.class );
         if (snapshot != null) {
             Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
             if ((project != null)

@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -26,6 +28,7 @@ import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -143,15 +146,22 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
 
     @Override
     public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs,
-            String deletionType, boolean forceDelete, String task) throws InternalException {
+            String deletionType, boolean forceDelete, boolean deleteOnlyMirrors, String task) throws InternalException {
         // Get volume descriptor for all volumes to be deleted.
         List<FileDescriptor> fileDescriptors = getDescriptorsOfFileShareDeleted(
-                systemURI, fileSystemURIs, deletionType, forceDelete);
+                systemURI, fileSystemURIs, deletionType, forceDelete, deleteOnlyMirrors);
         // place request in queue
         FileOrchestrationController controller = getController(
                 FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         controller.deleteFileSystems(fileDescriptors, task);
+    }
+
+    @Override
+    public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
@@ -164,6 +174,48 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
      * @return
      */
     abstract protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
-            List<URI> fileShareURIs, String deletionType, boolean forceDelete);
+            List<URI> fileShareURIs, String deletionType, boolean forceDelete, boolean deleteOnlyMirrors);
 
+    /**
+     * Expand fileshare
+     */
+    @Override
+    public void expandFileShare(FileShare fileshare, Long newSize, String taskId)
+            throws InternalException {
+
+        FileOrchestrationController controller = getController(
+                FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
+
+        if (fileshare.getParentFileShare() != null && fileshare.getPersonality().equals(FileShare.PersonalityTypes.TARGET.name())) {
+            throw APIException.badRequests.expandMirrorFileSupportedOnlyOnSource(fileshare.getId());
+
+        } else {
+
+            List<String> targetfileUris = new ArrayList<String>();
+
+            // if filesystem is target then throw exception
+            if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
+                targetfileUris.addAll(fileshare.getMirrorfsTargets());
+            }
+
+            FileDescriptor descriptor = new FileDescriptor(
+                    FileDescriptor.Type.FILE_DATA,
+                    fileshare.getStorageDevice(), fileshare.getId(), fileshare.getPool(), "", false, newSize);
+            fileDescriptors.add(descriptor);
+
+            // Prepare the descriptor for targets
+            for (String target : targetfileUris) {
+                FileShare targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(target));
+                descriptor = new FileDescriptor(
+                        FileDescriptor.Type.FILE_DATA,
+                        targetFileShare.getStorageDevice(), targetFileShare.getId(), targetFileShare.getPool(), "", false, newSize);
+                fileDescriptors.add(descriptor);
+            }
+        }
+
+        // place the expand filesystem call in queue
+        controller.expandFileSystem(fileDescriptors, taskId);
+    }
 }

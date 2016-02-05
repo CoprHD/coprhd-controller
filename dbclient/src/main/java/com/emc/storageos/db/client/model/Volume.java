@@ -19,7 +19,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -118,7 +117,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
         public static String getVolumeAccessStateDisplayName(String state) {
             for (VolumeAccessState stateValue : copyOfValues) {
-                if (stateValue.getState().contains(state)) {
+                if (state != null && stateValue.getState().contains(state)) {
                     return stateValue.name();
                 }
             }
@@ -127,7 +126,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
         public static VolumeAccessState getVolumeAccessState(String state) {
             for (VolumeAccessState stateValue : copyOfValues) {
-                if (stateValue.name().equalsIgnoreCase(state)) {
+                if (state != null && stateValue.name().equalsIgnoreCase(state)) {
                     return stateValue;
                 }
             }
@@ -1035,5 +1034,22 @@ public class Volume extends BlockObject implements ProjectResource {
             }
         }
         return copyVolumeGroup;
+    }
+
+    /**
+     * Is this volume a VPLEX virtual volume?
+     * 
+     * @param dbClient db client
+     * @return true if the volume is a vplex virtual volume
+     */
+    public boolean checkForVplexVirtualVolume(DbClient dbClient) {
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, getStorageController());
+        if (system == null) {
+            return false;
+        }
+        if (system.getSystemType().equalsIgnoreCase((DiscoveredDataObject.Type.vplex.toString()))) {
+            return true;
+        }
+        return false;
     }
 }

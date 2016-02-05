@@ -1295,6 +1295,9 @@ public class StorageScheduler implements Scheduler {
      * @return URI of AutoTierPolicy, null if not found
      */
     public static URI getAutoTierPolicy(URI pool, String policyName, DbClient dbClient) {
+        if (pool == null || policyName == null || dbClient == null) {
+            return null;
+        }
         URIQueryResultList result = new URIQueryResultList();
         // check if pool fast policy name is not
         dbClient.queryByConstraint(

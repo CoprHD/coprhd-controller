@@ -26,15 +26,18 @@ import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.ecs.api.ECSBucketACL;
 import com.emc.storageos.ecs.api.ECSException;
+import com.emc.storageos.ecs.api.NamespaceCommandResult;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 /**
  * ECS specific object controller implementation.
@@ -531,8 +534,83 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     public BiosCommandResult doSyncBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId)
             throws ControllerException {
         ECSApi objectAPI = getAPI(storageObj);
-        String aclResponse = objectAPI.getBucketAclFromECS(objectArgs.getName());
-        _log.info("aclResponse {} "+aclResponse);
-        return null;
+        try {
+            String aclResponse = objectAPI.getBucketAclFromECS(objectArgs.getName());
+            _log.info("aclResponse {} "+aclResponse);
+            ECSBucketACL bucketACl = new Gson().fromJson(SecurityUtils.sanitizeJsonString(aclResponse),   ECSBucketACL.class);
+            ECSBucketACL.Acl acl = bucketACl.getAcl();
+            List<ECSBucketACL.UserAcl> user_acl = acl.getUseAcl();
+            List<ECSBucketACL.GroupAcl> group_acl = acl.getGroupAcl();
+            List<ECSBucketACL.CustomGroupAcl> customgroup_acl = acl.getCustomgroupAcl();
+            List<BucketACE> aclToAdd = Lists.newArrayList();
+            final String DELIMETER = "@";
+            for(ECSBucketACL.UserAcl userAce : user_acl){
+                String userWithDomain = userAce.getUser();
+                String[] usrDomain = userWithDomain.split(DELIMETER);
+                BucketACE bucketAce = new BucketACE();
+                if(usrDomain.length > 1){
+                    bucketAce.setDomain(usrDomain[1]);
+                    bucketAce.setUser(usrDomain[0]);
+                }else if(usrDomain.length == 1){
+                    bucketAce.setUser(usrDomain[0]);
+                }
+                String[] permArray = userAce.getPermission();
+                String permissions = formatPermissions(permArray);
+                bucketAce.setPermissions(permissions);
+                aclToAdd.add(bucketAce);
+            }
+            
+            for(ECSBucketACL.GroupAcl groupAce : group_acl){
+                String groupWithDomain = groupAce.getGroup();
+                String[] customGrpDomain = groupWithDomain.split(DELIMETER);
+                BucketACE bucketAce = new BucketACE();
+                if(customGrpDomain.length > 1){
+                    bucketAce.setDomain(customGrpDomain[1]);
+                    bucketAce.setCustomGroup(customGrpDomain[0]);
+                }else if(customGrpDomain.length == 1){
+                    bucketAce.setCustomGroup(customGrpDomain[0]);
+                }
+                String[] permArray = groupAce.getPermission();
+                String permissions = formatPermissions(permArray);
+                bucketAce.setPermissions(permissions);
+                aclToAdd.add(bucketAce);
+            }
+            
+            for(ECSBucketACL.CustomGroupAcl customGroupAce : customgroup_acl){
+                String customGroupWithDomain = customGroupAce.getCustomgroup();
+                String[] grpDomain = customGroupWithDomain.split(DELIMETER);
+                BucketACE bucketAce = new BucketACE();
+                if(grpDomain.length > 1){
+                    bucketAce.setDomain(grpDomain[1]);
+                    bucketAce.setGroup(grpDomain[0]);
+                }else if(grpDomain.length == 1){
+                    bucketAce.setGroup(grpDomain[0]);
+                }
+                String[] permArray = customGroupAce.getPermission();
+                String permissions = formatPermissions(permArray);
+                bucketAce.setPermissions(permissions);
+                aclToAdd.add(bucketAce);
+            }
+            
+            BucketACLUpdateParams param = new BucketACLUpdateParams();
+            BucketACL aclForAddition = new BucketACL();
+            aclForAddition.setBucketACL(aclToAdd);
+            param.setAclToAdd(aclForAddition);
+            updateBucketACLInDB(param, objectArgs, bucket);
+        } catch (ECSException e) {
+            _log.error("Sync ACL for Bucket : {} failed.", objectArgs.getName(), e);
+            completeTask(bucket.getId(), taskId, e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+       
+        completeTask(bucket.getId(), taskId, "Bucket ACL Sync Successful.");
+        return BiosCommandResult.createSuccessfulResult();
+    }
+    private String formatPermissions(String[] permArray){
+        StringBuffer strBuff = new StringBuffer("");
+        for(String perm:permArray){
+            strBuff.append(perm).append("|");
+        }
+        return strBuff.substring(0, strBuff.length()-1);
     }
 }

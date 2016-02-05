@@ -529,7 +529,9 @@ public class BucketService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, Bucket.class, "id");
         bucket = _dbClient.queryObject(Bucket.class, id);
         ArgValidator.checkEntity(bucket, id, isIdEmbeddedInURL(id));
-        syncBucketACL(bucket);
+        if(bucket.getVersion() == null){
+            syncBucketACL(bucket);            
+        }        
 
         BucketACL bucketAcl = new BucketACL();
         BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getName(), bucket.getId());
@@ -640,7 +642,7 @@ public class BucketService extends TaskResourceService {
         
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
         ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());
-        
+        final String _VERSION = "2.4";
         String task = UUID.randomUUID().toString();
         _log.info(String.format(
                 "SYNC Bucket ACL  --- Bucket id: %1$s, Task: %2$s", bucket.getId(), task));
@@ -650,6 +652,15 @@ public class BucketService extends TaskResourceService {
                 task, ResourceOperationTypeEnum.SYNC_BUCKET_ACL);
         op.setDescription("Sync Bucket ACL");
         controller.syncBucketACL(bucket.getStorageDevice(),bucket.getId(),task);
+        
+        auditOp(OperationTypeEnum.SYNC_BUCKET_ACL, true, AuditLogManager.AUDITOP_BEGIN,
+                bucket.getId().toString(), bucket.getStorageDevice().toString());
+
+        TaskResourceRep taskRep =  toTask(bucket, task, op);
+        if("ready".equals(taskRep.getState())){
+            bucket.setVersion(_VERSION);
+            _dbClient.updateObject(bucket); 
+        }
         
     }
 }

@@ -201,6 +201,10 @@ public class ObjectDeviceController implements ObjectController {
         objectArgs.setName(bucketObj.getName());
         objectArgs.setNamespace(bucketObj.getNamespace());
         BiosCommandResult result = getDevice(storageObj.getSystemType()).doSyncBucketACL(storageObj, bucketObj, objectArgs, opId);
+        if (result.getCommandPending()) {
+            return;
+        }
+        bucketObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
     }
     
     private List<BucketACE> queryExistingBucketAcl(ObjectDeviceInputOutput args, URI buckeId) {

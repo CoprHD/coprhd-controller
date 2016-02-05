@@ -192,7 +192,7 @@ class ExportGroup(object):
                 "Export group with name " + name +
                 " already exists")
 
-    def exportgroup_delete(self, name, project, tenant, sync):
+    def exportgroup_delete(self, name, project, tenant, sync,synctimeout):
         '''
         This function will take export group name and project name as input and
         marks the particular export group as delete.
@@ -212,7 +212,7 @@ class ExportGroup(object):
             None, token)
 
         output = common.json_decode(s)
-        return self.check_for_sync(output, sync)
+        return self.check_for_sync(output, sync,synctimeout)
 
     def exportgroup_tag(self, name, project, tenant, add, remove):
         '''
@@ -317,7 +317,7 @@ class ExportGroup(object):
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
                                 maxpaths, minpaths, pathsperinitiator,
                                 projectname, volumenames, snapshots=None,
-                                cg=None, blockmirror=None ):
+                                cg=None, blockmirror=None,synctimeout=0):
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
@@ -381,7 +381,7 @@ class ExportGroup(object):
         parms['volume_changes'] = volChanges
        
         o = self.send_json_request(exportgroup_uri, parms)
-        return self.check_for_sync(o, sync)
+        return self.check_for_sync(o, sync,synctimeout)
 
     '''
     Remove volume from the exportgroup, given the name of the volume
@@ -389,7 +389,7 @@ class ExportGroup(object):
 
     def exportgroup_remove_volumes(self, sync, exportgroupname, tenantname,
                                    projectname, volumenames, snapshots=None,
-                                   cg=None, blockmirror=None):
+                                   cg=None, blockmirror=None,synctimeout=0):
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
@@ -413,7 +413,7 @@ class ExportGroup(object):
         return (
             self.exportgroup_remove_volumes_by_uri(
                 exportgroup_uri, volumeIdList, sync, tenantname,
-                projectname, snapshots, cg)
+                projectname, snapshots, cg,synctimeout)
         )
 
     '''
@@ -423,7 +423,7 @@ class ExportGroup(object):
     def exportgroup_remove_volumes_by_uri(self, exportgroup_uri, volumeIdList,
                                           sync=False, tenantname=None,
                                           projectname=None, snapshots=None,
-                                          cg=None):
+                                          cg=None,synctimeout=0):
         # if snapshot given then snapshot added to exportgroup
         volume_snapshots = volumeIdList
         if(snapshots):
@@ -449,7 +449,7 @@ class ExportGroup(object):
 
         parms['volume_changes'] = self._remove_list(volume_snapshots)
         o = self.send_json_request(exportgroup_uri, parms)
-        return self.check_for_sync(o, sync)
+        return self.check_for_sync(o, sync,synctimeout)
 
     # initator
         '''
@@ -465,7 +465,7 @@ class ExportGroup(object):
          '''
 
     def exportgroup_add_initiator(self, exportgroupname, tenantname,
-                                  projectname, initators, hostlabel, sync):
+                                  projectname, initators, hostlabel, sync,synctimeout):
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
         initiator_uris = []
@@ -478,10 +478,10 @@ class ExportGroup(object):
         parms['initiator_changes'] = self._add_list(initiator_uris)
 
         o = self.send_json_request(exportgroup_uri, parms)
-        return self.check_for_sync(o, sync)
+        return self.check_for_sync(o, sync,synctimeout)
 
     def exportgroup_remove_initiator(self, exportgroupname, tenantname,
-                                     projectname, initators, hostlabel, sync):
+                                     projectname, initators, hostlabel, sync,synctimeout):
         exportgroup_uri = self.exportgroup_query(exportgroupname, projectname,
                                                  tenantname)
         initiator_uris = []
@@ -493,7 +493,7 @@ class ExportGroup(object):
         # initiator_changes
         parms['initiator_changes'] = self._remove_list(initiator_uris)
         o = self.send_json_request(exportgroup_uri, parms)
-        return self.check_for_sync(o, sync)
+        return self.check_for_sync(o, sync,synctimeout)
 
     # cluster
         '''
@@ -508,7 +508,7 @@ class ExportGroup(object):
          '''
 
     def exportgroup_add_cluster(self, exportgroupname, tenantname, projectname,
-                                clusternames, sync):
+                                clusternames, sync,synctimeout):
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
         cluster_uris = []
@@ -519,10 +519,10 @@ class ExportGroup(object):
         parms = {}
         parms['cluster_changes'] = self._add_list(cluster_uris)
         o = self.send_json_request(exportgroup_uri, parms)
-        return self.check_for_sync(o, sync)
+        return self.check_for_sync(o, sync,synctimeout)
 
     def exportgroup_remove_cluster(self, exportgroupname, tenantname,
-                                   projectname, clusternames, sync):
+                                   projectname, clusternames, sync,synctimeout):
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
         # cluster search API does not take project parameter.
@@ -534,7 +534,7 @@ class ExportGroup(object):
         parms = {}
         parms['cluster_changes'] = self._remove_list(cluster_uris)
         o = self.send_json_request(exportgroup_uri, parms)
-        return self.check_for_sync(o, sync)
+        return self.check_for_sync(o, sync,synctimeout)
 
     # host
         '''
@@ -549,7 +549,7 @@ class ExportGroup(object):
          '''
 
     def exportgroup_add_host(self, exportgroupname, tenantname,
-                             projectname, hostlabels, sync):
+                             projectname, hostlabels, sync,synctimeout):
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
         host_uris = []
@@ -560,10 +560,10 @@ class ExportGroup(object):
         parms = {}
         parms['host_changes'] = self._add_list(host_uris)
         o = self.send_json_request(exportgroup_uri, parms)
-        return self.check_for_sync(o, sync)
+        return self.check_for_sync(o, sync,synctimeout)
 
     def exportgroup_remove_host(self, exportgroupname, tenantname,
-                                projectname, hostlabels, sync):
+                                projectname, hostlabels, sync,synctimeout):
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
         host_uris = []
@@ -573,7 +573,7 @@ class ExportGroup(object):
         parms = {}
         parms['host_changes'] = self._remove_list(host_uris)
         o = self.send_json_request(exportgroup_uri, parms)
-        return self.check_for_sync(o, sync)
+        return self.check_for_sync(o, sync,synctimeout)
 
     # helper function
     def _add_list(self, uris):
@@ -599,14 +599,14 @@ class ExportGroup(object):
             self.URI_EXPORT_GROUP_UPDATE.format(exportgroup_uri), body)
         return common.json_decode(s)
 
-    def check_for_sync(self, result, sync):
+    def check_for_sync(self, result, sync,synctimeout):
         if(sync):
             if(len(result["resource"]) > 0):
                 resource = result["resource"]
                 return (
                     common.block_until_complete("export", resource["id"],
                                                 result["id"], self.__ipAddr,
-                                                self.__port)
+                                                self.__port,synctimeout)
                 )
             else:
                 raise SOSError(
@@ -726,13 +726,21 @@ def delete_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    
+    delete_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     delete_parser.set_defaults(func=exportgroup_delete)
 
 
 def exportgroup_delete(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = ExportGroup(args.ip, args.port)
     try:
-        obj.exportgroup_delete(args.name, args.project, args.tenant, args.sync)
+        obj.exportgroup_delete(args.name, args.project, args.tenant, args.sync,args.synctimeout)
     except SOSError as e:
         raise common.format_err_msg_and_raise("delete", "exportgroup",
                                               e.err_text, e.err_code)
@@ -948,18 +956,26 @@ def add_volume_parser(subcommand_parsers, common_parser):
                                    dest='sync',
                                    help='Execute in synchronous mode',
                                    action='store_true')
+    
+    add_volume_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     add_volume_parser.set_defaults(func=exportgroup_add_volumes)
 
 
 def exportgroup_add_volumes(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_volumes(
             args.sync, args.name, args.tenant,
             args.maxpaths,
             args.minpaths, args.pathsperinitiator,
-            args.project, args.volume, args.snapshot, args.consistencygroup, args.blockmirror)
+            args.project, args.volume, args.snapshot, args.consistencygroup, args.blockmirror,args.synctimeout)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_vol", "exportgroup",
                                               e.err_text, e.err_code)
@@ -1021,17 +1037,24 @@ def remove_volume_parser(subcommand_parsers, common_parser):
                                       dest='sync',
                                       help='Execute in synchronous mode',
                                       action='store_true')
+    remove_volume_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     remove_volume_parser.set_defaults(func=exportgroup_remove_volumes)
 
 
 def exportgroup_remove_volumes(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
 
         objExGroup.exportgroup_remove_volumes(
             args.sync, args.name, args.tenant, args.project,
-            args.volume, args.snapshot, args.consistencygroup, args.blockmirror)
+            args.volume, args.snapshot, args.consistencygroup, args.blockmirror,args.synctimeout)
 
     except SOSError as e:
         raise common.format_err_msg_and_raise("remove_vol", "exportgroup",
@@ -1079,16 +1102,24 @@ def add_initiator_parser(subcommand_parsers, common_parser):
                                       dest='sync',
                                       help='Execute in synchronous mode',
                                       action='store_true')
+    
+    add_initiator_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     add_initiator_parser.set_defaults(func=exportgroup_add_initiators)
 
 
 def exportgroup_add_initiators(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_initiator(args.name, args.tenant,
                                              args.project, args.initiator,
-                                             args.hostlabel, args.sync)
+                                             args.hostlabel, args.sync,args.synctimeout)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_initiator", "exportgroup",
                                               e.err_text, e.err_code)
@@ -1137,16 +1168,24 @@ def remove_initiator_parser(subcommand_parsers, common_parser):
                                          dest='sync',
                                          help='Execute in synchronous mode',
                                          action='store_true')
+    
+    remove_initiator_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     remove_initiator_parser.set_defaults(func=exportgroup_remove_initiators)
 
 
 def exportgroup_remove_initiators(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_remove_initiator(
             args.name, args.tenant, args.project, args.initiator,
-            args.hostlabel, args.sync)
+            args.hostlabel, args.sync,args.synctimeout)
     except SOSError as e:
         raise common.format_err_msg_and_raise(
             "remove_initiator", "exportgroup", e.err_text, e.err_code)
@@ -1189,15 +1228,23 @@ def add_cluster_parser(subcommand_parsers, common_parser):
                                     dest='sync',
                                     help='Execute in synchronous mode',
                                     action='store_true')
+    
+    add_cluster_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     add_cluster_parser.set_defaults(func=exportgroup_add_cluster)
 
 
 def exportgroup_add_cluster(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_cluster(
-            args.name, args.tenant, args.project, args.cluster, args.sync)
+            args.name, args.tenant, args.project, args.cluster, args.sync,args.synctimeout)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_cluster", "exportgroup",
                                               e.err_text, e.err_code)
@@ -1239,15 +1286,23 @@ def remove_cluster_parser(subcommand_parsers, common_parser):
                                        dest='sync',
                                        help='Execute in synchronous mode',
                                        action='store_true')
+    
+    remove_cluster_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     remove_cluster_parser.set_defaults(func=exportgroup_remove_cluster)
 
 
 def exportgroup_remove_cluster(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_remove_cluster(
-            args.name, args.tenant, args.project, args.cluster, args.sync)
+            args.name, args.tenant, args.project, args.cluster, args.sync,args.synctimeout)
     except SOSError as e:
         raise common.format_err_msg_and_raise("remove_cluster", "exportgroup",
                                               e.err_text, e.err_code)
@@ -1287,15 +1342,23 @@ def add_host_parser(subcommand_parsers, common_parser):
                                  dest='sync',
                                  help='Execute in synchronous mode',
                                  action='store_true')
+    
+    add_host_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     add_host_parser.set_defaults(func=exportgroup_add_host)
 
 
 def exportgroup_add_host(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_host(
-            args.name, args.tenant, args.project, args.hostlabel, args.sync)
+            args.name, args.tenant, args.project, args.hostlabel, args.sync,args.synctimeout)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_host", "exportgroup",
                                               e.err_text, e.err_code)
@@ -1338,15 +1401,23 @@ def remove_host_parser(subcommand_parsers, common_parser):
                                     dest='sync',
                                     help='Execute in synchronous mode',
                                     action='store_true')
+    
+    remove_host_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     remove_host_parser.set_defaults(func=exportgroup_remove_host)
 
 
 def exportgroup_remove_host(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_remove_host(
-            args.name, args.tenant, args.project, args.hostlabel, args.sync)
+            args.name, args.tenant, args.project, args.hostlabel, args.sync,args.synctimeout)
     except SOSError as e:
         raise common.format_err_msg_and_raise("remove_host", "exportgroup",
                                               e.err_text, e.err_code)

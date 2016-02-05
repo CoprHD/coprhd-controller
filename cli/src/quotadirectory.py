@@ -18,7 +18,7 @@ import socket
 import time
 from threading import Timer
 from common import SOSError
-import sys
+
 
 '''
 The class definition for the operation on the ViPR QuotaDirectory
@@ -50,7 +50,7 @@ class QuotaDirectory(object):
     quotadirectory create operation
     """
 
-    def create(self, ouri, name, size, oplock, securitystyle, sync, advlim, softlim, grace):
+    def create(self, ouri, name, size, oplock, securitystyle, sync,synctimeout):
         parms = {
             'name': name,
         }
@@ -61,12 +61,6 @@ class QuotaDirectory(object):
             parms["oplock"] = oplock
         if(securitystyle):
             parms["security_style"] = securitystyle
-        if advlim:
-            parms['notification_limit'] = advlim
-        if softlim:
-            parms['soft_limit'] = softlim
-        if grace:
-            parms['soft_grace'] = grace
             
         body = json.dumps(parms)
 
@@ -82,7 +76,7 @@ class QuotaDirectory(object):
             return (
                 self.block_until_complete(
                     o['resource']['id'],
-                    o["id"])
+                    o["id"],synctimeout)
             )
         else:
             return o
@@ -91,7 +85,7 @@ class QuotaDirectory(object):
     quotadirectory update operation
     """
 
-    def update(self, ouri, name, size, oplock, securitystyle, sync, advlim, softlim, grace):
+    def update(self, ouri, name, size, oplock, securitystyle, sync,synctimeout):
         qduri = self.quotadirectory_query(ouri, name)
 	    
         params = dict()
@@ -102,12 +96,6 @@ class QuotaDirectory(object):
             params['oplock'] = oplock
         if(securitystyle):
             params['security_style'] = securitystyle
-        if advlim:
-            params['notification_limit'] = advlim
-        if softlim:
-            params['soft_limit'] = softlim
-        if grace:
-            params['soft_grace'] = grace
      
         body = json.dumps(params)
         (s, h) = common.service_json_request(
@@ -121,12 +109,12 @@ class QuotaDirectory(object):
             return (
                 self.block_until_complete(
                     o['resource']['id'],
-                    o["id"])
+                    o["id"],synctimeout)
             )
         else:
             return o
 
-    def delete(self, ouri, name, forcedelete, sync):
+    def delete(self, ouri, name, forcedelete, sync,synctimeout):
         qduri = self.quotadirectory_query(ouri, name)
         body = None    
         params = dict()
@@ -146,7 +134,7 @@ class QuotaDirectory(object):
             return (
                 self.block_until_complete(
                     o['resource']['id'],
-                    o["id"])
+                    o["id"],synctimeout)
             )
         else:
             return o
@@ -225,8 +213,11 @@ class QuotaDirectory(object):
     def timeout_handler(self):
         self.isTimeout = True
 
-    def block_until_complete(self, resuri, task_id):
-        t = Timer(self.timeout, self.timeout_handler)
+    def block_until_complete(self, resuri, task_id,synctimeout):
+        if synctimeout:
+            t = Timer(synctimeout, self.timeout_handler)
+        else:
+            t = Timer(self.timeout, self.timeout_handler)
         t.start()
         while(True):
             #out = self.show_by_uri(id)
@@ -310,22 +301,16 @@ def create_parser(subcommand_parsers, common_parser):
                                help='Quota Directory Security Style ',
                                dest='securitystyle',
                                metavar='<securitystyle>')
-    create_parser.add_argument('-advisorylimit', '-advlmt',
-                               dest='advlim',
-                               help='Advisory limit in % for the filesystem',
-                               metavar='<advisorylimit>')
-    create_parser.add_argument('-softlimit', '-softlmt',
-                               dest='softlim',
-                               help='Soft limit in % for the filesystem',
-                               metavar='<softlimit>')
-    create_parser.add_argument('-graceperiod', '-grace',
-                               dest='grace',
-                               help='Grace period in days for soft limit',
-                               metavar='<graceperiod>')
     create_parser.add_argument('-synchronous', '-sync',
                                dest='synchronous',
                                help='Synchronous quotadirectory create',
                                action='store_true')
+    
+    create_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     create_parser.set_defaults(func=quotadirectory_create)
 
@@ -336,6 +321,8 @@ Preprocessor for the quotadirectory create operation
 '''
 
 def quotadirectory_create(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = QuotaDirectory(args.ip, args.port)
   
     try:
@@ -345,7 +332,7 @@ def quotadirectory_create(args):
             args.tenant)
 
         obj.create(resourceUri, args.name, args.size, args.oplock, 
-		   args.securitystyle, args.synchronous, args.advlim, args.softlim, args.grace)
+		   args.securitystyle, args.synchronous,args.synctimeout)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
@@ -546,10 +533,18 @@ def delete_parser(subcommand_parsers, common_parser):
                                dest='synchronous',
                                help='Synchronous Quotadirectory delete',
                                action='store_true')
+    
+    delete_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     delete_parser.set_defaults(func=quotadirectory_delete)
 
 
 def quotadirectory_delete(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = QuotaDirectory(args.ip, args.port)
     try:
         resourceUri = obj.storageResource_query(
@@ -557,7 +552,7 @@ def quotadirectory_delete(args):
             args.project,
             args.tenant)
 
-        obj.delete(resourceUri, args.name, args.forcedelete, args.synchronous)
+        obj.delete(resourceUri, args.name, args.forcedelete, args.synchronous,args.synctimeout)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
@@ -627,28 +622,24 @@ def update_parser(subcommand_parsers, common_parser):
                                help='Quota Directory Security Style ',
                                dest='securitystyle',
                                metavar='<securitystyle>')
-    update_parser.add_argument('-advisorylimit', '-advlmt',
-                               dest='advlim',
-                               help='Advisory limit in % for the filesystem',
-                               metavar='<advisorylimit>')
-    update_parser.add_argument('-softlimit', '-softlmt',
-                               dest='softlim',
-                               help='Soft limit in % for the filesystem',
-                               metavar='<softlimit>')
-    update_parser.add_argument('-graceperiod', '-grace',
-                               dest='grace',
-                               help='Grace period in days for soft limit',
-                               metavar='<graceperiod>')
     update_parser.add_argument('-synchronous', '-sync',
                                dest='synchronous',
                                help='Synchronous quotadirectory update',
                                action='store_true')
+    update_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
+    
     update_parser.set_defaults(func=quotadirectory_update)
 
 
 
 
 def quotadirectory_update(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = QuotaDirectory(args.ip, args.port)
     try:
         resourceUri = obj.storageResource_query(
@@ -657,7 +648,7 @@ def quotadirectory_update(args):
             args.tenant)
 
         obj.update(resourceUri, args.name, args.size, args.oplock, 
-		   args.securitystyle, args.synchronous, args.advlim, args.softlim, args.grace)
+		   args.securitystyle, args.synchronous,args.synctimeout)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):

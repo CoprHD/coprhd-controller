@@ -47,7 +47,7 @@ class Host(object):
     URI_HOST_LIST_UM_VOLUMES = "/compute/hosts/{0}/unmanaged-volumes"
 
     HOST_TYPE_LIST = ['Windows', 'HPUX', 'Linux',\
-                      'Esx', 'Other', 'AIXVIO', 'AIX', 'No_OS','SUNVCS']
+                      'Esx', 'Other', 'AIXVIO', 'AIX', 'No_OS','SUN_VCS']
 
     def __init__(self, ipAddr, port):
         '''
@@ -611,7 +611,7 @@ class Host(object):
                                 management_network,
                                 force_installation,
                                 root_password,
-                                sync):
+                                sync,synctimeout):
         # get host id
         host_id = self.query_by_name(hostname, tenant)
         #get compute image id
@@ -1580,11 +1580,18 @@ def compute_host_osinstall_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
-
+    os_install_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
+    
     os_install_parser.set_defaults(func=compute_host_os_install)
 
 
 def compute_host_os_install(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     hostObj = Host(args.ip, args.port)
 
     rootpasswd = common.get_password("host")
@@ -1594,7 +1601,7 @@ def compute_host_os_install(args):
                             args.hostip, args.netmask,
                             args.gateway, args.ntpserver,
                             args.dnsservers, args.managementnetwork,
-                            args.forceinstallation, rootpasswd, args.sync)
+                            args.forceinstallation, rootpasswd, args.sync,args.synctimeout)
     return
 
 

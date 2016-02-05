@@ -1760,8 +1760,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             String syncAspectPath = tgtSnapSession.getSessionInstance();
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
 
-            String groupInstance = snapshot.getReplicationGroupInstance();
-            CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupObjectPath(system, groupInstance);
+            String groupName = _helper.extractGroupName(snapshot.getReplicationGroupInstance());
+            CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(system, groupName);
 
             CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
 

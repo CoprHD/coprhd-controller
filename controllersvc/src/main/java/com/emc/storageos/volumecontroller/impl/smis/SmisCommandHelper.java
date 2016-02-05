@@ -7172,7 +7172,7 @@ public class SmisCommandHelper implements SmisConstants {
      * @param groupName Replication group name, possibly containing the system serial.
      * @return          Replication group name.
      */
-    private String extractGroupName(String groupName) {
+    public String extractGroupName(String groupName) {
         Pattern p = Pattern.compile("^\\S+\\+(\\S+)$");
         Matcher matcher = p.matcher(groupName);
 

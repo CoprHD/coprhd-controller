@@ -469,16 +469,6 @@ public class UnManagedVolumeService extends TaskResourceService {
                             unManagedVolume.getLabel(), "check the logs for more details");
                 }
 
-                try {
-                    // If the volume belongs to a consistency group perform consistency group processing 
-                    if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
-                        ingestBlockConsistencyGroups(unManagedVolume, blockObject, requestContext);
-                    }
-                } catch (IngestionException ex) {
-                    _logger.error("There was an error ingestion the consistency group.", ex);
-                    // TODO: allowing this to continue for now, until CG ingestion support is complete
-                }
-
                 // TODO come up with a common response object to hold snaps/mirrors/clones
                 requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
                 requestContext.getProcessedUnManagedVolumeMap().put(

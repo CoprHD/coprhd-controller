@@ -367,11 +367,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation);
     }
 
-    @Asset("mobilityMigrationTargetVirtualPool")
-    public List<AssetOption> getMobilityMigrationTargetVirtualPools(AssetOptionsContext ctx) {
-        return this.createBaseResourceOptions(api(ctx).blockVpools().getAll());
-    }
-
     @Asset("migrationTargetVirtualPool")
     @AssetDependencies({ "project", "blockVirtualPool" })
     public List<AssetOption> getMigrationTargetVirtualPools(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {
@@ -443,11 +438,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getTargetVirtualPools(AssetOptionsContext ctx, URI volumeId, String vpoolChangeOperation) {
         List<VirtualPoolChangeRep> vpoolChanges = api(ctx).blockVolumes().listVirtualPoolChangeCandidates(volumeId);
         return createVpoolChangeOptions(vpoolChangeOperation, vpoolChanges);
-    }
-
-    @Asset("migrationTargetVirtualPool")
-    public List<AssetOption> getTargetVirtualPools(AssetOptionsContext ctx) {
-        return this.createBaseResourceOptions(api(ctx).blockVpools().getAll());
     }
 
     @Asset("targetVirtualPool")

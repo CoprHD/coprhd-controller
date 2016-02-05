@@ -28,6 +28,7 @@ import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.ecs.api.ECSBucketACL;
 import com.emc.storageos.ecs.api.ECSException;
+import com.emc.storageos.ecs.api.UserSecretKeysAddCommandResult;
 import com.emc.storageos.ecs.api.UserSecretKeysGetCommandResult;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
@@ -128,12 +129,14 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public void doAddUserSecretKey(StorageSystem storageObj, String userId) throws ControllerException {
+    public void doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws ControllerException {
         ECSApi ecsApi = getAPI(storageObj);
         
-//        try {
-//            UserSecretKeysGetCommandResult secretKeyRes = ecsApi.addUserSecretKeys(userId);
-
+        try {
+            UserSecretKeysAddCommandResult secretKeyRes = ecsApi.addUserSecretKeys(userId, secretKey);
+        } catch (Exception e) {
+            _log.error("ECSObjectStorageDevice:doAddUserSecretKey failed");
+        }
     }
 
     @Override

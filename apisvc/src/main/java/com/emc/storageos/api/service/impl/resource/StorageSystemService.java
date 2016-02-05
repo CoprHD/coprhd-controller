@@ -91,6 +91,7 @@ import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.file.UnManagedFileSystemList;
 import com.emc.storageos.model.object.ObjectNamespaceList;
 import com.emc.storageos.model.object.ObjectNamespaceRestRep;
+import com.emc.storageos.model.object.ObjectUserSecretKeysParam;
 import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
@@ -1354,16 +1355,34 @@ public class StorageSystemService extends TaskResourceService {
             } 
             if (key != null) {
                 ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();
-                to.setKey1(key);
+                to.setSecretkey1(key);
                 return to;
             }
         }
         //For non-existing users return blank
         ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();
-        to.setKey1("");
+        to.setSecretkey1("");
         return to;     
     }
     
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/object-user-secret-keys/{userId}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public String addUserSecretKeys(ObjectUserSecretKeysParam param, @PathParam("id") URI id,
+            @PathParam("userId") String userId) {
+        // Make sure storage system is registered and object storage
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
+            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
+        }
+        
+        ObjectController controller = getController(ObjectController.class, system.getSystemType());
+        controller.addUserSecretKey(id, userId, param.getSecretkey());
+        return "Successfully posted, please check logs for any errors";
+    } 
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

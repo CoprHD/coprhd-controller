@@ -124,9 +124,9 @@ public class ObjectDeviceController implements ObjectController {
     }
 
     @Override
-    public void addUserSecretKey(URI storage, String userId) throws InternalException {
+    public void addUserSecretKey(URI storage, String userId, String secretKey) throws InternalException {
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        getDevice(storageObj.getSystemType()).doAddUserSecretKey(storageObj, userId);
+        getDevice(storageObj.getSystemType()).doAddUserSecretKey(storageObj, userId, secretKey);
     }
 
     @Override

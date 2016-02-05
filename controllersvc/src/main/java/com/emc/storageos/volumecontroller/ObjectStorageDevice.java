@@ -70,5 +70,5 @@ public interface ObjectStorageDevice {
     
     void doGetUserSecretKey(StorageSystem storageObj, String userId) throws ControllerException;
     
-    void doAddUserSecretKey(StorageSystem storageObj, String userId) throws ControllerException;
+    void doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws ControllerException;
 }

@@ -75,6 +75,6 @@ public interface ObjectController extends StorageController {
     
     public void getUserSecretKey(URI storage, String userId)  throws InternalException;
 
-    public void addUserSecretKey(URI storage, String userId)  throws InternalException;
+    public void addUserSecretKey(URI storage, String userId, String secretKey)  throws InternalException;
 
 }

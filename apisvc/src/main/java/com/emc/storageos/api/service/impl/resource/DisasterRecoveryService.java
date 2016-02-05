@@ -497,6 +497,12 @@ public class DisasterRecoveryService {
                 log.error("Unable to remove this site {}. It is acitve", siteId);
                 throw APIException.badRequests.operationNotAllowedOnActiveSite();
             }
+            if (site.getState().isDROperationOngoing() && !site.getState().equals(SiteState.STANDBY_SYNCING)) {
+                log.error("Unable to remove this site {} in state {}. " +
+                        "DR operation other than STANDBY_SYNCING is ongoing", siteId, site.getState().name());
+                throw APIException.internalServerErrors.concurrentDROperationNotAllowed(site.getName(),
+                        site.getState().toString());
+            }
             toBeRemovedSites.add(site);
         }
 
@@ -515,8 +521,6 @@ public class DisasterRecoveryService {
         } catch (IllegalStateException e) {
             throw APIException.internalServerErrors.removeStandbyPrecheckFailed(SiteNamesStr, e.getMessage());
         }
-
-        InterProcessLock lock = drUtil.getDROperationLock();
 
         List<String> sitesString = new ArrayList<>();
         try {
@@ -543,12 +547,6 @@ public class DisasterRecoveryService {
             auditDisasterRecoveryOps(OperationTypeEnum.REMOVE_STANDBY, AuditLogManager.AUDITLOG_FAILURE,
                     null, StringUtils.join(sitesString, ','));
             throw APIException.internalServerErrors.removeStandbyFailed(SiteNamesStr, e.getMessage());
-        } finally {
-            try {
-                lock.release();
-            } catch (Exception ignore) {
-                log.error(String.format("Lock release failed when removing standby sites: %s", siteIdStr));
-            }
         }
     }
 

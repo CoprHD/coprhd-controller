@@ -127,7 +127,7 @@ public class BlockSnapshotSessions extends ResourceController {
         ViPRCoreClient client = BourneUtil.getViprClient();
         SnapshotSessionRelinkTargetsParam relinkTargetsParam = new SnapshotSessionRelinkTargetsParam();
         relinkTargetsParam.setLinkedTargetIds(uris(snapshotId));
-        Task<BlockSnapshotSessionRestRep> task = client.blockSnapshotSessions().relinkTargets(uri(snapshotSessionId), relinkTargetsParam);
+        client.blockSnapshotSessions().relinkTargets(uri(snapshotSessionId), relinkTargetsParam);
         flash.put("info", MessagesUtils.get("resources.snapshot.session.relink.success", snapshotId));
         snapshotSessionDetails(snapshotSessionId);
     }

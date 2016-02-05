@@ -847,6 +847,8 @@ public class FileVirtualPoolService extends VirtualPoolService {
                                 sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
                     }
                     break;
+                default:
+                    throw APIException.badRequests.invalidReplicationRPOType(sourcePolicy.getRpoType());
             }
             return true;
         }

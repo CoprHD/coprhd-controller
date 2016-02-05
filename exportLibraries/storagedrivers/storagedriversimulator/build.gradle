@@ -1,0 +1,5 @@
+dependencies {
+    compile project(":storagedriver"),
+            library(slf4j),
+            library(commons_lang)
+}

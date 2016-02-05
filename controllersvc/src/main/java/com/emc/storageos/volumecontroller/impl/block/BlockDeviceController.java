@@ -26,6 +26,7 @@ import java.util.Map;
 
 import javax.xml.bind.DataBindingException;
 
+import com.emc.storageos.plugins.common.Constants;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -255,7 +256,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public BlockStorageDevice getDevice(String deviceType) {
-        return _devices.get(deviceType);
+        BlockStorageDevice storageDevice = _devices.get(deviceType);
+        if (storageDevice == null) {
+            // we will use external device
+            storageDevice = _devices.get(Constants.EXTERNALDEVICE);
+            if (storageDevice == null) {
+                throw DeviceControllerException.exceptions.invalidSystemType(deviceType);
+            }
+        }
+        return storageDevice;
     }
 
     /**
@@ -960,7 +969,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             opCreateFailed = true;
         } catch (Exception e) {
             _log.error(String.format("createVolume Failed - Array: %s Pool:%s Volume:%s",
-                    systemURI.toString(), poolURI.toString(), Joiner.on("\t").join(volumeURIs)));
+                    systemURI.toString(), poolURI.toString(), Joiner.on("\t").join(volumeURIs)), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             doFailTask(Volume.class, volumeURIs, opId, serviceError);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
@@ -3113,6 +3122,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     @Override
     public void createConsistencyGroup(URI storage, URI consistencyGroup, String opId) throws ControllerException {
+
+        TaskCompleter completer = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
+
         try {
             WorkflowStepCompleter.stepExecuting(opId);
 
@@ -3122,8 +3134,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
 
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            TaskCompleter completer = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
-
             // Check if already created, if not create, if so just complete.
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
             String groupName = ControllerUtils.generateReplicationGroupName(storageObj, cg, null);
@@ -3134,6 +3144,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 completer.ready(_dbClient);
             }
         } catch (Exception e) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                completer.error(_dbClient, serviceError);
             throw DeviceControllerException.exceptions.createConsistencyGroupFailed(e);
         }
     }
@@ -3803,10 +3815,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // Get the block device reference for the type of block device managed
         // by the controller.
         BlockStorageDevice storageDevice = getDevice(storageObj.getSystemType());
-        if (storageDevice == null) {
-            throw DeviceControllerException.exceptions.connectStorageFailedNoDevice(
-                    storageObj.getSystemType());
-        }
         storageDevice.doConnect(storageObj);
         _log.info("Adding to storage device to work pool: {}", storageObj.getId());
 
@@ -5602,6 +5610,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         StringSet linkedTargets = snapSession.getLinkedTargets();
         if ((linkedTargets == null) || (!linkedTargets.contains(snapshotURI.toString()))) {
             unlinkBlockSnapshotSessionTarget(systemURI, snapSessionURI, snapshotURI, Boolean.TRUE, stepId);
+        } else {
+            WorkflowStepCompleter.stepSucceded(stepId);
         }
     }
 

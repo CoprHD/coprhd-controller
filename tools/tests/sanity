@@ -138,7 +138,8 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application)
+
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -586,6 +587,19 @@ BLK_CLIENT_FC_NODE=`nwwn ${seed2b}`
 HOSTNAME=`hostname`
 BLK_CLIENT_iSCSI=iqn.2010-01.com.emc.snafu-${HOSTNAME}_${seed}
 BLK_HOSTID=sanity-host-${HOSTNAME}-${seed}
+
+######################### Start of Driver Managed System configuration. ############################
+#
+
+#
+# Driver managed system setup (simulated)
+#
+DRIVER_SYSTEM_TYPE=driversystem
+DRIVER_SYSTEM_IP=10.20.30.40
+DRIVER_SYSTEM_PORT=8080
+DRIVER_SYSTEM_USER=user
+DRIVER_SYSTEM_PASSWORD=password
+######################### End of Driver Managed System configuration. ############################
 
 export BOURNE_IPADDR="$BOURNE_IP"
 
@@ -3740,6 +3754,20 @@ isilon_setup()
     cos allow $COS_ISIFILE file $TENANT
 }
 
+driversystem_setup()
+{
+    echo "driversystem setup"
+    discoveredsystem create driverManagedSystem $DRIVER_SYSTEM_TYPE  $DRIVER_SYSTEM_IP $DRIVER_SYSTEM_PORT $DRIVER_SYSTEM_USER $DRIVER_SYSTEM_PASSWORD
+}
+
+
+driversystem_tests()
+{
+   echo "driversystem tests"
+   PROJECT=erProject
+   vol=erVolTest006-1
+#   run blocksnapshot create $PROJECT/${vol} erSnap001
+}
 #
 # add ECS storage device and storage pool
 #
@@ -7838,8 +7866,14 @@ backuprestore_tests()
     backupname='sanity'
     filepath='/tmp/sanity.zip'
 
+<<<<<<< HEAD
     backup_tests "${backupname}" "${filepath}"
+=======
+    backup_tests "${backupname}" "${backupname2}" "${filepath}"
+    set +E
+>>>>>>> master
     restore_tests "${filepath}"
+    set -E
 }
 
 backup_tests()
@@ -7916,6 +7950,24 @@ restore_tests()
     filepath=$1
     password=$SYSADMIN_PASSWORD
 
+<<<<<<< HEAD
+=======
+    echo "Restore from pulled backup ${remote_backup_file} password=${password}"
+    backup restore "${remote_backup_file}" "false" "${password}"
+
+    echo "Wait for stable"
+    sleep 60s
+
+    for (( i=0; i<240; i++ )); do
+       security login $SYSADMIN $SYSADMIN_PASSWORD
+       if [[ $? -eq 0 ]]; then
+            break;
+       fi
+       echo "login failed retry later"
+       sleep 10s
+    done
+
+>>>>>>> master
     echo "Uploading backup file ${filepath} to $BOURNE_IPADDR"
     SCP $BOURNE_IPADDR ${filepath} ${filepath}
 

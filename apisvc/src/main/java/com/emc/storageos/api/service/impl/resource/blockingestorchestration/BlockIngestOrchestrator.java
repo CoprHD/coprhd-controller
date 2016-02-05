@@ -302,9 +302,11 @@ public abstract class BlockIngestOrchestrator {
         updateMetaVolumeProperties(volume, unManagedVolume);
         volume.setThinlyProvisioned(Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
                 SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString())));
-        volume.setAccessState(String.valueOf(unManagedVolume
-                .getVolumeInformation().get(
-                        SupportedVolumeInformation.ACCESS.toString())));
+
+        String accessState = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.ACCESS.toString(), unManagedVolume.getVolumeInformation());
+        accessState = Volume.VolumeAccessState.getVolumeAccessStateDisplayName(accessState);
+        volume.setAccessState(accessState);
 
         URI cgUri = getConsistencyGroupUri(unManagedVolume, vPool, project.getId(), tenant.getId(), virtualArray.getId(), _dbClient);
         if (null != cgUri) {

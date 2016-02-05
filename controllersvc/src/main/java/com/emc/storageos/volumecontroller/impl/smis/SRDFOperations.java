@@ -2240,8 +2240,9 @@ public class SRDFOperations implements SmisConstants {
         // Update and persist target volumes with BCG
         for (BlockObject targetObj : targetVolumes) {
             targetObj.setConsistencyGroup(newConsistencyGroup.getId());
+            targetObj.setReplicationGroupInstance(newConsistencyGroup.getAlternateLabel());
         }
-        dbClient.persistObject(targetVolumes);
+        dbClient.updateObject(targetVolumes);
     }
 
     private void refreshTargetVolumeProperties(StorageSystem targetSystem, Volume target) throws Exception {

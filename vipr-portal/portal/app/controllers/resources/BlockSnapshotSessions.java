@@ -9,7 +9,6 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -20,13 +19,11 @@ import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
-import com.emc.storageos.model.block.export.ExportGroupRestRep;
-import com.emc.storageos.model.block.export.ITLRestRep;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import controllers.Common;
 import controllers.util.FlashException;
@@ -101,7 +98,7 @@ public class BlockSnapshotSessions extends ResourceController {
         if (StringUtils.isNotBlank(snapshotId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
 
-            Tasks<BlockSnapshotSessionRestRep> task = client.blockSnapshotSessions().deactivate(uri(snapshotId));
+            Tasks<BlockSnapshotSessionRestRep> task = client.blockSnapshotSessions().deactivate(uri(snapshotId), VolumeDeleteTypeEnum.FULL);
             flash.put("info", MessagesUtils.get("resources.snapshot.deactivate", snapshotId));
         }
         snapshotSessionDetails(snapshotId);
@@ -116,7 +113,7 @@ public class BlockSnapshotSessions extends ResourceController {
         if (ids != null) {
             ViPRCoreClient client = BourneUtil.getViprClient();
             for (URI id : ids) {
-                Tasks<BlockSnapshotSessionRestRep> task = client.blockSnapshotSessions().deactivate(id);
+                Tasks<BlockSnapshotSessionRestRep> task = client.blockSnapshotSessions().deactivate(id, VolumeDeleteTypeEnum.FULL);
             }
             flash.put("info", MessagesUtils.get("resources.snapshots.deactivate", ids.size()));
         }

@@ -5,6 +5,7 @@
 package com.emc.storageos.recoverpoint.utils;
 
 import java.sql.Timestamp;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -58,8 +59,10 @@ public class RecoverPointImageManagementUtils {
     private final static int disableRetrySleepTimeSeconds = 1;
 
     /**
+    private final static int SNAPSHOT_QUERY_WINDOW_BUFFER = 15;
      * Perform an enable image access on a CG copy
      * 
+    private final static int NUM_SNAPSHOT_QUERY_ATTEMPTS = 48;
      * @param impl - RP handle to use for RP operations
      * @param cgCopy - CG copy to perform the enable image access on
      * @param accessMode - The access mode to use (LOGGED_ACCESS, VIRTUAL_ACCESS, VIRTUAL_ACCESS_WITH_ROLL
@@ -68,6 +71,10 @@ public class RecoverPointImageManagementUtils {
      * 
      * @return void
      * 
+     * @throws RecoverPointException
+     **/
+     * @return void
+     *
      * @throws RecoverPointException
      **/
     public void enableCGCopy(FunctionalAPIImpl impl, ConsistencyGroupCopyUID cgCopy, boolean waitForLinkState, ImageAccessMode accessMode,
@@ -80,7 +87,8 @@ public class RecoverPointImageManagementUtils {
             cgName = impl.getGroupName(cgCopy.getGroupUID());            
 			if (waitForLinkState) {
 				// Make sure the CG is ready for enable
-				waitForCGLinkState(impl, cgCopy.getGroupUID(), RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopy.getGroupUID()));
+                waitForCGLinkState(impl, cgCopy.getGroupUID(),
+                        RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopy.getGroupUID()));
 			}
 
             if (bookmarkName == null) {
@@ -121,8 +129,107 @@ public class RecoverPointImageManagementUtils {
                     }
                 } else {
                     // Get the snapshotToEnable based on the APIT
-                    logger.info("TBD: Enable APIT image on RP CG: " + cgName + " for CG copy: " + cgCopyName);
-                    throw RecoverPointException.exceptions.apitEnableNotImplementedYet();
+
+                    Calendar apitTimeCal = Calendar.getInstance();
+                    apitTimeCal.setTime(apitTime);
+
+                    Calendar apitTimeStart = Calendar.getInstance();
+                    apitTimeStart.setTime(apitTime);
+                    apitTimeStart.add(Calendar.MINUTE, -SNAPSHOT_QUERY_WINDOW_BUFFER);
+
+                    Calendar apitTimeEnd = Calendar.getInstance();
+                    apitTimeEnd.setTime(apitTime);
+                    apitTimeEnd.add(Calendar.MINUTE, SNAPSHOT_QUERY_WINDOW_BUFFER);
+
+                    // Convert all times to microseconds so they can be used in constructing a
+                    // snapshot query time frame.
+                    long apitTimeInMicroSeconds = apitTimeCal.getTimeInMillis() * numMicroSecondsInMilli;
+                    long apitTimeStartInMicroSeconds = apitTimeStart.getTimeInMillis() * numMicroSecondsInMilli;
+                    long apitTimeEndInMicroSeconds = apitTimeEnd.getTimeInMillis() * numMicroSecondsInMilli;
+
+                    logger.info(String
+                            .format("Request to enable a PiT image on RP CG: %s for CG copy: %s. The PiT requested is %s which evaluates to %s microseconds.",
+                                    cgName, cgCopyName, apitTime, apitTimeInMicroSeconds));
+
+                    logger.info(String.format(
+                            "Building snapshot query window between %s and %s.  Evaluates to a microsecond window between %s and %s.",
+                            apitTimeStart.getTime(), apitTimeEnd.getTime(), apitTimeStartInMicroSeconds, apitTimeEndInMicroSeconds));
+
+                    // Construct the RecoverPoint TimeFrame
+                    RecoverPointTimeStamp startTime = new RecoverPointTimeStamp();
+                    startTime.setTimeInMicroSeconds(apitTimeStartInMicroSeconds);
+
+                    RecoverPointTimeStamp endTime = new RecoverPointTimeStamp();
+                    endTime.setTimeInMicroSeconds(apitTimeEndInMicroSeconds);
+
+                    TimeFrame timeFrame = new TimeFrame();
+                    timeFrame.setStartTime(startTime);
+                    timeFrame.setEndTime(endTime);
+
+                    // Get the CG copy snapshots for the given time frame.
+                    ConsistencyGroupCopySnapshots copySnapshots = impl.getGroupCopySnapshotsForTimeFrameAndName(cgCopy, timeFrame, null);
+
+                    if (copySnapshots != null && copySnapshots.getSnapshots() != null && copySnapshots.getSnapshots().isEmpty()) {
+                        // There are no snapshots returned so lets see if the query window is valid. First, see if
+                        // the point-in-time is before the start of the protection window.
+                        logger.info(String.format("Determined that the protection window is between %s and %s.", copySnapshots
+                                .getEarliest().getTimeInMicroSeconds(), copySnapshots.getLatest().getTimeInMicroSeconds()));
+                        if (apitTimeInMicroSeconds < copySnapshots.getEarliest().getTimeInMicroSeconds()) {
+                            logger.info("The specified point-in-time is before the start of the protection window.  As a result, returning the first snapshot in the protection window.");
+                            startTime.setTimeInMicroSeconds(copySnapshots.getEarliest().getTimeInMicroSeconds());
+                            // Set the start and end time to the same to get the exact snapshot
+                            timeFrame.setStartTime(startTime);
+                            timeFrame.setEndTime(startTime);
+                            copySnapshots = impl.getGroupCopySnapshotsForTimeFrameAndName(cgCopy, timeFrame, null);
+
+                            snapshotToEnable = copySnapshots.getSnapshots().get(0);
+                        } else if (apitTimeInMicroSeconds > copySnapshots.getLatest().getTimeInMicroSeconds()) {
+                            logger.info("The specified point-in-time is after the end of the protection window.  As a result, returning the most current snapshot in the protection window.");
+                            startTime.setTimeInMicroSeconds(copySnapshots.getLatest().getTimeInMicroSeconds());
+                            // Set the start and end time to the same to get the exact snapshot
+                            timeFrame.setStartTime(startTime);
+                            timeFrame.setEndTime(startTime);
+                            copySnapshots = impl.getGroupCopySnapshotsForTimeFrameAndName(cgCopy, timeFrame, null);
+
+                            snapshotToEnable = copySnapshots.getSnapshots().get(0);
+                        } else {
+                            // The snapshot falls within the protection window but the query window was too small to find
+                            // a snapshot that matches the PiT. We will attempt to gradually expand the query window
+                            // and retry until we find a match or exhaust our retry count.
+                            int queryAttempt = 1;
+                            while (queryAttempt <= NUM_SNAPSHOT_QUERY_ATTEMPTS) {
+                                // Expand the snapshot query window in each direction by the defined buffer amount.
+                                apitTimeStart.add(Calendar.MINUTE, -SNAPSHOT_QUERY_WINDOW_BUFFER);
+                                apitTimeEnd.add(Calendar.MINUTE, SNAPSHOT_QUERY_WINDOW_BUFFER);
+                                apitTimeStartInMicroSeconds = apitTimeStart.getTimeInMillis() * numMicroSecondsInMilli;
+                                apitTimeEndInMicroSeconds = apitTimeEnd.getTimeInMillis() * numMicroSecondsInMilli;
+
+                                startTime.setTimeInMicroSeconds(apitTimeStartInMicroSeconds);
+                                endTime.setTimeInMicroSeconds(apitTimeEndInMicroSeconds);
+                                timeFrame.setStartTime(startTime);
+                                timeFrame.setEndTime(endTime);
+
+                                logger.info(String
+                                        .format("The PiT falls within the protection window but no results are returned. Attempt %s of %s. Expanding the query window by %s minute(s) in both directions to [%s - %s].",
+                                                queryAttempt, NUM_SNAPSHOT_QUERY_ATTEMPTS, SNAPSHOT_QUERY_WINDOW_BUFFER,
+                                                apitTimeStartInMicroSeconds, apitTimeEndInMicroSeconds));
+
+                                copySnapshots = impl.getGroupCopySnapshotsForTimeFrameAndName(cgCopy, timeFrame, null);
+
+                                if (!copySnapshots.getSnapshots().isEmpty()) {
+                                    // Snapshots have been found for the given query window so now attempt to find the correct
+                                    // snapshot that matches the specified PiT.
+                                    snapshotToEnable = findPiTSnapshot(copySnapshots, apitTimeInMicroSeconds);
+                                    break;
+                }
+
+                                // increment the query attempt
+                                queryAttempt++;
+                            }
+                        }
+            } else {
+                        snapshotToEnable = findPiTSnapshot(copySnapshots, apitTimeInMicroSeconds);
+                    }
                 }
             } else {
                 // Bookmark based enable. Set snapshotToEnable
@@ -159,6 +266,7 @@ public class RecoverPointImageManagementUtils {
             logger.info("Enable snapshot image: " + bookmarkName + " of time " + bookmarkDate + " on CG Copy" + cgCopyName
                     + " for CG name " + cgName);
             impl.enableImageAccess(cgCopy, snapshotToEnable, accessMode, ImageAccessScenario.NONE);
+
             if (waitForEnableToComplete(impl, cgCopy, accessMode, null)) {
                 // Verify image is enabled correctly
                 logger.info("Wait for image to be in correct mode");
@@ -183,6 +291,41 @@ public class RecoverPointImageManagementUtils {
      * 
      * @return void
      * 
+    private Snapshot findPiTSnapshot(ConsistencyGroupCopySnapshots copySnapshots, long apitTimeInMicroSeconds) {
+        long min = Long.MAX_VALUE;
+        Snapshot closest = null;
+     * @throws RecoverPointException
+        for (Snapshot snapshot : copySnapshots.getSnapshots()) {
+            final long diff = Math.abs(snapshot.getClosingTimeStamp().getTimeInMicroSeconds() - apitTimeInMicroSeconds);
+            logger.debug(
+                    String.format(
+                            "Examining snapshot %s with closing timestamp %s. Determining if it's closest to provided point-in-time %s. Difference is %s",
+                            snapshot.getSnapshotUID().getId(), snapshot.getClosingTimeStamp().getTimeInMicroSeconds(),
+                            apitTimeInMicroSeconds, diff));
+            if (diff < min) {
+                min = diff;
+                closest = snapshot;
+            } else {
+     **/
+                logger.info(String.format(
+                        "Determined that snapshot %s with closing timestamp %s is closest to point-in-time %s",
+                        closest.getSnapshotUID().getId(), closest.getClosingTimeStamp().getTimeInMicroSeconds(),
+                        apitTimeInMicroSeconds));
+                break;
+            }
+        }
+
+        return closest;
+    }
+
+    /**
+     * Perform a disable image access on a CG copy
+     *
+     * @param impl - RP handle to use for RP operations
+     * @param cgCopy - CG copy to perform the disable image access on
+     *
+     * @return void
+     *
      * @throws RecoverPointException
      **/
     public void disableCGCopy(FunctionalAPIImpl impl, ConsistencyGroupCopyUID cgCopy) throws RecoverPointException {
@@ -359,10 +502,11 @@ public class RecoverPointImageManagementUtils {
 		try {
 			cgCopyName = impl.getGroupCopyName(cgCopyUID);
 			cgName = impl.getGroupName(cgCopyUID.getGroupUID());
-			logger.info("Restore the image to copy name: " + cgCopyName + " for CG Name: " + cgName);
+            logger.info(String.format("Restore the image to copy name: %s for CG name: %s", cgCopyName, cgName));
 			recoverProductionAndWait(impl, cgCopyUID);			
         	// For restore, just wait for link state of the copy being restored
-			waitForCGLinkState(impl, cgCopyUID.getGroupUID(), RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopyUID.getGroupUID()));
+            waitForCGLinkState(impl, cgCopyUID.getGroupUID(),
+                    RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopyUID.getGroupUID()));
 			logger.info("Successful restore to copy name: " + cgCopyName + " for CG Name: " + cgName);
 		} catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToFailoverCopy(cgCopyName, cgName, e);
@@ -932,8 +1076,11 @@ public class RecoverPointImageManagementUtils {
      * 
      * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, InterruptedException
      **/
-    public void waitForCGLinkState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID, PipeState desiredPipeState) throws RecoverPointException {
         
+     **/
+    public void waitForCGLinkState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID, PipeState desiredPipeState)
+            throws RecoverPointException {
+
         int numRetries = 0;     
         String cgName = null;
         try {
@@ -1030,8 +1177,10 @@ public class RecoverPointImageManagementUtils {
      * 
      * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, InterruptedException
      **/
-    public void waitForCGCopyLinkState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyUID, PipeState desiredPipeState) throws RecoverPointException {
         
+    public void waitForCGCopyLinkState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyUID, PipeState desiredPipeState)
+            throws RecoverPointException {
+
         int numRetries = 0;     
         String cgName = null;
         try {
@@ -1173,7 +1322,8 @@ public class RecoverPointImageManagementUtils {
      * @return true if the copy is capable of enable image access, false if it's in some other state
      * @throws RecoverPointException
      */
-    public boolean verifyCopyCapableOfEnableImageAccess(FunctionalAPIImpl impl, ConsistencyGroupCopyUID cgCopy, String copyToEnable, boolean failover)
+    public boolean verifyCopyCapableOfEnableImageAccess(FunctionalAPIImpl impl, ConsistencyGroupCopyUID cgCopy, String copyToEnable,
+            boolean failover)
             throws RecoverPointException {
         String cgCopyName = NAME_UNKNOWN;
         String cgName = NAME_UNKNOWN;
@@ -1200,7 +1350,8 @@ public class RecoverPointImageManagementUtils {
                 }
                 
                 //return true if CG is already in LOGGED_ACCESS state
-                if (copyAccessState == StorageAccessState.LOGGED_ACCESS && cgCopyState.getAccessedImage().getDescription().equals(copyToEnable)) {
+                if (copyAccessState == StorageAccessState.LOGGED_ACCESS
+                        && cgCopyState.getAccessedImage().getDescription().equals(copyToEnable)) {
                 	return true;                
                 }
             }
@@ -1221,7 +1372,8 @@ public class RecoverPointImageManagementUtils {
      * @param cgName - CG name
      * @throws RecoverPointException
      */
-    public ConsistencyGroupCopyState getCopyState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyId, String cgCopyName, String cgName) throws RecoverPointException {
+    public ConsistencyGroupCopyState getCopyState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyId, String cgCopyName, String cgName)
+            throws RecoverPointException {
         try {
             ConsistencyGroupUID groupUID = copyId.getGroupUID();
             ConsistencyGroupState groupState;

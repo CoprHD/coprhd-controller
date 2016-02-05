@@ -89,6 +89,8 @@ import com.google.common.base.Function;
 public class FileVirtualPoolService extends VirtualPoolService {
 
     private static final Logger _log = LoggerFactory.getLogger(FileVirtualPoolService.class);
+    private static final Long MINUTES_PER_HOUR = 60L;
+    private static final Long HOURS_PER_DAY = 24L;
 
     /**
      * Create File Store VirtualPool
@@ -110,7 +112,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
         Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap =
                 new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
 
-        VirtualPool cos = prepareVirtualPool(param, remoteSettingsMap);
+        VirtualPool cos = prepareVirtualPool(param, remoteSettingsMap, true);
         if (null != param.getLongTermRetention()) {
             cos.setLongTermRetention(param.getLongTermRetention());
         }
@@ -200,7 +202,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
         StoragePoolList poolList = new StoragePoolList();
         Map<URI, VpoolRemoteCopyProtectionSettings> fileReplRemoteSettingsMap =
                 new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
-        VirtualPool vpool = prepareVirtualPool(param, fileReplRemoteSettingsMap);
+        VirtualPool vpool = prepareVirtualPool(param, fileReplRemoteSettingsMap, false);
         List<URI> poolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, poolURIs);
 
@@ -542,7 +544,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
 
     // this method must not persist anything to the DB.
     private VirtualPool prepareVirtualPool(FileVirtualPoolParam param,
-            Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap) {
+            Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap, boolean validateReplArgs) {
 
         if (remoteSettingsMap == null) {
             remoteSettingsMap = new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
@@ -603,22 +605,10 @@ public class FileVirtualPoolService extends VirtualPoolService {
                         copyMode = replPolicy.getCopyMode();
                         vPool.setFileReplicationCopyMode(copyMode.toUpperCase());
                     }
-                    if (null != replPolicy.getRpoValue()) {
+                    // Validate the RPO value and type!!
+                    if (validateReplArgs && validateReplicationRpoParams(replPolicy)) {
+                        vPool.setFrRpoType(replPolicy.getRpoType());
                         vPool.setFrRpoValue(replPolicy.getRpoValue());
-                    }
-                    if (null != replPolicy.getRpoType()) {
-                        if (FileReplicationRPOType.lookup(replPolicy.getRpoType()) != null) {
-                            vPool.setFrRpoType(replPolicy.getRpoType());
-                        } else {
-                            throw APIException.badRequests.invalidReplicationRPOType(replPolicy.getRpoType());
-                        }
-                    }
-                    if (null != replPolicy.getRpoType()) {
-                        if (FileReplicationRPOType.lookup(replPolicy.getRpoType()) != null) {
-                            vPool.setFrRpoType(replPolicy.getRpoType());
-                        } else {
-                            throw APIException.badRequests.invalidReplicationRPOType(replPolicy.getRpoType());
-                        }
                     }
                 }
 
@@ -831,6 +821,40 @@ public class FileVirtualPoolService extends VirtualPoolService {
         _log.info("File Replication setting removed from virtual pool {} ", virtualPool.getLabel());
     }
 
+    private boolean validateReplicationRpoParams(FileReplicationPolicy sourcePolicy) {
+
+        if (sourcePolicy != null &&
+                FileReplicationType.validFileReplication(sourcePolicy.getReplicationType())) {
+            if (sourcePolicy.getRpoType() == null
+                    || FileReplicationRPOType.lookup(sourcePolicy.getRpoType()) == null) {
+                throw APIException.badRequests.invalidReplicationRPOType(sourcePolicy.getRpoType());
+            }
+
+            if (sourcePolicy.getRpoValue() == null || sourcePolicy.getRpoValue() <= 0) {
+                throw APIException.badRequests.invalidReplicationRPOValue();
+            }
+
+            switch (sourcePolicy.getRpoType().toUpperCase()) {
+                case "MINUTES":
+                    if (sourcePolicy.getRpoValue() > MINUTES_PER_HOUR) {
+                        throw APIException.badRequests.invalidReplicationRPOValueForType(
+                                sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
+                    }
+                    break;
+                case "HOURS":
+                    if (sourcePolicy.getRpoValue() > HOURS_PER_DAY) {
+                        throw APIException.badRequests.invalidReplicationRPOValueForType(
+                                sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
+                    }
+                    break;
+                default:
+                    throw APIException.badRequests.invalidReplicationRPOType(sourcePolicy.getRpoType());
+            }
+            return true;
+        }
+        return false;
+    }
+
     private void updateReplicationParams(VirtualPool virtualPool,
             FileVirtualPoolProtectionUpdateParam param) {
         if (param.getReplicationParam() != null) {
@@ -860,14 +884,8 @@ public class FileVirtualPoolService extends VirtualPoolService {
                             deleteRemoteCopies(virtualPool, param);
                         }
                     }
-                    if (sourcePolicy.getRpoType() != null) {
-                        if (FileReplicationRPOType.lookup(sourcePolicy.getRpoType()) != null) {
-                            virtualPool.setFrRpoType(sourcePolicy.getRpoType());
-                        } else {
-                            throw APIException.badRequests.invalidReplicationRPOType(sourcePolicy.getRpoType());
-                        }
-                    }
-                    if (sourcePolicy.getRpoValue() != null) {
+                    if (validateReplicationRpoParams(sourcePolicy)) {
+                        virtualPool.setFrRpoType(sourcePolicy.getRpoType());
                         virtualPool.setFrRpoValue(sourcePolicy.getRpoValue());
                     }
                 }

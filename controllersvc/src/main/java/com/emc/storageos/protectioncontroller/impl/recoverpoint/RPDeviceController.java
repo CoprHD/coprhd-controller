@@ -106,6 +106,7 @@ import com.emc.storageos.recoverpoint.responses.RecoverPointStatisticsResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -184,8 +185,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_PRE_VOLUME_EXPAND = "preVolumeExpand";
     private static final String STEP_POST_VOLUME_EXPAND = "postVolumeExpand";
 
-    private static final String STEP_PRE_VOLUME_RESTORE = "preVolumeRestore";
-    private static final String STEP_POST_VOLUME_RESTORE = "postVolumeRestore";
+    public static final String STEP_PRE_VOLUME_RESTORE = "preVolumeRestore";
+    public static final String STEP_POST_VOLUME_RESTORE = "postVolumeRestore";
 
     // Methods in the create workflow. Constants helps us avoid step dependency flubs.
     private static final String METHOD_CG_CREATE_STEP = "cgCreateStep";
@@ -216,9 +217,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String METHOD_RESTORE_VOLUME_STEP = "restoreVolume";
 
     // Methods in the expand volume workflow
-    private static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
+    public static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
     private static final String METHOD_DELETE_RSET_ROLLBACK_STEP = "recreateRSetStep";
-    private static final String METHOD_RECREATE_RSET_STEP = "recreateRSetStep";
+    public static final String METHOD_RECREATE_RSET_STEP = "recreateRSetStep";
 
     // Methods in the create RP snapshot workflow
     private static final String STEP_BOOKMARK_CREATE = "createBookmark";
@@ -3295,7 +3296,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return the replication set params to perform a recreate operation
      * @throws RecoverPointException
      */
-    private RecreateReplicationSetRequestParams getReplicationSettings(ProtectionSystem rpSystem, URI volumeId)
+    public RecreateReplicationSetRequestParams getReplicationSettings(ProtectionSystem rpSystem, URI volumeId)
             throws RecoverPointException {
         RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
         Volume volume = _dbClient.queryObject(Volume.class, volumeId);
@@ -3841,7 +3842,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
-    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String op, String task)
+    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String pointInTime, String op,
+            String task)
             throws ControllerException {
         RPCGProtectionTaskCompleter taskCompleter = null;
         try {
@@ -3941,6 +3943,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_RP_LINK);
                     RPCopyRequestParams copyParams = new RPCopyRequestParams();
                     copyParams.setCopyVolumeInfo(volumeProtectionInfo);
+
+                    if (pointInTime != null) {
+                        // Build a Date reference.
+                        copyParams.setApitTime(TimeUtils.getDateTimestamp(pointInTime));
+                    }
+
                     rp.failoverCopy(copyParams);
                     updatePostFailover(protectionVolume);
                     taskCompleter.ready(_dbClient, _locker);

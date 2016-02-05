@@ -32,7 +32,7 @@ import models.RoleAssignmentType;
 
 import org.apache.commons.beanutils.BeanComparator;
 import org.apache.commons.lang.StringUtils;
-import org.jdom.Document;
+//import org.jdom.Document;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -443,67 +443,67 @@ public class EditCatalog extends ServiceCatalog {
 	}
 
 	public static void createCustomService(String serviceId) throws Exception {
-		File jsonFile = new File("../com.emc.sa.common/src/java/com/emc/sa/catalog/default-catalog.json");
-		JSONParser parser = new JSONParser();
-		FileReader fileReader = new FileReader(jsonFile);
-		JSONObject json = (JSONObject) parser.parse(fileReader);
-		JSONArray characters = (JSONArray) json.get("categories");
-
-		JSONObject jsonPart = (JSONObject) parser
-				.parse("{\"services\":"+ readServicesFromXML() +",\"title\":\"CustomService\",\"description\":\"mydesc\",\"image\":\"icon_data_services.png\"}");
-		if (characters.get(characters.size() - 1).toString()
-				.contains("CustomService")) {
-			characters.remove(characters.size() - 1);
-		}
-
-		characters.add(jsonPart);
-
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		String jsonPrint = gson.toJson(json);
-		FileWriter fw = null;
-		File file = null;
-		file = new File("../com.emc.sa.common/src/java/com/emc/sa/catalog/default-catalog.json");
-		fw = new FileWriter(file);
-		fw.write(jsonPrint);
-		fw.flush();
-		fw.close();
-		System.out.println("File written Succesfully");
-		edit();
+//		File jsonFile = new File("../com.emc.sa.common/src/java/com/emc/sa/catalog/default-catalog.json");
+//		JSONParser parser = new JSONParser();
+//		FileReader fileReader = new FileReader(jsonFile);
+//		JSONObject json = (JSONObject) parser.parse(fileReader);
+//		JSONArray characters = (JSONArray) json.get("categories");
+//
+//		JSONObject jsonPart = (JSONObject) parser
+//				.parse("{\"services\":"+ readServicesFromXML() +",\"title\":\"CustomService\",\"description\":\"mydesc\",\"image\":\"icon_data_services.png\"}");
+//		if (characters.get(characters.size() - 1).toString()
+//				.contains("CustomService")) {
+//			characters.remove(characters.size() - 1);
+//		}
+//
+//		characters.add(jsonPart);
+//
+//		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//		String jsonPrint = gson.toJson(json);
+//		FileWriter fw = null;
+//		File file = null;
+//		file = new File("../com.emc.sa.common/src/java/com/emc/sa/catalog/default-catalog.json");
+//		fw = new FileWriter(file);
+//		fw.write(jsonPrint);
+//		fw.flush();
+//		fw.close();
+//		System.out.println("File written Succesfully");
+//		edit();
 	}
 
 	private static String readServicesFromXML() {
 		String outputServices = "";
-		try {
-			File XmlFile = new File("../CustomService/CustomServices.xml");
-			DocumentBuilderFactory dbFactory = DocumentBuilderFactory
-					.newInstance();
-			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-			org.w3c.dom.Document doc = dBuilder.parse(XmlFile);
-			doc.getDocumentElement().normalize();
-
-			NodeList nList = doc.getElementsByTagName("customservice");
-
-			StringBuffer outputService = new StringBuffer();
-
-			for (int temp = 0; temp < nList.getLength(); temp++) {
-				Node nNode = nList.item(temp);
-				if (nNode.getNodeType() == Node.ELEMENT_NODE) {
-					org.w3c.dom.Element eElement = (org.w3c.dom.Element) nNode;
-					outputService.append("{\"baseService\":\""
-							+ eElement.getElementsByTagName("taskname").item(0)
-									.getTextContent()
-							+ "\",\"image\":\""
-							+ eElement.getElementsByTagName("img").item(0)
-									.getTextContent() + "\"},");
-				}
-			}
-			String removeCommaOutputService = outputService.toString()
-					.substring(0, outputService.toString().lastIndexOf(','));
-			outputServices = "[" + removeCommaOutputService + "]";
-
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-		}
+//		try {
+//			File XmlFile = new File("../CustomService/CustomServices.xml");
+//			DocumentBuilderFactory dbFactory = DocumentBuilderFactory
+//					.newInstance();
+//			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+//			org.w3c.dom.Document doc = dBuilder.parse(XmlFile);
+//			doc.getDocumentElement().normalize();
+//
+//			NodeList nList = doc.getElementsByTagName("customservice");
+//
+//			StringBuffer outputService = new StringBuffer();
+//
+//			for (int temp = 0; temp < nList.getLength(); temp++) {
+//				Node nNode = nList.item(temp);
+//				if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+//					org.w3c.dom.Element eElement = (org.w3c.dom.Element) nNode;
+//					outputService.append("{\"baseService\":\""
+//							+ eElement.getElementsByTagName("taskname").item(0)
+//									.getTextContent()
+//							+ "\",\"image\":\""
+//							+ eElement.getElementsByTagName("img").item(0)
+//									.getTextContent() + "\"},");
+//				}
+//			}
+//			String removeCommaOutputService = outputService.toString()
+//					.substring(0, outputService.toString().lastIndexOf(','));
+//			outputServices = "[" + removeCommaOutputService + "]";
+//
+//		} catch (Exception e) {
+//			System.out.println(e.getMessage());
+//		}
 		return outputServices;
 	}
 	

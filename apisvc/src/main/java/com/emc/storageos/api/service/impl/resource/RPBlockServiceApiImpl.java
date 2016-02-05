@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -80,6 +81,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
@@ -1834,7 +1836,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     @Override
-    public TaskList deactivateMirror(StorageSystem device, URI mirror, String task) {
+    public TaskList deactivateMirror(StorageSystem device, URI mirror, String task, String deleteType) {
         throw APIException.methodNotAllowed.notSupported();
     }
 
@@ -2659,20 +2661,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     /**
-     * Uses the appropriate controller to delete the snapshot.
-     * 
-     * @param snapshot The snapshot to delete
-     * @param taskId The unique task identifier
+     * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
+    public void deleteSnapshot(BlockSnapshot requestedSnapshot, List<BlockSnapshot> allSnapshots, String taskId, String deleteType) {
         // If the volume is under protection
-        if (TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
-            Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
+        if ((TechnologyType.RP.name().equals(requestedSnapshot.getTechnologyType())) && 
+                (!VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType))) {
+            Volume volume = _dbClient.queryObject(Volume.class, requestedSnapshot.getParent());
             RPController rpController = getController(RPController.class, ProtectionSystem._RP);
-            rpController.deleteSnapshot(volume.getProtectionController(), snapshot.getId(), taskId);
+            rpController.deleteSnapshot(volume.getProtectionController(), requestedSnapshot.getId(), taskId);
         } else {
-            super.deleteSnapshot(snapshot, taskId);
+            super.deleteSnapshot(requestedSnapshot, allSnapshots, taskId, deleteType);
         }
     }
 
@@ -3524,14 +3524,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
 
-            // Cleanup only RP Bookmarks
             if (!rpBookmarks.isEmpty()) {
                 for (BlockSnapshot bookmark : rpBookmarks) {
                     _log.info(String.format("Deleting RP Snapshot/Bookmark [%s] (%s)", bookmark.getLabel(), bookmark.getId()));
                     // Generate task id
                     final String deleteSnapshotTaskId = UUID.randomUUID().toString();
                     // Delete the snapshot
-                    this.deleteSnapshot(bookmark, deleteSnapshotTaskId);
+                    this.deleteSnapshot(bookmark, Arrays.asList(bookmark), deleteSnapshotTaskId, VolumeDeleteTypeEnum.FULL.name());
                 }
             }
         }

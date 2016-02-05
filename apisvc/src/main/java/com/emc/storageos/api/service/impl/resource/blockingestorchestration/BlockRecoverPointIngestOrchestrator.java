@@ -175,7 +175,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             _logger.info("Successfully ingested all volumes associated with RP consistency group");
 
             createProtectionSet(volumeContext);
-            createBlockConsistencyGroup(volumeContext);
+            BlockConsistencyGroup bcg = createBlockConsistencyGroup(volumeContext);
+            parentRequestContext.getCGObjectsToCreateMap().put(bcg.getId().toString(), bcg);
 
             // Once we have a proper managed consistency group and protection set, we need to
             // sprinkle those references over the managed volumes.
@@ -526,8 +527,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * 
      * @param volumeContext the RecoverPointVolumeIngestionContext for the volume currently being ingested
      */
-    private void decorateVolumeInformationFinalIngest(RecoverPointVolumeIngestionContext volumeContext) {
+    private void decorateVolumeInformationFinalIngest(IngestionRequestContext requestContext) {
 
+        RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext();
         ProtectionSet pset = volumeContext.getManagedProtectionSet();
         BlockConsistencyGroup cg = volumeContext.getManagedBlockConsistencyGroup();
 
@@ -548,7 +550,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         volumes.add((Volume) volumeContext.getManagedBlockObject());
         List<DataObject> updatedObjects = new ArrayList<DataObject>();
 
-        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient);
+        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient, requestContext);
         clearPersistedReplicaFlags(volumes, updatedObjects);
         clearReplicaFlagsInIngestionContext(volumeContext);
 
@@ -610,7 +612,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             Integer numPaths = em.getZoningMap().size();
             _logger.info("Creating Export Group with label {}", em.getMaskName());
           
-            //If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains that interna flag.
+            // If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains that
+            // interna flag.
             boolean isJournalExport = false;
             if (em.getMaskName().toLowerCase().contains("journal")) {
             	isJournalExport = true;
@@ -1069,4 +1072,5 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
         super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
     }
+
 }

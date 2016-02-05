@@ -12,9 +12,11 @@ import java.util.List;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.SnapshotList;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockSnapshotBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeSnapshotParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
@@ -124,10 +126,16 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
      * 
      * @param id
      *            the ID of the snapshot to deactivate.
+     * 
+     * @param type
+     *            {@code FULL} or {@code VIPR_ONLY}
+     * 
      * @return a task for monitoring the progress of the operation.
      */
-    public Tasks<BlockSnapshotRestRep> deactivate(URI id) {
-        return doDeactivateWithTasks(id);
+    public Tasks<BlockSnapshotRestRep> deactivate(URI id, VolumeDeleteTypeEnum type) {
+        URI uri = client.uriBuilder(getDeactivateUrl()).queryParam("type", type).build(id);
+        TaskList tasks = client.postURI(TaskList.class, uri);
+        return new Tasks<>(client, tasks.getTaskList(), resourceClass);
     }
 
     /**

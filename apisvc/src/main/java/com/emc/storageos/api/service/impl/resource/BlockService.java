@@ -170,6 +170,7 @@ import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 
 @Path("/block/volumes")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
@@ -1853,99 +1854,11 @@ public class BlockService extends TaskResourceService {
             @DefaultValue("false") @QueryParam("force") boolean force,
             @DefaultValue("FULL") @QueryParam("type") String type)
             throws InternalException {
-        ArgValidator.checkFieldUriType(id, Volume.class, "id");
-        Volume volume = queryVolumeResource(id);
-
-        // Don't operate on VPLEX backend or RP Journal volumes (unless forced to).
-        BlockServiceUtils.validateNotAnInternalBlockObject(volume, force);
-
-        // Make sure that we don't have some pending
-        // operation against the volume
-        if (!force) {
-            checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
-        }
-
-        BlockServiceApi blockServiceApi = getBlockServiceImpl(volume);
-
-        /**
-         * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
-         * Hence we don't require reference check for vmax.
-         */
-        if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
-            List<Class<? extends DataObject>> excludeTypes = null;
-            if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
-                excludeTypes = new ArrayList<>();
-                excludeTypes.add(ExportGroup.class);
-                excludeTypes.add(ExportMask.class);
-            }
-            ArgValidator.checkReference(Volume.class, id, blockServiceApi.checkForDelete(volume, excludeTypes));
-        }
-
-        List<URI> volumeURIs = new ArrayList<URI>();
-        volumeURIs.add(id);
-
-        String task = UUID.randomUUID().toString();
-        Operation op = null;
-
-        // If the volume has active associated volumes, try to deactivate regardless
-        // of native ID or inactive state. This basically means it's a VPLEX volume.
-        boolean forceDeactivate = checkIfVplexVolumeHasActiveAssociatedVolumes(volume);
-
-        // For a volume that is a full copy or is the source volume for
-        // full copies deleting the volume may not be allowed.
-        if (!getFullCopyManager().volumeCanBeDeleted(volume)) {
-            throw APIException.badRequests.cantDeleteFullCopyNotDetached(volume
-                    .getLabel());
-        }
-
-        if (!forceDeactivate && (Strings.isNullOrEmpty(volume.getNativeId()) || volume.getInactive())) {
-            /*
-             * If somehow, nativeId was not set, but the volume was active, set it
-             * inactive. This can be true only for non vplex volumes.
-             * VPlex volume may not have NativeId but associated volumes can have
-             * nativeId and they need to be cleaned up.
-             */
-            if (!volume.getInactive()) {
-                volume.setInactive(true);
-            }
-            op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
-            op.ready();
-            volume.getOpStatus().createTaskStatus(task, op);
-            _dbClient.updateObject(volume);
-        } else {
-            URI systemURI = null;
-            if (!isNullURI(volume.getProtectionController())) {
-                systemURI = volume.getProtectionController();
-            } else {
-                systemURI = volume.getStorageController();
-            }
-
-            op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
-            volume.getOpStatus().createTaskStatus(task, op);
-            _dbClient.updateObject(volume);
-
-            try {
-                blockServiceApi.deleteVolumes(systemURI, volumeURIs, type, task);
-            } catch (InternalException e) {
-                if (_log.isErrorEnabled()) {
-                    _log.error("Delete error", e);
-                }
-
-                Volume vol = _dbClient.queryObject(Volume.class, volume.getId());
-                op = vol.getOpStatus().get(task);
-                op.error(e);
-                vol.getOpStatus().updateTaskStatus(task, op);
-                _dbClient.updateObject(vol);
-                throw e;
-            }
-
-            auditOp(OperationTypeEnum.DELETE_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
-                    volume.getLabel(), volume.getId().toString());
-        }
-
-        return toTask(volume, task, op);
+        // Reuse implementation for deleting multiple volumes.
+        BulkDeleteParam deleteParam = new BulkDeleteParam();
+        deleteParam.setIds(Lists.newArrayList(id));
+        TaskList taskList = deleteVolumes(deleteParam, force, type);
+        return taskList.getTaskList().get(0);
     }
 
     /**
@@ -2046,6 +1959,8 @@ public class BlockService extends TaskResourceService {
             if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
                 List<Class<? extends DataObject>> excludeTypes = null;
                 if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+                    // For ViPR-only delete of exported volumes, We will clean up any
+                    // export groups/masks if the snapshot is exported.
                     excludeTypes = new ArrayList<>();
                     excludeTypes.add(ExportGroup.class);
                     excludeTypes.add(ExportMask.class);
@@ -2055,9 +1970,8 @@ public class BlockService extends TaskResourceService {
 
             // For a volume that is a full copy or is the source volume for
             // full copies deleting the volume may not be allowed.
-            if (!getFullCopyManager().volumeCanBeDeleted(volume)) {
-                throw APIException.badRequests.cantDeleteFullCopyNotDetached(volume
-                        .getLabel());
+            if ((!VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) && (!getFullCopyManager().volumeCanBeDeleted(volume))) {
+                throw APIException.badRequests.cantDeleteFullCopyNotDetached(volume.getLabel());
             }
         }
 
@@ -2645,7 +2559,7 @@ public class BlockService extends TaskResourceService {
      * 
      * @param id the URN of a ViPR Source volume
      * @param param List of copies to deactivate
-     * 
+     * @param deleteType the type of deletion
      * @brief Delete continuous copies
      * @return TaskList
      * 
@@ -2655,7 +2569,8 @@ public class BlockService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/continuous-copies/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList deactivateMirror(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
+    public TaskList deactivateMirror(@PathParam("id") URI id, CopiesParam param,
+            @DefaultValue("FULL") @QueryParam("type") String deleteType) throws ControllerException {
 
         TaskList taskList = new TaskList();
 
@@ -2713,12 +2628,21 @@ public class BlockService extends TaskResourceService {
                     blockServiceApi = getBlockServiceImpl("mirror");
                 }
 
-                auditOp(OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, true, AuditLogManager.AUDITOP_BEGIN,
-                        copyID.toString(), mirrorLabel);
+                // Deactivate the mirror
+                TaskList deactivateTaskList = blockServiceApi.deactivateMirror(device, mirrorURI, task, deleteType);
 
-                TaskList deactivateTaskList = blockServiceApi.deactivateMirror(device, mirrorURI, task);
+                // Create the audit log message
+                String opStage = VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType) ? null : AuditLogManager.AUDITOP_BEGIN;
+                boolean opStatus = true;
+                for (TaskResourceRep resultTask : deactivateTaskList.getTaskList()) {
+                    if (Operation.Status.error.name().equals(resultTask.getState())) {
+                        opStatus = false;
+                        break;
+                    }
+                }
+                auditOp(OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, opStatus, opStage, copyID.toString(), mirrorLabel);
 
-                // Add task for this copy
+                // Add tasks for this copy
                 taskList.getTaskList().addAll(deactivateTaskList.getTaskList());
 
             } else {
@@ -3441,6 +3365,7 @@ public class BlockService extends TaskResourceService {
         oldParam.setVirtualPool(newParam.getVirtualPool());
         oldParam.setProtection(newParam.getProtection());
         oldParam.setConsistencyGroup(newParam.getConsistencyGroup());
+        oldParam.setTransferSpeedParam(newParam.getTransferSpeedParam());
         return oldParam;
     }
 

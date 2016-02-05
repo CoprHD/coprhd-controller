@@ -7,6 +7,6 @@
   <dd>${lf.notice}</dd>
     #{if util.LicenseUtils.hasCapacity(lf)}
       <dt>&{'license.raw.capacity'}</dt>
-      <dd><div style="width:100%">${com.emc.sa.util.SizeUtils.humanReadableByteCount(Double.parseDouble(lf.storageCapacity), true)}</div></dd>
+      <dd><div style="width:100%">${com.emc.sa.util.SizeUtils.humanReadableByteCount(Double.parseDouble(lf.storageCapacity))}</div></dd>
     #{/if}
 </dl>

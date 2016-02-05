@@ -35,9 +35,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 
 import javax.cim.CIMArgument;
@@ -69,6 +71,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -1887,7 +1890,26 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 }
                 deleteTargetDevices(system, nativeIds.toArray(new String[] {}), completer);
                 _log.info("Delete target device complete");
-            } else if (!syncObjectFound) {
+            } else if (syncObjectFound) {
+                if (snapshot.hasConsistencyGroup() && URIUtil.isType(snapshot.getParent().getURI(), Volume.class)) {
+                    Set<CIMInstance> parkingSLOStorageGroups = new HashSet<>();
+                    for (BlockSnapshot aSnap : snapshots) {
+                        // remove the snapshot volumes from the target group and delete target device group.
+                        // don't want to do if parent is a snapshot linked target restore)
+                        boolean forceFlag = ExportUtils.useEMCForceFlag(_dbClient, aSnap.getId());
+                        CIMInstance sloStorageGroup =
+                                _helper.removeVolumeFromParkingSLOStorageGroup(system, aSnap.getNativeId(), forceFlag);
+                        if (sloStorageGroup != null) {
+                            parkingSLOStorageGroups.add(sloStorageGroup);
+                        }
+                    }
+                    _log.info("Done invoking remove volume from storage group");
+                    
+                    if (!parkingSLOStorageGroups.isEmpty()) {
+                        _helper.deleteParkingSLOStorageGroupsIfEmpty(system, parkingSLOStorageGroups);
+                    }
+                }
+            } else {
                 // Need to be sure the completer is called.
                 completer.ready(_dbClient);
             }

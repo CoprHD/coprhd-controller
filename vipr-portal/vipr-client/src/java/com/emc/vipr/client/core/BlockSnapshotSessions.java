@@ -11,11 +11,7 @@ import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-<<<<<<< HEAD
 import com.emc.storageos.model.TaskList;
-=======
-import com.emc.storageos.model.block.BlockSnapshotRestRep;
->>>>>>> master
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;

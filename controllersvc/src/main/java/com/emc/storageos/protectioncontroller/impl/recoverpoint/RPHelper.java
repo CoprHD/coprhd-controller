@@ -1501,9 +1501,7 @@ public class RPHelper {
                     }
                 }
 
-                // Null out any RP specific fields on the volume
-                volume.setRpJournalVolume(NullColumnValueGetter.getNullURI());
-                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
+                // Null out any RP specific fields on the volume               
                 volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                 volume.setPersonality(NullColumnValueGetter.getNullStr());
                 volume.setProtectionController(NullColumnValueGetter.getNullURI());

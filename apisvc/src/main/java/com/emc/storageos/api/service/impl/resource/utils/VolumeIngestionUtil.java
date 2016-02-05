@@ -3135,23 +3135,6 @@ public class VolumeIngestionUtil {
             volume.setProtectionSet(new NamedURI(pset.getId(), pset.getLabel()));
             volume.clearInternalFlags(BlockRecoverPointIngestOrchestrator.RP_INTERNAL_VOLUME_FLAGS);
 
-            // For sources and targets, peg an RP journal volume to be associated with each.
-            // This is a bit arbitrary for ingested RP volues as they may have 5 journal volumes for one source volume.
-            // We just pick one since we only store one journal volume ID in a Volume object.
-            if (Volume.PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality()) ||
-                    Volume.PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())) {
-
-                // Find a journal for that rp copy
-                for (Volume journalVolume : rpVolumes) {
-                    if (Volume.PersonalityTypes.METADATA.toString().equalsIgnoreCase(journalVolume.getPersonality()) &&
-                            journalVolume.getRpCopyName() != null &&
-                            volume.getRpCopyName() != null &&
-                            journalVolume.getRpCopyName().equals(volume.getRpCopyName())) {
-                        volume.setRpJournalVolume(journalVolume.getId());
-                    }
-                }
-            }
-
             // Set the proper flags on the journal volumes.
             if (volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString())) {
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE);

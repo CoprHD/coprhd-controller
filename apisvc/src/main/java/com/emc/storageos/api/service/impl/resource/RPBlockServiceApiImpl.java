@@ -431,8 +431,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                             sourceVol.getId(),
                                             standbyJournal.getLabel(),
                                             standbyJournal.getId()));
-                                    sourceVol.setSecondaryRpJournalVolume(standbyJournal.getId());
-                                    _dbClient.persistObject(sourceVol);
                                     // All RP+VPLEX Metro volumes in this CG need to have their backing volume
                                     // references updated with the internal site names for exports.
                                     setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
@@ -1568,14 +1566,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
 
             volume.setVirtualArray(varray.getId());
-        }
-
-        if (journalVolume != null) {
-            volume.setRpJournalVolume(journalVolume.getId());
-        }
-
-        if (standbyJournalVolume != null) {
-            volume.setSecondaryRpJournalVolume(standbyJournalVolume.getId());
         }
 
         // Set all Journal Volumes to have the INTERNAL_OBJECT flag.

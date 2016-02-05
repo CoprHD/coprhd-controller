@@ -504,7 +504,7 @@ change_link.add_argument('name',		help = 'URI or full pathname of volume')
 change_link.add_argument('operation',	help = 'operation: stop, start, failover, failover_test, pause, resume')
 change_link.add_argument('copyURI', help = 'URI of copy to perform operation on')
 change_link.add_argument('type', help = 'type of protection for the source volume')
-change_link.add_argument('pit', help = 'any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds')
+change_link.add_argument('--pit', help = 'any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds')
 
 # volume verify
 verify = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

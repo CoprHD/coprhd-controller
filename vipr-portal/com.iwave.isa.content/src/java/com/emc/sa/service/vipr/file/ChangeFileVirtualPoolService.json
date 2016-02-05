@@ -8,7 +8,7 @@
     },
 
     fileSystems:{
-      type:"assetType.vipr.fileFilesystem"
+      type:"assetType.vipr.unprotectedFilesystem"
     },
     
     virtualPoolChangeOperation:{

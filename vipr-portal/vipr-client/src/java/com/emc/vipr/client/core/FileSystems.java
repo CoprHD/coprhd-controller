@@ -622,6 +622,22 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
     
     /**
+     * Stop a number of continuous copies for a given file system.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/stop</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the copy configurations.
+     * @return tasks for monitoring the progress if the operations.
+     */
+    public Tasks<FileShareRestRep> stopFileContinuousCopies(URI id, FileReplicationParam input) {
+        TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/stop", id);
+        return new Tasks<FileShareRestRep>(client, tasks.getTaskList(), FileShareRestRep.class);
+    }
+    
+    /**
      * Begins initiating failover for a given file system.
      * <p>
      * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/failover</tt>

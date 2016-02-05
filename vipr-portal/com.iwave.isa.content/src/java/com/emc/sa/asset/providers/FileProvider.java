@@ -24,6 +24,7 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -337,7 +338,10 @@ public class FileProvider extends BaseAssetOptionsProvider {
         
         for (FileShareRestRep fileShare : fileSystems) {
             if (fileShare.getProtection() != null) {
-                if (StringUtils.equals("SOURCE", fileShare.getProtection().getPersonality())) {
+                URI vpoolId = fileShare.getVirtualPool().getId();
+                FileVirtualPoolRestRep vpool = client.fileVpools().get(vpoolId);
+                if (StringUtils.equals("SOURCE", fileShare.getProtection().getPersonality()) &&
+                        StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.REMOTE.name())) {
                     options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
                 }
             }
@@ -373,6 +377,25 @@ public class FileProvider extends BaseAssetOptionsProvider {
         return Lists.newArrayList();
     }
     
+    @Asset("unprotectedFilesystem")
+    @AssetDependencies({ "project" })
+    public List<AssetOption> getUnprotectedFileSystems(AssetOptionsContext ctx, URI project) {
+        debug("getting unprotected file system (project=%s)", project);
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        
+        List<FileShareRestRep> fileSystems = client.fileSystems().findByProject(project);
+        
+        for (FileShareRestRep fileShare : fileSystems) {
+            if (fileShare.getProtection() == null) {
+                options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
+            }
+        }
+        
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
     @Asset("fileVirtualPoolChangeOperation")
     public List<AssetOption> getVirtualPoolchangeOperations(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
@@ -383,7 +406,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
     
     @Asset("fileTargetVirtualPool")
-    @AssetDependencies("fileFilesystem")
+    @AssetDependencies("unprotectedFilesystem")
     public List<AssetOption> getFileTargetVirtualPools(AssetOptionsContext ctx, URI fileId) {
         List<AssetOption> options = Lists.newArrayList();
         List<FileVirtualPoolRestRep> vpoolChanges = api(ctx).fileVpools().getAll();

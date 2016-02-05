@@ -59,6 +59,7 @@ import com.emc.sa.service.vipr.file.tasks.PauseFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
+import com.emc.sa.service.vipr.file.tasks.StopFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
@@ -350,6 +351,7 @@ public class FileStorageUtils {
     
     private static void removeFileContinuousCopy(URI fileId, URI continuousCopyId) {
         //execute(new PauseFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
+        execute(new StopFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
         Task<FileShareRestRep> task = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
         addAffectedResource(task);
     }

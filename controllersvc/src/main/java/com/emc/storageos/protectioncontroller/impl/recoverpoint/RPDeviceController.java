@@ -3656,45 +3656,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return null;
     }
 
-<<<<<<< HEAD
-=======
-    /**
-     * Get an initiator as specified by the passed initiator data. First checks
-     * if an initiator with the specified port already exists in the database,
-     * and simply returns that initiator, otherwise creates a new initiator.
-     *
-     * @param initiatorParam The data for the initiator.
-     *
-     * @return A reference to an initiator.
-     *
-     * @throws InternalException When an error occurs querying the database.
-     */
-    private Initiator getOrCreateNewInitiator(Initiator initiatorParam)
-            throws InternalException {
-        Initiator initiator = null;
-        URIQueryResultList resultsList = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(
-                initiatorParam.getInitiatorPort()), resultsList);
-        Iterator<URI> resultsIter = resultsList.iterator();
-        if (resultsIter.hasNext()) {
-            initiator = _dbClient.queryObject(Initiator.class, resultsIter.next());
-            // If the hostname has been changed then we need to update the
-            // Initiator object to reflect that change.
-            if (NullColumnValueGetter.isNotNullValue(initiator.getHostName())
-                    && !initiator.getHostName().equals(initiatorParam.getHostName())) {
-                initiator.setHostName(initiatorParam.getHostName());
-                _dbClient.updateObject(initiator);
-            }
-        } else {
-            initiatorParam.setId(URIUtil.createId(Initiator.class));
-            _dbClient.createObject(initiatorParam);
-            initiator = initiatorParam;
-        }
-
-        return initiator;
-    }
-
->>>>>>> master
     @Override
     public void updateConsistencyGroupPolicy(URI protectionDevice, URI consistencyGroup, List<URI> volumeURIs,
             URI newVpoolURI, String task) throws InternalException {

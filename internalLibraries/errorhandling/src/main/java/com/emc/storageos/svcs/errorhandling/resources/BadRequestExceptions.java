@@ -124,7 +124,7 @@ public interface BadRequestExceptions {
             final String unsupportedFor);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException changeToVirtualPoolNotSupported(final URI vpoolId,
+    public BadRequestException changeToVirtualPoolNotSupported(final String vpool,
             final String notSuppReasonBuff);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

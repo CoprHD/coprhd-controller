@@ -728,15 +728,6 @@ public class BlockSnapshotSessionManager {
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
 
-<<<<<<< HEAD
-        // Create the operation status entry in the status map for the snapshot.
-        Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION);
-        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, op);
-        snapSession.getOpStatus().put(taskId, op);
-        TaskList response = new TaskList();
-        response.getTaskList().add(toTask(snapSession, taskId));
-=======
         Operation snapSessionOp = new Operation();
         snapSessionOp.setResourceType(getDeleteResourceOperationTypeEnum(snapSession));
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, snapSessionOp);
@@ -747,7 +738,6 @@ public class BlockSnapshotSessionManager {
         } else {
             taskList.addTask(toTask(snapSession, taskId, snapSessionOp));
         }
->>>>>>> master
 
         // Delete the snapshot session.
         try {
@@ -765,14 +755,9 @@ public class BlockSnapshotSessionManager {
         }
 
         // Create the audit log entry.
-<<<<<<< HEAD
         String opStage = VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType) ? null : AuditLogManager.AUDITOP_BEGIN;
         auditOp(OperationTypeEnum.DELETE_SNAPSHOT_SESSION, true, opStage, snapSessionURI.toString(),
-                snapSessionSourceURI.toString(), snapSessionSourceObj.getStorageController().toString());
-=======
-        auditOp(OperationTypeEnum.DELETE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN,
-                snapSessionURI.toString(), snapSessionSourceObj.getId().toString(), snapSessionSourceObj.getStorageController().toString());
->>>>>>> master
+                snapSessionURI.toString(), snapSessionSourceObj.getStorageController().toString());
 
         s_logger.info("FINISH delete snapshot session {}", snapSessionURI);
 

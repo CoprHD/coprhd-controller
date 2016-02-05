@@ -495,9 +495,17 @@ public class DrUtil {
     }
 
     /**
-     * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation, throw Exception otherwise
+     * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation on any site, throw Exception otherwise
      */
     public InterProcessLock getDROperationLock() {
+        return getDROperationLock(true);
+    }
+
+    /**
+     * @param checkAllSitesOperations
+     * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation, throw Exception otherwise
+     */
+    public InterProcessLock getDROperationLock(boolean checkAllSitesOperations) {
         // Try to acquire lock, succeed or throw Exception
         InterProcessLock lock = coordinator.getLock(DR_OPERATION_LOCK);
         boolean acquired;
@@ -516,15 +524,25 @@ public class DrUtil {
         }
 
         // Has successfully acquired lock
-        // Check if there's ongoing DR operation, if there is, release lock and throw exception
+
         Site ongoingSite = null;
-        List<Site> sites = listSites();
-        for (Site site : sites) {
-            if (site.getState().isDROperationOngoing()) {
+        if (checkAllSitesOperations) {
+            // Check if there's ongoing DR operation on any site, if there is, release lock and throw exception
+            List<Site> sites = listSites();
+            for (Site site : sites) {
+                if (site.getState().isDROperationOngoing()) {
+                    ongoingSite = site;
+                    break;
+                }
+            }
+        } else {
+            // Check if there's ongoing DR operation on this site, if there is, release lock and throw exception
+            Site site = getLocalSite();
+            if (site.getState().isDROperationOngoing() && !site.getState().equals(SiteState.STANDBY_SYNCING)) {
                 ongoingSite = site;
-                break;
             }
         }
+
         if (ongoingSite != null) {
             try {
                 lock.release();

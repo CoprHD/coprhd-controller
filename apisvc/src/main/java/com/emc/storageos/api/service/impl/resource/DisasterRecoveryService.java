@@ -522,6 +522,8 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.removeStandbyPrecheckFailed(SiteNamesStr, e.getMessage());
         }
 
+        InterProcessLock lock = drUtil.getDROperationLock(false);
+
         List<String> sitesString = new ArrayList<>();
         try {
             log.info("Removing sites");
@@ -547,6 +549,12 @@ public class DisasterRecoveryService {
             auditDisasterRecoveryOps(OperationTypeEnum.REMOVE_STANDBY, AuditLogManager.AUDITLOG_FAILURE,
                     null, StringUtils.join(sitesString, ','));
             throw APIException.internalServerErrors.removeStandbyFailed(SiteNamesStr, e.getMessage());
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception ignore) {
+                log.error(String.format("Lock release failed when removing standby sites: %s", siteIdStr));
+            }
         }
     }
 

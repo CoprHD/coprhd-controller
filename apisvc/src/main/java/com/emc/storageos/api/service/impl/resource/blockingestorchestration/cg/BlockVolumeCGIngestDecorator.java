@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -12,20 +13,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
-import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
+/**
+ * This decorator is responsible for decorating the CG with the backend/regular volume.
+ * 
+ * If the BlockObjects are behind RP + VPLEX, blockConsistencyGroup should belongs to RP.
+ * And should decorate the CG with the VPLEX & its backend volumes protected by RP.
+ * 
+ *
+ */
 public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
     private static final Logger logger = LoggerFactory.getLogger(BlockVolumeCGIngestDecorator.class);
 
     @Override
-    public void decorateCG(BlockConsistencyGroup cg, UnManagedVolume umv, Collection<BlockObject> associatedObjects,
+    public void decorateCG(BlockConsistencyGroup cg, Collection<BlockObject> associatedObjects,
             IngestionRequestContext requestContext)
             throws Exception {
         if (null != associatedObjects && !associatedObjects.isEmpty()) {
@@ -57,23 +64,25 @@ public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
                 }
 
             }
+        } else {
+            logger.info("No associated BlockObject's found to decorate for cg {}", cg.getLabel());
         }
     }
 
     @Override
-    protected Collection<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, UnManagedVolume umv,
+    protected Collection<BlockObject> getAssociatedObjects(BlockConsistencyGroup cg, Collection<BlockObject> allCGBlockObjects,
             IngestionRequestContext requestContext)
             throws Exception {
-        Collection<BlockObject> blockObjects = VolumeIngestionUtil.findBlockObjectsInCg(cg, requestContext);
+        Collection<BlockObject> blockObjects = new ArrayList<BlockObject>();
 
         // Filter out vplex volumes
-        Iterator<BlockObject> blockObjectItr = blockObjects.iterator();
-        while (blockObjectItr.hasNext()) {
-            BlockObject blockObject = blockObjectItr.next();
+        Iterator<BlockObject> allCGBlockObjectItr = allCGBlockObjects.iterator();
+        while (allCGBlockObjectItr.hasNext()) {
+            BlockObject blockObject = allCGBlockObjectItr.next();
             if (blockObject instanceof Volume) {
                 Volume volume = (Volume) blockObject;
-                if (volume.checkForVplexVirtualVolume(dbClient)) {
-                    blockObjectItr.remove();
+                if (!volume.checkForVplexVirtualVolume(getDbClient())) {
+                    blockObjects.add(volume);
                 }
             }
         }

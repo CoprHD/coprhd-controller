@@ -4,10 +4,13 @@
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
+import java.util.Collection;
+
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -38,6 +41,7 @@ public class CGIngestionDecoratorUtil {
     public static void decorate(UnManagedVolume umv, BlockConsistencyGroup cg, IngestionRequestContext requestContext, DbClient dbClient)
             throws Exception {
         BlockCGIngestDecorator commCGDecorator = null;
+        Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
         // Check if the UnManagedVolume is RP
         if (VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umv)) {
             commCGDecorator = rpCGDecorator;
@@ -49,9 +53,9 @@ public class CGIngestionDecoratorUtil {
         } else if (VolumeIngestionUtil.isVplexVolume(umv)) {  // Check if the UnManagedVolume is VPLEX
             commCGDecorator = vplexCGDecorator;
             commCGDecorator.setNextDecorator(volumeCGDecorator);
-    }
+        }
         commCGDecorator.setDbClient(dbClient);
-        commCGDecorator.decorate(cg, umv, requestContext);
+        commCGDecorator.decorate(cg, allCGBlockObjects, requestContext);
     }
 
 }

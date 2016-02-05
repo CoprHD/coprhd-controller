@@ -188,28 +188,47 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         return clazz.cast(volume);
     }
 
+    /**
+     * Decorates the CG uri & replicationGroupName for all volumes in CG when ingested last regular volume in Unmanaged cg.
+     * This information will be used when decorating CG at the end of the ingestion process.
+     * 
+     * For each unmanaged volume in unmanaged cg,
+     * 1. We verify whether the BlockObject is available in the current createdBlockObjects in context or not.
+     * If it is available, then set the CG properties
+     * Else, verify in the current updatedBlockObjects in context.
+     * 2. If the blockObject is available in updateBlockObjects, then update CG properties.
+     * Else, blockObject might have ingested in previous requests, so, we should check from DB.
+     * If blockObject is in DB, update CG properties else log a warning message.
+     * 
+     */
     @Override
-    protected void decorateCGVolumes(BlockConsistencyGroup cg, BlockObject volume, IngestionRequestContext requestContext,
+    protected void decorateCGInfoInVolumes(BlockConsistencyGroup cg, BlockObject volume, IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume) {
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroupFromContext(cg, requestContext);
-        List<DataObject> updatesToUpdateList = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
+        List<DataObject> blockObjectsToUpdate = new ArrayList<DataObject>();
         if (null != umcg && null != umcg.getManagedVolumesMap() && !umcg.getManagedVolumesMap().isEmpty()) {
             for (Entry<String, String> managedVolumeEntry : umcg.getManagedVolumesMap().entrySet()) {
-                // Check volumes in the current context.
-                BlockObject blockObject = requestContext.getProcessedBlockObject(managedVolumeEntry.getKey());
-                if (null == blockObject) {
-                    _logger.info("Volume is not in the current context. querying from db: {}", managedVolumeEntry.getKey());
+
+                BlockObject blockObject = requestContext.findCreatedBlockObject(managedVolumeEntry.getKey());
+                if (blockObject == null) {
+                    // Next look in the updated objects.
+                    blockObject = (BlockObject) requestContext.findInUpdatedObjects(URI.create(managedVolumeEntry.getKey()));
+                }
+                if (blockObject == null) {
+                    // Finally look in the DB itself. It may be from a previous ingestion operation.
                     blockObject = BlockObject.fetch(_dbClient, URI.create(managedVolumeEntry.getValue()));
+                    // If blockObject is still not exists
+                    if (null == blockObject) {
+                        _logger.warn("Volume {} is not yet ingested. Hence skipping", managedVolumeEntry.getKey());
+                        continue;
+                    }
+                    blockObjectsToUpdate.add(blockObject);
                 }
-                if (null != blockObject) {
-                    _logger.debug("Found BlockObject for {} and decorating cg information.", managedVolumeEntry.getValue());
-                    blockObject.setConsistencyGroup(cg.getId());
-                    blockObject.setReplicationGroupInstance(cg.getLabel());
-                    updatesToUpdateList.add(blockObject);
-                } else {
-                    _logger.warn("Volume {} is not yet ingested. Hence skipping", managedVolumeEntry.getKey());
-                    continue;
-                }
+                blockObject.setConsistencyGroup(cg.getId());
+                blockObject.setReplicationGroupInstance(cg.getLabel());
+            }
+            if (!blockObjectsToUpdate.isEmpty()) {
+                requestContext.getObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
             }
         }
         volume.setConsistencyGroup(cg.getId());
@@ -229,6 +248,19 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         }
     }
 
+    /**
+     * Following steps are performed as part of this method execution.
+     * 
+     * @TODO refactor the code to modularize responsibilities.
+     * 
+     *       1. Checks whether unManagedVolume is protected by RP or VPLEX, if yes we willn't create backend CG.
+     *       2. For regular volumes in unManaged CG, we will create CG when ingesting last volume in unmanaged CG.
+     *       3. When ingesting last regular volume in unmanaged CG, we will check whether CG already exists in DB for the same project &
+     *       tenant.
+     *       If yes, we will reuse it.
+     *       Otherwise, we will create new BlockConsistencyGroup for the unmanaged consistencyGroup.
+     * 
+     */
     @Override
     protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,
             IngestionRequestContext context, DbClient dbClient) {

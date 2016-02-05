@@ -1395,6 +1395,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        // TODO unblock if called from VolumeGroupService
         validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
 
         // Get the full copy source.

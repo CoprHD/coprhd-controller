@@ -41,20 +41,6 @@ public class CloneWorkflowCompleter extends VolumeTaskCompleter {
         super.setStatus(dbClient, status, coded);
         super.complete(dbClient, status, coded);
         
-        // clear VolumeGroup's Partial_Request Flag
-        List<Volume> toUpdate = new ArrayList<Volume>();
-        for (URI fullCopyURI : getIds()) {
-            Volume fullCopy = dbClient.queryObject(Volume.class, fullCopyURI);
-            if (fullCopy.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
-                fullCopy.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
-                toUpdate.add(fullCopy);
-            }
-        }
-        if (!toUpdate.isEmpty()) {
-            log.info("Clearing PARTIAL flag set on Clones for Partial request");
-            dbClient.updateObject(toUpdate);
-        }
-
         log.info("END CloneWorkflowCompleter complete");
     }
 }

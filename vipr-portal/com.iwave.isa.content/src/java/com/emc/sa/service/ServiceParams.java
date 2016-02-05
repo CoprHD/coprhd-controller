@@ -6,7 +6,7 @@ package com.emc.sa.service;
 
 /**
  * This interface defines the parameter names for operation parameters.
- * 
+ *
  * @author jonnymiller
  */
 public interface ServiceParams {
@@ -24,7 +24,7 @@ public interface ServiceParams {
     public String PROTOCOL = "protocol";
     public String MULTIPATH_POLICY = "multipathPolicy";
     public String STORAGE_IO_CONTROL = "storageIOControl";
-    
+
     public String WINDOWS_DOMAIN = "domain";
     public String VOLUME_NAME = "volumeName";
     public String SHARE_NAME = "shareName";
@@ -57,6 +57,8 @@ public interface ServiceParams {
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";
     public String FAILOVER_TARGET_FILE = "failoverTargetFile";
+    public String IMAGE_TO_ACCESS = "imageToAccess";
+    public String POINT_IN_TIME = "pointInTime";
     public String NUMBER_OF_VOLUMES = "numberOfVolumes";
     public String NUMBER_OF_HOSTS = "numberOfHosts";
     public String COUNT = "count";
@@ -117,7 +119,7 @@ public interface ServiceParams {
     public String OPLOCK = "oplock";
     public String SECURITY_STYLE = "securityStyle";
     public String QUOTA_DIRECTORIES = "quotaDirectories";
-    
+
     public String SOFT_QUOTA = "softQuota";
     public String HARD_QUOTA = "hardQuota";
     public String RETENTION = "retention";
@@ -125,11 +127,11 @@ public interface ServiceParams {
     public String TENANT = "tenant";
     public String OWNER = "owner";
     public String BUCKET = "bucket";
-    
-    public String ADVISORY_LIMIT="advisoryLimit";
-    public String SOFT_LIMIT="softLimit";
-    public String GRACE_PERIOD="gracePeriod";
-    
+
+    public String ADVISORY_LIMIT = "advisoryLimit";
+    public String SOFT_LIMIT = "softLimit";
+    public String GRACE_PERIOD = "gracePeriod";
+
     public String LINKED_SNAPSHOT = "linkedSnapshot";
     public String LINKED_SNAPSHOT_NAME = "linkedSnapshotName";
     public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";

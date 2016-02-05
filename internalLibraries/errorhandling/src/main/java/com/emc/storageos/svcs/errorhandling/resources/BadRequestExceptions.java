@@ -1149,6 +1149,12 @@ public interface BadRequestExceptions {
     public BadRequestException invalidReplicationRPOType(String rpoType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidReplicationRPOValue();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidReplicationRPOValueForType(String rpovalue, String units);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidVirtualPoolFromVirtualArray(URI vpool, URI varray);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1845,6 +1851,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotIsNotForConsistencyGroup(final String snapshotName, final String cgName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionIsNotForConsistencyGroup(final String snapSessionName, final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_INVALID_MAX_CONTINUOUS_COPIES)
     public BadRequestException invalidMaxContinuousCopiesForVplex(final Integer maxCopies);

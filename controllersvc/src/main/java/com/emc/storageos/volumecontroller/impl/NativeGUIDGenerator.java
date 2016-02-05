@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -15,6 +16,7 @@ import java.util.Set;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,6 +107,10 @@ public class NativeGUIDGenerator {
         OBJECT_TYPE_SET.add(VIRTUAL_NAS);
     }
 
+    // Cannot get this bean throw ControllerServiceImpl context, since ControllerServiceImpl is not loaded by spring in apisvc. The context is null.
+    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
+           getApplicationContext().getBean("storageDriverManager");
+
     /**
      * static block maps the names existed as part of indications with the corresponding devices
      * 
@@ -131,6 +137,12 @@ public class NativeGUIDGenerator {
         _deviceTypeMap.put(StorageSystem.Type.vnxe.name(), "VNXE");
         _deviceTypeMap.put(StorageSystem.Type.xtremio.name(), "XTREMIO");
         _deviceTypeMap.put(StorageSystem.Type.ecs.name(), "ECS");
+
+        // add systems managed by driver
+        Collection<String> storageSystems = storageDriverManager.getStorageSystemsMap().values();
+        for (String storageSystem : storageSystems) {
+            _deviceTypeMap.put(storageSystem, storageSystem);
+        }
     }
 
     /**

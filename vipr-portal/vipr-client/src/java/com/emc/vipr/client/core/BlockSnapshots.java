@@ -15,6 +15,8 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockSnapshotBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeSnapshotParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
@@ -196,7 +198,7 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
         List<NamedRelatedResourceRep> refs = listByVolume(volumeId);
         return getByRefs(refs, filter);
     }
-
+        
     /**
      * Begins creating a snapshot (or snapshots) of a given block volume by ID.
      * <p>

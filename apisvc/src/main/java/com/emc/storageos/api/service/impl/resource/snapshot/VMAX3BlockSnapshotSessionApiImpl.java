@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -14,15 +15,22 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
+
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 /**
  * Block snapshot session implementation for volumes a VMAX3 systems.
@@ -124,13 +132,13 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
+    public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId) {
         // Invoke the BlockDeviceController to create the array snapshot session and create and link
         // target volumes as necessary.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, sourceObj.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.createSnapshotSession(storageSystem.getId(), snapSessionURIs, snapSessionSnapshotMap, copyMode, taskId);
+        controller.createSnapshotSession(storageSystem.getId(), snapSessionURI, snapSessionSnapshotURIs, copyMode, taskId);
     }
 
     /**
@@ -151,7 +159,7 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            List<URI> snapshotURIs, String copyMode, String taskId) {
+                                                      List<List<URI>> snapshotURIs, String copyMode, String taskId) {
         // Invoke the BlockDeviceController to create and link new target
         // volumes to the passed snapshot session.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());

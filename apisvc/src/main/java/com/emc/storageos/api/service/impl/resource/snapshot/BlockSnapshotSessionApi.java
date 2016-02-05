@@ -12,6 +12,7 @@ import java.util.Set;
 import javax.ws.rs.core.UriInfo;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -23,16 +24,6 @@ import com.emc.storageos.db.client.model.Volume;
  * session operations.
  */
 public interface BlockSnapshotSessionApi {
-
-    /**
-     * Get a list of all block objects to be operated on given the passed
-     * snapshot session source object for a snapshot session request.
-     * 
-     * @param sourceObj A reference to a Volume or BlockSnapshot instance.
-     * 
-     * @return A list of all snapshot session source objects.
-     */
-    public List<BlockObject> getAllSourceObjectsForSnapshotSessionRequest(BlockObject sourceObj);
 
     /**
      * Validate a create block snapshot session request.
@@ -60,14 +51,13 @@ public interface BlockSnapshotSessionApi {
      * @param snapSessionLabel The snapshot session label for these snapshot sessions.
      * @param newTargetCount The number of new targets to create and link to each snapshot session.
      * @param newTargetsName The requested name for the new linked targets.
-     * @param snapSessionURIs This OUT parameter gets populated with the URIs of the created snapshot sessions.
-     * @param snapSessionSnapshotMap This OUT parameter gets populated with the BlockSnaphot instances created for each session, if any.
+     * @param snapSessionSnapshots This OUT parameter gets populated with the BlockSnaphot instances created for each session, if any.
      * @param taskId The unique task identifier.
      * 
      * @return
      */
-    public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<URI> snapSessionURIs, Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String taskId);
+    public BlockSnapshotSession prepareSnapshotSession(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
+            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId);
 
     /**
      * Prepare a ViPR BlockSnapshotSession instance for the passed source object.
@@ -86,27 +76,39 @@ public interface BlockSnapshotSessionApi {
      * Prepare ViPR BlockSnapshot instances for the new targets to be created and
      * linked to a block snapshot session.
      * 
-     * @param sourceObj The snapshot session source.
+     * @param sourceObjList The snapshot session source.
      * @param sessionCount The snapshot session count when preparing snapshots for multiple sessions.
      * @param newTargetCount The number of new targets to be created.
      * @param newTargetsName The requested name for the new linked targets.
-     * 
+     *
      * @return A map containing the prepared BlockSnapshot instances, keyed by the snapshot URI.
      */
-    public Map<URI, BlockSnapshot> prepareSnapshotsForSession(BlockObject sourceObj, int sessionCount, int newTargetCount,
-            String newTargetsName);
+    public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sessionCount, int newTargetCount,
+                                                                    String newTargetsName);
+
+    /**
+     * Prepare a ViPR BlockSnapshot instance for a new target to be created and
+     * linked to a block snapshot session.
+     * 
+     * @param sourceObj The snapshot source object.
+     * @param snapsetLabel The snapset label for snapshots in a group.
+     * @param instanceLabel The snapshot instance label.
+     *
+     * @return The prepared BlockSnapshot instance.
+     */
+    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String instanceLabel);
 
     /**
      * Creates a new block snapshot session.
      * 
      * @param sourceObj A reference to the source object.
-     * @param snapSessionURIs The URI of the ViPR BlockSnashotSession instances to be created.
-     * @param snapSessionSnapshotMap A map containing the URis of the BlockSnapshot instances for each session.
+     * @param snapSessionURI The URI of the ViPR BlockSnashotSession instances to be created.
+     * @param snapSessionSnapshotURIs A map containing the URis of the BlockSnapshot instances for each session.
      * @param copyMode The copy mode for linked targets.
      * @param taskId A unique task identifier.
      */
-    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId);
+    public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId);
 
     /**
      * Validates a link new targets to block snapshot session request.
@@ -122,15 +124,14 @@ public interface BlockSnapshotSessionApi {
 
     /**
      * Creates a new block snapshot session.
-     * 
-     * @param snapSessionSourceObj A reference to the source object.
+     *  @param snapSessionSourceObj A reference to the source object.
      * @param snapSession A reference to the BlockSnapshotSession instance.
      * @param snapshotURIs The URIs of the BlockSnapshot instances representing the linked targets.
      * @param copyMode The copy mode for linked targets.
      * @param taskId A unique task identifier.
      */
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            List<URI> snapshotURIs, String copyMode, String taskId);
+                                                      List<List<URI>> snapshotURIs, String copyMode, String taskId);
 
     /**
      * Validates a re-link targets to block snapshot session request.
@@ -189,10 +190,10 @@ public interface BlockSnapshotSessionApi {
     /**
      * Validates a restore snapshot session request.
      * 
-     * @param snapSessionSourceObj A reference to the snapshot session source.
+     * @param snapSessionSourceObjs A list of the snapshot session source objects.
      * @param project A reference to the source project.
      */
-    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project);
+    public void validateRestoreSnapshotSession(List<BlockObject> snapSessionSourceObjs, Project project);
 
     /**
      * Restores the source with the data from the array snapshot point-in-time
@@ -231,10 +232,25 @@ public interface BlockSnapshotSessionApi {
     public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj);
 
     /**
+     * Get all BlockSnapshotSessions for the passed consistency group.
+     * 
+     * @param groupObj A reference to the consistency group object.
+     */
+    public List<BlockSnapshotSession> getSnapshotSessionsForConsistencyGroup(BlockConsistencyGroup groupObj);
+
+    /**
      * Verifies there are no active mirrors for the snapshot session source volume.
      * Should be overridden when there are additional or different platform restrictions.
      * 
      * @param sourceVolume A reference to the snapshot session source.
      */
     public void verifyActiveMirrors(Volume sourceVolume);
+
+    /**
+     * Gets all snapshot sessions with a common session instance.
+     * 
+     * @param instance
+     * @return
+     */
+    public List<BlockSnapshotSession> getSnapshotSessionsBySessionInstance(String instance);
 }

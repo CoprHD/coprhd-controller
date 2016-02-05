@@ -43,6 +43,7 @@ import com.emc.sa.service.vipr.file.tasks.DeactivateFileSystemExport;
 import com.emc.sa.service.vipr.file.tasks.DeactivateFileSystemExportRule;
 import com.emc.sa.service.vipr.file.tasks.DeactivateFileSystemShare;
 import com.emc.sa.service.vipr.file.tasks.DeactivateQuotaDirectory;
+import com.emc.sa.service.vipr.file.tasks.DissociateFilePolicyFromFileSystem;
 import com.emc.sa.service.vipr.file.tasks.ExpandFileSystem;
 import com.emc.sa.service.vipr.file.tasks.FailoverFileSystem;
 import com.emc.sa.service.vipr.file.tasks.FindFileSnapshotExportRules;
@@ -551,6 +552,10 @@ public class FileStorageUtils {
     
     public static Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId) {
         return execute(new AssociateFilePolicyToFileSystem(fileSystemId, filePolicyId));
+    }
+    
+    public static Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
+        return execute(new DissociateFilePolicyFromFileSystem(fileSystemId, filePolicyId));
     }
     
     public static List<String> getInvalidFileACLs(FileSystemACLs[] fileACLs) {

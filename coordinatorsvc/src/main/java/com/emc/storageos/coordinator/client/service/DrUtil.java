@@ -524,22 +524,17 @@ public class DrUtil {
         }
 
         // Has successfully acquired lock
+        if (!checkAllSitesOperations) {
+            return lock;
+        }
 
+        // Check if there's ongoing DR operation on any site, if there is, release lock and throw exception
         Site ongoingSite = null;
-        if (checkAllSitesOperations) {
-            // Check if there's ongoing DR operation on any site, if there is, release lock and throw exception
-            List<Site> sites = listSites();
-            for (Site site : sites) {
-                if (site.getState().isDROperationOngoing()) {
-                    ongoingSite = site;
-                    break;
-                }
-            }
-        } else {
-            // Check if there's ongoing DR operation on this site, if there is, release lock and throw exception
-            Site site = getLocalSite();
-            if (site.getState().isDROperationOngoing() && !site.getState().equals(SiteState.STANDBY_SYNCING)) {
+        List<Site> sites = listSites();
+        for (Site site : sites) {
+            if (site.getState().isDROperationOngoing()) {
                 ongoingSite = site;
+                break;
             }
         }
 
@@ -554,6 +549,7 @@ public class DrUtil {
         }
 
         return lock;
+
     }
     
     /**

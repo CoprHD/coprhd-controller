@@ -6016,6 +6016,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
     }
     
+    /**
+     * Add block(backend) volumes if the volume is a VPLEX volume to the Block volume list to call to BlockDeviceController.
+     * If the volume's backend volume is in a replication group, it would not add to the list, but just update the volume and its task.
+     * @param allVolumes output all block volume list
+     * @param volume The volume will be processed
+     * @param vnxVolumes output VNX backend volumes
+     * @param isAdd if the volume is for add or remove
+     * @param application the application the volume will be add/remove
+     */
     private void addBackendVolumes(List<URI>allVolumes, Volume volume, List<Volume> vnxVolumes, boolean isAdd, URI application) {
         if (RPHelper.isVPlexVolume(volume)) {
             StringSet backends = volume.getAssociatedVolumes();

@@ -38,7 +38,7 @@ import java.util.Random;
 @ContextConfiguration(locations = { "/scaleio-driver-prov.xml" })
 public class ScaleIOStorageDriverTest {
 
-    String SYS_NATIVE_ID_A = "3b51b60900000000";
+    String SYS_NATIVE_ID_A = "08bee2cf00000000";
     String SYS_NATIVE_ID_B = "08af5d6100000000";
     String IP_ADDRESS_A = "10.193.17.97";
     String IP_ADDRESS_B = "10.193.17.88";
@@ -46,9 +46,9 @@ public class ScaleIOStorageDriverTest {
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";
-    String VOLUME_ID_1A = "d584cb0c00000029";
-    String VOLUME_ID_2A = "d584cb0d0000002a";
-    String SNAPSHOT_OF_1A = "d584cb1900000000";
+    String VOLUME_ID_1A = "08bee34300000001";
+    String VOLUME_ID_2A = "08bee34400000002";
+    String SNAPSHOT_OF_1A = "08bee34500000003";
     String VOLUME_ID_1B = "83f1771b00000000";
     String VOLUME_ID_2B = "83f1771000000001";
     String INVALID_VOLUME_ID_1 = "83f177070000000";
@@ -612,7 +612,7 @@ public class ScaleIOStorageDriverTest {
         task = driver.detachVolumeClone(clone);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
-        this.checkResultCloneList(clone);
+
     }
 
     @Test
@@ -658,7 +658,25 @@ public class ScaleIOStorageDriverTest {
     }
 
     @Test
-    public void testDeleteConsistencyGroupClone() throws Exception {
+    public void testDetachConsistencyGroupClone() throws Exception {
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
+        List<VolumeClone> clones = null;
+        VolumeConsistencyGroup cg = null;
+        DriverTask task = driver.detachConsistencyGroupClone(clones);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED", task.getStatus().toString());
+
+        clones = this.createCloneListSameCG(false);
+        cg = new VolumeConsistencyGroup();
+        task = driver.detachConsistencyGroupClone(clones);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("READY", task.getStatus().toString());
+       // Assert.assertNotNull(cg.getNativeId());
+       // for (VolumeClone clone : clones) {
+         //   Assert.assertNotNull(clone.getNativeId());
+        //    Assert.assertNotNull(clone.getConsistencyGroup());
+       // }
 
     }
     private VolumeClone initializeClone(String nativeId, String parentId, String storageSystemId) {

@@ -260,12 +260,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         if (clones != null && clones.size() > 0) {
             for (VolumeClone clone : clones) {
                 client = this.getClientBySystemId(clone.getStorageSystemId());
-                // delete snapshot
-                if (client != null) {
-                    VolumeClone.ReplicationState replicationState;
-                    replicationState = clone.getReplicationState();
-                   if (replicationState == VolumeClone.ReplicationState.CREATED)
-                        try {
+                     try {
 
                             clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
                             countSucc++;
@@ -273,10 +268,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                         } catch (Exception e) {
                             log.error("Exception while detaching clone {}", clone.getNativeId(), e);
                         }
-                } else {
-                    log.error("Exception while getting client instance for clone {}:{}", clone.getDisplayName(),
-                            clone.getNativeId());
-                }
+
             }
             setTaskStatus(clones.size(), countSucc, task);
         } else {
@@ -284,7 +276,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }
         task.setEndTime(Calendar.getInstance());
-        log.info("Request to delete Clone -- End ");
+        log.info("Request to detach Clone -- End ");
         return task;
     }
 
@@ -580,12 +572,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     // get parentID
                     List<String> nativeIds = result.getVolumeIdList();
                     Map<String, ScaleIOVolume> snapIdInfoMap = client.getVolumeNameMap(nativeIds);
-                    //String currentTime = ScaleIOHelper.getCurrentTime();
                     for (VolumeClone clone : clones) {
                         for (ScaleIOVolume snapInfo : snapIdInfoMap.values()) {
                             if (clone.getParentId().equalsIgnoreCase(snapInfo.getAncestorVolumeId())) {
                                 clone.setNativeId(snapInfo.getId());
-                               // clone.setTimestamp(currentTime);
+
                                 clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                                 clone.setDeviceLabel(snapInfo.getName());
                                 clone.setConsistencyGroup(result.getSnapshotGroupId());
@@ -612,35 +603,31 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return task;
     }
 
- /*   @Override
-    public DriverTask detachConsistencyGroupDetach(List<VolumeClone> clones) {
+
+    public DriverTask detachConsistencyGroupClone(List<VolumeClone> clones) {
         log.info("Request to delete consistency group clone -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_DETACH));
         if (ScaleIOHelper.isFromSameCGgroupClone(clones)) {
-            String systemId = clones.get(0).getStorageSystemId();
-            log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
-            ScaleIORestClient client = getClientBySystemId(systemId);
-            if (client != null) {
-                try {
-                    log.info("Rest Client Got! delete consistency group snapshot - Start:");
-                    client.removeConsistencyGroupSnapshot(clones.get(0).getConsistencyGroup());
+            for (VolumeClone clone : clones)
+            try {
+                    log.info("Detach consistency group clone - Start:");
+                    clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
+                    countSucc++;
                     task.setStatus(DriverTask.TaskStatus.READY);
-                    log.info("Successfully delete consistency group snapshot - End:");
+                    log.info("Successfully detach consistency group clone - End:");
                 } catch (Exception e) {
-                    log.error("Exception while deleting consistency group snapshot", e);
+                    log.error("Exception while detaching CG clone", e);
                     task.setStatus(DriverTask.TaskStatus.FAILED);
                 }
-            } else {
-                log.error("Exception while getting client instance for storage system {}", systemId);
-                task.setStatus(DriverTask.TaskStatus.FAILED);
-            }
-        } else {
-            log.error("Snapshots are not from same consistency group");
-            task.setStatus(DriverTask.TaskStatus.FAILED);
-        }
-        task.setEndTime(Calendar.getInstance());
-        log.info("Request to delete consistency group snapshot -- End");
-        return task;
+
+        setTaskStatus(clones.size(), countSucc, task);}
+            else {
+        log.error("Can't detach empty Clone list");
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+    }
+    task.setEndTime(Calendar.getInstance());
+    log.info("Request to detach Clone -- End ");
+    return task;
     }
 
     /**

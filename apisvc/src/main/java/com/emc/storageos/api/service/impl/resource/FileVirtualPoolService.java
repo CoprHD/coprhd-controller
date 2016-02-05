@@ -112,7 +112,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
         Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap =
                 new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
 
-        VirtualPool cos = prepareVirtualPool(param, remoteSettingsMap);
+        VirtualPool cos = prepareVirtualPool(param, remoteSettingsMap, true);
         if (null != param.getLongTermRetention()) {
             cos.setLongTermRetention(param.getLongTermRetention());
         }
@@ -202,7 +202,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
         StoragePoolList poolList = new StoragePoolList();
         Map<URI, VpoolRemoteCopyProtectionSettings> fileReplRemoteSettingsMap =
                 new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
-        VirtualPool vpool = prepareVirtualPool(param, fileReplRemoteSettingsMap);
+        VirtualPool vpool = prepareVirtualPool(param, fileReplRemoteSettingsMap, false);
         List<URI> poolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, poolURIs);
 
@@ -544,7 +544,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
 
     // this method must not persist anything to the DB.
     private VirtualPool prepareVirtualPool(FileVirtualPoolParam param,
-            Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap) {
+            Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap, boolean validateReplArgs) {
 
         if (remoteSettingsMap == null) {
             remoteSettingsMap = new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
@@ -606,7 +606,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                         vPool.setFileReplicationCopyMode(copyMode.toUpperCase());
                     }
                     // Validate the RPO value and type!!
-                    if (validateReplicationRpoParams(replPolicy)) {
+                    if (validateReplArgs && validateReplicationRpoParams(replPolicy)) {
                         vPool.setFrRpoType(replPolicy.getRpoType());
                         vPool.setFrRpoValue(replPolicy.getRpoValue());
                     }

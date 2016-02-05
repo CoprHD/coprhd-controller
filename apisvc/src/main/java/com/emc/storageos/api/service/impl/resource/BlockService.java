@@ -2564,11 +2564,8 @@ public class BlockService extends TaskResourceService {
      *
      * @param id the URN of a ViPR Source volume
      * @param param List of copies to deactivate
-<<<<<<< HEAD
      * @param deleteType the type of deletion
-=======
      *
->>>>>>> master
      * @brief Delete continuous copies
      * @return TaskList
      *

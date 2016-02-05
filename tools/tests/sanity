@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr | ipsec} [local|ldap] [<timeslot>] | sanzoning | application'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec} [local|ldap] [<timeslot>] | sanzoning | application'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -107,6 +107,23 @@ elif [ ${SS} = "vdc" ]; then
 elif [ ${SS} = "dr" ]; then
         DR_SITE_B_IP=${4}
         DR_SITE_C_IP=${5}
+        if [ -n "${BOURNE_IPV6_MODE}" ]; then
+            AUTH=ipv6
+        else
+            AUTH=ldap
+        fi
+        echo AUTH=$AUTH
+elif [ ${SS} = "backuprestore" ]; then
+        if [[ $# -ne 6 ]]; then
+            echo "Invalid backuprestore parameters."
+            echo "usage: backuprestore backup-server-uri username password"
+            exit 1
+        fi
+
+        BACKUP_SERVER_URL=$4
+        BACKUP_SERVER_USERNAME=$5
+        BACKUP_SERVER_PASSWORD=$6
+
         if [ -n "${BOURNE_IPV6_MODE}" ]; then
             AUTH=ipv6
         else

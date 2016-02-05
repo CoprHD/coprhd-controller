@@ -377,7 +377,10 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public VolumeIngestionContext getVolumeContext(String unmanagedVolumeGuid) {
-        return getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
+        if (getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid) != null) {
+            return getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
+        }
+        return getVolumeContext();
     }
 
     /*

@@ -463,6 +463,7 @@ public class VolumeIngestionUtil {
     public static boolean isRPProtectingVplexVolumes(UnManagedVolume umv, IngestionRequestContext requestContext, DbClient dbClient) {
         RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(umv
                 .getNativeGuid());
+        
         ProtectionSet pset = rpContext.getManagedProtectionSet();
         boolean isRPProtectingVplexVolumes = false;
 
@@ -1885,7 +1886,7 @@ public class VolumeIngestionUtil {
                 unassignedInitiators++;
                 _logger.info("Initiator {} of host {} is not assigned to any ports.",
                         new Object[] { initiator.getInitiatorPort(), hostName });
-            } else if (ports.size() != pathParams.getPathsPerInitiator()) {
+            } else if (ports.size() < pathParams.getPathsPerInitiator()) {
                 _logger.error("Initiator {} of host {} has a different number of ports ({}) than " +
                         "what is required according to the virtual pool ({})", new Object[] { initiator.getInitiatorPort(),
                         hostName, ports.size(), pathParams.getPathsPerInitiator() });

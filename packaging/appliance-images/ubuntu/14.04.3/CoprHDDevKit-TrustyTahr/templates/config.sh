@@ -90,6 +90,7 @@ parseOVF()
     echo "node_count=1" >> /etc/ovfenv.properties
     echo "node_id=vipr1" >> /etc/ovfenv.properties
     chown storageos:storageos /etc/ovfenv.properties
+    update-ca-certificates -f
   fi
 
   if [ ! -f /etc/network/interfaces ]; then
@@ -160,6 +161,5 @@ chown storageos:storageos /etc/rc.status
 
 update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
 update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
-update-ca-certificates -f
 
 exit 0

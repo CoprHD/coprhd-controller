@@ -842,7 +842,7 @@ class StorageSystem(object):
 
     def discover_storagesystem(
             self, device_name=None, serialno=None,
-            device_type=None, sync=False):
+            device_type=None, sync=False,synctimeout=0):
 
         # Discover all case
         if(device_name is None and device_type is None and serialno is None):
@@ -857,10 +857,10 @@ class StorageSystem(object):
         elif(device_name and device_type):
             urideviceid = self.query_by_name_and_type(device_name, device_type)
 
-        self.discover_storagesystem_by_uri(urideviceid, sync)
+        self.discover_storagesystem_by_uri(urideviceid, sync,synctimeout)
         return
 
-    def discover_storagesystem_by_uri(self, uri=None, sync=False):
+    def discover_storagesystem_by_uri(self, uri=None, sync=False,synctimeout=0):
         '''
         Makes a REST API call to discover storage system
         '''
@@ -876,18 +876,18 @@ class StorageSystem(object):
         o = common.json_decode(s)
 
         if(sync and uri):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync(o, sync,synctimeout)
 
         return
 
-    def check_for_sync(self, result, sync):
+    def check_for_sync(self, result, sync,synctimeout):
         if(sync):
             if(len(result["resource"]) > 0):
                 resource = result["resource"]
                 return (
                     common.block_until_complete("storagesystem",
                         resource["id"], result["op_id"], self.__ipAddr,
-                        self.__port)
+                        self.__port,synctimeout)
                 )
             else:
                 raise SOSError(
@@ -1190,11 +1190,19 @@ def discover_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    
+    discover_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     discover_parser.set_defaults(func=storagesystem_discover)
 
 
 def storagesystem_discover(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = StorageSystem(args.ip, args.port)
     # discover storage all
     if(args.all):
@@ -1208,7 +1216,7 @@ def storagesystem_discover(args):
             (args.type is not None and args.serialnumber is not None)):
         return (
             obj.discover_storagesystem(args.name, args.serialnumber,
-                                       args.type, args.sync)
+                                       args.type, args.sync,args.synctimeout)
         )
     else:
         raise SOSError(

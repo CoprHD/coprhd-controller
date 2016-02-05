@@ -90,7 +90,6 @@ parseOVF()
     echo "node_count=1" >> /etc/ovfenv.properties
     echo "node_id=vipr1" >> /etc/ovfenv.properties
     chown storageos:storageos /etc/ovfenv.properties
-    update-ca-certificates -f
   fi
 
   if [ ! -f /etc/network/interfaces ]; then
@@ -129,6 +128,9 @@ parseOVF()
   fi
 }
 
+if [ ! -f /etc/ovfenv.properties ]; then
+  update-ca-certificates -f
+fi
 mountCDROM
 parseOVF
 umountCDROM

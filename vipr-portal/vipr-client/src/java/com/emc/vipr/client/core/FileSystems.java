@@ -535,7 +535,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
      
     /**
-     * Gets the base URL for file continuous copies: <tt>/block/volumes/{id}/protection/continuous-copies</tt>
+     * Gets the base URL for file continuous copies: <tt>/file/filesystems/{id}/protection/continuous-copies</tt>
      * 
      * @return the URL for continuous copies.
      */

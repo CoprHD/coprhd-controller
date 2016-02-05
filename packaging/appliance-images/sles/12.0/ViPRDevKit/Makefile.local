@@ -1,0 +1,34 @@
+NAME=ViPRDevKit
+VERSION=2.5.0.0
+JOB=1
+CONF=${NAME}.conf
+CREATE_APPLIANCE_DIR=/opt/ADG/createAppliance
+CREATE_APPLIANCE_TOOL=/usr/bin/perl ${CREATE_APPLIANCE_DIR}/bin/createAppliance.pl
+JOB_DIR=${CREATE_APPLIANCE_DIR}/jobs/${NAME}-${VERSION}.${JOB}
+OUTPUT_DIR=/opt/downloads/images/${NAME}-${VERSION}.${JOB}
+DEBUG=d
+
+all: prepare appliance 
+appliance: prepare createAppliance
+prepare: clean 
+	mkdir -p /disks/adgbuild
+	mount -o nolock nasl02.lss.emc.com:/mnt_0231/imgengrep/adgbuild /disks/adgbuild
+	mkdir -p /slesmedia/12-SLES-DVD1
+	mount /disks/adgbuild/SLES12/SLE-12-Server-DVD-x86_64-GM-DVD1.iso /slesmedia/12-SLES-DVD1
+
+createAppliance:
+	cat ../configurations.sh > config.sh
+	cat ViPRDevKit_config.sh >> config.sh
+	${CREATE_APPLIANCE_TOOL} -lc${DEBUG} ${CONF} ${JOB} -p appliance[vmx,tbz]
+	
+bless:
+	${CREATE_APPLIANCE_TOOL} -b ${CONF} ${JOB}
+
+clean:
+	git checkout LISTS/${NAME}.list
+	rm -rf config.sh
+	rm -rf ${JOB_DIR}
+
+destroy: clean
+	rm -rf ${OUTPUT_DIR}
+

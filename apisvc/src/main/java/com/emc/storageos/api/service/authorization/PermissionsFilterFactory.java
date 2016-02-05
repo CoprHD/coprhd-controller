@@ -10,6 +10,7 @@ import java.util.Set;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
+import com.emc.vipr.client.core.BlockSnapshotSessions;
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerRequestFilter;
 import com.sun.jersey.spi.container.ContainerResponseFilter;
@@ -238,7 +239,9 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                         return getProjectIdFromComputeResources(uriStr);
                     } else if (_resourceClazz.isAssignableFrom(BucketService.class)) {
                         return getProjectIdFromResourceId(uriStr, Bucket.class);
-                    } 
+                    } else if (_resourceClazz.isAssignableFrom(BlockSnapshotSessionService.class)) {
+                        return getProjectIdFromResourceBlockSnapshotId(uriStr, BlockSnapshotSession.class);
+                    }
                 } else {
                     _log.warn("project id not available for this resource type");
                 }
@@ -411,6 +414,10 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                 return request;
             }
             String method = request.getMethod();
+            // allow keystore related operation
+            if (path.contains("keystore")) {
+                return request;
+            }
             // allow all GET request or bulk request
             if (method.equalsIgnoreCase("GET") || path.endsWith("/bulk")) {
                 return request;

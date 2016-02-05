@@ -326,10 +326,16 @@ public class VMwareSupport {
      * Deletes a VMFS datastore. Because VMFS datastores are shared across hosts, it only needs to be deleted from a
      * single host for it to be deleted.
      * 
+     * @param volumes
+     *            the volumes backing the datastore.
+     * @param hostOrClusterId
+     *            the id of the host or cluster where the datastore is mounted.
      * @param datastore
-     *            the datastore.
+     *            the datastore to delete
+     * @param detachLuns
+     *            if true, detach the luns from each host
      */
-    public void deleteVmfsDatastore(Collection<VolumeRestRep> volumes, URI hostOrClusterId, final Datastore datastore) {
+    public void deleteVmfsDatastore(Collection<VolumeRestRep> volumes, URI hostOrClusterId, final Datastore datastore, boolean detachLuns) {
         List<HostSystem> hosts = getHostsForDatastore(datastore);
         if (hosts.isEmpty()) {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
@@ -349,13 +355,15 @@ public class VMwareSupport {
 
         execute(new DeleteDatastore(hosts.get(0), datastore));
 
-        executeOnHosts(hosts, new HostSystemCallback() {
-            @Override
-            public void exec(HostSystem host) {
-                List<HostScsiDisk> disks = hostDisks.get(host);
-                detachLuns(host, disks);
-            }
-        });
+        if (detachLuns) {
+            executeOnHosts(hosts, new HostSystemCallback() {
+                @Override
+                public void exec(HostSystem host) {
+                    List<HostScsiDisk> disks = hostDisks.get(host);
+                    detachLuns(host, disks);
+                }
+            });
+        }
         removeVmfsDatastoreTag(volumes, hostOrClusterId);
     }
 

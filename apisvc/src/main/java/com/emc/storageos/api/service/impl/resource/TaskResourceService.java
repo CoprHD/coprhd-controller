@@ -9,11 +9,8 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.api.mapper.TaskMapper.toTaskList;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -26,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorService;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Task;
@@ -34,7 +32,6 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.security.authorization.InheritCheckPermission;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.google.common.base.Joiner;
 
 /**
  * Base class for all resources with
@@ -119,43 +116,6 @@ public abstract class TaskResourceService extends TaggedResource {
      * @param dataObjects - [in] List of DataObjects to check
      */
     private void checkForPendingTasks(URI tenant, Collection<? extends DataObject> dataObjects) {
-        // First, find tasks for the resources sent in.
-        Set<URI> objectURIsThatHavePendingTasks = new HashSet<URI>();
-
-        // Get a unique list of Task objects associated with the data objects
-        for (DataObject dataObject : dataObjects) {
-            List<Task> newTasks = TaskUtils.findResourceTasks(_dbClient, dataObject.getId());
-            for (Task newTask : newTasks) {
-                if (newTask.isPending() && newTask.getTenant().equals(tenant)) {
-                    objectURIsThatHavePendingTasks.add(dataObject.getId());
-                }
-            }
-        }
-
-        // Search through the list of Volumes to see if any are in the pending list
-        List<String> pendingObjectLabels = new ArrayList<>();
-        for (DataObject dataObject : dataObjects) {
-            if (dataObject.getInactive()) {
-                continue;
-            }
-            String label = dataObject.getLabel();
-            if (label == null) {
-                label = dataObject.getId().toString();
-            }
-            if (objectURIsThatHavePendingTasks.contains(dataObject.getId())) {
-                pendingObjectLabels.add(label);
-                // Remove entry, since we already found it was matched.
-                objectURIsThatHavePendingTasks.remove(dataObject.getId());
-            }
-        }
-
-        // If there are an pendingObjectLabels, then we found some objects that have
-        // a pending task against them. Need to signal an error
-        if (!pendingObjectLabels.isEmpty()) {
-            String pendingListStr = Joiner.on(',').join(pendingObjectLabels);
-            _log.warn(String.format("Attempted to execute operation against these resources while there are tasks pending against them: %s",
-                    pendingListStr));
-            throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(pendingListStr);
-        }
+        BlockServiceUtils.checkForPendingTasks(tenant, dataObjects, _dbClient);
     }
 }

@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller;
 
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 public interface ObjectStorageDevice {
@@ -48,4 +49,20 @@ public interface ObjectStorageDevice {
      * @throws ControllerException if Delete fails
      */
     BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket, String taskId) throws ControllerException;
+    
+    /**
+     * @param storageObj
+     * @param objectArgs
+     * @return
+     * @throws ControllerException
+     */
+    BiosCommandResult doUpdateBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, BucketACLUpdateParams param, String taskId) throws ControllerException;
+    
+    /**
+     * @param storageObj
+     * @param objectArgs
+     * @return
+     * @throws ControllerException
+     */
+    BiosCommandResult doDeleteBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException;
 }

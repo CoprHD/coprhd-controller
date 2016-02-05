@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.ComputeBootDef;
@@ -35,18 +36,21 @@ import com.emc.storageos.db.client.model.ComputeSanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.ComputeVnic;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FileExportRule;
-import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProxyToken;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -62,11 +66,15 @@ import com.emc.storageos.db.client.model.UCSVnicTemplate;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -83,6 +91,7 @@ public interface ContainmentConstraint extends Constraint {
         private static final String PROJECT = "project";
         private static final String STORAGE_DEVICE = "storageDevice";
         private static final String COMPUTE_IMAGESERVER_ID = "computeImageServerId";
+        private static final String PROTECTION_DEVICE = "protectionDevice";
 
         public static ContainmentConstraint getTenantOrgProjectConstraint(URI tenantOrg) {
             DataObjectType doType = TypeMap.getDoType(Project.class);
@@ -149,19 +158,19 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("virtualPool");
             return new ContainmentConstraintImpl(vpool, FileShare.class, field);
         }
-        
+
         public static ContainmentConstraint getVirtualArrayBucketsConstraint(URI varray) {
             DataObjectType doType = TypeMap.getDoType(Bucket.class);
             ColumnField field = doType.getColumnField("varray");
             return new ContainmentConstraintImpl(varray, Bucket.class, field);
         }
-        
+
         public static ContainmentConstraint getStoragePoolBucketConstraint(URI pool) {
             DataObjectType doType = TypeMap.getDoType(Bucket.class);
             ColumnField field = doType.getColumnField("pool");
             return new ContainmentConstraintImpl(pool, Bucket.class, field);
         }
-        
+
         public static ContainmentConstraint getVirtualPoolBucketConstraint(URI vpool) {
             DataObjectType doType = TypeMap.getDoType(Bucket.class);
             ColumnField field = doType.getColumnField("virtualPool");
@@ -196,6 +205,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedVolume.class);
             ColumnField field = doType.getColumnField(STORAGE_DEVICE);
             return new ContainmentConstraintImpl(device, UnManagedVolume.class, field);
+        }
+
+        public static ContainmentConstraint getStorageDeviceUnManagedCGConstraint(URI ps) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedProtectionSet.class);
+            ColumnField field = doType.getColumnField(PROTECTION_DEVICE);
+            return new ContainmentConstraintImpl(ps, UnManagedProtectionSet.class, field);
         }
 
         public static ContainmentConstraint getStorageDeviceRemoteGroupsConstraint(URI device) {
@@ -293,6 +308,25 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
             ColumnField field = doType.getColumnField("parent");
             return new ContainmentConstraintImpl(volume, BlockSnapshot.class, field);
+        }
+
+        public static ContainmentConstraint getParentSnapshotSessionConstraint(URI parentURI) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            ColumnField field = doType.getColumnField("parent");
+            return new ContainmentConstraintImpl(parentURI, BlockSnapshotSession.class, field);
+        }
+
+        public static ContainmentConstraint getLinkedTargetSnapshotSessionConstraint(URI snapshotURI) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            ColumnField field = doType.getColumnField("linkedTargets");
+            return new ContainmentConstraintImpl(snapshotURI, BlockSnapshotSession.class, field);
+        }
+
+        public static ContainmentConstraint getProjectBlockSnapshotSessionConstraint(
+                URI project) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            ColumnField field = doType.getColumnField(PROJECT);
+            return new ContainmentConstraintImpl(project, BlockSnapshotSession.class, field);
         }
 
         public static ContainmentConstraint getProjectBlockSnapshotConstraint(
@@ -417,6 +451,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedExportMask.class);
             ColumnField field = doType.getColumnField("storageSystem");
             return new ContainmentConstraintImpl(storageSystem, UnManagedExportMask.class, field);
+        }
+
+        public static ContainmentConstraint getStorageSystemUnManagedCGConstraint(URI storageSystem) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedConsistencyGroup.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(storageSystem, UnManagedConsistencyGroup.class, field);
         }
 
         public static ContainmentConstraint getContainedObjectsConstraint(URI parent,
@@ -638,6 +678,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(fs, UnManagedCifsShareACL.class, field);
         }
 
+        public static ContainmentConstraint getUnManagedNfsShareAclsConstraint(URI fs) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedNFSShareACL.class);
+            ColumnField field = doType.getColumnField(FILE_SYSTEM_ID);
+            return new ContainmentConstraintImpl(fs, UnManagedNFSShareACL.class, field);
+        }
+
         public static ContainmentConstraint getFileExportRulesConstraintByFileIndex(URI fsIndex) {
             DataObjectType doType = TypeMap.getDoType(FileExportRule.class);
             ColumnField field = doType.getColumnField("fsExportIndex");
@@ -660,6 +706,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(CifsShareACL.class);
             ColumnField field = doType.getColumnField(FILE_SYSTEM_ID);
             return new ContainmentConstraintImpl(fsURI, CifsShareACL.class, field);
+        }
+        
+        public static ContainmentConstraint getBucketAclsConstraint(URI bucket) {
+            DataObjectType doType = TypeMap.getDoType(ObjectBucketACL.class);
+            ColumnField field = doType.getColumnField("bucketId");
+            return new ContainmentConstraintImpl(bucket, ObjectBucketACL.class, field);
         }
 
         public static ContainmentConstraint getSnapshotCifsShareAclsConstraint(URI snapshotURI) {
@@ -710,9 +762,14 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(storagePort, FileShare.class, field);
         }
 
+        public static ContainmentConstraint getVolumesGroupsByVolumeGroupId(URI volumeGroupId) {
+            DataObjectType doType = TypeMap.getDoType(VolumeGroup.class);
+            return new ContainmentConstraintImpl(volumeGroupId, VolumeGroup.class, doType.getColumnField("parent"));
+        }
+
         /**
          * method to return ContainmentConstraint between {@link ComputeImageJob} and {@link ComputeImageServer}
-         * 
+         *
          * @param imageServerURI {@link URI} imagerServer URI
          * @return {@link ContainmentConstraint}
          */
@@ -720,6 +777,24 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(ComputeImageJob.class);
             ColumnField field = doType.getColumnField(COMPUTE_IMAGESERVER_ID);
             return new ContainmentConstraintImpl(imageServerURI, ComputeImageJob.class, field);
+        }
+
+        public static ContainmentConstraint getSnapshotExportGroupConstraint(URI id) {
+            DataObjectType doType = TypeMap.getDoType(ExportGroup.class);
+            ColumnField field = doType.getColumnField("snapshots");
+            return new ContainmentConstraintImpl(id, ExportGroup.class, field);
+        }
+
+        public static ContainmentConstraint getTenantOrgSchedulePolicyConstraint(URI tenantOrg) {
+            DataObjectType doType = TypeMap.getDoType(SchedulePolicy.class);
+            ColumnField field = doType.getColumnField("tenantOrg");
+            return new ContainmentConstraintImpl(tenantOrg, SchedulePolicy.class, field);
+        }
+        
+        public static ContainmentConstraint getStorageDeviceObjectNamespaceConstraint(URI device) {
+            DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(device, ObjectNamespace.class, field);
         }
     }
 }

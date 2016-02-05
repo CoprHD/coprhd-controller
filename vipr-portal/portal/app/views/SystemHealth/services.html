@@ -52,7 +52,7 @@
     <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">{{'system.stats.actions' | t}}<span class='caret'></span></button>
       <ul class="dropdown-menu dropdown-menu-right" role="menu">
         <li><a href="@{logs()}?nodeId={{row.nodeId}}&serviceName={{row.name}}&startTime={{time}}">{{'system.stats.logs' | t}}</a></li>
-        #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
           <li><a href="{{restartUrl}}" onclick="if (!confirm('&{'adminDashboard.confirm.restart'}'')){return false;}">{{'system.stats.restart' | t}}</a></li>
         #{/deadbolt.restrict}
       </ul>

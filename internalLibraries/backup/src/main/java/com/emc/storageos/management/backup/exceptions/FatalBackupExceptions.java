@@ -97,6 +97,9 @@ public interface FatalBackupExceptions {
     @DeclareServiceCode(ServiceCode.BACKUP_LOCK_OCCUPIED)
     public FatalBackupException unableToGetLock(final String lockName);
 
+    @DeclareServiceCode(ServiceCode.BACKUP_LOCK_OCCUPIED)
+    public FatalBackupException unableToGetRecoveryLock(final String lockName);
+
     @DeclareServiceCode(ServiceCode.BACKUP_INTERNAL_ERROR)
     public FatalBackupException failedToSetQuota(final int quotaGb, final Throwable cause);
 
@@ -111,4 +114,10 @@ public interface FatalBackupExceptions {
 
     @DeclareServiceCode(ServiceCode.BACKUP_INTERNAL_ERROR)
     public FatalBackupException failedToGetValidDualInetAddress(final String message);
+
+    @DeclareServiceCode(ServiceCode.BACKUP_DISABLED_AS_REACH_LIMIT)
+    public FatalBackupException manualBackupNumberExceedLimit(final int currentNumber, final int maxNumber);
+
+    @DeclareServiceCode(ServiceCode.BACKUP_DISABLED_AS_ON_STANDBY)
+    public FatalBackupException forbidBackupOnStandbySite();
 }

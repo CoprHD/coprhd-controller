@@ -43,7 +43,7 @@ public class SnapshotReplicationRelationshipProcessor extends StorageProcessor {
     private PartitionManager _partitionManager;
     private int _partitionSize;
     private DbClient _dbClient;
-    private Map<String, String> _syncAspectMap;
+    private Map<String, Map<String, String>> _syncAspectMap;
     private List<BlockSnapshot> _updateSnapshotList;
 
     @SuppressWarnings("unchecked")
@@ -52,7 +52,7 @@ public class SnapshotReplicationRelationshipProcessor extends StorageProcessor {
             Map<String, Object> keyMap) throws BaseCollectionException {
         _logger.debug("Calling SnapshotReplicationRelationshipProcessor");
         _dbClient = (DbClient) keyMap.get(Constants.dbClient);
-        _syncAspectMap = (Map<String, String>) keyMap
+        _syncAspectMap = (Map<String, Map<String, String>>) keyMap
                 .get(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP);
         _updateSnapshotList = new ArrayList<BlockSnapshot>();
         _partitionSize = getPartitionSize(keyMap);
@@ -109,8 +109,11 @@ public class SnapshotReplicationRelationshipProcessor extends StorageProcessor {
         String srcNativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(sourcePath);
         String relationshipName = getCIMPropertyValue(syncInstance,
                 EMC_RELATIONSHIP_NAME);
-        String syncAspect = _syncAspectMap.get(getSyncAspectMapKey(
-                srcNativeGuid, relationshipName));
+        String syncAspect = null;
+        Map<String, String> aspectsForSource = _syncAspectMap.get(srcNativeGuid);
+        if (null != aspectsForSource) {
+            syncAspect = aspectsForSource.get(getSyncAspectMapKey(srcNativeGuid, relationshipName));
+        }
         String valueInDb = snapshot.getSettingsInstance();
         boolean isValueChanged = !(valueInDb == null ? syncAspect == null
                 : valueInDb.equals(syncAspect));

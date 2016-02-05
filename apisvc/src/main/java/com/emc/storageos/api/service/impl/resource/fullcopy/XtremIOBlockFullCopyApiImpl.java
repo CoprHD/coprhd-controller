@@ -18,7 +18,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- * The ExtremeIO storage system implementation for the block full copy API.
+ * The XtremIO storage system implementation for the block full copy API.
  */
 public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
 
@@ -28,10 +28,11 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator client.
      * @param scheduler A reference to a scheduler.
+     * @param fullCopyMgr A reference to the full copy manager.
      */
-    public XtremIOBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-            Scheduler scheduler) {
-        super(dbClient, coordinator, scheduler);
+    public XtremIOBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator, Scheduler scheduler,
+            BlockFullCopyManager fullCopyMgr) {
+        super(dbClient, coordinator, scheduler, fullCopyMgr);
     }
 
     /**
@@ -39,7 +40,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public List<BlockObject> getAllSourceObjectsForFullCopyRequest(BlockObject fcSourceObj) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -47,7 +48,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -56,7 +57,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
             String name, boolean createInactive, int count, String taskId) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -64,7 +65,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public TaskList activate(BlockObject fcSourceObj, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -72,7 +73,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public TaskList detach(BlockObject fcSourceObj, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -80,7 +81,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public TaskList restoreSource(Volume sourceVolume, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -88,7 +89,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -96,6 +97,6 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 }

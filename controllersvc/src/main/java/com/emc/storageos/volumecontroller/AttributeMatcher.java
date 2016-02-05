@@ -15,9 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 
 /**
  * AttributeMatcher is base class for all attribute matchers which provides base functionality
@@ -41,6 +41,8 @@ public abstract class AttributeMatcher {
     public static final String PLACEMENT_MATCHERS = "placementMatchers";
 
     public static final String BASIC_PLACEMENT_MATCHERS = "basicPlacementMatchers";
+
+    public static final String CONNECTIVITY_PLACEMENT_MATCHERS = "connectivityMatchers";
 
     public static enum Attributes {
         vpool_type,
@@ -69,7 +71,18 @@ public abstract class AttributeMatcher {
         thin_volume_preallocation_percentage,
         unique_policy_names,
         remote_copy,
-        long_term_retention_policy
+        long_term_retention_policy,
+        support_soft_limit,
+        support_notification_limit,
+        file_replication_type,
+        file_replication_copy_mode,
+        file_replication,
+        schedule_snapshots,
+        min_datacenters,
+        quota,
+        source_storage_system,
+        remote_copy_mode
+
     }
 
     /**

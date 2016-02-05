@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migrated StorageSystem serialNumber from ARRAY.R700.94677 to 94677.
@@ -33,7 +34,7 @@ public class HDSStorageSystemSerialNumberMigration extends
      * Process the HDS storagesystems and update their serialNumber from ARRAY.R700.94677 to 94677.
      */
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         DbClient dbClient = getDbClient();
 
         try {

@@ -28,6 +28,7 @@ public class StoragePoolDataTable extends DataTable {
         addColumn("status").hidden();
         addColumn("volumeTypes");
         addColumn("driveTypes");
+        addColumn("numOfDataCenters").hidden();
         addColumn("freeCapacity").setRenderFunction("render.sizeInGb");
         addColumn("subscribedCapacity").setRenderFunction("render.sizeInGb");
         addColumn("totalCapacity").setRenderFunction("render.sizeInGb");
@@ -43,6 +44,7 @@ public class StoragePoolDataTable extends DataTable {
         public String status;
         public String driveTypes;
         public Long freeCapacity;
+        public Integer numOfDataCenters;
         public Long subscribedCapacity;
         public Long totalCapacity;
         public String registrationStatus;
@@ -71,6 +73,7 @@ public class StoragePoolDataTable extends DataTable {
             this.subscribedCapacity = storagePool.getSubscribedCapacity();
             if (storagePool.getPoolServiceType().equals(OBJECT)) {
             	this.subscribedCapacity = storagePool.getUsedCapacity();
+            	this.numOfDataCenters = storagePool.getDataCenters();
             }
             this.totalCapacity = storagePool.getTotalCapacity();
             this.registrationStatus = storagePool.getRegistrationStatus();

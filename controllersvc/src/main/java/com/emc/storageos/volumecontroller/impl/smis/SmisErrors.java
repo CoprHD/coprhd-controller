@@ -70,4 +70,7 @@ public interface SmisErrors {
 
     @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
     public ServiceError volumeExpandIsNotSupported(String nativeGuid);
+    
+    @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
+    public ServiceError errorSettingRecoverPointTag(String setting);
 }

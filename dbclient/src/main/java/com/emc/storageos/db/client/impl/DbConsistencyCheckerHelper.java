@@ -138,6 +138,10 @@ public class DbConsistencyCheckerHelper {
                 Rows<String, CompositeColumnName> rows = dbClient.queryRowsWithAColumn(keyspace, ids, doType.getCF(), indexedField);
                 for (Row<String, CompositeColumnName> row : rows) {
                     for (Column<CompositeColumnName> column : row.getColumns()) {
+                        // we don't build index if the value is null, refer to ColumnField.
+                        if (!column.hasValue()) {
+                            continue;
+                        }
                         String indexKey = getIndexKey(indexedField, column);
                         if (indexKey == null) {
                             continue;

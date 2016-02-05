@@ -180,16 +180,18 @@ public class AbstractCloneOperations implements CloneOperations {
             if (storageSystem.deviceIsType(Type.vmax)) {
 
                 if (createInactive && storageSystem.getUsingSmis80()) {
-                    repSettingData = _helper.getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, COPY_BEFORE_ACTIVATE);
+                    repSettingData = _helper.getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, COPY_BEFORE_ACTIVATE,
+                            true);
                 } else if (storageSystem.checkIfVmax3() && ControllerUtils.isVmaxUsing81SMIS(storageSystem, _dbClient)) {
                     /**
                      * VMAX3 using SMI 8.1 provider needs to send DesiredCopyMethodology=32770
                      * to create TimeFinder differential clone.
                      */
                     repSettingData = _helper.getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem,
-                            SMIS810_TF_DIFFERENTIAL_CLONE_VALUE);
+                            SMIS810_TF_DIFFERENTIAL_CLONE_VALUE, true);
                 } else {
-                    repSettingData = _helper.getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, DIFFERENTIAL_CLONE_VALUE);
+                    repSettingData = _helper.getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, DIFFERENTIAL_CLONE_VALUE,
+                            true);
                 }
                 inArgs = _helper.getCloneInputArguments(cloneLabel, sourceVolumePath, volumeGroupPath, storageSystem,
                         targetPool, createInactive, repSettingData);

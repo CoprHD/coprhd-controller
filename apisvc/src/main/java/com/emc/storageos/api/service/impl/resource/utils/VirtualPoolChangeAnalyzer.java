@@ -72,17 +72,22 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String AUTO_CROSS_CONNECT_EXPORT = "autoCrossConnectExport";
     private static final String RP_RPO_VALUE = "rpRpoValue";
     private static final String RP_RPO_TYPE = "rpRpoType";
-    private static final String RP_COPY_MODE = "rpCopyMode";    
+    private static final String RP_COPY_MODE = "rpCopyMode";
     private static final String HA_CONNECTED_TO_RP = "haVarrayConnectedToRp";
     private static final String JOURNAL_SIZE = "journalSize";
     private static final String JOURNAL_VARRAY = "journalVarray";
     private static final String JOURNAL_VPOOL = "journalVpool";
     private static final String MULTI_VOLUME_CONSISTENCY = "multivolumeconsistency";
     private static final String METROPOINT = "metroPoint";
+    private static final String FILE_REPLICATION_TYPE = "fileReplicationType";
+    private static final String FILE_REPLICATION_COPIES = "fileRemoteCopySettings";
+    private static final String FILE_REPLICATION_RPO_VALUE = "frRpoValue";
+    private static final String FILE_REPLICATION_RPO_TYPE = "frRpoType";
+    private static final String FILE_REPLICATION_COPY_MODE = "replicationCopyMode";
 
     private static final String[] INCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] { AUTO_TIER_POLICY_NAME,
             HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS };
-    
+
     private static final String[] EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] {
             AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, ARRAY_INFO,
             UNIQUE_AUTO_TIERING_POLICY_NAMES, ASSIGNED_STORAGE_POOLS,
@@ -953,7 +958,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      */
     public static boolean isSameVirtualPool(VirtualPool current, VirtualPool requested, StringBuffer notSuppReasonBuff) {
         if (current.getId().equals(requested.getId())) {
-            String msg = "The target virtual pool is the same as current virtual pool.";
+            String msg = String.format("The target virtual pool [%s] is the same as current virtual pool.", requested.getLabel());
             s_logger.info(msg);
             if (notSuppReasonBuff != null) {
                 notSuppReasonBuff.append(msg);
@@ -965,6 +970,64 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     private static boolean isSameVirtualPool(VirtualPool current, VirtualPool requested) {
         return isSameVirtualPool(current, requested, null);
+    }
+
+    /**
+     * Checks to see if the replication mode change is supported.
+     * 
+     * @param currentVpool the source virtual pool
+     * @param newVpool the target virtual pool
+     * @param notSuppReasonBuff the not supported reason string buffer
+     * @return
+     */
+    public static boolean isSupportedReplicationModeChange(VirtualPool currentVpool, VirtualPool newVpool, StringBuffer notSuppReasonBuff) {
+        s_logger.info(String.format("Checking isSupportedReplicationModeChange from [%s] to [%s]...", currentVpool.getLabel(),
+                newVpool.getLabel()));
+        // Make sure the VirtualPool's are not the same instance.
+        if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
+            return false;
+        }
+
+        // Both the source and target vpools must specify RP protection.
+        // NOTE: If support for SRDF is added in the future, we must modify the conditions
+        if (!VirtualPool.vPoolSpecifiesProtection(currentVpool) || !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("Replication Mode virtual pool change is not supported for target virtual pool %s.  Cannot modify the replication mode if both the source and target vpools do not specify RP protection.",
+                                    newVpool.getLabel()));
+            s_logger.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // First, check that RP_COPY_MODE changed.
+        String[] included = new String[] { RP_COPY_MODE };
+        if (analyzeChanges(currentVpool, newVpool, included, null, null).isEmpty()) {
+            notSuppReasonBuff
+                    .append(String
+                            .format(
+                                    "Replication Mode virtual pool change is not supported for target virtual pool %s. There is no change in replication mode.",
+                                    newVpool.getLabel()));
+            s_logger.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // Check that nothing other than the excluded attributes changed.
+        List<String> excluded = new ArrayList<String>();
+        String[] exclude = new String[] { RP_COPY_MODE, RP_RPO_VALUE, RP_RPO_TYPE, PROTECTION_VARRAY_SETTINGS };
+        excluded.addAll(Arrays.asList(exclude));
+        excluded.addAll(Arrays.asList(generallyExcluded));
+        Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
+        if (!changes.isEmpty()) {
+            notSuppReasonBuff.append(String.format("These target virtual pool [%s] differences are invalid: ", newVpool.getLabel()));
+            for (String key : changes.keySet()) {
+                notSuppReasonBuff.append(key + " ");
+            }
+            s_logger.info(String.format("Replication Mode virtual pool change not supported. %s. Parameters other than %s were changed.",
+                    notSuppReasonBuff.toString(), excluded.toString()));
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -1052,6 +1115,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String[] exclude = EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE;
         excluded.addAll(Arrays.asList(exclude));
         excluded.addAll(Arrays.asList(generallyExcluded));
+        // PROTECTION_VARRAY_SETTINGS changes every time a vpool is duplicated so we will ignore it, otherwise
+        // this change vpool operation is blocked.
+        // RP_RPO_VALUE will be updated from null to 0 if any vpool update is performed so we will ignore it,
+        // otherwise this change vpool operation is blocked.
+        excluded.addAll(Arrays.asList(RP_RPO_VALUE, PROTECTION_VARRAY_SETTINGS));
         if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(currentVpool)
                 && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(newVpool)) {
             // get current & new HA vPools and compare
@@ -1367,13 +1435,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
         return true;
     }
-    
+
     /**
      * Determines if the volume qualifies for RP protection. (and if not, why not)
      * 
-     
      */
-    
+
     /**
      * Checks to see if the remove protection operation is supported.
      * 
@@ -1392,15 +1459,15 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         // Make sure the Vpool are not the same instance.
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
             return false;
-        }        
-           
+        }
+
         if (volume.checkForRp()
                 && VirtualPool.vPoolSpecifiesProtection(currentVpool)
-                && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {            
+                && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
             // Check that nothing other than the excluded attributes changed.
             List<String> excluded = new ArrayList<String>();
-            String[] exclude = new String[] { PROTECTION_VARRAY_SETTINGS, RP_RPO_VALUE, RP_RPO_TYPE, 
-                    RP_COPY_MODE, ARRAY_INFO, DRIVE_TYPE, JOURNAL_SIZE, JOURNAL_VARRAY, JOURNAL_VPOOL, 
+            String[] exclude = new String[] { PROTECTION_VARRAY_SETTINGS, RP_RPO_VALUE, RP_RPO_TYPE,
+                    RP_COPY_MODE, ARRAY_INFO, DRIVE_TYPE, JOURNAL_SIZE, JOURNAL_VARRAY, JOURNAL_VPOOL,
                     MULTI_VOLUME_CONSISTENCY, METROPOINT };
             excluded.addAll(Arrays.asList(exclude));
             excluded.addAll(Arrays.asList(generallyExcluded));
@@ -1420,8 +1487,64 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             s_logger.warn("RP remove protection operation is NOT supported.");
             return false;
         }
-        
+
         s_logger.info("RP remove protection operation is supported.");
+        return true;
+    }
+
+    /**
+     * Checks to see if the file replication change is supported.
+     * 
+     * @param currentVpool the source virtual pool
+     * @param newVpool the target virtual pool
+     * @param notSuppReasonBuff the not supported reason string buffer
+     * @return
+     */
+    public static boolean isSupportedFileReplicationChange(VirtualPool currentVpool, VirtualPool newVpool, StringBuffer notSuppReasonBuff) {
+        s_logger.info(String.format("Checking isSupportedFileReplicationChange from [%s] to [%s]...", currentVpool.getLabel(),
+                newVpool.getLabel()));
+        // Make sure the VirtualPool's are not the same instance.
+        if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
+            return false;
+        }
+
+        // Source virtual pool must not enabled with replication!!
+        if (VirtualPool.vPoolSpecifiesFileReplication(currentVpool)) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("File replication is already enable in source virtual pool %s.",
+                                    currentVpool.getLabel()));
+            s_logger.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // Target virtual pool must be enabled with replication!!
+        if (!VirtualPool.vPoolSpecifiesFileReplication(newVpool)) {
+            notSuppReasonBuff
+                    .append(String
+                            .format("File replication is not enable in target virtual pool %s.",
+                                    newVpool.getLabel()));
+            s_logger.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
+        // Check that nothing other than the excluded attributes changed.
+        List<String> excluded = new ArrayList<String>();
+        String[] exclude = new String[] { FILE_REPLICATION_TYPE, FILE_REPLICATION_COPY_MODE,
+                FILE_REPLICATION_RPO_TYPE, FILE_REPLICATION_RPO_VALUE, FILE_REPLICATION_COPIES };
+        excluded.addAll(Arrays.asList(exclude));
+        excluded.addAll(Arrays.asList(generallyExcluded));
+        Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
+        if (!changes.isEmpty()) {
+            notSuppReasonBuff.append(String.format("These target virtual pool [%s] differences are invalid: ", newVpool.getLabel()));
+            for (String key : changes.keySet()) {
+                notSuppReasonBuff.append(key + " ");
+            }
+            s_logger.info(String.format("Virtual pool change not supported. %s. Parameters other than %s were changed.",
+                    notSuppReasonBuff.toString(), excluded.toString()));
+            return false;
+        }
+
         return true;
     }
 }

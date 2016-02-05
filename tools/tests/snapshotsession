@@ -1,0 +1,244 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# snapshot session functions
+#----------------------------------------------------------------------
+
+# Create snapshot session.
+# Note that currently the source must be a volume.
+def snapshot_session_create(args):
+    bourne.connect(args.ip)
+    source_uri = bourne.volume_query(args.name)
+    source = bourne.volume_show(source_uri)
+    start = time.time()
+    (tasklist, state, message) = bourne.block_snapshot_session_create(source_uri, args.label, args.target_count, args.target_name, args.target_copymode)
+    total = time.time() - start
+    print "Create snapshot session for source " + source['name'] + ' ' + source['id'] + " completed in", "{0:.2f}".format(total), "seconds."
+    if (state == 'ready'):
+        for task in tasklist['task']:
+           print "Snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " successfully created"
+    else:
+       print "Create snapshot session failed with error " + message
+
+# Delete snapshot session.
+def snapshot_session_delete(args):
+    bourne.connect(args.ip)
+    session_uri = bourne.block_snapshot_session_query(args.name)
+    start = time.time()
+    (tasklist, state, message) = bourne.block_snapshot_session_delete(session_uri)
+    total = time.time() - start
+    print "Delete snapshot session completed in", "{0:.2f}".format(total), "seconds."
+    if (state == 'ready'):
+        for task in tasklist['task']:
+            print "Snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " successfully deleted"
+    else:
+        print "Delete snapshot session failed with error " + message
+
+# List all snapshot sessions for a given source.
+# Note that currently the source must be a volume.
+def snapshot_session_list(args):
+    bourne.connect(args.ip)
+    source_uri = bourne.volume_query(args.name)
+    session_uris = bourne.block_snapshot_session_list(source_uri)
+    snapshot_session_display_hdr()
+    for session_uri in session_uris:
+        snapshot_session = bourne.block_snapshot_session_show(session_uri)
+        snapshot_session_display(snapshot_session)
+
+# Show the details for a snapshot session.
+def snapshot_session_show(args):
+    bourne.connect(args.ip)
+    session_uri = bourne.block_snapshot_session_query(args.name)
+    snapshot_session = bourne.block_snapshot_session_show(session_uri)
+    snapshot_session_display_hdr()
+    snapshot_session_display(snapshot_session)
+
+# Get the URI for a block snapshot session
+def snapshot_session_query(args):
+    bourne.connect(args.ip)
+    print bourne.block_snapshot_session_query(args.name)
+
+# Restore the source from a given snapshot session.
+def snapshot_session_restore(args):
+    bourne.connect(args.ip)
+    session_uri = bourne.block_snapshot_session_query(args.name)
+    start = time.time()
+    task = bourne.block_snapshot_session_restore(session_uri)
+    total = time.time() - start
+    print "Restore snapshot completed in", "{0:.2f}".format(total), "seconds."
+    if (task['state'] == 'ready'):
+        print "Snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " successfully restored"
+    else:
+        print "Restore snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
+
+# Link new targets to a snapshot session.
+def snapshot_session_link_targets(args):
+    bourne.connect(args.ip)
+    session_uri = bourne.block_snapshot_session_query(args.name)
+    start = time.time()
+    task = bourne.block_snapshot_session_link_targets(session_uri, args.target_count, args.target_name, args.target_copymode)
+    total = time.time() - start
+    print "Link targets to snapshot session completed in", "{0:.2f}".format(total), "seconds."
+    if (task['state'] == 'ready'):
+        print "Target successfully linked to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
+    else:
+        print "Link target to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
+
+# Relink a target to a new snapshot session of the same source.
+def snapshot_session_relink_target(args):
+    bourne.connect(args.ip)
+    session_uri = bourne.block_snapshot_session_query(args.name)
+    target_uri = bourne.block_snapshot_query(args.target_name)
+    target = bourne.block_snapshot_show(target_uri)
+    start = time.time()
+    task = bourne.block_snapshot_session_relink_target(session_uri, target_uri)
+    total = time.time() - start
+    print "Relink target " + target['name'] + ' ' + target['id'] + " from snapshot session completed in", "{0:.2f}".format(total), "seconds."
+    if (task['state'] == 'ready'):
+        print "Target successfully relinked to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
+    else:
+        print "Relink target to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
+
+# Unlink a target from a block snapshot session.
+def snapshot_session_unlink_target(args):
+    bourne.connect(args.ip)
+    session_uri = bourne.block_snapshot_session_query(args.name)
+    target_uri = bourne.block_snapshot_query(args.target_name)
+    target = bourne.block_snapshot_show(target_uri)
+    start = time.time()
+    task = bourne.block_snapshot_session_unlink_target(session_uri, target_uri, args.delete_target)
+    total = time.time() - start
+    print "Unlink target " + target['name'] + ' ' + target['id'] + " from snapshot session completed in", "{0:.2f}".format(total), "seconds."
+    if (task['state'] == 'ready'):
+        print "Target successfully unlinked from snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
+    else:
+        print "Unlink target from snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
+
+# Display block snapshot sessions in list form.
+snapshot_session_display_fmt = '{0:20s} {1:80s} {2:66s}'
+
+def snapshot_session_display_hdr():
+    print snapshot_session_display_fmt.format('name', 'id', 'source_device')
+    print snapshot_session_display_fmt.format('----', '--', '-------------')
+
+def snapshot_session_display(snapshot_session):
+    print snapshot_session_display_fmt.format(
+              snapshot_session['name'],
+              snapshot_session['id'],
+              str(snapshot_session['parent']['id']))
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# snapshotsession cmd cmd_args [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne snapshot cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | list | show | query | restore | link_target | relink_target | unlink_target)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# snapshotsession create name label [--ip ipaddr]
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name', help = 'The name of the snapshot session source as project/sourcename.')
+create.add_argument('label', help = 'The name for the new snapshot session.')
+create.add_argument('--target_count', help = 'The number of targets to create and link to the snapshot session.')
+create.add_argument('--target_name', help = 'The base name for newly created targets.')
+create.add_argument('--target_copymode', help = 'The copy mode for newly created targets, copy or nocopy, default=nocopy.')
+
+# snapshotsession delete name [--ip ipaddr]
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name', help = 'The name of the snapshot session as project/source_name/session_name.')
+
+# snapshotsession list name [--ip ipaddr]
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('name', help = 'The name of the snapshot session source for which the snapshot sessions are listed as project/source_name')
+
+# snapshotsession show name [--ip ipaddr]
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name', help = 'The name of the snapshot session as project/source_name/session_name.')
+
+# snapshotsession query name [--ip ipaddr]
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name', help = 'The name of the snapshot session as project/source_name/session_name.')
+
+# snapshotsession restore name [--ip ipaddr]
+restore = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+restore.add_argument('name', help = 'The name of the snapshot session as project/source_name/session_name.')
+
+# snapshotsession link_targets name target_count target_name [--ip ipaddr]
+link_targets = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+link_targets.add_argument('name', help = 'The name of the snapshot session as project/source_name/session_name.')
+link_targets.add_argument('target_count', help = 'The number of targets to create and link to the snapshot session.')
+link_targets.add_argument('target_name', help = 'The base name for the newly created targets.')
+link_targets.add_argument('--target_copymode', help = 'The copy mode for newly created targets, copy or nocopy, default=nocopy.')
+
+# snapshotsession relink_target name target_name [--ip ipaddr]
+relink_target = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+relink_target.add_argument('name', help = 'The name of the snapshot session to which the target is relinked as project/source_name/session_name.')
+relink_target.add_argument('target_name', help = 'The name of the linked target to be relinked to the snapshot session as as project/source_name/snapshot_name.')
+
+# snapshotsession unlink_target name [--ip ipaddr]
+unlink_target = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+unlink_target.add_argument('name', help = 'The name of the snapshot session for which the target is unlinked as project/source_name/session_name.')
+unlink_target.add_argument('target_name', help = 'The name of the linked target to be unlinked from the snapshot session as project/source_name/snapshot_name.')
+unlink_target.add_argument('--delete_target', help = 'If true, the target volume is deleted, default=false')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        snapshot_session_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        snapshot_session_delete(args)
+    elif (cmd =="list"):
+        args = list.parse_args()
+        snapshot_session_list(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        snapshot_session_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        snapshot_session_query(args)
+    elif (cmd == "restore"):
+        args = restore.parse_args()
+        snapshot_session_restore(args)
+    elif (cmd == "link_targets"):
+        args = link_targets.parse_args()
+        snapshot_session_link_targets(args)
+    elif (cmd == "relink_target"):
+        args = relink_target.parse_args()
+        snapshot_session_relink_target(args)
+    elif(cmd == "unlink_target"):
+        args = unlink_target.parse_args()
+        snapshot_session_unlink_target(args)
+    else:
+        parser.print_help()
+
+except:
+    raise

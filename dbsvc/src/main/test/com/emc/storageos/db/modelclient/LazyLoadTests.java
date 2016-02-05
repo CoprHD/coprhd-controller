@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.db.client.DbClient;
@@ -70,8 +71,8 @@ public class LazyLoadTests extends DbsvcTestBase {
     @BeforeClass
     public static void setup() throws IOException {
 
-        _dbVersionInfo = new DbVersionInfo();
-        _dbVersionInfo.setSchemaVersion("1.1");
+        sourceVersion = new DbVersionInfo();
+        sourceVersion.setSchemaVersion("1.1");
         _dataDir = new File(dataDir);
         if (_dataDir.exists() && _dataDir.isDirectory()) {
             cleanDirectory(_dataDir);
@@ -88,7 +89,7 @@ public class LazyLoadTests extends DbsvcTestBase {
         // of the dbsvc background tasks, but we don't need them for this test
         setMigrationStatus(MigrationStatus.FAILED);
 
-        startDb(_dbVersionInfo.getSchemaVersion(), null, scanner);
+        startDb(sourceVersion.getSchemaVersion(), sourceVersion.getSchemaVersion(), null, scanner);
     }
 
     @Before
@@ -96,7 +97,7 @@ public class LazyLoadTests extends DbsvcTestBase {
 
         DbClientImplUnitTester dbClient = new DbClientImplUnitTester();
         dbClient.setCoordinatorClient(_coordinator);
-        dbClient.setDbVersionInfo(_dbVersionInfo);
+        dbClient.setDbVersionInfo(sourceVersion);
         dbClient.setBypassMigrationLock(true);
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
@@ -109,6 +110,7 @@ public class LazyLoadTests extends DbsvcTestBase {
         VdcUtil.setDbClient(dbClient);
 
         dbClient.setBypassMigrationLock(false);
+        dbClient.setDrUtil(new DrUtil(_coordinator));
         dbClient.start();
 
         _dbClient = dbClient;

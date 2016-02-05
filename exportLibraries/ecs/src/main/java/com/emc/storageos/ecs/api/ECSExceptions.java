@@ -49,5 +49,19 @@ public interface ECSExceptions {
 
     @DeclareServiceCode(ServiceCode.ECS_BUCKET_GET_OWNER_ERROR)
     public ECSException getBucketOwnerFailed(final String bucketName, final String info);
+    
+    @DeclareServiceCode(ServiceCode.ECS_BUCKET_ACL_ERROR)
+    public ECSException bucketACLUpdateFailed(final String bucketName, final String message);
+    
+    @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACES_ERROR)
+    public ECSException getNamespacesFailed(final String info);
 
+    @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACES_ERROR)
+    public ECSException getNamespacesFailed(final Throwable e);
+    
+    @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACE_DETAILS_ERROR)
+    public ECSException getNamespaceDetailsFailed(final String namespace, final String info);
+
+    @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACE_DETAILS_ERROR)
+    public ECSException getNamespaceDetailsFailed(final String namespace, final Throwable e);
 }

@@ -30,6 +30,7 @@ import javax.wbem.client.WBEMClient;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.google.common.collect.HashMultimap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +71,6 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
@@ -845,7 +845,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                         Joiner.on(',').join(targetURIList)));
             }
 
-            Multimap<URI, Initiator> targetPortsToInitiators = ArrayListMultimap.create();
+            Multimap<URI, Initiator> targetPortsToInitiators = HashMultimap.create();
 
             //Some of the Initiators are already registered partially on the array based on pre existing zoning
             //COP-16954 We need to  manually register them, the Initiators will have HardwareId created but,

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -16,28 +17,34 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.ObjectNamespace.OBJ_StoragePool_Type;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.ecs.api.ECSException;
+import com.emc.storageos.ecs.api.ECSNamespaceRepGroup;
 import com.emc.storageos.ecs.api.ECSStoragePool;
 import com.emc.storageos.ecs.api.ECSStoragePort;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
+import com.emc.storageos.plugins.metering.ecs.ECSCollectionException;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
-import com.emc.storageos.volumecontroller.impl.ecs.ECSCollectionException;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 /**
@@ -83,7 +90,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         StorageSystem storageSystem = null;
         String detailedStatusMessage = "Unknown Status";
         long startTime = System.currentTimeMillis();
-
+        
         _logger.info("ECSCommunicationInterface:discover Access Profile Details :" + accessProfile.toString());
         try {
             storageSystemId = accessProfile.getSystemId();
@@ -164,6 +171,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     storagePool.setFreeCapacity(ecsPool.getFreeCapacity() * BYTESCONVERTER * BYTESCONVERTER);
                     storagePool.setTotalCapacity(ecsPool.getTotalCapacity() * BYTESCONVERTER * BYTESCONVERTER);
                     storagePool.setInactive(false);
+                    storagePool.setDataCenters(ecsPool.getTotalDataCenters());
                     _logger.info("Creating new ECS storage pool using NativeId : {}", storagePoolNativeGuid);
                     storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                     storagePool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
@@ -245,6 +253,25 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 _dbClient.persistObject(storagePorts.get(EXISTING));
             }
 
+            // Discover ECS Namespaces
+            List<ObjectNamespace> allNamespaces = new ArrayList<ObjectNamespace>();
+            Map<String, List<ObjectNamespace>> bothNamespaces = discoverNamespaces(storageSystem);
+            _logger.info("No of newly discovered namespaces {}", bothNamespaces.get(NEW).size());
+            _logger.info("No of existing discovered namespaces {}", bothNamespaces.get(EXISTING).size());
+            if (bothNamespaces != null && !bothNamespaces.get(NEW).isEmpty()) {
+                allNamespaces.addAll(bothNamespaces.get(NEW));
+                _dbClient.createObject(bothNamespaces.get(NEW));
+            }
+
+            if (bothNamespaces != null && !bothNamespaces.get(EXISTING).isEmpty()) {
+                allNamespaces.addAll(bothNamespaces.get(EXISTING));
+                _dbClient.updateObject(bothNamespaces.get(EXISTING));
+            }
+            // Some namespaces might have been deleted
+            DiscoveryUtils.checkNamespacesNotVisible(allNamespaces,
+                    _dbClient, storageSystemId);
+            _completer.statusPending(_dbClient, "Completed namespace discovery");
+
             //Discovery success
             detailedStatusMessage = String.format("Discovery completed successfully for ECS: %s",
                     storageSystemId.toString());
@@ -274,7 +301,101 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                             / (double) 1000));
         }
     }
+    
+    /**
+     * Discover ECS Namespaces with details
+     * @param storageSystem
+     * @return existing and new marked namespace list
+     * @throws ECSCollectionException
+     */
+    private Map<String, List<ObjectNamespace>> discoverNamespaces(StorageSystem storageSystem)
+            throws Exception {
+        URI storageSystemId = storageSystem.getId();
+        List<String> namespaceIdList = new ArrayList<String>();
+        Map<String, List<ObjectNamespace>> bothNamespaces = new HashMap<String, List<ObjectNamespace>>();
+        List<ObjectNamespace> newNamespaces = new ArrayList<ObjectNamespace>();
+        List<ObjectNamespace> existingNamespaces = new ArrayList<ObjectNamespace>();
 
+        try {
+            _logger.info("discover namespace information for storage system {} - start", storageSystemId);
+            ECSApi ecsApi = getECSDevice(storageSystem);
+            ObjectNamespace ecsNamespace = null;
+
+            // Discover list of all namespaces 
+            namespaceIdList = ecsApi.getNamespaces();
+
+            for (String nsId : namespaceIdList) {
+                // Check if this namespace was already discovered
+                ecsNamespace = null;
+                String nsNativeGuid = NativeGUIDGenerator.generateNativeGuidForNamespace(
+                        storageSystem, nsId, NativeGUIDGenerator.NAMESPACE);
+
+                URIQueryResultList uriQueryList = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                        getObjectNamespaceByNativeGuidConstraint(nsNativeGuid), uriQueryList);
+
+                // Even if the namespace GUID is duplicated, URI-storageSystemId is unique
+                Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, uriQueryList);
+                while (nsItr.hasNext()) {
+                    ObjectNamespace ns = nsItr.next();
+                    if (ns.getStorageDevice().equals(storageSystemId)) {
+                        ecsNamespace = ns;
+                        break;
+                    }
+                }
+                
+                if (ecsNamespace == null) {
+                    // New namespace, not discovered
+                    ecsNamespace = new ObjectNamespace();
+                    ecsNamespace.setId(URIUtil.createId(ObjectNamespace.class));
+                    ecsNamespace.setNativeId(nsId);
+                    ecsNamespace.setNativeGuid(nsNativeGuid);
+                    ecsNamespace.setLabel(nsNativeGuid);
+                    ecsNamespace.setStorageDevice(storageSystemId);
+                    
+                    // Now obtain the complete namespace details
+                    ECSNamespaceRepGroup nsGroup = ecsApi.getNamespaceDetails(nsId);
+                    ecsNamespace.setPoolType(nsGroup.getRgType());
+                    StringSet repGroups = new StringSet();
+                    for (String rg : nsGroup.getReplicationGroups()) {
+                        repGroups.add(rg);
+                    }
+                    ecsNamespace.setStoragePools(repGroups);
+                    ecsNamespace.setNsName(nsGroup.getNamespaceName());
+                    ecsNamespace.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+                    
+                    // Check if this newly discovered namespace is already mapped with a tenant
+                    // Upgrade from 2.4 to 2.5
+                    ecsNamespace.setMapped(false);
+                    List<URI> allTenantURI = _dbClient.queryByType(TenantOrg.class, true);
+                    Iterator<TenantOrg> tnItr = _dbClient.queryIterativeObjects(TenantOrg.class, allTenantURI);
+                    while (tnItr.hasNext()) {
+                        TenantOrg ten = tnItr.next();
+                        if (ten.getNamespace() != null && !ten.getNamespace().isEmpty() 
+                                && ten.getNamespace().equalsIgnoreCase(nsId)) {
+                            ecsNamespace.setTenant(ten.getId());
+                            ecsNamespace.setMapped(true);
+                            break;
+                        }
+                    }
+                    
+                    _logger.info("Creating new namespace with NativeGuid : {}", nsNativeGuid);
+                    newNamespaces.add(ecsNamespace);
+                } else {
+                    existingNamespaces.add(ecsNamespace);
+                }
+            }
+            bothNamespaces.put(NEW, newNamespaces);
+            bothNamespaces.put(EXISTING, existingNamespaces);
+            _logger.info("discoverNamespaces for storage system {} - complete", storageSystemId);
+            return bothNamespaces;
+            
+        } catch (Exception e) {
+            _logger.error("discoverNamespaces failed. Storage system: {}", storageSystemId, e);
+            throw e;
+        }
+    }
+    
     /**
      * Get ecs device represented by the StorageDevice
      *
@@ -304,5 +425,4 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         }
 
     }
-
 }

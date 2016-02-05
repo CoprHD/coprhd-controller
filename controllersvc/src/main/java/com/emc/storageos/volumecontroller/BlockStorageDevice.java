@@ -300,7 +300,7 @@ public interface BlockStorageDevice {
 
     /**
      * Create a single snapshot, using CreateElementReplica.
-     *
+     * 
      * @param storage
      * @param snapshotList
      * @param createInactive
@@ -309,7 +309,7 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException
      */
     public void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList,
-                                Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException;
 
     /**
@@ -346,14 +346,14 @@ public interface BlockStorageDevice {
 
     /**
      * Delete a single snapshot.
-     *
+     * 
      * @param storage
      * @param snapshot
      * @param taskCompleter
      * @throws DeviceControllerException
      */
     void doDeleteSelectedSnapshot(StorageSystem storage, URI snapshot,
-                                  TaskCompleter taskCompleter) throws DeviceControllerException;
+            TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException;
@@ -385,7 +385,7 @@ public interface BlockStorageDevice {
     /**
      * Fracture a mirror or mirrors for a volume or volumes.
      * Create group mirrors for volumes in a CG.
-     *
+     * 
      * @param storage
      * @param mirrorList
      * @param createInactive
@@ -408,7 +408,7 @@ public interface BlockStorageDevice {
 
     /**
      * Fracture group mirrors for volumes in a CG.
-     *
+     * 
      * @param storage
      * @param mirrorList
      * @param taskCompleter
@@ -430,7 +430,7 @@ public interface BlockStorageDevice {
 
     /**
      * Detach group mirrors for volumes in a CG.
-     *
+     * 
      * @param storage
      * @param mirrorList
      * @param deleteGroup
@@ -453,7 +453,7 @@ public interface BlockStorageDevice {
 
     /**
      * Resumes group mirrors for volumes in a CG.
-     *
+     * 
      * @param storage
      * @param mirrorList
      * @param taskCompleter
@@ -475,7 +475,7 @@ public interface BlockStorageDevice {
 
     /**
      * Delete group mirrors for volumes in a CG.
-     *
+     * 
      * @param storage
      * @param mirrorList
      * @param taskCompleter
@@ -486,7 +486,7 @@ public interface BlockStorageDevice {
 
     /**
      * Creates group relation between volume group and full copy group.
-     *
+     * 
      * @param storage the storage
      * @param sourceVolume the source volume
      * @param fullCopy the full copy
@@ -561,9 +561,10 @@ public interface BlockStorageDevice {
      * 
      * @param storage
      * @param consistencyGroup
+     * @param replicationGroupName
      * @param taskCompleter
      */
-    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup,
+    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName,
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
@@ -571,11 +572,13 @@ public interface BlockStorageDevice {
      * 
      * @param storage
      * @param consistencyGroup
+     * @param replicationGroupName name of the replication group to be deleted
+     * @param newReplicationGroupName String that used as group name in ViPR when existing group is deleted from storage system
      * @param markInactive
      * @param taskCompleter
      */
     public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup,
-            Boolean markInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
+            String replicationGroupName, String newReplicationGroupName, Boolean markInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * Connect the device - called when a new device is added
@@ -719,7 +722,7 @@ public interface BlockStorageDevice {
     public void doWaitForGroupSynchronized(StorageSystem storageObj,
             List<URI> target, TaskCompleter completer);
 
-    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
+    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName,
             List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void doRemoveFromConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
@@ -777,7 +780,7 @@ public interface BlockStorageDevice {
 
     /**
      * Creates group relation between volume group and mirror group.
-     *
+     * 
      * @param storage the storage
      * @param sourceVolume the source volume
      * @param mirror the mirror
@@ -786,10 +789,10 @@ public interface BlockStorageDevice {
      */
     public void doEstablishVolumeNativeContinuousCopyGroupRelation(StorageSystem storage, URI sourceVolume,
             URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * Creates group relation between volume group and snapshot group.
-     *
+     * 
      * @param storage the storage
      * @param sourceVolume the source volume
      * @param snapshot the snapshot
@@ -802,7 +805,7 @@ public interface BlockStorageDevice {
     /**
      * For mirrors associated with SRDF volumes, remove the mirrors
      * from device masking group equivalent to its Replication group.
-     *
+     * 
      * @param system the system
      * @param mirrors the mirror list
      * @param completer the completer
@@ -855,7 +858,7 @@ public interface BlockStorageDevice {
 
     /**
      * Create list replica.
-     *
+     * 
      * @param storage the storage system
      * @param replicaList the replicas
      * @param createInactive
@@ -867,7 +870,7 @@ public interface BlockStorageDevice {
 
     /**
      * Detach list replica.
-     *
+     * 
      * @param storage the storage system
      * @param replicaList the replicas
      * @param taskCompleter the task completer
@@ -875,12 +878,34 @@ public interface BlockStorageDevice {
      */
     public void doDetachListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws Exception;
 
-    /*
-     * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs
+    /**
+     * Fracture list replica.
      *
      * @param storage the storage system
-     * @param exportMask the ExportMask that represents the masking component of the array
+     * @param replicaList the replicas
+     * @param sync
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doFractureListReplica(StorageSystem storage, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter) throws Exception;
+
+    /**
+     * Delete list replica.
      *
+     * @param storage the storage system
+     * @param replicaList the replicas
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doDeleteListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws Exception;
+
+    /*
+     * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs
+     * 
+     * @param storage the storage system
+     * 
+     * @param exportMask the ExportMask that represents the masking component of the array
+     * 
      * @return The BlockObject URI to HLU mapping for the ExportMask
      */
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
@@ -900,4 +925,91 @@ public interface BlockStorageDevice {
      */
     public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
             TaskCompleter taskCompleter) throws DeviceControllerException;
+
+    /**
+     * Creates new array snapshots on the passed storage system.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURIs The URIs of the BlockSnapshotSession instances in ViPR
+     *            that will represent these array snapshots.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+            throws DeviceControllerException;
+
+    /**
+     * Creates a new target volume and links it to an array snapshot on the passed storage system.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the array snapshot.
+     * @param snapshotURI The URI of the BlockSnapshot instance in ViPR that will represent
+     *            the new target volume.
+     * @param copyMode The copy mode in which the target is linked to the snapshot.
+     * @param targetExists true if the target exists, false if a new one needs to be created.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+            String copyMode, Boolean targetExists, TaskCompleter completer) throws DeviceControllerException;
+
+    /**
+     * Re-links a target volume to an array snapshot on the passed storage system.
+     * 
+     * @param system A reference to the storage system.
+     * @param tgtSnapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the target array snapshot.
+     * @param snapshotURI The URI of the BlockSnapshot instance in ViPR that represents
+     *            the target volume to be re-linked.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doRelinkBlockSnapshotSessionTarget(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
+            TaskCompleter completer) throws DeviceControllerException;
+
+    /**
+     * Creates a new target volume and links it to an array snapshot on the passed storage system.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the array snapshot.
+     * @param snapshotURI The URI of the BlockSnapshot instance in ViPR that represents
+     *            the target volume.
+     * @param deleteTarget True if the target should also be deleted.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doUnlinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+            Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException;
+
+    /**
+     * Restores the data on a snapshot session to its source.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the array snapshot.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doRestoreBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException;
+
+    /**
+     * Deletes the snapshot session.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the array snapshot.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException;
 }

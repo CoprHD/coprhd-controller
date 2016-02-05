@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to migrate BlockObject consistencyGroup to the new
@@ -47,7 +48,7 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
     private static final Logger log = LoggerFactory.getLogger(BlockObjectMultipleConsistencyGroupsMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         migrateRpConsistencyGroups();
         migrateBlockConsistencyGroups();
         migrateBlockVolumes();

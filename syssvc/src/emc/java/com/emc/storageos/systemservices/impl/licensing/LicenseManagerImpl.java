@@ -60,6 +60,8 @@ public class LicenseManagerImpl implements LicenseManager {
     public static final int waitClusterStableInterval = 5000;
     public static final int waitRetryConvertLicneseInterval = 5000;
 
+    public static final String LICENSETYPE_DELIMITER = ":";
+
     // used to ensure thread-safety of parsing license
     final Lock parseLicenseLock = new ReentrantLock();
     public final static int waitAcquireParseLicenseLock = 60; // 60 seconds
@@ -80,6 +82,26 @@ public class LicenseManagerImpl implements LicenseManager {
                 // Step 2: parse the .license file on disk in root directory using the ELMS API. This is required by the
                 // ELMS API.
                 License fullLicense = buildLicenseObjectFromText(license.getLicenseText());
+                if (fullLicense != null) {
+                    boolean isTrial = false;
+                    for (LicenseFeature feature : fullLicense.getLicenseFeatures()) {
+                        if (feature.getModelId().startsWith(LicenseConstants.VIPR_CONTROLLER)
+                                && feature.isTrialLicense()) {
+                            isTrial = true;
+                        }
+                    }
+                    if (!isTrial) {
+                        // Do not support the licenses of pre-yoda releases unless it is trial license.
+                        for (LicenseFeature licenseFeature : fullLicense.getLicenseFeatures()) {
+                            if (licenseFeature.getModelId().contains(LicenseFeature.OLD_LICENSE_SUBMODEL)) {
+                                _log.info("The license file contains a feature which is not supported any more. The license was not added to the system.");
+                                throw APIException.badRequests
+                                        .licenseIsNotValid(
+                                                "The license file contains a feature which is not supported any more. The license was not added to the system.");
+                            }
+                        }
+                    }
+                }
 
                 // Step 3: Add license features to coordinator service.
                 updateCoordinatorWithLicenseFeatures(fullLicense, true);
@@ -123,8 +145,8 @@ public class LicenseManagerImpl implements LicenseManager {
         License fullLicense = buildLicenseObjectFromText(license.getLicenseText());
         if (fullLicense != null) {
             for (LicenseFeature feature : fullLicense.getLicenseFeatures()) {
-                if (LicenseConstants.getLicenseType(feature.getModelId()).equals(
-                        LicenseType.CONTROLLER) && feature.isTrialLicense()) {
+                if (feature.getModelId().startsWith(LicenseConstants.VIPR_CONTROLLER)
+                        && feature.isTrialLicense()) {
                     return true;
                 }
             }
@@ -193,22 +215,15 @@ public class LicenseManagerImpl implements LicenseManager {
                 ELMLicenseSource licSource = new ELMLicenseSource(licProps);
                 featureDetails = licSource.getFeatureDetailList();
 
-                Map<String, String> modelMap = parseLicenseVendorStrings(licenseText);
-                if (modelMap == null || modelMap.size() == 0) {
-                    throw APIException.badRequests.licenseIsNotValid(
-                            "Unable to parse the license file for Model Id and Vendor String");
-                }
-
                 LicenseFeature licenseFeature = null;
                 for (ELMFeatureDetail featureDetail : featureDetails) {
                     // create a license feature object.
                     licenseFeature = new LicenseFeature();
-                    if (!featureDetail.getFeatureName().equals(LicenseConstants.VIPR_CONTROLLER) &&
-                            !featureDetail.getFeatureName().equals(LicenseConstants.VIPR_BLOCK)) {
+                    if (!featureDetail.getFeatureName().equals(LicenseConstants.VIPR_CONTROLLER)) {
                         throw APIException.badRequests.licenseIsNotValid(
                                 String.format("The license file contains a not supported feature: %s.",
                                         featureDetail.getFeatureName()) +
-                                        "Non controller/block license is no longer supported.");
+                                        "Non controller license is no longer supported.");
                     }
                     if (featureDetail.getDaysUntilExp() > 0) {
                         licenseFeature.setLicensed(true);
@@ -218,17 +233,26 @@ public class LicenseManagerImpl implements LicenseManager {
                         licenseFeature.setDateExpires(convertCalendarToString(featureDetail.getExpDate()));
                         licenseFeature.setExpired(isExpired(licenseFeature.getDateExpires()));
                         licenseFeature.setDateIssued(convertCalendarToString(featureDetail.getIssuedDate()));
-                        licenseFeature.setModelId(featureDetail.getFeatureName());
-                        setVendorStringFields(featureDetail, licenseFeature, modelMap);
+
+                        String subModelId = LicenseFeature.OLD_LICENSE_SUBMODEL;
+                        Properties p = featureDetail.getVendorString(";");
+                        if (p.size() > 0) {
+                            for (Enumeration e = p.propertyNames(); e.hasMoreElements();) {
+                                String str = (String) e.nextElement();
+                                if (str.equals(LicenseConstants.LICENSE_TYPE_PROPERTYNAME)) {
+                                    subModelId = p.getProperty(str);
+                                    _log.info("Get a license increment with type: {}", subModelId);
+                                    break;
+                                }
+                            }
+                        }
+                        licenseFeature.setModelId(featureDetail.getFeatureName() + LicenseFeature.MODELID_DELIMETER+ subModelId);
+                        setVendorStringFields(featureDetail, licenseFeature, p);
                     } else {
                         _log.info("The license file contains a feature which is in an expired state. The license was not added to the system.");
                         throw APIException.badRequests
                                 .licenseIsNotValid(
                                 "The license file contains a feature which is in an expired state. The license was not added to the system.");
-                    }
-                    if (!validateLicenseFeature(licenseFeature)) {
-                        throw APIException.badRequests.licenseIsNotValid(
-                                "Obsolete license. ViPR 2.0 license is required");
                     }
                     license.addLicenseFeature(licenseFeature);
                 }
@@ -245,31 +269,6 @@ public class LicenseManagerImpl implements LicenseManager {
             _log.warn("Cannot acquire lock. Another thread is holding the lock validating and parsing license");
             throw APIException.serviceUnavailable.postLicenseBusy();
         }
-    }
-
-    /**
-     * Check if the license feature is of required version
-     * For ViPR 2.0, Object/HDFS license should not have capacity, ObjectHDFS license no longer exists.
-     * 
-     * @param licenseFeature
-     * @return true if the license feature meet the requirement of ViPR 2.0
-     */
-    private boolean validateLicenseFeature(LicenseFeature licenseFeature)
-    {
-        String featureName = licenseFeature.getModelId();
-        if (featureName.equals(LicenseConstants.getModelId(LicenseType.OBJECTHDFS))) {
-            _log.error("The license file contains 1.0 license feature {}", featureName);
-            return false;
-        }
-        if (featureName.equals(LicenseConstants.getModelId(LicenseType.OBJECT)) ||
-                featureName.equals(LicenseConstants.getModelId(LicenseType.HDFS))) {
-            // Check if it is license of 1.0 or 2.0
-            if (licenseFeature.getStorageCapacity() != null) {
-                _log.error("The license file contains 1.0 license feature {}", featureName);
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
@@ -415,11 +414,12 @@ public class LicenseManagerImpl implements LicenseManager {
         LicenseInfoListExt licenseList = null;
         List<LicenseInfoExt> licenseInfoList = new ArrayList<LicenseInfoExt>();
         for (LicenseFeature licenseFeature : license.getLicenseFeatures()) {
-            LicenseType licenseType = LicenseConstants.getLicenseType(
-                    licenseFeature.getModelId());
-            if (licenseType == null) {
+            LicenseType licenseType;
+            if (licenseFeature.getModelId().startsWith(LicenseConstants.VIPR_CONTROLLER)) {
+                licenseType = LicenseType.CONTROLLER;
+            } else {
                 throw APIException.internalServerErrors.licenseInfoNotFoundForType(
-                        "invalid license model id" + licenseFeature.getModelId());
+                    "invalid license model id" + licenseFeature.getModelId());
             }
 
             LicenseInfoExt licenseInfo = new LicenseInfoExt();
@@ -592,24 +592,15 @@ public class LicenseManagerImpl implements LicenseManager {
      * vendor string.
      */
     private void setVendorStringFields(ELMFeatureDetail featureDetail,
-            LicenseFeature licenseFeature, Map<String, String> modelMap) {
+            LicenseFeature licenseFeature, Properties vendorProps) {
 
-        // Use featureName (i.e. Model Number) as key to the map to return the
-        // vendor string for that model feature in an unparsed format. (i.e.
-        // VENDOR_STRING=CAPACITY=500;CAPACITY_UNIT=TB;SWID=12345678901234)
-        String vendorString = modelMap.get(featureDetail.getFeatureName());
-        // Split the vendorString(VENDOR_STRING=CAPACITY=500;CAPACITY_UNIT=TB;SWID=12345678901234)
-        // to return a map of Strings of the individual features by their corresponding name
-        // (i.e key CAPACITY, value 500)
-        Map<String, String> vendorStringMap = splitVendorString(vendorString);
-
-        if (vendorStringMap.get(LicenseConstants.STORAGE_CAPACITY) != null) {
-            licenseFeature.setStorageCapacity(computeLicensedAmount(vendorStringMap));
+        if (vendorProps.getProperty(LicenseConstants.STORAGE_CAPACITY) != null) {
+            licenseFeature.setStorageCapacity(computeLicensedAmount(vendorProps));
         }
 
         // If SWID is returned in the vendor string, we will use that as the Serial number,
         // otherwise, use SN. Set the LicenseIndicator so that the SYR knows if we're using a SWID or LAC.
-        String swidValue = vendorStringMap.get(LicenseConstants.SWID_VALUE);
+        String swidValue = vendorProps.getProperty(LicenseConstants.SWID_VALUE);
         if (swidValue == null || swidValue.startsWith("ERR")) {
             licenseFeature.setSerial(featureDetail.getSN());
             licenseFeature.setProductId(featureDetail.getSN());
@@ -620,7 +611,7 @@ public class LicenseManagerImpl implements LicenseManager {
             licenseFeature.setLicenseIdIndicator(LicenseConstants.SWID);
         }
         // if it is a trial license
-        String trialLicenseStr = vendorStringMap.get(LicenseConstants.TRIAL_LICENSE_NAME);
+        String trialLicenseStr = vendorProps.getProperty(LicenseConstants.TRIAL_LICENSE_NAME);
         if (trialLicenseStr != null) {
             for (String value : LicenseConstants.TRIAL_LICENSE_VALUE) {
                 if (trialLicenseStr.equals(value)) {
@@ -708,12 +699,12 @@ public class LicenseManagerImpl implements LicenseManager {
      * Compute the licensed amount by computing storage capacity times the
      * storage capacity unit.
      * 
-     * @param vendorStringMap
+     * @param vendorProps
      * @return
      */
-    private String computeLicensedAmount(Map<String, String> vendorStringMap) {
+    private String computeLicensedAmount(Properties vendorProps) {
 
-        String units = vendorStringMap.get(LicenseConstants.STORAGE_CAPACITY_UNITS);
+        String units = vendorProps.getProperty(LicenseConstants.STORAGE_CAPACITY_UNITS);
         if (units == null) {
             return null;
         }
@@ -721,7 +712,7 @@ public class LicenseManagerImpl implements LicenseManager {
         BigInteger computedLicensedCapacity = null;
         // Currently, only TERABYTE is supported in the license.
         if (units.equalsIgnoreCase(LicenseConstants.TERABYTE)) {
-            BigInteger licensedCapacity = new BigInteger(vendorStringMap.get(LicenseConstants.STORAGE_CAPACITY));
+            BigInteger licensedCapacity = new BigInteger(vendorProps.getProperty(LicenseConstants.STORAGE_CAPACITY));
             computedLicensedCapacity = licensedCapacity.multiply(LicenseConstants.TB_VALUE);
         }
 

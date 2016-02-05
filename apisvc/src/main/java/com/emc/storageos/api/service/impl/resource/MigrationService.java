@@ -72,7 +72,6 @@ import com.google.common.base.Function;
 /**
  * Service used to manage resource migrations.
  */
-@Deprecated
 @Path("/block/migrations")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
@@ -105,11 +104,12 @@ public class MigrationService extends TaskResourceService {
      * @prereq none
      * 
      * @param migrateParam A reference to the migration parameters.
-     * 
+     * @deprecated Use the Change Virtual Pool API instead
      * @brief Perform a non-disruptive migration for a VPLEX volume.
      * @return A TaskResourceRep for the volume being migrated.
      * @throws InternalException
      */
+    @Deprecated
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

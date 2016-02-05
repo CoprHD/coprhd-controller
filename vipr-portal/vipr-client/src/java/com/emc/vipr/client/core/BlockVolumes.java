@@ -688,7 +688,9 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * @param input
      *            the migration configuration.
      * @return a task for monitoring the operation progress.
+     * @deprecated Use the Change Virtual Pool API instead
      */
+    @Deprecated
     public Task<VolumeRestRep> migrate(MigrationParam input) {
         return postTask(input, PathConstants.MIGRATION_URL);
     }

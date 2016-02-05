@@ -822,30 +822,35 @@ public class FileVirtualPoolService extends VirtualPoolService {
     }
 
     private boolean validateReplicationRpoParams(FileReplicationPolicy sourcePolicy) {
-        if (sourcePolicy.getRpoType() == null
-                || FileReplicationRPOType.lookup(sourcePolicy.getRpoType()) == null) {
-            throw APIException.badRequests.invalidReplicationRPOType(sourcePolicy.getRpoType());
-        }
 
-        if (sourcePolicy.getRpoValue() == null || sourcePolicy.getRpoValue() <= 0) {
-            throw APIException.badRequests.invalidReplicationRPOValue();
-        }
+        if (sourcePolicy != null &&
+                FileReplicationType.validFileReplication(sourcePolicy.getReplicationType())) {
+            if (sourcePolicy.getRpoType() == null
+                    || FileReplicationRPOType.lookup(sourcePolicy.getRpoType()) == null) {
+                throw APIException.badRequests.invalidReplicationRPOType(sourcePolicy.getRpoType());
+            }
 
-        switch (sourcePolicy.getRpoType().toUpperCase()) {
-            case "MINUTES":
-                if (sourcePolicy.getRpoValue() > MINUTES_PER_HOUR) {
-                    throw APIException.badRequests.invalidReplicationRPOValueForType(
-                            sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
-                }
-                break;
-            case "HOURS":
-                if (sourcePolicy.getRpoValue() > HOURS_PER_DAY) {
-                    throw APIException.badRequests.invalidReplicationRPOValueForType(
-                            sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
-                }
-                break;
+            if (sourcePolicy.getRpoValue() == null || sourcePolicy.getRpoValue() <= 0) {
+                throw APIException.badRequests.invalidReplicationRPOValue();
+            }
+
+            switch (sourcePolicy.getRpoType().toUpperCase()) {
+                case "MINUTES":
+                    if (sourcePolicy.getRpoValue() > MINUTES_PER_HOUR) {
+                        throw APIException.badRequests.invalidReplicationRPOValueForType(
+                                sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
+                    }
+                    break;
+                case "HOURS":
+                    if (sourcePolicy.getRpoValue() > HOURS_PER_DAY) {
+                        throw APIException.badRequests.invalidReplicationRPOValueForType(
+                                sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
+                    }
+                    break;
+            }
+            return true;
         }
-        return true;
+        return false;
     }
 
     private void updateReplicationParams(VirtualPool virtualPool,

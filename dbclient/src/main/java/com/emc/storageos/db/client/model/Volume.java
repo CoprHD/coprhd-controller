@@ -117,7 +117,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
         public static String getVolumeAccessStateDisplayName(String state) {
             for (VolumeAccessState stateValue : copyOfValues) {
-                if (stateValue.getState().contains(state)) {
+                if (state != null && stateValue.getState().contains(state)) {
                     return stateValue.name();
                 }
             }
@@ -126,7 +126,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
         public static VolumeAccessState getVolumeAccessState(String state) {
             for (VolumeAccessState stateValue : copyOfValues) {
-                if (stateValue.name().equalsIgnoreCase(state)) {
+                if (state != null && stateValue.name().equalsIgnoreCase(state)) {
                     return stateValue;
                 }
             }

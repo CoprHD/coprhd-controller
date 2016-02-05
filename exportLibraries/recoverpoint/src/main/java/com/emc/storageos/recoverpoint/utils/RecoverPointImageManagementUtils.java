@@ -502,7 +502,7 @@ public class RecoverPointImageManagementUtils {
         try {
             cgCopyName = impl.getGroupCopyName(cgCopyUID);
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
-            logger.info("Restore the image to copy name: " + cgCopyName + " for CG Name: " + cgName);
+            logger.info(String.format("Restore the image to copy name: %s for CG name: %s", cgCopyName, cgName));
             recoverProductionAndWait(impl, cgCopyUID);
             // For restore, just wait for link state of the copy being restored
             waitForCGLinkState(impl, cgCopyUID.getGroupUID(),

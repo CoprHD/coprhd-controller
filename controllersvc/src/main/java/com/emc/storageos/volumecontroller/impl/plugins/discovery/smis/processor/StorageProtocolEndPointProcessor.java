@@ -11,6 +11,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +32,11 @@ import com.google.common.base.Joiner;
 public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
     private Logger _logger = LoggerFactory
             .getLogger(StorageProtocolEndPointProcessor.class);
+    private List<Object> args;
     private DbClient _dbClient;
     private static final String NAME = "Name";
     private static final String SYSTEMNAME = "SystemName";
+    private static final String DEVICEID = "DeviceID";
     private static final String COMMA_STR = ",";
 
     @Override
@@ -57,14 +61,14 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
                     String portInstanceID = endPointInstance.getObjectPath()
                             .getKey(SYSTEMNAME).getValue().toString();
                     if (device.checkIfVmax3()) {
-                        // We need the portInstanceID to not constitute the Virtual port number.
-                        // i.e Instead of SYMMETRIX-+-000196800084-+-115-+-0 we need SYMMETRIX-+-000196800084-+-115
-                        StringBuffer newPortInstanceID = new StringBuffer(portInstanceID.split(Constants.SMIS80_DELIMITER_REGEX)[0]);
-                        newPortInstanceID.append(Constants.SMIS80_DELIMITER)
-                                .append(portInstanceID.split(Constants.SMIS80_DELIMITER_REGEX)[1]);
-                        newPortInstanceID.append(Constants.SMIS80_DELIMITER)
-                                .append(portInstanceID.split(Constants.SMIS80_DELIMITER_REGEX)[2]);
-                        portInstanceID = newPortInstanceID.toString();
+                        CIMObjectPath logicalPortPath = getObjectPathfromCIMArgument(args);
+                        // We need the portInstanceID to not constitute the Virtual information.
+                        // i.e Instead of SYMMETRIX-+-<<SERIAL>>-+-115-+-0 it should be SYMMETRIX-+-<<SERIAL>>-+-SE-1G-+-0
+                        StringBuffer newPortInstanceID = new StringBuffer(logicalPortPath.getKey(SYSTEMNAME).getValue().toString());
+                        newPortInstanceID.append(Constants._plusDelimiter)
+                                .append(logicalPortPath.getKey(DEVICEID).getValue().toString());
+                        portInstanceID = (newPortInstanceID.toString()).replaceAll(Constants.SMIS_PLUS_REGEX,
+                                Constants.SMIS80_DELIMITER_REGEX);
                     }
                     String iScsiPortName = getCIMPropertyValue(endPointInstance, NAME);
                     // Skip the iSCSI ports without name or without a valid name.
@@ -157,6 +161,6 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws BaseCollectionException {
-        // TODO Auto-generated method stub
+        args = inputArgs;
     }
 }

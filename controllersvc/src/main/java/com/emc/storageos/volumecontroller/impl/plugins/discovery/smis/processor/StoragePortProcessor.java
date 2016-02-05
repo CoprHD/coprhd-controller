@@ -62,7 +62,6 @@ public class StoragePortProcessor extends StorageProcessor {
     private static final String ISCSI = "iSCSI";
     private static final String OPERATIONALSTATUS = "OperationalStatus";
     private static final String EMC_PORT_ATTRIBUTES = "EMCPortAttributes";
-    private static final String EMCADAPTERNUMBER = "EMCAdapterNumber";
     private static final UnsignedInteger16 EMC_PORT_ATTRIBUTE_ACLX_FLAG = new UnsignedInteger16(1);
     private AccessProfile profile = null;
     private List<StoragePort> _newPortList = null;
@@ -134,12 +133,7 @@ public class StoragePortProcessor extends StorageProcessor {
                         if (device.getUsingSmis80()) {
                             String systemName = getCIMPropertyValue(portInstance, SYSTEM_NAME);
                             StringBuffer deviceIdStrBuf = new StringBuffer(systemName);
-                            if (device.checkIfVmax3()) {
-                                deviceIdStrBuf.append(Constants.SMIS80_DELIMITER).append(getCIMPropertyValue(portInstance, EMCADAPTERNUMBER));
-                            }
-                            else {
-                                deviceIdStrBuf.append(Constants.SMIS80_DELIMITER).append(deviceId);
-                            }
+                            deviceIdStrBuf.append(Constants.SMIS80_DELIMITER).append(deviceId);
                             deviceId = deviceIdStrBuf.toString();
                         }
                         _logger.debug("Adding iSCSI Port instance {} to keyMap", deviceId);

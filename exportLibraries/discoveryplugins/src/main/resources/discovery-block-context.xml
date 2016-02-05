@@ -1770,7 +1770,7 @@
 		<property name="creator" ref="argscreator" />
 		<property name="method" value="getStringArrayValue" />
 		<property name="value"
-			value="PermanentAddress,EMCPortName,EMCPortAttributes,DeviceID,Speed,LinkTechnology,UsageRestriction,OperationalStatus,SystemName,EMCAdapterNumber" />
+			value="PermanentAddress,EMCPortName,EMCPortAttributes,DeviceID,Speed,LinkTechnology,UsageRestriction,OperationalStatus,SystemName" />
 		<property name="name" value="prvcList" />
 	</bean>
 

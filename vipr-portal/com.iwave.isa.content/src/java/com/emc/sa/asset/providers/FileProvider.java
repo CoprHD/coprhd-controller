@@ -4,9 +4,6 @@
  */
 package com.emc.sa.asset.providers;
 
-import static com.emc.vipr.client.core.util.ResourceUtils.name;
-import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,14 +23,8 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.MachineTagUtils;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
-import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyList;
@@ -42,24 +33,15 @@ import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileShareRestRep.FileProtectionRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.SmbShareResponse;
-import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
-import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
-import com.emc.vipr.client.core.filters.RecoverPointPersonalityFilter;
-import com.emc.vipr.client.core.filters.ResourceFilter;
-import com.emc.vipr.client.core.filters.SRDFSourceFilter;
 import com.emc.vipr.client.core.filters.SourceTargetFileSystemsFilter;
-import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.client.core.filters.VirtualPoolProtocolFilter;
-import com.emc.vipr.client.core.util.CachedResources;
-import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -318,19 +300,6 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @Asset("fileWithContinuousCopies")
     @AssetDependencies("project")
     public List<AssetOption> getFileWithContinuousCopies(AssetOptionsContext ctx, URI project) {
-//        final ViPRCoreClient client = api(ctx);
-//        List<AssetOption> options = Lists.newArrayList();
-//        List<FileShareRestRep> fs = client.fileSystems().findByProject(project);
-//        
-//        for (FileShareRestRep fileShare: fs) {
-//            if (fileShare.getProtection() != null &&
-//                    StringUtils.equals(fileShare.getProtection().getPersonality(), "SOURCE")) {
-//                options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
-//            }
-//        }
-//        
-//        AssetOptionsUtils.sortOptionsByLabel(options);
-//        return options;
         final ViPRCoreClient client = api(ctx);
         List<FileShareRestRep> fileShares = client.fileSystems().findByProject(project, new SourceTargetFileSystemsFilter() {
             @Override
@@ -426,24 +395,6 @@ public class FileProvider extends BaseAssetOptionsProvider {
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
-    
-//    protected List<AssetOption> createFileVpoolChangeOptions(String vpoolChangeOperation, List<FileVirtualPoolRestRep> vpoolChanges) {
-//        List<AssetOption> options = Lists.newArrayList();
-//        for (VirtualPoolChangeRep vpoolChange : vpoolChanges) {
-//            if (vpoolChange.getAllowedChangeOperations() != null) {
-//                for (StringHashMapEntry allowedChangeOperation : vpoolChange.getAllowedChangeOperations()) {
-//                    String operation = allowedChangeOperation.getName();
-//                    boolean isCorrectOperation =
-//                            StringUtils.isNotBlank(operation) &&
-//                                    operation.equalsIgnoreCase(vpoolChangeOperation);
-//                    if (isCorrectOperation) {
-//                        options.add(new AssetOption(vpoolChange.getId(), vpoolChange.getName()));
-//                    }
-//                }
-//            }
-//        }
-//        return options;
-//    }
 
     private List<SmbShareResponse> listFileShares(AssetOptionsContext ctx, URI filesystem) {
         return api(ctx).fileSystems().getShares(filesystem);

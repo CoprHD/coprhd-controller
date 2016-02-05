@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.FAILOVER_TARGET_FILE;

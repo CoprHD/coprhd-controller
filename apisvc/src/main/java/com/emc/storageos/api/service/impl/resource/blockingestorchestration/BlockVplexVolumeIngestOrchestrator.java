@@ -89,9 +89,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
         UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();
 
-        VolumeIngestionUtil.checkValidVarrayForUnmanagedVolume(unManagedVolume, 
+        VolumeIngestionUtil.checkValidVarrayForUnmanagedVolume(unManagedVolume,
                 requestContext.getVarray(unManagedVolume).getId(),
-                getClusterIdToNameMap(requestContext.getStorageSystem()), 
+                getClusterIdToNameMap(requestContext.getStorageSystem()),
                 getVarrayToClusterIdMap(requestContext.getStorageSystem()), _dbClient);
 
         String vplexIngestionMethod = requestContext.getVplexIngestionMethod();
@@ -108,9 +108,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             if (isRpVplexContext) {
                 // if this volume is RP/VPLEX, we need to get the volume context
                 // from the RpVplexVolumeIngestionContext
-                volumeContext = 
-                        ((RpVplexVolumeIngestionContext) 
-                                requestContext.getVolumeContext()).getVplexVolumeIngestionContext();
+                volumeContext =
+                        ((RpVplexVolumeIngestionContext)
+                        requestContext.getVolumeContext()).getVplexVolumeIngestionContext();
             } else {
                 // this is just a plain VPLEX volume backend ingestion
                 volumeContext = (VplexVolumeIngestionContext) requestContext.getVolumeContext();
@@ -162,7 +162,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
         _logger.info("Ingesting VPLEX virtual volume {}", unManagedVolume.getLabel());
         T virtualVolume = super.ingestBlockObjects(requestContext, clazz);
-        
+
         return virtualVolume;
     }
 
@@ -172,10 +172,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * @param blockObject block object
      * @param deviceLabel device label
      */
+    @Override
     protected void managedVolumeSetLabel(BlockObject blockObject, String deviceLabel) {
         if (deviceLabel.contains("(")) {
-            blockObject.setLabel(deviceLabel.substring(0, deviceLabel.indexOf('(')-1));
-            blockObject.setDeviceLabel(deviceLabel.substring(0, deviceLabel.indexOf('(')-1));
+            blockObject.setLabel(deviceLabel.substring(0, deviceLabel.indexOf('(') - 1));
+            blockObject.setDeviceLabel(deviceLabel.substring(0, deviceLabel.indexOf('(') - 1));
         } else {
             super.managedVolumeSetLabel(blockObject, deviceLabel);
         }
@@ -223,19 +224,19 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
         // validate the supporting device structure is compatible with vipr
         // TODO temporarily disabled until simulator can support this
-        //context.validateSupportingDeviceStructure();
+        // context.validateSupportingDeviceStructure();
 
         // validate that there are not too many replicas on a distributed volume
         // as we can only support ingesting snaps or clones on one leg
         if (context.isDistributed()) {
             _logger.info("checking for presence of replicas on both legs of this distributed volume");
-            
+
             // each entry in these collections is a concatenated list of replica names
             // on each backend volume, so if their size is more than one, that means there
             // are replicas present on both legs.
-            // for example: all the backend volume name strings on leg 1 are concatenated, 
-            // added to snapshotsList at position 0.  All the backend volumes on leg2 (if 
-            // present) are concatenated and added to snapshotsList at position 1.  So, 
+            // for example: all the backend volume name strings on leg 1 are concatenated,
+            // added to snapshotsList at position 0. All the backend volumes on leg2 (if
+            // present) are concatenated and added to snapshotsList at position 1. So,
             // if the size snapshotsList is greater than 1, we've got snaps on both legs.
             List<String> snapshotsList = new ArrayList<String>();
             List<String> clonesList = new ArrayList<String>();
@@ -251,7 +252,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     clonesList.add(Joiner.on(", ").join(clones));
                 }
             }
-            
+
             // build up an error message
             int counter = 0;
             StringBuilder message = new StringBuilder("");
@@ -443,7 +444,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private void ingestBackendVolumes(IngestionRequestContext requestContext, 
+    private void ingestBackendVolumes(IngestionRequestContext requestContext,
             VplexVolumeIngestionContext backendRequestContext) throws IngestionException {
 
         while (backendRequestContext.hasNext()) {
@@ -464,11 +465,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 validateBackendVolumeVpool(associatedVolume, backendRequestContext.getVpool(associatedVolume));
 
-                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume, 
+                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume,
                         IngestStrategyFactory.DISREGARD_PROTECTION);
 
                 @SuppressWarnings("unchecked")
-                BlockObject blockObject = ingestStrategy.ingestBlockObjects(backendRequestContext, 
+                BlockObject blockObject = ingestStrategy.ingestBlockObjects(backendRequestContext,
                         VolumeIngestionUtil.getBlockObjectClass(associatedVolume));
 
                 if (null == blockObject) {
@@ -518,7 +519,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     createdObjectMap.put(blockObjectNativeGuid, blockObject);
                 }
 
-                backendRequestContext.getProcessedUnManagedVolumeMap().put(associatedVolume.getNativeGuid(), 
+                backendRequestContext.getProcessedUnManagedVolumeMap().put(associatedVolume.getNativeGuid(),
                         backendRequestContext.getVolumeContext());
                 _logger.info("Ingestion ended for backend volume {}", associatedVolume.getNativeGuid());
             } catch (Exception ex) {
@@ -545,13 +546,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private void ingestBackendExportMasks(IngestionRequestContext requestContext, 
+    private void ingestBackendExportMasks(IngestionRequestContext requestContext,
             VplexVolumeIngestionContext backendRequestContext)
             throws IngestionException {
 
         // process masking for any successfully processed UnManagedVolumes
-        for (Entry<String, VolumeIngestionContext> entry : 
-            backendRequestContext.getProcessedUnManagedVolumeMap().entrySet()) {
+        for (Entry<String, VolumeIngestionContext> entry : backendRequestContext.getProcessedUnManagedVolumeMap().entrySet()) {
 
             String unManagedVolumeGUID = entry.getKey();
             VolumeIngestionContext volumeContext = entry.getValue();
@@ -639,7 +639,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     backendRequestContext.setExportGroup(exportGroup);
 
                     // find the ingest export strategy and call into for this unmanaged export mask
-                    IngestExportStrategy ingestStrategy = 
+                    IngestExportStrategy ingestStrategy =
                             ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
                     BlockObject blockObject = ingestStrategy.ingestExportMasks(
                             processedUnManagedVolume, processedBlockObject, backendRequestContext);
@@ -653,13 +653,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         backendRequestContext.getObjectsIngestedByExportProcessing().add(blockObject);
                     }
 
-                    /** TODO verify persistence - this should be handled by context.commitBackend
-                    // update the related objects if any after successful export mask ingestion
-                    List<DataObject> updatedO bjects = backendRequestContext.getUpdatedObjectMap().get(unManagedVolumeGUID);
-                    if (updatedObjects != null && !updatedObjects.isEmpty()) {
-                        _dbClient.updateObject(updatedObjects);
-                    }
-                    */
+                    /**
+                     * TODO verify persistence - this should be handled by context.commitBackend
+                     * // update the related objects if any after successful export mask ingestion
+                     * List<DataObject> updatedO bjects = backendRequestContext.getUpdatedObjectMap().get(unManagedVolumeGUID);
+                     * if (updatedObjects != null && !updatedObjects.isEmpty()) {
+                     * _dbClient.updateObject(updatedObjects);
+                     * }
+                     */
                 }
             } catch (Exception ex) {
                 _logger.error(ex.getLocalizedMessage());
@@ -736,68 +737,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     @Override
-    protected URI getConsistencyGroupUri(UnManagedVolume unManagedVolume, VirtualPool vPool, URI project, URI tenant,
-            URI virtualArray, DbClient dbClient) {
-        return VolumeIngestionUtil.getVplexConsistencyGroup(unManagedVolume, vPool, project, tenant, virtualArray, dbClient);
-    }
-
-    @Override
-    protected void updateCGPropertiesInVolume(URI consistencyGroupUri, Volume volume, StorageSystem system,
-            UnManagedVolume unManagedVolume) {
-        if (consistencyGroupUri != null) {
-
-            String cgName = PropertySetterUtil.extractValueFromStringSet(
-                    SupportedVolumeInformation.VPLEX_CONSISTENCY_GROUP_NAME.toString(), unManagedVolume.getVolumeInformation());
-
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupUri);
-
-            // Add a system consistency group mapping for the varray the cluster is connected to
-            try {
-                String vplexClusterName = VPlexControllerUtils.getVPlexClusterName(
-                        _dbClient, cg.getVirtualArray(), system.getId());
-                if (vplexClusterName != null) {
-
-                    StringSet unmanagedVolumeClusters = unManagedVolume.getVolumeInformation().get(
-                            SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString());
-                    // Add a ViPR CG mapping for each of the VPlex clusters the VPlex CG
-                    // belongs to.
-                    if (unmanagedVolumeClusters != null && !unmanagedVolumeClusters.isEmpty()) {
-                        Iterator<String> unmanagedVolumeClustersItr = unmanagedVolumeClusters.iterator();
-                        String cgCluster = null;
-                        while (unmanagedVolumeClustersItr.hasNext()) {
-                            if (vplexClusterName.equals(unmanagedVolumeClustersItr.next())) {
-                                cgCluster = vplexClusterName;
-                                break;
-                            }
-                        }
-                        if (cgCluster != null) {
-                            cg.addSystemConsistencyGroup(system.getId().toString(),
-                                    BlockConsistencyGroupUtils.buildClusterCgName(cgCluster, cgName));
-                            _dbClient.updateAndReindexObject(cg);
-                        } else {
-                            throw new Exception(
-                                    "could not determine VPLEX cluster name for consistency group virtual array "
-                                            + cg.getVirtualArray());
-                        }
-                    } else {
-                        throw new Exception(
-                                "no VPLEX cluster(s) set on unmanaged volume "
-                                        + unManagedVolume.getLabel());
-                    }
-                } else {
-                    throw new Exception(
-                            "could not determine VPLEX cluster name for virtual array "
-                                    + cg.getVirtualArray());
-                }
-            } catch (Exception ex) {
-                String message = "could not determine VPLEX cluster placement for consistency group "
-                        + cg.getLabel() + " configured on UnManagedVolume " + unManagedVolume.getLabel();
-                _logger.error(message, ex);
-                throw IngestionException.exceptions.generalVolumeException(unManagedVolume.getLabel(), message);
-            }
-
-            volume.setConsistencyGroup(consistencyGroupUri);
+    protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,
+            IngestionRequestContext context, DbClient dbClient) {
+        if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
+            return VolumeIngestionUtil.getVplexConsistencyGroup(unManagedVolume, blockObj, context.getVpool(unManagedVolume),
+                    context.getProject().getId(), context.getTenant().getId(), context.getVarray(unManagedVolume).getId(),
+                    dbClient);
         }
+        return null;
     }
 
     @Override
@@ -827,24 +774,82 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     @Override
-    protected void checkUnManagedVolumeAddedToCG(UnManagedVolume unManagedVolume, VirtualArray virtualArray, TenantOrg tenant,
-            Project project, VirtualPool vPool) {
-        if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
-            URI consistencyGroupUri = VolumeIngestionUtil.getVplexConsistencyGroup(unManagedVolume, vPool, project.getId(),
-                    tenant.getId(), virtualArray.getId(), _dbClient);
-            if (null == consistencyGroupUri) {
-                _logger.warn("A Consistency Group for the VPLEX volume could not be determined. Skipping Ingestion.");
-                throw IngestionException.exceptions.unmanagedVolumeVplexConsistencyGroupCouldNotBeIdentified(unManagedVolume.getLabel());
-            }
-
-        }
-    }
-
-    @Override
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
         // skip auto tiering validation for virtual volume (only needed on backend volumes)
         if (!VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
             super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
+        }
+    }
+
+    @Override
+    protected void decorateCGVolumes(BlockConsistencyGroup cg, BlockObject volume, IngestionRequestContext requestContext,
+            UnManagedVolume unManagedVolume) {
+        updateCG(cg, volume, requestContext.getStorageSystem(), unManagedVolume);
+        StringSet vplexBackendVolumes = PropertySetterUtil.extractValuesFromStringSet(
+                SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
+                unManagedVolume.getVolumeInformation());
+        if (null != vplexBackendVolumes && !vplexBackendVolumes.isEmpty()) {
+            List<DataObject> updatesToUpdateList = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
+            for (String vplexBackendVolumeNativeGuid : vplexBackendVolumes) {
+                String volumeNativeGuid = vplexBackendVolumeNativeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
+                        VolumeIngestionUtil.VOLUME);
+                BlockObject blockObject = VolumeIngestionUtil.getBlockObject(volumeNativeGuid, _dbClient);
+                blockObject.setConsistencyGroup(cg.getId());
+                blockObject.setReplicationGroupInstance(cg.getLabel());
+                updatesToUpdateList.add(blockObject);
+            }
+        }
+        volume.setConsistencyGroup(cg.getId());
+        volume.setReplicationGroupInstance(cg.getLabel());
+    }
+
+    protected void updateCG(BlockConsistencyGroup cg, BlockObject volume, StorageSystem system,
+            UnManagedVolume unManagedVolume) {
+        String cgName = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_CONSISTENCY_GROUP_NAME.toString(), unManagedVolume.getVolumeInformation());
+        // Add a system consistency group mapping for the varray the cluster is connected to
+        try {
+            String vplexClusterName = VPlexControllerUtils.getVPlexClusterName(
+                    _dbClient, cg.getVirtualArray(), system.getId());
+            if (vplexClusterName != null) {
+
+                StringSet unmanagedVolumeClusters = unManagedVolume.getVolumeInformation().get(
+                        SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString());
+                // Add a ViPR CG mapping for each of the VPlex clusters the VPlex CG
+                // belongs to.
+                if (unmanagedVolumeClusters != null && !unmanagedVolumeClusters.isEmpty()) {
+                    Iterator<String> unmanagedVolumeClustersItr = unmanagedVolumeClusters.iterator();
+                    String cgCluster = null;
+                    while (unmanagedVolumeClustersItr.hasNext()) {
+                        if (vplexClusterName.equals(unmanagedVolumeClustersItr.next())) {
+                            cgCluster = vplexClusterName;
+                            break;
+                        }
+                    }
+                    if (cgCluster != null) {
+                        cg.addSystemConsistencyGroup(system.getId().toString(),
+                                BlockConsistencyGroupUtils.buildClusterCgName(cgCluster, cgName));
+                        _dbClient.updateObject(cg);
+                    } else {
+                        throw new Exception(
+                                "could not determine VPLEX cluster name for consistency group virtual array "
+                                        + cg.getVirtualArray());
+                    }
+                } else {
+                    throw new Exception(
+                            "no VPLEX cluster(s) set on unmanaged volume "
+                                    + unManagedVolume.getLabel());
+                }
+            } else {
+                throw new Exception(
+                        "could not determine VPLEX cluster name for virtual array "
+                                + cg.getVirtualArray());
+            }
+        } catch (Exception ex) {
+            String message = "could not determine VPLEX cluster placement for consistency group "
+                    + cg.getLabel() + " configured on UnManagedVolume " + unManagedVolume.getLabel();
+            _logger.error(message, ex);
+            throw IngestionException.exceptions.generalVolumeException(unManagedVolume.getLabel(), message);
         }
     }
 

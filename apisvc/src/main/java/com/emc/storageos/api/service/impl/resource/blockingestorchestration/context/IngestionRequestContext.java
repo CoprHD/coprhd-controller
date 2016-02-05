@@ -9,6 +9,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -18,6 +20,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -164,6 +167,21 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public Map<String, BlockObject> getObjectsToBeCreatedMap();
 
     /**
+     * Returns a Map of BlockConsistencyGroup created during ingestion
+     * as mapped by their label for the key.
+     * 
+     * @return a Map of Label Strings to BlockConistencyGroupss
+     */
+    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap();
+
+    /**
+     * Returns the list of UnManagedConsistencyGroup's to update.
+     * 
+     * @return a List of UnManagedConsistencyGroup.
+     */
+    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate();
+
+    /**
      * Returns a Map of a List of DataObjects updated by ingestion
      * as mapped to the native GUID of the UnManagedVolume Object
      * for which they were updated.
@@ -221,11 +239,11 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
 
     /**
      * Returns all the currently-known UnManagedVolumes that have been
-     * successfully processed.
+     * successfully processed and should be deleted at the end of ingestion.
      * 
-     * @return a List of UnManagedVolumes that have been processed
+     * @return a List of UnManagedVolumes to be deleted
      */
-    public List<UnManagedVolume> findAllProcessedUnManagedVolumes();
+    public List<UnManagedVolume> findAllUnManagedVolumesToBeDeleted();
 
     /**
      * Returns the error messages collection for the given nativeGuid,
@@ -344,5 +362,5 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * @return a BlockObject for the native GUID on null if none found
      */
     public DataObject findInUpdatedObjects(URI uri);
-
+    
 }

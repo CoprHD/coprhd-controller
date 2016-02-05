@@ -807,7 +807,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         systemTypes.add(system.getSystemType());
 
         StringSet accessState = new StringSet();
-        accessState.add(Volume.VolumeAccessState.READWRITE.name());
+        accessState.add(Volume.VolumeAccessState.READWRITE.getState());
         unManagedVolumeInformation.put(SupportedVolumeInformation.ACCESS.toString(), accessState);
 
         StringSet provCapacity = new StringSet();

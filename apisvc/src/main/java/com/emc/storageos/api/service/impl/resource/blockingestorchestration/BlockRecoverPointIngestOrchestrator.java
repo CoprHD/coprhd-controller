@@ -175,7 +175,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             _logger.info("Successfully ingested all volumes associated with RP consistency group");
 
             createProtectionSet(volumeContext);
-            createBlockConsistencyGroup(volumeContext);
+            BlockConsistencyGroup bcg = createBlockConsistencyGroup(volumeContext);
+            parentRequestContext.getCGObjectsToCreateMap().put(bcg.getId().toString(), bcg);
 
             // Once we have a proper managed consistency group and protection set, we need to
             // sprinkle those references over the managed volumes.
@@ -311,7 +312,11 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 unManagedVolumeInformation);
         for (String rpManagedTargetVolumeIdStr : rpManagedTargetVolumeIdStrs) {
             // Check to make sure the target volume is legit.
-            Volume managedTargetVolume = _dbClient.queryObject(Volume.class, URI.create(rpManagedTargetVolumeIdStr));
+            Volume managedTargetVolume = null;
+            BlockObject bo = volumeContext.findCreatedBlockObject(URI.create(rpManagedTargetVolumeIdStr));
+            if (bo != null && bo instanceof Volume) {
+                managedTargetVolume = (Volume) bo;
+            }
             if (managedTargetVolume == null) {
                 _logger.error("Could not find managed target volume: " + rpManagedTargetVolumeIdStr + " in DB.  Ingestion failed.");
                 throw IngestionException.exceptions.noManagedTargetVolumeFound(unManagedVolume.getNativeGuid(), rpManagedTargetVolumeIdStr);
@@ -392,7 +397,11 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 SupportedVolumeInformation.RP_MANAGED_SOURCE_VOLUME.toString(), unManagedVolumeInformation);
         if (rpManagedSourceVolume != null) {
             // (1) Add the new managed target volume ID to the source volume's RP target list
-            Volume sourceVolume = _dbClient.queryObject(Volume.class, URI.create(rpManagedSourceVolume));
+            Volume sourceVolume = null;
+            BlockObject bo = volumeContext.findCreatedBlockObject(URI.create(rpManagedSourceVolume));
+            if (bo != null && bo instanceof Volume) {
+                sourceVolume = (Volume) bo;
+            }
             if (sourceVolume == null) {
                 _logger.error("Could not find managed RP source volume in DB: " + rpManagedSourceVolume);
                 throw IngestionException.exceptions.noManagedSourceVolumeFound(unManagedVolume.getNativeGuid(), rpManagedSourceVolume);
@@ -477,8 +486,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * 
      * @param volumeContext the RecoverPointVolumeIngestionContext for the volume currently being ingested
      */
-    private void decorateVolumeInformationFinalIngest(RecoverPointVolumeIngestionContext volumeContext) {
+    private void decorateVolumeInformationFinalIngest(IngestionRequestContext requestContext) {
 
+        RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext();
         ProtectionSet pset = volumeContext.getManagedProtectionSet();
         BlockConsistencyGroup cg = volumeContext.getManagedBlockConsistencyGroup();
 
@@ -487,17 +497,19 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.noVolumesFoundInProtectionSet(pset.getLabel());
         }
 
-        Iterator<Volume> volumesItr = _dbClient.queryIterativeObjects(Volume.class, URIUtil.toURIList(pset.getVolumes()));
         List<Volume> volumes = new ArrayList<Volume>();
-        while (volumesItr.hasNext()) {
-            volumes.add(volumesItr.next());
+        for (String volId : pset.getVolumes()) {
+            BlockObject volume = volumeContext.findCreatedBlockObject(URI.create(volId));
+            if (volume != null && volume instanceof Volume) {
+                volumes.add((Volume)volume);
+            }
         }
 
         // Make sure all of the changed managed block objects get updated
         volumes.add((Volume) volumeContext.getManagedBlockObject());
         List<DataObject> updatedObjects = new ArrayList<DataObject>();
 
-        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient);
+        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient, requestContext);
         clearPersistedReplicaFlags(volumes, updatedObjects);
         clearReplicaFlagsInIngestionContext(volumeContext);
 
@@ -559,7 +571,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             Integer numPaths = em.getZoningMap().size();
             _logger.info("Creating Export Group with label {}", em.getMaskName());
           
-            //If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains that interna flag.
+            // If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains that
+            // interna flag.
             boolean isJournalExport = false;
             if (em.getMaskName().toLowerCase().contains("journal")) {
             	isJournalExport = true;
@@ -652,7 +665,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.unManagedProtectionSetNotFound(unManagedVolume.getNativeGuid());
         }
 
-        return VolumeIngestionUtil.validateAllVolumesInCGIngested(parentRequestContext.findAllProcessedUnManagedVolumes(), umpset, _dbClient);
+        return VolumeIngestionUtil.validateAllVolumesInCGIngested(parentRequestContext.findAllUnManagedVolumesToBeDeleted(), umpset, _dbClient);
     }
 
     /**
@@ -854,24 +867,15 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             List<Volume> volumes = new ArrayList<Volume>();
             sb.append("\n\nIngested Volumes:\n");
             for (URI volumeId : URIUtil.toURIList(umpset.getManagedVolumeIds())) {
-                Volume volume = _dbClient.queryObject(Volume.class, volumeId);
-                if (volume == null) {
-                    // Check the "just created" list in the volume context
-                    for (BlockObject blockObject : volumeContext.getObjectsToBeCreatedMap().values()) {
-                        if (blockObject.getId().toString().equals(volumeId.toString())) {
-                            if (blockObject instanceof Volume) {
-                                volume = (Volume) blockObject;
-                                break;
-                            }
-                        }
-                    }
-                    if (volume != null) {
-                        volumes.add(volume);
-                    } else {
-                        continue;
-                    }
-                } else {
+                Volume volume = null;
+                BlockObject bo = volumeContext.findCreatedBlockObject(volumeId);
+                if (bo != null && bo instanceof Volume) {
+                    volume = (Volume) bo;
+                }
+                if (volume != null) {
                     volumes.add(volume);
+                } else {
+                    continue;
                 }
 
                 // Get the width of the columns so we can have a compact, formatted printout.
@@ -1027,4 +1031,5 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
         super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
     }
+
 }

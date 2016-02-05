@@ -1466,7 +1466,7 @@ public class SRDFOperations implements SmisConstants {
 
             utils.removeFromRemoteGroups(target);
         } catch (RemoteGroupAssociationNotFoundException e){
-            log.info("SRDF link is already detached{}", target.getSrdfParent().getURI(), e);
+            log.info("SRDF link is already detached {}", target.getSrdfParent().getURI(), e);
             // If SRDF link is already detached then we won't find the association hence we can just move on
             // to the next step.This is added because of SMIS intermittent issue where during delete volume
             // detach works but then after detach there is failure then retry never work if we don't catch

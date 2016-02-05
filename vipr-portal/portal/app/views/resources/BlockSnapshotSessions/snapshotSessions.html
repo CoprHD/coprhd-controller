@@ -1,0 +1,35 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.block.snapshotsessions'] /}
+
+  <script type="text/javascript">
+    var route = #{jsAction @snapshotSessionsJson(':id')/};
+   
+    function reloadSnapshots() {
+      var table = $('#snapshots table'); 
+      var xhr = table.data('previousXHR');
+      if (xhr) {
+          xhr.abort();
+      }
+      var projectId = $('#project option:selected').val();
+      table.dataTable().fnReloadAjax(route({id: projectId}));
+    }
+  
+    $(document).ready(function() {
+      $('#project').on('change', reloadSnapshots);
+    });
+  </script>
+  
+#{Resources.projectsControl projects:projects /}
+
+#{DataTable.header titleKey:'nav.block.snapshotsessions' /}  
+#{DataTable.table id:'snapshots',
+                  dataTable:dataTable,
+                  source:@snapshotSessionsJson(session.activeProjectId), 
+                  cssClass:'editableRows',
+                  selectable:true}
+  #{DataTable.buttonBar}
+    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm', data:['enabled':'selected']/}
+    #{doBody/}
+  #{/DataTable.buttonBar}
+  #{DataTable.formAction @delete(), id:'deleteForm', table:'snapshots', confirm:messages.get('resources.snapshots.deleteConfirm')/}                 
+#{/DataTable.table}

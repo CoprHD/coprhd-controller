@@ -294,7 +294,7 @@ public class BlockMonitoringImpl implements IMonitoringStorageSystem {
 
             if ((CompatibilityStatus.COMPATIBLE.name().equalsIgnoreCase(storageSystem.getCompatibilityStatus())
                     || CompatibilityStatus.UNKNOWN.name().equalsIgnoreCase(storageSystem.getCompatibilityStatus()))
-                    && Type.isProviderStorageSystem((Type.valueOf((storageSystem.getSystemType()))))
+                    && Type.isProviderStorageSystem(storageSystem.getSystemType())
                     && null != storageSystem.getActiveProviderURI() && !storageSystem.getInactive()
                     && !NullColumnValueGetter.getNullURI().equals(
                             storageSystem.getActiveProviderURI())) {

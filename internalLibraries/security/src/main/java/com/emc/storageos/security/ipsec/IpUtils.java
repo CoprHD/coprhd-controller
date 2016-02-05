@@ -6,7 +6,16 @@
 package com.emc.storageos.security.ipsec;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.Inet6Address;
+import java.net.InetAddress;
+
 public class IpUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(IpUtils.class);
+    private static String LOCAL_IP = null;
 
     /**
      * decompress input address into a canonical ipv6 address
@@ -14,6 +23,7 @@ public class IpUtils {
      * @param address
      * @return
      */
+
     public static String decompressIpv6Address(String address){
         if (address == null) {
             return null;
@@ -33,6 +43,31 @@ public class IpUtils {
             }
         }
         return stdForm.substring(0, stdForm.length()-1);
+    }
+
+    /**
+     * get local ip address
+     *
+     * @return local ip string
+     */
+    public static String getLocalIPAddress() {
+        if (LOCAL_IP != null) {
+            return LOCAL_IP;
+        }
+
+        try {
+            InetAddress IP = InetAddress.getLocalHost();
+            String localIP = IP.getHostAddress();
+            if(IP instanceof Inet6Address) {
+                localIP = IpUtils.decompressIpv6Address(localIP);
+            }
+            log.info("IP of my system is : " + localIP);
+            LOCAL_IP = localIP;
+            return LOCAL_IP;
+        } catch (Exception ex) {
+            log.warn("error in getting local ip: " + ex.getMessage());
+            return null;
+        }
     }
 }
 

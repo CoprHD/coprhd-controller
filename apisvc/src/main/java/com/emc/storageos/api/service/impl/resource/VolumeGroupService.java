@@ -1016,6 +1016,50 @@ public class VolumeGroupService extends TaskResourceService {
         return fcManager;
     }
 
+    /**
+     * Verifies that the passed replica URI and ensure that it
+     * represents a replica for a volume in the passed list of
+     * volumes, which are the volumes for a specific volume
+     * group.
+     * 
+     * @param replica the replica (Clone/Snapshot/Mirror)
+     * @param volumeGroupVolumes the volume group's volumes
+     * @return The URI of the replica's source.
+     */
+    private URI verifyReplicaForCopyRequest(BlockObject replica, List<Volume> volumeGroupVolumes) {
+        URI sourceURI = null;
+        String replicaType = null;
+        if (replica instanceof BlockSnapshot) {
+            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
+            replicaType = "Snapshot";
+        } else if (replica instanceof BlockMirror) {
+            sourceURI = ((BlockMirror) replica).getSource().getURI();
+            replicaType = "Continuous copy";
+        } else if (replica instanceof Volume) {
+            sourceURI = ((Volume) replica).getAssociatedSourceVolume();
+            replicaType = FULL_COPY;
+        }
+
+        if (NullColumnValueGetter.isNullURI(sourceURI)) {
+            throw APIException.badRequests
+                    .replicaOperationNotAllowedNotAReplica(replicaType, replica.getLabel());
+        }
+
+        // Verify the source is in the volume group.
+        boolean sourceInVolumeGroup = false;
+        for (Volume volume : volumeGroupVolumes) {
+            if (volume.getId().equals(sourceURI)) {
+                sourceInVolumeGroup = true;
+                break;
+            }
+        }
+        if (!sourceInVolumeGroup) {
+            throw APIException.badRequests
+                    .replicaOperationNotAllowedSourceNotInVolumeGroup(replicaType, replica.getLabel());
+        }
+        return sourceURI;
+    }
+
     private List<VolumeGroupUtils> getVolumeGroupUtils(VolumeGroup volumeGroup) {
         List<VolumeGroupUtils> utilsList = new ArrayList<VolumeGroupUtils>();
 
@@ -1778,52 +1822,6 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Verifies that the passed replica URI and ensure that it
-     * represents a replica for a volume in the passed list of
-     * volumes, which are the volumes for a specific volume
-     * group.
-     * 
-     * @param replica the replica (Clone/Snapshot/Mirror)
-     * @param volumeGroupVolumes the volume group's volumes
-     * @return The URI of the replica's source.
-     */
-    private URI verifyReplicaForCopyRequest(BlockObject replica, List<Volume> volumeGroupVolumes) {
-        URI sourceURI = null;
-        String replicaType = null;
-        if (replica instanceof BlockSnapshot) {
-            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
-            replicaType = "Snapshot";
-        } else if (replica instanceof BlockMirror) {
-            sourceURI = ((BlockMirror) replica).getSource().getURI();
-            replicaType = "Continuous copy";
-        } else if (replica instanceof Volume) {
-            sourceURI = ((Volume) replica).getAssociatedSourceVolume();
-            replicaType = "Full copy";
-        }
-
-        if (NullColumnValueGetter.isNullURI(sourceURI)) {
-            throw APIException.badRequests
-                    .replicaOperationNotAllowedNotAReplica(replicaType, replica.getLabel());
-        }
-
-        // Verify the source is in the volume group.
-        boolean sourceInVolumeGroup = false;
-        for (Volume volume : volumeGroupVolumes) {
-            if (volume.getId().equals(sourceURI)) {
-                sourceInVolumeGroup = true;
-                break;
-            }
-        }
-        if (!sourceInVolumeGroup) {
-            throw APIException.badRequests
-                    .replicaOperationNotAllowedSourceNotInVolumeGroup(replicaType, replica.getLabel());
-        }
-        return sourceURI;
-    }
-
-    /**
-     * =======
-     * >>>>>>> origin/feature-COP-17840-application-support-in-coprhd
      * Check if the application has any pending task
      * 
      * @param application

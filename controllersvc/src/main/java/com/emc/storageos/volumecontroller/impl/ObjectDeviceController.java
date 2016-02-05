@@ -130,6 +130,16 @@ public class ObjectDeviceController implements ObjectController {
     }
 
     @Override
+    public String getString(URI storage) {
+        // TODO Auto-generated method stub
+        _log.info("ObjectDevCtrl start");
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+        String s = getDevice(storageObj.getSystemType()).doGetString(storageObj);
+        _log.info("ObjectDevCtrl {}", s);
+        return s;
+    }
+
+    @Override
     public void deleteBucket(URI storage, URI bucket, String task) throws ControllerException {
         _log.info("ObjectDeviceController:deleteBucket Bucket URI : {} ", bucket);
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);

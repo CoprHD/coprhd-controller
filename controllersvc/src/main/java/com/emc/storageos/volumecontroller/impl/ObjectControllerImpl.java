@@ -164,5 +164,17 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
         execOb("addUserSecretKey", storage, userId, secretKey);
         _log.debug("ObjectControllerImpl:adUserSecretKey end");        
     }
+
+    @Override
+    public String getString(URI storage) {
+        // TODO Auto-generated method stub
+        _log.info("ObjectControllerImpl:getString start");
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+        Controller controller = lookupDeviceController(storageSystem);
+        ObjectController objcontroller = (ObjectController) controller;
+        String s = objcontroller.getString(storage);
+        _log.info("ObjectControllerImpl:getString {}", s);
+        return s;
+    }
        
 }

@@ -628,6 +628,10 @@ public class ECSApi {
         }
     }
 
+    public String getString() {
+        _log.info("ECSAPI getString start");
+        return "abcdefghijk!@#$%67890";
+    }
     
     private ClientResponse get(final String uri) {
         ClientResponse clientResp = _client.get_json(_baseUrl.resolve(uri), authToken);

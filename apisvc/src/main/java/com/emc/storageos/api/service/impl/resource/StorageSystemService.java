@@ -1327,6 +1327,10 @@ public class StorageSystemService extends TaskResourceService {
         }
         
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
+        
+        _log.info("apisvc calling getString");
+        _log.info(controller.getString(id));
+        
         controller.getUserSecretKey(id, userId);
         String user = userId;
         if (user.contains("@")) {

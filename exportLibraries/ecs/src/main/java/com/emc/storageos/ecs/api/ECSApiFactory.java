@@ -156,13 +156,13 @@ public class ECSApiFactory {
     }
 
 
-/*
+
     public static void main(String[] args) {          
     System.out.println("starting ecs main");
-    URI uri = URI.create(String.format("https://4443/login"));
+    URI uri = URI.create(String.format("https:10.241.172.43//4443/login"));
     ECSApiFactory factory = new ECSApiFactory();
     factory.init();
-    ECSApi ecsApi = factory.getRESTClient(uri, "root", "**");
+    ECSApi ecsApi = factory.getRESTClient(uri, "root", "ChangeMe");
     
     String authToken = ecsApi.getAuthToken();
     System.out.println(authToken);
@@ -174,8 +174,8 @@ public class ECSApiFactory {
     
     UserSecretKeysGetCommandResult res = ecsApi.getUserSecretKeys("prov_user");
     System.out.println(res);
-    UserSecretKeysAddCommandResult res2 = ecsApi.addUserSecretKeys("prov_user", "R6JUtI6hK2rDxY2fKuaQ51OL2tfyoHjPp8xL2y3T");
-    System.out.println(res2);
+//    UserSecretKeysAddCommandResult res2 = ecsApi.addUserSecretKeys("prov_user", "R6JUtI6hK2rDxY2fKuaQ51OL2tfyoHjPp8xL2y3T");
+//    System.out.println(res2);
     int dummy = 2;
     
     //ecsApi.getStoragePools();
@@ -191,5 +191,5 @@ public class ECSApiFactory {
     //"4", "99", "55", "testlogin");
     //ecsApi.deleteBucket("esc_myproj_bucket1");
     }
-*/
+
 }

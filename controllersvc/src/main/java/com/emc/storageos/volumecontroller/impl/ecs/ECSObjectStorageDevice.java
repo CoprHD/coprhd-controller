@@ -129,6 +129,16 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
+    public String doGetString(StorageSystem storageObj) {
+        // TODO Auto-generated method stub
+        _log.info("ECSObjectStorage start");
+        ECSApi ecsApi = getAPI(storageObj);
+        String s = ecsApi.getString();
+        _log.info("ECSObjectStorage {}", s);
+        return s;
+    }
+
+    @Override
     public void doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws ControllerException {
         ECSApi ecsApi = getAPI(storageObj);
         

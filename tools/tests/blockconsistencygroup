@@ -162,6 +162,8 @@ def consistency_group_failover(args):
     group_uri = bourne.block_consistency_group_query(args.group)
     tgt_varray_uri = bourne.neighborhood_query(args.targetVarray)
     print "Failover Consistency Group " + str(args.group) + " with target virtial array " + str(args.targetVarray)
+    if (args.pit):
+        print "Failover Consistency Group " + str(args.group) + " to point-in-time " + str(args.pit)
     start = time.time()
     s = bourne.block_consistency_group_failover(group_uri, args.copyType, tgt_varray_uri, args.pit)
     bourne.pretty_print_json(s)         
@@ -306,7 +308,7 @@ protectionOperation = argparse.ArgumentParser(parents = [parser], conflict_handl
 protectionOperation.add_argument('group', help = 'name of consistency group')
 protectionOperation.add_argument('--copyType', help = 'copy type (rp or srdf)')
 protectionOperation.add_argument('--targetVarray', help = 'name of target virtual array')
-protectionOperation.add_argument('--pit, help = 'any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds')
+protectionOperation.add_argument('--pit', help = 'any UTC point-in-time formatted as yyyy-MM-dd_HH:mm:ss or datetime in milliseconds')
 
 #----------------------------------------------------------------------
 # Main script

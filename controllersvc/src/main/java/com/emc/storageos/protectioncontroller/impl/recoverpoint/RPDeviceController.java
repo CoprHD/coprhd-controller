@@ -5935,10 +5935,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         try {
             Set<URI> impactedCGs = new HashSet<URI>();
             List<URI> allRemoveVolumes = new ArrayList<URI>();
+            HashSet<URI> removeVolumeSet = new HashSet<URI>();
             if (removeVolumesURI != null && !removeVolumesURI.isEmpty()) {
                 // get source and target volumes to be removed from the application
                 List<URI> allVolumes = RPHelper.getReplicationSetVolumes(removeVolumesURI, _dbClient);
-                for (URI removeUri : allVolumes) {
+                removeVolumeSet.addAll(allVolumes);
+                for (URI removeUri : removeVolumeSet) {
                     Volume removeVol = _dbClient.queryObject(Volume.class, removeUri);
                     URI cguri = removeVol.getConsistencyGroup();
                     impactedCGs.add(cguri);
@@ -5947,20 +5949,23 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
             
             List<Volume> vnxVolumes = new ArrayList<Volume>();
-            List<URI> allAddVolumes = new ArrayList<URI>();
+            Set<URI> allAddVolumes = new HashSet<URI>();
             ApplicationAddVolumeList addSourceVols = new ApplicationAddVolumeList();
             ApplicationAddVolumeList addTargetVols = new ApplicationAddVolumeList();
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty()) {
-                allAddVolumes.addAll(addVolList.getVolumes());
+                URI addVolCg = null;
                 // get source and target volumes to be added the application
                 List<URI> addVolumes = RPHelper.getReplicationSetVolumes(addVolList.getVolumes(), _dbClient);
-                
+                allAddVolumes.addAll(addVolumes);
                 // split up add volumes list by source and target
                 List<URI> allAddSourceVolumes = new ArrayList<URI>();
                 List<URI> allAddTargetVolumes = new ArrayList<URI>();
-                for (URI volUri : addVolumes) {
+                for (URI volUri : allAddVolumes) {
                     Volume vol = _dbClient.queryObject(Volume.class, volUri);
                     URI cguri = vol.getConsistencyGroup();
+                    if (addVolCg == null && cguri != null) {
+                        addVolCg = cguri;
+                    }
                     impactedCGs.add(cguri);
                     if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                         addBackendVolumes(allAddSourceVolumes, vol, vnxVolumes, true, applicationId);
@@ -5969,11 +5974,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                 }
                 
-                addSourceVols.setConsistencyGroup(addVolList.getConsistencyGroup());
+                addSourceVols.setConsistencyGroup(addVolCg);
                 addSourceVols.setReplicationGroupName(addVolList.getReplicationGroupName());
                 addSourceVols.setVolumes(allAddSourceVolumes);
                 
-                addTargetVols.setConsistencyGroup(addVolList.getConsistencyGroup());
+                addTargetVols.setConsistencyGroup(addVolCg);
                 addTargetVols.setReplicationGroupName(addVolList.getReplicationGroupName()+REPLICATION_GROUP_RPTARGET_SUFFIX);
                 addTargetVols.setVolumes(allAddTargetVolumes);
             }
@@ -5985,7 +5990,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             Workflow workflow = _workflowService.getNewWorkflow(this, BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false, taskId);
             
             // create the completer add the steps and execute the plan.
-            completer = new VolumeGroupUpdateTaskCompleter(applicationId, allAddVolumes, removeVolumesURI, impactedCGs, taskId);
+            completer = new VolumeGroupUpdateTaskCompleter(applicationId, allAddVolumes, removeVolumeSet, impactedCGs, taskId);
             
             // add step for convert VNX replication group
             String waitFor = null;

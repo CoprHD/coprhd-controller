@@ -14,7 +14,11 @@ import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.SynchronizationState;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,6 +134,7 @@ public class SmisCreateListReplicaJob extends SmisReplicaCreationJobs {
                     snapshot.setIsSyncActive(isSyncActive);
                     snapshot.setProvisionedCapacity(getProvisionedCapacityInformation(client, syncVolume));
                     snapshot.setAllocatedCapacity(getAllocatedCapacityInformation(client, syncVolume));
+                    updateSnapshotSessionLinkedTargets(snapshot, dbClient);
                 } else if (replica instanceof BlockMirror) {
                     BlockMirror mirror = (BlockMirror) replica;
                     mirror.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storage, mirror));
@@ -152,6 +157,36 @@ public class SmisCreateListReplicaJob extends SmisReplicaCreationJobs {
                 }
 
                 dbClient.persistObject(replica);
+            }
+        }
+    }
+
+    /**
+     * If the snapshot is found to be part of a ReplicationGroup containing linked targets to
+     * an existing BlockSnapshotSession, we must update it with the ID of this snapshot.
+     *
+     * @param snapshot  BlockSnapshot being added
+     * @param dbClient  Database client
+     */
+    private void updateSnapshotSessionLinkedTargets(BlockSnapshot snapshot, DbClient dbClient) {
+        String replicationGroupInstance = snapshot.getReplicationGroupInstance();
+        List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupInstance, dbClient);
+
+        if (snapshots == null || snapshots.isEmpty()) {
+            return;
+        }
+
+        // Check if existing ReplicationGroup members are linked targets for a BlockSnapshotSession
+        for (BlockSnapshot existing : snapshots) {
+            List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                    BlockSnapshotSession.class,
+                    ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(existing.getId()));
+
+            if (!sessions.isEmpty()) {
+                BlockSnapshotSession session = sessions.get(0);
+                session.getLinkedTargets().add(snapshot.getId().toString());
+                dbClient.updateObject(session);
+                break;
             }
         }
     }

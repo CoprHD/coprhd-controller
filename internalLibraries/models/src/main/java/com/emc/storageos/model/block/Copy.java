@@ -12,18 +12,20 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * Specifies the copy to be operated on
- * 
+ *
  * type: type of protection (rp, native, srdf)
  * sync: synchronize the mirror
  * copyID: the URI of the copy to be operated on, if none specified operate on all copies for that type
- * name: name of a new mirror being created by start operation
+ * name: name of a new mirror being created by start operation.
+ * name in the case of a failover operation.
  * count: number of mirrors to create using start operation
+ * pointInTime: any point-in-time - used for the failover operation
  */
 @XmlRootElement(name = "copy")
 public class Copy implements Serializable {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = -8250892549720042299L;
 
@@ -34,6 +36,8 @@ public class Copy implements Serializable {
     private Integer count;
     private String syncDirection;
     private String copyMode;
+    // Format: "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds
+    private String pointInTime;
 
     public enum SyncDirection {
         SOURCE_TO_TARGET,
@@ -64,7 +68,7 @@ public class Copy implements Serializable {
 
     /**
      * Type of protection.
-     * 
+     *
      */
     @XmlElement(name = "type", required = true)
     public String getType() {
@@ -89,7 +93,7 @@ public class Copy implements Serializable {
 
     /**
      * User provided name.
-     * 
+     *
      */
     @XmlElement(name = "name", required = false)
     public String getName() {
@@ -102,7 +106,7 @@ public class Copy implements Serializable {
 
     /**
      * User provided number of copies.
-     * 
+     *
      */
     @XmlElement(name = "count", required = false)
     public Integer getCount() {
@@ -116,6 +120,7 @@ public class Copy implements Serializable {
     /**
      * User provided direction for the synchronization.
      * Valid values SOURCE_TO_TARGET, TARGET_TO_SOURCE
+     *
      * @return The Sync Direction
      */
     @XmlElement(name = "syncDirection", required = false)
@@ -129,10 +134,11 @@ public class Copy implements Serializable {
 
     /**
      * User provided SRDF copy mode for the synchronization.
-     * Valid values: 
+     * Valid values:
      * SYNCHRONOUS
      * ASYNCHRONOUS
      * ADAPTIVECOPY
+     *
      * @return
      */
     @XmlElement(name = "copyMode", required = false)
@@ -142,6 +148,21 @@ public class Copy implements Serializable {
 
     public void setCopyMode(String copyMode) {
         this.copyMode = copyMode;
+    }
+
+    /**
+     * User provided any point-in-time for copy operations.
+     * Valid value: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in milliseconds.
+     *
+     * @return the UTC date/time "yyyy-MM-dd_HH:mm:ss" or milliseconds.
+     */
+    @XmlElement(name = "pointInTime", required = false)
+    public String getPointInTime() {
+        return pointInTime;
+    }
+
+    public void setPointInTime(String pointInTime) {
+        this.pointInTime = pointInTime;
     }
 
 }

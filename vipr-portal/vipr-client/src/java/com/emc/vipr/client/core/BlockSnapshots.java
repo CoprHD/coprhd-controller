@@ -204,7 +204,7 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
         List<NamedRelatedResourceRep> refs = listByVolume(volumeId);
         return getByRefs(refs, filter);
     }
-
+        
     /**
      * Begins creating a snapshot (or snapshots) of a given block volume by ID.
      * <p>

@@ -494,7 +494,7 @@ public class VolumeIngestionUtil {
                 targetUriList.addAll(targetUris);
             } else {
                 // FIXME: if it's null, doesn't this mean the UnManagedVolume is, in fact, ingested??
-                //        ...confused by this method (NBB 2/6/2016)
+                // ...confused by this method (NBB 2/6/2016)
                 _logger.info("UnManagedVolume not yet ingested {}", targetId);
             }
         }
@@ -502,7 +502,7 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Check to see if an unmanaged resource is RecoverPoint enabled 
+     * Check to see if an unmanaged resource is RecoverPoint enabled
      * (part of a RecoverPoint Consistency Group) or not.
      * 
      * @param unManagedVolume the UnManagedVolume to check
@@ -664,7 +664,7 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Checks if the given UnManagedVolume has replicas or is a VPLEX volume 
+     * Checks if the given UnManagedVolume has replicas or is a VPLEX volume
      * (i.e., containing VPLEX backend volumes).
      * 
      * @param unManagedVolume the UnManagedVolume to check
@@ -2057,7 +2057,7 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Group the given Initiators by protocol and return a Map of protocol 
+     * Group the given Initiators by protocol and return a Map of protocol
      * Strings to Initiators that have that protocol.
      * 
      * @param iniStrList a List of Initiator URIs
@@ -2135,7 +2135,7 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Group Initiators by Host containing them and return a 
+     * Group Initiators by Host containing them and return a
      * Map of Host to Initiators the Host contains.
      * 
      * @param iniStrList a set of Initiator URI Strings
@@ -2856,7 +2856,7 @@ public class VolumeIngestionUtil {
 
     /**
      * Return the BlockObject Class of a given UnManagedVolume.
-     *  
+     * 
      * @param unManagedVolume the UnManagedVolume to check
      * @return the BlockObject Class of a given UnManagedVolume
      */

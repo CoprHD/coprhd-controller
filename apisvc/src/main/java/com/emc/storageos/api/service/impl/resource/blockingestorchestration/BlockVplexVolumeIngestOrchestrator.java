@@ -736,6 +736,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         blockObject.setNativeId(blockObject.getNativeGuid());
     }
 
+    /**
+     * Following steps are performed as part of this method execution.
+     * 1. Checks whether unManagedVolume is protected by RP, if yes we willn't create CG for VPLEX VirtualVolumes.
+     * 2. When ingesting vplex virtual volume in CG, we will check whether CG already exists in DB for the same project & tenant.
+     * If yes, we will reuse it.
+     * Otherwise, we will create new BlockConsistencyGroup for the unmanaged consistencyGroup.
+     * 
+     */
     @Override
     protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,
             IngestionRequestContext context, DbClient dbClient) {
@@ -781,26 +789,57 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
     }
 
+    /**
+     * Decorates the CG uri & replicationGroupName for the VPLEX & its Backend volumes.
+     * This information will be used when decorating CG at the end of the ingestion process.
+     * 
+     * For each backend unmanaged volume,
+     * 1. We verify whether the BlockObject is available in the current createdBlockObjects in context or not.
+     * If it is available, then set the CG properties
+     * Else, verify in the current updatedBlockObjects in context.
+     * 2. If the backend blockObject is available in updateBlockObjects, then update CG properties.
+     * Else, blockObject might have ingested in previous requests, so, we should check from DB.
+     * If blockObject is in DB, update CG properties else log a warning message.
+     * 
+     */
     @Override
-    protected void decorateCGVolumes(BlockConsistencyGroup cg, BlockObject volume, IngestionRequestContext requestContext,
+    protected void decorateCGInfoInVolumes(BlockConsistencyGroup vplexCG, BlockObject volume, IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume) {
-        updateCG(cg, volume, requestContext.getStorageSystem(), unManagedVolume);
+        updateCG(vplexCG, volume, requestContext.getStorageSystem(), unManagedVolume);
         StringSet vplexBackendVolumes = PropertySetterUtil.extractValuesFromStringSet(
                 SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
                 unManagedVolume.getVolumeInformation());
         if (null != vplexBackendVolumes && !vplexBackendVolumes.isEmpty()) {
-            List<DataObject> updatesToUpdateList = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
-            for (String vplexBackendVolumeNativeGuid : vplexBackendVolumes) {
-                String volumeNativeGuid = vplexBackendVolumeNativeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
+            List<DataObject> toUpdateList = new ArrayList<DataObject>();
+            for (String vplexBackendUmvNativeGuid : vplexBackendVolumes) {
+                String backendVolumeNativeGuid = vplexBackendUmvNativeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                         VolumeIngestionUtil.VOLUME);
-                BlockObject blockObject = VolumeIngestionUtil.getBlockObject(volumeNativeGuid, _dbClient);
-                blockObject.setConsistencyGroup(cg.getId());
-                blockObject.setReplicationGroupInstance(cg.getLabel());
-                updatesToUpdateList.add(blockObject);
+
+                BlockObject blockObject = requestContext.findCreatedBlockObject(backendVolumeNativeGuid);
+                if (blockObject == null) {
+                    // Next look in the updated objects.
+                    blockObject = (BlockObject) requestContext.findInUpdatedObjects(URI.create(backendVolumeNativeGuid));
+                }
+                if (blockObject == null) {
+                    // Finally look in the DB itself. It may be from a previous ingestion operation.
+                    blockObject = VolumeIngestionUtil.getBlockObject(backendVolumeNativeGuid, _dbClient);
+                    // If blockObject is still not exists
+                    if (null == blockObject) {
+                        _logger.warn("Unmanaged Volume {} is not yet ingested. Hence skipping", vplexBackendUmvNativeGuid);
+                        continue;
+                    }
+                    toUpdateList.add(blockObject);
+                }
+                blockObject.setConsistencyGroup(vplexCG.getId());
+            }
+            if (!toUpdateList.isEmpty()) {
+                // Since I pulled this in from the database, we need to add it to the list of objects to update.
+                ((VplexVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(
+                        unManagedVolume.getNativeGuid(), toUpdateList);
             }
         }
-        volume.setConsistencyGroup(cg.getId());
-        volume.setReplicationGroupInstance(cg.getLabel());
+        volume.setConsistencyGroup(vplexCG.getId());
+        volume.setReplicationGroupInstance(vplexCG.getLabel());
     }
 
     protected void updateCG(BlockConsistencyGroup cg, BlockObject volume, StorageSystem system,

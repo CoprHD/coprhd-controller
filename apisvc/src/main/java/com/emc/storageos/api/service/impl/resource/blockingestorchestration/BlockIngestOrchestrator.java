@@ -340,7 +340,7 @@ public abstract class BlockIngestOrchestrator {
         BlockConsistencyGroup cg = getConsistencyGroup(unManagedVolume, volume, requestContext, _dbClient);
         if (null != cg) {
             requestContext.getCGObjectsToCreateMap().put(cg.getLabel(), cg);
-            decorateCGVolumes(cg, volume, requestContext, unManagedVolume);
+            decorateCGInfoInVolumes(cg, volume, requestContext, unManagedVolume);
         }
         if (null != autoTierPolicyId) {
             updateTierPolicyProperties(autoTierPolicyId, volume);
@@ -353,15 +353,22 @@ public abstract class BlockIngestOrchestrator {
      * Decorates the BlockConsistencyGroup information in all other volumes ingested in the UnManagedConsistencyGroup
      * managed objects.
      * 
-     * @param cg
-     * @param blockObject
-     * @param requestContext
-     * @param unManagedVolume
+     * @param cg - cg object
+     * @param blockObject - BlockObject to decorate
+     * @param requestContext - current context of unmanagedVolume
+     * @param unManagedVolume - current unmanagedVolume to ingest
      */
-    protected void decorateCGVolumes(BlockConsistencyGroup cg, BlockObject blockObject, IngestionRequestContext requestContext,
+    protected void decorateCGInfoInVolumes(BlockConsistencyGroup cg, BlockObject blockObject, IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume) {
     }
 
+    /**
+     * Returns the UnManagedConsistencyGroup in the context for the given CG.
+     * 
+     * @param cg - cg object
+     * @param requestContext - current context of unmanagedVolume
+     * @return
+     */
     protected UnManagedConsistencyGroup getUnManagedConsistencyGroupFromContext(BlockConsistencyGroup cg,
             IngestionRequestContext requestContext) {
         List<UnManagedConsistencyGroup> umcgList = requestContext.getUmCGObjectsToUpdate();

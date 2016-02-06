@@ -87,9 +87,8 @@ public class XtremIOCommunicationInterface extends
             String xmsVersion = xtremIOClient.getXtremIOXMSVersion();
             String minimumSupportedVersion = VersionChecker
                     .getMinimumSupportedVersion(StorageSystem.Type.xtremio).replace("-", ".");
-            String compatibility = (VersionChecker.verifyVersionDetails(minimumSupportedVersion, xmsVersion) < 0) ?
-                    StorageSystem.CompatibilityStatus.INCOMPATIBLE.name() :
-                    StorageSystem.CompatibilityStatus.COMPATIBLE.name();
+            String compatibility = (VersionChecker.verifyVersionDetails(minimumSupportedVersion, xmsVersion) < 0)
+                    ? StorageSystem.CompatibilityStatus.INCOMPATIBLE.name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
             provider.setCompatibilityStatus(compatibility);
             provider.setVersionString(xmsVersion);
 
@@ -219,7 +218,7 @@ public class XtremIOCommunicationInterface extends
             _logger.info("Minimum Supported Version {}", minimumSupported);
             String compatibility = (VersionChecker.verifyVersionDetails(minimumSupported,
                     firmwareVersion) < 0) ? StorageSystem.CompatibilityStatus.INCOMPATIBLE
-                    .name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
+                            .name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
             systemInDB.setCompatibilityStatus(compatibility);
             systemInDB.setReachableStatus(true);
             _dbClient.persistObject(systemInDB);
@@ -338,7 +337,6 @@ public class XtremIOCommunicationInterface extends
                         }
                     }
 
-
                     String nativeGuid = NativeGUIDGenerator.generateNativeGuid(system, targetPort.getPortAddress(),
                             NativeGUIDGenerator.PORT);
                     _logger.info("Speed, Target Port Native Guid {} {}", portSpeed, nativeGuid);
@@ -409,7 +407,8 @@ public class XtremIOCommunicationInterface extends
                 } else {
                     Initiator initiatorObj = _dbClient.queryObject(Initiator.class, initiatorUris.get(0));
                     initiatorObj.setLabel(initiator.getName());
-                    _dbClient.persistObject(initiatorObj);
+                    initiatorObj.mapInitiatorName(system.getSerialNumber(), initiator.getName());
+                    _dbClient.updateObject(initiatorObj);
                 }
             }
         } catch (Exception e) {

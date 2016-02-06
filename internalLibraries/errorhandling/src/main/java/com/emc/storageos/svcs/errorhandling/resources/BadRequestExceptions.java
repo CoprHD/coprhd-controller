@@ -1852,6 +1852,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotIsNotForConsistencyGroup(final String snapshotName, final String cgName);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionIsNotForConsistencyGroup(final String snapSessionName, final String cgName);
+
     @DeclareServiceCode(ServiceCode.API_INVALID_MAX_CONTINUOUS_COPIES)
     public BadRequestException invalidMaxContinuousCopiesForVplex(final Integer maxCopies);
 

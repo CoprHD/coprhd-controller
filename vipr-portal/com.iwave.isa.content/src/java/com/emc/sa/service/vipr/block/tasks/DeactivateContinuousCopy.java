@@ -24,7 +24,7 @@ public class DeactivateContinuousCopy extends WaitForTasks<VolumeRestRep> {
         this.continuousCopyId = continuousCopyId;
         this.type = type;
         this.deleteType = deleteType;
-        provideDetailArgs(volumeId, continuousCopyId, type);
+        provideDetailArgs(volumeId, continuousCopyId, type, deleteType);
     }
 
     @Override

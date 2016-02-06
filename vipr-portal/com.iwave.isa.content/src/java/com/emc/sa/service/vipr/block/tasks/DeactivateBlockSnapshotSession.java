@@ -22,14 +22,14 @@ public class DeactivateBlockSnapshotSession extends WaitForTasks<BlockSnapshotSe
     public DeactivateBlockSnapshotSession(URI snapshotSessionId) {
         super();
         this.snapshotSessionId = snapshotSessionId;
-        provideDetailArgs(snapshotSessionId);
+        provideDetailArgs(snapshotSessionId, type);
     }
 
     public DeactivateBlockSnapshotSession(URI snapshotSessionId, VolumeDeleteTypeEnum type) {
         super();
         this.snapshotSessionId = snapshotSessionId;
         this.type = type;
-        provideDetailArgs(snapshotSessionId);
+        provideDetailArgs(snapshotSessionId, type);
     }
 
     @Override

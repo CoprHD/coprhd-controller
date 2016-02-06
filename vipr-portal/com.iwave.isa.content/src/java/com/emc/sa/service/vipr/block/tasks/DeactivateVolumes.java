@@ -21,7 +21,7 @@ public class DeactivateVolumes extends WaitForTasks<VolumeRestRep> {
         super();
         this.volumeIds = volumeIds;
         this.type = type;
-        provideDetailArgs(volumeIds);
+        provideDetailArgs(volumeIds, type);
     }
 
     @Override

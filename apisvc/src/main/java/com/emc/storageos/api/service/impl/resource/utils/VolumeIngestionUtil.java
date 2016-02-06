@@ -28,6 +28,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Bloc
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRecoverPointIngestOrchestrator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
@@ -467,11 +468,14 @@ public class VolumeIngestionUtil {
      * 
      */
     public static boolean isRPProtectingVplexVolumes(UnManagedVolume umv, IngestionRequestContext requestContext, DbClient dbClient) {
-        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(umv
-                .getNativeGuid());
-
-        ProtectionSet pset = rpContext.getManagedProtectionSet();
+        VolumeIngestionContext context = requestContext.getVolumeContext(umv.getNativeGuid());
         boolean isRPProtectingVplexVolumes = false;
+        // We expect RP Context to validate Vplex volumes protected by RP or not.
+        if (!(context instanceof RecoverPointVolumeIngestionContext)) {
+            return isRPProtectingVplexVolumes;
+        }
+        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) context;
+        ProtectionSet pset = rpContext.getManagedProtectionSet();
 
         if (pset == null) {
             return isRPProtectingVplexVolumes;
@@ -3448,16 +3452,13 @@ public class VolumeIngestionUtil {
                     }
                 }
             }
-            for (List<DataObject> doList : ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext())
-                    .getObjectsToBeUpdatedMap().values()) {
-                for (DataObject dobj : doList) {
-                    if (!(dobj instanceof BlockObject)) {
-                        continue;
-                    }
-                    BlockObject bo = (BlockObject) dobj;
-                    if (URIUtil.identical(bo.getConsistencyGroup(), cg.getId())) {
-                        blockObjects.add(bo);
-                    }
+
+            // Add the RP protected volumes
+            for (Entry<String, BlockObject> entry : ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext())
+                    .getObjectsToBeCreatedMap().entrySet()) {
+                BlockObject boObj = entry.getValue();
+                if (URIUtil.identical(boObj.getConsistencyGroup(), cg.getId())) {
+                    blockObjects.add(boObj);
                 }
             }
         }
@@ -3473,6 +3474,15 @@ public class VolumeIngestionUtil {
                     if (URIUtil.identical(bo.getConsistencyGroup(), cg.getId())) {
                         blockObjects.add(bo);
                     }
+                }
+            }
+
+            // Add the VPLEX backend volumes
+            for (Entry<String, BlockObject> entry : ((VplexVolumeIngestionContext) requestContext.getVolumeContext())
+                    .getObjectsToBeCreatedMap().entrySet()) {
+                BlockObject boObj = entry.getValue();
+                if (URIUtil.identical(boObj.getConsistencyGroup(), cg.getId())) {
+                    blockObjects.add(boObj);
                 }
             }
         }

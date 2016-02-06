@@ -6,6 +6,9 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
 import java.util.Collection;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -13,6 +16,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 public abstract class BlockCGIngestDecorator {
+    private static final Logger logger = LoggerFactory.getLogger(BlockCGIngestDecorator.class);
 
     protected BlockCGIngestDecorator nextCGIngestDecorator = null;
 
@@ -74,9 +78,14 @@ public abstract class BlockCGIngestDecorator {
             Collection<BlockObject> associatedObjects = getAssociatedObjects(cg, allCGBlockObjects, requestContext);
             if (null != cg && !associatedObjects.isEmpty()) {
                 decorateCG(cg, associatedObjects, requestContext);
+            } else {
+                logger.debug("Skipping Decorator as no associatedObjects found.");
             }
+        } else {
+            logger.debug("Skipping Decorator as isExecuteDecorator is false.");
         }
         if (null != this.nextCGIngestDecorator) {
+            nextCGIngestDecorator.setDbClient(dbClient);
             this.nextCGIngestDecorator.decorate(cg, umv, allCGBlockObjects, requestContext);
         }
     }

@@ -124,6 +124,9 @@ public class VolumeGroupService extends TaskResourceService {
     // A reference to the placement manager.
     private PlacementManager _placementManager;
 
+    // A reference to the block consistency group service.
+    private BlockConsistencyGroupService _blockConsistencyGroupService;
+
     // Block service implementations
     private static Map<String, BlockServiceApi> _blockServiceApis;
 
@@ -134,6 +137,15 @@ public class VolumeGroupService extends TaskResourceService {
      */
     public void setPlacementManager(PlacementManager placementManager) {
         _placementManager = placementManager;
+    }
+
+    /**
+     * Setter for the block consistency group service.
+     * 
+     * @param blockConsistencyGroupService A reference to the block consistency group service.
+     */
+    public void setBlockConsistencyGroupService(BlockConsistencyGroupService blockConsistencyGroupService) {
+        _blockConsistencyGroupService = blockConsistencyGroupService;
     }
 
     public void setBlockServiceApis(final Map<String, BlockServiceApi> serviceInterfaces) {
@@ -646,7 +658,6 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         Map<String, Volume> repGroupToFullCopyMap = groupFullCopiesByReplicationGroup(fullCopyVolumesInRequest);
-        BlockConsistencyGroupService cgServiceObj = new BlockConsistencyGroupService();
         for (Map.Entry<String, Volume> entry : repGroupToFullCopyMap.entrySet()) {
             String replicationGroup = entry.getKey();
             Volume fullCopy = entry.getValue();
@@ -657,7 +668,9 @@ public class VolumeGroupService extends TaskResourceService {
                 // Activate the full copy. Note that it will take into account the
                 // fact that the volume is in a ReplicationGroup
                 // and all volumes in that ReplicationGroup will be activated.
-                taskList.getTaskList().addAll(cgServiceObj.activateConsistencyGroupFullCopy(cgURI, fullCopy.getId()).getTaskList());
+                taskList.getTaskList().addAll(
+                        _blockConsistencyGroupService.activateConsistencyGroupFullCopy(cgURI, fullCopy.getId())
+                                .getTaskList());
             } catch (InternalException | APIException e) {
                 String errMsg = String.format("Error activating Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
@@ -747,7 +760,6 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         Map<String, Volume> repGroupToFullCopyMap = groupFullCopiesByReplicationGroup(fullCopyVolumesInRequest);
-        BlockConsistencyGroupService cgServiceObj = new BlockConsistencyGroupService();
         for (Map.Entry<String, Volume> entry : repGroupToFullCopyMap.entrySet()) {
             String replicationGroup = entry.getKey();
             Volume fullCopy = entry.getValue();
@@ -758,7 +770,9 @@ public class VolumeGroupService extends TaskResourceService {
                 // Detach the full copy. Note that it will take into account the
                 // fact that the volume is in a ReplicationGroup
                 // and all volumes in that ReplicationGroup will be detached.
-                taskList.getTaskList().addAll(cgServiceObj.detachConsistencyGroupFullCopy(cgURI, fullCopy.getId()).getTaskList());
+                taskList.getTaskList().addAll(
+                        _blockConsistencyGroupService.detachConsistencyGroupFullCopy(cgURI, fullCopy.getId())
+                                .getTaskList());
             } catch (InternalException | APIException e) {
                 String errMsg = String.format("Error detaching Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
@@ -849,7 +863,6 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         Map<String, Volume> repGroupToFullCopyMap = groupFullCopiesByReplicationGroup(fullCopyVolumesInRequest);
-        BlockConsistencyGroupService cgServiceObj = new BlockConsistencyGroupService();
         for (Map.Entry<String, Volume> entry : repGroupToFullCopyMap.entrySet()) {
             String replicationGroup = entry.getKey();
             Volume fullCopy = entry.getValue();
@@ -860,7 +873,9 @@ public class VolumeGroupService extends TaskResourceService {
                 // Restore the full copy. Note that it will take into account the
                 // fact that the volume is in a ReplicationGroup
                 // and all volumes in that ReplicationGroup will be restored.
-                taskList.getTaskList().addAll(cgServiceObj.restoreConsistencyGroupFullCopy(cgURI, fullCopy.getId()).getTaskList());
+                taskList.getTaskList().addAll(
+                        _blockConsistencyGroupService.restoreConsistencyGroupFullCopy(cgURI, fullCopy.getId())
+                                .getTaskList());
             } catch (InternalException | APIException e) {
                 String errMsg = String.format("Error restoring Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
@@ -951,7 +966,6 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         Map<String, Volume> repGroupToFullCopyMap = groupFullCopiesByReplicationGroup(fullCopyVolumesInRequest);
-        BlockConsistencyGroupService cgServiceObj = new BlockConsistencyGroupService();
         for (Map.Entry<String, Volume> entry : repGroupToFullCopyMap.entrySet()) {
             String replicationGroup = entry.getKey();
             Volume fullCopy = entry.getValue();
@@ -962,7 +976,9 @@ public class VolumeGroupService extends TaskResourceService {
                 // Resynchronize the full copy. Note that it will take into account the
                 // fact that the volume is in a ReplicationGroup
                 // and all volumes in that ReplicationGroup will be resynchronized.
-                taskList.getTaskList().addAll(cgServiceObj.resynchronizeConsistencyGroupFullCopy(cgURI, fullCopy.getId()).getTaskList());
+                taskList.getTaskList().addAll(
+                        _blockConsistencyGroupService.resynchronizeConsistencyGroupFullCopy(cgURI, fullCopy.getId())
+                                .getTaskList());
             } catch (InternalException | APIException e) {
                 String errMsg = String.format("Error resynchronizing Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
@@ -1054,8 +1070,14 @@ public class VolumeGroupService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         Operation op = new Operation();
         op.setResourceType(opr);
-        op.error(sc);
         _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
+
+        // TODO check for creating Op with error
+        volume = _dbClient.queryObject(Volume.class, volume.getId());
+        op = volume.getOpStatus().get(taskId);
+        op.error(sc);
+        volume.getOpStatus().updateTaskStatus(taskId, op);
+        _dbClient.updateObject(volume);
         return TaskMapper.toTask(volume, taskId, op);
     }
     /**

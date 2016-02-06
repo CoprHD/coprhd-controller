@@ -652,15 +652,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     } else {
                         backendRequestContext.getObjectsIngestedByExportProcessing().add(blockObject);
                     }
-
-                    /**
-                     * TODO verify persistence - this should be handled by context.commitBackend
-                     * // update the related objects if any after successful export mask ingestion
-                     * List<DataObject> updatedO bjects = backendRequestContext.getUpdatedObjectMap().get(unManagedVolumeGUID);
-                     * if (updatedObjects != null && !updatedObjects.isEmpty()) {
-                     * _dbClient.updateObject(updatedObjects);
-                     * }
-                     */
                 }
             } catch (Exception ex) {
                 _logger.error(ex.getLocalizedMessage());

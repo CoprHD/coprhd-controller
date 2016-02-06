@@ -1084,10 +1084,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
 
         if (!volumes.isEmpty()) {
-            // TODO break the volume list out by storage system and replication group
             Volume firstVolume = volumes.get(0);
             if (!(firstVolume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient)) &&
                   !ControllerUtils.isNotInRealVNXRG(firstVolume, _dbClient)) {
+                log.info(String.format("Remove from replication group not supported for volume %s", firstVolume.getLabel()));
                 return waitFor;
             }
 
@@ -1140,7 +1140,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             if (checkIfCGHasSnapshotReplica(volumes)) {
                 log.info("Adding steps to process snapshots for removing volumes");
                 List<URI> snapshots = new ArrayList<URI>();
-                String snapshotGroupName = null;
+                String replicationGroupInstance = null;
+                String snapsetLabel = null;
                 for (Volume volume : volumes) {
                     URIQueryResultList list = new URIQueryResultList();
                     _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
@@ -1149,16 +1150,23 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     while (it.hasNext()) {
                         URI snapshotUri = it.next();
                         snapshots.add(snapshotUri);
-                        if (snapshotGroupName == null) {
+                        if (replicationGroupInstance == null) {
                             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotUri);
                             if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
-                                snapshotGroupName = snapshot.getReplicationGroupInstance();
+                                replicationGroupInstance = snapshot.getReplicationGroupInstance();
+                            }
+                            if (NullColumnValueGetter.isNotNullValue(snapshot.getSnapsetLabel())) {
+                                snapsetLabel = snapshot.getSnapsetLabel();
                             }
                         }
                     }
                 }
+                // if snapshot group name was not found in replicationGroupInstance, check snapshotSetLabel
+                if (replicationGroupInstance == null) {
+                    replicationGroupInstance = snapsetLabel;
+                }
                 // add steps to removed snapshots from the replication group
-                waitFor = removeSnapshotsFromReplicationGroupStep(workflow, waitFor, system, cgURI, snapshots, snapshotGroupName);
+                waitFor = removeSnapshotsFromReplicationGroupStep(workflow, waitFor, system, cgURI, snapshots, replicationGroupInstance);
             }
         }
 

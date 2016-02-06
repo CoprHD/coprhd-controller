@@ -13,10 +13,10 @@ import com.emc.storageos.model.DiscoveredDataObjectRestRep;
 @XmlRootElement(name = "object_user_secret_keys")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ObjectUserSecretKeysRestRep extends DiscoveredDataObjectRestRep {
-    String secret_key_1;
-    String secret_key_1_expiry_timestamp;
-    String secret_key_2;
-    String secret_key_2_expiry_timestamp;
+    private String secret_key_1;
+    private String secret_key_1_expiry_timestamp;
+    private String secret_key_2;
+    private String secret_key_2_expiry_timestamp;
     
     public ObjectUserSecretKeysRestRep() {
     }

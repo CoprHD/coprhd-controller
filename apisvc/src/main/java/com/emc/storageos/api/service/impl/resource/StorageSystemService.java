@@ -90,7 +90,7 @@ import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.file.UnManagedFileSystemList;
 import com.emc.storageos.model.object.ObjectNamespaceList;
 import com.emc.storageos.model.object.ObjectNamespaceRestRep;
-import com.emc.storageos.model.object.ObjectUserSecretKeysParam;
+import com.emc.storageos.model.object.ObjectUserSecretKeyRequestParam;
 import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
@@ -1330,11 +1330,19 @@ public class StorageSystemService extends TaskResourceService {
         return map(secretKeys);
     }
 
+    /**
+     * Create a secret key for an object storage array
+     * 
+     * @param param secret key
+     * @param id storage system URN
+     * @param userId user in array
+     * @return secret key details
+     */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/object-user/{userId}/secret-keys")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public ObjectUserSecretKeysRestRep addUserSecretKey(ObjectUserSecretKeysParam param, @PathParam("id") URI id,
+    public String addUserSecretKey(ObjectUserSecretKeyRequestParam param, @PathParam("id") URI id,
             @PathParam("userId") String userId) {
         // Make sure storage system is registered and object storage
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
@@ -1346,8 +1354,9 @@ public class StorageSystemService extends TaskResourceService {
         
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
         ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, param.getSecretkey());
+        return secretKeyRes.getSecret_key_1_expiry_timestamp();
         //Return key details as this is synchronous call
-        return map(secretKeyRes);
+        //return map(secretKeyRes);
     } 
 
     @GET

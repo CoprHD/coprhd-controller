@@ -8,13 +8,13 @@ package com.emc.storageos.ecs.api;
  * Capture get user secret keys ECS REST output 
  */
 public class UserSecretKeysGetCommandResult {
-    String secret_key_1;
-    String key_timestamp_1;
-    String key_expiry_timestamp_1;
-    String secret_key_2;
-    String key_timestamp_2;
-    String key_expiry_timestamp_2;
-    ECSLink link;
+    private String secret_key_1;
+    private String key_timestamp_1;
+    private String key_expiry_timestamp_1;
+    private String secret_key_2;
+    private String key_timestamp_2;
+    private String key_expiry_timestamp_2;
+    private ECSLink link;
     
     public String getSecret_key_1() {
         return secret_key_1;

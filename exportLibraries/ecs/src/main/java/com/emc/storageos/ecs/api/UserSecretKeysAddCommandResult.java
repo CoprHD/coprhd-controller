@@ -5,10 +5,10 @@
 package com.emc.storageos.ecs.api;
 
 public class UserSecretKeysAddCommandResult {
-    ECSLink link;
-    String secret_key;
-    String key_timestamp;
-    String key_expiry_timestamp;
+    private ECSLink link;
+    private String secret_key;
+    private String key_timestamp;
+    private String key_expiry_timestamp;
     
     public ECSLink getLink() {
         return link;

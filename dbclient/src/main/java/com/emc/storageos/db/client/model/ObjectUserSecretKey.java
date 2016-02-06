@@ -10,10 +10,10 @@ package com.emc.storageos.db.client.model;
  * This not defined as column family, but in future it will be considered
  */
 public class ObjectUserSecretKey extends DiscoveredDataObject {
-    String secret_key_1;
-    String secret_key_1_expiry_timestamp;
-    String secret_key_2;
-    String secret_key_2_expiry_timestamp;
+    private String secret_key_1;
+    private String secret_key_1_expiry_timestamp;
+    private String secret_key_2;
+    private String secret_key_2_expiry_timestamp;
     
     public String getSecret_key_1() {
         return secret_key_1;

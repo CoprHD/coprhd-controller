@@ -11,13 +11,13 @@ import javax.xml.bind.annotation.XmlRootElement;
  * 
  */
 @XmlRootElement(name = "object_user_secret_key_create")
-public class ObjectUserSecretKeysParam {
-    public String secretkey;
+public class ObjectUserSecretKeyRequestParam {
+    private String secretkey;
     
-    public ObjectUserSecretKeysParam() {
+    public ObjectUserSecretKeyRequestParam() {
     }
 
-    public ObjectUserSecretKeysParam(String secretkey) {
+    public ObjectUserSecretKeyRequestParam(String secretkey) {
         this.secretkey = secretkey;
     }
 

@@ -20,6 +20,7 @@ public class SiteErrorResponse {
     private int serviceCode;
     private String serviceCodeName;
     private String errorMessage;
+    private String operation;
     
     @XmlElement(name = "creationTime")
     public Date getCreationTime() {
@@ -57,6 +58,15 @@ public class SiteErrorResponse {
         this.errorMessage = errorMessage;
     }
 
+    @XmlElement(name = "operation")
+    public String getOperation() {
+        return operation;
+    }
+
+    public void setOperation(String operation) {
+        this.operation = operation;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -68,6 +78,8 @@ public class SiteErrorResponse {
         builder.append(serviceCodeName);
         builder.append(", errorMessage=");
         builder.append(errorMessage);
+        builder.append(", operation=");
+        builder.append(operation);
         builder.append("]");
         return builder.toString();
     }

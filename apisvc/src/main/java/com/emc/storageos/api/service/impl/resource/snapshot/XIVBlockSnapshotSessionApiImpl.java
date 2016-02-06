@@ -88,7 +88,7 @@ public class XIVBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
+    public void validateRestoreSnapshotSession(List<BlockObject> snapSessionSourceObjs, Project project) {
         throw APIException.methodNotAllowed.notSupportedForXIV();
     }
 

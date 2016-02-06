@@ -16,7 +16,6 @@ import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
-import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
@@ -47,6 +46,10 @@ public class Site {
 
     public SiteRestRep resumeSite(String uuid) {
         return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/resume/");
+    }
+
+    public SiteRestRep retrySite(String uuid) {
+        return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/retry/");
     }
 
     public ClientResponse syncSite(String uuid, SiteConfigParam input) {

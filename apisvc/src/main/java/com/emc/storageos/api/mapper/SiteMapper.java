@@ -31,7 +31,10 @@ public class SiteMapper {
         to.setVip(from.getVip());
         to.setDescription(from.getDescription());
         to.setState(from.getState().toString());
-        to.setNetworkHealth(from.getNetworkHealth());
+        to.setCreateTime(from.getCreationTime());
+        if (from.getNetworkHealth() != null) {
+            to.setNetworkHealth(from.getNetworkHealth().toString());
+        }
     }
 
     public void map(Site from, SiteParam to) {

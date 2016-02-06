@@ -1,19 +1,21 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.model.ipsec;
+package com.emc.storageos.geomodel;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "ipsec_param")
-public class IpsecParam {
+
+@XmlRootElement
+public class VdcIpsecPropertiesResponse {
+
     private String ipsecKey;
-    private long vdcConfigVersion;
+    private String vdcConfigVersion;
     private String ipsecStatus;
 
-    @XmlElement(name="ipsec_key")
+    @XmlElement(name = "ipsec_key")
     public String getIpsecKey() {
         return ipsecKey;
     }
@@ -22,16 +24,16 @@ public class IpsecParam {
         this.ipsecKey = ipsecKey;
     }
 
-    @XmlElement(name="vdc_version")
-    public long getVdcConfigVersion() {
+    @XmlElement(name = "vdc_config_version")
+    public String getVdcConfigVersion() {
         return vdcConfigVersion;
     }
 
-    public void setVdcConfigVersion(long vdcConfigVersion) {
+    public void setVdcConfigVersion(String vdcConfigVersion) {
         this.vdcConfigVersion = vdcConfigVersion;
     }
 
-    @XmlElement(name="ipsec_status")
+    @XmlElement(name = "ipsec_status")
     public String getIpsecStatus() {
         return ipsecStatus;
     }
@@ -39,4 +41,5 @@ public class IpsecParam {
     public void setIpsecStatus(String ipsecStatus) {
         this.ipsecStatus = ipsecStatus;
     }
+
 }

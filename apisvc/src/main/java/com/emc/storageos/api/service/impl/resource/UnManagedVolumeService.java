@@ -35,6 +35,10 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategy;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockCGIngestDecorator;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockRPCGIngestDecorator;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockVolumeCGIngestDecorator;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockVplexCGIngestDecorator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.CGIngestionDecoratorUtil;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
@@ -105,6 +109,19 @@ public class UnManagedVolumeService extends TaskResourceService {
     public static final String INGESTION_SUCCESSFUL_MSG = "Successfully ingested volume.";
     public static final DataObject.Flag[] INTERNAL_VOLUME_FLAGS = new DataObject.Flag[] {
             Flag.INTERNAL_OBJECT, Flag.NO_PUBLIC_ACCESS, Flag.NO_METERING };
+
+    private static BlockCGIngestDecorator volumeCGDecorator = null;
+    private static BlockCGIngestDecorator vplexCGDecorator = null;
+    private static BlockCGIngestDecorator rpCGDecorator = null;
+
+    static {
+        rpCGDecorator = new BlockRPCGIngestDecorator();
+        vplexCGDecorator = new BlockVplexCGIngestDecorator();
+        volumeCGDecorator = new BlockVolumeCGIngestDecorator();
+
+        rpCGDecorator.setNextDecorator(vplexCGDecorator);
+        vplexCGDecorator.setNextDecorator(volumeCGDecorator);
+    }
 
     /**
      * Reference to logger
@@ -304,7 +321,9 @@ public class UnManagedVolumeService extends TaskResourceService {
                     for (Entry<String, BlockConsistencyGroup> cgEntry : requestContext.getCGObjectsToCreateMap().entrySet()) {
                         _logger.info("Decorating CG {}", cgEntry.getKey());
                         BlockConsistencyGroup cg = cgEntry.getValue();
-                        CGIngestionDecoratorUtil.decorate(unManagedVolume, cg, requestContext, _dbClient);
+                        Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
+                        rpCGDecorator.setDbClient(_dbClient);
+                        rpCGDecorator.decorate(cg, unManagedVolume, allCGBlockObjects, requestContext);
                     }
                 }
                 requestContext.getVolumeContext().commit();

@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
-import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayList;
@@ -3456,7 +3455,6 @@ public class VolumeIngestionUtil {
             DbClient dbClient) {
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroup(unManagedVolume, dbClient);
 
-        // @TODO verify whether unmanaged snaps & mirrors have the VPLEX attribute populated.
         boolean isLastUmvToIngest = isLastUnManagedVolumeToIngest(umcg, unManagedVolume);
         boolean isVplexOrRPProtected = isRPOrVplexProtected(unManagedVolume);
         if (isVplexOrRPProtected || !isLastUmvToIngest) {

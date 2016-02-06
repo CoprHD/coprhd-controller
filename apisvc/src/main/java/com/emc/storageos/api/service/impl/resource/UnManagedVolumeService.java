@@ -39,7 +39,6 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.B
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockRPCGIngestDecorator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockVolumeCGIngestDecorator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockVplexCGIngestDecorator;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.CGIngestionDecoratorUtil;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BaseIngestionRequestContext;
@@ -499,7 +498,9 @@ public class UnManagedVolumeService extends TaskResourceService {
                     for (Entry<String, BlockConsistencyGroup> cgEntry : requestContext.getCGObjectsToCreateMap().entrySet()) {
                         _logger.info("Decorating CG {}", cgEntry.getKey());
                         BlockConsistencyGroup cg = cgEntry.getValue();
-                        CGIngestionDecoratorUtil.decorate(unManagedVolume, cg, requestContext, _dbClient);
+                        Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
+                        rpCGDecorator.setDbClient(_dbClient);
+                        rpCGDecorator.decorate(cg, unManagedVolume, allCGBlockObjects, requestContext);
                     }
                 }
 

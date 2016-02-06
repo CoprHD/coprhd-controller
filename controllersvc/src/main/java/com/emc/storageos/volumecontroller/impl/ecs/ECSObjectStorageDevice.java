@@ -32,6 +32,7 @@ import com.emc.storageos.ecs.api.UserSecretKeysGetCommandResult;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
@@ -110,7 +111,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws ControllerException {
+    public ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws InternalException {
         ECSApi ecsApi = getAPI(storageObj);
         ObjectUserSecretKey secretKey = new ObjectUserSecretKey();
 
@@ -137,18 +138,19 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public ObjectUserSecretKey doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws ControllerException {
+    public ObjectUserSecretKey doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws InternalException {
         ECSApi ecsApi = getAPI(storageObj);
         ObjectUserSecretKey secretKeyRes = new ObjectUserSecretKey();
         
         try {
             UserSecretKeysAddCommandResult cmdRes = ecsApi.addUserSecretKey(userId, secretKey);
-                secretKeyRes.setSecret_key_1(secretKey); 
-                secretKeyRes.setSecret_key_1_expiry_timestamp(cmdRes.getKey_expiry_timestamp());
+            secretKeyRes.setSecret_key_1(secretKey); 
+            secretKeyRes.setSecret_key_1_expiry_timestamp(cmdRes.getKey_expiry_timestamp());
+            return secretKeyRes;
         } catch (Exception e) {
             _log.error("ECSObjectStorageDevice:doAddUserSecretKey failed");
+            throw e;
         }
-        return secretKeyRes;
     }
 
     @Override

@@ -579,9 +579,9 @@ public class ECSApi {
             getAuthToken();
             clientResp = get(path);
             if (null == clientResp) {
-                throw ECSException.exceptions.getUserSecretKeysFailed("no response from ECS");
+                throw ECSException.exceptions.getUserSecretKeysFailedErr("no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getUserSecretKeysFailed(getResponseDetails(clientResp));
+                throw ECSException.exceptions.getUserSecretKeysFailedErr(getResponseDetails(clientResp));
             }
 
             responseString = clientResp.getEntity(String.class);
@@ -590,7 +590,7 @@ public class ECSApi {
                     UserSecretKeysGetCommandResult.class);
             return ecsSecretKeyResult;
         } catch (Exception e) {
-            throw ECSException.exceptions.getUserSecretKeysFailed(user, e);
+            throw ECSException.exceptions.getUserSecretKeysFailedExc(user, e);
         } finally {
             if (clientResp != null) {
                 clientResp.close();
@@ -609,9 +609,9 @@ public class ECSApi {
             getAuthToken();
             clientResp = post(path, body);
             if (null == clientResp) {
-                throw ECSException.exceptions.addUserSecretKeysFailed("no response from ECS");
+                throw ECSException.exceptions.addUserSecretKeysFailedErr("no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.addUserSecretKeysFailed(getResponseDetails(clientResp));
+                throw ECSException.exceptions.addUserSecretKeysFailedErr(getResponseDetails(clientResp));
             }
             responseString = clientResp.getEntity(String.class);
             _log.info("ECSApi:getUserSecretKey ECS response is {}", responseString);
@@ -619,7 +619,7 @@ public class ECSApi {
                     UserSecretKeysAddCommandResult.class);
             return ecsSecretKeyResult;
         } catch (Exception e) {
-            throw ECSException.exceptions.addUserSecretKeysFailed(user, e);
+            throw ECSException.exceptions.addUserSecretKeysFailedExc(user, e);
         } finally {
             if (clientResp != null) {
                 clientResp.close();

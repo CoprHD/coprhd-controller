@@ -38,6 +38,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
 import com.emc.storageos.model.object.ObjectNamespaceRestRep;
+import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
@@ -361,16 +362,23 @@ public class SystemsMapper {
         ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();
         to.setSecret_key_1(from.getSecret_key_1());
         to.setSecret_key_1_expiry_timestamp(from.getSecret_key_1_expiry_timestamp());
-        if (from.getSecret_key_2() != null) {
-            to.setSecret_key_2(from.getSecret_key_2());
-        }
-        if (from.getSecret_key_2_expiry_timestamp() != null) {
-            to.setSecret_key_2_expiry_timestamp(from.getSecret_key_2_expiry_timestamp());
-        }
+        to.setSecret_key_2(from.getSecret_key_2());
+        to.setSecret_key_2_expiry_timestamp(from.getSecret_key_2_expiry_timestamp());
 
         return to;
     }
     
+    public static ObjectUserSecretKeyAddRestRep map(ObjectUserSecretKey from, boolean b) {
+        if (from == null) {
+            return null;
+        }
+        ObjectUserSecretKeyAddRestRep to = new ObjectUserSecretKeyAddRestRep();
+        to.setSecret_key(from.getSecret_key_1());
+        to.setSecret_key_expiry_timestamp(from.getSecret_key_1_expiry_timestamp());
+
+        return to;
+    }
+
     public static StorageSystemRestRep map(StorageSystem from) {
         if (from == null) {
             return null;

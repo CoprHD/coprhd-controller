@@ -90,6 +90,7 @@ import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.file.UnManagedFileSystemList;
 import com.emc.storageos.model.object.ObjectNamespaceList;
 import com.emc.storageos.model.object.ObjectNamespaceRestRep;
+import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyRequestParam;
 import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
@@ -113,6 +114,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -1316,7 +1318,7 @@ public class StorageSystemService extends TaskResourceService {
     @Path("/{id}/object-user/{userId}/secret-keys")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public ObjectUserSecretKeysRestRep getUserSecretKeys(@PathParam("id") URI id,
-            @PathParam("userId") String userId) {
+            @PathParam("userId") String userId) throws InternalException {
         // Make sure storage system is registered and object storage
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
         StorageSystem system = queryResource(id);
@@ -1342,8 +1344,8 @@ public class StorageSystemService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/object-user/{userId}/secret-keys")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public String addUserSecretKey(ObjectUserSecretKeyRequestParam param, @PathParam("id") URI id,
-            @PathParam("userId") String userId) {
+    public ObjectUserSecretKeyAddRestRep addUserSecretKey(ObjectUserSecretKeyRequestParam param, @PathParam("id") URI id,
+            @PathParam("userId") String userId) throws InternalException{
         // Make sure storage system is registered and object storage
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
         StorageSystem system = queryResource(id);
@@ -1354,9 +1356,8 @@ public class StorageSystemService extends TaskResourceService {
         
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
         ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, param.getSecretkey());
-        return secretKeyRes.getSecret_key_1_expiry_timestamp();
         //Return key details as this is synchronous call
-        //return map(secretKeyRes);
+        return map(secretKeyRes, true);
     } 
 
     @GET

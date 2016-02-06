@@ -172,10 +172,10 @@ public class ECSApiFactory {
     else
         System.out.println("NOT Sys admin");
     
-    UserSecretKeysGetCommandResult res = ecsApi.getUserSecretKeys("prov_user");
-    System.out.println(res);
-//    UserSecretKeysAddCommandResult res2 = ecsApi.addUserSecretKeys("prov_user", "R6JUtI6hK2rDxY2fKuaQ51OL2tfyoHjPp8xL2y3T");
-//    System.out.println(res2);
+    //UserSecretKeysGetCommandResult res = ecsApi.getUserSecretKeys("prov_user");
+    //System.out.println(res);
+    UserSecretKeysAddCommandResult res2 = ecsApi.addUserSecretKey("prov_user", "R6JUtI6hK2rDxY2fKuaQ51OL2tfyoHjPp8xL2y3T");
+    System.out.println(res2);
     int dummy = 2;
     
     //ecsApi.getStoragePools();

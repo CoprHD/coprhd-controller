@@ -11,6 +11,7 @@ import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 public interface ObjectStorageDevice {
@@ -69,9 +70,9 @@ public interface ObjectStorageDevice {
      */
     BiosCommandResult doDeleteBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException;
     
-    ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws ControllerException;
+    ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws InternalException;
     
-    ObjectUserSecretKey doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws ControllerException;
+    ObjectUserSecretKey doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws InternalException;
     
     String doGetString(StorageSystem storageObj);
 }

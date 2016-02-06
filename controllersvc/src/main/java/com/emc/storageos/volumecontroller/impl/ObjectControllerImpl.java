@@ -171,10 +171,13 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     @Override
-    public void addUserSecretKey(URI storage, String userId, String secretKey) throws InternalException {
+    public ObjectUserSecretKey addUserSecretKey(URI storage, String userId, String secretKey) throws InternalException {
         _log.info("ObjectControllerImpl:addUserSecretKey start");
-        execOb("addUserSecretKey", storage, userId, secretKey);
-        _log.debug("ObjectControllerImpl:adUserSecretKey end");        
+        // Synchronous call than queuing
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+        Controller controller = lookupDeviceController(storageSystem);
+        ObjectController objController = (ObjectController) controller;
+        return objController.addUserSecretKey(storage, userId, secretKey);        
     }
 
     @Override

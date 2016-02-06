@@ -1334,7 +1334,7 @@ public class StorageSystemService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/object-user/{userId}/secret-keys")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public String addUserSecretKeys(ObjectUserSecretKeysParam param, @PathParam("id") URI id,
+    public ObjectUserSecretKeysRestRep addUserSecretKey(ObjectUserSecretKeysParam param, @PathParam("id") URI id,
             @PathParam("userId") String userId) {
         // Make sure storage system is registered and object storage
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
@@ -1345,8 +1345,9 @@ public class StorageSystemService extends TaskResourceService {
         }
         
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
-        controller.addUserSecretKey(id, userId, param.getSecretkey());
-        return "Successfully posted, please check logs for any errors";
+        ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, param.getSecretkey());
+        //Return key details as this is synchronous call
+        return map(secretKeyRes);
     } 
 
     @GET

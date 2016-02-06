@@ -599,8 +599,8 @@ public class ECSApi {
         }
     }
 
-    public UserSecretKeysAddCommandResult addUserSecretKeys(String user, String key) throws ECSException {
-        _log.debug("ECSApi:addUserSecretKeys enter");
+    public UserSecretKeysAddCommandResult addUserSecretKey(String user, String key) throws ECSException {
+        _log.debug("ECSApi:addUserSecretKey enter");
         ClientResponse clientResp = null;
         String body = " { \"secretkey\": \"" + key + "\" }" ;
         try {
@@ -614,7 +614,7 @@ public class ECSApi {
                 throw ECSException.exceptions.addUserSecretKeysFailed(getResponseDetails(clientResp));
             }
             responseString = clientResp.getEntity(String.class);
-            _log.info("ECSApi:getUserSecretKeys ECS response is {}", responseString);
+            _log.info("ECSApi:getUserSecretKey ECS response is {}", responseString);
             UserSecretKeysAddCommandResult ecsSecretKeyResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
                     UserSecretKeysAddCommandResult.class);
             return ecsSecretKeyResult;
@@ -624,7 +624,7 @@ public class ECSApi {
             if (clientResp != null) {
                 clientResp.close();
             }
-            _log.debug("ECSApi:addUserSecretKeys exit");
+            _log.debug("ECSApi:addUserSecretKey exit");
         }
     }
 

@@ -116,12 +116,10 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
         try {
             UserSecretKeysGetCommandResult secretKeyRes = ecsApi.getUserSecretKeys(userId);
-            if (secretKeyRes != null) {
-                secretKey.setSecret_key_1(secretKeyRes.getSecret_key_1());
-                secretKey.setSecret_key_1_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_1());
-                secretKey.setSecret_key_2(secretKeyRes.getSecret_key_2());
-                secretKey.setSecret_key_2_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_2());
-            }
+            secretKey.setSecret_key_1(secretKeyRes.getSecret_key_1());
+            secretKey.setSecret_key_1_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_1());
+            secretKey.setSecret_key_2(secretKeyRes.getSecret_key_2());
+            secretKey.setSecret_key_2_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_2());
         } catch (Exception e) {
            _log.error("ECSObjectStorageDevice:doGetUserSecretKey failed.");
         }
@@ -139,14 +137,18 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public void doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws ControllerException {
+    public ObjectUserSecretKey doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws ControllerException {
         ECSApi ecsApi = getAPI(storageObj);
+        ObjectUserSecretKey secretKeyRes = new ObjectUserSecretKey();
         
         try {
-            UserSecretKeysAddCommandResult secretKeyRes = ecsApi.addUserSecretKeys(userId, secretKey);
+            UserSecretKeysAddCommandResult cmdRes = ecsApi.addUserSecretKey(userId, secretKey);
+                secretKeyRes.setSecret_key_1(secretKey); 
+                secretKeyRes.setSecret_key_1_expiry_timestamp(cmdRes.getKey_expiry_timestamp());
         } catch (Exception e) {
             _log.error("ECSObjectStorageDevice:doAddUserSecretKey failed");
         }
+        return secretKeyRes;
     }
 
     @Override

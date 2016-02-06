@@ -360,10 +360,14 @@ public class SystemsMapper {
         }
         ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();
         to.setSecret_key_1(from.getSecret_key_1());
-        to.setSecret_key_2(from.getSecret_key_2());
         to.setSecret_key_1_expiry_timestamp(from.getSecret_key_1_expiry_timestamp());
-        to.setSecret_key_2_expiry_timestamp(from.getSecret_key_2_expiry_timestamp());
-        
+        if (from.getSecret_key_2() != null) {
+            to.setSecret_key_2(from.getSecret_key_2());
+        }
+        if (from.getSecret_key_2_expiry_timestamp() != null) {
+            to.setSecret_key_2_expiry_timestamp(from.getSecret_key_2_expiry_timestamp());
+        }
+
         return to;
     }
     

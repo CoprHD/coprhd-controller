@@ -778,7 +778,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList deactivateConsistencyGroupSnapshotSession(
             @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI snapshotSessionId) {
-        return getSnapshotSessionManager().deleteSnapshotSession(snapshotSessionId);
+        return getSnapshotSessionManager().deleteSnapshotSession(snapshotSessionId, VolumeDeleteTypeEnum.FULL.name());
     }
 
     /**

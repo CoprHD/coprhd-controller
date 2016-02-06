@@ -11,11 +11,7 @@ import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-<<<<<<< HEAD
 import com.emc.storageos.model.TaskList;
-=======
-import com.emc.storageos.model.block.BlockSnapshotRestRep;
->>>>>>> master
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
@@ -131,15 +127,6 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * Create and link new targets to an existing BlockSnapshotSession instance.
      * <p>
      * API Call: <tt>POST /block/snapshot-sessions/{id}/link-targets</tt>
-<<<<<<< HEAD
-     * 
-     * @param snapshotSessionId
-     *            The URI of the BlockSnapshotSession instance to which the
-     *            new targets will be linked.
-     * @param linkTargetsParam
-     *            The new linked target information.
-     * @return a task for monitoring the progress of the operation.
-=======
      *  
      * @param snapshotSessionId 
      *           The URI of the BlockSnapshotSession instance to which the
@@ -147,7 +134,6 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * @param linkTargetsParam 
      *           The new linked target information.
      * @return tasks for monitoring the progress of the operation.
->>>>>>> master
      */
     public Tasks<BlockSnapshotSessionRestRep> linkTargets(URI snapshotSessionId, SnapshotSessionLinkTargetsParam linkTargetsParam) {
         return postTasks(linkTargetsParam, getIdUrl() + "/link-targets", snapshotSessionId);
@@ -158,15 +144,6 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * snapshot session of the same source.
      * <p>
      * API Call: <tt>POST /block/snapshot-sessions/{id}/relink-targets</tt>
-<<<<<<< HEAD
-     * 
-     * @param snapshotSessionId
-     *            The URI of the BlockSnapshotSession instance to which the
-     *            the targets will be relinked.
-     * @param relinkTargetsParam
-     *            The existing linked target information.
-     * @return a task for monitoring the progress of the operation.
-=======
      *  
      * @param snapshotSessionId 
      *           The URI of the BlockSnapshotSession instance to which the
@@ -174,7 +151,6 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * @param relinkTargetsParam 
      *           The existing linked target information.
      * @return tasks for monitoring the progress of the operation.
->>>>>>> master
      */
     public Tasks<BlockSnapshotSessionRestRep> relinkTargets(URI snapshotSessionId, SnapshotSessionRelinkTargetsParam relinkTargetsParam) {
         return postTasks(relinkTargetsParam, getIdUrl() + "/relink-targets", snapshotSessionId);
@@ -185,15 +161,6 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * optionally delete those target volumes.
      * <p>
      * API Call: <tt>POST /block/snapshot-sessions/{id}/unlink-targets</tt>
-<<<<<<< HEAD
-     * 
-     * @param snapshotSessionId
-     *            The URI of the BlockSnapshotSession instance to which the
-     *            new targets are currently linked.
-     * @param unlinkTargetsParam
-     *            The linked target information for the snapshots to unlink.
-     * @return a task for monitoring the progress of the operation.
-=======
      *  
      * @param snapshotSessionId 
      *           The URI of the BlockSnapshotSession instance to which the
@@ -201,7 +168,6 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * @param unlinkTargetsParam 
      *           The linked target information for the snapshots to unlink.
      * @return tasks for monitoring the progress of the operation.
->>>>>>> master
      */
     public Tasks<BlockSnapshotSessionRestRep> unlinkTargets(URI snapshotSessionId, SnapshotSessionUnlinkTargetsParam unlinkTargetsParam) {
         return postTasks(unlinkTargetsParam, getIdUrl() + "/unlink-targets", snapshotSessionId);

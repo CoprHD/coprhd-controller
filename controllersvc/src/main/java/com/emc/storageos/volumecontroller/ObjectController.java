@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller;
 import java.net.URI;
 
 import com.emc.storageos.db.client.model.Bucket;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -73,7 +74,7 @@ public interface ObjectController extends StorageController {
      */
     public void deleteBucketACL(URI storage, URI bucket, String opId) throws InternalException;
     
-    public void getUserSecretKey(URI storage, String userId)  throws InternalException;
+    public ObjectUserSecretKey getUserSecretKeys(URI storage, String userId)  throws InternalException;
 
     public void addUserSecretKey(URI storage, String userId, String secretKey)  throws InternalException;
     

@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller;
 import java.net.URI;
 
 import com.emc.storageos.db.client.model.Bucket;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -68,7 +69,7 @@ public interface ObjectStorageDevice {
      */
     BiosCommandResult doDeleteBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException;
     
-    void doGetUserSecretKey(StorageSystem storageObj, String userId) throws ControllerException;
+    ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws ControllerException;
     
     void doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws ControllerException;
     

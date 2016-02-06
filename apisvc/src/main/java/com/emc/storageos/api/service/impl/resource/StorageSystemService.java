@@ -56,11 +56,10 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatu
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
-import com.emc.storageos.db.client.model.ScopedLabel;
-import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -1306,15 +1305,15 @@ public class StorageSystemService extends TaskResourceService {
     }
     
     /**
-     * Get the existing secret for the user specified
+     * Get the existing secret keys(s) for the user specified
      * 
-     * @param id storage system id
-     * @param userId required key for
-     * @return user key
+     * @param id storage system URN
+     * @param userId user for whom key is required
+     * @return secret key
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/object-user-secret-keys/{userId}")
+    @Path("/{id}/object-user/{userId}/secret-keys")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public ObjectUserSecretKeysRestRep getUserSecretKeys(@PathParam("id") URI id,
             @PathParam("userId") String userId) {
@@ -1327,51 +1326,13 @@ public class StorageSystemService extends TaskResourceService {
         }
         
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
-        
-        _log.info("apisvc calling getString");
-        _log.info(controller.getString(id));
-        
-        controller.getUserSecretKey(id, userId);
-        String user = userId;
-        if (user.contains("@")) {
-            user = user.replace("@", "%40");
-        }
-
-        //wait max of 1 min to get user keys
-        for (int time = 0; time < 60; time++) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            ScopedLabelSet tagSet = system.getTag();
-            String user_key = tagSet.toString();
-            String key = null;
-            if (user_key.contains(user)) {
-                int keyStart = user_key.lastIndexOf(user+":")+user.length();
-                String user_keyNext = user_key.substring(keyStart+1);
-                int keyEnd = user_keyNext.length()-1;
-                if (user_keyNext.contains(",")) {
-                    keyEnd = user_keyNext.indexOf(",");
-                }
-                key = user_keyNext.substring(0, keyEnd);
-            } 
-            if (key != null) {
-                ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();
-                to.setSecretkey1(key);
-                return to;
-            }
-        }
-        //For non-existing users return blank
-        ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();
-        to.setSecretkey1("");
-        return to;     
+        ObjectUserSecretKey secretKeys = controller.getUserSecretKeys(id, userId);
+        return map(secretKeys);
     }
-    
+
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/object-user-secret-keys/{userId}")
+    @Path("/{id}/object-user/{userId}/secret-keys")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public String addUserSecretKeys(ObjectUserSecretKeysParam param, @PathParam("id") URI id,
             @PathParam("userId") String userId) {

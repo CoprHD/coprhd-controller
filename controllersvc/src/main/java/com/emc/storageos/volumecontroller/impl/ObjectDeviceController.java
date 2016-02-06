@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -118,9 +119,9 @@ public class ObjectDeviceController implements ObjectController {
     }
 
     @Override
-    public void getUserSecretKey(URI storage,  String userId) throws ControllerException {
+    public ObjectUserSecretKey getUserSecretKeys(URI storage,  String userId) throws ControllerException {
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        getDevice(storageObj.getSystemType()).doGetUserSecretKey(storageObj, userId);
+        return getDevice(storageObj.getSystemType()).doGetUserSecretKeys(storageObj, userId);
     }
 
     @Override

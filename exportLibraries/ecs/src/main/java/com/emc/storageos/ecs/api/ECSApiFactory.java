@@ -159,7 +159,7 @@ public class ECSApiFactory {
 
     public static void main(String[] args) {          
     System.out.println("starting ecs main");
-    URI uri = URI.create(String.format("https:10.241.172.43//4443/login"));
+    URI uri = URI.create(String.format("https://10.247.142.65:4443/login"));
     ECSApiFactory factory = new ECSApiFactory();
     factory.init();
     ECSApi ecsApi = factory.getRESTClient(uri, "root", "ChangeMe");

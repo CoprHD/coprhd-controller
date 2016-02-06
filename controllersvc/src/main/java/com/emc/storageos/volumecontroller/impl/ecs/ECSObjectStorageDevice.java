@@ -20,8 +20,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
-import com.emc.storageos.db.client.model.ScopedLabel;
-import com.emc.storageos.db.client.model.ScopedLabelSet;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.ecs.api.ECSApi;
@@ -111,21 +110,22 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public void doGetUserSecretKey(StorageSystem storageObj, String userId) throws ControllerException {
+    public ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws ControllerException {
         ECSApi ecsApi = getAPI(storageObj);
+        ObjectUserSecretKey secretKey = new ObjectUserSecretKey();
 
         try {
             UserSecretKeysGetCommandResult secretKeyRes = ecsApi.getUserSecretKeys(userId);
-            if (secretKeyRes.getSecret_key_1() != null) {
-                ScopedLabel newScopedLabel = new ScopedLabel(userId, secretKeyRes.getSecret_key_1());
-                ScopedLabelSet tagSet = new ScopedLabelSet();
-                tagSet.add(newScopedLabel);
-                storageObj.setTag(tagSet);
-                _dbClient.updateObject(storageObj);
+            if (secretKeyRes != null) {
+                secretKey.setSecret_key_1(secretKeyRes.getSecret_key_1());
+                secretKey.setSecret_key_1_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_1());
+                secretKey.setSecret_key_2(secretKeyRes.getSecret_key_2());
+                secretKey.setSecret_key_2_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_2());
             }
         } catch (Exception e) {
            _log.error("ECSObjectStorageDevice:doGetUserSecretKey failed.");
         }
+        return secretKey;
     }
 
     @Override

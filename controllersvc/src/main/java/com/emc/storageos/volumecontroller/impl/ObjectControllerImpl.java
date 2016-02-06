@@ -15,12 +15,14 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ObjectController;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.impl.monitoring.MonitoringJob;
@@ -103,10 +105,17 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     @Override
-    public Controller lookupDeviceController(DiscoveredSystemObject device) {
+    public Controller lookupDeviceController(DiscoveredSystemObject device) throws ControllerException {
         // dummy impl that returns the first one
         _log.info("ObjectControllerImpl:lookupDeviceController");
-        return _deviceImpl.iterator().next();
+        if (device == null) {
+            throw ClientControllerException.fatals.unableToLookupStorageDeviceIsNull();
+        }
+        ObjectController ob = _deviceImpl.iterator().next();
+        if (ob == null) {
+            throw ClientControllerException.fatals.unableToLocateDeviceController("BlockController");
+        }
+        return ob;
     }
 
     private void execOb(String methodName, Object... args) throws InternalException {
@@ -152,10 +161,13 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     @Override
-    public void getUserSecretKey(URI storage, String userId) throws InternalException {
+    public ObjectUserSecretKey getUserSecretKeys(URI storage, String userId) throws InternalException {
         _log.info("ObjectControllerImpl:getUserSecretKey start");
-        execOb("getUserSecretKey", storage, userId);
-        _log.debug("ObjectControllerImpl:getUserSecretKey end");        
+        // Synchronous call than queuing
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+        Controller controller = lookupDeviceController(storageSystem);
+        ObjectController objController = (ObjectController) controller;
+        return objController.getUserSecretKeys(storage, userId);        
     }
 
     @Override

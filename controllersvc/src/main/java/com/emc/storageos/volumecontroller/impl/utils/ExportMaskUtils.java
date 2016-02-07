@@ -430,9 +430,9 @@ public class ExportMaskUtils {
         if (!Strings.isNullOrEmpty(cluster) && Strings.isNullOrEmpty(host)) {
             cluster = String.format("%s_%s", cluster, lastDigitsOfSerialNo);
         }
-
+    
         String alternateName = (cluster == null && host == null) ? exportGroup.getLabel() : null;
-
+        
         return nameGenerator.generate(cluster, host, alternateName);
     }
 

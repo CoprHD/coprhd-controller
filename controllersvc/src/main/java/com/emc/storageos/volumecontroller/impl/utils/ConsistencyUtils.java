@@ -10,6 +10,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -58,6 +59,19 @@ public class ConsistencyUtils {
         }
 
         return cgResult;
+    }
+
+    public static BlockConsistencyGroup getSnapshotSessionConsistencyGroup(URI snapshotSession, DbClient dbClient) {
+        BlockSnapshotSession snapshotSessionObj = dbClient.queryObject(BlockSnapshotSession.class, snapshotSession);
+
+        if (snapshotSessionObj != null) {
+            URI consistencyGroupId = snapshotSessionObj.getConsistencyGroup();
+
+            if (!isNullURI(consistencyGroupId)) {
+                return dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+            }
+        }
+        return null;
     }
 
     /**

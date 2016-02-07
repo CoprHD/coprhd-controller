@@ -282,12 +282,14 @@ public class DiscoveryUtils {
         List<StoragePool> modifiedPools = new ArrayList<StoragePool>();
         while (storagePoolIter.hasNext()) {
             StoragePool pool = dbClient.queryObject(StoragePool.class, storagePoolIter.next());
+            if (pool.getInactive()) {
+                continue;
+            }
             modifiedPools.add(pool);
             pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
-            dbClient.persistObject(pool);
+            dbClient.updateObject(pool);
         }
         ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(modifiedPools, dbClient, coordinator);
-        ;
 
         // Mark all Ports as incompatible
         URIQueryResultList storagePortURIs = new URIQueryResultList();
@@ -297,8 +299,11 @@ public class DiscoveryUtils {
         Iterator<URI> storagePortIter = storagePortURIs.iterator();
         while (storagePortIter.hasNext()) {
             StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
+            if (port.getInactive()) {
+                continue;
+            }
             port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
-            dbClient.persistObject(port);
+            dbClient.updateObject(port);
         }
     }
 
@@ -600,16 +605,13 @@ public class DiscoveryUtils {
      */
     public static Set<URI> getAllUnManagedProtectionSetsForSystem(
             DbClient dbClient, String protectionSystemUri) {
-        
-        final URIQueryResultList result = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getUnManagedProtectionSetsByProtectionSystemUriConstraint(protectionSystemUri), result);
-
         Set<URI> cgSet = new HashSet<URI>();
-        Iterator<URI> results = result.iterator(); 
-        while (results.hasNext()) {
-            cgSet.add(results.next());
+        List<UnManagedProtectionSet> cgs = CustomQueryUtility.getUnManagedProtectionSetByProtectionSystem(dbClient, protectionSystemUri);
+        Iterator<UnManagedProtectionSet> cgsItr = cgs.iterator();
+        while (cgsItr.hasNext()) {
+            cgSet.add(cgsItr.next().getId());
         }
+        
         return cgSet;
     }
 

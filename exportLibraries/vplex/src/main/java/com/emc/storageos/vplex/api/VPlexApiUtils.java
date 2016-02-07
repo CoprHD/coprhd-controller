@@ -34,12 +34,20 @@ public class VPlexApiUtils {
      * Transforms the raw WWN format returned by the VPlex CLI.
      * 
      * 0x1a2b3c4d5e6f7g8h -> 1A2B3C4D5E6F7G8H
+     * or
+     * REGISTERED_0x1a2b3c4d5e6f7g8h -> 1A2B3C4D5E6F7G8H
      * 
      * @param rawWWN The raw WWN from the VPlex CLI.
      * 
      * @return The formatted WWN.
      */
     static String formatWWN(String rawWWN) {
+
+        // trim off the REGISTERED_ prefix if it's present
+        if (rawWWN.toUpperCase().startsWith(VPlexApiConstants.REGISTERED_INITIATOR_PREFIX)){
+            rawWWN = rawWWN.substring(VPlexApiConstants.REGISTERED_INITIATOR_PREFIX.length());
+        }
+
         if (rawWWN != null) {
             return rawWWN.substring(2).toUpperCase();
         }

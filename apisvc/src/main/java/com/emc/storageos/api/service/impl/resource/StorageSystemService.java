@@ -71,13 +71,13 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
-import com.emc.storageos.db.client.model.VirtualNAS;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -267,10 +267,13 @@ public class StorageSystemService extends TaskResourceService {
     public TaskResourceRep createStorageSystem(StorageSystemRequestParam param) throws Exception {
 
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
-        ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type", EnumSet.of(
-                StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
-                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
-                StorageSystem.Type.xtremio, StorageSystem.Type.ecs));
+        if (!StorageSystem.Type.isDriverManagedStorageSystem(param.getSystemType())) {
+
+            ArgValidator.checkFieldValueFromSystemType(param.getSystemType(), "system_type",
+                    Arrays.asList(StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
+                            StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
+                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs));
+        }
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
             validateVNXFileSMISProviderMandatoryDetails(param);
@@ -1912,11 +1915,8 @@ public class StorageSystemService extends TaskResourceService {
 
     // Counts and returns the number of resources in a storage system
     public static Integer getNumResources(StorageSystem system, DbClient dbClient) {
-        StorageSystem.Type systemType = StorageSystem.Type.valueOf(system.getSystemType());
-        if (systemType == null) {
-            return 0;
-        }
-        if (StorageSystem.Type.isFileStorageSystem(systemType)) {
+
+        if (StorageSystem.Type.isFileStorageSystem(system.getSystemType())) {
             return dbClient.countObjects(FileShare.class, "storageDevice", system.getId());
         }
         else {

@@ -1595,7 +1595,8 @@ public class BlockStorageScheduler {
      * Updates the ExportMask's zoning map after the initiator to port associations
      * have been discovered from an array like Cinder. This routine is needed when we
      * are masking first, and cannot tell the array what ports are assigned to what initiators,
-     * i.e. rather the array tells us what it did.
+     * i.e. rather the array tells us what it did. In particular, this is applicable to storage
+     * arrays managed by Southbound SDK drivers.
      * This routine is not needed when the array can be told what initiators to map to what ports.
      * 1. All zoning map entries for the initiators in the mask are removed.
      * 2. For the targets in the mask, they are paired with the initiators they can service,

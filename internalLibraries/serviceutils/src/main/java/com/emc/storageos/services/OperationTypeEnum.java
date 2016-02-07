@@ -21,7 +21,6 @@ package com.emc.storageos.services;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.ws.rs.DELETE;
 import javax.xml.bind.annotation.XmlElement;
 
 public enum OperationTypeEnum {
@@ -136,6 +135,9 @@ public enum OperationTypeEnum {
     EXPAND_FILE_SYSTEM("FileSystemExpanded", "FileSystemExpandFailed", "FileSystem expanded"),
     RELEASE_FILE_SYSTEM("FileSystemReleased", "", "FileSystem released"),
     UNDO_RELEASE_FILE_SYSTEM("FileSystemReleaseUndone", "", "FileSystem release undone"),
+    CHANGE_FILE_SYSTEM_VPOOL("ChangeFileSystemVpool", "ChangeFileSystemVpoolFailed", "FileSystem vpool Changed"),
+    CREATE_MIRROR_FILE_SYSTEM("CreateMirrorFileSystem", "CreateMirrorFileSystemFailed", "MirrorFileSystem Created"),
+    DELETE_MIRROR_FILE_SYSTEM("DeleteMirrorFileSystem", "DeleteMirrorFileSystemFailed", "MirrorFileSystems Deleted"),
 
     CREATE_FILE_SYSTEM_SHARE("FileSystemShared", "FileSystemShareFailed", "FileSystem shared"),
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "", "operation to tag a filesystem"),
@@ -463,6 +465,7 @@ public enum OperationTypeEnum {
     REMOVE_STANDBY("REMOVE STANDBY", "", "operation to initiate removing an existing standby from ensemble"),
     PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to initiate pausing replication between acitve site and standby site"),
     RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between acitve site and standby site"),
+    RETRY_STANDBY_OP("RETRY STANDBY OPERATION", "", "operation to initiate retry of last operation on a standby site"),
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
     SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from acitve site to a standby site"),
     ACTIVE_SWITCHOVER("ACTIVE BECOME STANDBY AFTER SWITCHOVER", "", "operation that marks switchover on old active site complete"),

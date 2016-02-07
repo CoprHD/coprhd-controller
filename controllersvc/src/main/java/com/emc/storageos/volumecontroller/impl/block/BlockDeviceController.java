@@ -5961,19 +5961,20 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * given a list of volumes, returns a map of storage id to volume list
+     * given a list of volumes, returns a map of storage id + replication group name  to volume list
      * @param volumeIds
      * @return
      */
-    private Map<URI, List<URI>> getStorageSystemVolumeMap(Collection<URI> volumeIds) {
-        Map<URI, List<URI>> map = new HashMap<URI, List<URI>>();
+    private Map<String, List<URI>> getStorageSystemVolumeMap(Collection<URI> volumeIds) {
+        Map<String, List<URI>> map = new HashMap<String, List<URI>>();
         Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, volumeIds);
         while (volumes.hasNext()) {
             Volume volume = volumes.next();
-            if (!map.containsKey(volume.getStorageController())) {
-                map.put(volume.getStorageController(), new ArrayList<URI>());
+            String key = volume.getStorageController().toString() + volume.getReplicationGroupInstance();
+            if (!map.containsKey(key)) {
+                map.put(key, new ArrayList<URI>());
             }
-            map.get(volume.getStorageController()).add(volume.getId());
+            map.get(key).add(volume.getId());
         }
         return map;
     }
@@ -5991,52 +5992,57 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public String addStepsForUpdateApplication(Workflow workflow, ApplicationAddVolumeList addVolList, List<URI> removeVolumesURI, 
             String waitForStep, String taskId) {
         
-        // split up volumes by storage system and add steps for each storage system
+        // split up volumes by storage system + replication group and add steps for each storage system
         
         String waitFor = waitForStep;
 
-        Map<URI, AddRemoveVolumes> addRemoveVolumesMap = new HashMap<URI, AddRemoveVolumes>();
+        Map<String, AddRemoveVolumes> addRemoveVolumesMap = new HashMap<String, AddRemoveVolumes>();
         
         // map volumes to remove by storage system
         if (removeVolumesURI != null && !removeVolumesURI.isEmpty()) {
             // remove source and target volumes from array replication groups
-            Map<URI, List<URI>> storageVolumeMap = getStorageSystemVolumeMap(removeVolumesURI);
+            Map<String, List<URI>> storageVolumeMap = getStorageSystemVolumeMap(removeVolumesURI);
             
-            for (Map.Entry<URI, List<URI>> entry : storageVolumeMap.entrySet()) {
-                URI storageUri = entry.getKey();
-                if (addRemoveVolumesMap.get(storageUri) == null) {
-                    addRemoveVolumesMap.put(storageUri, new AddRemoveVolumes());
+            for (Map.Entry<String, List<URI>> entry : storageVolumeMap.entrySet()) {
+                String key = entry.getKey();
+                if (addRemoveVolumesMap.get(key) == null) {
+                    addRemoveVolumesMap.put(key, new AddRemoveVolumes());
                 }
-                addRemoveVolumesMap.get(storageUri).removeVolumes.addAll(entry.getValue());
+                addRemoveVolumesMap.get(key).removeVolumes.addAll(entry.getValue());
             }
         }
         
         // map volumes to add by storage system
         if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty()) {
             // add source and target volumes from array replication groups
-            Map<URI, List<URI>> storageVolumeMap = getStorageSystemVolumeMap(addVolList.getVolumes());
+            Map<String, List<URI>> storageVolumeMap = getStorageSystemVolumeMap(addVolList.getVolumes());
             
-            for (Map.Entry<URI, List<URI>> entry : storageVolumeMap.entrySet()) {
-                URI storageUri = entry.getKey();
-                if (addRemoveVolumesMap.get(storageUri) == null) {
-                    addRemoveVolumesMap.put(storageUri, new AddRemoveVolumes());
+            for (Map.Entry<String, List<URI>> entry : storageVolumeMap.entrySet()) {
+                String key = entry.getKey();
+                if (addRemoveVolumesMap.get(key) == null) {
+                    addRemoveVolumesMap.put(key, new AddRemoveVolumes());
                 }
-                addRemoveVolumesMap.get(storageUri).addVolumes.addAll(entry.getValue());
+                addRemoveVolumesMap.get(key).addVolumes.addAll(entry.getValue());
             }
         }
         
         // create a step for each storage system
-        for (Map.Entry<URI, AddRemoveVolumes> entry : addRemoveVolumesMap.entrySet()) {
-            URI storageUri = entry.getKey();
-            List<URI> removeVolumesForStorageSystem = entry.getValue().removeVolumes;
-            List<URI> addVolumes = entry.getValue().addVolumes;
+        for (AddRemoveVolumes value : addRemoveVolumesMap.values()) {
+            URI storageUri = null;
+            List<URI> removeVolumesForStorageSystem = value.removeVolumes;
+            List<URI> addVolumes = value.addVolumes;
             URI cguri = null;
             if (addVolumes != null && !addVolumes.isEmpty()) {
                 Volume vol = _dbClient.queryObject(Volume.class, addVolumes.get(0));
+                storageUri = vol.getStorageController();
                 cguri = vol.getConsistencyGroup();
             }
+            if (storageUri == null && removeVolumesForStorageSystem != null && !removeVolumesForStorageSystem.isEmpty()) {
+                Volume vol = _dbClient.queryObject(Volume.class, removeVolumesForStorageSystem.get(0));
+                storageUri = vol.getStorageController();
+            }
             ApplicationAddVolumeList addVolsForOneStorageSystem = new ApplicationAddVolumeList();
-            addVolsForOneStorageSystem.setVolumes(entry.getValue().addVolumes);
+            addVolsForOneStorageSystem.setVolumes(addVolumes);
             addVolsForOneStorageSystem.setConsistencyGroup(addVolList == null ? null : cguri);
             addVolsForOneStorageSystem.setReplicationGroupName(addVolList == null ? null : addVolList.getReplicationGroupName());
             

@@ -847,7 +847,7 @@ public class DiscoveryUtils {
                 ObjectNamespace namespace = objNamespaceIt.next();
                 // Namespace is not associated with tenant
                 if (namespace.getTenant() == null) {
-                    _log.info("Object Namespace not visible {} : {}", namespace.getNativeId(), namespace.getId());
+                    _log.info("Object Namespace not visible & getting deleted {} : {}", namespace.getNativeId(), namespace.getId());
                     namespace.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
                     namespace.setInactive(true);
                 }

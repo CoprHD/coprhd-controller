@@ -47,11 +47,15 @@ public class TestCoordinatorService {
 
         zkConnection = new ZkConnection();
         zkConnection.setServer(Collections.singletonList(new URI("coordinator://localhost:" + zkServer.getPort())));
+        zkConnection.setSiteIdFile("SITEIDFILE");
+        zkConnection.setSiteId("1");
         zkConnection.build();
+        zkConnection.setSiteId(null);;
 
         coordinatorClient = new CoordinatorClientImpl();
         coordinatorClient.setZkConnection(zkConnection);
         coordinatorClient.setInetAddessLookupMap(StubCoordinatorClientImpl.createLocalAddressLookupMap());
+        coordinatorClient.setVdcShortId("vdc1");
         coordinatorClient.start();
     }
 

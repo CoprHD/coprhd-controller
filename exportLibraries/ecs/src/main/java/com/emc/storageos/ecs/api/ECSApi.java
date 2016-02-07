@@ -484,9 +484,9 @@ public class ECSApi {
             String responseString = null;
             clientResp = get(URI_GET_NAMESPACES);
             if (null == clientResp) {
-                throw ECSException.exceptions.getNamespacesFailed("no response from ECS");
+                throw ECSException.exceptions.getNamespacesFailedAry("no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getNamespacesFailed(getResponseDetails(clientResp));
+                throw ECSException.exceptions.getNamespacesFailedAry(getResponseDetails(clientResp));
             }
 
             responseString = clientResp.getEntity(String.class);
@@ -498,7 +498,7 @@ public class ECSApi {
             }
             return namespaceIdList;
         } catch (Exception e) {
-            throw ECSException.exceptions.getNamespacesFailed(e);
+            throw ECSException.exceptions.getNamespacesFailedExc(e);
         } finally {
             if (clientResp != null) {
                 clientResp.close();
@@ -523,9 +523,9 @@ public class ECSApi {
             final String path = MessageFormat.format(URI_GET_NAMESPACE_DETAILS, namespaceId);
             clientResp = get(path);
             if (null == clientResp) {
-                throw ECSException.exceptions.getNamespaceDetailsFailed(namespaceId, "no response from ECS");
+                throw ECSException.exceptions.getNamespaceDetailsFailedAry("no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getNamespaceDetailsFailed(namespaceId, getResponseDetails(clientResp));
+                throw ECSException.exceptions.getNamespaceDetailsFailedAry(getResponseDetails(clientResp));
             }
 
             responseString = clientResp.getEntity(String.class);
@@ -554,7 +554,7 @@ public class ECSApi {
             }
             return nsRepGroup;
         } catch (Exception e) {
-            throw ECSException.exceptions.getNamespaceDetailsFailed(namespaceId, e);
+            throw ECSException.exceptions.getNamespaceDetailsFailedExc(namespaceId, e);
         } finally {
             if (clientResp != null) {
                 clientResp.close();
@@ -579,9 +579,9 @@ public class ECSApi {
             getAuthToken();
             clientResp = get(path);
             if (null == clientResp) {
-                throw ECSException.exceptions.getUserSecretKeysFailedErr("no response from ECS");
+                throw ECSException.exceptions.getUserSecretKeysFailedAry("no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getUserSecretKeysFailedErr(getResponseDetails(clientResp));
+                throw ECSException.exceptions.getUserSecretKeysFailedAry(getResponseDetails(clientResp));
             }
 
             responseString = clientResp.getEntity(String.class);
@@ -609,9 +609,9 @@ public class ECSApi {
             getAuthToken();
             clientResp = post(path, body);
             if (null == clientResp) {
-                throw ECSException.exceptions.addUserSecretKeysFailedErr("no response from ECS");
+                throw ECSException.exceptions.addUserSecretKeysFailedAry("no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.addUserSecretKeysFailedErr(getResponseDetails(clientResp));
+                throw ECSException.exceptions.addUserSecretKeysFailedAry(getResponseDetails(clientResp));
             }
             responseString = clientResp.getEntity(String.class);
             _log.info("ECSApi:getUserSecretKey ECS response is {}", responseString);
@@ -626,11 +626,6 @@ public class ECSApi {
             }
             _log.debug("ECSApi:addUserSecretKey exit");
         }
-    }
-
-    public String getString() {
-        _log.info("ECSAPI getString start");
-        return "abcdefghijk!@#$%67890";
     }
     
     private ClientResponse get(final String uri) {

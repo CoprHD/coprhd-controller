@@ -70,9 +70,23 @@ public interface ObjectStorageDevice {
      */
     BiosCommandResult doDeleteBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException;
     
+    /**
+     * Get user secret keys
+     * @param storageObj
+     * @param userId
+     * @return
+     * @throws InternalException
+     */
     ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws InternalException;
     
+    /**
+     * Add user secret keys
+     * @param storageObj
+     * @param userId
+     * @param secretKey
+     * @return
+     * @throws InternalException
+     */
     ObjectUserSecretKey doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws InternalException;
-    
-    String doGetString(StorageSystem storageObj);
+   
 }

@@ -54,25 +54,25 @@ public interface ECSExceptions {
     public ECSException bucketACLUpdateFailed(final String bucketName, final String message);
     
     @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACES_ERROR)
-    public ECSException getNamespacesFailed(final String info);
+    public ECSException getNamespacesFailedAry(final String info);
 
     @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACES_ERROR)
-    public ECSException getNamespacesFailed(final Throwable e);
+    public ECSException getNamespacesFailedExc(final Throwable e);
     
     @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACE_DETAILS_ERROR)
-    public ECSException getNamespaceDetailsFailed(final String namespace, final String info);
+    public ECSException getNamespaceDetailsFailedAry(final String info);
 
     @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACE_DETAILS_ERROR)
-    public ECSException getNamespaceDetailsFailed(final String namespace, final Throwable e);
+    public ECSException getNamespaceDetailsFailedExc(final String namespace, final Throwable e);
     
     @DeclareServiceCode(ServiceCode.ECS_GET_USER_SECRET_KEYS_ERROR)
-    public ECSException getUserSecretKeysFailedErr(final String info);
+    public ECSException getUserSecretKeysFailedAry(final String info);
 
     @DeclareServiceCode(ServiceCode.ECS_GET_USER_SECRET_KEYS_ERROR)
     public ECSException getUserSecretKeysFailedExc(final String user, final Throwable e);
 
     @DeclareServiceCode(ServiceCode.ECS_ADD_USER_SECRET_KEYS_ERROR)
-    public ECSException addUserSecretKeysFailedErr(final String info);
+    public ECSException addUserSecretKeysFailedAry(final String info);
 
     @DeclareServiceCode(ServiceCode.ECS_ADD_USER_SECRET_KEYS_ERROR)
     public ECSException addUserSecretKeysFailedExc(final String user, final Throwable e);

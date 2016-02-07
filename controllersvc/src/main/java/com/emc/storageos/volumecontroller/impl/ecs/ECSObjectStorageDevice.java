@@ -111,49 +111,6 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws InternalException {
-        ECSApi ecsApi = getAPI(storageObj);
-        ObjectUserSecretKey secretKey = new ObjectUserSecretKey();
-
-        try {
-            UserSecretKeysGetCommandResult secretKeyRes = ecsApi.getUserSecretKeys(userId);
-            secretKey.setSecret_key_1(secretKeyRes.getSecret_key_1());
-            secretKey.setSecret_key_1_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_1());
-            secretKey.setSecret_key_2(secretKeyRes.getSecret_key_2());
-            secretKey.setSecret_key_2_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_2());
-        } catch (Exception e) {
-           _log.error("ECSObjectStorageDevice:doGetUserSecretKey failed.");
-        }
-        return secretKey;
-    }
-
-    @Override
-    public String doGetString(StorageSystem storageObj) {
-        // TODO Auto-generated method stub
-        _log.info("ECSObjectStorage start");
-        ECSApi ecsApi = getAPI(storageObj);
-        String s = ecsApi.getString();
-        _log.info("ECSObjectStorage {}", s);
-        return s;
-    }
-
-    @Override
-    public ObjectUserSecretKey doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws InternalException {
-        ECSApi ecsApi = getAPI(storageObj);
-        ObjectUserSecretKey secretKeyRes = new ObjectUserSecretKey();
-        
-        try {
-            UserSecretKeysAddCommandResult cmdRes = ecsApi.addUserSecretKey(userId, secretKey);
-            secretKeyRes.setSecret_key_1(secretKey); 
-            secretKeyRes.setSecret_key_1_expiry_timestamp(cmdRes.getKey_expiry_timestamp());
-            return secretKeyRes;
-        } catch (Exception e) {
-            _log.error("ECSObjectStorageDevice:doAddUserSecretKey failed");
-            throw e;
-        }
-    }
-
-    @Override
     public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota,
             Integer retention,
             String taskId) {
@@ -546,6 +503,39 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         return new Gson().toJson(ecsBucketAcl);
     }
     
+    @Override
+    public ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws InternalException {
+        ECSApi ecsApi = getAPI(storageObj);
+        ObjectUserSecretKey secretKey = new ObjectUserSecretKey();
+
+        try {
+            UserSecretKeysGetCommandResult secretKeyRes = ecsApi.getUserSecretKeys(userId);
+            secretKey.setSecret_key_1(secretKeyRes.getSecret_key_1());
+            secretKey.setSecret_key_1_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_1());
+            secretKey.setSecret_key_2(secretKeyRes.getSecret_key_2());
+            secretKey.setSecret_key_2_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_2());
+        } catch (Exception e) {
+           _log.error("ECSObjectStorageDevice:doGetUserSecretKey failed.");
+        }
+        return secretKey;
+    }
+
+    @Override
+    public ObjectUserSecretKey doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws InternalException {
+        ECSApi ecsApi = getAPI(storageObj);
+        ObjectUserSecretKey secretKeyRes = new ObjectUserSecretKey();
+        
+        try {
+            UserSecretKeysAddCommandResult cmdRes = ecsApi.addUserSecretKey(userId, secretKey);
+            secretKeyRes.setSecret_key_1(secretKey); 
+            secretKeyRes.setSecret_key_1_expiry_timestamp(cmdRes.getKey_expiry_timestamp());
+            return secretKeyRes;
+        } catch (Exception e) {
+            _log.error("ECSObjectStorageDevice:doAddUserSecretKey failed");
+            throw e;
+        }
+    }
+
 
     private ECSApi getAPI(StorageSystem storageObj) throws ControllerException {
         ECSApi objectAPI = null;

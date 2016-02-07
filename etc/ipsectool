@@ -149,14 +149,25 @@ _get_remote_prop() {
 }
 
 #
-# get values of vdc_config_version and ipsec_key from remote node
-# the 2 values are in different lines
+# get values of vdc_config_version/ipsec_key/ipsec_status from specified node
+# the values are in different lines
 #
 _get_props() {
     local remote=${1}
-    local version=$(_get_remote_prop ${remote} "vdc_config_version")
-    local ipsec_key=$(_get_remote_prop ${remote} "ipsec_key")
-    local ipsec_status=$(_get_remote_prop ${remote} "ipsec_status")
+    local local_ip=$(_get_local_ip)
+
+    local version
+    local ipsec_key
+    local ipsec_status
+    if [[ ${remote} != "${local_ip}" && ${remote} != "127.0.0.1" ]] ; then
+        version=$(_get_remote_prop ${remote} "vdc_config_version")
+        ipsec_key=$(_get_remote_prop ${remote} "ipsec_key")
+        ipsec_status=$(_get_remote_prop ${remote} "ipsec_status")
+    else
+        version=$(_get_prop "vdc_config_version")
+        ipsec_key=$(_get_prop "ipsec_key")
+        ipsec_status=$(_get_prop "ipsec_status")
+    fi
     echo "vdc_config_version=${version}"
     echo "ipsec_key=${ipsec_key}"
     echo "ipsec_status=${ipsec_status}"

@@ -8,10 +8,12 @@ import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.vipr.client.Tasks;
 
 public class DeactivateBlockSnapshotSession extends WaitForTasks<BlockSnapshotSessionRestRep> {
-    private URI snapshotSessionId;
+    private final URI snapshotSessionId;
+    private VolumeDeleteTypeEnum type = VolumeDeleteTypeEnum.FULL;
 
     public DeactivateBlockSnapshotSession(String snapshotSessionId) {
         this(uri(snapshotSessionId));
@@ -20,11 +22,18 @@ public class DeactivateBlockSnapshotSession extends WaitForTasks<BlockSnapshotSe
     public DeactivateBlockSnapshotSession(URI snapshotSessionId) {
         super();
         this.snapshotSessionId = snapshotSessionId;
-        provideDetailArgs(snapshotSessionId);
+        provideDetailArgs(snapshotSessionId, type);
+    }
+
+    public DeactivateBlockSnapshotSession(URI snapshotSessionId, VolumeDeleteTypeEnum type) {
+        super();
+        this.snapshotSessionId = snapshotSessionId;
+        this.type = type;
+        provideDetailArgs(snapshotSessionId, type);
     }
 
     @Override
     protected Tasks<BlockSnapshotSessionRestRep> doExecute() throws Exception {
-        return getClient().blockSnapshotSessions().deactivate(snapshotSessionId);
+        return getClient().blockSnapshotSessions().deactivate(snapshotSessionId, type);
     }
 }

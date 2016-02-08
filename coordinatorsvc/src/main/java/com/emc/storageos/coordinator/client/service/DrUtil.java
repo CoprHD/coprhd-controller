@@ -9,11 +9,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,25 +19,27 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SiteInfo.ActionScope;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.vipr.model.sys.ClusterInfo;
 
 /**
  * Common utility functions for Disaster Recovery
@@ -67,12 +66,11 @@ public class DrUtil {
     public static final String KEY_REMOVE_STANDBY_TIMEOUT = "remove_standby_timeout_millis";
     public static final String KEY_PAUSE_STANDBY_TIMEOUT = "pause_standby_timout_millis";
     public static final String KEY_RESUME_STANDBY_TIMEOUT = "resume_standby_timeout_millis";
-    public static final String KEY_DATA_SYNC_TIMEOUT = "data_sync_timeout_millis";
     public static final String KEY_SWITCHOVER_TIMEOUT = "switchover_timeout_millis";
     public static final String KEY_STANDBY_DEGRADE_THRESHOLD = "degrade_standby_threshold_millis";
     public static final String KEY_FAILOVER_STANDBY_SITE_TIMEOUT = "failover_standby_site_timeout_millis";
     public static final String KEY_FAILOVER_ACTIVE_SITE_TIMEOUT = "failover_active_site_timeout_millis";
-
+    
     private CoordinatorClient coordinator;
 
     public DrUtil() {
@@ -137,23 +135,8 @@ public class DrUtil {
         return !isActiveSite();
     }
     
-    /**
-     * Get active site in current vdc
-     * 
-     * @return
-     */
-    public String getActiveSiteId() {
-        return getActiveSiteId(getLocalVdcShortId());
-    }
-    
-    /**
-     * Get active site in a specific vdc
-     *
-     * @param vdcShortId short id of the vdc
-     * @return uuid of the active site
-     */
-    public String getActiveSiteId(String vdcShortId) {
-        return getActiveSite(vdcShortId).getUuid();
+    public Site getActiveSite() {
+        return getActiveSite(getLocalVdcShortId());
     }
 
     /**
@@ -170,7 +153,8 @@ public class DrUtil {
                 return site;
             }
         }
-        throw CoordinatorException.retryables.cannotFindSite(vdcShortId);
+        
+        return Site.DUMMY_ACTIVE_SITE;
     }
     /**
      * Get local site configuration
@@ -203,10 +187,10 @@ public class DrUtil {
      * @return list of standby sites
      */
     public List<Site> listStandbySites() {
-        String activeSiteId = getActiveSiteId();
+        Site activeSite = getActiveSite();
         List<Site> result = new ArrayList<>();
         for(Site site : listSites()) {
-            if (!site.getUuid().equals(activeSiteId)) {
+            if (!site.getUuid().equals(activeSite.getUuid())) {
                 result.add(site);
             }
         }
@@ -227,7 +211,9 @@ public class DrUtil {
             for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
                 sites.add(new Site(siteConfig));
             }
-            vdcSiteMap.put(vdcConfig.getId(), sites);
+            if (sites.size() > 0) {
+                vdcSiteMap.put(vdcConfig.getId(), sites);
+            }
         }
         return vdcSiteMap;
     }
@@ -476,9 +462,31 @@ public class DrUtil {
         }
         return null;
     }
-    
-    public void removeSiteConfiguration(Site site) {
+
+    private String getSitePath(String siteId) {
+        StringBuilder builder = new StringBuilder(ZkPath.SITES.toString());
+        builder.append("/");
+        builder.append(siteId);
+        return builder.toString();
+    }
+
+    /**
+     * Will remove 3 ZNodes:
+     *     1. /config/disasterRecoverySites/${vdc_shortid}/${uuid} node
+     *     2. /sites/${uuid} node
+     *     3. /config/upgradetargetpropertyoverride/${uuid} node
+     * @param site
+     */
+    public void removeSite(Site site) {
         coordinator.removeServiceConfiguration(site.toConfiguration());
+
+        coordinator.deletePath(getSitePath(site.getUuid()));
+
+        ConfigurationImpl sitePropsCfg = new ConfigurationImpl();
+        sitePropsCfg.setId(site.getUuid());
+        sitePropsCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+        coordinator.removeServiceConfiguration(sitePropsCfg);
+
         log.info("Removed site {} configuration from ZK", site.getUuid());
     }
 
@@ -487,9 +495,17 @@ public class DrUtil {
     }
 
     /**
-     * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation, throw Exception otherwise
+     * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation on any site, throw Exception otherwise
      */
     public InterProcessLock getDROperationLock() {
+        return getDROperationLock(true);
+    }
+
+    /**
+     * @param checkAllSitesOperations
+     * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation, throw Exception otherwise
+     */
+    public InterProcessLock getDROperationLock(boolean checkAllSitesOperations) {
         // Try to acquire lock, succeed or throw Exception
         InterProcessLock lock = coordinator.getLock(DR_OPERATION_LOCK);
         boolean acquired;
@@ -508,7 +524,11 @@ public class DrUtil {
         }
 
         // Has successfully acquired lock
-        // Check if there's ongoing DR operation, if there is, release lock and throw exception
+        if (!checkAllSitesOperations) {
+            return lock;
+        }
+
+        // Check if there's ongoing DR operation on any site, if there is, release lock and throw exception
         Site ongoingSite = null;
         List<Site> sites = listSites();
         for (Site site : sites) {
@@ -517,6 +537,7 @@ public class DrUtil {
                 break;
             }
         }
+
         if (ongoingSite != null) {
             try {
                 lock.release();
@@ -528,6 +549,7 @@ public class DrUtil {
         }
 
         return lock;
+
     }
     
     /**

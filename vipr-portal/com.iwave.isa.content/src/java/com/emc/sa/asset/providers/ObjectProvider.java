@@ -19,6 +19,7 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -119,5 +120,14 @@ public class ObjectProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getObjectVirtualPools(AssetOptionsContext ctx) {
         debug("getting objectVirtualPools");
         return createBaseResourceOptions(api(ctx).objectVpools().getAll());
+    }
+    
+    @Asset("objectACLPermission")
+    public List<AssetOption> getObjectACLPermissions(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (BucketACLUpdateParams.BucketPermissions perm : BucketACLUpdateParams.BucketPermissions.values()) {
+            options.add(newAssetOption(perm.name(), String.format("Object.ACL.permission.%s", perm.name())));
+        }
+        return options;
     }
 }

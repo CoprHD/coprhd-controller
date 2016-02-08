@@ -469,6 +469,7 @@ public enum OperationTypeEnum {
     REMOVE_STANDBY("REMOVE STANDBY", "", "operation to initiate removing an existing standby from ensemble"),
     PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to initiate pausing replication between acitve site and standby site"),
     RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between acitve site and standby site"),
+    RETRY_STANDBY_OP("RETRY STANDBY OPERATION", "", "operation to initiate retry of last operation on a standby site"),
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
     SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from acitve site to a standby site"),
     ACTIVE_SWITCHOVER("ACTIVE BECOME STANDBY AFTER SWITCHOVER", "", "operation that marks switchover on old active site complete"),

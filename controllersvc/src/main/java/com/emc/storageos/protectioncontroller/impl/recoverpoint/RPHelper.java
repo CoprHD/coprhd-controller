@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Network;
@@ -1120,16 +1121,17 @@ public class RPHelper {
         Map<Long, List<Volume>> cgTargetJournalsBySize = new TreeMap<Long, List<Volume>>(Collections.reverseOrder());
 
         for (Volume cgTargetVolume : cgTargetVolumes) {
-            // Make sure we only consider existing CG target volumes from the same virtual array
-            if (cgTargetVolume.getVirtualArray().equals(varray)
-                    && cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
-                if (null != cgTargetVolume.getRpJournalVolume()) {
-                    Volume targetJournal = _dbClient.queryObject(Volume.class, cgTargetVolume.getRpJournalVolume());
-                    if (!cgTargetJournalsBySize.containsKey(targetJournal.getProvisionedCapacity())) {
-                        cgTargetJournalsBySize.put(targetJournal.getProvisionedCapacity(), new ArrayList<Volume>());
-                    }
-                    cgTargetJournalsBySize.get(targetJournal.getProvisionedCapacity()).add(targetJournal);
-                    validExistingTargetJournalVolumes.add(targetJournal);
+        	if (!NullColumnValueGetter.isNullURI(cgTargetVolume.getRpJournalVolume())) {
+	            // Make sure we only consider existing CG target journal volumes from the same virtual array
+	        	Volume existingTgtJournalVolume = _dbClient.queryObject(Volume.class, cgTargetVolume.getRpJournalVolume());
+	            if (existingTgtJournalVolume.getVirtualArray().equals(varray)
+	            		&& cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
+                                   
+                    if (!cgTargetJournalsBySize.containsKey(existingTgtJournalVolume.getProvisionedCapacity())) {
+                        cgTargetJournalsBySize.put(existingTgtJournalVolume.getProvisionedCapacity(), new ArrayList<Volume>());
+                	 }
+                    cgTargetJournalsBySize.get(existingTgtJournalVolume.getProvisionedCapacity()).add(existingTgtJournalVolume);
+                    validExistingTargetJournalVolumes.add(existingTgtJournalVolume);
                 }
             }
         }
@@ -1143,6 +1145,8 @@ public class RPHelper {
         if (null == existingCGTargetJournalVolume) {
             existingCGTargetJournalVolume = validExistingTargetJournalVolumes.get(0);
         }
+        
+        _log.info(String.format("selectExistingJournalsForTargetVolume :: Found we can use journal volume : %s", existingCGTargetJournalVolume));
         return existingCGTargetJournalVolume;
     }
 
@@ -2039,7 +2043,7 @@ public class RPHelper {
      * @return an export group
      */
     public static ExportGroup createRPExportGroup(String internalSiteName, VirtualArray virtualArray, Project project, ProtectionSystem protectionSystem,
-            StorageSystem storageSystem, Integer numPaths) {
+            StorageSystem storageSystem, Integer numPaths, boolean isJournalExport) {
         ExportGroup exportGroup;
         exportGroup = new ExportGroup();
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
@@ -2062,8 +2066,53 @@ public class RPHelper {
         exportGroup.setOpStatus(new OpStatusMap());
         // TODO: May need to use a default size or compute based on the contents of the export mask.
         exportGroup.setNumPaths(numPaths);
+        exportGroup.setType(ExportGroupType.Cluster.name());
         exportGroup.setZoneAllInitiators(true);
+        
+        //If this is an exportGroup intended only for journal volumes, set the RECOVERPOINT_JOURNAL flag
+        if (isJournalExport) {
+        	exportGroup.addInternalFlags(Flag.RECOVERPOINT_JOURNAL);
+        	String egName = exportGroup.getGeneratedName() + "_JOURNAL";
+        	exportGroup.setGeneratedName(egName);
+        	exportGroup.setLabel(egName);
+        }
+        
         return exportGroup;
+    }
+
+    /**
+     * Get the name of the copy associated with the varray ID and personality of the incoming volume.
+     * 
+     * @param dbClient db client
+     * @param consistencyGroup cg
+     * @param varrayId varray ID
+     * @param productionCopy is this a production volume
+     * @return String associated with the existing copy name
+     */
+    public static String getCgCopyName(DbClient dbClient, BlockConsistencyGroup consistencyGroup, URI varrayId, boolean productionCopy) {
+        List<Volume> cgVolumes = RPHelper.getCgVolumes(consistencyGroup.getId(), dbClient);
+        if (cgVolumes == null) {
+            return null;
+        }
+        
+        for (Volume cgVolume : cgVolumes) {
+            if (cgVolume.getPersonality() == null) {
+                continue;
+            }
+            
+            if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId)) {
+                continue;
+            }
+            
+            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
+                return cgVolume.getRpCopyName();
+            }
+
+            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.toString()) && !productionCopy) {
+                return cgVolume.getRpCopyName();
+            }
+        }
+        return null;
     }
 
 }

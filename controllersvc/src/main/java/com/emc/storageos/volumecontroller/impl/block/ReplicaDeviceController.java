@@ -14,8 +14,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.SynchronizationState;
 
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +51,10 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
+
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
+import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * Specific controller implementation to support block orchestration for handling replicas of volumes in a consistency group.
@@ -291,6 +298,43 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 Joiner.on("\t").join(snapshotList), storage));
 
         return waitFor;
+    }
+
+    private String addSnapshotSessionsToReplicationGroupStep(Workflow workflow, String waitFor,
+                                                             StorageSystem storageSystem,
+                                                             List<Volume> volumes,
+                                                             URI cgURI) {
+
+        List<URI> volumeURIs = newArrayList(transform(volumes, fctnDataObjectToID()));
+        waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                String.format("Updating SnapVx sessions for consistency group %s", cgURI),
+                waitFor, storageSystem.getId(), storageSystem.getSystemType(), this.getClass(),
+                addSnapshotSessionsToConsistencyGroupMethod(storageSystem.getId(), cgURI, volumeURIs),
+                _blockDeviceController.rollbackMethodNullMethod(), null);
+
+        return waitFor;
+    }
+
+    private static Workflow.Method addSnapshotSessionsToConsistencyGroupMethod(URI storage, URI consistencyGroup, List<URI> addVolumesList) {
+        return new Workflow.Method("addSnapshotSessionsToConsistencyGroup", storage, consistencyGroup, addVolumesList);
+    }
+
+    public boolean addSnapshotSessionsToConsistencyGroup(URI storage, URI consistencyGroup, List<URI> volumes, String opId)
+            throws ControllerException {
+        TaskCompleter taskCompleter = null;
+        WorkflowStepCompleter.stepExecuting(opId);
+        try {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
+            _blockDeviceController.getDevice(storageSystem.getSystemType()).doAddSnapshotSessionsToConsistencyGroup(
+                    storageSystem, consistencyGroup, volumes, taskCompleter);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(_dbClient, serviceError);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+            return false;
+        }
+        return true;
     }
 
     private String addClonesToReplicationGroupStep(final Workflow workflow, String waitFor, StorageSystem storageSystem,
@@ -573,6 +617,18 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             }
         }
 
+        return false;
+    }
+
+    private boolean checkIfCGHasSnapshotSessions(List<Volume> volumes) {
+        for (BlockObject volume : volumes) {
+            List<BlockSnapshotSession> sessions =
+                    CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                            ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+            if (!sessions.isEmpty()) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -983,6 +1039,12 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     waitFor = addSnapshotsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes,
                             repGroupName, cgURI);
                 }
+            }
+
+            if (checkIfCGHasSnapshotSessions(volumes)) {
+                log.info("Adding snapshot session steps for adding volumes");
+                // Consolidate multiple snapshot sessions into one CG-based snapshot session
+                waitFor = addSnapshotSessionsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes, cgURI);
             }
         }
 

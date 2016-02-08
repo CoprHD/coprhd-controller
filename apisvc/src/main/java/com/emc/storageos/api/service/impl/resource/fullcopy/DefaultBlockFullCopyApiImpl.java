@@ -23,17 +23,15 @@ import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -124,21 +122,6 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         // Invoke the controller.
         return invokeFullCopyCreate(aFCSource, volumesList, createInactive, taskId);
-    }
-
-    /**
-     * Gets the varray from cache.
-     *
-     * @param vArrayCache the varray cache
-     * @param vArrayURI the virtual array
-     * @return the varray from cache
-     */
-    private VirtualArray getVarrayFromCache(Map<URI, VirtualArray> vArrayCache, URI vArrayURI) {
-        if (vArrayCache.get(vArrayURI) == null) {
-            VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, vArrayURI);
-            vArrayCache.put(vArrayURI, vArray);
-        }
-        return vArrayCache.get(vArrayURI);
     }
 
     /**
@@ -307,7 +290,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             // get all volumes
             volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             // group volumes by Array Group
-            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes, _dbClient);
             fullCopyURIs = new HashSet<URI>();
             fullCopyMap = new HashMap<URI, Volume>();
             String fullCopySetName = fullCopyVolume.getFullCopySetName();
@@ -412,7 +395,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             // get all volumes
             volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             // group volumes by Array Group
-            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes, _dbClient);
             fullCopyURIs = new HashSet<URI>();
             fullCopyMap = new HashMap<URI, Volume>();
             String fullCopySetName = fullCopyVolume.getFullCopySetName();
@@ -522,33 +505,4 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         return uris;
     }
 
-    /**
-     * Updates passed volume and tasks on failure.
-     * 
-     * @param taskId The unique task id.
-     * @param taskList A list of the task responses.
-     * @param volumes The list of volumes for the operation.
-     * @param sc A reference to the error.
-     * @param markInactive true to mark the volumes inactive, false otherwise.
-     */
-    protected void handleFailedRequest(String taskId, TaskList taskList,
-            List<Volume> volumes, ServiceCoded sc, boolean markInactive) {
-        for (TaskResourceRep volumeTask : taskList.getTaskList()) {
-            volumeTask.setState(Operation.Status.error.name());
-            volumeTask.setMessage(sc.getMessage());
-            Volume volume = _dbClient.queryObject(Volume.class, volumeTask.getResource().getId());
-            Operation op = volume.getOpStatus().get(taskId);
-            if (op != null) {
-                op.error(sc);
-                volume.getOpStatus().updateTaskStatus(taskId, op);
-                _dbClient.persistObject(volume);
-            }
-        }
-        if (markInactive) {
-            for (Volume volume : volumes) {
-                volume.setInactive(true);
-                _dbClient.persistObject(volume);
-            }
-        }
-    }
 }

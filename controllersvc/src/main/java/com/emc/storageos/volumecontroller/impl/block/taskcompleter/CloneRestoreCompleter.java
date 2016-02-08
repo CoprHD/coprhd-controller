@@ -30,7 +30,7 @@ public class CloneRestoreCompleter extends VolumeTaskCompleter {
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) {
-        _log.info("START FullCopyVolumeCreateCompleter complete");
+        _log.info("START CloneRestoreCompleter complete");
 
         try {
             for (URI clone : getIds()) {

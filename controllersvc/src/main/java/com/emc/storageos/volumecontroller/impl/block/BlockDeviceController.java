@@ -3482,7 +3482,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         taskCompleter.addVolumeGroupId(volumeGroup.getId());
 
         List<Volume> allVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-        Map<String, List<Volume>> arrayGroupToVolumes = ControllerUtils.groupVolumesByArrayGroup(allVolumes);
+        Map<String, List<Volume>> arrayGroupToVolumes = ControllerUtils.groupVolumesByArrayGroup(allVolumes, _dbClient);
         for (String arrayGroupName : arrayGroupToVolumes.keySet()) {    // AG - Array Group
             List<Volume> arrayGroupVolumes = arrayGroupToVolumes.get(arrayGroupName);
             List<URI> fullCopyVolumesAG = getFullCopiesForVolumes(fullCopyVolumes, arrayGroupVolumes);
@@ -3634,7 +3634,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Groups the given full copies based on their array replication groups if in Application/CG
             // for Non-CG case, the map will have single entry
-            Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(fullCopy, completer);
+            Map<String, List<Volume>> arrayGroupToFullCopies = ControllerUtils.
+                    groupFullCopiesByArrayGroup(fullCopy, _dbClient, completer);
 
             for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
                 _log.info("Activating full copy group {}", arrayGroupName);
@@ -3740,10 +3741,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public void detachFullCopy(URI storage, List<URI> fullCopyVolumes, String taskId)
             throws ControllerException {
         _log.info("START detachFullCopy: {}", fullCopyVolumes);
-
+        TaskCompleter taskCompleter = new CloneWorkflowCompleter(fullCopyVolumes, taskId);
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            TaskCompleter taskCompleter = new CloneWorkflowCompleter(fullCopyVolumes, taskId);
 
             Workflow workflow = _workflowService.getNewWorkflow(this, DETACH_CLONE_WF_NAME, true, taskId);
 
@@ -3752,7 +3752,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                  * Group the given full-copies by Array Replication Group and create workflow step for each Array Group,
                  * these steps runs in parallel
                  */
-                Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(fullCopyVolumes, taskCompleter);
+                Map<String, List<Volume>> arrayGroupToFullCopies = ControllerUtils.
+                        groupFullCopiesByArrayGroup(fullCopyVolumes, _dbClient, taskCompleter);
 
                 for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
                     _log.info("Detaching full copy group {}", arrayGroupName);
@@ -3777,9 +3778,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String msg = String.format("Detach %s completed successfully", fullCopyVolumes.get(0));
             workflow.executePlan(taskCompleter, msg);
         } catch (Exception e) {
+            String msg = String.format("Could not detach the clone %s", fullCopyVolumes.get(0));
+            _log.error(msg, e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            WorkflowStepCompleter.stepFailed(taskId, serviceError);
-            doFailTask(Volume.class, fullCopyVolumes, taskId, serviceError);
+            taskCompleter.error(_dbClient, serviceError);
         }
     }
 
@@ -4659,7 +4661,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Groups the given full copies based on their array replication groups if in Application/CG
             // for Non-CG case, the map will have single entry
-            Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(clones, completer);
+            Map<String, List<Volume>> arrayGroupToFullCopies = ControllerUtils.
+                    groupFullCopiesByArrayGroup(clones, _dbClient, completer);
 
             for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
                 _log.info("Restoring full copy group {}", arrayGroupName);
@@ -4841,7 +4844,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Groups the given full copies based on their array replication groups if in Application/CG
             // for Non-CG case, the map will have single entry
-            Map<String, List<Volume>> arrayGroupToFullCopies = groupFullCopiesByArrayGroup(clones, completer);
+            Map<String, List<Volume>> arrayGroupToFullCopies = ControllerUtils.
+                    groupFullCopiesByArrayGroup(clones, _dbClient, completer);
 
             for (String arrayGroupName : arrayGroupToFullCopies.keySet()) {
                 _log.info("Resynchronizing full copy group {}", arrayGroupName);
@@ -6150,34 +6154,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return fullCopyURIs;
     }
 
-    /**
-     * Groups the given full copies based on their array replication group.
-     * If full copies are not part of CG, return the given full copies as a single entry.
-     * It also adds VolumeGroup to taskCompleter if full copy is part of application.
-     */
-    private Map<String, List<Volume>> groupFullCopiesByArrayGroup(List<URI> fullCopies, TaskCompleter completer) {
-        Map<String, List<Volume>> arrayGroupToFullCopies = null;
-
-        List<Volume> fullCopyVolumeObjects = new ArrayList<Volume>();
-        Iterator<Volume> iterator = _dbClient.queryIterativeObjects(Volume.class, fullCopies);
-        while (iterator.hasNext()) {
-            fullCopyVolumeObjects.add(iterator.next());
-        }
-
-        if (ConsistencyUtils.getCloneConsistencyGroup(fullCopies.get(0), _dbClient) != null) {
-            // add VolumeGroup to taskCompleter
-            if (ControllerUtils.checkCloneInApplication(fullCopies.get(0), _dbClient, completer)) {
-                _log.info("Full copy is part of an Application");
-            }
-            arrayGroupToFullCopies = ControllerUtils.groupVolumesByArrayGroup(fullCopyVolumeObjects);
-        } else {
-            arrayGroupToFullCopies = new HashMap<String, List<Volume>>();
-            arrayGroupToFullCopies.put("NO_ARRAY_GROUP", fullCopyVolumeObjects);
-        }
-
-        return arrayGroupToFullCopies;
-    }
-    
     private static class AddRemoveVolumes {
         List<URI> addVolumes = new ArrayList<URI>();
         List<URI> removeVolumes = new ArrayList<URI>();

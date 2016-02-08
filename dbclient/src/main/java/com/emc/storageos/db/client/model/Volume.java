@@ -20,7 +20,6 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
@@ -922,6 +921,17 @@ public class Volume extends BlockObject implements ProjectResource {
         }
 
         return vplexVolume;
+    }
+
+    /**
+     * Check if the volume is a VPLEX volume.
+     *
+     * @param dbClient the db client
+     * @return true or false
+     */
+    public boolean isVPlexVolume(DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageController());
+        return DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType());
     }
 
     public static boolean isSRDFProtectedTargetVolume(Volume volume) {

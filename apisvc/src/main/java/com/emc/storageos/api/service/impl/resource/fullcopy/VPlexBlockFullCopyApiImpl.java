@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -106,10 +107,29 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         Volume fcSourceVolume = (Volume) fcSourceObj;
         URI cgURI = fcSourceObj.getConsistencyGroup();
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
-            // if volume is part of COPY type Volume Group, get only the Array Group volumes
+            // if volume is part of Application, get only the Array Group volumes
             if (fcSourceVolume.getApplication(_dbClient) != null) {
-                fcSourceObjList.addAll(
-                        ControllerUtils.getVolumesPartOfRG(fcSourceVolume.getReplicationGroupInstance(), _dbClient));
+                // Get VPLEX volumes based on the backed volume replication group
+                String replicationGroupName = null;
+                Volume srcBackendVolume = VPlexUtil.getVPLEXBackendVolume(fcSourceVolume, true, _dbClient);
+                if (srcBackendVolume != null) {
+                    replicationGroupName = srcBackendVolume.getReplicationGroupInstance();
+                }
+
+                s_logger.info("Source Volume: {}, Backend Volume: {}, Replication Group name: {}",
+                        fcSourceVolume.getLabel(),
+                        srcBackendVolume != null ? srcBackendVolume.getLabel() : null, replicationGroupName);
+                if (replicationGroupName != null) {
+                    List<Volume> backendVolumes = ControllerUtils.getVolumesPartOfRG(srcBackendVolume.getStorageController(),
+                            replicationGroupName, _dbClient);
+                    for (Volume backendVolume : backendVolumes) {
+                        Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, backendVolume);
+                        s_logger.debug("other VPLEX Volume in the group: {}", vplexVolume.getLabel());
+                        fcSourceObjList.add(vplexVolume);
+                    }
+                } else {
+                    fcSourceObjList.add(fcSourceObj);
+                }
             } else {
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                 // If there is no corresponding native CG for the VPLEX
@@ -193,18 +213,19 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             // Call super first.
             super.validateFullCopyCreateRequest(fcSourceObjList, count);
 
-            // If there are more than one volume in the consistency group, and they are on
-            // different backend storage systems, return error.
-            // TODO check if we can allow this? backend volumes in multiple arrays
-            if (fcSourceObjList.size() > 1) {
-                List<Volume> volumes = new ArrayList<Volume>();
-                for (BlockObject fcSource : fcSourceObjList) {
-                    volumes.add((Volume) fcSource);
-                }
-                if (!VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumes, _dbClient)) {
-                    throw APIException.badRequests.fullCopyNotAllowedWhenCGAcrossMultipleSystems();
-                }
-            }
+            /*
+             * // If there are more than one volume in the consistency group, and they are on
+             * // different backend storage systems, return error.
+             * if (fcSourceObjList.size() > 1) {
+             * List<Volume> volumes = new ArrayList<Volume>();
+             * for (BlockObject fcSource : fcSourceObjList) {
+             * volumes.add((Volume) fcSource);
+             * }
+             * if (!VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumes, _dbClient)) {
+             * throw APIException.badRequests.fullCopyNotAllowedWhenCGAcrossMultipleSystems();
+             * }
+             * }
+             */
 
             // Platform specific checks.
             // all the volumes in vplex cg should be having association with back end cg/Volume Group.
@@ -268,8 +289,11 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         List<Volume> vplexCopyVolumes = new ArrayList<Volume>();
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         List<BlockObject> sortedSourceObjectList = sortFullCopySourceList(fcSourceObjList);
+        Map<URI, VirtualArray> vArrayCache = new HashMap<URI, VirtualArray>();
         for (BlockObject fcSourceObj : sortedSourceObjectList) {
             URI fcSourceURI = fcSourceObj.getId();
+            // volumes in VolumeGroup can be from different vArrays
+            varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
             String copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
 
             vplexSrcSystemId = fcSourceObj.getStorageController();
@@ -408,7 +432,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 if (!vplexCopyHAVolumes.isEmpty()) {
                     vplexCopyHAVolume = vplexCopyHAVolumes.get(i);
                 }
-                Volume vplexCopyVolume = prepareFullCopyVPlexVolume(copyName, count, i, size,
+                Volume vplexCopyVolume = prepareFullCopyVPlexVolume(copyName, name, count, i, size,
                         fcSourceObj, vplexSrcProject, varray, vpool,
                         vplexSrcSystemId, vplexCopyPrimaryVolume, vplexCopyHAVolume, taskId,
                         volumeDescriptors);
@@ -419,6 +443,25 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 TaskResourceRep task = toTask(vplexCopyVolume, taskId, op);
                 taskList.getTaskList().add(task);
             }
+        }
+
+        // if Volume is part of Application (COPY type VolumeGroup)
+        BlockObject fcSourceObj = fcSourceObjList.get(0);
+        VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
+                ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
+        if (volumeGroup != null &&
+                !ControllerUtils.checkVolumesForVolumeGroupPartialRequest(_dbClient, fcSourceObjList)) {
+
+            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
+                    ResourceOperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY);
+            taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
+
+            // create tasks for all CGs involved
+            addConsistencyGroupTasks(fcSourceObjList, taskList, taskId,
+                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
+        } else {
+            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
         }
 
         // Invoke the VPLEX controller to create the copies.
@@ -432,23 +475,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         } catch (InternalException e) {
             s_logger.error("Controller error", e);
 
-            // Update the status for the VPLEX volume copies and their
-            // corresponding tasks.
-            for (Volume vplexCopyVolume : vplexCopyVolumes) {
-                Operation op = vplexCopyVolume.getOpStatus().get(taskId);
-                if (op != null) {
-                    op.error(e);
-                    vplexCopyVolume.getOpStatus().updateTaskStatus(taskId, op);
-                    _dbClient.persistObject(vplexCopyVolume);
-                    for (TaskResourceRep task : taskList.getTaskList()) {
-                        if (task.getResource().getId().equals(vplexCopyVolume.getId())) {
-                            task.setState(op.getStatus());
-                            task.setMessage(op.getMessage());
-                            break;
-                        }
-                    }
-                }
-            }
+            // Update the status for the VPLEX copy volume and CG tasks.
+            handleFailedRequest(taskId, taskList, new ArrayList<Volume>(), e, false);
 
             // Mark all volumes inactive, except for the VPLEX volume
             // we were trying to copy.
@@ -550,6 +578,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * Prepares the VPLEX volume copies.
      * 
      * @param name The base name for the volume.
+     * @param fullCopySetName
      * @param copyCount The total number of copies.
      * @param copyIndex The index for this copy.
      * @param size The size for the HA volume.
@@ -565,7 +594,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * 
      * @return A reference to the prepared VPLEX volume copy.
      */
-    private Volume prepareFullCopyVPlexVolume(String name, int copyCount, int copyIndex,
+    private Volume prepareFullCopyVPlexVolume(String name, String fullCopySetName, int copyCount, int copyIndex,
             long size, BlockObject fcSourceObject, Project srcProject, VirtualArray srcVarray,
             VirtualPool srcVpool, URI srcSystemURI, Volume primaryVolume, Volume haVolume,
             String taskId, List<VolumeDescriptor> volumeDescriptors) {
@@ -607,6 +636,11 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             vplexCopyVolume.setSyncActive(Boolean.FALSE);
         } else {
             vplexCopyVolume.setSyncActive(Boolean.TRUE);
+        }
+
+        // For Application, set the user provided clone name on all the clones to identify clone set
+        if (fcSourceObject instanceof Volume && ((Volume) fcSourceObject).getApplication(_dbClient) != null) {
+            vplexCopyVolume.setFullCopySetName(fullCopySetName);
         }
 
         // Persist the copy.
@@ -692,16 +726,53 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 (BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient))) {
             super.detach(fcSourceObj, fullCopyVolume);
         } else {
+
             // You cannot create a full copy of a VPLEX snapshot, so
             // the source will be a volume.
             Volume sourceVolume = (Volume) fcSourceObj;
 
-            // If the source is in a CG, then we will detach the corresponding
-            // full copies for all the volumes in the CG. Since we did not allow
-            // full copies for volumes or snaps in CGs prior to Jedi, there should
-            // be a full copy for all volumes in the CG.
-            Map<URI, Volume> fullCopyMap = getFullCopySetMap(sourceVolume, fullCopyVolume);
-            Set<URI> fullCopyURIs = fullCopyMap.keySet();
+            // If the source is in a VolumeGroup, then we will detach all the
+            // corresponding full copies for all the volumes in the VolumeGroup
+            // provided it is not a partial request.
+            Set<URI> fullCopyURIs = null;
+            Map<URI, Volume> fullCopyMap = null;
+            List<Volume> volumeGroupVolumes = null;
+            VolumeGroup volumeGroup = sourceVolume.getApplication(_dbClient);
+            boolean partialRequest = fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+            if (volumeGroup != null && !partialRequest) {
+                s_logger.info("Volume {} is part of Application, detaching all full copies in the Application.", sourceVolume.getId());
+                // get all volumes
+                volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+                // group volumes by Array Group
+                Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes, _dbClient);
+                fullCopyURIs = new HashSet<URI>();
+                fullCopyMap = new HashMap<URI, Volume>();
+                String fullCopySetName = fullCopyVolume.getFullCopySetName();
+                List<Volume> fullCopySetVolumes = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
+                for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
+                    List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
+                    Volume fcSourceObject = volumeList.iterator().next();
+                    // Get the full copy from source object belonging to same set
+                    URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
+                    if (fullCopyURI == null) {
+                        s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
+                                fcSourceObject.getLabel(), fullCopySetName);
+                        volumeGroupVolumes.removeAll(volumeList); // to avoid CG Task creation
+                        continue;
+                    }
+                    Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
+
+                    fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));
+                    fullCopyURIs.addAll(fullCopyMap.keySet());
+                }
+            } else {
+                // If the source is in a CG, then we will detach the corresponding
+                // full copies for all the volumes in the CG. Since we did not allow
+                // full copies for volumes or snaps in CGs prior to Jedi, there should
+                // be a full copy for all volumes in the CG.
+                fullCopyMap = getFullCopySetMap(sourceVolume, fullCopyVolume);
+                fullCopyURIs = fullCopyMap.keySet();
+            }
 
             // Get the storage system for the source volume.
             StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
@@ -718,6 +789,20 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 taskList.getTaskList().add(fullCopyVolumeTask);
             }
 
+            // if Volume is part of VolumeGroup
+            if (volumeGroup != null && !partialRequest) {
+                Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
+                        ResourceOperationTypeEnum.DETACH_VOLUME_GROUP_FULL_COPY);
+                taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
+
+                // create tasks for all CGs involved
+                addConsistencyGroupTasks(volumeGroupVolumes, taskList, taskId,
+                        ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+            } else {
+                addConsistencyGroupTasks(Arrays.asList(sourceVolume), taskList, taskId,
+                        ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+            }
+
             // Invoke the controller.
             try {
                 VPlexController controller = getController(VPlexController.class,
@@ -725,25 +810,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 controller.detachFullCopy(sourceSystemURI, new ArrayList<URI>(
                         fullCopyURIs), taskId);
             } catch (InternalException ie) {
-                s_logger.error("Controller error", ie);
-
-                // Update the status for the VPLEX volume copies and their
-                // corresponding tasks.
-                for (Volume vplexFullCopy : fullCopyMap.values()) {
-                    Operation op = vplexFullCopy.getOpStatus().get(taskId);
-                    if (op != null) {
-                        op.error(ie);
-                        vplexFullCopy.getOpStatus().updateTaskStatus(taskId, op);
-                        _dbClient.persistObject(vplexFullCopy);
-                        for (TaskResourceRep task : taskList.getTaskList()) {
-                            if (task.getResource().getId().equals(vplexFullCopy.getId())) {
-                                task.setState(op.getStatus());
-                                task.setMessage(op.getMessage());
-                                break;
-                            }
-                        }
-                    }
-                }
+                s_logger.error("Controller error: Failed to detach volume full copy {}", fullCopyVolume.getId(), ie);
+                handleFailedRequest(taskId, taskList,
+                        new ArrayList<Volume>(fullCopyMap.values()), ie, false);
             }
         }
         return taskList;
@@ -760,12 +829,48 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
 
-        // If the source is in a CG, then we will restore the corresponding
-        // full copies for all the volumes in the CG. Since we did not allow
-        // full copies for volumes or snaps in CGs prior to Jedi, there should
-        // be a full copy for all volumes in the CG.
-        Map<URI, Volume> fullCopyMap = getFullCopySetMap(sourceVolume, fullCopyVolume);
-        Set<URI> fullCopyURIs = fullCopyMap.keySet();
+        // If the source is in a VolumeGroup, then we will restore all the
+        // corresponding full copies for all the volumes in the VolumeGroup
+        // provided it is not a partial request.
+        Set<URI> fullCopyURIs = null;
+        Map<URI, Volume> fullCopyMap = null;
+        List<Volume> volumeGroupVolumes = null;
+        VolumeGroup volumeGroup = sourceVolume.getApplication(_dbClient);
+        boolean partialRequest = fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+        if (volumeGroup != null && !partialRequest) {
+            s_logger.info("Volume {} is part of Application, restoring all full copies in the Application.", sourceVolume.getId());
+            // get all volumes
+            volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            // group volumes by Array Group
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes, _dbClient);
+            fullCopyURIs = new HashSet<URI>();
+            fullCopyMap = new HashMap<URI, Volume>();
+            String fullCopySetName = fullCopyVolume.getFullCopySetName();
+            List<Volume> fullCopySetVolumes = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
+            for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
+                List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
+                Volume fcSourceObject = volumeList.iterator().next();
+                // Get the full copy from source object belonging to same set
+                URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
+                if (fullCopyURI == null) {
+                    s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
+                            fcSourceObject.getLabel(), fullCopySetName);
+                    volumeGroupVolumes.removeAll(volumeList); // to avoid CG Task creation
+                    continue;
+                }
+                Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
+
+                fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));
+                fullCopyURIs.addAll(fullCopyMap.keySet());
+            }
+        } else {
+            // If the source is in a CG, then we will restore the corresponding
+            // full copies for all the volumes in the CG. Since we did not allow
+            // full copies for volumes or snaps in CGs prior to Jedi, there should
+            // be a full copy for all volumes in the CG.
+            fullCopyMap = getFullCopySetMap(sourceVolume, fullCopyVolume);
+            fullCopyURIs = fullCopyMap.keySet();
+        }
 
         // Get the storage system for the source volume.
         StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
@@ -785,6 +890,20 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             taskList.getTaskList().add(fullCopyVolumeTask);
         }
 
+        // if Volume is part of VolumeGroup
+        if (volumeGroup != null && !partialRequest) {
+            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
+                    ResourceOperationTypeEnum.RESTORE_VOLUME_GROUP_FULL_COPY);
+            taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
+
+            // create tasks for all CGs involved
+            addConsistencyGroupTasks(volumeGroupVolumes, taskList, taskId,
+                    ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_FULL_COPY);
+        } else {
+            addConsistencyGroupTasks(Arrays.asList(sourceVolume), taskList, taskId,
+                    ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+        }
+
         // Invoke the controller.
         try {
             VPlexController controller = getController(VPlexController.class,
@@ -792,25 +911,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             controller.restoreFromFullCopy(sourceSystemURI, new ArrayList<URI>(
                     fullCopyURIs), taskId);
         } catch (InternalException ie) {
-            s_logger.error("Controller error", ie);
-
-            // Update the status for the VPLEX volume copies and their
-            // corresponding tasks.
-            for (Volume vplexFullCopy : fullCopyMap.values()) {
-                Operation op = vplexFullCopy.getOpStatus().get(taskId);
-                if (op != null) {
-                    op.error(ie);
-                    vplexFullCopy.getOpStatus().updateTaskStatus(taskId, op);
-                    _dbClient.persistObject(vplexFullCopy);
-                    for (TaskResourceRep task : taskList.getTaskList()) {
-                        if (task.getResource().getId().equals(vplexFullCopy.getId())) {
-                            task.setState(op.getStatus());
-                            task.setMessage(op.getMessage());
-                            break;
-                        }
-                    }
-                }
-            }
+            s_logger.error("Controller error: Failed to restore volume full copy {}", fullCopyVolume.getId(), ie);
+            handleFailedRequest(taskId, taskList,
+                    new ArrayList<Volume>(fullCopyMap.values()), ie, false);
         }
         return taskList;
     }
@@ -826,12 +929,48 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
 
-        // If the source is in a CG, then we will resynchronize the corresponding
-        // full copies for all the volumes in the CG. Since we did not allow
-        // full copies for volumes or snaps in CGs prior to Jedi, there should
-        // be a full copy for all volumes in the CG.
-        Map<URI, Volume> fullCopyMap = getFullCopySetMap(sourceVolume, fullCopyVolume);
-        Set<URI> fullCopyURIs = fullCopyMap.keySet();
+        // If the source is in a VolumeGroup, then we will detach all the
+        // corresponding full copies for all the volumes in the VolumeGroup
+        // provided it is not a partial request.
+        Set<URI> fullCopyURIs = null;
+        Map<URI, Volume> fullCopyMap = null;
+        List<Volume> volumeGroupVolumes = null;
+        VolumeGroup volumeGroup = sourceVolume.getApplication(_dbClient);
+        boolean partialRequest = fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+        if (volumeGroup != null && !partialRequest) {
+            s_logger.info("Volume {} is part of Application, resynchronizing all full copies in the Application.", sourceVolume.getId());
+            // get all volumes
+            volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            // group volumes by Array Group
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes, _dbClient);
+            fullCopyURIs = new HashSet<URI>();
+            fullCopyMap = new HashMap<URI, Volume>();
+            String fullCopySetName = fullCopyVolume.getFullCopySetName();
+            List<Volume> fullCopySetVolumes = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
+            for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
+                List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
+                Volume fcSourceObject = volumeList.iterator().next();
+                // Get the full copy from source object belonging to same set
+                URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
+                if (fullCopyURI == null) {
+                    s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
+                            fcSourceObject.getLabel(), fullCopySetName);
+                    volumeGroupVolumes.removeAll(volumeList); // to avoid CG Task creation
+                    continue;
+                }
+                Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
+
+                fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));
+                fullCopyURIs.addAll(fullCopyMap.keySet());
+            }
+        } else {
+            // If the source is in a CG, then we will resynchronize the corresponding
+            // full copies for all the volumes in the CG. Since we did not allow
+            // full copies for volumes or snaps in CGs prior to Jedi, there should
+            // be a full copy for all volumes in the CG.
+            fullCopyMap = getFullCopySetMap(sourceVolume, fullCopyVolume);
+            fullCopyURIs = fullCopyMap.keySet();
+        }
 
         // Get the storage system for the source volume.
         StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
@@ -848,6 +987,20 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             taskList.getTaskList().add(fullCopyVolumeTask);
         }
 
+        // if Volume is part of VolumeGroup
+        if (volumeGroup != null && !partialRequest) {
+            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
+                    ResourceOperationTypeEnum.RESYNCHRONIZE_VOLUME_GROUP_FULL_COPY);
+            taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
+
+            // create tasks for all CGs involved
+            addConsistencyGroupTasks(volumeGroupVolumes, taskList, taskId,
+                    ResourceOperationTypeEnum.RESYNCHRONIZE_CONSISTENCY_GROUP_FULL_COPY);
+        } else {
+            addConsistencyGroupTasks(Arrays.asList(sourceVolume), taskList, taskId,
+                    ResourceOperationTypeEnum.RESYNCHRONIZE_CONSISTENCY_GROUP_FULL_COPY);
+        }
+
         // Invoke the controller.
         try {
             VPlexController controller = getController(VPlexController.class,
@@ -855,25 +1008,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             controller.resyncFullCopy(sourceSystemURI, new ArrayList<URI>(
                     fullCopyURIs), taskId);
         } catch (InternalException ie) {
-            s_logger.error("Controller error", ie);
-
-            // Update the status for the VPLEX volume copies and their
-            // corresponding tasks.
-            for (Volume vplexFullCopy : fullCopyMap.values()) {
-                Operation op = vplexFullCopy.getOpStatus().get(taskId);
-                if (op != null) {
-                    op.error(ie);
-                    vplexFullCopy.getOpStatus().updateTaskStatus(taskId, op);
-                    _dbClient.persistObject(vplexFullCopy);
-                    for (TaskResourceRep task : taskList.getTaskList()) {
-                        if (task.getResource().getId().equals(vplexFullCopy.getId())) {
-                            task.setState(op.getStatus());
-                            task.setMessage(op.getMessage());
-                            break;
-                        }
-                    }
-                }
-            }
+            s_logger.error("Controller error: Failed to resync volume full copy {}", fullCopyVolume.getId(), ie);
+            handleFailedRequest(taskId, taskList,
+                    new ArrayList<Volume>(fullCopyMap.values()), ie, false);
         }
         return taskList;
     }

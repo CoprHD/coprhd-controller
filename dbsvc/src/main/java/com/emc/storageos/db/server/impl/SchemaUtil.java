@@ -326,8 +326,18 @@ public class SchemaUtil {
 
         // create CF's
         if (kd != null) {
-            checkCf();
-            _log.info("scan and setup db schema succeed");
+            String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
+            String targetVersion = _service.getVersion();
+            // A known Cassandra behaviour is that schema changes cannot converge if Cassandra nodes arenot in the same 
+            // version(MessagingService.currentVersion). As the result checkCf() will fail with schema disagreement errors. So 
+            //   - During upgrade, we scan and create new column families before db migration starts(see MigrationHandlerImpl.run. 
+            //     All cassandra nodes has been upgraded to same version at that time
+            //   - For each dbsvc startup, we run checkCf only when we are sure it is not in the middle of upgrade.
+            _log.info("Current db schema version {}", currentDbSchemaVersion);
+            if (StringUtils.isEmpty(currentDbSchemaVersion) || StringUtils.equals(currentDbSchemaVersion, targetVersion)) {
+                checkCf();
+                _log.info("scan and setup db schema succeed");
+            }
             return true;
         }
 
@@ -545,7 +555,7 @@ public class SchemaUtil {
      * CF's are created on the fly.
      *
      */
-    private void checkCf() throws InterruptedException, ConnectionException {
+    public void checkCf() throws InterruptedException, ConnectionException {
         KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
         Cluster cluster = clientContext.getCluster();
 

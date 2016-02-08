@@ -28,7 +28,6 @@ public class IpInterfaceList {
     /**
      * List of IPv4 or IPv6 interfaces of a host that exists in ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "ip_interface")
     public List<NamedRelatedResourceRep> getIpInterfaces() {

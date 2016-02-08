@@ -18,7 +18,7 @@ public class PasswordChangeParam {
     /**
      * Users current valid password to be changed.
      *
-     * @valid User's valid current password.
+     * 
      * @return Returns the current password to be changed.
      */
     @XmlElement(name = "old_password")
@@ -33,8 +33,7 @@ public class PasswordChangeParam {
     /**
      * The new password to be set for the user.
      *
-     * @valid A password string that satisfies all the
-     *         valid password criteria.
+     * 
      * @return Returns the new password to be set.
      */
     @XmlElement(name = "password")
@@ -50,7 +49,7 @@ public class PasswordChangeParam {
      * User name of the user who's password is
      * being changed.
      *
-     * @valid A valid local user's name.
+     * 
      * @return Returns the user's name who's password
      *          is being changed.
      */

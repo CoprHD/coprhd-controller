@@ -248,6 +248,14 @@ public class BlockMapper {
             }
             to.setHaVolumes(backingVolumes);
         }
+        if ((from.getVolumeGroupIds() != null) && (!from.getVolumeGroupIds().isEmpty())) {
+            List<RelatedResourceRep> volumeGroups = new ArrayList<RelatedResourceRep>();
+            for (String volumeGroup : from.getVolumeGroupIds()) {
+                volumeGroups.add(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, URI.create(volumeGroup)));
+            }
+            to.setVolumeGroups(volumeGroups);
+        }
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
 
         return to;
     }

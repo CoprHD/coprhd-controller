@@ -232,4 +232,8 @@ public interface FileStorageDevice {
 
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj,
             FileDeviceInputOutput args);
+
+    public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args);
+
+    public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args);
 }

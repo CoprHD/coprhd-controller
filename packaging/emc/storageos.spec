@@ -5,7 +5,7 @@ Vendor: EMC Corp.
 Summary: %{product_name}-%{product_version}.%{product_release}
 License: FIXME
 Group: System
-Requires: java-1.7.0, telnet, openssh, nginx >= 1.5.0-10
+Requires: java-1.8.0, telnet, openssh, nginx >= 1.5.0-10
 # Bypass RPM automatic dependency generation to avoid it
 # mess up for java libs
 Autoreq: 0

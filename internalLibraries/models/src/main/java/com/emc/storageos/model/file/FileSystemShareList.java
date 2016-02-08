@@ -24,7 +24,6 @@ public class FileSystemShareList {
     /**
      * List of file shares for a file system.
      * 
-     * @valid none
      */
     @XmlElement(name = "smb_share")
     public List<SmbShareResponse> getShareList() {

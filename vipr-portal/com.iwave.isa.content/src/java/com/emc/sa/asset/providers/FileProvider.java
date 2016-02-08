@@ -363,10 +363,10 @@ public class FileProvider extends BaseAssetOptionsProvider {
         return options;
     }
     
-    @Asset("protectedFileSystem")
+    @Asset("protectedRemoteFileSystem")
     @AssetDependencies({ "project" })
     public List<AssetOption> getProtectedFileSystems(AssetOptionsContext ctx, URI project) {
-        debug("getting protected file system (project=%s)", project);
+        debug("getting protected remote file system (project=%s)", project);
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
         
@@ -388,7 +388,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("failoverFileTarget")
-    @AssetDependencies("protectedFileSystem")
+    @AssetDependencies("protectedRemoteFileSystem")
     public List<AssetOption> getFailoverFileTarget(AssetOptionsContext ctx, URI protectedFileSystem) {
         if (protectedFileSystem != null) {
             ViPRCoreClient client = api(ctx);
@@ -423,7 +423,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
         List<FileShareRestRep> fileSystems = client.fileSystems().findByProject(project);
         
         for (FileShareRestRep fileShare : fileSystems) {
-            if (fileShare.getProtection() == null) {
+            if (fileShare.getProtection() != null && fileShare.getProtection().getPersonality() == null) {
                 options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
             }
         }
@@ -432,23 +432,47 @@ public class FileProvider extends BaseAssetOptionsProvider {
         return options;
     }
     
+    protected enum FileVirtualPoolChangeOperationEnum {
+        ADD_REMOTE_FILE_REPLICATION("Add Remote file replication"),
+        ADD_LOCAL_FILE_REPLICATION("Add Local file replication");
+        
+        private String description;
+
+        private FileVirtualPoolChangeOperationEnum(String description) {
+            this.description = description;
+        }
+    
+        @Override
+        public String toString() {
+            return description;
+        }
+    }
+    
     @Asset("fileVirtualPoolChangeOperation")
     public List<AssetOption> getVirtualPoolchangeOperations(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
-        for (VirtualPoolChangeOperationEnum operation : VirtualPoolChangeOperationEnum.values()) {
-            options.add(newAssetOption(operation.name(), "virtualPoolChange.operation." + operation.name()));
+        
+        for (FileVirtualPoolChangeOperationEnum operation : FileVirtualPoolChangeOperationEnum.values()) {
+            options.add(newAssetOption(operation.name(), "fileVirtualPoolChange.operation." + operation.name()));
         }
         return options;
     }
     
     @Asset("fileTargetVirtualPool")
-    @AssetDependencies("unprotectedFilesystem")
-    public List<AssetOption> getFileTargetVirtualPools(AssetOptionsContext ctx, URI fileId) {
+    @AssetDependencies({"fileVirtualPoolChangeOperation"})
+    public List<AssetOption> getFileTargetVirtualPools(AssetOptionsContext ctx, String vpoolChangeOperation) {
         List<AssetOption> options = Lists.newArrayList();
+        
         List<FileVirtualPoolRestRep> vpoolChanges = api(ctx).fileVpools().getAll();
         
         for (FileVirtualPoolRestRep vpool : vpoolChanges) {
-            options.add(new AssetOption(vpool.getId(), vpool.getName()));
+            if (StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.REMOTE.name()) &&
+                    StringUtils.equals(vpoolChangeOperation, FileVirtualPoolChangeOperationEnum.ADD_REMOTE_FILE_REPLICATION.name())) {
+                options.add(new AssetOption(vpool.getId(), vpool.getName()));
+            } else if (StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.LOCAL.name()) &&
+                    StringUtils.equals(vpoolChangeOperation, FileVirtualPoolChangeOperationEnum.ADD_LOCAL_FILE_REPLICATION.name())) {
+                options.add(new AssetOption(vpool.getId(), vpool.getName()));
+            }
         }
         
         AssetOptionsUtils.sortOptionsByLabel(options);

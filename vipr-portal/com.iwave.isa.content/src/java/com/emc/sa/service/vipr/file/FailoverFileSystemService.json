@@ -9,7 +9,7 @@
     },
     
     fileSystem:{
-      type:"assetType.vipr.protectedFileSystem",
+      type:"assetType.vipr.protectedRemoteFileSystem",
       lockable: true
     },
     

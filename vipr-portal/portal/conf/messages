@@ -3315,6 +3315,7 @@ resources.consistencygroup.snapshot.name=Name
 resources.consistencygroup.snapshot.volume=Volume
 resources.consistencygroup.snapshot.createdDate=Created Date
 resources.consistencygroup.snapshot.empty=No Snapshots Found
+resources.consistencygroup.snapshot.session=No Snapshot Session Found
 
 resources.fullcopies.none=No Full Copies
 resources.fullcopy.name=Name

@@ -599,6 +599,7 @@ public class AffectedResources extends Controller {
             blockConsistencyGroup = getBlockConsistencyGroup(client, resourceId);
             volumes = getVolumes(client, blockConsistencyGroup);
             snapshots = getSnapshots();
+            snapshotSessions = getSnapshotSessions();
         }
 
         public List<BlockSnapshotDetails> getSnapshots() {
@@ -607,6 +608,14 @@ public class AffectedResources extends Controller {
                 snapshots.add(new BlockSnapshotDetails(client, res.getId()));
             }
             return snapshots;
+        }
+        
+        public List<BlockSnapshotSessionDetails> getSnapshotSessions() {
+            List<BlockSnapshotSessionDetails> snapshotSessions = Lists.newArrayList();
+            for(NamedRelatedResourceRep res : client.blockSnapshotSessions().listByConsistencyGroup(blockConsistencyGroup.getId())) {
+                snapshotSessions.add(new BlockSnapshotSessionDetails(client, res.getId()));
+            }
+            return snapshotSessions;
         }
     }
 

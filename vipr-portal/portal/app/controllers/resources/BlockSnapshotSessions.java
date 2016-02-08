@@ -69,13 +69,11 @@ public class BlockSnapshotSessions extends ResourceController {
             snapshotSessions(null);
         }
 
-        if (blockSnapshotSession.volume == null) {
-            flash.error(MessagesUtils.get(INVALID_SESSION, snapshotSessionId));
-            snapshotSessions(null);
+        if (blockSnapshotSession.volume != null) {
+            AffectedResources.VolumeDetails volume = new AffectedResources.VolumeDetails(blockSnapshotSession.volume.getId());
+            renderArgs.put("volume", volume);
         }
-
-        AffectedResources.VolumeDetails volume = new AffectedResources.VolumeDetails(blockSnapshotSession.volume.getId());
-
+        
         List<Task<BlockSnapshotSessionRestRep>> tasks = null;
         if (blockSnapshotSession.blockSnapshotSession != null) {
             Tasks<BlockSnapshotSessionRestRep> tasksResponse = client.blockSnapshotSessions().getTasks(
@@ -83,7 +81,7 @@ public class BlockSnapshotSessions extends ResourceController {
             tasks = tasksResponse.getTasks();
         }
 
-        render(blockSnapshotSession, volume, tasks);
+        render(blockSnapshotSession, tasks);
     }
 
     public static void snapshotSessionLinkTarget(String snapshotSessionId) {

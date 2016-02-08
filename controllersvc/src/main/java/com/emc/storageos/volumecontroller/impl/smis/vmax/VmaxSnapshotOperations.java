@@ -35,11 +35,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
 
 import javax.cim.CIMArgument;
@@ -1901,7 +1899,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             completer.error(_dbClient, error);
         }
     }
-    
+
     /**
      * Determine the StorgeSynchronized path for the passed block snapshot where
      * the snapshot is the target device.

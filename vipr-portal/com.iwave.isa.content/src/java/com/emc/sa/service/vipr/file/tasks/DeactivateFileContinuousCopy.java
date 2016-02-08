@@ -26,13 +26,6 @@ public class DeactivateFileContinuousCopy extends WaitForTask<FileShareRestRep> 
 
     @Override
     protected Task<FileShareRestRep> doExecute() throws Exception {
-//        Copy copy = new Copy();
-//        copy.setCopyID(continuousCopyId);
-//        copy.setType(type);
-//        
-//        FileReplicationParam param = new FileReplicationParam();
-//        param.getCopies().add(copy);
-        
         FileSystemDeleteParam param = new FileSystemDeleteParam();
         param.setDeleteType(type);
         

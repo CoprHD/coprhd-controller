@@ -1,28 +1,35 @@
-#{if fileSystem.fileReplication.personality=='SOURCE'}
+#{if personality.equalsIgnoreCase('SOURCE')}
   <table class='table table-condensed table-striped'>
   <thead>
     <tr>
       <th>&{'resources.filesystem.mirroring.fileSystem'}</th>
-      <th>&{'resources.filesystem.export.virtualArray'}</th>
-      <th>&{'resources.filesystem.mirroring.status'}</th>
+      <th style="text-align:center;">&{'resources.filesystem.mirroring.virtualArray'}</th>
+      <th style="text-align:right;">&{'resources.filesystem.mirroring.status'}</th>
     </tr>
   </thead>
   <tbody>  
     #{list items:fileMirrors, as:'fileShare'}
       <tr>
         <td>
-          <img src="/public/img/serviceCatalog/icon_folder_NFS.png" style="width: 32px;"/> ${fileShare.name}
+<!--           <img src="/public/img/serviceCatalog/icon_folder_NFS.png" style="width: 32px;"/> ${fileShare.name} -->
+		${fileShare.name}
         </td>
-        <td>
-          ${fileShare.mountPath}
+        <td style="text-align:center;">
+<!--           ${fileShare.mountPath} -->
+	 	VirtualArray_HOP
+        </td>
+        <td style="text-align:right;">
+        SYNCHRONIZED
         </td>
       </tr>
     #{/list}
     <tr>
+    <td></td><td></td>
       <td style="text-align:right;">
-        <a class="btn btn-xs btn-success" onclick="updateRule('${export.exportPath}', '${export.secFlavor}', '${export.anon}')">&{'button.mirror.start'}</a>
-        <a class="btn btn-default btn-xs" onclick="updateRule('${export.exportPath}', '${export.secFlavor}', '${export.anon}')">&{'button.mirror.pause'}</a>
-        <a class="btn btn-danger btn-xs" onclick="updateRule('${export.exportPath}', '${export.secFlavor}', '${export.anon}')">&{'button.mirror.stop'}</a>
+        <a class="btn btn-xs btn-success" onclick="">&{'button.mirroring.start'}</a>
+        <a class="btn btn-danger btn-xs" onclick="">&{'button.mirroring.stop'}</a>
+        <a class="btn btn-info btn-xs" onclick="">&{'button.mirroring.pause'}</a>
+        <a class="btn btn-info btn-xs" onclick="">&{'button.mirroring.resume'}</a>
       </td>
     </tr>
   </tbody>

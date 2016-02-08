@@ -41,15 +41,15 @@ public class CreateCifsShareHelper {
 
     @Param(SHARE_COMMENT)
     protected String shareComment;
-    
-    @Param(value=SOFT_LIMIT,required=false)
-    protected Integer softLimit;
-    
-    @Param(value=ADVISORY_LIMIT,required=false)
-    protected Integer advisoryLimit;
-    
-    @Param(value=GRACE_PERIOD,required=false)
-    protected Integer gracePeriod;
+
+    @Param(value = SOFT_LIMIT, required = false)
+    protected Double softLimit;
+
+    @Param(value = ADVISORY_LIMIT, required = false)
+    protected Double advisoryLimit;
+
+    @Param(value = GRACE_PERIOD, required = false)
+    protected Double gracePeriod;
 
     @Bindable(itemType = FileStorageUtils.FileSystemACLs.class)
     protected FileStorageUtils.FileSystemACLs[] fileSystemShareACLs;
@@ -67,11 +67,12 @@ public class CreateCifsShareHelper {
     }
 
     public FileShareRestRep createCifsShare() {
-        int tempSoftLimit=(softLimit!=null)?softLimit:0;
-        int tempAdvisoryLimit=(advisoryLimit!=null)?advisoryLimit:0; 
-        int tempGracePeriod=(gracePeriod!=null)?gracePeriod:0;
-        
-        this.fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb, tempAdvisoryLimit,tempSoftLimit, tempGracePeriod);
+        int tempSoftLimit = (softLimit != null) ? softLimit.intValue() : 0;
+        int tempAdvisoryLimit = (advisoryLimit != null) ? advisoryLimit.intValue() : 0;
+        int tempGracePeriod = (gracePeriod != null) ? gracePeriod.intValue() : 0;
+
+        this.fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb, tempAdvisoryLimit,
+                tempSoftLimit, tempGracePeriod);
         FileStorageUtils.createCifsShare(this.fileSystemId, shareName, shareComment, null);
         return FileStorageUtils.getFileSystem(this.fileSystemId);
     }

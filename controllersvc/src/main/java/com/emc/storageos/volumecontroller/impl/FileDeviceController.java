@@ -1113,7 +1113,41 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
-    public void modifyFS(URI storage, URI pool, URI fs, String opId) throws ControllerException {
+    public void modifyFS(URI storage, URI pooluri, URI fsuri, String opId) throws ControllerException {
+        ControllerUtils.setThreadLocalLogData(fsuri, opId);
+        FileShare fs = null;
+        try {
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            fs = _dbClient.queryObject(FileShare.class, fsuri);
+            args.addFSFileObject(fs);
+            StoragePool pool = _dbClient.queryObject(StoragePool.class, pooluri);
+            args.addStoragePool(pool);
+            args.setFileOperation(true);
+            args.setOpId(opId);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doModifyFS(storageObj, args);
+            if (result.getCommandPending()) {
+                // async operation
+                return;
+            }
+            if (result.isCommandSuccess()) {
+                _log.info("FileSystem updated " + " with Soft Limit: " + args.getFsSoftLimit() + ", Notification Limit: " 
+            + args.getFsNotificationLimit() + ", Soft Grace: " + args.getFsSoftGracePeriod());
+            }
+            // Set status
+            fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.persistObject(fs);
+
+            String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
+            recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM,
+                    result.isCommandSuccess(), eventMsg, "", fs);
+        } catch (Exception e) {
+            _log.error("Unable to update file system: FS URI {}", fs.getId());
+            updateTaskStatus(opId, fs, e);
+            if (fs != null) {
+                recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM, false, e.getMessage(), "", fs);
+            }
+        }
     }
 
     @Override
@@ -2976,13 +3010,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private void createDefaultACEForSMBShare(URI id, FileSMBShare fileShare,
             String storageType) {
 
-        StorageSystem.Type storageSystemType = Enum.valueOf(
-                StorageSystem.Type.class, storageType);
+        StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageType);
 
-        switch (storageSystemType) {
-            case vnxe:
-            case vnxfile:
-            case datadomain:
+        if (storageSystemType.equals(Type.vnxe) || storageSystemType.equals(Type.vnxfile) || storageSystemType.equals(Type.datadomain)) {
                 SMBFileShare share = fileShare.getSMBFileShare();
                 CifsShareACL ace = new CifsShareACL();
                 ace.setUser(FileControllerConstants.CIFS_SHARE_USER_EVERYONE);
@@ -3009,10 +3039,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 _log.info("Creating default ACE for the share: {}", ace);
                 _dbClient.createObject(ace);
-                break;
-
-            default:
-                break;
         }
 
     }

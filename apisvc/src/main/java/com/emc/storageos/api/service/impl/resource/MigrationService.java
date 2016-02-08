@@ -104,11 +104,12 @@ public class MigrationService extends TaskResourceService {
      * @prereq none
      * 
      * @param migrateParam A reference to the migration parameters.
-     * 
+     * @deprecated Use the Change Virtual Pool API instead
      * @brief Perform a non-disruptive migration for a VPLEX volume.
      * @return A TaskResourceRep for the volume being migrated.
      * @throws InternalException
      */
+    @Deprecated
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -146,9 +147,9 @@ public class MigrationService extends TaskResourceService {
 
         // The VirtualArray for the migration target will be the same as
         // that of the source.
-        VirtualArray migrationTgtNh = _permissionsHelper.getObjectById(
+        VirtualArray migrationTargetVarray = _permissionsHelper.getObjectById(
                 migrationSrc.getVirtualArray(), VirtualArray.class);
-        s_logger.debug("Migration target VirtualArray is {}", migrationTgtNh.getId());
+        s_logger.debug("Migration target VirtualArray is {}", migrationTargetVarray.getId());
 
         // Verify the requested target storage system exists and
         // is a system to which the migration source volume can
@@ -176,10 +177,10 @@ public class MigrationService extends TaskResourceService {
         cosWrapper.put(VirtualPoolCapabilityValuesWrapper.SIZE, migrationSrc.getCapacity());
         cosWrapper.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         List<Recommendation> recommendations = vplexScheduler.scheduleStorage(
-                migrationTgtNh, requestedVPlexSystems, migrateParam.getTgtStorageSystem(),
+                migrationTargetVarray, requestedVPlexSystems, migrateParam.getTgtStorageSystem(),
                 migrationTgtCos, false, null, null, cosWrapper);
         if (recommendations.isEmpty()) {
-            throw APIException.badRequests.noStorageFoundForVolumeMigration(migrationTgtCos.getId(), migrationTgtNh.getId(),
+            throw APIException.badRequests.noStorageFoundForVolumeMigration(migrationTgtCos.getLabel(), migrationTargetVarray.getLabel(),
                     vplexVolume.getId());
         }
         s_logger.debug("Got recommendation for migration target");
@@ -194,8 +195,8 @@ public class MigrationService extends TaskResourceService {
         // Prepare the migration target.
         List<URI> migrationTgts = new ArrayList<URI>();
         Map<URI, URI> poolTgtMap = new HashMap<URI, URI>();
-        Volume migrationTgt = _vplexBlockServiceApi.prepareVolumeForRequest(
-                migrationSrc.getCapacity(), migrationTgtProject, migrationTgtNh,
+        Volume migrationTgt = VPlexBlockServiceApiImpl.prepareVolumeForRequest(
+                migrationSrc.getCapacity(), migrationTgtProject, migrationTargetVarray,
                 migrationTgtCos, recommendedSystem, recommendedPool,
                 migrationSrc.getLabel(), ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
                 taskId, _dbClient);
@@ -338,11 +339,11 @@ public class MigrationService extends TaskResourceService {
             throw APIException.badRequests.migrationHasntStarted(id.toString());
         }
         if (status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMPLETE.getStatusValue()) ||
-               status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.ERROR.getStatusValue()) ||
-               status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue()) ||
-               status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue())) {
+                status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.ERROR.getStatusValue()) ||
+                status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue()) ||
+                status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue())) {
             throw APIException.badRequests.migrationCantBePaused(migrationName, status);
-        } 
+        }
         URI volId = migration.getVolume();
         Volume vplexVol = _dbClient.queryObject(Volume.class, volId);
 
@@ -359,7 +360,7 @@ public class MigrationService extends TaskResourceService {
             op.ready();
             vplexVol.getOpStatus().createTaskStatus(taskId, op);
             _dbClient.persistObject(vplexVol);
-            return task;        
+            return task;
         }
 
         try {
@@ -441,9 +442,8 @@ public class MigrationService extends TaskResourceService {
         return task;
     }
 
-
     /**
-     * Cancel a migration that has yet to be committed. 
+     * Cancel a migration that has yet to be committed.
      * 
      * 
      * @prereq none
@@ -475,17 +475,18 @@ public class MigrationService extends TaskResourceService {
         if (vplexVol == null || vplexVol.getInactive()) {
             throw APIException.badRequests.cancelMigrationFailed(migrationName, "The migrating volume is not valid");
         }
-        
+
         // Don't allow cancel operation if the vplex volume is in a CG
         URI cgURI = vplexVol.getConsistencyGroup();
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
-            throw APIException.badRequests.cancelMigrationFailed(migrationName, "Migration cancellation is not supported for the volumes in consistency group");
+            throw APIException.badRequests.cancelMigrationFailed(migrationName,
+                    "Migration cancellation is not supported for the volumes in consistency group");
         }
 
         if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
             throw APIException.badRequests.migrationHasntStarted(id.toString());
         }
-        if (status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue())){
+        if (status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue())) {
             throw APIException.badRequests.migrationCantBeCancelled(migrationName, status);
         }
 
@@ -791,7 +792,7 @@ public class MigrationService extends TaskResourceService {
     public Class<Migration> getResourceClass() {
         return Migration.class;
     }
-    
+
     /**
      * Delete a migration that has been committed or cancelled
      * 
@@ -827,7 +828,7 @@ public class MigrationService extends TaskResourceService {
 
         URI volId = migration.getVolume();
         Volume vplexVol = _dbClient.queryObject(Volume.class, volId);
-        
+
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Volume.class,

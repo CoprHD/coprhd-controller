@@ -19,6 +19,16 @@ public class SiteDetailRestRep {
     private Date lastUpdateTime;
     private Double networkLatencyInMs;
     private String clusterState;
+    private boolean dataSynced;
+
+    @XmlElement(name = "dataSynced")
+    public boolean isDataSynced() {
+        return dataSynced;
+    }
+
+    public void setDataSynced(boolean dataSynced) {
+        this.dataSynced = dataSynced;
+    }
 
     @XmlElement(name = "creationTime")
     public Date getCreationTime() {

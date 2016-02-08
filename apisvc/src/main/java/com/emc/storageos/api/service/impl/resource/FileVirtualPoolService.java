@@ -847,6 +847,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
                                 sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
                     }
                     break;
+                case "DAYS":
+                    // No validation required for Days!!
+                    break;
                 default:
                     throw APIException.badRequests.invalidReplicationRPOType(sourcePolicy.getRpoType());
             }

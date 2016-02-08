@@ -38,7 +38,7 @@ import java.util.Random;
 @ContextConfiguration(locations = { "/scaleio-driver-prov.xml" })
 public class ScaleIOStorageDriverTest {
 
-    String SYS_NATIVE_ID_A = "08bee2cf00000000";
+    String SYS_NATIVE_ID_A = "08bee35c00000000";
     String SYS_NATIVE_ID_B = "08af5d6100000000";
     String IP_ADDRESS_A = "10.193.17.97";
     String IP_ADDRESS_B = "10.193.17.88";
@@ -46,9 +46,9 @@ public class ScaleIOStorageDriverTest {
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";
-    String VOLUME_ID_1A = "08bee34300000001";
-    String VOLUME_ID_2A = "08bee34400000002";
-    String SNAPSHOT_OF_1A = "08bee34500000003";
+    String VOLUME_ID_1A = "08bee35d00000001";
+    String VOLUME_ID_2A = "08bee35e00000002";
+    String SNAPSHOT_OF_1A = "08bee35f00000003";
     String VOLUME_ID_1B = "83f1771b00000000";
     String VOLUME_ID_2B = "83f1771000000001";
     String INVALID_VOLUME_ID_1 = "83f177070000000";
@@ -570,14 +570,15 @@ public class ScaleIOStorageDriverTest {
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
-    //     create clone for volumes from same storage system
+        //Create clone for volumes from same storage system
         clone = this.createCloneListSameSys(false);
         task = driver.createVolumeClone(clone, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
         this.checkResultCloneList(clone);
 
-       clone = this.createCloneListSameSys(true);
+        //Create clone for volumes from same storage system
+        clone = this.createCloneListSameSys(true);
         task = driver.createVolumeClone(clone, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
@@ -590,6 +591,7 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals("READY", task.getStatus().toString());
         this.checkResultCloneList(clone);
 
+        //Create clone for volumes from different storage system
         clone = this.createCloneListDiffSys(true);
         task = driver.createVolumeClone(clone, null);
         Assert.assertNotNull(task);
@@ -607,7 +609,7 @@ public class ScaleIOStorageDriverTest {
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
-        // create clone for volumes from same storage system
+        // Detach clone for volumes from same storage system
         clone = this.createCloneListSameSys(false);
         task = driver.detachVolumeClone(clone);
         Assert.assertNotNull(task);
@@ -667,16 +669,11 @@ public class ScaleIOStorageDriverTest {
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
+        //Volume from same storage system
         clones = this.createCloneListSameCG(false);
-        cg = new VolumeConsistencyGroup();
         task = driver.detachConsistencyGroupClone(clones);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
-       // Assert.assertNotNull(cg.getNativeId());
-       // for (VolumeClone clone : clones) {
-         //   Assert.assertNotNull(clone.getNativeId());
-        //    Assert.assertNotNull(clone.getConsistencyGroup());
-       // }
 
     }
     private VolumeClone initializeClone(String nativeId, String parentId, String storageSystemId) {

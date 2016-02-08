@@ -214,7 +214,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                         result = client.snapshotVolume(clone.getParentId(), clone.getDisplayName(), clone.getStorageSystemId());
                         //Set O/P Value
                         if (result != null) {
-                            log.info("Client got! Create snapshot for volume {}:{} - start", clone.getDisplayName(), clone.getParentId());
+                            log.info("Client got! Create clone for volume {}:{} - start", clone.getDisplayName(), clone.getParentId());
                             clone.setNativeId(result.getVolumeIdList().get(0));
                             clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                             clone.setReplicationState(VolumeClone.ReplicationState.CREATED);
@@ -605,7 +605,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
 
     public DriverTask detachConsistencyGroupClone(List<VolumeClone> clones) {
-        log.info("Request to delete consistency group clone -- Start :");
+        log.info("Request to detach consistency group clone -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_DETACH));
         if (ScaleIOHelper.isFromSameCGgroupClone(clones)) {
             for (VolumeClone clone : clones)
@@ -616,7 +616,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     task.setStatus(DriverTask.TaskStatus.READY);
                     log.info("Successfully detach consistency group clone - End:");
                 } catch (Exception e) {
-                    log.error("Exception while detaching CG clone", e);
+                    log.error("Exception while detaching consistency group clone", e);
                     task.setStatus(DriverTask.TaskStatus.FAILED);
                 }
 

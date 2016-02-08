@@ -1018,12 +1018,14 @@ public class BlockFullCopyManager {
 
             // get full copy which does not have setName set on it
             URI fullCopyURI = null;
-            for (String fc : fcSourceObject.getFullCopies()) {
-                URI fcURI = URI.create(fc);
-                Volume fcObject = _dbClient.queryObject(Volume.class, fcURI);
-                if (!NullColumnValueGetter.isNotNullValue(fcObject.getFullCopySetName())) {
-                    fullCopyURI = fcURI;
-                    break;
+            if (fcSourceObject.getFullCopies() != null) {
+                for (String fc : fcSourceObject.getFullCopies()) {
+                    URI fcURI = URI.create(fc);
+                    Volume fcObject = _dbClient.queryObject(Volume.class, fcURI);
+                    if (!NullColumnValueGetter.isNotNullValue(fcObject.getFullCopySetName())) {
+                        fullCopyURI = fcURI;
+                        break;
+                    }
                 }
             }
 

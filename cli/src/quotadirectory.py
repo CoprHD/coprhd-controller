@@ -87,44 +87,8 @@ class QuotaDirectory(object):
         else:
             return o
 
-    """
-    quotadirectory update operation
-    """
 
-    def update(self, ouri, name, size, oplock, securitystyle, sync,synctimeout, advlim, softlim, grace):
-        qduri = self.quotadirectory_query(ouri, name)
-	    
-        params = dict()
-        if(size):
-            size = common.to_bytes(size)
-	    params['size'] = size
-        if(oplock):
-            params['oplock'] = oplock
-        if(securitystyle):
-            params['security_style'] = securitystyle
-        if advlim:
-            params['notification_limit'] = advlim
-        if softlim:
-            params['soft_limit'] = softlim
-        if grace:
-            params['soft_grace'] = grace
-     
-        body = json.dumps(params)
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
-            "PUT",
-            QuotaDirectory.URI_QUOTA_DIRECTORY_UPDATE.format(qduri), body)
-
-        o = common.json_decode(s)
-
-        if(sync):
-            return (
-                self.block_until_complete(
-                    o['resource']['id'],
-                    o["id"],synctimeout)
-            )
-        else:
-            return o
+    
 
     def delete(self, ouri, name, forcedelete, sync,synctimeout):
         qduri = self.quotadirectory_query(ouri, name)
@@ -315,11 +279,11 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<securitystyle>')
     create_parser.add_argument('-advisorylimit', '-advlmt',
                                dest='advlim',
-                               help='Advisory limit in % for the filesystem',
+                               help='Advisory limit in percentage for the filesystem',
                                metavar='<advisorylimit>')
     create_parser.add_argument('-softlimit', '-softlmt',
                                dest='softlim',
-                               help='Soft limit in % for the filesystem',
+                               help='Soft limit in percentage for the filesystem',
                                metavar='<softlimit>')
     create_parser.add_argument('-graceperiod', '-grace',
                                dest='grace',
@@ -594,81 +558,6 @@ def quotadirectory_delete(args):
                 e.err_code)
 
 
-'''
-Update quotadirectory Parser
-'''
-
-
-def update_parser(subcommand_parsers, common_parser):
-    # update command parser
-    update_parser = subcommand_parsers.add_parser(
-        'update',
-        description='ViPR Quotadirectory update CLI usage',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Updates Quota directory')
-
-    mandatory_args = update_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument(
-        '-n', '-name',
-        help='Name of the Quota Directory',
-        metavar='<name>',
-        dest='name',
-        required=True)
-    mandatory_args.add_argument(
-        '-fs', '-filesystem',
-        help='Name of the Filesystem',
-        metavar='<filesystem>',
-        dest='filesystem',
-        required=True)
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of Project',
-                                required=True)
-    update_parser.add_argument('-tenant', '-tn',
-                               metavar='<tenantname>',
-                               dest='tenant',
-                               help='Name of tenant')
-    update_parser.add_argument('-size', '-s',
-                               metavar='<size>',
-                               dest='size',
-                               help='Size of Quotadirectory')
-
-    update_parser.add_argument('-oplk', '-oplock ',
-                               choices=["true", "false"],
-                               metavar='<oplock>',
-                               dest='oplock',
-                               help='Oplock for Quotadirectory')
-
-    update_parser.add_argument('-secsy', '-securitystyle',
-                               choices=["unix", "ntfs", "mixed"],
-                               help='Quota Directory Security Style ',
-                               dest='securitystyle',
-                               metavar='<securitystyle>')
-    update_parser.add_argument('-advisorylimit', '-advlmt',
-                               dest='advlim',
-                               help='Advisory limit in % for the filesystem',
-                               metavar='<advisorylimit>')
-    update_parser.add_argument('-softlimit', '-softlmt',
-                               dest='softlim',
-                               help='Soft limit in % for the filesystem',
-                               metavar='<softlimit>')
-    update_parser.add_argument('-graceperiod', '-grace',
-                               dest='grace',
-                               help='Grace period in days for soft limit',
-                               metavar='<graceperiod>')
-    update_parser.add_argument('-synchronous', '-sync',
-                               dest='synchronous',
-                               help='Synchronous quotadirectory update',
-                               action='store_true')
-    update_parser.add_argument('-synctimeout','-syncto',
-                               help='sync timeout in seconds ',
-                               dest='synctimeout',
-                               default=0,
-                               type=int)
-    
-    update_parser.set_defaults(func=quotadirectory_update)
 
 
 
@@ -701,7 +590,6 @@ def quotadirectory_update(args):
                 e.err_text,
                 e.err_code)
 
-
 #
 # Quota Directory Main parser routine
 #
@@ -729,7 +617,3 @@ def quotadirectory_parser(parent_subparser, common_parser):
 
     # delete parser
     delete_parser(subcommand_parsers, common_parser)
-
-    # update parser
-    update_parser(subcommand_parsers, common_parser)
-

@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
@@ -929,8 +930,11 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doModifyFS(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-        // TODO
-        return null;
+        BiosCommandResult result = new BiosCommandResult();
+        result.setCommandSuccess(false);
+        result.setCommandStatus(Operation.Status.error.name());
+        result.setMessage("Modify FS NOT supported for DataDomain.");
+        return result;
     }
 
     @Override

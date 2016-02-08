@@ -857,8 +857,11 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doModifyFS(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-        // TODO Auto-generated method stub
-        return null;
+        BiosCommandResult result = new BiosCommandResult();
+        result.setCommandSuccess(false);
+        result.setCommandStatus(Operation.Status.error.name());
+        result.setMessage("Modify FS NOT supported for VNX.");
+        return result;
     }
 
     @Override

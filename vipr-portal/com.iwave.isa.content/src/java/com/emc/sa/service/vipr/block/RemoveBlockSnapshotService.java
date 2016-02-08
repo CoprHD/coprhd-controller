@@ -20,6 +20,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshotSession;
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.vipr.client.Tasks;
 
 @Service("RemoveBlockSnapshot")
@@ -27,7 +28,7 @@ public class RemoveBlockSnapshotService extends ViPRService {
 
     @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;
-    
+
     @Param(value = TYPE, required = false)
     protected String type;
 
@@ -52,13 +53,17 @@ public class RemoveBlockSnapshotService extends ViPRService {
         for (String snapshotId : snapshotIds) {
             Tasks<? extends DataObjectRestRep> tasks;
             if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-                if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {
+                if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
                     tasks = execute(new DeactivateBlockSnapshotSession(snapshotId));
                 } else {
-                    tasks = execute(new DeactivateBlockSnapshot(snapshotId));
+                    tasks = execute(new DeactivateBlockSnapshot(snapshotId, VolumeDeleteTypeEnum.FULL));
                 }
             } else {
-                tasks = ConsistencyUtils.removeSnapshot(consistencyGroupId, uri(snapshotId));
+                if (BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
+                    tasks = ConsistencyUtils.removeSnapshotSession(consistencyGroupId, uri(snapshotId));
+                } else {
+                    tasks = ConsistencyUtils.removeSnapshot(consistencyGroupId, uri(snapshotId));
+                }
             }
             addAffectedResources(tasks);
         }

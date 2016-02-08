@@ -401,8 +401,8 @@ public class FileProvider extends BaseAssetOptionsProvider {
             if (protection != null) {
                 List<VirtualArrayRelatedResourceRep> targets = protection.getTargetFileSystems();
                 for (VirtualArrayRelatedResourceRep target : targets) {
-                    FileShareRestRep t = client.fileSystems().get(target.getId());
-                    options.add(new AssetOption(t.getId(), t.getName()));
+                    FileShareRestRep fileshare = client.fileSystems().get(target.getId());
+                    options.add(new AssetOption(fileshare.getId(), fileshare.getName()));
                 }
             }
             

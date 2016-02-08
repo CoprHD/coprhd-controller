@@ -2224,7 +2224,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (!(replicaObject instanceof Volume && ControllerUtils.isVolumeFullCopy((Volume) replicaObject, _dbClient))) {
                 replicaObject.setConsistencyGroup(consistencyGroup.getId());
             } else if (replicaObject instanceof BlockSnapshot) {
-                String snapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(replicationGroupName, _dbClient);
+                String snapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(replicationGroupName, replicaObject.getStorageController(), _dbClient);
                 // set the snapsetLabel for the snapshots to add
                 if (null != snapSetLabel) {
                     ((BlockSnapshot) replicaObject).setSnapsetLabel(snapSetLabel);
@@ -2344,7 +2344,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             List<BlockObject> replicaList = new ArrayList<BlockObject>();
             String settingsInst = null;
             if (storage.checkIfVmax3() && URIUtil.isType(replicas.get(0), BlockSnapshot.class)) {
-                List<BlockSnapshot> blockSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupName, _dbClient);
+                List<BlockSnapshot> blockSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupName, storage.getId(), _dbClient);
                 if (blockSnapshots != null && !blockSnapshots.isEmpty()) {
                     settingsInst = blockSnapshots.get(0).getSettingsInstance();
                 }

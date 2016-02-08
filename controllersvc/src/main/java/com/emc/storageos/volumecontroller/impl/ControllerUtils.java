@@ -69,7 +69,9 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Table;
 
 /**
  * Utilities class encapsulates controller utility methods.
@@ -791,29 +793,6 @@ public class ControllerUtils {
     }
 
     /**
-     * Utility method which will filter the snapshots from getBlockSnapshotsBySnapsetLabel query by the
-     * snapshot's project
-     * 
-     * @param snapshot
-     * @param dbClient
-     * @return
-     */
-    public static List<BlockSnapshot> getBlockSnapshotsBySnapsetLabelForProject(BlockSnapshot snapshot, DbClient dbClient) {
-        URIQueryResultList list = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                getBlockSnapshotsBySnapsetLabel(snapshot.getSnapsetLabel()), list);
-        Iterator<BlockSnapshot> resultsIt = dbClient.queryIterativeObjects(BlockSnapshot.class, list);
-        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
-        while (resultsIt.hasNext()) {
-            BlockSnapshot snap = resultsIt.next();
-            if (snapshot.getProject() != null && snapshot.getProject().getURI().equals(snap.getProject().getURI())) {
-                snapshots.add(snap);
-            }
-        }
-        return snapshots;
-    }
-
-    /**
      * Determines if the passed volume is a full copy.
      * 
      * @param volume A reference to a volume.
@@ -951,9 +930,13 @@ public class ControllerUtils {
 
     /**
      * Gets the snapshots part of a given replication group.
+     * Check storage system just in case same replication group name could be found on different arrays
+     * @param replicationGroupInstance
+     * @param storage
+     * @param dbClient
      */
     public static List<BlockSnapshot> getSnapshotsPartOfReplicationGroup(
-            String replicationGroupInstance, DbClient dbClient) {
+            String replicationGroupInstance, URI storage, DbClient dbClient) {
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -963,11 +946,22 @@ public class ControllerUtils {
                 uriQueryResultList);
         while (snapIterator.hasNext()) {
             BlockSnapshot snapshot = snapIterator.next();
-            if (snapshot != null && !snapshot.getInactive()) {
+            if (snapshot != null && !snapshot.getInactive() && storage.equals(snapshot.getStorageController())) {
                 snapshots.add(snapshot);
             }
         }
         return snapshots;
+    }
+
+    /**
+     * Gets the snapshots part of a given replication group.
+     *
+     * @param snapshot
+     * @param dbClient
+     * @return snapshot list
+     */
+    public static List<BlockSnapshot> getSnapshotsPartOfReplicationGroup(BlockSnapshot snapshot, DbClient dbClient) {
+        return getSnapshotsPartOfReplicationGroup(snapshot.getReplicationGroupInstance(), snapshot.getStorageController(), dbClient);
     }
 
     /**
@@ -1378,11 +1372,12 @@ public class ControllerUtils {
      * This is required when we try to create a new snapshot when the existing source volumes have snapshots.
      * 
      * @param repGroupName
+     * @param storage
      * @param dbClient
      * @return
      */
-    public static String getSnapSetLabelFromExistingSnaps(String repGroupName, DbClient dbClient) {
-        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, dbClient);
+    public static String getSnapSetLabelFromExistingSnaps(String repGroupName, URI storage, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, storage, dbClient);
         String existingSnapSnapSetLabel = null;
         if (null != snapshots && !snapshots.isEmpty()) {
             existingSnapSnapSetLabel = snapshots.get(0).getSnapsetLabel();
@@ -1512,12 +1507,92 @@ public class ControllerUtils {
         Map<String, List<Volume>> arrayGroupToVolumes = new HashMap<String, List<Volume>>();
         for (Volume volume : volumes) {
             String repGroupName = volume.getReplicationGroupInstance();
-            if (arrayGroupToVolumes.get(repGroupName) == null) {
+            if (repGroupName != null && arrayGroupToVolumes.get(repGroupName) == null) {
                 arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());
             }
             arrayGroupToVolumes.get(repGroupName).add(volume);
         }
         return arrayGroupToVolumes;
+    }
+
+    /**
+     * Group volume URIs by consistency group.
+     *
+     * @param volumes the volumes
+     * @return the map of consistency group to volume URIs
+     */
+    public static Map<URI, List<URI>> groupVolumeURIsByCG(List<Volume> volumes) {
+        Map<URI, List<URI>> cgToVolUris = new HashMap<URI, List<URI>>();
+        for (Volume volume : volumes) {
+            if (volume.isInCG()) {
+                URI cg = volume.getConsistencyGroup();
+                if (!cgToVolUris.containsKey(cg)) {
+                    cgToVolUris.put(cg, new ArrayList<URI>());
+                }
+
+                cgToVolUris.get(cg).add(volume.getId());
+            }
+        }
+
+        return cgToVolUris;
+    }
+
+    /**
+     * Gets all snapshots for the given set name.
+     */
+    public static List<BlockSnapshot> getVolumeGroupSnapshots(URI volumeGroupId, String snapsetLabel, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        if (snapsetLabel != null) {
+            URIQueryResultList list = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                    getBlockSnapshotsBySnapsetLabel(snapsetLabel), list);
+            Iterator<BlockSnapshot> iter = dbClient.queryIterativeObjects(BlockSnapshot.class, list);
+            while (iter.hasNext()) {
+                BlockSnapshot snapshot = iter.next();
+                if (isSourceInVoumeGroup(snapshot, volumeGroupId, dbClient)) {
+                    snapshots.add(iter.next());
+                }
+            }
+        }
+
+        return snapshots;
+    }
+
+    /*
+     * For each storage system and RG, get one snapshot
+     *
+     * @param snapshots List of snapshots
+     * @return table with storage URI, replication group name, and snapshot
+     */
+    public static Table<URI, String, BlockSnapshot> getSnapshotForStorageReplicationGroup(List<BlockSnapshot> snapshots) {
+        Table<URI, String, BlockSnapshot> storageRgToSnapshot = HashBasedTable.create();
+        for (BlockSnapshot snapshot : snapshots) {
+            URI storage = snapshot.getStorageController();
+            String rgName = snapshot.getReplicationGroupInstance();
+            if (!storageRgToSnapshot.contains(storage, rgName)) {
+                storageRgToSnapshot.put(storage, rgName, snapshot);
+            }
+        }
+
+        return storageRgToSnapshot;
+    }
+
+    /*
+     * Check if source of the snapshot is in the volume group
+     *
+     * @param snapshot
+     * @param voluemGroupId
+     * @param dbClient
+     */
+    public static boolean isSourceInVoumeGroup(BlockSnapshot snapshot, URI volumeGroupId, DbClient dbClient) {
+        Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
+        if (volume != null && !volume.getInactive()) {
+            if (volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

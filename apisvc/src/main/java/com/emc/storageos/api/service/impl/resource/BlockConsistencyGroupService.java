@@ -114,6 +114,8 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
 
 @Path("/block/consistency-groups")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN,
@@ -196,11 +198,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final Class<? extends DataObject> clazz = URIUtil.isType(id, BlockSnapshot.class) ? BlockSnapshot.class
                 : BlockConsistencyGroup.class;
 
-        final DataObject consistencyGroup = _permissionsHelper.getObjectById(id, clazz);
+        final DataObject obj = _permissionsHelper.getObjectById(id, clazz);
 
-        ArgValidator.checkEntityNotNull(consistencyGroup, id, isIdEmbeddedInURL(id));
+        ArgValidator.checkEntityNotNull(obj, id, isIdEmbeddedInURL(id));
 
-        return consistencyGroup;
+        return obj;
     }
 
     @Override
@@ -433,6 +435,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
     public TaskList createConsistencyGroupSnapshot(@PathParam("id") final URI consistencyGroupId,
             final BlockConsistencyGroupSnapshotCreate param) {
+        ArgValidator.checkFieldUriType(consistencyGroupId, BlockConsistencyGroup.class, "id");
+
         // Query Consistency Group
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
 
@@ -450,51 +454,58 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
-        // Get the volumes in the consistency group.
-        List<Volume> volumeList = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
-
-        // Generate task id
-        String taskId = UUID.randomUUID().toString();
-
-        // Set snapshot type.
-        String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
-
-        Volume snapVolume = null;
-        if (!volumeList.isEmpty()) {
-            // Any volume.
-            snapVolume = volumeList.get(0);
+        Set<String> selectedRGs = null;
+        if (param.getVolumes() != null) {
+            selectedRGs = BlockServiceUtils.getReplicationGroupsFromVolumes(param.getVolumes(), _dbClient, uriInfo);
         }
 
-        // Validate the snapshot request.
-        String snapshotName = param.getName();
-        blockServiceApiImpl.validateCreateSnapshot(snapVolume, volumeList, snapshotType, snapshotName, getFullCopyManager());
+        // Group volumes by storage system and replication group, ignore replication groups that not in selectedRGs if it is not null
+        Table<URI, String, List<Volume>> storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
+                blockServiceApiImpl.getActiveCGVolumes(consistencyGroup),
+                selectedRGs);
+        TaskList taskList = new TaskList();
+        for (Cell<URI, String, List<Volume>> cell : storageRgToVolumes.cellSet()) {
+            List<Volume> volumeList = cell.getValue();
+            if (volumeList == null || volumeList.isEmpty()) {
+                _log.warn(String.format("No volume in replication group %s", cell.getColumnKey()));
+                continue;
+            }
 
-        // Set the create inactive flag.
-        final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
-                : param.getCreateInactive();
+            // Generate task id
+            String taskId = UUID.randomUUID().toString();
+            // Set snapshot type.
+            String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
+            // Validate the snapshot request.
+            String snapshotName = param.getName();
+            blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, getFullCopyManager());
+            // Set the create inactive flag.
+            final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
+                    : param.getCreateInactive();
+            // Set the read only flag.
+            final Boolean readOnly = param.getReadOnly() == null ? Boolean.FALSE : param.getReadOnly();
 
-        final Boolean readOnly = param.getReadOnly() == null ? Boolean.FALSE : param.getReadOnly();
+            // Prepare and create the snapshots for the group.
+            List<URI> snapIdList = new ArrayList<URI>();
+            List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
+            snapshotList.addAll(blockServiceApiImpl.prepareSnapshots(
+                    volumeList, snapshotType, snapshotName, snapIdList, taskId));
+            TaskList response = new TaskList();
+            for (BlockSnapshot snapshot : snapshotList) {
+                response.getTaskList().add(toTask(snapshot, taskId));
+            }
 
-        // Prepare and create the snapshots for the group.
-        List<URI> snapIdList = new ArrayList<URI>();
-        List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
-        TaskList response = new TaskList();
-        snapshotList.addAll(blockServiceApiImpl.prepareSnapshots(
-                volumeList, snapshotType, snapshotName, snapIdList, taskId));
-        for (BlockSnapshot snapshot : snapshotList) {
-            response.getTaskList().add(toTask(snapshot, taskId));
+            addConsistencyGroupTask(consistencyGroup, response, taskId,
+                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT);
+            // TODO error handling
+            blockServiceApiImpl.createSnapshot(volumeList.get(0), snapIdList, snapshotType, createInactive, readOnly, taskId);
+
+            auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
+                    AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.getName(),
+                    consistencyGroup.getId().toString());
+            taskList.getTaskList().addAll(response.getTaskList());
         }
 
-        addConsistencyGroupTask(consistencyGroup, response, taskId,
-                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT);
-
-        blockServiceApiImpl.createSnapshot(snapVolume, snapIdList, snapshotType, createInactive, readOnly, taskId);
-
-        auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
-                AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.getName(),
-                consistencyGroup.getId().toString());
-
-        return response;
+        return taskList;
     }
 
     /**
@@ -634,7 +645,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         try {
             final List<URI> snapshotList = new ArrayList<URI>();
             // Query all the snapshots by snapshot label
-            final List<BlockSnapshot> snaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+            final List<BlockSnapshot> snaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
 
             // Build a URI list with all the snapshots ids
             for (BlockSnapshot snap : snaps) {
@@ -714,7 +725,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         if (snapshot.getConsistencyGroup() != null) {
             // Collect all the BlockSnapshots if part of a CG.
-            snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+            snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
         }
 
         for (BlockSnapshot snap : snapshots) {

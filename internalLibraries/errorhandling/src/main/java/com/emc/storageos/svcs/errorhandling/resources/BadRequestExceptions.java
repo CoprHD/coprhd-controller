@@ -1971,7 +1971,7 @@ public interface BadRequestExceptions {
     public BadRequestException objBaseUrlConflicts(final String enteredBaseUrl, final String existingBaseUrl);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException noRepGroup();
+    public BadRequestException noRepGroupInstance(final String volumeLabel);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noCosForRepGroup(final String repGroup, final String tenantId, final String zone);

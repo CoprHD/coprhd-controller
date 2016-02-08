@@ -450,6 +450,9 @@ public enum OperationTypeEnum {
     RESYNCHRONIZE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyResynchronized", "VolumeGroupFullCopyResynchronizeFailed",
             "VolumeGroupFullCopy Resynchronized"),
 
+    CREATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotCreated", "VolumeGroupSnapshotCreateFailed", "VolumeGroupSnapshot Created"),
+    DEACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotDeactivate", "VolumeGroupSnapshotDeactivateFailed", "VolumeGroupSnapshot Deactivated"),
+
     CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
     RESTORE_SNAPSHOT_SESSION("BlockSnapshotSessionRestored", "BlockSnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),
     DELETE_SNAPSHOT_SESSION("BlockSnapshotSessionDeleted", "BlockSnapshotSessionDeleteFailed", "BlockSnapshotSession Delete"),

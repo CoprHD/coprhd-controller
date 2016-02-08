@@ -11,7 +11,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.SynchronizationState;
@@ -340,7 +339,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());
         snapshot.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
-        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, _dbClient);
+        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, volume.getStorageController(), _dbClient);
         if (null != existingSnapSnapSetLabel) {
             snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
         } else {
@@ -724,7 +723,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
     /*
-     * Delete all clones of the to be deleted volumes in a CG
+     * Delete all mirrors of the to be deleted volumes in a CG
      */
     private String deleteMirrorSteps(final Workflow workflow, String waitFor,
             Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {

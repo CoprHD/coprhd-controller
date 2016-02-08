@@ -173,7 +173,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     SYNC_TYPE.SNAPSHOT, taskCompleter, _dbClient, _helper, _cimPath);
             if (isSuccess) {
                 List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                        snapshotObj.getReplicationGroupInstance(), _dbClient);
+                        snapshotObj, _dbClient);
                 setIsSyncActive(snapshots, true);
                 for (BlockSnapshot it : snapshots) {
                     it.setRefreshRequired(true);
@@ -357,20 +357,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     snapshotList.get(0).toString(), '-', storage.getUsingSmis80() ? SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH
                             : SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
 
-            int snapshotsCount = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(first, _dbClient).size();
-
             // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
             ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, first, _dbClient, _helper, _cimPath);
-
-            if (snapshotsCount <= 0) {
-                final String errMsg = String.format(
-                        "The number of block snapshots with snapset label %s is %d; need to have more than 0 to CG snaps.",
-                        first.getSnapsetLabel(), snapshotsCount);
-                _log.error(errMsg);
-                ServiceError error = DeviceControllerErrors.smis.noBlockSnapshotsFound();
-                taskCompleter.error(_dbClient, error);
-            }
-
             final Map<String, List<Volume>> volumesBySizeMap = new HashMap<String, List<Volume>>();
 
             // Group volumes by pool and size
@@ -475,7 +463,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 }
             }
             List<BlockSnapshot> snapshotList = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                    snapshotObj.getReplicationGroupInstance(), _dbClient);
+                    snapshotObj, _dbClient);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
@@ -1321,7 +1309,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             if (syncInstance == null) {
                 // get all snapshots belonging to a Replication Group. There may be multiple snapshots available for a Volume
                 List<BlockSnapshot> snapshots = ControllerUtils.
-                        getSnapshotsPartOfReplicationGroup(snapshotObj.getReplicationGroupInstance(), _dbClient);
+                        getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
 
                 List<CIMObjectPath> elementSynchronizations = new ArrayList<CIMObjectPath>();
                 for (BlockSnapshot snapshotObject : snapshots) {

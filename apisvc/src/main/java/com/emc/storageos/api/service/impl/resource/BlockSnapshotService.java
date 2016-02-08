@@ -264,7 +264,7 @@ public class BlockSnapshotService extends TaskResourceService {
         final URI cgId = snap.getConsistencyGroup();
         if (!NullColumnValueGetter.isNullURI(cgId)) {
             // Collect all the BlockSnapshots if part of a CG.
-            snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snap, _dbClient);
+            snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snap, _dbClient);
         } else {
             // Snap is not part of a CG so only delete the snap
             snapshots.add(snap);
@@ -523,7 +523,7 @@ public class BlockSnapshotService extends TaskResourceService {
 
         List<URI> snapshotList = new ArrayList<URI>();
         if (!NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup())) {
-            List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
             for (BlockSnapshot snap : snapshots) {
                 snapshotList.add(snap.getId());
             }

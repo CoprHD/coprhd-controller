@@ -4609,7 +4609,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Otherwise, get all snapshots in the snapset, get the parent volume for each
             // snapshot. If the parent is a VPlex backing volume, get the VLPEX volume
             // using the snapshot parent.
-            List<BlockSnapshot> cgSnaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+            List<BlockSnapshot> cgSnaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
             for (BlockSnapshot cgSnapshot : cgSnaps) {
                 URIQueryResultList queryResults = new URIQueryResultList();
                 _dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -5166,7 +5166,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (cgId != null) {
                 // Account for all CG BlockSnapshots if this requested BlockSnapshot
                 // references a CG.
-                snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snap, _dbClient);
+                snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snap, _dbClient);
             } else {
                 snapshots.add(snap);
             }

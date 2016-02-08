@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -45,10 +44,10 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -57,6 +56,8 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Joiner;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 /**
  * Utility class to hold generic, reusable block service methods
@@ -472,5 +473,72 @@ public class BlockServiceUtils {
                     pendingListStr));
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(pendingListStr);
         }
+    }
+
+    /**
+     * Get replication group instances that contains volumes in the list
+     *
+     * @param volumes List of volume URIs
+     * @param uriInfo A reference to the URI info
+     * @param dbClient DbClient
+     *
+     * @return Set of replication groups
+     */
+    public static Set<String> getReplicationGroupsFromVolumes(List<URI> volumes, DbClient dbClient, UriInfo uriInfo) {
+        // validate that at least one volume URI is provided
+        ArgValidator.checkFieldNotEmpty(volumes, "volumes");
+
+        Set<String> rgs = new HashSet<String>();
+        List<Volume> selectedVolumes = dbClient.queryObject(Volume.class, volumes);
+        for (Volume volume : selectedVolumes) {
+            ArgValidator.checkEntityNotNull(volume, volume.getId(), isIdEmbeddedInURL(volume.getId(), uriInfo));
+            String rgName = volume.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNullValue(rgName)) {
+                throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
+            }
+
+            rgs.add(rgName);
+        }
+
+        return rgs;
+    }
+
+    /**
+     * Group volumes by storage system and replication group for selected replication groups, if filter provided, or all
+     *
+     * @param cgVolumes List of all volumes in a CG
+     * @param rgFilter Set of selected replication groups
+     * @return table with storage URI, replication group name, and volumes
+     */
+    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<Volume> cgVolumes, Set<String> rgFiler) {
+        // Group volumes by storage system and replication group
+        // Ignore replication groups that not in rgFiler if the filter is provided
+        Table<URI, String, List<Volume>> storageRgToVolumes = HashBasedTable.create();
+        for (Volume volume : cgVolumes) {
+            String rgName = volume.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNullValue(rgName)) {
+                throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
+            }
+
+            if (rgFiler == null || rgFiler.contains(rgName)) {
+                URI storage = volume.getStorageController();
+                List<Volume> volumes = storageRgToVolumes.get(storage, rgName);
+                if (volumes == null) {
+                    volumes = new ArrayList<Volume>();
+                    storageRgToVolumes.put(storage, rgName, volumes);
+                }
+                volumes.add(volume);
+            }
+        }
+
+        return storageRgToVolumes;
+    }
+
+    public static BlockSnapshot querySnapshotResource(URI snapshotURI, UriInfo uriInfo, DbClient dbClient) {
+        ArgValidator.checkFieldUriType(snapshotURI, BlockSnapshot.class, "snapshots");
+        BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+        ArgValidator.checkEntity(snapshot, snapshotURI,
+                BlockServiceUtils.isIdEmbeddedInURL(snapshotURI, uriInfo), true);
+        return snapshot;
     }
 }

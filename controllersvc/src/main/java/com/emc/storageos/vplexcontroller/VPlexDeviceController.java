@@ -8141,7 +8141,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Otherwise, get all snapshots in the snapset, get the
                 // parent volume for each snapshot, and get the VLPEX
                 // volume using the snapshot parent.
-                List<BlockSnapshot> cgSnaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+                List<BlockSnapshot> cgSnaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
                 for (BlockSnapshot cgSnapshot : cgSnaps) {
                     URIQueryResultList queryResults = new URIQueryResultList();
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -10342,7 +10342,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<BlockSnapshot> snapshotsToResync = new ArrayList<BlockSnapshot>();
             URI cgURI = snapshot.getConsistencyGroup();
             if (!NullColumnValueGetter.isNullURI(cgURI)) {
-                snapshotsToResync = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+                snapshotsToResync = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
             } else {
                 snapshotsToResync.add(snapshot);
             }

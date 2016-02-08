@@ -4,7 +4,12 @@
  */
 package com.emc.storageos.model.block;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
@@ -14,6 +19,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class BlockConsistencyGroupSnapshotCreate {
 
     private String name;
+    // field for Application API
+    private List<URI> volumes;
     private Boolean createInactive;
     private Boolean readOnly;
 
@@ -27,6 +34,12 @@ public class BlockConsistencyGroupSnapshotCreate {
         this.readOnly = readOnly;
     }
 
+    public BlockConsistencyGroupSnapshotCreate(String name, List<URI> volumes,
+            Boolean createInactive, Boolean readOnly) {
+        this(name, createInactive, readOnly);
+        this.volumes = volumes;
+    }
+
     /**
      * Snapshot name
      * 
@@ -38,6 +51,27 @@ public class BlockConsistencyGroupSnapshotCreate {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    @XmlElementWrapper(required = false, name = "volumes")
+    /**
+     * List of Volume IDs.
+     * This field is applicable only if partial is set to true,
+     * meaning snapshot need not be created for the entire Application, instead create snapshot for the specified array replication groups.
+     * List can have volumes one from each Array replication group.
+     *
+     * Example: list of valid URIs
+     */
+    @XmlElement(required = false, name = "volume")
+    public List<URI> getVolumes() {
+        if (volumes == null) {
+            volumes = new ArrayList<URI>();
+        }
+        return volumes;
+    }
+
+    public void setVolumes(List<URI> volumes) {
+        this.volumes = volumes;
     }
 
     /**

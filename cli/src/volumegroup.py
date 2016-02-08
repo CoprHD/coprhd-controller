@@ -15,7 +15,6 @@ import json
 import tag
 from volume import Volume
 
-
 class VolumeGroup(object):
 
     '''
@@ -39,6 +38,14 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_CLONE_LIST = URI_VOLUME_GROUP_CLONE
     URI_VOLUME_GROUP_CLONE_GET= "/volume-groups/block/{0}/protection/full-copies/{1}"
     
+    # URIs for VolumeGroup Snapshot Operations
+    URI_VOLUME_GROUP_SNAPSHOT = "/volume-groups/block/{0}/protection/snapshots"
+    URI_VOLUME_GROUP_SNAPSHOT_ACTIVATE = "/volume-groups/block/{0}/protection/snapshots/activate"
+    URI_VOLUME_GROUP_SNAPSHOT_DEACTIVATE = "/volume-groups/block/{0}/protection/snapshots/deactivate"
+    URI_VOLUME_GROUP_SNAPSHOT_RESTORE = "/volume-groups/block/{0}/protection/snapshots/restore"
+    URI_VOLUME_GROUP_SNAPSHOT_RESYNCRONIZE = "/volume-groups/block/{0}/protection/snapshots/resynchronize"
+    URI_VOLUME_GROUP_SNAPSHOT_LIST = URI_VOLUME_GROUP_SNAPSHOT
+    URI_VOLUME_GROUP_SNAPSHOT_GET= "/volume-groups/block/{0}/protection/snapshots/{1}"
     
     def __init__(self, ipAddr, port):
         '''
@@ -456,6 +463,80 @@ class VolumeGroup(object):
             return self.check_for_sync(task, sync)
         else:
             return o   
+
+    # Creates snapshot for the given volume group
+    def snapshot(self, name, snapshot_name, create_inactive, partial, volumeUris, sync):
+        '''
+        Makes REST API call to create volume group snapshot
+        Parameters:
+            name: name with which snapshot to be created
+            create_inactive: with this flag, created snapshot will not be activated
+            partial: Enable the flag to create clones for subset of VolumeGroup.
+                     Please specify one volume from each Array Replication Group
+            volumes: A list of volumes specifying their Array Replication Groups.
+                    This field is valid only when partial flag is provided
+        Returns:
+            response of the create operation
+        '''
+
+        volumeGroupUri = self.query_by_name(name)
+
+        request = {
+            'name': snapshot_name,
+            'create_inactive': create_inactive
+        }
+
+        # if partial request
+        if (partial):
+            request["partial"] = partial
+            request["volumes"] = volumeUris.split(',')
+
+        body = json.dumps(request)
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT.format(volumeGroupUri),
+                                             body)
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o
+
+
+    def volume_group_snapshot_deactivate(self, name, snapshotUris, partial, sync):
+        '''
+        Makes REST API call to deactivate volume group snapshot
+        Parameters:
+            partial: Enable the flag to operate on snapshots for subset of VolumeGroup.
+                     Please specify one snapshot from each Array Replication Group
+            snapshots: A snapshot of a volume group specifying which snapshot Set to act on.
+                    For partial operation, specify one snapshot from each Array Replication Group
+        Returns:
+            response of the deactivate operation
+        '''
+        volume_group_uri = self.query_by_name(name)
+
+        request = dict()
+        request["snapshots"] = snapshotUris.split(',')
+
+        # if partial request
+        if (partial):
+            request["partial"] = partial
+
+        body = json.dumps(request)
+
+        (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port,
+                "POST",
+                VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_DEACTIVATE.format(volume_group_uri), body)
+
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task,sync)
+        else:
+            return o
 
     # Blocks the operation until the task is complete/error out/timeout
     def check_for_sync(self, result, sync):
@@ -1244,7 +1325,149 @@ def volume_group_clone_get(args):
                 e.err_text,
                 e.err_code)   
 
+# volume group snapshot routines
+def snapshot_parser(subcommand_parsers, common_parser):
+    snapshot_parser = subcommand_parsers.add_parser(
+        'snapshot',
+        description='ViPR VolumeGroup Snapshot CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='VolumeGroup Snapshot')
 
+    mandatory_args = snapshot_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    mandatory_args.add_argument('-snapshotname', '-ssn',
+                                metavar='<snapshotname>',
+                                dest='snapshotname',
+                                help='Name of Snapshot',
+                                required=True)
+    snapshot_parser.add_argument('-createinactive', '-ci',
+                              dest='createinactive',
+                              action='store_true',
+                              help='Create snapshot with inactive state')
+    snapshot_parser.add_argument('-readonly', '-ro',
+                              dest='readonly',
+                              action='store_true',
+                              help='Create read only snapshot')
+    snapshot_parser.add_argument('-partial',
+                              dest='partial',
+                              action='store_true',
+                              help='To create clones for subset of VolumeGroup. ' +
+                              'Please specify one volume from each Array Replication Group')
+    snapshot_parser.add_argument('-volumes', '-v',
+                            metavar='<volume_label,...>',
+                            dest='volumes',
+                            help='A list of volumes specifying their Array Replication Groups to be cloned.' +
+                            ' This field is valid only when partial flag is provided')
+    snapshot_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+
+    snapshot_parser.set_defaults(func=volume_group_snapshot)
+
+
+def volume_group_snapshot(args):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        volumeUris = query_volumes_for_partial_request(args)
+        obj.snapshot(args.name, args.snapshotname, args.createinactive, args.partial, ",".join(volumeUris), False)
+        return
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "create",
+            "volume group snapshot",
+            e.err_text,
+            e.err_code)
+
+# Common Parser for snapshot operations
+def volume_group_snapshot_common_parser(cc_common_parser):
+    mandatory_args = cc_common_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    cc_common_parser.add_argument('-partial',
+                              dest='partial',
+                              action='store_true',
+                              help='To operate on snapshots for subset of VolumeGroup. ' +
+                              'Please specify one snapshot from each Array Replication Group')
+    mandatory_args.add_argument('-snapshots', '-s',
+                            metavar='<snapshotname,...>',
+                            dest='snapshots',
+                            help='A snapshot of a volume group specifying which snapshot Set to act on. ' +
+                            'For partial operation, specify one snapshot from each Array Replication Group',
+                            required=True)
+
+    cc_common_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    cc_common_parser.add_argument('-synchronous', '-sync',
+                                  dest='sync',
+                                  action='store_true',
+                                  help='Synchronous mode enabled')
+
+# snapshot_deactivate_parser
+def snapshot_deactivate_parser(subcommand_parsers, common_parser):
+    snapshot_deactivate_parser = subcommand_parsers.add_parser(
+        'snapshot-deactivate',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Deactivate snapshot of a VolumeGroup',
+        description='ViPR Deactivate Snapshot of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot parser.
+    volume_group_snapshot_common_parser(snapshot_deactivate_parser)
+    snapshot_deactivate_parser.set_defaults(func=volume_group_snapshot_deactivate)
+
+# Deactivate Snapshot Function
+def volume_group_snapshot_deactivate(args):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        obj.volume_group_snapshot_deactivate(
+            args.name,
+            args.snapshots, #",".join(snapshotUris),
+            args.partial,
+            args.sync)
+        return
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot Deactivate: " +
+                args.name +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot",
+                "deactivate",
+                e.err_text,
+                e.err_code)
 
 # VolumeGroup Main parser routine
 def volume_group_parser(parent_subparser, common_parser):
@@ -1304,4 +1527,24 @@ def volume_group_parser(parent_subparser, common_parser):
     # GET full-copy volume of a volume group command parser
     clone_get_parser(subcommand_parsers, common_parser)
     
+    #snapshot
+    # snapshot create command parser
+    snapshot_parser(subcommand_parsers, common_parser)
 
+    # snapshot activate command parser
+    #snapshot_activate_parser(subcommand_parsers, common_parser)
+
+    # snapshot deactivate command parser
+    snapshot_deactivate_parser(subcommand_parsers, common_parser)
+
+    # snapshot restore command parser
+    #snapshot_restore_parser(subcommand_parsers, common_parser)
+
+    # snapshot resync command parser
+    #snapshot_resync_parser(subcommand_parsers, common_parser)
+
+    # GET snapshots of a volume group command parser
+    #snapshot_list_parser(subcommand_parsers, common_parser)
+
+    # GET snapshots of a volume group command parser
+    #snapshot_get_parser(subcommand_parsers, common_parser)

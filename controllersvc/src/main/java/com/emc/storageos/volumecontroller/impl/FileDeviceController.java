@@ -1142,7 +1142,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM,
                     result.isCommandSuccess(), eventMsg, "", fs);
         } catch (Exception e) {
-            String[] params = { storage.toString(), fsuri.toString(), e.getMessage() };
             _log.error("Unable to update file system: FS URI {}", fs.getId());
             updateTaskStatus(opId, fs, e);
             if (fs != null) {

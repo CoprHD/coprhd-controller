@@ -34,11 +34,13 @@ import util.datatable.DataTablesSupport;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
+import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyRestRep;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileShareRestRep.FileProtectionRestRep;
@@ -79,6 +81,7 @@ public class FileSystems extends ResourceController {
     private static final String UNKNOWN = "resources.filesystems.unknown";
     protected static final String DELETED = "resources.filesystem.share.acl.deleted";
     protected static final String ADDED = "resources.filesystem.share.acl.added";
+    private static final String LOCAL_MIRROR="LOCAL_MIRROR";
 
     private static FileSystemsDataTable fileSystemsDataTable = new FileSystemsDataTable();
 
@@ -169,23 +172,17 @@ public class FileSystems extends ResourceController {
         ViPRCoreClient client = BourneUtil.getViprClient();
         FileProtectionRestRep targetFileSystems = client.fileSystems().get(id).getProtection();
         List<FileShareRestRep> fileMirrors = new ArrayList<FileShareRestRep>();
-//        for(VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()){
-//            fileMirrors.add(client.fileSystems().get(virtualResource.getId()));
-//        }
-        
-        for(int i=0;i<4;i++){
-            FileShareRestRep tempRp = new FileShareRestRep();
-            tempRp.setName("FileSystemABC"+i);
-            fileMirrors.add(tempRp);
+        for(VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()){
+            fileMirrors.add(client.fileSystems().get(virtualResource.getId()));
         }
         
-//        String personality=targetFileSystems.getPersonality();
-        String personality="SOURCE";
+        String personality=targetFileSystems.getPersonality();
+        
         renderArgs.put("personality", personality);
         renderArgs.put("fileMirrors",fileMirrors);
+        renderArgs.put("fileSystemId",fileSystemId);
         
         render();
-        
     }
     
 	public static void fileSystemNfsACLs(String fileSystemId) {
@@ -515,6 +512,32 @@ public class FileSystems extends ResourceController {
         fileSystem(fileSystemId);
     }
 
+    @FlashException(referrer = { "fileSystem" })
+    public static void mirrorOperationFileSystem(String fileSystemId, String mirrorOperation) {
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        Copy copy = new Copy();
+        copy.setType(LOCAL_MIRROR);
+        FileReplicationParam param = new FileReplicationParam();
+        List<Copy> listCopy= new ArrayList();
+        listCopy.add(copy);
+        param.setCopies(listCopy);
+        
+        URI fileSystemUri = URI.create(fileSystemId);
+        if("start".equalsIgnoreCase(mirrorOperation)){
+        client.fileSystems().startReplication(fileSystemUri, param);
+        }
+        if("stop".equalsIgnoreCase(mirrorOperation)){
+        client.fileSystems().stopReplication(fileSystemUri, param);
+        }
+        if("pause".equalsIgnoreCase(mirrorOperation)){
+        client.fileSystems().pauseReplication(fileSystemUri, param);
+        }
+        if("resume".equalsIgnoreCase(mirrorOperation)){
+        client.fileSystems().resumeReplication(fileSystemUri, param);
+        }
+        fileSystem(fileSystemId);
+    }
+    
     public static void getScheculePolicies() {
         String tenantId = Models.currentAdminTenant();
         ViPRCoreClient client = BourneUtil.getViprClient();

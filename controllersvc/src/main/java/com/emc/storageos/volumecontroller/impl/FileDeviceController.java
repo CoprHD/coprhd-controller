@@ -310,12 +310,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // work flow fail
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
-            updateTaskStatus(opId, fileObject, e);
+
             if ((fsObj != null) && (storageObj != null)) {
                 fsObj.setInactive(true);
                 _dbClient.persistObject(fsObj);
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, false, e.getMessage(), "", fsObj, storageObj);
             }
+            updateTaskStatus(opId, fileObject, e);
         }
     }
 

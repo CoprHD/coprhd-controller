@@ -44,17 +44,19 @@ public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
 
         for (BlockObject blockObj : associatedObjects) {
             StringSetMap systemCGs = cg.getSystemConsistencyGroups();
-     
-            // No entries yet in the system consistency groups list.  That's OK, we'll create it.
+
+            // No entries yet in the system consistency groups list. That's OK, we'll create it.
             if (null == systemCGs || systemCGs.isEmpty()) {
                 cg.setSystemConsistencyGroups(new StringSetMap());
             }
 
             // This volume is not in a CG of this type
             if (blockObj.getReplicationGroupInstance() == null) {
+                logger.info("BlockObject {} doesn't have replicationGroup name {}. No need to set system cg information.",
+                        blockObj.getNativeGuid());
                 continue;
             }
-            
+
             boolean found = false;
             // Look through the existing entries in the CG and see if we find a match.
             for (Entry<String, AbstractChangeTrackingSet<String>> systemCGEntry : systemCGs.entrySet()) {
@@ -67,15 +69,15 @@ public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
                     }
                 }
             }
-            
+
             // If we didn't find this storage:cg combo, let's add it.
             if (!found) {
                 logger.info(String.format("Adding BlockObject %s/%s in CG %s", blockObj.getNativeGuid(),
                         blockObj.getReplicationGroupInstance(), cg.getLabel()));
-                            cg.addSystemConsistencyGroup(blockObj.getStorageController().toString(),
-                                    blockObj.getReplicationGroupInstance());
+                cg.addSystemConsistencyGroup(blockObj.getStorageController().toString(),
+                        blockObj.getReplicationGroupInstance());
             }
-            
+
             if (!cg.getTypes().contains(Types.LOCAL.toString())) {
                 cg.getTypes().add(Types.LOCAL.toString());
             }

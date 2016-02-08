@@ -42,12 +42,14 @@ public class IsilonSyncJobResync extends IsilonSyncJobFailover {
                     _pollResult.setJobPercentComplete(100);
                     _logger.info("IsilonSyncIQJob: {} succeeded", currentJob);
 
-                } else {
+                } else if (policyState.equals(JobState.failed)) {
                     _errorDescription = isiGetReportErrMsg(isiApiClient.getTargetReplicationPolicyReports(currentJob).getList());
                     _pollResult.setJobPercentComplete(100);
                     _pollResult.setErrorDescription(_errorDescription);
                     _status = JobStatus.FAILED;
                     _logger.error("IsilonSyncIQJob: {} failed; Details: {}", currentJob, _errorDescription);
+                } else {
+
                 }
 
             }

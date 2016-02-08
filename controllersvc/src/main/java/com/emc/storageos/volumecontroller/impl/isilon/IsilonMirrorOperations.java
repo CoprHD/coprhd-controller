@@ -20,6 +20,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
+import com.emc.storageos.isilon.restapi.IsilonNFSACL;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonSyncJob;
 import com.emc.storageos.isilon.restapi.IsilonSyncJob.Action;
@@ -61,6 +62,8 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         _dbClient = dbClient;
     }
 
+    private static final String QUOTA = "quota";
+
     /**
      * Create Mirror between source and target fileshare
      */
@@ -100,7 +103,8 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
-            cmdResult = this.doStopReplicationPolicy(system, policyName);
+            cmdResult = this.doStopReplicationPolicy(system, target, policyName);
+
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
             } else {
@@ -483,6 +487,46 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                 modifiedPolicy.setName(policyName);
                 modifiedPolicy.setEnabled(false);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+                return BiosCommandResult.createSuccessfulResult();
+            } else {
+                _log.error("Replication Policy - {} can't be STOPPED because policy is already DISABLED", policy.toString());
+                ServiceError error = DeviceControllerErrors.isilon
+                        .jobFailed("doStopReplicationPolicy as : Replication Policy can't be STOPPED because policy is already DISABLED");
+                return BiosCommandResult.createErrorResult(error);
+            }
+        } catch (IsilonException e) {
+            return BiosCommandResult.createErrorResult(e);
+        }
+
+    }
+
+    /**
+     * Call to device to delete policy
+     * 
+     * @param system
+     * @param policyName
+     * @return
+     */
+    public BiosCommandResult doStopReplicationPolicy(StorageSystem system, FileShare target, String policyName) {
+        try {
+            IsilonApi isi = getIsilonDevice(system);
+            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
+
+            if (policy.getEnabled()) {
+                IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+                modifiedPolicy.setName(policyName);
+                modifiedPolicy.setEnabled(false);
+                isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+                URI vNasURI = target.getVirtualNAS();
+
+                IsilonNFSACL nfsACL = isi.getNFSACL(target.getPath());
+                
+                target.getParentFileShare().getURI()
+                IsilonNFSACL nfsACL = isi.getNFSACL(target.getPath());
+
+                // args.getFsExtensions().put(QUOTA, qid)
+                // isi.getShare(target., zoneName)
+
                 return BiosCommandResult.createSuccessfulResult();
             } else {
                 _log.error("Replication Policy - {} can't be STOPPED because policy is already DISABLED", policy.toString());

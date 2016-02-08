@@ -3413,24 +3413,38 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             throws InternalException {
 
         if (filesystems != null && !filesystems.isEmpty()) {
-
+            // create source filesystems
             List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                     FileDescriptor.Type.FILE_DATA,
-                    FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                    FileDescriptor.Type.FILE_MIRROR_TARGET);
-
+                    FileDescriptor.Type.FILE_MIRROR_SOURCE);
             for (FileDescriptor descriptor : sourceDescriptors) {
-
-                List<URI> fileURIs = FileDescriptor.getFileSystemURIs(asList(descriptor));
-
-                // create step
+                // create source step
                 waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
                         String.format("Creating File systems:%n%s", taskId),
                         waitFor, descriptor.getDeviceURI(),
                         getDeviceType(descriptor.getDeviceURI()),
                         this.getClass(),
                         createFileSharesMethod(descriptor),
-                        rollbackCreateFileSharesMethod(descriptor.getDeviceURI(), fileURIs), null);
+                        null, null);
+            }
+            // create TargetFileystems
+            List<FileDescriptor> targetDescriptors = FileDescriptor.filterByType(filesystems,
+                    FileDescriptor.Type.FILE_MIRROR_TARGET);
+            if (targetDescriptors != null && !targetDescriptors.isEmpty()) {
+                for (FileDescriptor descriptor : targetDescriptors) {
+                    FileShare fsObj = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
+                    if (fsObj.getParentFileShare() != null) {
+                        // create target step
+                        waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
+                                String.format("Creating Target File systems:%n%s", taskId),
+                                waitFor, descriptor.getDeviceURI(),
+                                getDeviceType(descriptor.getDeviceURI()),
+                                this.getClass(),
+                                createFileSharesMethod(descriptor),
+                                rollbackCreateFileSharesMethod(descriptor.getDeviceURI(), asList(fsObj.getParentFileShare().getURI())),
+                                null);
+                    }
+                }
             }
         }
 

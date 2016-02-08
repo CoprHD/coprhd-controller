@@ -3793,7 +3793,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * A rollback workflow method that does nothing, but allows rollback
      * to continue to prior steps back up the workflow chain. Can be and is
      * used in workflows in other controllers that invoke operations on this
-     * block controller. If the block operation happens to fail, this no-op
+     * file controller. If the file operation happens to fail, this no-op
      * rollback method is invoked. It says the rollback step succeeded,
      * which will then allow other rollback operations to execute for other
      * workflow steps executed by the other controller.

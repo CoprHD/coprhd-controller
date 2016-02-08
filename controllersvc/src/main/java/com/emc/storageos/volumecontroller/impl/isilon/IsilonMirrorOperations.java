@@ -20,7 +20,6 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
-import com.emc.storageos.isilon.restapi.IsilonNFSACL;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonSyncJob;
 import com.emc.storageos.isilon.restapi.IsilonSyncJob.Action;
@@ -518,11 +517,6 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                 modifiedPolicy.setEnabled(false);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
                 URI vNasURI = target.getVirtualNAS();
-
-                IsilonNFSACL nfsACL = isi.getNFSACL(target.getPath());
-                
-                target.getParentFileShare().getURI()
-                IsilonNFSACL nfsACL = isi.getNFSACL(target.getPath());
 
                 // args.getFsExtensions().put(QUOTA, qid)
                 // isi.getShare(target., zoneName)

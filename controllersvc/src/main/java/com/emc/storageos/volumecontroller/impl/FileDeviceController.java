@@ -3419,13 +3419,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     FileDescriptor.Type.FILE_MIRROR_SOURCE);
             for (FileDescriptor descriptor : sourceDescriptors) {
                 // create source step
+                FileShare fsObjSource = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
                 waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
                         String.format("Creating File systems:%n%s", taskId),
-                        waitFor, descriptor.getDeviceURI(),
+                        null, descriptor.getDeviceURI(),
                         getDeviceType(descriptor.getDeviceURI()),
                         this.getClass(),
                         createFileSharesMethod(descriptor),
-                        null, null);
+                        rollbackCreateFileSharesMethod(descriptor.getDeviceURI(), asList(fsObjSource.getId())), null);
             }
             // create TargetFileystems
             List<FileDescriptor> targetDescriptors = FileDescriptor.filterByType(filesystems,

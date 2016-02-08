@@ -26,7 +26,6 @@ public class CreateFileContinuousCopyService extends ViPRService {
     
     @Override
     public void execute() throws Exception {
-        //Task<FileShareRestRep> copy = FileStorageUtils.createFileContinuousCopy(fileSystem, name);
         FileStorageUtils.createFileContinuousCopy(fileSystem, name);
     }
 

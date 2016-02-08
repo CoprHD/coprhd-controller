@@ -153,6 +153,8 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
                     volume.setProtocol(protocols);
                     volume.setOpStatus(new OpStatusMap());
                     volume.setConsistencyGroup(cgId);
+                    String repGrpInstance = snapshot.getReplicationGroupInstance();
+                    volume.setReplicationGroupInstance(repGrpInstance.substring(repGrpInstance.indexOf("+") + 1));
                     dbClient.createObject(volume);
                 }
             }

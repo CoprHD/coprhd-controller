@@ -97,7 +97,7 @@ class HostInitiator(object):
     Initiator create operation
     """
 
-    def create(self, sync, hostlabel, protocol, initiatorwwn, portwwn, initname):
+    def create(self, sync, hostlabel, protocol, initiatorwwn, portwwn, initname,synctime):
 
         hostUri = self.get_host_uri(hostlabel)
         request = {'protocol': protocol,
@@ -116,7 +116,7 @@ class HostInitiator(object):
             HostInitiator.URI_HOST_LIST_INITIATORS.format(hostUri),
             body)
         o = common.json_decode(s)
-        return self.check_for_sync(o, sync)
+        return self.check_for_sync(o, sync,synctime)
         
         
 
@@ -378,7 +378,7 @@ class HostInitiator(object):
             initiatorportwwn +
             " not found")
 
-    def check_for_sync(self, result, sync):
+    def check_for_sync(self, result, sync,synctime):
         if(sync):
             if(len(result["resource"]) > 0):
                 resource = result["resource"]
@@ -386,7 +386,7 @@ class HostInitiator(object):
                 return (
                     common.block_until_complete("initiator", resource["id"],
                                                 result["id"], self.__ipAddr,
-                                                self.__port)
+                                                self.__port,synctime)
                                                 
                                     
                 )
@@ -449,6 +449,11 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    create_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     
     create_parser.add_argument('-initiatorname', '-initname',
                                help='Initiator Alias Name',
@@ -470,7 +475,8 @@ Preprocessor for the initiator create operation
 
 
 def initiator_create(args):
-
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     if(args.protocol == "FC" and args.initiatorwwn is None):
         raise SOSError(
             SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
@@ -491,7 +497,7 @@ def initiator_create(args):
             args.protocol,
             args.initiatorwwn,
             args.initiatorportwwn,
-            args.initname)
+            args.initname,args.synctimeout)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create",

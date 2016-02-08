@@ -75,8 +75,8 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
 
     @Override
     public void performProtectionOperation(URI protectionDevice, URI id,
-            URI copyID, String op, String task) throws InternalException {
-        execFS("performProtectionOperation", protectionDevice, id, copyID, op, task);
+            URI copyID, String pointInTime, String op, String task) throws InternalException {
+        execFS("performProtectionOperation", protectionDevice, id, copyID, pointInTime, op, task);
     }
 
     @Override

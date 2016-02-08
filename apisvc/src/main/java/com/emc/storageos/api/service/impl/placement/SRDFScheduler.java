@@ -195,13 +195,13 @@ public class SRDFScheduler implements Scheduler {
                             + "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to "
                             + "hold at least one resource of the requested size.",
                     varray.getLabel());
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(),
-                    varray.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(),
+                    varray.getLabel());
         }
 
         // skip StoragePools, which had been used as R2 targets for given consistencyGroup earlier.
         // If we don't skip then for same CG, then our existing R2 targets will act as source
-        List<StoragePool> candidatePools = new ArrayList();
+        List<StoragePool> candidatePools = new ArrayList<StoragePool>();
         if (VirtualPool.vPoolSpecifiesSRDF(vpool)
                 && null != capabilities.getBlockConsistencyGroup()) {
             for (StoragePool pool : pools) {
@@ -317,7 +317,7 @@ public class SRDFScheduler implements Scheduler {
 
             for (VirtualArray targetVarray : targetVarrays) {
                 sb.append(targetVarray.getId()).append(" ");
-                tmpTargetVarrays.add(targetVarray.getId().toString());
+                tmpTargetVarrays.add(targetVarray.getLabel());
             }
 
             sb.append("]. There are no storage pools that match the passed vpool parameters and protocols and/or "
@@ -325,7 +325,7 @@ public class SRDFScheduler implements Scheduler {
 
             _log.error(sb.toString());
             throw APIException.badRequests.noMatchingRecoverPointStoragePoolsForVpoolAndVarrays(
-                    vpool.getId(), tmpTargetVarrays);
+                    vpool.getLabel(), tmpTargetVarrays);
 
         }
 
@@ -346,13 +346,13 @@ public class SRDFScheduler implements Scheduler {
 
             for (VirtualArray targetVarray : targetVarrays) {
                 sb.append(targetVarray.getId()).append(" ");
-                tmpSRDFVarrays.add(targetVarray.getId().toString());
+                tmpSRDFVarrays.add(targetVarray.getLabel());
             }
 
             // No matching target pool found for varray so throw an exception
             // indicating a placement error.
             _log.error(sb.toString());
-            throw APIException.badRequests.noMatchingSRDFPools(varray.getId(), vpool.getId(),
+            throw APIException.badRequests.noMatchingSRDFPools(varray.getLabel(), vpool.getLabel(),
                     tmpSRDFVarrays);
         }
 
@@ -451,7 +451,7 @@ public class SRDFScheduler implements Scheduler {
                             _log.error("Could not find any suitable storage pool for target varray: "
                                     + targetVarray1.getLabel());
                             throw APIException.badRequests
-                                    .unableToFindSuitablePoolForTargetVArray(targetVarray1.getId());
+                                    .unableToFindSuitablePoolForTargetVArray(targetVarray1.getLabel());
                         }
 
                         // Select the destination pool based on what was selected as source
@@ -482,7 +482,7 @@ public class SRDFScheduler implements Scheduler {
                             _log.error("Could not find a Storage pool for target varray: "
                                     + targetVarray1.getLabel());
                             throw APIException.badRequests
-                                    .unableToFindSuitablePoolForTargetVArray(targetVarray1.getId());
+                                    .unableToFindSuitablePoolForTargetVArray(targetVarray1.getLabel());
                         }
 
                         rec.getVirtualArrayTargetMap().put(targetVarray1.getId(), target);
@@ -578,7 +578,7 @@ public class SRDFScheduler implements Scheduler {
             _log.error(
                     "Volume's storage pool does not belong to vpool {} .", vpool.getLabel());
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(
-                    vpool.getId(), volume.getVirtualArray());
+                    vpool.getLabel(), volume.getVirtualArray().toString());
         }
         VirtualPoolCapabilityValuesWrapper wrapper = new VirtualPoolCapabilityValuesWrapper();
         wrapper.put(VirtualPoolCapabilityValuesWrapper.SIZE, volume.getCapacity());

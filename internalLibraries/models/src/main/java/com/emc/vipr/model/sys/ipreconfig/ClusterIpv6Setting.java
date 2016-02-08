@@ -262,5 +262,4 @@ public class ClusterIpv6Setting implements Serializable {
         }
         return true;
     }
-
 }

@@ -56,7 +56,6 @@ import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.GetSharesForFileSnapshot;
-import com.emc.sa.service.vipr.file.tasks.PauseFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
@@ -344,14 +343,12 @@ public class FileStorageUtils {
     }
     
     public static void removeContinuousCopiesForFile(URI fileId, Collection<URI> continuousCopyIds) {
-        //removeBlockResourcesFromExports(continuousCopyIds);
         for (URI continuousCopyId : continuousCopyIds) {
             removeFileContinuousCopy(fileId, continuousCopyId);
         }
     }
     
     private static void removeFileContinuousCopy(URI fileId, URI continuousCopyId) {
-        //execute(new PauseFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
         execute(new StopFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
         Task<FileShareRestRep> task = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
         addAffectedResource(task);
@@ -359,7 +356,6 @@ public class FileStorageUtils {
     
     
     public static void failoverFileSystem(URI fileId, URI targetId) {
-        //execute(new PauseFileContinuousCopy(fileId, targetId, FileTechnologyType.LOCAL_MIRROR.name()));
         Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name()));
         addAffectedResources(tasks);
     }

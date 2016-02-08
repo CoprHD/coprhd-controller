@@ -197,6 +197,12 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
             StringSetMap map = new StringSetMap();
             map.put(snapshot.getStorageController().toString(), new StringSet(Arrays.asList(repGrpName)));
             cg.setSystemConsistencyGroups(map);
+            
+            StringSet types = new StringSet();
+            types.add(BlockConsistencyGroup.Types.LOCAL.name());
+            cg.setTypes(types);
+            cg.setRequestedTypes(types);
+            cg.setStorageController(snapshot.getStorageController());
 
             s_logger.info("Creating new BlockConsistencyGroup for ReplicationGroup {} with ID: {}",
                     groupInstance, cg.getId());

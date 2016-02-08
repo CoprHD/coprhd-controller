@@ -332,6 +332,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         return snapSession;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String label) {
         BlockSnapshot snapshot = new BlockSnapshot();
 
@@ -617,7 +621,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
+    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId, String deleteType) {
         throw APIException.methodNotAllowed.notSupported();
     }
 
@@ -668,5 +672,4 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 .getPlatformSpecificImplForSystem(srcSideBackendSystem);
         return snapSessionImpl;
     }
-
 }

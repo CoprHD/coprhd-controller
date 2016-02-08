@@ -87,6 +87,18 @@ public interface BlockSnapshotSessionApi {
                                                                     String newTargetsName);
 
     /**
+     * Prepare a ViPR BlockSnapshot instance for a new target to be created and
+     * linked to a block snapshot session.
+     * 
+     * @param sourceObj The snapshot source object.
+     * @param snapsetLabel The snapset label for snapshots in a group.
+     * @param instanceLabel The snapshot instance label.
+     *
+     * @return The prepared BlockSnapshot instance.
+     */
+    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String instanceLabel);
+
+    /**
      * Creates a new block snapshot session.
      * 
      * @param sourceObj A reference to the source object.
@@ -208,9 +220,10 @@ public interface BlockSnapshotSessionApi {
      * 
      * @param snapSession A reference to a BlockSnapshotSession instance.
      * @param snapSessionSourceObj A reference to the snapshot session source.
+     * @param deleteType The deletion type i.e, VIPR_ONLY or FULL.
      * @param taskId A unique task identifier.
      */
-    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId);
+    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId, String deleteType);
 
     /**
      * Get all BlockSnapshotSessions for the passed source.

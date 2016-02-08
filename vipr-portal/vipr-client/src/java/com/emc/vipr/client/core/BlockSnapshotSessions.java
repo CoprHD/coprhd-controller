@@ -11,7 +11,7 @@ import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
@@ -19,6 +19,7 @@ import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -62,7 +63,7 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
     public Task<BlockSnapshotSessionRestRep> getTask(URI id, URI taskId) {
         return doGetTask(id, taskId);
     }
-    
+
     /**
      * Begins creating a snapshot session (or snapshot sessions) of a given block volume by ID.
      * <p>
@@ -77,7 +78,7 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
     public Tasks<BlockSnapshotSessionRestRep> createForVolume(URI volumeId, SnapshotSessionCreateParam param) {
         return postTasks(param, getByVolumeUrl(), volumeId);
     }
-    
+
     /**
      * Lists the block snapshot sessions for a given block volume.
      * <p>
@@ -90,7 +91,7 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
     public List<NamedRelatedResourceRep> listByVolume(URI volumeId) {
         return getList(getByVolumeUrl(), volumeId);
     }
-            
+
     /**
      * Gets the block snapshot sessions for a given block volume.
      * 
@@ -137,9 +138,9 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
     public Tasks<BlockSnapshotSessionRestRep> linkTargets(URI snapshotSessionId, SnapshotSessionLinkTargetsParam linkTargetsParam) {
         return postTasks(linkTargetsParam, getIdUrl() + "/link-targets", snapshotSessionId);
     }
-    
+
     /**
-     * Re-link a target to either it's current snapshot session or to a different 
+     * Re-link a target to either it's current snapshot session or to a different
      * snapshot session of the same source.
      * <p>
      * API Call: <tt>POST /block/snapshot-sessions/{id}/relink-targets</tt>
@@ -154,9 +155,9 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
     public Tasks<BlockSnapshotSessionRestRep> relinkTargets(URI snapshotSessionId, SnapshotSessionRelinkTargetsParam relinkTargetsParam) {
         return postTasks(relinkTargetsParam, getIdUrl() + "/relink-targets", snapshotSessionId);
     }
-    
+
     /**
-     * Unlink target volumes from an existing BlockSnapshotSession instance and 
+     * Unlink target volumes from an existing BlockSnapshotSession instance and
      * optionally delete those target volumes.
      * <p>
      * API Call: <tt>POST /block/snapshot-sessions/{id}/unlink-targets</tt>
@@ -171,7 +172,7 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
     public Tasks<BlockSnapshotSessionRestRep> unlinkTargets(URI snapshotSessionId, SnapshotSessionUnlinkTargetsParam unlinkTargetsParam) {
         return postTasks(unlinkTargetsParam, getIdUrl() + "/unlink-targets", snapshotSessionId);
     }
-    
+
     /**
      * Restores the data on the array snapshot point-in-time copy represented by the
      * BlockSnapshotSession instance with the passed id, to the snapshot session source
@@ -187,7 +188,7 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
     public Task<BlockSnapshotSessionRestRep> restore(URI id) {
         return postTask(getIdUrl() + "/restore", id);
     }
-    
+
     /**
      * Begins deactivating a given block snapshot session by ID.
      * <p>
@@ -195,12 +196,17 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * 
      * @param id
      *            the ID of the snapshot session to deactivate.
+     * @param type
+     *            {@code FULL} or {@code VIPR_ONLY}
+     * 
      * @return a task for monitoring the progress of the operation.
      */
-    public Tasks<BlockSnapshotSessionRestRep> deactivate(URI id) {
-        return doDeactivateWithTasks(id);
+    public Tasks<BlockSnapshotSessionRestRep> deactivate(URI id, VolumeDeleteTypeEnum type) {
+        URI uri = client.uriBuilder(getDeactivateUrl()).queryParam("type", type).build(id);
+        TaskList tasks = client.postURI(TaskList.class, uri);
+        return new Tasks<>(client, tasks.getTaskList(), resourceClass);
     }
-    
+
     /**
      * Gets a list of block snapshot session references from the given URL (path + args).
      * 
@@ -214,7 +220,7 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
         BlockSnapshotSessionList response = client.get(BlockSnapshotSessionList.class, path, args);
         return defaultList(response.getSnapSessionRelatedResourceList());
     }
-    
+
     /**
      * Gets the URL for looking up block snapshot sessions by volume: <tt>/block/volumes/{volumeId}/protection/snapshot-sessions</tt>
      * 

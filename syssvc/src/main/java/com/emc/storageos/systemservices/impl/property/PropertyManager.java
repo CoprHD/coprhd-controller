@@ -33,7 +33,6 @@ public class PropertyManager extends AbstractManager {
 
     // local and target info properties
     private PropertyInfoExt targetPropInfo;
-    private PropertyInfoExt localNodePropInfo;
     private PropertyInfoExt localTargetPropInfo;
     private String localConfigVersion;
 
@@ -163,33 +162,6 @@ public class PropertyManager extends AbstractManager {
     }
 
     /**
-     * Get node scope properties
-     * UpgradeManager will publish the node scope properties as node information into coordinator
-     * Node scope properties are invariants.
-     * 
-     * We check to see if a property is in metadata or not.
-     * If it is, it is a target property; If not, it is a local property
-     * 
-     * @param localPropInfo local property info read from /etc/config.properties
-     * @return node scope properties
-     */
-    private PropertyInfoExt getNodeScopeProperties(final PropertyInfoExt localPropInfo) {
-        Map<String, PropertyMetadata> metadata = PropertiesMetadata.getGlobalMetadata();
-        PropertyInfoExt localScopeProps = new PropertyInfoExt();
-
-        for (Entry<String, String> entry : localPropInfo.getAllProperties().entrySet()) {
-            final String key = entry.getKey();
-            final String value = entry.getValue();
-
-            if (!metadata.containsKey(key)) {
-                localScopeProps.addProperty(key, value);
-            }
-        }
-
-        return localScopeProps;
-    }
-
-    /**
      * Get local target property info
      * 
      * For control node, properties that can be found in metadata are target properties
@@ -257,15 +229,6 @@ public class PropertyManager extends AbstractManager {
         }
         coordinator.setNodeSessionScopeInfo(new ConfigVersion(localConfigVersion));
         log.info("Step1a: Local config version: {}", localConfigVersion);
-        // set node scope properties for the 1st time only since they are invariants.
-        localNodePropInfo = coordinator.getNodeGlobalScopeInfo(PropertyInfoExt.class, "propertyinfo", svcId);
-        // The PropertyInfoExt object will be persisted in the zookeeper path config/propertyinfo/(svcId)
-        if (localNodePropInfo == null) {
-            localNodePropInfo = getNodeScopeProperties(localPropInfo);
-            coordinator.setNodeGlobalScopeInfo(localNodePropInfo, "propertyinfo", svcId);
-            // The PropertyInfoExt object can be fetched from the zookeeper path config/propertyinfo/(svcId)
-            log.info("Step1a: Local node scope properties: {}", localNodePropInfo);
-        }
         // get local target property info
         localTargetPropInfo = getLocalTargetPropInfo(localPropInfo);
         log.debug("Step1a: Local target properties: {}", localTargetPropInfo);

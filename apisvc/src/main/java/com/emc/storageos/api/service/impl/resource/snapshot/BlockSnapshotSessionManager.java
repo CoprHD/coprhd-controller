@@ -65,6 +65,7 @@ import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -701,11 +702,12 @@ public class BlockSnapshotSessionManager {
      * Delete the snapshot session with the passed URI.
      * 
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * @param deleteType The deletion type i.e, VIPR_ONLY or FULL
      * 
      * @return TaskResourceRep representing the snapshot session task.
      */
-    public TaskList deleteSnapshotSession(URI snapSessionURI) {
-        s_logger.info("START delete snapshot session {}", snapSessionURI);
+    public TaskList deleteSnapshotSession(URI snapSessionURI, String deleteType) {
+        s_logger.info("START delete snapshot session {} of type {}", snapSessionURI, deleteType);
 
         // Get the snapshot session.
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
@@ -739,7 +741,7 @@ public class BlockSnapshotSessionManager {
 
         // Delete the snapshot session.
         try {
-            snapSessionApiImpl.deleteSnapshotSession(snapSession, snapSessionSourceObj, taskId);
+            snapSessionApiImpl.deleteSnapshotSession(snapSession, snapSessionSourceObj, taskId, deleteType);
         } catch (Exception e) {
             String errorMsg = format("Failed to delete snapshot session %s: %s", snapSessionURI, e.getMessage());
             ServiceCoded sc = null;
@@ -753,8 +755,9 @@ public class BlockSnapshotSessionManager {
         }
 
         // Create the audit log entry.
-        auditOp(OperationTypeEnum.DELETE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN,
-                snapSessionURI.toString(), snapSessionSourceObj.getId().toString(), snapSessionSourceObj.getStorageController().toString());
+        String opStage = VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType) ? null : AuditLogManager.AUDITOP_BEGIN;
+        auditOp(OperationTypeEnum.DELETE_SNAPSHOT_SESSION, true, opStage, snapSessionURI.toString(),
+                snapSessionURI.toString(), snapSessionSourceObj.getStorageController().toString());
 
         s_logger.info("FINISH delete snapshot session {}", snapSessionURI);
 

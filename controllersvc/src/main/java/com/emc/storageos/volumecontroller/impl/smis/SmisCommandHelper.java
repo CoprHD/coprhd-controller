@@ -2379,7 +2379,7 @@ public class SmisCommandHelper implements SmisConstants {
             if (e.getMessage().contains("is already set to the requested state")) {
                 _log.info("Found the volume was already in the proper RecoverPoint tag state");
                 tagSet = true;
-            } else {
+            } else {                
                 _log.error(String.format("Encountered an error while trying to %s the RecoverPoint tag", tag ? "enable" : "disable"), e);
             }
         }
@@ -2400,6 +2400,11 @@ public class SmisCommandHelper implements SmisConstants {
         final int MAX_WAIT_RETRY_MILLISECONDS = 5000;
         int setTagTries = MAX_WAIT_TOTAL_TRIES;
         boolean tagSet = false; // set to true to stay in the loop
+        if (storage.checkIfVmax3()) {
+            _log.error("Unable to set RecoverPoint Tag for VMAX V3 and beyond");
+            return tagSet;
+        }
+        
         while (!tagSet && setTagTries-- > 0) {
             if ((MAX_WAIT_TOTAL_TRIES - setTagTries) != 1) {
                 _log.info("Briefly sleeping before attempting to set RecoverPoint tag (Attempt #{} / {})", MAX_WAIT_TOTAL_TRIES

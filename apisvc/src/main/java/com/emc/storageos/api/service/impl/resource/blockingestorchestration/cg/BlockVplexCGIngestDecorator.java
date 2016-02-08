@@ -65,7 +65,7 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
             // Look through the existing entries in the CG and see if we find a match.
             for (Entry<String, AbstractChangeTrackingSet<String>> systemCGEntry : systemCGs.entrySet()) {
                 if (systemCGEntry.getKey().equalsIgnoreCase(blockObj.getStorageController().toString())) {
-                    if (systemCGEntry.getValue().contains(blockObj.getReplicationGroupInstance())) {
+                    if (checkIfCGNameAlreadyExists(systemCGEntry.getValue(), blockObj.getReplicationGroupInstance())) {
                         logger.info(String.format("Found BlockObject %s,%s system details in cg %s", blockObj.getNativeGuid(),
                                 blockObj.getReplicationGroupInstance(), cg.getLabel()));
                         found = true;
@@ -105,6 +105,26 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
             }
         }
         return cgVplexAssocBlockObjects;
+    }
+
+    /**
+     * This utility verifies whether cg Name already exists in the list or not.
+     * 
+     * Since VPLEX Ingestion already populates the cluster & cg name, we don't need to add again here.
+     * 
+     * @param cgExistingNamesSet
+     * @param replicationGroupInstance
+     * @return
+     */
+    private boolean checkIfCGNameAlreadyExists(AbstractChangeTrackingSet<String> cgExistingNamesSet, String replicationGroupInstance) {
+        if (null != cgExistingNamesSet && !cgExistingNamesSet.isEmpty()) {
+            for (String existingCgName : cgExistingNamesSet) {
+                if (existingCgName.contains(replicationGroupInstance)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override

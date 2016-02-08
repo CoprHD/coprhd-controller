@@ -85,6 +85,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
@@ -309,12 +310,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // work flow fail
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
-            updateTaskStatus(opId, fileObject, e);
             if ((fsObj != null) && (storageObj != null)) {
                 fsObj.setInactive(true);
                 _dbClient.persistObject(fsObj);
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, false, e.getMessage(), "", fsObj, storageObj);
             }
+            updateTaskStatus(opId, fileObject, e);
         }
     }
 
@@ -3426,7 +3427,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         getDeviceType(descriptor.getDeviceURI()),
                         this.getClass(),
                         createFileSharesMethod(descriptor),
-                        rollbackCreateFileSharesMethod(descriptor.getDeviceURI(), asList(fsObjSource.getId())), null);
+                        rollbackMethodNullMethod(), null);
             }
             // create TargetFileystems
             List<FileDescriptor> targetDescriptors = FileDescriptor.filterByType(filesystems,
@@ -3558,7 +3559,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             WorkflowStepCompleter.stepExecuting(opId);
             for (URI fileshareId : fileURIs) {
                 FileShare fsObj = _dbClient.queryObject(FileShare.class, fileshareId);
-                this.delete(fsObj.getStorageDevice(), fsObj.getPool(), fsObj.getId(),
+                this.delete(systemURI, fsObj.getPool(), fsObj.getId(),
                         false, FileControllerConstants.DeleteTypeEnum.FULL.toString(), opId);
             }
             WorkflowStepCompleter.stepSucceded(opId);
@@ -3786,5 +3787,34 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             updateTaskStatus(opId, fs, e);
         }
+    }
+
+    /**
+     * A rollback workflow method that does nothing, but allows rollback
+     * to continue to prior steps back up the workflow chain. Can be and is
+     * used in workflows in other controllers that invoke operations on this
+     * block controller. If the block operation happens to fail, this no-op
+     * rollback method is invoked. It says the rollback step succeeded,
+     * which will then allow other rollback operations to execute for other
+     * workflow steps executed by the other controller.
+     * 
+     * @param stepId The id of the step being rolled back.
+     * 
+     * @throws WorkflowException
+     */
+    public void rollbackMethodNull(String stepId) throws WorkflowException {
+        WorkflowStepCompleter.stepSucceded(stepId);
+    }
+
+    private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
+
+    /**
+     * Creates a rollback workflow method that does nothing, but allows rollback
+     * to continue to prior steps back up the workflow chain.
+     * 
+     * @return A workflow method
+     */
+    Workflow.Method rollbackMethodNullMethod() {
+        return new Workflow.Method(ROLLBACK_METHOD_NULL);
     }
 }

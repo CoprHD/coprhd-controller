@@ -224,6 +224,7 @@ public class PlacementTestUtils {
         VPlexScheduler vplexScheduler = new VPlexScheduler();
         vplexScheduler.setDbClient(dbClient);
         vplexScheduler.setBlockScheduler(storageScheduler);
+        vplexScheduler.setPlacementManager(placementManager);
         PermissionsHelper permHelperVplex = new PermissionsHelper(dbClient);
         vplexScheduler._permissionsHelper = permHelperVplex;
 

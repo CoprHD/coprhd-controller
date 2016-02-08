@@ -2850,7 +2850,7 @@ public class RecoverPointScheduler implements Scheduler {
                 if (journalRec.getInternalSiteName().equals(internalSiteName)) {
                     StoragePool existingTargetPool = dbClient.queryObject(StoragePool.class, journalRec.getSourceStoragePool());
                     int count = Math.abs((int) (existingTargetPool.getFreeCapacity() / (sizeInKB)));
-                    _log.info(String.format("%nRP Placement : # of resources of size %dGB that pool %s can accomodate: %s%n",
+                    _log.info(String.format("%nRP Placement : # of resources of size %fGB that pool %s can accomodate: %s%n",
                             SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB), existingTargetPool.getLabel(), count));
                     if (count >= requestedCount + journalRec.getResourceCount()) {
                         recommendations.add(journalRec);

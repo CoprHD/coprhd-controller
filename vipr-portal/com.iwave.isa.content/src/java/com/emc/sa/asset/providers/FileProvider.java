@@ -355,8 +355,8 @@ public class FileProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         
         List<NamedRelatedResourceRep> mirrors = client.fileSystems().getFileContinuousCopies(fileId);
-        for (NamedRelatedResourceRep m : mirrors) {
-            FileShareRestRep fileShare = client.fileSystems().get(m.getId());
+        for (NamedRelatedResourceRep mirror : mirrors) {
+            FileShareRestRep fileShare = client.fileSystems().get(mirror.getId());
             options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
         }
         

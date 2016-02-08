@@ -29,6 +29,7 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
+import com.emc.storageos.model.property.PropertyConstants;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -476,7 +477,19 @@ public class BackupOps {
     /**
      * Persist download status to ZK
      */
-    public void setRestoreStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long increasedSize,
+    public void setBackupFileSize(String backupName, long size) {
+        updateRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, size, 0, false, true, true);
+    }
+
+    public void setRestoreStatus(String backupName, BackupRestoreStatus.Status s, boolean increaseCompleteNumber) {
+        updateRestoreStatus(backupName, s, 0, 0, increaseCompleteNumber, false, true);
+    }
+
+    public void updateDownloadSize(String backupName, long size) {
+        updateRestoreStatus(backupName, null, 0, size, false, false, false);
+    }
+
+    private void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long increasedSize,
                                               boolean increaseCompletedNodeNumber, boolean resetCompletedNumber, boolean doLog) {
         InterProcessLock lock = null;
         try {
@@ -638,7 +651,7 @@ public class BackupOps {
         }
 
         if (!isLocal) {
-            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, 0, 0, false, false, true);
+            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, false);
             log.info("Persist the cancel flag into ZK");
         }
     }
@@ -1295,7 +1308,7 @@ public class BackupOps {
         util.setCoordinator(coordinatorClient);
         Site localSite = util.getLocalSite();
         Map<String, String> addresses = localSite.getHostIPv4AddressMap();
-        if (addresses.isEmpty()) {
+        if (!localSite.isUsingIpv4()) {
             addresses = localSite.getHostIPv6AddressMap();
         }
 

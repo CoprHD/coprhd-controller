@@ -973,6 +973,8 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     var LOGS_JSON = routes.SystemHealth_logsJson();
     var APPLY_FILTER = routes.SystemHealth_logs();
     var DOWNLOAD_LOGS = routes.SystemHealth_download();
+    var DEFAULT_DOWNLOAD_SEVERITY = '8';
+    var DEFAULT_DOWNLOAD_ORDER_TYPES = 'ALL';
     var SEVERITIES = {
         '4': 'ERROR',
         '5': 'WARN',
@@ -1044,6 +1046,8 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 $scope.filterDialog.endTime = new Date().getTime();                
                 $scope.filterDialog.endTime_date = getDate($scope.filterDialog.endTime);
                 $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);
+                $scope.filterDialog.severity = DEFAULT_DOWNLOAD_SEVERITY;
+                $scope.filterDialog.orderTypes = DEFAULT_DOWNLOAD_ORDER_TYPES;
             }
             $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
             $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);

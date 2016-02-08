@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -116,7 +117,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
     /**
      * Record FileShare related event and audit
-     *
+     * 
      * @param dbClient db client
      * @param opType operation type
      * @param status operation status
@@ -144,6 +145,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
                 case STOP_FILE_MIRROR:
                 case FAILBACK_FILE_MIRROR:
                 case RESYNC_FILE_MIRROR:
+                case REFRESH_FILE_MIRROR:
                     auditFile(dbClient, opType, opStatus, opStage, extParam);
                     break;
 
@@ -158,7 +160,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
     /**
      * Record audit log for file service
-     *
+     * 
      * @param auditType Type of AuditLog
      * @param operationalStatus Status of operation
      * @param description Description for the AuditLog
@@ -168,7 +170,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
             boolean operationalStatus,
             String description,
             Object... descparams) {
-        AuditLogManager auditMgr = new AuditLogManager();
+        AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
         auditMgr.setDbClient(dbClient);
         auditMgr.recordAuditLog(null, null,
                 EVENT_SERVICE_TYPE,
@@ -180,7 +182,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
     }
 
     /**
-     *
+     * 
      * @param dbClient
      * @param evtType
      * @param status
@@ -266,7 +268,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
             } else {
                 return FileShare.FileAccessState.READWRITE;
             }
-        } else if (fs.getPersonality().equals(FileShare.PersonalityTypes.SOURCE.toString())
+        } else if (fs.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())
                 && !fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
             // A target fileshare in any state other than FAILED_OVER is write-disabled or not-ready.
             return FileShare.FileAccessState.NOT_READY;

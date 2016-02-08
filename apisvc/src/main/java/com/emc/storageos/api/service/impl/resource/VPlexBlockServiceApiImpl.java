@@ -92,12 +92,14 @@ import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVol
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -567,45 +569,102 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public TaskList deactivateMirror(StorageSystem vplexStorageSystem, URI mirrorURI,
-            String taskId) {
-        VplexMirror mirror = _dbClient.queryObject(VplexMirror.class, mirrorURI);
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, mirror.getSource().getURI());
-        Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
-                ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, mirror.getId().toString());
-
+    public TaskList deactivateMirror(StorageSystem vplexStorageSystem, URI mirrorURI, String taskId, String deleteType) {
+        TaskList taskList = new TaskList();
         try {
-            List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
-            // Add a descriptor for each of the associated volumes.There will be only one associated volume
-            if (mirror.getAssociatedVolumes() != null) {
-                for (String assocVolId : mirror.getAssociatedVolumes()) {
-                    Volume assocVolume = _dbClient.queryObject(Volume.class, URI.create(assocVolId));
-                    if (assocVolume != null && !assocVolume.getInactive() && assocVolume.getNativeId() != null) {
-                        // In order to add descriptor for the the backend volumes that needs to be
-                        // deleted we are checking for volume nativeId as well, because its possible
-                        // that we were not able to create backend volume due to SMIS communication
-                        // and rollback didn't clean up VplexMirror and its associated volumes in
-                        // database. So in such a case nativeId will be null and we just want to skip
-                        // sending this volume to SMIS, else it fails with null reference when user
-                        // attempts to cleanup this failed mirror.
-                        VolumeDescriptor assocDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                                assocVolume.getStorageController(), assocVolume.getId(), null, null);
-                        descriptors.add(assocDesc);
+            VplexMirror mirror = _dbClient.queryObject(VplexMirror.class, mirrorURI);
+            Volume sourceVolume = _dbClient.queryObject(Volume.class, mirror.getSource().getURI());
+            Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
+                    ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, mirror.getId().toString());
+            taskList.getTaskList().add(toTask(sourceVolume, Arrays.asList(mirror), taskId, op));
+
+            if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
+                s_logger.info("Perform ViPR-only delete for VPLEX mirrors %s", mirrorURI);
+
+                // Perform any database cleanup that is required.
+                cleanupForViPROnlyMirrorDelete(Arrays.asList(mirrorURI));
+
+                // Mark them inactive.
+                _dbClient.markForDeletion(_dbClient.queryObject(VplexMirror.class, mirrorURI));
+
+                // We must get the volume from the DB again, to properly update the status.
+                sourceVolume = _dbClient.queryObject(Volume.class, mirror.getSource().getURI());
+                op = sourceVolume.getOpStatus().get(taskId);
+                op.ready("VPLEX continuous copy succesfully deleted from ViPR");
+                sourceVolume.getOpStatus().updateTaskStatus(taskId, op);
+                _dbClient.updateObject(sourceVolume);
+            } else {
+                List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+                // Add a descriptor for each of the associated volumes.There will be only one associated volume
+                if (mirror.getAssociatedVolumes() != null) {
+                    for (String assocVolId : mirror.getAssociatedVolumes()) {
+                        Volume assocVolume = _dbClient.queryObject(Volume.class, URI.create(assocVolId));
+                        if (assocVolume != null && !assocVolume.getInactive() && assocVolume.getNativeId() != null) {
+                            // In order to add descriptor for the the backend volumes that needs to be
+                            // deleted we are checking for volume nativeId as well, because its possible
+                            // that we were not able to create backend volume due to SMIS communication
+                            // and rollback didn't clean up VplexMirror and its associated volumes in
+                            // database. So in such a case nativeId will be null and we just want to skip
+                            // sending this volume to SMIS, else it fails with null reference when user
+                            // attempts to cleanup this failed mirror.
+                            VolumeDescriptor assocDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                                    assocVolume.getStorageController(), assocVolume.getId(), null, null);
+                            descriptors.add(assocDesc);
+                        }
                     }
                 }
-            }
 
-            VPlexController controller = getController();
-            controller.deactivateMirror(vplexStorageSystem.getId(), mirror.getId(), descriptors, taskId);
+                VPlexController controller = getController();
+                controller.deactivateMirror(vplexStorageSystem.getId(), mirror.getId(), descriptors, taskId);
+            }
         } catch (ControllerException e) {
-            String errorMsg = format("Failed to deactivate continuous copy %s", mirror.getId().toString());
+            String errorMsg = format("Failed to deactivate continuous copy %s: %s", mirrorURI.toString(), e.getMessage());
             s_logger.error(errorMsg, e);
-            _dbClient.error(Volume.class, mirror.getSource().getURI(), taskId, e);
+            for (TaskResourceRep taskResourceRep : taskList.getTaskList()) {
+                taskResourceRep.setState(Operation.Status.error.name());
+                taskResourceRep.setMessage(errorMsg);
+                _dbClient.error(Volume.class, taskResourceRep.getResource().getId(), taskId, e);
+            }
+        } catch (Exception e) {
+            String errorMsg = format("Failed to deactivate continuous copy %s: %s", mirrorURI.toString(), e.getMessage());
+            s_logger.error(errorMsg, e);
+            ServiceCoded sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
+            for (TaskResourceRep taskResourceRep : taskList.getTaskList()) {
+                taskResourceRep.setState(Operation.Status.error.name());
+                taskResourceRep.setMessage(sc.getMessage());
+                _dbClient.error(Volume.class, taskResourceRep.getResource().getId(), taskId, sc);
+            }
         }
 
-        TaskList taskList = new TaskList();
-        taskList.getTaskList().add(toTask(sourceVolume, Arrays.asList(mirror), taskId, op));
         return taskList;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void cleanupForViPROnlyMirrorDelete(List<URI> mirrorURIs) {
+        // We need to mark the associated volume inactive.
+        List<Volume> associatedVolumes = new ArrayList<Volume>();
+        for (URI mirrorURI : mirrorURIs) {
+            VplexMirror mirror = _dbClient.queryObject(VplexMirror.class, mirrorURI);
+            if (mirror.getAssociatedVolumes() != null) {
+                for (String assocVolumeId : mirror.getAssociatedVolumes()) {
+                    URI assocVolumeURI = URI.create(assocVolumeId);
+
+                    // Get the associated volume and add it to the list of associated
+                    // volumes to be marked inactive.
+                    Volume assocVolume = _dbClient.queryObject(Volume.class, assocVolumeURI);
+                    associatedVolumes.add(assocVolume);
+
+                    // Remove the associated volume form any export groups/masks.
+                    cleanBlockObjectFromExports(assocVolumeURI, true);
+                }
+            }
+        }
+
+        // Now mark all the associated volumes for deletion.
+        _dbClient.markForDeletion(associatedVolumes);
     }
 
     /**
@@ -836,7 +895,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Project vplexProject;
         if (vpool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_distributed.name())) {
             // Determine if the user requested a specific HA VirtualArray and an associated HA VirtualPool.
-            VirtualArray requestedHaNH = null;
+            VirtualArray requestedHaVarray = null;
             VirtualPool requestedHaVirtualPool = vpool;
             try {
                 if (vpool.getHaVarrayVpoolMap() != null && !vpool.getHaVarrayVpoolMap().isEmpty()) {
@@ -844,7 +903,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         if (haNH.equals(NullColumnValueGetter.getNullURI().toString())) {
                             continue;
                         }
-                        requestedHaNH = _dbClient.queryObject(VirtualArray.class, new URI(haNH));
+                        requestedHaVarray = _dbClient.queryObject(VirtualArray.class, new URI(haNH));
                         String haVirtualPool = vpool.getHaVarrayVpoolMap().get(haNH);
                         if (haVirtualPool.equals(NullColumnValueGetter.getNullURI().toString())) {
                             continue;
@@ -864,10 +923,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             // Get the recommendations and pick one.
             List<Recommendation> recommendations = getBlockScheduler().scheduleStorageForImport(
-                    neighborhood, vplexes, requestedHaNH, requestedHaVirtualPool, cosCapabilities);
+                    neighborhood, vplexes, requestedHaVarray, requestedHaVirtualPool, cosCapabilities);
             if (recommendations.isEmpty()) {
-                throw APIException.badRequests.noStorageFoundForVolumeMigration(requestedHaVirtualPool.getId(),
-                        requestedHaNH.getId(), importVolume.getId());
+                throw APIException.badRequests.noStorageFoundForVolumeMigration(requestedHaVirtualPool.getLabel(),
+                        requestedHaVarray.getLabel(), importVolume.getId());
             }
 
             Recommendation recommendation = recommendations.get(0);
@@ -922,7 +981,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VPlexController controller = getController();
             controller.importVolume(vplexURI, descriptors, vplexProject.getId(),
                     vplexProject.getTenantOrg().getURI(), vpool.getId(),
-                    importVolume.getLabel() + SRC_BACKEND_VOL_LABEL_SUFFIX, taskId);
+                    importVolume.getLabel() + SRC_BACKEND_VOL_LABEL_SUFFIX, null, taskId);
         } catch (InternalException ex) {
             s_logger.error("ControllerException on importVolume", ex);
             String errMsg = String.format("ControllerException: %s", ex.getMessage());
@@ -945,7 +1004,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param taskId
      * @throws InternalException
      */
-    private void upgradeToDistributed(URI vplexURI, Volume vplexVolume, VirtualPool vpool,
+    private void upgradeToDistributed(URI vplexURI, Volume vplexVolume, VirtualPool vpool, String transferSpeed,
             String taskId) throws InternalException {
         try {
             VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class,
@@ -969,14 +1028,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
             Volume createVolume = null;
             // Determine if the user requested a specific HA VirtualArray and an associated HA VirtualPool.
-            VirtualArray requestedHaNH = null;
+            VirtualArray requestedHaVarray = null;
             VirtualPool requestedHaVirtualPool = vpool;
             if (vpool.getHaVarrayVpoolMap() != null && !vpool.getHaVarrayVpoolMap().isEmpty()) {
                 for (String haNH : vpool.getHaVarrayVpoolMap().keySet()) {
                     if (haNH.equals(NullColumnValueGetter.getNullURI().toString())) {
                         continue;
                     }
-                    requestedHaNH = _dbClient.queryObject(VirtualArray.class, new URI(haNH));
+                    requestedHaVarray = _dbClient.queryObject(VirtualArray.class, new URI(haNH));
                     String haVirtualPool = vpool.getHaVarrayVpoolMap().get(haNH);
                     if (haVirtualPool.equals(NullColumnValueGetter.getNullURI().toString())) {
                         continue;
@@ -988,11 +1047,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             // Get the recommendations and pick one.
             List<Recommendation> recommendations = getBlockScheduler().scheduleStorageForImport(neighborhood, vplexes,
-                    requestedHaNH, requestedHaVirtualPool, cosCapabilities);
+                    requestedHaVarray, requestedHaVirtualPool, cosCapabilities);
 
             if (recommendations.isEmpty()) {
-                throw APIException.badRequests.noStorageFoundForVolumeMigration(requestedHaVirtualPool.getId(),
-                        requestedHaNH.getId(), existingVolume.getId());
+                throw APIException.badRequests.noStorageFoundForVolumeMigration(requestedHaVirtualPool.getLabel(),
+                        requestedHaVarray.getLabel(), existingVolume.getId());
             }
 
             Recommendation recommendation = recommendations.get(0);
@@ -1024,7 +1083,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             try {
                 s_logger.info("Calling VPlex controller.");
                 VPlexController controller = getController();
-                controller.importVolume(vplexURI, descriptors, null, null, vpool.getId(), null, taskId);
+                controller.importVolume(vplexURI, descriptors, null, null, vpool.getId(), null, transferSpeed, taskId);
                 // controller.importVolume(vplexURI, vpool.getId(),
                 // null, null, /* no need to pass System Project/Tenant */
                 // null, /* no import volume */
@@ -1101,6 +1160,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         s_logger.info("Volume {} VirtualPool change.", volume.getId());
 
+        String transferSpeed = null; 
         ArrayList<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
 
@@ -1119,8 +1179,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         } else {
             if (VirtualPoolChangeAnalyzer.isVPlexConvertToDistributed(volumeVirtualPool, vpool,
                     new StringBuffer())) {
+            	if (vpoolChangeParam.getTransferSpeedParam() != null) {
+            		transferSpeed = vpoolChangeParam.getTransferSpeedParam();
+            		s_logger.info("Coversion of volume from vplex local to distributed will use the provided transfer speed {}",transferSpeed);
+            	}
                 // Convert vplex_local to vplex_distributed
-                upgradeToDistributed(systemURI, volume, vpool, taskId);
+                upgradeToDistributed(systemURI, volume, vpool, transferSpeed, taskId);
             } else if (!VirtualPool.vPoolSpecifiesMirrors(volumeVirtualPool, _dbClient)
                     && (VirtualPool.vPoolSpecifiesMirrors(vpool, _dbClient))
                     && VirtualPoolChangeAnalyzer.isSupportedAddMirrorsVirtualPoolChange(volume, volumeVirtualPool, vpool, _dbClient,
@@ -1505,7 +1569,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         List<Recommendation> recommendations = getBlockScheduler().scheduleStorage(
                 varray, requestedVPlexSystems, null, vpool, false, null, null, cosWrapper);
         if (recommendations.isEmpty()) {
-            throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getId(), varray.getId(), sourceVolumeURI);
+            throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
         }
         s_logger.info("Got recommendation");
 
@@ -1642,7 +1706,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             recommendations = getBlockScheduler().scheduleStorage(
                     varray, requestedVPlexSystems, null, vpool, false, null, null, capabilities);
             if (recommendations.isEmpty()) {
-                throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getId(), varray.getId(), sourceVolumeURI);
+                throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
             }
             s_logger.info("Got recommendation");
         }
@@ -3358,19 +3422,23 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
-        String snapshotNativeGuid = snapshot.getNativeGuid();
-        List<Volume> volumesWithSameNativeGuid = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid);
-        if (!volumesWithSameNativeGuid.isEmpty()) {
-            // There should only be one and it should be a backend volume for
-            // a VPLEX volume.
-            List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
-                    _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
-                            volumesWithSameNativeGuid.get(0).getId().toString()));
-            throw APIException.badRequests
-                    .cantDeleteSnapshotExposedByVolume(snapshot.getLabel().toString(), vplexVolumes.get(0).getLabel());
+    public void deleteSnapshot(BlockSnapshot requestedSnapshot, List<BlockSnapshot> allSnapshots, String taskId, String deleteType) {
+        if (!VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
+            for (BlockSnapshot snapshot : allSnapshots) {
+                String snapshotNativeGuid = snapshot.getNativeGuid();
+                List<Volume> volumesWithSameNativeGuid = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid);
+                if (!volumesWithSameNativeGuid.isEmpty()) {
+                    // There should only be one and it should be a backend volume for
+                    // a VPLEX volume.
+                    List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
+                            _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
+                                    volumesWithSameNativeGuid.get(0).getId().toString()));
+                    throw APIException.badRequests
+                            .cantDeleteSnapshotExposedByVolume(snapshot.getLabel().toString(), vplexVolumes.get(0).getLabel());
+                }
+            }
         }
-        super.deleteSnapshot(snapshot, taskId);
+        super.deleteSnapshot(requestedSnapshot, allSnapshots, taskId, deleteType);
     }
 
     /**

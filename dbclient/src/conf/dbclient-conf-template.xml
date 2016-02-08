@@ -4,6 +4,8 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
     
     <import resource="classpath:coordinatorclient-var.xml"/>
+    <!-- Need access to storageDriverManager bean -->
+    <import resource="classpath:driver-conf.xml"/>
 
     <bean id="dbclientcontext" class="com.emc.storageos.db.client.impl.DbClientContext">
     	<property name="clusterName" value="StorageOS"/>

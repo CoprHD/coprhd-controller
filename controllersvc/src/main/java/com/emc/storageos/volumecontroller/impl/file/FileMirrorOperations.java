@@ -113,4 +113,16 @@ public interface FileMirrorOperations {
      */
     void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
 
+    /**
+     * Refresh Mirror State of a filesystem
+     * 
+     * @param storage
+     * @param source
+     * @param target
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    void refreshMirrorFileShareLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer)
+            throws DeviceControllerException;
+
 }

@@ -1099,8 +1099,32 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doModifyFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-        return null; // To change body of implemented methods use File |
-        // Settings | File Templates.
+        try {
+            _log.info("IsilonFileStorageDevice doModifyFS {} - start", args.getFsId());
+            IsilonApi isi = getIsilonDevice(storage);
+            String quotaId = null;
+            if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
+                quotaId = args.getFsExtensions().get(QUOTA);
+            } else {
+                final ServiceError serviceError = DeviceControllerErrors.isilon.unableToUpdateFileSystem(args.getFsId());
+                _log.error(serviceError.getMessage());
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
+
+            IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, args.getFsCapacity());
+            isi.modifyQuota(quotaId, expandedQuota);
+            _log.info("IsilonFileStorageDevice doModifyFS {} - complete", args.getFsId());
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            _log.error("doModifyFS failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        } catch (Exception e) {
+            _log.error("doModifyFS failed.", e);
+            // convert this to a ServiceError and create/or reuse a service
+            // code
+            ServiceError serviceError = DeviceControllerErrors.isilon.unableToUpdateFileSystem(args.getFsId());
+            return BiosCommandResult.createErrorResult(serviceError);
+        }
     }
 
     @Override
@@ -2309,6 +2333,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
+    public void doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
+        mirrorOperations.refreshMirrorFileShareLink(system, source, target, completer);
+    }
+
+    @Override
     public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         mirrorOperations.stopMirrorFileShareLink(system, target, completer);
     }
@@ -2346,7 +2375,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
-
     }
 
     @Override
@@ -2423,11 +2451,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
-    private Integer getSnapshotExpireValue(SchedulePolicy expireParam) {
+    private Integer getSnapshotExpireValue(SchedulePolicy schedulePolicy) {
         Long seconds = 0L;
-        if (expireParam != null) {
-            Long expireValue = expireParam.getSnapshotExpireTime();
-            SnapshotExpireType expireType = SnapshotExpireType.valueOf(expireParam.getSnapshotExpireType().toUpperCase());
+        String snapshotExpire = schedulePolicy.getSnapshotExpireType();
+        if (snapshotExpire != null && !snapshotExpire.isEmpty()) {
+            Long expireValue = schedulePolicy.getSnapshotExpireTime();
+            SnapshotExpireType expireType = SnapshotExpireType.valueOf(snapshotExpire.toUpperCase());
             switch (expireType) {
                 case HOURS:
                     seconds = TimeUnit.HOURS.toSeconds(expireValue);
@@ -2446,11 +2475,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 default:
                     _log.error("Not a valid expire type: " + expireType);
                     return null;
-
             }
         }
         return seconds.intValue();
-
     }
 
 }

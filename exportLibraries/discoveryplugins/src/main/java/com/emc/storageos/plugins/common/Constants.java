@@ -298,4 +298,6 @@ public class Constants {
 
     public static final String WORKLOAD = "Workload";
     public static final String SLO_NAMES = "SLONames";
+    public static final String EXTERNALDEVICE = "externaldevice";
+
 }

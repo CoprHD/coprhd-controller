@@ -1175,22 +1175,50 @@ public class FileService extends TaskResourceService {
         // check file System
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        Long newFSsize = getFileSystemSizeAfterValidation(id, param.getNewSize(), fs);
-        
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
+
+        Long newFSsize = SizeUtil.translateSize(param.getNewSize());
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        if (newFSsize <= 0) {
+            throw APIException.badRequests.parameterMustBeGreaterThan("new_size", 0);
+        }
+
+        // checkQuota
+        long expand = newFSsize - fs.getCapacity();
+
+        final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
+        if (expand < MIN_EXPAND_SIZE) {
+            throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
+        }
+
+        Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, expand, "filesystem");
 
         String task = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPAND_FILE_SYSTEM);
-        controller.expandFS(device.getId(), fs.getId(), newFSsize, task);
         op.setDescription("Filesystem expand");
-        auditOp(OperationTypeEnum.EXPAND_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), fs.getCapacity(), newFSsize);
+
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        try {
+            fileServiceApi.expandFileShare(fs, newFSsize, task);
+        } catch (InternalException e) {
+            if (_log.isErrorEnabled()) {
+                _log.error("Expand File Size error", e);
+            }
+
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
+            op = fs.getOpStatus().get(task);
+            op.error(e);
+            fileShare.getOpStatus().updateTaskStatus(task, op);
+            _dbClient.updateObject(fs);
+            throw e;
+        }
 
         return toTask(fs, task, op);
     }
+
     
     /**
      * Expand file system.
@@ -1254,29 +1282,6 @@ public class FileService extends TaskResourceService {
                 param.getSoftLimit(), param.getSoftGrace());
 
         return toTask(fs, task, op);
-    }
-
-    private Long getFileSystemSizeAfterValidation(URI id, String size, FileShare fs) {
-        Long newFSsize = SizeUtil.translateSize(size);
-        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
-        if (newFSsize <= 0) {
-            throw APIException.badRequests.parameterMustBeGreaterThan("new_size", 0);
-        }
-
-        // checkQuota
-        long expand = newFSsize - fs.getCapacity();
-
-        final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
-        if (expand < MIN_EXPAND_SIZE) {
-            throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
-        }
-
-        Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
-        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
-        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, expand, "filesystem");
-
-        return newFSsize;
     }
 
     /**

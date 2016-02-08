@@ -1131,9 +1131,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 return;
             }
             if (result.isCommandSuccess()) {
-                _log.info("FileSystem old capacity :" + args.getFsCapacity() + ":Expanded Size:" + args.getNewFSCapacity());
-                args.setFsCapacity(args.getNewFSCapacity());
-                _log.info("FileSystem new capacity :" + args.getFsCapacity());
+                _log.info("FileSystem updated " + " with Soft Limit: " + args.getFsSoftLimit() + ", Notification Limit: " 
+            + args.getFsNotificationLimit() + ", Soft Grace: " + args.getFsSoftGracePeriod());
             }
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
@@ -1144,7 +1143,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     result.isCommandSuccess(), eventMsg, "", fs);
         } catch (Exception e) {
             String[] params = { storage.toString(), fsuri.toString(), e.getMessage() };
-            _log.error("Unable to update file system: storage {}, FS URI {}, : {}", params);
+            _log.error("Unable to update file system: FS URI {}", fs.getId());
             updateTaskStatus(opId, fs, e);
             if (fs != null) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM, false, e.getMessage(), "", fs);
